@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlighter/flutter_highlighter.dart';
 import 'package:flutter_highlighter/themes/github.dart';
-import 'package:sidechain_flutter_test/rpc.dart';
+import 'package:sidesail/rpc.dart';
 
 class RpcWidget extends StatefulWidget {
   @override

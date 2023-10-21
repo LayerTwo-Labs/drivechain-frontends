@@ -5,7 +5,7 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = sidechain_flutter_test
+PRODUCT_NAME = sidesail
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = com.example.sidechainFlutterTest

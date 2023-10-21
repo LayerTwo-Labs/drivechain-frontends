@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "sidechain_flutter_test" "\0"
+            VALUE "FileDescription", "sidesail" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "sidechain_flutter_test" "\0"
+            VALUE "InternalName", "sidesail" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "sidechain_flutter_test.exe" "\0"
-            VALUE "ProductName", "sidechain_flutter_test" "\0"
+            VALUE "OriginalFilename", "sidesail.exe" "\0"
+            VALUE "ProductName", "sidesail" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

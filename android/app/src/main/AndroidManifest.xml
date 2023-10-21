@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.sidechain_flutter_test">
+    package="com.example.sidesail">
    <application
-        android:label="sidechain_flutter_test"
+        android:label="sidesail"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sidechain_flutter_test/rpc.dart';
+import 'package:sidesail/rpc.dart';
 
 Future<String> generateDepositAddress() async {
   var address =

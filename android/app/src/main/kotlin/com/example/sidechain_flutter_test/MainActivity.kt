@@ -1,4 +1,4 @@
-package com.example.sidechain_flutter_test
+package com.example.sidesail
 
 import io.flutter.embedding.android.FlutterActivity
 

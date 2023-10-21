@@ -2,15 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
-import 'package:sidechain_flutter_test/console.dart';
-import 'package:sidechain_flutter_test/deposit_address.dart';
-import 'package:sidechain_flutter_test/rpc.dart';
+import 'package:sidesail/console.dart';
+import 'package:sidesail/deposit_address.dart';
+import 'package:sidesail/rpc.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-const appName = 'sidechain-tbd';
+const appName = 'SideSail';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

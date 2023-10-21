@@ -1,16 +1,21 @@
-# sidechain_flutter_test
+# SideSail
 
-A new Flutter project.
+![SideSail logo](logo.png)
 
-## Getting Started
+<details>
 
-This project is a starting point for a Flutter application.
+<summary>ChatGPT logo prompt</summary>
 
-A few resources to get you started if this is your first Flutter project:
+<hidden>
+Clean logo emphasizing a sail with an embedded chain pattern. The design is minimalistic, utilizing cool blues, greys, and whites, with a slightly different shape for the sail.
+</hidden>
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+</details>
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+A work-in-progress sidechain UI.
+
+```shell
+# Choose macos, when prompted.
+# TOOD: how can this be specified from the command?
+$ flutter run
+```
