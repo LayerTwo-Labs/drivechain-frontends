@@ -64,28 +64,32 @@ class _MyHomePageState extends State<MyHomePage> {
       // Center is a layout widget. It takes a single child and positions it
       // in the middle of the parent.
       body: Center(
-          child: Column(
-        children: [
-          Row(
-            children: const [
-              Expanded(child: RpcWidget()),
-            ],
-          ),
-          Row(
-            children: [
-              DepositAddress(_depositAddress),
-              ElevatedButton(
-                  onPressed: () async {
-                    var address = await generateDepositAddress();
-                    setState(() {
-                      _depositAddress = address;
-                    });
-                  },
-                  child: const Text("Generate"))
-            ],
-          )
-        ],
-      )),
+        child: SizedBox(
+            width: 800,
+            child: Column(
+              children: [
+                Row(
+                  children: const [
+                    Expanded(child: RpcWidget()),
+                  ],
+                ),
+                Row(
+                  children: [
+                    DepositAddress(_depositAddress),
+                    ElevatedButton(
+                      onPressed: () async {
+                        var address = await generateDepositAddress();
+                        setState(() {
+                          _depositAddress = address;
+                        });
+                      },
+                      child: const Text("Generate"),
+                    ),
+                  ],
+                )
+              ],
+            )),
+      ),
     );
   }
 }

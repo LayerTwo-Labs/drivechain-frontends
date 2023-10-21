@@ -17,7 +17,7 @@ class RpcWidgetState extends State<RpcWidget> {
   final TextEditingController _textController = TextEditingController();
   dynamic _result;
   String _command = '';
-  String _error = '';
+  String? _error;
 
   Future<dynamic> _callRpc(String method) async {
     final start = DateTime.now();
@@ -38,7 +38,7 @@ class RpcWidgetState extends State<RpcWidget> {
       setState(() {
         _command = _textController.text;
         _result = res;
-        _error = '';
+        _error = null;
       });
     } catch (e) {
       setState(() {
@@ -69,9 +69,8 @@ class RpcWidgetState extends State<RpcWidget> {
               ),
             ],
           ),
-          _result != null
-              ? _JsonViewer(_result)
-              : Text('Error: $_command: $_error'),
+          if (_result != null) _JsonViewer(_result),
+          if (_error != null) Text('Error: $_command: $_error'),
         ],
       ),
     );
