@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sidesail/rpc.dart';
 
 Future<String> generateDepositAddress() async {
@@ -25,8 +26,20 @@ class DepositAddress extends StatelessWidget {
       child: Column(children: [
         Row(
           children: [
-            Text(
-              'Deposit to this address from the mainchain: $address',
+            const Text(
+              'Deposit to this address from the mainchain: ',
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: address));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text("Copied address"),
+                ));
+              },
+              child: Text(
+                address,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
