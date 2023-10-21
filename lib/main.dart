@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sidesail/console.dart';
 import 'package:sidesail/deposit_address.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc.dart';
+import 'package:sidesail/withdrawal_bundle.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,6 +59,32 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _depositAddress = "none";
+
+  Timer? _withdrawalBundleTimer;
+  String _withdrawalBundleStatus = "unknown";
+
+  @override
+  void initState() {
+    super.initState();
+    _startWithdrawalBundleFetch();
+  }
+
+  void _startWithdrawalBundleFetch() {
+    _withdrawalBundleTimer =
+        Timer.periodic(const Duration(seconds: 1), (timer) async {
+      final state = await fetchWithdrawalBundleStatus();
+      setState(() {
+        _withdrawalBundleStatus = state;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _withdrawalBundleTimer?.cancel();
+    super.dispose();
+  }
+
   void _onWithdraw() async {
     // 1. Get refund address. This can be any address we control on the SC.
     final refund = await rpc
@@ -164,12 +193,20 @@ class _MyHomePageState extends State<MyHomePage> {
       // in the middle of the parent.
       body: Center(
         child: SizedBox(
-            width: 800,
+            width: 1200,
             child: Column(
               children: [
                 Row(
                   children: const [
                     Expanded(child: RpcWidget()),
+                  ],
+                ),
+                Row(
+                  children: const [Text("Withdrawal stuff")],
+                ),
+                Row(
+                  children: [
+                    Text("Withdrawal bundle status: $_withdrawalBundleStatus"),
                   ],
                 ),
                 Row(
