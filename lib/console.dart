@@ -19,10 +19,22 @@ class RpcWidgetState extends State<RpcWidget> {
   String _command = '';
   String? _error;
 
-  Future<dynamic> _callRpc(String method) async {
+  Future<dynamic> _callRpc(String args) async {
+    if (args.trim().isEmpty) {
+      throw "Must provide method name";
+    }
+
+    final fields = args.trim().split(" ").where((field) => field.isNotEmpty);
+
     final start = DateTime.now();
 
-    var res = await rpc.call(method);
+    List<String> params = [];
+    if (fields.length > 1) {
+      params = fields.skip(1).toList();
+    }
+
+    final method = fields.first;
+    var res = await rpc.call(method, params);
 
     log.t(
         'bitcoin core: $method completed in ${DateTime.now().difference(start)}',
