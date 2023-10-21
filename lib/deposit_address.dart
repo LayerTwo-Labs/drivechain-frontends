@@ -14,7 +14,7 @@ Future<String> generateDepositAddress() async {
 }
 
 class DepositAddress extends StatelessWidget {
-  const DepositAddress(this.address);
+  const DepositAddress(this.address, {super.key});
 
   final String address;
 

@@ -1,10 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:sidesail/console.dart';
 import 'package:sidesail/deposit_address.dart';
-import 'package:sidesail/rpc.dart';
 
 void main() {
   runApp(const MyApp());
@@ -71,7 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
         children: [
           Row(
-            children: [
+            children: const [
               Expanded(child: RpcWidget()),
             ],
           ),
@@ -85,7 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       _depositAddress = address;
                     });
                   },
-                  child: Text("Generate"))
+                  child: const Text("Generate"))
             ],
           )
         ],

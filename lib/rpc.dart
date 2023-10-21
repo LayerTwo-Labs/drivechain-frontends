@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:ffi';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 
@@ -20,21 +18,7 @@ class _Rpc {
   }
 
   Future<dynamic> call(String method, [dynamic params]) async {
-    var fut = _client.call(method, params).then(
-      (value) {
-        switch (value.runtimeType) {
-          case String:
-            return value as String;
-
-          case Double:
-            return value.toString();
-
-          default:
-            print("rpc call: $method: idk: ${value.runtimeType}");
-            return value;
-        }
-      },
-    );
+    var fut = _client.call(method, params);
 
     // By default there's retry logic in place for the HTTP client (Dio) used
     // by the library. This logic is not configurable. Ideally we should open a

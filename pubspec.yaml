@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   dart_coin_rpc: ^2.1.5
   flutter_highlighter: ^0.1.1
+  logger: ^2.0.2+1
 
 dev_dependencies:
   flutter_test:

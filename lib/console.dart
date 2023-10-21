@@ -3,29 +3,37 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlighter/flutter_highlighter.dart';
 import 'package:flutter_highlighter/themes/github.dart';
+import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc.dart';
 
 class RpcWidget extends StatefulWidget {
+  const RpcWidget({super.key});
+
   @override
-  _RpcWidgetState createState() => _RpcWidgetState();
+  RpcWidgetState createState() => RpcWidgetState();
 }
 
-class _RpcWidgetState extends State<RpcWidget> {
+class RpcWidgetState extends State<RpcWidget> {
   final TextEditingController _textController = TextEditingController();
   dynamic _result;
   String _command = '';
   String _error = '';
 
-  Future<dynamic> _call_rpc(String method) async {
+  Future<dynamic> _callRpc(String method) async {
+    final start = DateTime.now();
+
     var res = await rpc.call(method);
 
-    print('bitcoin core: $method returned ${res.runtimeType}: $res');
+    log.t(
+        'bitcoin core: $method completed in ${DateTime.now().difference(start)}',
+        error: jsonEncode(res));
+
     return res;
   }
 
   void _handleSubmit() async {
     try {
-      var res = await _call_rpc(_textController.text);
+      var res = await _callRpc(_textController.text);
 
       setState(() {
         _command = _textController.text;
@@ -73,21 +81,12 @@ class _RpcWidgetState extends State<RpcWidget> {
 class _JsonViewer extends StatelessWidget {
   final dynamic json;
 
-  _JsonViewer(this.json);
+  const _JsonViewer(this.json);
 
   String prettyPrintJson(dynamic json) {
-    try {
-      print("pretty printing ${json.runtimeType} $json");
-      JsonEncoder encoder = JsonEncoder.withIndent('  ');
-      var printed = encoder.convert(json);
-      print("printed it: $printed");
-      return printed;
-    } catch (e) {
-      print(
-        "could not pretty print $json: $e",
-      );
-      throw e;
-    }
+    JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+    var printed = encoder.convert(json);
+    return printed;
   }
 
   @override
@@ -96,8 +95,8 @@ class _JsonViewer extends StatelessWidget {
       prettyPrintJson(json),
       language: 'json',
       theme: githubTheme,
-      textStyle: TextStyle(fontFamily: 'monospace'),
-      padding: EdgeInsets.all(12),
+      textStyle: const TextStyle(fontFamily: 'monospace'),
+      padding: const EdgeInsets.all(12),
     );
   }
 }
