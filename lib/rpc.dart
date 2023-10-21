@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
+import 'package:dio/dio.dart';
 import 'package:sidesail/logger.dart';
 
 final rpc = _Rpc();
@@ -16,6 +17,9 @@ class _Rpc {
       password: "password",
       useSSL: false,
     );
+
+    // Completely empty client, with no retry logic.
+    _client.dioClient = Dio();
   }
 
   Future<dynamic> call(String method, [dynamic params]) async {

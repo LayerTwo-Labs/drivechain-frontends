@@ -52,13 +52,14 @@ packages:
   dart_coin_rpc:
     dependency: "direct main"
     description:
-      name: dart_coin_rpc
-      sha256: d27d753d138ab17d1e409fdc44407239436a39e93f2e01e9e59e15e582975dfd
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: master
+      resolved-ref: cbbe7e98a95d2d43dd4f53038a73eca5dafb64cb
+      url: "https://github.com/barebitcoin/dart_coin_rpc.git"
+    source: git
     version: "2.1.5"
   dio:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: dio
       sha256: "7d328c4d898a61efc3cd93655a0955858e29a0aa647f0f9e02d59b3bb275e2e8"
