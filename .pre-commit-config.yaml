@@ -1,0 +1,9 @@
+repos:
+  - repo: https://github.com/dluksza/flutter-analyze-pre-commit
+    rev: 4afcaa82fc368d40d486256bf4edba329bf667bb
+    hooks:
+      # Run format first, quickest operation
+      - id: dart-format
+
+      - id: flutter-analyze
+        args: [lib/*]
