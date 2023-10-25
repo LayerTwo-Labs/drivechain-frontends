@@ -24,10 +24,11 @@ class _Rpc {
 
   Future<dynamic> call(String method, [dynamic params]) async {
     return _client.call(method, params).catchError((err) {
-      log.e("rpc: $method threw exception: $err");
+      log.t("rpc: $method threw exception: $err");
       throw err;
     });
   }
 }
 
 const errNoWithdrawalBundle = -100;
+const errWithdrawalNotFound = -101;

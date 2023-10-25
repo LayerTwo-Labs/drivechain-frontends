@@ -7,6 +7,7 @@ import 'package:sidesail/deposit_address.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc.dart';
 import 'package:sidesail/withdrawal_bundle.dart';
+import 'package:sidesail/withdrawals.dart';
 
 void main() {
   runApp(const MyApp());
@@ -245,6 +246,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     )
                   ],
                 ),
+                const Withdrawals(),
                 Row(
                   children: const [Text("Deposit stuff")],
                 ),
