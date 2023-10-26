@@ -1,0 +1,24 @@
+FROM debian:bullseye-slim
+
+RUN apt-get update && apt-get install -y \
+    build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 \
+    libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev  \
+    git libdb-dev libdb++-dev
+
+RUN mkdir /testchain
+
+RUN git clone https://github.com/layerTwo-Labs/testchain /testchain
+
+WORKDIR /testchain
+
+RUN ./autogen.sh
+RUN ./configure --with-incompatible-bdb
+RUN make
+
+RUN cp /testchain/src/testchaind /testchain/src/testchain-cli /usr/bin
+
+# Verify we installed correctly
+RUN testchaind -h
+RUN testchain-cli -h
+
+CMD testchaind 

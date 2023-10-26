@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  mainchain:
+    image: barebitcoin/mainchain:latest
+    pull_policy: always
+    volumes: [$HOME/.drivechain:/drivechain]
+    ports: ["18443:18443"]
+    command:
+      - drivechaind
+      - -printtoconsole
+      - -regtest
+      - -txindex
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0:18443
+      - -rpcport=18443
+      - -datadir=/drivechain
+
+  testchain:
+    image: barebitcoin/testchain:latest
+    pull_policy: always
+    volumes: [$HOME/.testchain:/testchain]
+    ports: ["19000:19000"]
+
+    command:
+      - testchaind
+      - -printtoconsole
+      - -slot=0
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0:19000
+      - -rpcport=19000
+      - -txindex
+      - -regtest
+      - -datadir=/testchain
