@@ -20,7 +20,17 @@ abstract class _$AppRouter extends RootStackRouter {
         routeData: routeData,
         child: const HomePage(),
       );
-    }
+    },
+    SailTestRoute.name: (routeData) {
+      final args = routeData.argsAs<SailTestRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: SailTestPage(
+          key: args.key,
+          child: args.child,
+        ),
+      );
+    },
   };
 }
 
@@ -36,4 +46,42 @@ class HomeRoute extends PageRouteInfo<void> {
   static const String name = 'HomeRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [SailTestPage]
+class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
+  SailTestRoute({
+    Key? key,
+    required Widget child,
+    List<PageRouteInfo>? children,
+  }) : super(
+          SailTestRoute.name,
+          args: SailTestRouteArgs(
+            key: key,
+            child: child,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'SailTestRoute';
+
+  static const PageInfo<SailTestRouteArgs> page =
+      PageInfo<SailTestRouteArgs>(name);
+}
+
+class SailTestRouteArgs {
+  const SailTestRouteArgs({
+    this.key,
+    required this.child,
+  });
+
+  final Key? key;
+
+  final Widget child;
+
+  @override
+  String toString() {
+    return 'SailTestRouteArgs{key: $key, child: $child}';
+  }
 }

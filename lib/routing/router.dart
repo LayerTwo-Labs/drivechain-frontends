@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:sidesail/pages/home_page.dart';
+import 'package:flutter/widgets.dart';
+import 'package:sidesail/routing/routes_export.dart';
 
 part 'router.gr.dart';
 
@@ -25,5 +26,9 @@ class AppRouter extends _$AppRouter {
           page: HomeRoute.page,
           initial: true,
         ),
+
+        /// This route is used in tests so that we can pump a widget into a route
+        /// and use the real router for our test
+        AutoRoute(page: SailTestRoute.page),
       ];
 }
