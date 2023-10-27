@@ -47,6 +47,7 @@ dependencies:
   get_it: ^7.6.4
   flutter_secure_storage: ^9.0.0
   collection: ^1.17.2
+  stacked: ^3.4.1+1
 
 dev_dependencies:
   flutter_test:
