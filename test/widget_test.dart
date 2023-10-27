@@ -6,16 +6,20 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sidesail/pages/home_page.dart';
 
-import 'package:sidesail/main.dart';
+import 'test_utils.dart';
 
 void main() {
   testWidgets('RPC submit smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpSailPage(
+      const HomePage(),
+    );
 
     // Verify that there's a submit button.
     expect(find.text('Submit'), findsOneWidget);
+    expect(find.text('SideSail'), findsOneWidget);
 
     // TODO: something more meaningful. Would have to mock the RPC interfaces
   });
