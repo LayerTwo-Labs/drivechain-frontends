@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlighter/flutter_highlighter.dart';
 import 'package:flutter_highlighter/themes/github.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sidesail/logger.dart';
-import 'package:sidesail/rpc.dart';
+import 'package:sidesail/rpc/rpc.dart';
 
 class RpcWidget extends StatefulWidget {
   const RpcWidget({super.key});
@@ -14,6 +15,7 @@ class RpcWidget extends StatefulWidget {
 }
 
 class RpcWidgetState extends State<RpcWidget> {
+  RPC get rpc => GetIt.I.get<RPC>();
   final TextEditingController _textController = TextEditingController();
   dynamic _result;
   String _command = '';
@@ -21,10 +23,10 @@ class RpcWidgetState extends State<RpcWidget> {
 
   Future<dynamic> _callRpc(String args) async {
     if (args.trim().isEmpty) {
-      throw "Must provide method name";
+      throw 'Must provide method name';
     }
 
-    final fields = args.trim().split(" ").where((field) => field.isNotEmpty);
+    final fields = args.trim().split(' ').where((field) => field.isNotEmpty);
 
     final start = DateTime.now();
 
@@ -34,11 +36,12 @@ class RpcWidgetState extends State<RpcWidget> {
     }
 
     final method = fields.first;
-    var res = await rpc.call(method, params);
+    var res = rpc.callRAW(method, params);
 
     log.t(
-        'bitcoin core: $method completed in ${DateTime.now().difference(start)}',
-        error: jsonEncode(res));
+      'bitcoin core: $method completed in ${DateTime.now().difference(start)}',
+      error: jsonEncode(res),
+    );
 
     return res;
   }
@@ -72,9 +75,10 @@ class RpcWidgetState extends State<RpcWidget> {
                 'RPC:',
               ),
               Expanded(
-                  child: TextField(
-                controller: _textController,
-              )),
+                child: TextField(
+                  controller: _textController,
+                ),
+              ),
               ElevatedButton(
                 onPressed: _handleSubmit,
                 child: const Text('Submit'),
