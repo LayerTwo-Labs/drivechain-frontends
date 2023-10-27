@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sidesail/logger.dart';
-import 'package:sidesail/rpc.dart';
+import 'package:sidesail/rpc/rpc.dart';
 
 class Withdrawals extends StatefulWidget {
   const Withdrawals({super.key});
@@ -13,12 +14,14 @@ class Withdrawals extends StatefulWidget {
 }
 
 class WithdrawalsState extends State<Withdrawals> {
+  RPC get rpc => GetIt.I.get<RPC>();
+
   Timer? _timer;
   List<Withdrawal> _withdrawals = [];
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      final fetched = await _fetchWithdrawals();
+      final fetched = await _fetchWithdrawals(rpc);
       setState(() {
         _withdrawals = fetched;
       });
@@ -43,31 +46,31 @@ class WithdrawalsState extends State<Withdrawals> {
   }
 }
 
-Future<List<Withdrawal>> _fetchWithdrawals() async {
-  final withdrawalIDs = await rpc.call("listmywithdrawals") as List<dynamic>;
+Future<List<Withdrawal>> _fetchWithdrawals(RPC rpc) async {
+  final withdrawalIDs = await rpc.callRAW('listmywithdrawals') as List<dynamic>;
 
   final nullableWithdrawalFutures = withdrawalIDs.map((w) async {
-    final id = w["id"];
+    final id = w['id'];
     try {
-      final withdrawal = await rpc.call("getwithdrawal", [id]);
+      final withdrawal = await rpc.callRAW('getwithdrawal', [id]);
       return Withdrawal.fromJson(id, withdrawal);
     } on RPCException catch (err) {
       // This is expected. Not all withdrawal show up right away. Not exactly
       // sure why, TBH.
-      if (err.errorCode == errWithdrawalNotFound) {
-        log.t("withdrawal is not yet found: $id");
+      if (err.errorCode == RPCError.errWithdrawalNotFound) {
+        log.t('withdrawal is not yet found: $id');
         return Withdrawal(
           id: id,
-          destination: "",
-          refundDestination: "",
+          destination: '',
+          refundDestination: '',
           amount: 0,
           amountMainChainFee: 0,
-          status: "Not yet found", // TODO: better status here
-          hashBlindTx: "",
+          status: 'Not yet found', // TODO: better status here
+          hashBlindTx: '',
         );
       }
 
-      log.e("could not fetch withdrawal: $err");
+      log.e('could not fetch withdrawal: $err');
 
       rethrow;
     } catch (e) {
@@ -127,31 +130,33 @@ class WithdrawalTableView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: const [
-            DataColumn(label: Text('ID')),
-            DataColumn(label: Text('Destination')),
-            DataColumn(label: Text('Refund Destination')),
-            DataColumn(label: Text('Amount')),
-            DataColumn(label: Text('Main Chain Fee')),
-            DataColumn(label: Text('Status')),
-            DataColumn(label: Text('Hash Blind Tx')),
-          ],
-          rows: withdrawals.map((transaction) {
-            return DataRow(
-              cells: [
-                DataCell(SelectableText(transaction.id)),
-                DataCell(SelectableText(transaction.destination)),
-                DataCell(SelectableText(transaction.refundDestination)),
-                DataCell(SelectableText(transaction.amount.toString())),
-                DataCell(
-                    SelectableText(transaction.amountMainChainFee.toString())),
-                DataCell(SelectableText(transaction.status)),
-                DataCell(SelectableText(transaction.hashBlindTx)),
-              ],
-            );
-          }).toList(),
-        ));
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: const [
+          DataColumn(label: Text('ID')),
+          DataColumn(label: Text('Destination')),
+          DataColumn(label: Text('Refund Destination')),
+          DataColumn(label: Text('Amount')),
+          DataColumn(label: Text('Main Chain Fee')),
+          DataColumn(label: Text('Status')),
+          DataColumn(label: Text('Hash Blind Tx')),
+        ],
+        rows: withdrawals.map((transaction) {
+          return DataRow(
+            cells: [
+              DataCell(SelectableText(transaction.id)),
+              DataCell(SelectableText(transaction.destination)),
+              DataCell(SelectableText(transaction.refundDestination)),
+              DataCell(SelectableText(transaction.amount.toString())),
+              DataCell(
+                SelectableText(transaction.amountMainChainFee.toString()),
+              ),
+              DataCell(SelectableText(transaction.status)),
+              DataCell(SelectableText(transaction.hashBlindTx)),
+            ],
+          );
+        }).toList(),
+      ),
+    );
   }
 }

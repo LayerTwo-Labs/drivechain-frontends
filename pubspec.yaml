@@ -44,6 +44,7 @@ dependencies:
   logger: ^2.0.2+1
   dio: ^4.0.6
   auto_route: ^7.8.4
+  get_it: ^7.6.4
   flutter_secure_storage: ^9.0.0
   collection: ^1.17.2
 
