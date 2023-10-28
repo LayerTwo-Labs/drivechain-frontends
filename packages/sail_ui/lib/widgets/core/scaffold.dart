@@ -18,8 +18,7 @@ class SailScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor != null
           ? backgroundColor!
-          : Scaffold.maybeOf(context)?.widget.backgroundColor ??
-              theme.colors.background,
+          : Scaffold.maybeOf(context)?.widget.backgroundColor ?? theme.colors.background,
       body: body,
     );
   }

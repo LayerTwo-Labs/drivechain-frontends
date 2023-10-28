@@ -23,14 +23,12 @@ class RPC implements RPCBase {
   }
 
   Future<String> generateDepositAddress() async {
-    var address =
-        await _client.call('getnewaddress', ['Sidechain Deposit', 'legacy']);
+    var address = await _client.call('getnewaddress', ['Sidechain Deposit', 'legacy']);
 
     // This is actually just rather simple stuff. Should be able to
     // do this client side! Just needs the sidechain number, and we're
     // off to the races.
-    var formatted =
-        await _client.call('formatdepositaddress', [address as String]);
+    var formatted = await _client.call('formatdepositaddress', [address as String]);
 
     return formatted as String;
   }

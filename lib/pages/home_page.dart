@@ -38,8 +38,7 @@ class HomePage extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      Text(
-                          'Withdrawal bundle status: ${viewModel.withdrawalBundleStatus}'),
+                      Text('Withdrawal bundle status: ${viewModel.withdrawalBundleStatus}'),
                     ],
                   ),
                   Row(
@@ -64,8 +63,7 @@ class HomePage extends StatelessWidget {
                           controller: viewModel.withdrawalAmount,
                           inputFormatters: [
                             // digits plus dot
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'[.0-9]')),
+                            FilteringTextInputFormatter.allow(RegExp(r'[.0-9]')),
                           ],
                         ),
                       ),
@@ -119,8 +117,7 @@ class HomePageViewModel extends BaseViewModel {
   }
 
   void _startWithdrawalBundleFetch() {
-    _withdrawalBundleTimer =
-        Timer.periodic(const Duration(seconds: 1), (timer) async {
+    _withdrawalBundleTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       final state = await _rpc.fetchWithdrawalBundleStatus();
       withdrawalBundleStatus = state;
       notifyListeners();
@@ -129,22 +126,18 @@ class HomePageViewModel extends BaseViewModel {
 
   void onWithdraw(BuildContext context) async {
     // 1. Get refund address. This can be any address we control on the SC.
-    final refund = await _rpc
-        .callRAW('getnewaddress', ['Sidechain withdrawal refund']) as String;
+    final refund = await _rpc.callRAW('getnewaddress', ['Sidechain withdrawal refund']) as String;
 
     log.d('got refund address: $refund');
 
     // 2. Get SC fee estimate
-    final estimate =
-        await _rpc.callRAW('estimatesmartfee', [6]) as Map<String, dynamic>;
+    final estimate = await _rpc.callRAW('estimatesmartfee', [6]) as Map<String, dynamic>;
 
     if (estimate.containsKey('errors')) {
       log.w("could not estimate fee: ${estimate["errors"]}");
     }
 
-    final btcPerKb = estimate.containsKey('feerate')
-        ? estimate['feerate'] as double
-        : 0.0001; // 10 sats/byte
+    final btcPerKb = estimate.containsKey('feerate') ? estimate['feerate'] as double : 0.0001; // 10 sats/byte
 
     // Who knows!
     const kbyteInWithdrawal = 5;
@@ -208,9 +201,7 @@ class HomePageViewModel extends BaseViewModel {
                     'Submitted withdrawal successfully! TXID: $withdrawalTxid',
                   ),
                   actions: [
-                    TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('OK')),
+                    TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK')),
                   ],
                 ),
               );

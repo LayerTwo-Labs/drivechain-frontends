@@ -14,8 +14,7 @@ class SailThemeProvider extends StatefulWidget {
   @override
   State<SailThemeProvider> createState() => SailThemeProviderState();
   static SailThemeProviderState of(BuildContext context) {
-    final SailThemeProviderState? result =
-        context.findAncestorStateOfType<SailThemeProviderState>();
+    final SailThemeProviderState? result = context.findAncestorStateOfType<SailThemeProviderState>();
     if (result != null) return result;
     throw FlutterError.fromParts(<DiagnosticsNode>[
       ErrorSummary(
