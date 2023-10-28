@@ -10,11 +10,7 @@ class _Text extends StatelessWidget {
   final bool softwrap;
   final TextAlign? textAlign;
 
-  const _Text(
-      {required this.label,
-      required this.style,
-      this.softwrap = true,
-      this.textAlign});
+  const _Text({required this.label, required this.style, this.softwrap = true, this.textAlign});
 
   @override
   Widget build(BuildContext context) {
@@ -149,8 +145,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.medium20
-              .copyWith(color: theme.colors.textSecondary),
+          style: SailStyleValues.medium20.copyWith(color: theme.colors.textSecondary),
         );
       },
     );
@@ -178,8 +173,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.medium16
-              .copyWith(color: theme.colors.textSecondary),
+          style: SailStyleValues.medium16.copyWith(color: theme.colors.textSecondary),
         );
       },
     );
@@ -238,8 +232,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.regular16
-              .copyWith(color: theme.colors.text, decoration: decoration),
+          style: SailStyleValues.regular16.copyWith(color: theme.colors.text, decoration: decoration),
           softwrap: softwrap,
           textAlign: textAlign,
         );
@@ -255,8 +248,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.regular16
-              .copyWith(color: theme.colors.textSecondary),
+          style: SailStyleValues.regular16.copyWith(color: theme.colors.textSecondary),
         );
       },
     );
@@ -286,8 +278,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style:
-              SailStyleValues.medium16.copyWith(color: theme.colors.background),
+          style: SailStyleValues.medium16.copyWith(color: theme.colors.background),
         );
       },
     );
@@ -333,8 +324,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.light14
-              .copyWith(color: theme.colors.textSecondary),
+          style: SailStyleValues.light14.copyWith(color: theme.colors.textSecondary),
         );
       },
     );
@@ -362,8 +352,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.regular14
-              .copyWith(color: theme.colors.textSecondary),
+          style: SailStyleValues.regular14.copyWith(color: theme.colors.textSecondary),
         );
       },
     );
@@ -409,8 +398,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.light12
-              .copyWith(color: theme.colors.textSecondary),
+          style: SailStyleValues.light12.copyWith(color: theme.colors.textSecondary),
           softwrap: true,
         );
       },
@@ -425,8 +413,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.medium12
-              .copyWith(color: theme.colors.textTertiary),
+          style: SailStyleValues.medium12.copyWith(color: theme.colors.textTertiary),
         );
       },
     );

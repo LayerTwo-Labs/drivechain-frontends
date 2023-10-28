@@ -21,8 +21,7 @@ class SailApp extends StatefulWidget {
   State<SailApp> createState() => SailAppState();
 
   static SailAppState of(BuildContext context) {
-    final SailAppState? result =
-        context.findAncestorStateOfType<SailAppState>();
+    final SailAppState? result = context.findAncestorStateOfType<SailAppState>();
     if (result != null) return result;
     throw FlutterError.fromParts(<DiagnosticsNode>[
       ErrorSummary(
@@ -58,8 +57,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   void loadTheme([SailThemeValues? themeToLoad]) async {
     themeToLoad ??= (await settings.getValue(ThemeSetting())).value;
     if (themeToLoad == SailThemeValues.platform) {
-      themeToLoad = WidgetsBinding.instance.window.platformBrightness ==
-              Brightness.light //
+      themeToLoad = WidgetsBinding.instance.window.platformBrightness == Brightness.light //
           ? SailThemeValues.light
           : SailThemeValues.dark;
     }

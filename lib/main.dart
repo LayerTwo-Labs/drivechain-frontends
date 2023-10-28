@@ -19,8 +19,7 @@ Future<void> start() async {
         title: appName,
         theme: ThemeData(
           fontFamily: 'SourceCodePro',
-          colorScheme: ColorScheme.fromSwatch()
-              .copyWith(secondary: const Color(0xffFF8000)),
+          colorScheme: ColorScheme.fromSwatch().copyWith(secondary: const Color(0xffFF8000)),
         ),
       ),
     ),

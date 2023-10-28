@@ -9,8 +9,7 @@ import 'package:sidesail/storage/client_settings.dart';
 import 'mocks/storage_mock.dart';
 
 Future<void> _setDeviceSize() async {
-  final TestWidgetsFlutterBinding binding =
-      TestWidgetsFlutterBinding.ensureInitialized();
+  final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized();
   await binding.setSurfaceSize(const Size(1200, 720));
 }
 

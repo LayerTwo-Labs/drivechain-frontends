@@ -18,8 +18,7 @@ class SailTheme extends StatelessWidget {
   });
 
   static SailThemeData of(BuildContext context) {
-    final _InheritedTheme? inheritedTheme =
-        context.dependOnInheritedWidgetOfExactType<_InheritedTheme>();
+    final _InheritedTheme? inheritedTheme = context.dependOnInheritedWidgetOfExactType<_InheritedTheme>();
 
     final SailThemeData theme = inheritedTheme?.theme.data ?? kFallbackTheme;
     return theme;
