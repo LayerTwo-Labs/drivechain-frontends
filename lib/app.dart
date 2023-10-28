@@ -57,6 +57,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   void loadTheme([SailThemeValues? themeToLoad]) async {
     themeToLoad ??= (await settings.getValue(ThemeSetting())).value;
     if (themeToLoad == SailThemeValues.platform) {
+      // ignore: deprecated_member_use
       themeToLoad = WidgetsBinding.instance.window.platformBrightness == Brightness.light //
           ? SailThemeValues.light
           : SailThemeValues.dark;
