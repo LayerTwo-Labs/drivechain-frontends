@@ -36,6 +36,7 @@ extension TestExtension on WidgetTester {
 
           return MaterialApp.router(
             routerDelegate: appRouter.delegate(
+              // ignore: deprecated_member_use
               initialRoutes: [SailTestRoute(child: child)],
             ),
             routeInformationParser: appRouter.defaultRouteParser(),
