@@ -4,6 +4,8 @@ repos:
     hooks:
       # Run format first, quickest operation
       - id: dart-format
+        args:
+          - "-l 120"
 
       - id: flutter-analyze
         args: [lib/*]
