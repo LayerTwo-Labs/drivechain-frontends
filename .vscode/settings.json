@@ -1,6 +1,11 @@
 {
   "editor.codeActionsOnSave": {
     // Dart formatter won't work unless there's semicolons at the end
-    "quickfix.insertSemicolon": true
+    "quickfix.insertSemicolon": true,
+    "source.fixAll": "always"
+  },
+  "dart.lineLength": 120,
+  "[dart]": {
+    "editor.rulers": [120]
   }
 }
