@@ -22,6 +22,10 @@ class RPC implements RPCBase {
     _client.dioClient = Dio();
   }
 
+  Future<double> getBalance() async {
+    return await _client.call('getbalance') as double;
+  }
+
   Future<String> generateDepositAddress() async {
     var address = await _client.call('getnewaddress', ['Sidechain Deposit', 'legacy']);
 
@@ -35,13 +39,13 @@ class RPC implements RPCBase {
 
   Future<String> fetchWithdrawalBundleStatus() async {
     try {
-      final status = await _client.call('getwithdrawalbundle', []);
+      // TODO: do something meaningful with this, we would need it decoded
+      // with bitcoin core.
+      // BtcTransaction.fromRaw crashes...
+      final bundleHex = await _client.call('getwithdrawalbundle', []);
 
-      log.i(
-        'fetched withdrawal bundle status: no clue what happens now',
-        error: status,
-      );
-      return status.toString();
+      log.i('bundle hex: $bundleHex');
+      return 'something: ${(bundleHex as String).substring(0, 20)}...';
     } on RPCException catch (e) {
       if (e.errorCode != RPCError.errNoWithdrawalBundle) {
         return 'unexpected withdrawal bundle status: $e';

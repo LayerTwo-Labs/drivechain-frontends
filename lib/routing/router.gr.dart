@@ -31,6 +31,18 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
+    WithdrawalBundleRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const WithdrawalBundlePage(),
+      );
+    },
+    WithdrawalRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const WithdrawalPage(),
+      );
+    },
   };
 }
 
@@ -83,4 +95,32 @@ class SailTestRouteArgs {
   String toString() {
     return 'SailTestRouteArgs{key: $key, child: $child}';
   }
+}
+
+/// generated route for
+/// [WithdrawalBundlePage]
+class WithdrawalBundleRoute extends PageRouteInfo<void> {
+  const WithdrawalBundleRoute({List<PageRouteInfo>? children})
+      : super(
+          WithdrawalBundleRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'WithdrawalBundleRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [WithdrawalPage]
+class WithdrawalRoute extends PageRouteInfo<void> {
+  const WithdrawalRoute({List<PageRouteInfo>? children})
+      : super(
+          WithdrawalRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'WithdrawalRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
 }

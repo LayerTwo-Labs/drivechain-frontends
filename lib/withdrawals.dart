@@ -23,7 +23,7 @@ class WithdrawalsState extends State<Withdrawals> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       final fetched = await _fetchWithdrawals(rpc);
       setState(() {
-        _withdrawals = fetched;
+        _withdrawals = fetched.where((element) => element != null).cast<Withdrawal>().toList();
       });
     });
   }
@@ -46,7 +46,7 @@ class WithdrawalsState extends State<Withdrawals> {
   }
 }
 
-Future<List<Withdrawal>> _fetchWithdrawals(RPC rpc) async {
+Future<List<Withdrawal?>> _fetchWithdrawals(RPC rpc) async {
   final withdrawalIDs = await rpc.callRAW('listmywithdrawals') as List<dynamic>;
 
   final nullableWithdrawalFutures = withdrawalIDs.map((w) async {
@@ -72,7 +72,8 @@ Future<List<Withdrawal>> _fetchWithdrawals(RPC rpc) async {
 
       log.e('could not fetch withdrawal: $err');
 
-      rethrow;
+      // We filter these out later.
+      return null;
     } catch (e) {
       rethrow;
     }
