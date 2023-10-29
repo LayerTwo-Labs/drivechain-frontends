@@ -1,5 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
+import 'package:sidesail/pages/withdrawal_bundle_page.dart';
+import 'package:sidesail/pages/withdrawal_page.dart';
 import 'package:sidesail/routing/routes_export.dart';
 
 part 'router.gr.dart';
@@ -25,6 +27,13 @@ class AppRouter extends _$AppRouter {
         AutoRoute(
           page: HomeRoute.page,
           initial: true,
+        ),
+        AutoRoute(
+          page: WithdrawalBundleRoute.page,
+        ),
+
+        AutoRoute(
+          page: WithdrawalRoute.page,
         ),
 
         /// This route is used in tests so that we can pump a widget into a route
