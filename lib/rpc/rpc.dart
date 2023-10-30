@@ -26,6 +26,12 @@ class RPC implements RPCBase {
     return await _client.call('getbalance') as double;
   }
 
+  Future<Map<String, dynamic>> refreshBMM(int bidSatoshis) async {
+    final res = await _client.call('refreshbmm', [bidSatoshis / 100000000]);
+
+    return res;
+  }
+
   Future<String> generateDepositAddress() async {
     var address = await _client.call('getnewaddress', ['Sidechain Deposit', 'legacy']);
 
@@ -44,7 +50,6 @@ class RPC implements RPCBase {
       // BtcTransaction.fromRaw crashes...
       final bundleHex = await _client.call('getwithdrawalbundle', []);
 
-      log.i('bundle hex: $bundleHex');
       return 'something: ${(bundleHex as String).substring(0, 20)}...';
     } on RPCException catch (e) {
       if (e.errorCode != RPCError.errNoWithdrawalBundle) {

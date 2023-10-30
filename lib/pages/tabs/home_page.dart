@@ -18,6 +18,7 @@ class HomePage extends StatelessWidget {
         DashboardTabRoute(),
         WithdrawalBundleTabRoute(),
         WithdrawalTabRoute(),
+        BlindMergedMiningTabRoute(),
       ],
       builder: (context, child, _) {
         final tabsRouter = AutoTabsRouter.of(context);
@@ -49,6 +50,13 @@ class HomePage extends StatelessWidget {
                 icon: SailSVG.icon(
                   SailSVGAsset.iconDashboardTab,
                   isHighlighted: tabsRouter.activeIndex == 2,
+                ),
+              ),
+              BottomNavigationBarItem(
+                label: 'BMM',
+                icon: SailSVG.icon(
+                  SailSVGAsset.iconDashboardTab,
+                  isHighlighted: tabsRouter.activeIndex == 3,
                 ),
               ),
             ],
