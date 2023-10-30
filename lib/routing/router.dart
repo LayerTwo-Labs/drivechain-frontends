@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/pages/tabs/withdrawal_bundle_tab_page.dart';
 import 'package:sidesail/pages/tabs/withdrawal_tab_page.dart';
-import 'package:sidesail/routing/routes_export.dart';
+import 'package:sidesail/pages/test_page.dart';
 
 part 'router.gr.dart';
 
