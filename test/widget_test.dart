@@ -6,7 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sidesail/pages/tabs/home_page.dart';
+import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 
 import 'test_utils.dart';
 
@@ -14,7 +14,7 @@ void main() {
   testWidgets('RPC submit smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
-      const HomePage(),
+      const DashboardTabPage(),
     );
 
     // Verify that there's a submit button.

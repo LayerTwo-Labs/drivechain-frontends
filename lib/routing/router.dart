@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/withdrawal_bundle_tab_page.dart';
 import 'package:sidesail/pages/tabs/withdrawal_tab_page.dart';
 import 'package:sidesail/pages/test_page.dart';
@@ -26,14 +27,20 @@ class AppRouter extends _$AppRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(
-          page: DashboardTabRoute.page,
+          page: HomeRoute.page,
           initial: true,
-        ),
-        AutoRoute(
-          page: WithdrawalBundleTabRoute.page,
-        ),
-        AutoRoute(
-          page: WithdrawalTabRoute.page,
+          children: [
+            AutoRoute(
+              page: DashboardTabRoute.page,
+              initial: true,
+            ),
+            AutoRoute(
+              page: WithdrawalBundleTabRoute.page,
+            ),
+            AutoRoute(
+              page: WithdrawalTabRoute.page,
+            ),
+          ],
         ),
 
         /// This route is used in tests so that we can pump a widget into a route
