@@ -6,6 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/console.dart';
 import 'package:sidesail/deposit_address.dart';
+import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:stacked/stacked.dart';
 
@@ -25,6 +26,9 @@ class DashboardTabPage extends StatelessWidget {
               width: 1200,
               child: Column(
                 children: [
+                  SailText.primary14(
+                    'Your sidechain balance: ${viewModel.sidechainBalance} SBTC',
+                  ),
                   const Row(
                     children: [
                       Expanded(child: RpcWidget()),
@@ -55,6 +59,9 @@ class DashboardTabPage extends StatelessWidget {
 class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   RPC get _rpc => GetIt.I.get<RPC>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+
+  double get sidechainBalance => _balanceProvider.balance;
 
   final TextEditingController withdrawalAddress = TextEditingController();
   final TextEditingController withdrawalAmount = TextEditingController();
