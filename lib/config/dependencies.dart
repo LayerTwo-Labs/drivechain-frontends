@@ -9,7 +9,7 @@ import 'package:sidesail/storage/secure_store.dart';
 // each dependency can only be registered once
 Future<void> initGetitDependencies() async {
   GetIt.I.registerLazySingleton<RPC>(
-    () => RPC(),
+    () => RPCLive(),
   );
 
   GetIt.I.registerLazySingleton<AppRouter>(

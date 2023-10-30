@@ -4,12 +4,18 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/logger.dart';
 
-abstract class RPCBase {}
+abstract class RPC {
+  Future<double> getBalance();
+  Future<Map<String, dynamic>> refreshBMM(int bidSatoshis);
+  Future<String> generateDepositAddress();
+  Future<String> fetchWithdrawalBundleStatus();
+  Future<dynamic> callRAW(String method, [dynamic params]);
+}
 
-class RPC implements RPCBase {
+class RPCLive implements RPC {
   late RPCClient _client;
 
-  RPC() {
+  RPCLive() {
     _client = RPCClient(
       host: 'localhost',
       port: 19000,
@@ -22,16 +28,19 @@ class RPC implements RPCBase {
     _client.dioClient = Dio();
   }
 
+  @override
   Future<double> getBalance() async {
     return await _client.call('getbalance') as double;
   }
 
+  @override
   Future<Map<String, dynamic>> refreshBMM(int bidSatoshis) async {
     final res = await _client.call('refreshbmm', [bidSatoshis / 100000000]);
 
     return res;
   }
 
+  @override
   Future<String> generateDepositAddress() async {
     var address = await _client.call('getnewaddress', ['Sidechain Deposit', 'legacy']);
 
@@ -43,6 +52,7 @@ class RPC implements RPCBase {
     return formatted as String;
   }
 
+  @override
   Future<String> fetchWithdrawalBundleStatus() async {
     try {
       // TODO: do something meaningful with this, we would need it decoded
@@ -63,6 +73,7 @@ class RPC implements RPCBase {
     }
   }
 
+  @override
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     return _client.call(method, params).catchError((err) {
       log.t('rpc: $method threw exception: $err');
