@@ -12,6 +12,7 @@ import 'package:stacked/stacked.dart';
 
 // TODO: the legacy testchain GUI uses the term SCO for sidechain BTC. A bit
 // confusing? They are bitcoin, after all. Need to find a nice term.
+// SBTC?
 
 @RoutePage()
 class WithdrawalPage extends StatelessWidget {
@@ -180,8 +181,13 @@ class WithdrawalPageViewModel extends MultipleFutureViewModel {
 
     final address = withdrawalAddress;
 
-    // TODO: i'm sure this linter rule is there for a reason. What's correct here?
-    // ignore: use_build_context_synchronously
+    // Because the function is async, the view might disappear/unmount
+    // by the time it's used. The linter doesn't like that, and wants
+    // you to check whether the view is mounted before using it
+    if (!context.mounted) {
+      return;
+    }
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -238,7 +244,10 @@ class WithdrawalPageViewModel extends MultipleFutureViewModel {
 
     log.i('txid: $withdrawalTxid');
 
-    // ignore: use_build_context_synchronously
+    if (!context.mounted) {
+      return;
+    }
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
