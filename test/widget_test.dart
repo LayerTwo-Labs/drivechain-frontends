@@ -6,7 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sidesail/pages/home_page.dart';
+import 'package:sidesail/pages/tabs/home_page.dart';
 
 import 'test_utils.dart';
 

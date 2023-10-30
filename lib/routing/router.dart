@@ -1,7 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
-import 'package:sidesail/pages/withdrawal_bundle_page.dart';
-import 'package:sidesail/pages/withdrawal_page.dart';
+import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+import 'package:sidesail/pages/tabs/withdrawal_bundle_tab_page.dart';
+import 'package:sidesail/pages/tabs/withdrawal_tab_page.dart';
 import 'package:sidesail/routing/routes_export.dart';
 
 part 'router.gr.dart';
@@ -14,7 +15,7 @@ part 'router.gr.dart';
 *  Use the [watch] flag to watch the files' system for edits and rebuild as necessary.
 *  $ flutter packages pub run build_runner watch
 *  if you want the generator to run one time and exit, use
-*  $ flutter packages pub run build_runner build
+*  $ flutter packages pub run build_runner build  --delete-conflicting-outputs
 
 */
 @AutoRouterConfig(replaceInRouteName: 'Page,Route')
@@ -25,15 +26,14 @@ class AppRouter extends _$AppRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(
-          page: HomeRoute.page,
+          page: DashboardTabRoute.page,
           initial: true,
         ),
         AutoRoute(
-          page: WithdrawalBundleRoute.page,
+          page: WithdrawalBundleTabRoute.page,
         ),
-
         AutoRoute(
-          page: WithdrawalRoute.page,
+          page: WithdrawalTabRoute.page,
         ),
 
         /// This route is used in tests so that we can pump a widget into a route
