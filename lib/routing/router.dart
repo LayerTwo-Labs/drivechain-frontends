@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
+import 'package:sidesail/pages/tabs/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/withdrawal_bundle_tab_page.dart';
@@ -39,6 +40,9 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: WithdrawalTabRoute.page,
+            ),
+            AutoRoute(
+              page: BlindMergedMiningTabRoute.page,
             ),
           ],
         ),
