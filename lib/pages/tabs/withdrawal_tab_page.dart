@@ -241,7 +241,6 @@ class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
       'doing withdrawal: $amount BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
     );
 
-    // TODO: how do we update the balance and reset the fields here?
     final withdrawalTxid = await _rpc.callRAW('createwithdrawal', [
       address,
       refund,
@@ -249,8 +248,10 @@ class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
       sidechainFee,
       mainchainFee,
     ]);
-
     log.i('txid: $withdrawalTxid');
+
+    // refresh balance, but dont await, so dialog is showed instantly
+    unawaited(_balanceProvider.fetch());
 
     if (!context.mounted) {
       return;
