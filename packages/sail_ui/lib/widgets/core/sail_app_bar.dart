@@ -17,7 +17,7 @@ class SailAppBar {
       backgroundColor: colors.background,
       foregroundColor: colors.icon,
       centerTitle: true,
-      title: SailText.mediumText20(
+      title: SailText.mediumPrimary20(
         title,
       ),
     );
