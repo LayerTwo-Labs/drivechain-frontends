@@ -12,10 +12,6 @@ import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/withdrawals.dart';
 import 'package:stacked/stacked.dart';
 
-// TODO: the legacy testchain GUI uses the term SCO for sidechain BTC. A bit
-// confusing? They are bitcoin, after all. Need to find a nice term.
-// SBTC?
-
 @RoutePage()
 class WithdrawalTabPage extends StatelessWidget {
   const WithdrawalTabPage({super.key});
@@ -33,7 +29,7 @@ class WithdrawalTabPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SailText.primary14(
-                  'Your sidechain balance: ${viewModel.sidechainBalance} SCO',
+                  'Your sidechain balance: ${viewModel.sidechainBalance} SBTC',
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -53,7 +49,7 @@ class WithdrawalTabPage extends StatelessWidget {
                       child: TextFormField(
                         decoration: const InputDecoration(
                           labelText: 'Withdrawal',
-                          suffixText: 'SCO',
+                          suffixText: 'SBTC',
                         ),
                         inputFormatters: [
                           // digits plus dot
@@ -72,7 +68,7 @@ class WithdrawalTabPage extends StatelessWidget {
                         initialValue: viewModel.mainchainFee.toString(),
                         decoration: const InputDecoration(
                           labelText: 'Mainchain Fee',
-                          suffixText: 'SCO',
+                          suffixText: 'SBTC',
                         ),
                       ),
                     ),
@@ -84,7 +80,7 @@ class WithdrawalTabPage extends StatelessWidget {
                   initialValue: viewModel.transactionFee.toString(),
                   decoration: const InputDecoration(
                     labelText: 'Transaction Fee',
-                    suffixText: 'SCO',
+                    suffixText: 'SBTC',
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -93,7 +89,7 @@ class WithdrawalTabPage extends StatelessWidget {
                     SailText.primary14('Total cost:'),
                     const SizedBox(width: 10),
                     SailText.primary14(
-                      '${(viewModel.withdrawalAmount + viewModel.mainchainFee + viewModel.transactionFee)} SCO',
+                      '${(viewModel.withdrawalAmount + viewModel.mainchainFee + viewModel.transactionFee)} SBTC',
                     ),
                   ],
                 ),
