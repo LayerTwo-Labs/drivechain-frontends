@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class DepositAddress extends StatelessWidget {
   const DepositAddress(this.address, {super.key});
@@ -14,22 +15,19 @@ class DepositAddress extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
+              SailText.primary14(
                 'Deposit to this address from the mainchain: ',
               ),
               ElevatedButton(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: address));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Copied address'),
+                    SnackBar(
+                      content: SailText.primary14('Copied address'),
                     ),
                   );
                 },
-                child: Text(
-                  address,
-                  style: const TextStyle(color: Colors.white),
-                ),
+                child: SailText.primary14(address),
               ),
             ],
           ),

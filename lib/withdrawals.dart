@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc/rpc.dart';
 
@@ -133,14 +134,14 @@ class WithdrawalTableView extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
-        columns: const [
-          DataColumn(label: Text('ID')),
-          DataColumn(label: Text('Destination')),
-          DataColumn(label: Text('Refund Destination')),
-          DataColumn(label: Text('Amount')),
-          DataColumn(label: Text('Main Chain Fee')),
-          DataColumn(label: Text('Status')),
-          DataColumn(label: Text('Hash Blind Tx')),
+        columns: [
+          DataColumn(label: SailText.primary12('ID')),
+          DataColumn(label: SailText.primary12('Destination')),
+          DataColumn(label: SailText.primary12('Refund Destination')),
+          DataColumn(label: SailText.primary12('Amount')),
+          DataColumn(label: SailText.primary12('Main Chain Fee')),
+          DataColumn(label: SailText.primary12('Status')),
+          DataColumn(label: SailText.primary12('Hash Blind Tx')),
         ],
         rows: withdrawals.map((transaction) {
           return DataRow(
