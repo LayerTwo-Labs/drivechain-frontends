@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/withdrawals.dart';
@@ -30,7 +31,7 @@ class WithdrawalTabPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                SailText.primary14(
                   'Your sidechain balance: ${viewModel.sidechainBalance} SCO',
                 ),
                 const SizedBox(height: 20),
@@ -88,9 +89,9 @@ class WithdrawalTabPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    const Text('Total cost:'),
+                    SailText.primary14('Total cost:'),
                     const SizedBox(width: 10),
-                    Text(
+                    SailText.primary14(
                       '${(viewModel.withdrawalAmount + viewModel.mainchainFee + viewModel.transactionFee)} SCO',
                     ),
                   ],
@@ -100,7 +101,9 @@ class WithdrawalTabPage extends StatelessWidget {
                   onPressed: () {
                     viewModel.onWithdraw(context);
                   },
-                  child: const Text('Withdraw'),
+                  child: SailText.primary14(
+                    'Withdraw',
+                  ),
                 ),
                 // TODO: this just caps the table...
                 const SingleChildScrollView(
@@ -191,14 +194,16 @@ class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm withdrawal'),
-        content: Text(
+        title: SailText.primary14(
+          'Confirm withdrawal',
+        ),
+        content: SailText.primary14(
           'Confirm withdrawal: $withdrawalAmount BTC to $address for $transactionFee SC fee and $mainchainFee MC fee',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: SailText.primary14('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -214,7 +219,9 @@ class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
                 transactionFee,
               );
             },
-            child: const Text('OK'),
+            child: SailText.primary14(
+              'OK',
+            ),
           ),
         ],
       ),
@@ -251,14 +258,16 @@ class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Success'),
-        content: Text(
+        title: SailText.primary14(
+          'Success',
+        ),
+        content: SailText.primary14(
           'Submitted withdrawal successfully! TXID: $withdrawalTxid',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: SailText.primary14('OK'),
           ),
         ],
       ),

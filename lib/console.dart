@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_highlighter/flutter_highlighter.dart';
 import 'package:flutter_highlighter/themes/github.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc/rpc.dart';
 
@@ -71,7 +72,7 @@ class RpcWidgetState extends State<RpcWidget> {
         children: [
           Row(
             children: [
-              const Text(
+              SailText.primary14(
                 'RPC:',
               ),
               Expanded(
@@ -81,12 +82,12 @@ class RpcWidgetState extends State<RpcWidget> {
               ),
               ElevatedButton(
                 onPressed: _handleSubmit,
-                child: const Text('Submit'),
+                child: SailText.primary14('Submit'),
               ),
             ],
           ),
           if (_result != null) _JsonViewer(_result),
-          if (_error != null) Text('Error: $_command: $_error'),
+          if (_error != null) SailText.primary14('Error: $_command: $_error'),
         ],
       ),
     );
