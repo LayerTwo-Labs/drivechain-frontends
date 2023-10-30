@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
+import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/withdrawals.dart';
 import 'package:stacked/stacked.dart';
@@ -123,10 +124,9 @@ class WithdrawalTabPage extends StatelessWidget {
 
 class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
   RPC get _rpc => GetIt.I.get<RPC>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
-  // TODO: how to take this on creation? Async operation, possible
-  // to sync this with global state somehow? Pls help, BO
-  double get sidechainBalance => dataMap?[_SidechainBalanceFuture];
+  double get sidechainBalance => _balanceProvider.balance;
 
   double withdrawalAmount = 0.0;
   double get transactionFee => dataMap?[_SidechainFeeFuture];
@@ -139,6 +139,12 @@ class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
   Timer? balanceTimer;
 
   WithdrawalTabPageViewModel() {
+    // by adding a listener, we subscribe to changes to the balance
+    // provider. We don't use the updates for anything other than
+    // showing the new value though, so we keep it simple, and just
+    // pass notifyListeners of this view model directly
+    _balanceProvider.addListener(notifyListeners);
+
     balanceTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       // fetchAndUpdateBalance();
     });
@@ -147,7 +153,6 @@ class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
   @override
   Map<String, Future Function()> get futuresMap => {
         _SidechainFeeFuture: estimateSidechainFee,
-        _SidechainBalanceFuture: _rpc.getBalance,
       };
 
   Future<double> estimateSidechainFee() async {
@@ -273,7 +278,12 @@ class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _balanceProvider.removeListener(notifyListeners);
+  }
 }
 
 const _SidechainFeeFuture = 'sidechainFee';
-const _SidechainBalanceFuture = 'sidechainBalance';
