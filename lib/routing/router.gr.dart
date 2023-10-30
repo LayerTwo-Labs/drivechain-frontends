@@ -15,6 +15,12 @@ abstract class _$AppRouter extends RootStackRouter {
 
   @override
   final Map<String, PageFactory> pagesMap = {
+    DashboardTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const DashboardTabPage(),
+      );
+    },
     HomeRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -31,19 +37,33 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
-    WithdrawalBundleRoute.name: (routeData) {
+    WithdrawalBundleTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const WithdrawalBundlePage(),
+        child: const WithdrawalBundleTabPage(),
       );
     },
-    WithdrawalRoute.name: (routeData) {
+    WithdrawalTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const WithdrawalPage(),
+        child: const WithdrawalTabPage(),
       );
     },
   };
+}
+
+/// generated route for
+/// [DashboardTabPage]
+class DashboardTabRoute extends PageRouteInfo<void> {
+  const DashboardTabRoute({List<PageRouteInfo>? children})
+      : super(
+          DashboardTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'DashboardTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
 }
 
 /// generated route for
@@ -98,29 +118,29 @@ class SailTestRouteArgs {
 }
 
 /// generated route for
-/// [WithdrawalBundlePage]
-class WithdrawalBundleRoute extends PageRouteInfo<void> {
-  const WithdrawalBundleRoute({List<PageRouteInfo>? children})
+/// [WithdrawalBundleTabPage]
+class WithdrawalBundleTabRoute extends PageRouteInfo<void> {
+  const WithdrawalBundleTabRoute({List<PageRouteInfo>? children})
       : super(
-          WithdrawalBundleRoute.name,
+          WithdrawalBundleTabRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'WithdrawalBundleRoute';
+  static const String name = 'WithdrawalBundleTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
 
 /// generated route for
-/// [WithdrawalPage]
-class WithdrawalRoute extends PageRouteInfo<void> {
-  const WithdrawalRoute({List<PageRouteInfo>? children})
+/// [WithdrawalTabPage]
+class WithdrawalTabRoute extends PageRouteInfo<void> {
+  const WithdrawalTabRoute({List<PageRouteInfo>? children})
       : super(
-          WithdrawalRoute.name,
+          WithdrawalTabRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'WithdrawalRoute';
+  static const String name = 'WithdrawalTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
