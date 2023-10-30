@@ -1,18 +1,17 @@
-import 'dart:async';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/console.dart';
 import 'package:sidesail/deposit_address.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class DashboardTabPage extends StatelessWidget {
+  const DashboardTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -31,15 +30,15 @@ class HomePage extends StatelessWidget {
                       Expanded(child: RpcWidget()),
                     ],
                   ),
-                  const Row(
-                    children: [Text('Deposit stuff')],
+                  Row(
+                    children: [SailText.primary14('Deposit stuff')],
                   ),
                   Row(
                     children: [
                       DepositAddress(viewModel.depositAddress),
                       ElevatedButton(
                         onPressed: viewModel.generateDepositAddress,
-                        child: const Text('Generate'),
+                        child: SailText.primary14('Generate'),
                       ),
                     ],
                   ),

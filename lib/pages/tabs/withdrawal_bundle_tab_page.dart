@@ -9,17 +9,17 @@ import 'package:sidesail/rpc/rpc.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
-class WithdrawalBundlePage extends StatelessWidget {
-  const WithdrawalBundlePage({super.key});
+class WithdrawalBundleTabPage extends StatelessWidget {
+  const WithdrawalBundleTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return SailPage(
       title: 'Withdrawal bundles',
       body: ViewModelBuilder.reactive(
-        viewModelBuilder: () => WithdrawalBundlePageViewModel(),
+        viewModelBuilder: () => WithdrawalBundleTabPageViewModel(),
         builder: ((context, viewModel, child) {
-          return SailText.mediumText20(
+          return SailText.primary14(
             'Withdrawal bundle status: ${viewModel.withdrawalBundleStatus}',
           );
         }),
@@ -28,10 +28,10 @@ class WithdrawalBundlePage extends StatelessWidget {
   }
 }
 
-class WithdrawalBundlePageViewModel extends BaseViewModel {
+class WithdrawalBundleTabPageViewModel extends BaseViewModel {
   RPC get _rpc => GetIt.I.get<RPC>();
 
-  WithdrawalBundlePageViewModel() {
+  WithdrawalBundleTabPageViewModel() {
     _startWithdrawalBundleFetch();
   }
 

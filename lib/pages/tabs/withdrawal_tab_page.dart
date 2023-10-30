@@ -15,15 +15,15 @@ import 'package:stacked/stacked.dart';
 // SBTC?
 
 @RoutePage()
-class WithdrawalPage extends StatelessWidget {
-  const WithdrawalPage({super.key});
+class WithdrawalTabPage extends StatelessWidget {
+  const WithdrawalTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return SailPage(
       title: 'Withdraw',
       body: ViewModelBuilder.reactive(
-        viewModelBuilder: () => WithdrawalPageViewModel(),
+        viewModelBuilder: () => WithdrawalTabPageViewModel(),
         builder: ((context, viewModel, child) {
           return Padding(
             padding: const EdgeInsets.all(16.0),
@@ -118,7 +118,7 @@ class WithdrawalPage extends StatelessWidget {
   }
 }
 
-class WithdrawalPageViewModel extends MultipleFutureViewModel {
+class WithdrawalTabPageViewModel extends MultipleFutureViewModel {
   RPC get _rpc => GetIt.I.get<RPC>();
 
   // TODO: how to take this on creation? Async operation, possible
@@ -135,7 +135,7 @@ class WithdrawalPageViewModel extends MultipleFutureViewModel {
 
   Timer? balanceTimer;
 
-  WithdrawalPageViewModel() {
+  WithdrawalTabPageViewModel() {
     balanceTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       // fetchAndUpdateBalance();
     });
