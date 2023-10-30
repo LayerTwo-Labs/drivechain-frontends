@@ -7,9 +7,13 @@ RUN apt-get update && apt-get install -y \
 
 RUN mkdir /testchain
 
-RUN git clone https://github.com/layerTwo-Labs/testchain /testchain
+ARG TESTCHAIN_VERSION
+RUN git clone --depth 1 \
+    https://github.com/layerTwo-Labs/testchain /testchain
 
 WORKDIR /testchain
+
+RUN git checkout $TESTCHAIN_VERSION
 
 RUN ./autogen.sh
 RUN ./configure --with-incompatible-bdb
