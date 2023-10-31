@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/logger.dart';
+import 'package:sidesail/rpc/rpc_config.dart';
 
 abstract class RPC {
   Future<double> getBalance();
@@ -15,12 +16,12 @@ abstract class RPC {
 class RPCLive implements RPC {
   late RPCClient _client;
 
-  RPCLive() {
+  RPCLive(Config config) {
     _client = RPCClient(
-      host: 'localhost',
-      port: 19000,
-      username: 'user',
-      password: 'password',
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      password: config.password,
       useSSL: false,
     );
 
