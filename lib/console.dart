@@ -37,7 +37,7 @@ class RpcWidgetState extends State<RpcWidget> {
     }
 
     final method = fields.first;
-    var res = rpc.callRAW(method, params);
+    var res = await rpc.callRAW(method, params);
 
     log.t(
       'bitcoin core: $method completed in ${DateTime.now().difference(start)}',
