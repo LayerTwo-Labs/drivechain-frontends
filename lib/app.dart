@@ -46,7 +46,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   SailThemeData _themeDataFromTheme(SailThemeValues theme) {
     switch (theme) {
       case SailThemeValues.light:
-        return SailThemeData.lightTheme();
+        return SailThemeData.darkTheme();
       case SailThemeValues.dark:
         return SailThemeData.darkTheme();
       default:
