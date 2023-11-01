@@ -9,15 +9,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/rpc/rpc.dart';
 
 import 'mocks/rpc_mock.dart';
 import 'test_utils.dart';
 
+final txProvider = TransactionsProvider();
+
 void main() {
   setUpAll(() async {
     GetIt.I.registerLazySingleton<RPC>(() => MockRPC());
 
+    GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
     final balanceProvider = BalanceProvider();
     GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
     // don't start test until balance is fetched
@@ -38,5 +42,7 @@ void main() {
     expect(find.text('Transactions'), findsOneWidget);
     expect(find.text('Balance: 1.12345678 SBTC'), findsOneWidget);
     expect(find.text('Unconfirmed balance: 2.24680000 SBTC'), findsOneWidget);
+
+    txProvider.stopPolling();
   });
 }

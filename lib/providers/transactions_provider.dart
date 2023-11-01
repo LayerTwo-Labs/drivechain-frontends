@@ -35,10 +35,14 @@ class TransactionsProvider extends ChangeNotifier {
     });
   }
 
+  void stopPolling() {
+    // Cancel timer when provider is disposed (never?)
+    _timer.cancel();
+  }
+
   @override
   void dispose() {
     super.dispose();
-    // Cancel timer when provider is disposed (never?)
-    _timer.cancel();
+    stopPolling();
   }
 }

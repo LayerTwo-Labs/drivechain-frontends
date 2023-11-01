@@ -1,13 +1,16 @@
-import 'dart:async';
+import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/transactions_provider.dart';
+import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
@@ -22,6 +25,7 @@ class DashboardTabPage extends StatelessWidget {
       builder: ((context, viewModel, child) {
         return SailPage(
           title: '',
+          scrollable: true,
           widgetTitle: Row(
             children: [
               SailText.mediumPrimary14('Balance: ${viewModel.sidechainBalance} SBTC'),
@@ -71,8 +75,49 @@ class DashboardTabPage extends StatelessWidget {
               const SailSpacing(SailStyleValues.padding30),
               DashboardGroup(
                 title: 'Transactions',
+                titleTrailing: viewModel.transactions.length.toString(),
+                endWidget: SailToggle(label: 'Show raw', value: viewModel.showRaw, onChanged: viewModel.toggleRaw),
                 children: [
-                  SailText.mediumPrimary20('TBD'),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      dataRowMaxHeight: viewModel.showRaw ? 350 : null,
+                      columns: [
+                        if (viewModel.showRaw) DataColumn(label: SailText.primary12('Raw')),
+                        DataColumn(label: SailText.primary12('Category')),
+                        DataColumn(label: SailText.primary12('Amount')),
+                        DataColumn(label: SailText.primary12('Fee')),
+                        DataColumn(label: SailText.primary12('TXID')),
+                        DataColumn(label: SailText.primary12('Time')),
+                        DataColumn(label: SailText.primary12('Address')),
+                        DataColumn(label: SailText.primary12('Label')),
+                        DataColumn(label: SailText.primary12('Account')),
+                      ],
+                      rows: viewModel.transactions.map((tx) {
+                        return DataRow(
+                          cells: [
+                            if (viewModel.showRaw)
+                              DataCell(
+                                SizedBox(
+                                  width: 600,
+                                  child: SailText.primary12(
+                                    const JsonEncoder.withIndent(' ').convert(jsonDecode(tx.raw)),
+                                  ),
+                                ),
+                              ),
+                            DataCell(SailText.primary12(tx.category)),
+                            DataCell(SailText.primary12(tx.amount.toString())),
+                            DataCell(SailText.primary12(tx.fee.toString())),
+                            DataCell(SailText.primary12(tx.txid)),
+                            DataCell(SailText.primary12(DateFormat('HH:mm MMM d').format(tx.time))),
+                            DataCell(SailText.primary12(tx.address)),
+                            DataCell(SailText.primary12(tx.label)),
+                            DataCell(SailText.primary12(tx.account)),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -86,11 +131,13 @@ class DashboardTabPage extends StatelessWidget {
 class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
 
   String get sidechainBalance => _balanceProvider.balance.toStringAsFixed(8);
   String get sidechainPendingBalance => _balanceProvider.pendingBalance.toStringAsFixed(8);
+  List<Transaction> get transactions => _transactionsProvider.transactions;
 
-  Timer? balanceTimer;
+  bool showRaw = false;
 
   HomePageViewModel() {
     // by adding a listener, we subscribe to changes to the balance
@@ -98,10 +145,12 @@ class HomePageViewModel extends BaseViewModel {
     // showing the new value though, so we keep it simple, and just
     // pass notifyListeners of this view model directly
     _balanceProvider.addListener(notifyListeners);
+    _transactionsProvider.addListener(notifyListeners);
+  }
 
-    balanceTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      await _balanceProvider.fetch();
-    });
+  void toggleRaw(bool value) {
+    showRaw = value;
+    notifyListeners();
   }
 
   void pegOut(BuildContext context) async {
@@ -152,8 +201,7 @@ class HomePageViewModel extends BaseViewModel {
   @override
   void dispose() {
     super.dispose();
-    if (balanceTimer != null) {
-      balanceTimer!.cancel();
-    }
+    _balanceProvider.removeListener(notifyListeners);
+    _transactionsProvider.removeListener(notifyListeners);
   }
 }
