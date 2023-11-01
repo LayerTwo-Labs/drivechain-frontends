@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 abstract class SailStyleValues {
   // ---------- PADDINGS AND SPACINGS ----------
   static BorderRadius borderRadiusRegular = BorderRadius.circular(21);
+  static BorderRadius borderRadiusButton = BorderRadius.circular(4);
 
   static const double padding5 = 5;
+  static const double padding8 = 8;
   static const double padding10 = 10;
   static const double padding15 = 15;
   static const double padding20 = 20;

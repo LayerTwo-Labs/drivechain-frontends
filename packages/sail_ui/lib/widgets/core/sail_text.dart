@@ -71,9 +71,29 @@ class SailText {
     );
   }
 
+  static Widget mediumPrimary14(
+    String label, {
+    bool softwrap = true,
+    TextAlign? textAlign,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.medium14.copyWith(color: theme.colors.text),
+          softwrap: softwrap,
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
+
   static Widget secondary14(
-    String label,
-  ) {
+    String label, {
+    bool softwrap = true,
+    TextAlign? textAlign,
+  }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
@@ -85,8 +105,27 @@ class SailText {
     );
   }
 
+  static Widget mediumPrimary12(
+    String label, {
+    bool softwrap = true,
+    TextAlign? textAlign,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.medium12.copyWith(color: theme.colors.text),
+          softwrap: softwrap,
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
+
   static Widget primary12(
     String label, {
+    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -103,6 +142,7 @@ class SailText {
 
   static Widget secondary12(
     String label, {
+    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -111,6 +151,24 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.regular12.copyWith(color: theme.colors.text),
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
+
+  static Widget mediumSecondary12(
+    String label, {
+    bool softwrap = true,
+    TextAlign? textAlign,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.medium12.copyWith(color: theme.colors.textSecondary),
+          softwrap: softwrap,
           textAlign: textAlign,
         );
       },
