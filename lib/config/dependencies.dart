@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
@@ -27,5 +28,8 @@ Future<void> initGetitDependencies() async {
     // by registering an instance of the balance provider,
     // we start polling for balance updates
     () => BalanceProvider(),
+  );
+  GetIt.I.registerLazySingleton<TransactionsProvider>(
+    () => TransactionsProvider(),
   );
 }
