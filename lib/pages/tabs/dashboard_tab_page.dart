@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -88,6 +90,20 @@ class HomePageViewModel extends BaseViewModel {
   String get sidechainBalance => _balanceProvider.balance.toStringAsFixed(8);
   String get sidechainPendingBalance => _balanceProvider.pendingBalance.toStringAsFixed(8);
 
+  Timer? balanceTimer;
+
+  HomePageViewModel() {
+    // by adding a listener, we subscribe to changes to the balance
+    // provider. We don't use the updates for anything other than
+    // showing the new value though, so we keep it simple, and just
+    // pass notifyListeners of this view model directly
+    _balanceProvider.addListener(notifyListeners);
+
+    balanceTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      await _balanceProvider.fetch();
+    });
+  }
+
   void pegOut(BuildContext context) async {
     final theme = SailTheme.of(context);
 
@@ -125,5 +141,13 @@ class HomePageViewModel extends BaseViewModel {
         return const ReceiveOnSidechainAction();
       },
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    if (balanceTimer != null) {
+      balanceTimer!.cancel();
+    }
   }
 }

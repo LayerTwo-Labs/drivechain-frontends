@@ -49,12 +49,6 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const WithdrawalBundleTabPage(),
       );
     },
-    WithdrawalTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const WithdrawalTabPage(),
-      );
-    },
   };
 }
 
@@ -147,20 +141,6 @@ class WithdrawalBundleTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'WithdrawalBundleTabRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [WithdrawalTabPage]
-class WithdrawalTabRoute extends PageRouteInfo<void> {
-  const WithdrawalTabRoute({List<PageRouteInfo>? children})
-      : super(
-          WithdrawalTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'WithdrawalTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
