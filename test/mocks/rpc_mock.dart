@@ -25,4 +25,14 @@ class MockRPC extends RPC {
   Future<Map<String, dynamic>> refreshBMM(int bidSatoshis) async {
     return <String, String>{};
   }
+
+  @override
+  Future<double> estimateSidechainFee() async {
+    return 0.001;
+  }
+
+  @override
+  Future<String> getRefundAddress() async {
+    return 'sc1..?';
+  }
 }
