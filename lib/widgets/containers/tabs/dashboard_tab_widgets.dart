@@ -297,6 +297,7 @@ class PegInAction extends StatelessWidget {
             StaticActionField(
               label: 'Address',
               value: viewModel.pegInAddress ?? '',
+              copyable: true,
             ),
           ],
         );
