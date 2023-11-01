@@ -1,9 +1,12 @@
-FROM debian:bullseye-slim
+FROM debian:bullseye-slim AS worker
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update -o Acquire::Check-Valid-Until=false \
+    -o Acquire::AllowInsecureRepositories=true \
+    -o Acquire::AllowDowngradeToInsecureRepositories=true && \
+    apt-get install -y \
     build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 \
     libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev  \
-    git libdb-dev libdb++-dev
+    git libdb-dev libdb++-dev curl
 
 RUN mkdir /testchain
 
@@ -15,11 +18,18 @@ WORKDIR /testchain
 
 RUN git checkout $TESTCHAIN_VERSION
 
+RUN cd depends && make
 RUN ./autogen.sh
-RUN ./configure --with-incompatible-bdb
+
+# Which platform triple depends was compiled for
+ARG DEPENDS
+
+RUN ./configure --prefix=/testchain/depends/$DEPENDS  --disable-bench --disable-tests --with-incompatible-bdb
 RUN make
 
-RUN cp /testchain/src/testchaind /testchain/src/testchain-cli /usr/bin
+FROM debian:bullseye-slim 
+
+COPY --from=worker /testchain/src/testchaind /testchain/src/testchain-cli /usr/bin
 
 # Verify we installed correctly
 RUN testchaind -h
