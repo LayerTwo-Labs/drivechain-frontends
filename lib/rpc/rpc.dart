@@ -8,7 +8,7 @@ import 'package:sidesail/rpc/rpc_config.dart';
 
 abstract class RPC {
   Future<(double, double)> getBalance();
-  Future<Map<String, dynamic>> refreshBMM(int bidSatoshis);
+  Future<BmmResult> refreshBMM(int bidSatoshis);
   Future<String> generatePegInAddress();
   Future<String> pegOut(
     String address,
@@ -26,6 +26,8 @@ abstract class RPC {
   Future<List<Transaction>> listTransactions();
 
   Future<double> estimateSidechainFee();
+  Future<int> mainchainBlockCount();
+  Future<int> blockCount();
   Future<String> fetchWithdrawalBundleStatus();
   Future<dynamic> callRAW(String method, [dynamic params]);
 }
@@ -55,10 +57,10 @@ class RPCLive implements RPC {
   }
 
   @override
-  Future<Map<String, dynamic>> refreshBMM(int bidSatoshis) async {
-    final res = await _client.call('refreshbmm', [bidSatoshis / 100000000]);
+  Future<BmmResult> refreshBMM(int bidSatoshis) async {
+    final res = await _client.call('refreshbmm', [bidSatoshis / 100000000]) as Map<String, dynamic>;
 
-    return res;
+    return BmmResult.fromJson(res);
   }
 
   @override
@@ -173,6 +175,18 @@ class RPCLive implements RPC {
     List<Transaction> transactions = transactionsJSON.map((jsonItem) => Transaction.fromMap(jsonItem)).toList();
     return transactions;
   }
+
+  @override
+  Future<int> mainchainBlockCount() async {
+    final cached = await _client.call('updatemainblockcache') as Map<String, dynamic>;
+
+    return cached['cachesize'];
+  }
+
+  @override
+  Future<int> blockCount() async {
+    return await _client.call('getblockcount');
+  }
 }
 
 abstract class RPCError {
@@ -270,4 +284,67 @@ class Transaction {
         'bip125-replaceable': bip125Replaceable,
         'abandoned': abandoned,
       };
+}
+
+class BmmResult {
+  final String hashLastMainBlock;
+
+  /// hashCreatedMerkleRoot/hashCreated in the testchain codebase
+  final String? bmmBlockCreated;
+
+  /// hashConnected in the testchain codebase
+  final String? bmmBlockSubmitted;
+
+  /// hashMerkleRoot/hashConnectedBlind in the testchain codebase
+  final String? bmmBlockSubmittedBlind;
+
+  final int ntxn;
+  final int nfees;
+  final String txid;
+  final String? error;
+
+  BmmResult({
+    required this.hashLastMainBlock,
+    required this.bmmBlockCreated,
+    required this.bmmBlockSubmitted,
+    required this.bmmBlockSubmittedBlind,
+    required this.ntxn,
+    required this.nfees,
+    required this.txid,
+    this.error,
+  });
+
+  factory BmmResult.fromJson(Map<String, dynamic> json) {
+    return BmmResult(
+      hashLastMainBlock: json['hash_last_main_block'],
+      bmmBlockCreated: ifNonEmpty(json['bmm_block_created']),
+      bmmBlockSubmitted: ifNonEmpty(json['bmm_block_submitted']),
+      bmmBlockSubmittedBlind: ifNonEmpty(json['bmm_block_submitted_blind']),
+      ntxn: json['ntxn'],
+      nfees: json['nfees'],
+      txid: json['txid'],
+      error: ifNonEmpty(json['error']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'hash_last_main_block': hashLastMainBlock,
+      'bmm_block_created': bmmBlockCreated,
+      'bmm_block_submitted': bmmBlockSubmitted,
+      'bmm_block_submitted_blind': bmmBlockSubmittedBlind,
+      'ntxn': ntxn,
+      'nfees': nfees,
+      'txid': txid,
+      'error': error,
+    };
+  }
+}
+
+String? ifNonEmpty(String input) {
+  if (input.isEmpty || input.split('').every((element) => element == '0')) {
+    return null;
+  }
+
+  return input;
 }
