@@ -7,7 +7,7 @@ class MockRPC extends RPC {
   }
 
   @override
-  Future<String> generateDepositAddress() async {
+  Future<String> generatePegInAddress() async {
     return 'bc1...?';
   }
 
@@ -33,6 +33,11 @@ class MockRPC extends RPC {
 
   @override
   Future<String> getRefundAddress() async {
-    return 'sc1..?';
+    return 'sc1_deadbeef';
+  }
+
+  @override
+  Future<String> generateSidechainAddress() async {
+    return 's1deadbeef';
   }
 }
