@@ -9,6 +9,8 @@ abstract class RPC {
   Future<(double, double)> getBalance();
   Future<Map<String, dynamic>> refreshBMM(int bidSatoshis);
   Future<String> generateDepositAddress();
+  Future<String> getRefundAddress();
+  Future<double> estimateSidechainFee();
   Future<String> fetchWithdrawalBundleStatus();
   Future<dynamic> callRAW(String method, [dynamic params]);
 }
@@ -54,6 +56,26 @@ class RPCLive implements RPC {
     var formatted = await _client.call('formatdepositaddress', [address as String]);
 
     return formatted as String;
+  }
+
+  @override
+  Future<String> getRefundAddress() async {
+    var address = await _client.call('getnewaddress', ['Sidechain Deposit', 'legacy']) as String;
+    return address;
+  }
+
+  @override
+  Future<double> estimateSidechainFee() async {
+    final estimate = await _client.call('estimatesmartfee', [6]) as Map<String, dynamic>;
+    if (estimate.containsKey('errors')) {
+      log.w("could not estimate fee: ${estimate["errors"]}");
+    }
+
+    final btcPerKb = estimate.containsKey('feerate') ? estimate['feerate'] as double : 0.0001; // 10 sats/byte
+
+    // who knows!
+    const kbyteInWithdrawal = 5;
+    return btcPerKb * kbyteInWithdrawal;
   }
 
   @override

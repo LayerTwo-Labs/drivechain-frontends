@@ -17,7 +17,6 @@ class HomePage extends StatelessWidget {
       routes: const [
         DashboardTabRoute(),
         WithdrawalBundleTabRoute(),
-        WithdrawalTabRoute(),
         BlindMergedMiningTabRoute(),
       ],
       builder: (context, child, _) {
@@ -46,17 +45,10 @@ class HomePage extends StatelessWidget {
                 ),
               ),
               BottomNavigationBarItem(
-                label: 'Withdrawals',
-                icon: SailSVG.icon(
-                  SailSVGAsset.iconDashboardTab,
-                  isHighlighted: tabsRouter.activeIndex == 2,
-                ),
-              ),
-              BottomNavigationBarItem(
                 label: 'BMM',
                 icon: SailSVG.icon(
                   SailSVGAsset.iconDashboardTab,
-                  isHighlighted: tabsRouter.activeIndex == 3,
+                  isHighlighted: tabsRouter.activeIndex == 2,
                 ),
               ),
             ],
