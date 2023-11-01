@@ -32,10 +32,10 @@ class LoadingIndicator extends StatelessWidget {
     return Builder(
       builder: (context) {
         return const SizedBox(
-          width: SailStyleValues.padding25,
-          height: SailStyleValues.padding25,
+          width: SailStyleValues.padding15,
+          height: SailStyleValues.padding15,
           child: Stack(
-            fit: StackFit.loose,
+            fit: StackFit.expand,
             children: [
               Center(
                 child: LoadingIndicator(),
