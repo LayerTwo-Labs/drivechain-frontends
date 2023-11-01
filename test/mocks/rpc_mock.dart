@@ -22,8 +22,17 @@ class MockRPC extends RPC {
   }
 
   @override
-  Future<Map<String, dynamic>> refreshBMM(int bidSatoshis) async {
-    return <String, String>{};
+  Future<BmmResult> refreshBMM(int bidSatoshis) async {
+    return BmmResult(
+      hashLastMainBlock: '',
+      bmmBlockCreated: '',
+      bmmBlockSubmitted: '',
+      bmmBlockSubmittedBlind: '',
+      ntxn: 0,
+      nfees: 0,
+      txid: '',
+      error: '',
+    );
   }
 
   @override
@@ -54,5 +63,15 @@ class MockRPC extends RPC {
   @override
   Future<List<Transaction>> listTransactions() async {
     return List.empty();
+  }
+
+  @override
+  Future<int> blockCount() async {
+    return 1;
+  }
+
+  @override
+  Future<int> mainchainBlockCount() async {
+    return 1;
   }
 }
