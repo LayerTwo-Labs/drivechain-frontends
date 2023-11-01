@@ -76,6 +76,7 @@ class RPCLive implements RPC {
     final estimate = await _client.call('estimatesmartfee', [6]) as Map<String, dynamic>;
     if (estimate.containsKey('errors')) {
       log.w("could not estimate fee: ${estimate["errors"]}");
+      return 0.001;
     }
 
     final btcPerKb = estimate.containsKey('feerate') ? estimate['feerate'] as double : 0.0001; // 10 sats/byte
