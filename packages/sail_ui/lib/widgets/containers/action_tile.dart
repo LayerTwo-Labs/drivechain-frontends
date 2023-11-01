@@ -11,14 +11,14 @@ enum Category {
 class ActionTile extends StatelessWidget {
   final String title;
   final Category category;
-  final IconData icon;
+  final IconData? icon;
   final VoidCallback onTap;
 
   const ActionTile({
     super.key,
     required this.title,
     required this.category,
-    required this.icon,
+    this.icon,
     required this.onTap,
   });
 
@@ -32,11 +32,12 @@ class ActionTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding15, horizontal: SailStyleValues.padding30),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 14,
-              color: theme.colors.text,
-            ),
+            if (icon != null)
+              Icon(
+                icon!,
+                size: 14,
+                color: theme.colors.text,
+              ),
             const SailSpacing(SailStyleValues.padding8),
             SailText.primary14(title),
           ],
