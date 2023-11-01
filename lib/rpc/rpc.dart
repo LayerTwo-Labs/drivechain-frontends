@@ -8,7 +8,8 @@ import 'package:sidesail/rpc/rpc_config.dart';
 abstract class RPC {
   Future<(double, double)> getBalance();
   Future<Map<String, dynamic>> refreshBMM(int bidSatoshis);
-  Future<String> generateDepositAddress();
+  Future<String> generatePegInAddress();
+  Future<String> generateSidechainAddress();
   Future<String> getRefundAddress();
   Future<double> estimateSidechainFee();
   Future<String> fetchWithdrawalBundleStatus();
@@ -47,8 +48,8 @@ class RPCLive implements RPC {
   }
 
   @override
-  Future<String> generateDepositAddress() async {
-    var address = await _client.call('getnewaddress', ['Sidechain Deposit', 'legacy']);
+  Future<String> generatePegInAddress() async {
+    var address = await _client.call('getnewaddress', ['Sidechain Peg In', 'legacy']);
 
     // This is actually just rather simple stuff. Should be able to
     // do this client side! Just needs the sidechain number, and we're
@@ -56,6 +57,12 @@ class RPCLive implements RPC {
     var formatted = await _client.call('formatdepositaddress', [address as String]);
 
     return formatted as String;
+  }
+
+  @override
+  Future<String> generateSidechainAddress() async {
+    var address = await _client.call('getnewaddress', ['Sidechain Deposit']);
+    return address as String;
   }
 
   @override

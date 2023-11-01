@@ -60,6 +60,7 @@ class PegOutAction extends StatelessWidget {
         return DashboardActionModal(
           'Peg-out to mainchain',
           endActionButton: SailButton.primary(
+            disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
             label: 'Execute peg-out',
             loading: viewModel.isBusy,
             size: ButtonSize.small,
@@ -289,13 +290,13 @@ class PegInAction extends StatelessWidget {
             loading: viewModel.isBusy,
             size: ButtonSize.small,
             onPressed: () async {
-              viewModel.generateNewAddress();
+              await viewModel.generatePegInAddress();
             },
           ),
-          children: const [
+          children: [
             StaticActionField(
-              label: 'Deposit bitcoin to this address',
-              value: 'TBD bitcoin-address',
+              label: 'Address',
+              value: viewModel.pegInAddress ?? '',
             ),
           ],
         );
@@ -305,16 +306,17 @@ class PegInAction extends StatelessWidget {
 }
 
 class PegInViewModel extends BaseViewModel {
+  RPC get _rpc => GetIt.I.get<RPC>();
   final log = Logger(level: Level.debug);
 
-  PegInViewModel();
+  String? pegInAddress;
 
-  void generateNewAddress() async {
-    setBusy(true);
-    notifyListeners();
-    await Future.delayed(const Duration(seconds: 1), () {});
+  PegInViewModel() {
+    generatePegInAddress();
+  }
 
-    setBusy(false);
+  Future<void> generatePegInAddress() async {
+    pegInAddress = await _rpc.generatePegInAddress();
     notifyListeners();
   }
 }
@@ -330,11 +332,12 @@ class SendOnSidechainAction extends StatelessWidget {
         return DashboardActionModal(
           'Send on sidechain',
           endActionButton: SailButton.primary(
+            disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
             label: 'Execute withdrawal',
             loading: viewModel.isBusy,
             size: ButtonSize.small,
             onPressed: () async {
-              viewModel.executeSendOnSidechain();
+              viewModel.executeSendOnSidechain(context);
             },
           ),
           children: [
@@ -348,9 +351,9 @@ class SendOnSidechainAction extends StatelessWidget {
               suffixText: 'BTC',
               bitcoinInput: true,
             ),
-            const StaticActionField(
+            StaticActionField(
               label: 'Fee',
-              value: 'TBD BTC',
+              value: '${viewModel.sidechainFee ?? 0} BTC',
             ),
             StaticActionField(
               label: 'Total amount',
@@ -386,11 +389,10 @@ class SendOnSidechainViewModel extends BaseViewModel {
     await estimateSidechainFee();
   }
 
-  void executeSendOnSidechain() async {
+  void executeSendOnSidechain(BuildContext context) async {
     setBusy(true);
     notifyListeners();
-    await Future.delayed(const Duration(seconds: 1), () {});
-
+    onSidechainSend(context);
     setBusy(false);
     notifyListeners();
 
@@ -400,6 +402,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   Future<void> estimateSidechainFee() async {
     final estimate = await _rpc.estimateSidechainFee();
     sidechainFee = estimate;
+    notifyListeners();
   }
 
   void onSidechainSend(BuildContext context) async {
@@ -425,9 +428,11 @@ class SendOnSidechainViewModel extends BaseViewModel {
       return;
     }
 
+    final theme = SailTheme.of(context);
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: theme.colors.background.withOpacity(0.9),
         title: SailText.primary14(
           'Confirm withdrawal',
         ),
@@ -489,9 +494,11 @@ class SendOnSidechainViewModel extends BaseViewModel {
         return;
       }
 
+      final theme = SailTheme.of(context);
       await showDialog(
         context: context,
         builder: (context) => AlertDialog(
+          backgroundColor: theme.colors.background.withOpacity(0.9),
           title: SailText.primary14(
             'Success',
           ),
@@ -511,9 +518,11 @@ class SendOnSidechainViewModel extends BaseViewModel {
         return;
       }
 
+      final theme = SailTheme.of(context);
       await showDialog(
         context: context,
         builder: (context) => AlertDialog(
+          backgroundColor: theme.colors.background.withOpacity(0.9),
           title: SailText.primary14(
             'Failed',
           ),
@@ -548,13 +557,14 @@ class ReceiveOnSidechainAction extends StatelessWidget {
             loading: viewModel.isBusy,
             size: ButtonSize.small,
             onPressed: () async {
-              viewModel.generateNewAddress();
+              await viewModel.generateSidechainAddress();
             },
           ),
-          children: const [
+          children: [
             StaticActionField(
-              label: 'Deposit sidechain-coins to this address',
-              value: 'TBD bitcoin-address',
+              label: 'Address',
+              value: viewModel.sidechainAddress ?? '',
+              copyable: true,
             ),
           ],
         );
@@ -564,16 +574,17 @@ class ReceiveOnSidechainAction extends StatelessWidget {
 }
 
 class ReceiveOnSidechainViewModel extends BaseViewModel {
+  RPC get _rpc => GetIt.I.get<RPC>();
   final log = Logger(level: Level.debug);
 
-  ReceiveOnSidechainViewModel();
+  String? sidechainAddress;
 
-  void generateNewAddress() async {
-    setBusy(true);
-    notifyListeners();
-    await Future.delayed(const Duration(seconds: 1), () {});
+  ReceiveOnSidechainViewModel() {
+    generateSidechainAddress();
+  }
 
-    setBusy(false);
+  Future<void> generateSidechainAddress() async {
+    sidechainAddress = await _rpc.generateSidechainAddress();
     notifyListeners();
   }
 }
