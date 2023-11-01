@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sidesail/console.dart';
-import 'package:sidesail/deposit_address.dart';
 import 'package:sidesail/providers/balance_provider.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -16,61 +15,115 @@ class DashboardTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailPage(
-      title: 'SideSail',
-      body: ViewModelBuilder.reactive(
-        viewModelBuilder: () => HomePageViewModel(),
-        builder: ((context, viewModel, child) {
-          return Center(
-            child: SizedBox(
-              width: 1200,
-              child: Column(
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => HomePageViewModel(),
+      builder: ((context, viewModel, child) {
+        return SailPage(
+          title: '',
+          widgetTitle: Row(
+            children: [
+              SailText.mediumPrimary14('Balance: ${viewModel.sidechainBalance} SBTC'),
+              Expanded(child: Container()),
+              SailText.mediumPrimary14('Unconfirmed balance: ${viewModel.sidechainPendingBalance} SBTC'),
+            ],
+          ),
+          body: Column(
+            children: [
+              DashboardGroup(
+                title: 'Actions',
                 children: [
-                  SailText.primary14(
-                    'Your sidechain balance: ${viewModel.sidechainBalance} SBTC',
+                  ActionTile(
+                    title: 'Peg-out to mainchain',
+                    category: Category.mainchain,
+                    icon: Icons.remove,
+                    onTap: () {
+                      viewModel.pegOut(context);
+                    },
                   ),
-                  const Row(
-                    children: [
-                      Expanded(child: RpcWidget()),
-                    ],
+                  ActionTile(
+                    title: 'Peg-in from mainchain',
+                    category: Category.mainchain,
+                    icon: Icons.add,
+                    onTap: () {
+                      viewModel.pegIn(context);
+                    },
                   ),
-                  Row(
-                    children: [SailText.primary14('Deposit stuff')],
+                  ActionTile(
+                    title: 'Send on sidechain',
+                    category: Category.sidechain,
+                    icon: Icons.remove,
+                    onTap: () {
+                      viewModel.send(context);
+                    },
                   ),
-                  Row(
-                    children: [
-                      DepositAddress(viewModel.depositAddress),
-                      ElevatedButton(
-                        onPressed: viewModel.generateDepositAddress,
-                        child: SailText.primary14('Generate'),
-                      ),
-                    ],
+                  ActionTile(
+                    title: 'Receive on sidechain',
+                    category: Category.sidechain,
+                    icon: Icons.add,
+                    onTap: () {
+                      viewModel.receive(context);
+                    },
                   ),
                 ],
               ),
-            ),
-          );
-        }),
-      ),
+              const SailSpacing(SailStyleValues.padding30),
+              DashboardGroup(
+                title: 'Transactions',
+                children: [
+                  SailText.mediumPrimary20('TBD'),
+                ],
+              ),
+            ],
+          ),
+        );
+      }),
     );
   }
 }
 
 class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  RPC get _rpc => GetIt.I.get<RPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
-  double get sidechainBalance => _balanceProvider.balance;
+  String get sidechainBalance => _balanceProvider.balance.toStringAsFixed(8);
+  String get sidechainPendingBalance => _balanceProvider.pendingBalance.toStringAsFixed(8);
 
-  final TextEditingController withdrawalAddress = TextEditingController();
-  final TextEditingController withdrawalAmount = TextEditingController();
+  void pegOut(BuildContext context) async {
+    final theme = SailTheme.of(context);
 
-  String depositAddress = 'none';
+    await showDialog(
+      context: context,
+      barrierColor: theme.colors.background.withOpacity(0.4),
+      builder: (BuildContext context) {
+        return const PegOutAction();
+      },
+    );
+  }
 
-  Future<void> generateDepositAddress() async {
-    var address = await _rpc.generateDepositAddress();
-    depositAddress = address;
-    notifyListeners();
+  void pegIn(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const PegInAction();
+      },
+    );
+  }
+
+  void send(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const SendOnSidechainAction();
+      },
+    );
+  }
+
+  void receive(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const ReceiveOnSidechainAction();
+      },
+    );
   }
 }

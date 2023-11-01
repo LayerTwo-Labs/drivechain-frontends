@@ -31,8 +31,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify that there's a submit button.
-    expect(find.text('Submit'), findsOneWidget);
-    expect(find.text('SideSail'), findsOneWidget);
-    expect(find.text('Your sidechain balance: 1.12345678 SBTC'), findsOneWidget);
+    expect(find.text('Actions'), findsOneWidget);
+    expect(find.text('Peg-out to mainchain'), findsOneWidget);
+    expect(find.text('Peg-in from mainchain'), findsOneWidget);
+    expect(find.text('Send on sidechain'), findsOneWidget);
+    expect(find.text('Transactions'), findsOneWidget);
+    expect(find.text('Balance: 1.12345678 SBTC'), findsOneWidget);
+    expect(find.text('Unconfirmed balance: 2.24680000 SBTC'), findsOneWidget);
   });
 }

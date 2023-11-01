@@ -5,6 +5,8 @@ import 'package:sail_ui/theme/theme.dart';
 
 enum SailSVGAsset {
   iconDashboardTab,
+  iconMainchain,
+  iconSidechain,
 
   iconCopy,
 }
@@ -13,12 +15,16 @@ enum SailSVGAsset {
 // useful for svgs that already have a color like red or blue, that are
 // not supposed to be the same color of the text, or ones that have
 // multiple colors
-const coloredAssets = [];
+const coloredAssets = [
+  SailSVGAsset.iconMainchain,
+  SailSVGAsset.iconSidechain,
+];
 
 class SailSVG {
   static Widget icon(
     SailSVGAsset asset, {
     bool isHighlighted = false,
+    double? width,
   }) {
     return Builder(
       builder: (context) {
@@ -27,7 +33,7 @@ class SailSVG {
         return SailSVG._fromAsset(
           asset,
           color: coloredAssets.contains(asset) ? null : (isHighlighted ? colors.orange : colors.icon),
-          height: SailStyleValues.iconSizePrimary,
+          width: width ?? SailStyleValues.iconSizePrimary,
         );
       },
     );
@@ -54,6 +60,11 @@ extension AsAssetPath on SailSVGAsset {
     switch (this) {
       case SailSVGAsset.iconDashboardTab:
         return 'assets/svgs/icon_dashboard_tab.svg';
+
+      case SailSVGAsset.iconMainchain:
+        return 'assets/svgs/icon_mainchain.svg';
+      case SailSVGAsset.iconSidechain:
+        return 'assets/svgs/icon_sidechain.svg';
 
       case SailSVGAsset.iconCopy:
         return 'assets/svgs/icon_copy.svg';
