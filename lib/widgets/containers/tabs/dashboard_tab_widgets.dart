@@ -365,15 +365,25 @@ class SendOnSidechainAction extends StatelessWidget {
 
 class SendOnSidechainViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
+  RPC get _rpc => GetIt.I.get<RPC>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount => (double.tryParse(bitcoinAmountController.text) ?? 0).toStringAsFixed(8);
 
+  double? sidechainFee;
+  double? get withdrawalAmount => double.tryParse(bitcoinAmountController.text);
+
   SendOnSidechainViewModel() {
     bitcoinAddressController.addListener(notifyListeners);
     bitcoinAmountController.addListener(notifyListeners);
+    init();
+  }
+
+  void init() async {
+    await estimateSidechainFee();
   }
 
   void executeSendOnSidechain() async {
@@ -385,6 +395,141 @@ class SendOnSidechainViewModel extends BaseViewModel {
     notifyListeners();
 
     await _router.pop();
+  }
+
+  Future<void> estimateSidechainFee() async {
+    final estimate = await _rpc.estimateSidechainFee();
+    sidechainFee = estimate;
+  }
+
+  void onSidechainSend(BuildContext context) async {
+    if (withdrawalAmount == null) {
+      log.e('withdrawal amount was empty');
+      return;
+    }
+    if (sidechainFee == null) {
+      log.e('sidechain fee was empty');
+      return;
+    }
+
+    // 1. Get refund address for the sidechain withdrawal. This can be any address we control on the SC.
+    final refund = await _rpc.getRefundAddress();
+    log.d('got refund address: $refund');
+
+    final address = bitcoinAddressController.text;
+
+    // Because the function is async, the view might disappear/unmount
+    // by the time it's used. The linter doesn't like that, and wants
+    // you to check whether the view is mounted before using it
+    if (!context.mounted) {
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: SailText.primary14(
+          'Confirm withdrawal',
+        ),
+        content: SailText.primary14(
+          'Do you really want to execute the withdrawal?\n${bitcoinAmountController.text} BTC to $address with $sidechainFee SC fee',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: SailText.primary14('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Pop the currently visible dialog
+              Navigator.of(context).pop();
+
+              // This creates a new dialog on success
+              _doSidechainSend(
+                context,
+                address,
+                refund,
+                withdrawalAmount!,
+                sidechainFee!,
+              );
+            },
+            child: SailText.primary14(
+              'OK',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _doSidechainSend(
+    BuildContext context,
+    String address,
+    String refund,
+    double amount,
+    double sidechainFee,
+  ) async {
+    log.i(
+      'doing sidechain withdrawal: $amount BTC to $address with $sidechainFee SC fee',
+    );
+
+    try {
+      final withdrawalTxid = await _rpc.callRAW('createwithdrawal', [
+        address,
+        refund,
+        amount,
+        sidechainFee,
+      ]);
+      log.i('txid: $withdrawalTxid');
+
+      // refresh balance, but dont await, so dialog is showed instantly
+      unawaited(_balanceProvider.fetch());
+
+      if (!context.mounted) {
+        return;
+      }
+
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: SailText.primary14(
+            'Success',
+          ),
+          content: SailText.primary14(
+            'Submitted withdrawal successfully! TXID: $withdrawalTxid',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => _router.popUntilRoot(),
+              child: SailText.primary14('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: SailText.primary14(
+            'Failed',
+          ),
+          content: SailText.primary14(
+            'Could not execute sidechain withdrawal ${error.toString()}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => _router.popUntilRoot(),
+              child: SailText.primary14('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
   }
 }
 
