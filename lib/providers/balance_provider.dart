@@ -8,9 +8,10 @@ class BalanceProvider extends ChangeNotifier {
   RPC get _rpc => GetIt.I.get<RPC>();
 
   // because the class extends ChangeNotifier, any subscribers
-  // to this class will be notified of changes to this
-  // variable.
+  // to this class will be notified of changes to these
+  // variables.
   double balance = 0;
+  double pendingBalance = 0;
   bool initialized = false;
 
   // used for polling
@@ -23,8 +24,10 @@ class BalanceProvider extends ChangeNotifier {
 
   // call this function from anywhere to refresh the balance
   Future<void> fetch() async {
-    balance = await _rpc.getBalance();
+    final (bal, pendingBal) = await _rpc.getBalance();
     // TODO: Handle error?
+    balance = bal;
+    pendingBalance = pendingBal;
 
     initialized = true;
     notifyListeners();

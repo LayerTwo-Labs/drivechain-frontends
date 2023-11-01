@@ -12,8 +12,8 @@ class MockRPC extends RPC {
   }
 
   @override
-  Future<double> getBalance() async {
-    return 1;
+  Future<(double, double)> getBalance() async {
+    return (1.12345678, 2.24680);
   }
 
   @override
