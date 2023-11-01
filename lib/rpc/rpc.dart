@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
@@ -22,6 +23,7 @@ abstract class RPC {
     double amount,
     bool subtractFeeFromAmount,
   );
+  Future<List<Transaction>> listTransactions();
 
   Future<double> estimateSidechainFee();
   Future<String> fetchWithdrawalBundleStatus();
@@ -161,9 +163,111 @@ class RPCLive implements RPC {
 
     return withdrawalTxid;
   }
+
+  @override
+  Future<List<Transaction>> listTransactions() async {
+    // first list
+    final transactionsJSON = await _client.call('listtransactions', []) as List<dynamic>;
+
+    // then convert to something other than json
+    List<Transaction> transactions = transactionsJSON.map((jsonItem) => Transaction.fromMap(jsonItem)).toList();
+    return transactions;
+  }
 }
 
 abstract class RPCError {
   static const errNoWithdrawalBundle = -100;
   static const errWithdrawalNotFound = -101;
+}
+
+class Transaction {
+  final String account;
+  final String address;
+  final String category;
+  final double amount;
+  final String label;
+  final int vout;
+  final double fee;
+  final int confirmations;
+  final bool trusted;
+  final String txid;
+  final List<dynamic> walletconflicts;
+  final DateTime time;
+  final int timereceived;
+  final String bip125Replaceable;
+  final bool abandoned;
+  final bool generated;
+  final String blockhash;
+  final int blockindex;
+  final int blocktime;
+  final String raw;
+
+  Transaction({
+    required this.account,
+    required this.address,
+    required this.category,
+    required this.amount,
+    required this.label,
+    required this.vout,
+    required this.fee,
+    required this.confirmations,
+    required this.trusted,
+    required this.txid,
+    required this.walletconflicts,
+    required this.time,
+    required this.timereceived,
+    required this.bip125Replaceable,
+    required this.abandoned,
+    required this.generated,
+    required this.blockhash,
+    required this.blockindex,
+    required this.blocktime,
+    required this.raw,
+  });
+
+  factory Transaction.fromMap(Map<String, dynamic> map) {
+    return Transaction(
+      account: map['account'] ?? '',
+      address: map['address'] ?? '',
+      category: map['category'] ?? '',
+      amount: map['amount'] ?? 0.0,
+      label: map['label'] ?? '',
+      vout: map['vout'] ?? 0,
+      fee: map['fee'] ?? 0.0,
+      confirmations: map['confirmations'] ?? 0,
+      trusted: map['trusted'] ?? false,
+      txid: map['txid'] ?? '',
+      walletconflicts: map['walletconflicts'] ?? [],
+      time: DateTime.fromMillisecondsSinceEpoch((map['time'] ?? 0) * 1000),
+      timereceived: map['timereceived'] ?? 0,
+      bip125Replaceable: map['bip125-replaceable'] ?? 'no',
+      abandoned: map['abandoned'] ?? false,
+      generated: map['generated'] ?? false,
+      blockhash: map['blockhash'] ?? '',
+      blockindex: map['blockindex'] ?? 0,
+      blocktime: map['blocktime'] ?? 0,
+      raw: jsonEncode(map),
+    );
+  }
+
+  static Transaction fromJson(String json) => Transaction.fromMap(jsonDecode(json));
+  String toJson() => jsonEncode(toMap());
+
+  Map<String, dynamic> toMap() => {
+        'account': account,
+        'address': address,
+        'category': category,
+        'amount': amount,
+        'label': label,
+        'vout': vout,
+        'fee': fee,
+        'confirmations': confirmations,
+        'trusted': trusted,
+        'txid': txid,
+        'walletconflicts': walletconflicts,
+        'time': time.millisecondsSinceEpoch ~/ 1000,
+        'timereceived': timereceived,
+        'bip125-replaceable': bip125Replaceable,
+        'abandoned': abandoned,
+      };
 }

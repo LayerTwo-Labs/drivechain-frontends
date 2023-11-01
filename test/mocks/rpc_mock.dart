@@ -50,4 +50,9 @@ class MockRPC extends RPC {
   Future<String> sidechainSend(String address, double amount, bool subtractFeeFromAmount) async {
     return 'txidsidebeef';
   }
+
+  @override
+  Future<List<Transaction>> listTransactions() async {
+    return List.empty();
+  }
 }
