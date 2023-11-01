@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_app_bar.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class SailPage extends StatelessWidget {
   final String title;
+  final Widget? widgetTitle;
   final Widget body;
   final bool scrollable;
 
@@ -12,6 +14,7 @@ class SailPage extends StatelessWidget {
     super.key,
     required this.title,
     required this.body,
+    this.widgetTitle,
     this.scrollable = false,
   });
 
@@ -23,7 +26,11 @@ class SailPage extends StatelessWidget {
       backgroundColor: backgroundColor,
       appBar: SailAppBar.build(
         context,
-        title: title,
+        title: widgetTitle != null
+            ? widgetTitle!
+            : SailText.mediumPrimary20(
+                title,
+              ),
       ),
       body: buildBody(context),
     );
@@ -39,12 +46,14 @@ class SailPage extends StatelessWidget {
     } else {
       return SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(
-            top: SailStyleValues.padding20,
-            bottom: SailStyleValues.padding20,
-            left: SailStyleValues.padding10,
-            right: SailStyleValues.padding10,
-          ),
+          padding: widgetTitle != null
+              ? const EdgeInsets.all(0)
+              : const EdgeInsets.only(
+                  top: SailStyleValues.padding20,
+                  bottom: SailStyleValues.padding20,
+                  left: SailStyleValues.padding10,
+                  right: SailStyleValues.padding10,
+                ),
           child: body,
         ),
       );
