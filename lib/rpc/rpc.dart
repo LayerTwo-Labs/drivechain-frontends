@@ -6,7 +6,7 @@ import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 
 abstract class RPC {
-  Future<double> getBalance();
+  Future<(double, double)> getBalance();
   Future<Map<String, dynamic>> refreshBMM(int bidSatoshis);
   Future<String> generateDepositAddress();
   Future<String> fetchWithdrawalBundleStatus();
@@ -30,8 +30,11 @@ class RPCLive implements RPC {
   }
 
   @override
-  Future<double> getBalance() async {
-    return await _client.call('getbalance') as double;
+  Future<(double, double)> getBalance() async {
+    final confirmed = await _client.call('getbalance') as double;
+    final unconfirmed = await _client.call('getunconfirmedbalance') as double;
+
+    return (confirmed, unconfirmed);
   }
 
   @override

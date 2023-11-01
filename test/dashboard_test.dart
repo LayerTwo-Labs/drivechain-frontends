@@ -33,6 +33,6 @@ void main() {
     // Verify that there's a submit button.
     expect(find.text('Submit'), findsOneWidget);
     expect(find.text('SideSail'), findsOneWidget);
-    expect(find.text('Your sidechain balance: 1.0 SBTC'), findsOneWidget);
+    expect(find.text('Your sidechain balance: 1.12345678 SBTC'), findsOneWidget);
   });
 }
