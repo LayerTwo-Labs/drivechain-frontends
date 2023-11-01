@@ -117,8 +117,10 @@ class HomePageViewModel extends BaseViewModel {
   }
 
   void pegIn(BuildContext context) async {
+    final theme = SailTheme.of(context);
     await showDialog(
       context: context,
+      barrierColor: theme.colors.background.withOpacity(0.4),
       builder: (BuildContext context) {
         return const PegInAction();
       },
@@ -126,8 +128,10 @@ class HomePageViewModel extends BaseViewModel {
   }
 
   void send(BuildContext context) async {
+    final theme = SailTheme.of(context);
     await showDialog(
       context: context,
+      barrierColor: theme.colors.background.withOpacity(0.4),
       builder: (BuildContext context) {
         return const SendOnSidechainAction();
       },
@@ -135,8 +139,10 @@ class HomePageViewModel extends BaseViewModel {
   }
 
   void receive(BuildContext context) async {
+    final theme = SailTheme.of(context);
     await showDialog(
       context: context,
+      barrierColor: theme.colors.background.withOpacity(0.4),
       builder: (BuildContext context) {
         return const ReceiveOnSidechainAction();
       },

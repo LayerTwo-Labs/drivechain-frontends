@@ -40,4 +40,14 @@ class MockRPC extends RPC {
   Future<String> generateSidechainAddress() async {
     return 's1deadbeef';
   }
+
+  @override
+  Future<String> pegOut(String address, double amount, double sidechainFee, double mainchainFee) async {
+    return 'txidmainbeef';
+  }
+
+  @override
+  Future<String> sidechainSend(String address, double amount, bool subtractFeeFromAmount) async {
+    return 'txidsidebeef';
+  }
 }

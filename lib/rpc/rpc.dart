@@ -9,8 +9,20 @@ abstract class RPC {
   Future<(double, double)> getBalance();
   Future<Map<String, dynamic>> refreshBMM(int bidSatoshis);
   Future<String> generatePegInAddress();
+  Future<String> pegOut(
+    String address,
+    double amount,
+    double sidechainFee,
+    double mainchainFee,
+  );
   Future<String> generateSidechainAddress();
   Future<String> getRefundAddress();
+  Future<String> sidechainSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  );
+
   Future<double> estimateSidechainFee();
   Future<String> fetchWithdrawalBundleStatus();
   Future<dynamic> callRAW(String method, [dynamic params]);
@@ -45,6 +57,28 @@ class RPCLive implements RPC {
     final res = await _client.call('refreshbmm', [bidSatoshis / 100000000]);
 
     return res;
+  }
+
+  @override
+  Future<String> pegOut(
+    String address,
+    double amount,
+    double sidechainFee,
+    double mainchainFee,
+  ) async {
+    // 1. Get refund address for the sidechain withdrawal. This can be any address we control on the SC.
+    final refund = await getRefundAddress();
+    log.d('got refund address: $refund');
+
+    final withdrawalTxid = await _client.call('createwithdrawal', [
+      address,
+      refund,
+      amount,
+      sidechainFee,
+      mainchainFee,
+    ]);
+
+    return withdrawalTxid;
   }
 
   @override
@@ -113,6 +147,19 @@ class RPCLive implements RPC {
       log.t('rpc: $method threw exception: $err');
       throw err;
     });
+  }
+
+  @override
+  Future<String> sidechainSend(String address, double amount, bool subtractFeeFromAmount) async {
+    final withdrawalTxid = await _client.call('sendtoaddress', [
+      address,
+      amount,
+      '',
+      '',
+      subtractFeeFromAmount,
+    ]);
+
+    return withdrawalTxid;
   }
 }
 

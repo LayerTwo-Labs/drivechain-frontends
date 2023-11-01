@@ -148,10 +148,6 @@ class PegOutViewModel extends BaseViewModel {
       return;
     }
 
-    // 1. Get refund address for the sidechain withdrawal. This can be any address we control on the SC.
-    final refund = await _rpc.getRefundAddress();
-    log.d('got refund address: $refund');
-
     final address = bitcoinAddressController.text;
 
     // Because the function is async, the view might disappear/unmount
@@ -187,7 +183,6 @@ class PegOutViewModel extends BaseViewModel {
               _doPegOut(
                 context,
                 address,
-                refund,
                 pegOutAmount!,
                 sidechainFee!,
               );
@@ -204,7 +199,6 @@ class PegOutViewModel extends BaseViewModel {
   void _doPegOut(
     BuildContext context,
     String address,
-    String refund,
     double amount,
     double sidechainFee,
   ) async {
@@ -213,13 +207,13 @@ class PegOutViewModel extends BaseViewModel {
     );
 
     try {
-      final withdrawalTxid = await _rpc.callRAW('createwithdrawal', [
+      final withdrawalTxid = await _rpc.pegOut(
         address,
-        refund,
         amount,
         sidechainFee,
         mainchainFee,
-      ]);
+      );
+
       if (!context.mounted) {
         return;
       }
@@ -334,7 +328,7 @@ class SendOnSidechainAction extends StatelessWidget {
           'Send on sidechain',
           endActionButton: SailButton.primary(
             disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
-            label: 'Execute withdrawal',
+            label: 'Execute send',
             loading: viewModel.isBusy,
             size: ButtonSize.small,
             onPressed: () async {
@@ -354,7 +348,7 @@ class SendOnSidechainAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Fee',
-              value: '${viewModel.sidechainFee ?? 0} BTC',
+              value: '${viewModel.sidechainExpectedFee ?? 0} BTC',
             ),
             StaticActionField(
               label: 'Total amount',
@@ -377,8 +371,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount => (double.tryParse(bitcoinAmountController.text) ?? 0).toStringAsFixed(8);
 
-  double? sidechainFee;
-  double? get withdrawalAmount => double.tryParse(bitcoinAmountController.text);
+  double? sidechainExpectedFee;
+  double? get sendAmount => double.tryParse(bitcoinAmountController.text);
 
   SendOnSidechainViewModel() {
     bitcoinAddressController.addListener(notifyListeners);
@@ -402,23 +396,19 @@ class SendOnSidechainViewModel extends BaseViewModel {
 
   Future<void> estimateSidechainFee() async {
     final estimate = await _rpc.estimateSidechainFee();
-    sidechainFee = estimate;
+    sidechainExpectedFee = estimate;
     notifyListeners();
   }
 
   void onSidechainSend(BuildContext context) async {
-    if (withdrawalAmount == null) {
+    if (sendAmount == null) {
       log.e('withdrawal amount was empty');
       return;
     }
-    if (sidechainFee == null) {
+    if (sidechainExpectedFee == null) {
       log.e('sidechain fee was empty');
       return;
     }
-
-    // 1. Get refund address for the sidechain withdrawal. This can be any address we control on the SC.
-    final refund = await _rpc.getRefundAddress();
-    log.d('got refund address: $refund');
 
     final address = bitcoinAddressController.text;
 
@@ -435,10 +425,10 @@ class SendOnSidechainViewModel extends BaseViewModel {
       builder: (context) => AlertDialog(
         backgroundColor: theme.colors.background.withOpacity(0.9),
         title: SailText.primary14(
-          'Confirm withdrawal',
+          'Confirm send',
         ),
         content: SailText.primary14(
-          'Do you really want to execute the withdrawal?\n${bitcoinAmountController.text} BTC to $address with $sidechainFee SC fee',
+          'Do you really want to send ${bitcoinAmountController.text} BTC to $address with $sidechainExpectedFee SC expected fee?',
         ),
         actions: [
           TextButton(
@@ -454,9 +444,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
               _doSidechainSend(
                 context,
                 address,
-                refund,
-                withdrawalAmount!,
-                sidechainFee!,
+                sendAmount!,
               );
             },
             child: SailText.primary14(
@@ -471,22 +459,19 @@ class SendOnSidechainViewModel extends BaseViewModel {
   void _doSidechainSend(
     BuildContext context,
     String address,
-    String refund,
     double amount,
-    double sidechainFee,
   ) async {
     log.i(
-      'doing sidechain withdrawal: $amount BTC to $address with $sidechainFee SC fee',
+      'doing sidechain withdrawal: $amount BTC to $address with $sidechainExpectedFee SC fee',
     );
 
     try {
-      final withdrawalTxid = await _rpc.callRAW('createwithdrawal', [
+      final sendTXID = await _rpc.sidechainSend(
         address,
-        refund,
         amount,
-        sidechainFee,
-      ]);
-      log.i('txid: $withdrawalTxid');
+        false,
+      );
+      log.i('sent sidechain withdrawal txid: $sendTXID');
 
       // refresh balance, but dont await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
@@ -504,7 +489,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
             'Success',
           ),
           content: SailText.primary14(
-            'Submitted withdrawal successfully! TXID: $withdrawalTxid',
+            'Sent successfully! TXID: $sendTXID',
           ),
           actions: [
             TextButton(
