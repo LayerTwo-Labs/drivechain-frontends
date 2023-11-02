@@ -32,6 +32,7 @@ abstract class SailColorScheme {
   static const darkDivider = Color(0xff212234);
   static const darkChip = Color.fromRGBO(124, 124, 164, 0.1); // #7C7CA4
   static const darkTextSecondary = Color(0xffD2D3E0);
+  static const darkTextTertiary = Color(0xff858699);
   // modal colors
   static const darkActionModalBackground = Color.fromRGBO(29, 30, 43, 1);
   static const darkTextHint = Color(0xff4D4F69);

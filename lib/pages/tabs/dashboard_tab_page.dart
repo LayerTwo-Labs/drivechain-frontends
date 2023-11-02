@@ -2,11 +2,12 @@ import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
+import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
@@ -78,45 +79,17 @@ class DashboardTabPage extends StatelessWidget {
                 titleTrailing: viewModel.transactions.length.toString(),
                 endWidget: SailToggle(label: 'Show raw', value: viewModel.showRaw, onChanged: viewModel.toggleRaw),
                 children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      dataRowMaxHeight: viewModel.showRaw ? 350 : null,
-                      columns: [
-                        if (viewModel.showRaw) DataColumn(label: SailText.primary12('Raw')),
-                        DataColumn(label: SailText.primary12('Category')),
-                        DataColumn(label: SailText.primary12('Amount')),
-                        DataColumn(label: SailText.primary12('Fee')),
-                        DataColumn(label: SailText.primary12('TXID')),
-                        DataColumn(label: SailText.primary12('Time')),
-                        DataColumn(label: SailText.primary12('Address')),
-                        DataColumn(label: SailText.primary12('Label')),
-                        DataColumn(label: SailText.primary12('Account')),
-                      ],
-                      rows: viewModel.transactions.map((tx) {
-                        return DataRow(
-                          cells: [
-                            if (viewModel.showRaw)
-                              DataCell(
-                                SizedBox(
-                                  width: 600,
-                                  child: SailText.primary12(
-                                    const JsonEncoder.withIndent(' ').convert(jsonDecode(tx.raw)),
-                                  ),
-                                ),
-                              ),
-                            DataCell(SailText.primary12(tx.category)),
-                            DataCell(SailText.primary12(tx.amount.toString())),
-                            DataCell(SailText.primary12(tx.fee.toString())),
-                            DataCell(SailText.primary12(tx.txid)),
-                            DataCell(SailText.primary12(DateFormat('HH:mm MMM d').format(tx.time))),
-                            DataCell(SailText.primary12(tx.address)),
-                            DataCell(SailText.primary12(tx.label)),
-                            DataCell(SailText.primary12(tx.account)),
-                          ],
-                        );
-                      }).toList(),
-                    ),
+                  SailColumn(
+                    spacing: 0,
+                    withDivider: true,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final tx in viewModel.transactions)
+                        TxView(
+                          showRAW: viewModel.showRaw,
+                          tx: tx,
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -124,6 +97,139 @@ class DashboardTabPage extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+}
+
+class TxView extends StatefulWidget {
+  final bool showRAW;
+  final Transaction tx;
+
+  const TxView({super.key, required this.showRAW, required this.tx});
+
+  @override
+  State<TxView> createState() => _TxViewState();
+}
+
+class _TxViewState extends State<TxView> {
+  bool expanded = false;
+  late Map<String, dynamic> decodedTx;
+  @override
+  void initState() {
+    super.initState();
+    decodedTx = jsonDecode(widget.tx.raw);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: SailStyleValues.padding15,
+        horizontal: SailStyleValues.padding10,
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding8,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailScaleButton(
+            onPressed: () {
+              setState(() {
+                expanded = !expanded;
+              });
+            },
+            child: SingleValueView(
+              icon: widget.tx.confirmations >= 1
+                  ? Tooltip(
+                      message: '${widget.tx.confirmations} confirmations',
+                      child: SailSVG.icon(SailSVGAsset.iconConfirmed, width: 13),
+                    )
+                  : Tooltip(
+                      message: 'Unconfirmed',
+                      child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+                    ),
+              copyable: false,
+              label: 'label',
+              value: extractTXTitle(widget.tx),
+            ),
+          ),
+          if (expanded) ExpandedTXView(decodedTX: decodedTx),
+        ],
+      ),
+    );
+  }
+
+  String extractTXTitle(Transaction tx) {
+    String title = '${tx.category} ${tx.amount.toStringAsFixed(8)} SBTC';
+
+    if (tx.address.isEmpty) {
+      return '$title in ${tx.txid}';
+    }
+
+    if (tx.amount.isNegative || tx.amount == 0) {
+      return '$title to ${tx.address}';
+    }
+
+    return '$title from ${tx.address}';
+  }
+}
+
+class ExpandedTXView extends StatelessWidget {
+  final Map<String, dynamic> decodedTX;
+
+  const ExpandedTXView({super.key, required this.decodedTX});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding8,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: decodedTX.keys.map((key) {
+        return SingleValueView(label: key, value: decodedTX[key]);
+      }).toList(),
+    );
+  }
+}
+
+class SingleValueView extends StatelessWidget {
+  final String label;
+  final dynamic value;
+  final Widget? icon;
+  final bool copyable;
+
+  const SingleValueView({
+    super.key,
+    required this.label,
+    required this.value,
+    this.icon,
+    this.copyable = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailRow(
+      spacing: SailStyleValues.padding8,
+      children: [
+        if (icon != null)
+          icon!
+        else
+          const SizedBox(
+            width: 13,
+          ),
+        SizedBox(
+          width: 110,
+          child: SailText.secondary12(label),
+        ),
+        SailScaleButton(
+          onPressed: copyable
+              ? () {
+                  Clipboard.setData(ClipboardData(text: value.toString()));
+                  showSnackBar(context, 'Copied $label');
+                }
+              : null,
+          child: SailText.primary12(value.toString()),
+        ),
+      ],
     );
   }
 }

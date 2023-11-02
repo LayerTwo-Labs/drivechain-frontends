@@ -78,7 +78,7 @@ class SailColor {
       shadow: SailColorScheme.greyLight.withOpacity(0.18),
       text: SailColorScheme.whiteLight,
       textSecondary: SailColorScheme.darkTextSecondary,
-      textTertiary: SailColorScheme.greyMiddle,
+      textTertiary: SailColorScheme.darkTextTertiary,
       textHint: SailColorScheme.darkTextHint,
       orange: SailColorScheme.orange,
       disabledPrimaryButton: SailColorScheme.orange.withOpacity(0.4),

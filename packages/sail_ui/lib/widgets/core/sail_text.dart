@@ -139,7 +139,7 @@ class SailText {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.regular12.copyWith(color: theme.colors.text),
+          style: SailStyleValues.regular12.copyWith(color: theme.colors.textTertiary),
           textAlign: textAlign,
         );
       },
