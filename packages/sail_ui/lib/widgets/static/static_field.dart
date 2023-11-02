@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 
@@ -21,17 +20,16 @@ class StaticActionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
     return SailScaleButton(
       onPressed: () async {
-        final messenger = ScaffoldMessenger.of(context);
-
         if (copyable) {
           await Clipboard.setData(
             ClipboardData(text: value),
           );
-          showSnackBar(theme, messenger, 'Copied address');
+          if (!context.mounted) {
+            return;
+          }
+          showSnackBar(context, 'Copied address');
         }
       },
       child: Padding(

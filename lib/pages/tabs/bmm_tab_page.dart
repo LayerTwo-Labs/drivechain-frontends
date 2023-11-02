@@ -132,11 +132,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                                       DataCell(
                                         onTap: () {
                                           Clipboard.setData(ClipboardData(text: res.result.txid));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: SailText.primary14('Copied TXID'),
-                                            ),
-                                          );
+                                          showSnackBar(context, 'Copied TXID');
                                         },
                                         SizedBox(
                                           width: 60,
