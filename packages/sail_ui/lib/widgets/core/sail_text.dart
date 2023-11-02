@@ -7,10 +7,9 @@ import 'package:sail_ui/theme/theme.dart';
 class _Text extends StatelessWidget {
   final String label;
   final TextStyle style;
-  final bool softwrap;
   final TextAlign? textAlign;
 
-  const _Text({required this.label, required this.style, this.softwrap = true, this.textAlign});
+  const _Text({required this.label, required this.style, this.textAlign});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +21,7 @@ class _Text extends StatelessWidget {
       label,
       style: style,
       textScaleFactor: cappedTextScaleFactor,
-      softWrap: softwrap,
+      softWrap: true,
       textAlign: textAlign,
     );
   }
@@ -46,7 +45,6 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.medium20.copyWith(color: theme.colors.text),
-          softwrap: softwrap,
           textAlign: textAlign,
         );
       },
@@ -55,7 +53,6 @@ class SailText {
 
   static Widget primary14(
     String label, {
-    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -64,7 +61,6 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.regular14.copyWith(color: theme.colors.text),
-          softwrap: softwrap,
           textAlign: textAlign,
         );
       },
@@ -73,7 +69,6 @@ class SailText {
 
   static Widget mediumPrimary14(
     String label, {
-    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -82,7 +77,6 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.medium14.copyWith(color: theme.colors.text),
-          softwrap: softwrap,
           textAlign: textAlign,
         );
       },
@@ -91,7 +85,6 @@ class SailText {
 
   static Widget secondary14(
     String label, {
-    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -107,7 +100,6 @@ class SailText {
 
   static Widget mediumPrimary12(
     String label, {
-    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -116,7 +108,6 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.medium12.copyWith(color: theme.colors.text),
-          softwrap: softwrap,
           textAlign: textAlign,
         );
       },
@@ -125,7 +116,6 @@ class SailText {
 
   static Widget primary12(
     String label, {
-    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -142,7 +132,6 @@ class SailText {
 
   static Widget secondary12(
     String label, {
-    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -159,7 +148,6 @@ class SailText {
 
   static Widget mediumSecondary12(
     String label, {
-    bool softwrap = true,
     TextAlign? textAlign,
   }) {
     return Builder(
@@ -168,7 +156,6 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.medium12.copyWith(color: theme.colors.textSecondary),
-          softwrap: softwrap,
           textAlign: textAlign,
         );
       },
