@@ -8,7 +8,7 @@ import 'package:sail_ui/widgets/loading_indicator.dart';
 enum ButtonSize { small, regular, large }
 
 class SailButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool disabled;
   final bool loading;
   final ButtonSize size;
@@ -37,6 +37,31 @@ class SailButton extends StatelessWidget {
       child: size == ButtonSize.small || size == ButtonSize.regular
           ? SailText.mediumPrimary12(label)
           : SailText.primary14(label),
+    );
+  }
+
+  static Widget icon({
+    required String label,
+    required Widget icon,
+    required VoidCallback? onPressed,
+    ButtonSize size = ButtonSize.regular,
+    bool loading = false,
+    bool disabled = false,
+  }) {
+    return SailButton._(
+      onPressed: onPressed,
+      disabled: disabled,
+      loading: loading,
+      size: size,
+      child: SailRow(
+        spacing: SailStyleValues.padding8,
+        children: [
+          icon,
+          size == ButtonSize.small || size == ButtonSize.regular
+              ? SailText.mediumPrimary12(label)
+              : SailText.primary14(label),
+        ],
+      ),
     );
   }
 
@@ -121,7 +146,7 @@ class SailRawButton extends StatefulWidget {
   final bool loading;
   final Color disabledColor;
   final Color backgroundColor;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Widget child;
   final EdgeInsets? padding;
 
@@ -144,12 +169,13 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final disabled = widget.disabled || widget.onPressed == null;
 
     return Opacity(
-      opacity: widget.disabled ? 0.6 : 1,
+      opacity: disabled ? 0.6 : 1,
       child: SailScaleButton(
         onPressed: widget.onPressed,
-        disabled: widget.disabled,
+        disabled: disabled,
         child: MaterialButton(
           color: widget.backgroundColor,
           disabledColor: widget.backgroundColor,
