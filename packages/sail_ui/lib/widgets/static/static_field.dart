@@ -23,7 +23,7 @@ class StaticActionField extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return BScaleButton(
+    return SailScaleButton(
       onPressed: () async {
         final messenger = ScaffoldMessenger.of(context);
 
