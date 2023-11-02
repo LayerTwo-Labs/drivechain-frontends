@@ -5,10 +5,14 @@ import 'package:sail_ui/theme/theme.dart';
 
 enum SailSVGAsset {
   iconDashboardTab,
+  iconWithdrawalBundleTab,
+  iconBMMTab,
+
   iconMainchain,
   iconSidechain,
 
   iconCopy,
+  iconDropdown
 }
 
 /// If you don't want to overwrite the color of the svg, put it in here!
@@ -60,6 +64,10 @@ extension AsAssetPath on SailSVGAsset {
     switch (this) {
       case SailSVGAsset.iconDashboardTab:
         return 'assets/svgs/icon_dashboard_tab.svg';
+      case SailSVGAsset.iconWithdrawalBundleTab:
+        return 'assets/svgs/icon_withdrawal_bundle_tab.svg';
+      case SailSVGAsset.iconBMMTab:
+        return 'assets/svgs/icon_bmm_tab.svg';
 
       case SailSVGAsset.iconMainchain:
         return 'assets/svgs/icon_mainchain.svg';
@@ -68,6 +76,8 @@ extension AsAssetPath on SailSVGAsset {
 
       case SailSVGAsset.iconCopy:
         return 'assets/svgs/icon_copy.svg';
+      case SailSVGAsset.iconDropdown:
+        return 'assets/svgs/icon_dropdown.svg';
     }
   }
 }
