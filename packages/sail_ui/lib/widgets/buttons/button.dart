@@ -147,7 +147,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
 
     return Opacity(
       opacity: widget.disabled ? 0.6 : 1,
-      child: BScaleButton(
+      child: SailScaleButton(
         onPressed: widget.onPressed,
         disabled: widget.disabled,
         child: MaterialButton(
@@ -175,27 +175,27 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   }
 }
 
-class BScaleButton extends StatefulWidget {
+class SailScaleButton extends StatefulWidget {
   final VoidCallback? onPressed;
+  final Widget child;
   final bool disabled;
   final bool loading;
-  final Widget child;
   final Color? color;
 
-  const BScaleButton({
+  const SailScaleButton({
     Key? key,
-    required this.child,
     required this.onPressed,
+    required this.child,
     this.disabled = false,
     this.loading = false,
     this.color,
   }) : super(key: key);
 
   @override
-  State<BScaleButton> createState() => _BScaleButtonState();
+  State<SailScaleButton> createState() => _SailScaleButtonState();
 }
 
-class _BScaleButtonState extends State<BScaleButton> with SingleTickerProviderStateMixin {
+class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProviderStateMixin {
   late final AnimationController _scaleController = AnimationController(
     vsync: this,
     lowerBound: 0.98,
