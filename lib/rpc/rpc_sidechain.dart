@@ -26,7 +26,7 @@ abstract class SidechainRPC {
   );
   Future<List<Transaction>> listTransactions();
 
-  Future<double> estimateSidechainFee();
+  Future<double> estimateFee();
   Future<int> mainchainBlockCount();
   Future<int> blockCount();
   Future<String> fetchWithdrawalBundleStatus();
@@ -83,7 +83,7 @@ class SidechainRPCLive implements SidechainRPC {
       mainchainFee,
     ]);
 
-    return withdrawalTxid;
+    return withdrawalTxid['txid'];
   }
 
   @override
@@ -111,18 +111,18 @@ class SidechainRPCLive implements SidechainRPC {
   }
 
   @override
-  Future<double> estimateSidechainFee() async {
+  Future<double> estimateFee() async {
     final estimate = await _client.call('estimatesmartfee', [6]) as Map<String, dynamic>;
     if (estimate.containsKey('errors')) {
-      log.w("could not estimate fee: ${estimate["errors"]}");
+      // 10 sats/byte
       return 0.001;
     }
 
-    final btcPerKb = estimate.containsKey('feerate') ? estimate['feerate'] as double : 0.0001; // 10 sats/byte
+    final btcPerKb = estimate['feerate'] as double;
 
     // who knows!
-    const kbyteInWithdrawal = 5;
-    return btcPerKb * kbyteInWithdrawal;
+    const kbyteInTx = 5;
+    return btcPerKb * kbyteInTx;
   }
 
   @override

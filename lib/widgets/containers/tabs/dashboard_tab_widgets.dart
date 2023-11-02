@@ -8,6 +8,7 @@ import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
@@ -93,7 +94,7 @@ class PegOutAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Mainchain fee',
-              value: '${(viewModel.mainchainFee).toStringAsFixed(8)} BTC',
+              value: '${(viewModel.mainchainFee ?? 0).toStringAsFixed(8)} BTC',
             ),
             StaticActionField(
               label: 'Sidechain fee',
@@ -114,16 +115,17 @@ class PegOutViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
+  SidechainRPC get _sidechain => GetIt.I.get<SidechainRPC>();
+  MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount =>
-      ((double.tryParse(bitcoinAmountController.text) ?? 0) + mainchainFee + (sidechainFee ?? 0)).toStringAsFixed(8);
+      ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0))
+          .toStringAsFixed(8);
 
-  // executePegOut: estimate this
-  final double mainchainFee = 0.001;
   double? sidechainFee;
+  double? mainchainFee;
   double? get pegOutAmount => double.tryParse(bitcoinAmountController.text);
 
   PegOutViewModel() {
@@ -133,7 +135,7 @@ class PegOutViewModel extends BaseViewModel {
   }
 
   void init() async {
-    await estimateSidechainFee();
+    await Future.wait([estimateSidechainFee(), estimateMainchainFee()]);
   }
 
   void executePegOut(BuildContext context) async {
@@ -145,8 +147,12 @@ class PegOutViewModel extends BaseViewModel {
   }
 
   Future<void> estimateSidechainFee() async {
-    final estimate = await _rpc.estimateSidechainFee();
-    sidechainFee = estimate;
+    sidechainFee = await _sidechain.estimateFee();
+    notifyListeners();
+  }
+
+  Future<void> estimateMainchainFee() async {
+    mainchainFee = await _mainchain.estimateFee();
     notifyListeners();
   }
 
@@ -197,6 +203,7 @@ class PegOutViewModel extends BaseViewModel {
                 address,
                 pegOutAmount!,
                 sidechainFee!,
+                mainchainFee!,
               );
             },
             child: SailText.primary14(
@@ -213,13 +220,14 @@ class PegOutViewModel extends BaseViewModel {
     String address,
     double amount,
     double sidechainFee,
+    double mainchainFee,
   ) async {
     log.i(
       'doing peg-out: $amount BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
     );
 
     try {
-      final withdrawalTxid = await _rpc.pegOut(
+      final withdrawalTxid = await _sidechain.pegOut(
         address,
         amount,
         sidechainFee,
@@ -230,7 +238,7 @@ class PegOutViewModel extends BaseViewModel {
         return;
       }
 
-      // refresh balance, but dont await, so dialog is showed instantly
+      // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
 
       final theme = SailTheme.of(context);
@@ -253,6 +261,8 @@ class PegOutViewModel extends BaseViewModel {
         ),
       );
     } catch (error) {
+      log.e('could not execute peg-out: $error', error: error);
+
       if (!context.mounted) {
         return;
       }
@@ -266,7 +276,7 @@ class PegOutViewModel extends BaseViewModel {
             'Failed',
           ),
           content: SailText.primary14(
-            'Could not execute peg-out ${error.toString()}',
+            'Could not execute peg-out: ${error.toString()}',
           ),
           actions: [
             TextButton(
@@ -393,7 +403,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   }
 
   void init() async {
-    await estimateSidechainFee();
+    await estimateFee();
   }
 
   void executeSendOnSidechain(BuildContext context) async {
@@ -406,8 +416,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
     await _router.pop();
   }
 
-  Future<void> estimateSidechainFee() async {
-    final estimate = await _rpc.estimateSidechainFee();
+  Future<void> estimateFee() async {
+    final estimate = await _rpc.estimateFee();
     sidechainExpectedFee = estimate;
     notifyListeners();
   }
@@ -485,7 +495,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
       );
       log.i('sent sidechain withdrawal txid: $sendTXID');
 
-      // refresh balance, but dont await, so dialog is showed instantly
+      // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
 
       if (!context.mounted) {
