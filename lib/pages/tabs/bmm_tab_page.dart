@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc/rpc.dart';
@@ -56,16 +57,18 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                       children: [
                         SailText.mediumPrimary20('BMM loop'),
                         const SizedBox(width: 10),
-                        ElevatedButton.icon(
+                        SailButton.icon(
                           onPressed: viewModel.running ? null : viewModel.toggleRunning,
+                          disabled: viewModel.running,
                           icon: const Icon(Icons.play_arrow),
-                          label: SailText.primary12('Start'),
+                          label: 'Start',
                         ),
                         const SizedBox(width: 10),
-                        ElevatedButton.icon(
+                        SailButton.icon(
                           onPressed: !viewModel.running ? null : viewModel.toggleRunning,
+                          disabled: !viewModel.running,
                           icon: const Icon(Icons.stop),
-                          label: SailText.primary12('Stop'),
+                          label: 'Stop',
                         ),
                       ],
                     ),
