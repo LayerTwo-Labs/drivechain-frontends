@@ -2,7 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/secure_store.dart';
@@ -12,8 +12,8 @@ import 'package:sidesail/storage/secure_store.dart';
 Future<void> initGetitDependencies() async {
   // TODO: this can throw an error. How do we display that to the user?
   final rpcConfig = await readRpcConfig();
-  GetIt.I.registerLazySingleton<RPC>(
-    () => RPCLive(rpcConfig),
+  GetIt.I.registerLazySingleton<SidechainRPC>(
+    () => SidechainRPCLive(rpcConfig),
   );
 
   GetIt.I.registerLazySingleton<AppRouter>(

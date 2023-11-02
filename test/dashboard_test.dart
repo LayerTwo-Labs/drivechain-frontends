@@ -10,16 +10,16 @@ import 'package:get_it/get_it.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
-import 'mocks/rpc_mock.dart';
+import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
 
 final txProvider = TransactionsProvider();
 
 void main() {
   setUpAll(() async {
-    GetIt.I.registerLazySingleton<RPC>(() => MockRPC());
+    GetIt.I.registerLazySingleton<SidechainRPC>(() => MockSidechainRPC());
 
     GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
     final balanceProvider = BalanceProvider();

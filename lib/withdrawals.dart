@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class Withdrawals extends StatefulWidget {
   const Withdrawals({super.key});
@@ -15,7 +15,7 @@ class Withdrawals extends StatefulWidget {
 }
 
 class WithdrawalsState extends State<Withdrawals> {
-  RPC get rpc => GetIt.I.get<RPC>();
+  SidechainRPC get rpc => GetIt.I.get<SidechainRPC>();
 
   Timer? _timer;
   List<Withdrawal> _withdrawals = [];
@@ -47,7 +47,7 @@ class WithdrawalsState extends State<Withdrawals> {
   }
 }
 
-Future<List<Withdrawal?>> _fetchWithdrawals(RPC rpc) async {
+Future<List<Withdrawal?>> _fetchWithdrawals(SidechainRPC rpc) async {
   final withdrawalIDs = await rpc.callRAW('listmywithdrawals') as List<dynamic>;
 
   final nullableWithdrawalFutures = withdrawalIDs.map((w) async {
