@@ -14,6 +14,7 @@ void showSnackBar(
 
   messenger.showSnackBar(
     SnackBar(
+      duration: const Duration(seconds: 1),
       behavior: SnackBarBehavior.fixed,
       backgroundColor: theme.colors.background,
       content: SailPadding(
