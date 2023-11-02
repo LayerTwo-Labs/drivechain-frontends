@@ -16,10 +16,15 @@ class DashboardGroup extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
+  final String? titleTrailing;
+  final Widget? endWidget;
+
   const DashboardGroup({
     super.key,
     required this.title,
     required this.children,
+    this.titleTrailing,
+    this.endWidget,
   });
 
   @override
@@ -33,14 +38,21 @@ class DashboardGroup extends StatelessWidget {
         Container(
           height: 36,
           color: theme.colors.actionHeader,
-          child: Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
-                child: SailText.mediumPrimary14(title),
-              ),
-              Expanded(child: Container()),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+            child: Row(
+              children: [
+                SailRow(
+                  spacing: SailStyleValues.padding10,
+                  children: [
+                    SailText.mediumPrimary14(title),
+                    if (titleTrailing != null) SailText.secondary14(titleTrailing!),
+                  ],
+                ),
+                Expanded(child: Container()),
+                if (endWidget != null) endWidget!,
+              ],
+            ),
           ),
         ),
         for (final child in children) child,
