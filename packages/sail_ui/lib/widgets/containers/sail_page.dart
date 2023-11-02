@@ -22,17 +22,19 @@ class SailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final backgroundColor = theme.colors.background;
-    final scaffold = Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: SailAppBar.build(
-        context,
-        title: widgetTitle != null
-            ? widgetTitle!
-            : SailText.mediumPrimary20(
-                title,
-              ),
+    final scaffold = SelectionArea(
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: SailAppBar.build(
+          context,
+          title: widgetTitle != null
+              ? widgetTitle!
+              : SailText.mediumPrimary20(
+                  title,
+                ),
+        ),
+        body: buildBody(context),
       ),
-      body: buildBody(context),
     );
     return scaffold;
   }
