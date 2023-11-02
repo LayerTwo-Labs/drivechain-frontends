@@ -11,7 +11,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -181,7 +181,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
 }
 
 class BlindMergedMiningTabPageViewModel extends BaseViewModel {
-  RPC get _rpc => GetIt.I.get<RPC>();
+  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
 
   int bidAmountSats = 1000;
   int refreshSeconds = 3;

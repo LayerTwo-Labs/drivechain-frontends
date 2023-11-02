@@ -8,7 +8,7 @@ import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
 
@@ -114,7 +114,7 @@ class PegOutViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  RPC get _rpc => GetIt.I.get<RPC>();
+  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
@@ -313,7 +313,7 @@ class PegInAction extends StatelessWidget {
 }
 
 class PegInViewModel extends BaseViewModel {
-  RPC get _rpc => GetIt.I.get<RPC>();
+  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
   final log = Logger(level: Level.debug);
 
   String? pegInAddress;
@@ -377,7 +377,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  RPC get _rpc => GetIt.I.get<RPC>();
+  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
@@ -572,7 +572,7 @@ class ReceiveOnSidechainAction extends StatelessWidget {
 }
 
 class ReceiveOnSidechainViewModel extends BaseViewModel {
-  RPC get _rpc => GetIt.I.get<RPC>();
+  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
   final log = Logger(level: Level.debug);
 
   String? sidechainAddress;

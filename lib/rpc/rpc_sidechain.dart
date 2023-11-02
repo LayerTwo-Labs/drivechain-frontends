@@ -6,7 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 
-abstract class RPC {
+/// RPC connection the sidechain node.
+abstract class SidechainRPC {
   Future<(double, double)> getBalance();
   Future<BmmResult> refreshBMM(int bidSatoshis);
   Future<String> generatePegInAddress();
@@ -32,10 +33,10 @@ abstract class RPC {
   Future<dynamic> callRAW(String method, [dynamic params]);
 }
 
-class RPCLive implements RPC {
+class SidechainRPCLive implements SidechainRPC {
   late RPCClient _client;
 
-  RPCLive(Config config) {
+  SidechainRPCLive(Config config) {
     _client = RPCClient(
       host: config.host,
       port: config.port,

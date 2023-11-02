@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class TransactionsProvider extends ChangeNotifier {
-  RPC get _rpc => GetIt.I.get<RPC>();
+  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
 
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these

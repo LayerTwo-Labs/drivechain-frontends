@@ -6,7 +6,7 @@ import 'package:flutter_highlighter/themes/github.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class RpcWidget extends StatefulWidget {
   const RpcWidget({super.key});
@@ -16,7 +16,7 @@ class RpcWidget extends StatefulWidget {
 }
 
 class RpcWidgetState extends State<RpcWidget> {
-  RPC get rpc => GetIt.I.get<RPC>();
+  SidechainRPC get rpc => GetIt.I.get<SidechainRPC>();
   final TextEditingController _textController = TextEditingController();
   dynamic _result;
   String _command = '';

@@ -1,6 +1,6 @@
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
-class MockRPC extends RPC {
+class MockSidechainRPC extends SidechainRPC {
   @override
   Future<String> fetchWithdrawalBundleStatus() async {
     return '<some sensible value>';
