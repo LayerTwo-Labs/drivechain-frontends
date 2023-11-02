@@ -36,7 +36,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<double> estimateSidechainFee() async {
+  Future<double> estimateFee() async {
     return 0.001;
   }
 
