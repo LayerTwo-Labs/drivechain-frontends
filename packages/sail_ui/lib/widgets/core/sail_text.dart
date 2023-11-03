@@ -34,81 +34,120 @@ class SailText {
     this.value,
   );
 
-  static Widget mediumPrimary20(
+  static Widget primary24(
     String label, {
-    bool softwrap = true,
     TextAlign? textAlign,
+    bool bold = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.medium20.copyWith(color: theme.colors.text),
+          style: SailStyleValues.twentyFour.copyWith(
+            color: theme.colors.text,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
           textAlign: textAlign,
         );
       },
     );
   }
 
-  static Widget primary14(
+  static Widget primary22(
     String label, {
     TextAlign? textAlign,
+    bool bold = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.regular14.copyWith(color: theme.colors.text),
+          style: SailStyleValues.twentyTwo.copyWith(
+            color: theme.colors.text,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
           textAlign: textAlign,
         );
       },
     );
   }
 
-  static Widget mediumPrimary14(
+  static Widget primary20(
     String label, {
     TextAlign? textAlign,
+    bool bold = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.medium14.copyWith(color: theme.colors.text),
+          style: SailStyleValues.twenty.copyWith(
+            color: theme.colors.text,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
           textAlign: textAlign,
         );
       },
     );
   }
 
-  static Widget secondary14(
+  static Widget primary15(
     String label, {
     TextAlign? textAlign,
+    bool bold = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.regular14.copyWith(color: theme.colors.textSecondary),
+          style: SailStyleValues.fifteen.copyWith(
+            color: theme.colors.text,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
+          textAlign: textAlign,
         );
       },
     );
   }
 
-  static Widget mediumPrimary12(
+  static Widget primary13(
     String label, {
     TextAlign? textAlign,
+    bool bold = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.medium12.copyWith(color: theme.colors.text),
+          style: SailStyleValues.thirteen.copyWith(
+            color: theme.colors.text,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
           textAlign: textAlign,
+        );
+      },
+    );
+  }
+
+  static Widget secondary13(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.thirteen.copyWith(
+            color: theme.colors.textSecondary,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
         );
       },
     );
@@ -117,13 +156,17 @@ class SailText {
   static Widget primary12(
     String label, {
     TextAlign? textAlign,
+    bool bold = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.regular12.copyWith(color: theme.colors.text),
+          style: SailStyleValues.twelve.copyWith(
+            color: theme.colors.text,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
           textAlign: textAlign,
         );
       },
@@ -133,29 +176,17 @@ class SailText {
   static Widget secondary12(
     String label, {
     TextAlign? textAlign,
+    bool bold = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
         return _Text(
           label: label,
-          style: SailStyleValues.regular12.copyWith(color: theme.colors.textTertiary),
-          textAlign: textAlign,
-        );
-      },
-    );
-  }
-
-  static Widget mediumSecondary12(
-    String label, {
-    TextAlign? textAlign,
-  }) {
-    return Builder(
-      builder: (context) {
-        final theme = SailTheme.of(context);
-        return _Text(
-          label: label,
-          style: SailStyleValues.medium12.copyWith(color: theme.colors.textSecondary),
+          style: SailStyleValues.twelve.copyWith(
+            color: theme.colors.textTertiary,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
           textAlign: textAlign,
         );
       },

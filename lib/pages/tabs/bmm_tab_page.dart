@@ -33,7 +33,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 750,
-                  child: SailText.primary14(
+                  child: SailText.primary13(
                     'Blind Merged Mining (BMM) is the mechanism used for mining on a sidechain.\n\n'
                     'Pressing the "start" button here starts the BMM process. The BMM process consists '
                     'of a sequence of attempts which can succeed or fail. When an attempt is first made '
@@ -55,7 +55,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        SailText.mediumPrimary20('BMM loop'),
+                        SailText.primary20('BMM loop', bold: true),
                         const SizedBox(width: 10),
                         SailButton.icon(
                           onPressed: viewModel.running ? null : viewModel.toggleRunning,
@@ -109,22 +109,25 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                 viewModel.bmmAttempts.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(40),
-                        child: SailText.mediumPrimary20('No BMM attempts yet. Click the start button!'),
+                        child: SailText.primary20(
+                          'No BMM attempts yet. Click the start button!',
+                          bold: true,
+                        ),
                       )
                     : Flexible(
                         child: SingleChildScrollView(
                           child: DataTable(
                             dataRowMaxHeight: _displayRawRes ? 350 : null,
                             columns: removeNulls([
-                              DataColumn(label: SailText.primary14('MC txid')),
-                              DataColumn(label: SailText.primary14('MC block')),
-                              DataColumn(label: SailText.primary14('SC block')),
-                              DataColumn(label: SailText.primary14('Transactions')),
-                              DataColumn(label: SailText.primary14('Fees')),
-                              DataColumn(label: SailText.primary14('Bid amount')),
-                              DataColumn(label: SailText.primary14('Profit')),
-                              DataColumn(label: SailText.primary14('Status')),
-                              _displayRawRes ? DataColumn(label: SailText.primary14('Raw')) : null,
+                              DataColumn(label: SailText.primary13('MC txid')),
+                              DataColumn(label: SailText.primary13('MC block')),
+                              DataColumn(label: SailText.primary13('SC block')),
+                              DataColumn(label: SailText.primary13('Transactions')),
+                              DataColumn(label: SailText.primary13('Fees')),
+                              DataColumn(label: SailText.primary13('Bid amount')),
+                              DataColumn(label: SailText.primary13('Profit')),
+                              DataColumn(label: SailText.primary13('Status')),
+                              _displayRawRes ? DataColumn(label: SailText.primary13('Raw')) : null,
                             ]),
                             rows: viewModel.bmmAttempts.map(
                               (res) {

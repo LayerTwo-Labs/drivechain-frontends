@@ -72,7 +72,7 @@ class RpcWidgetState extends State<RpcWidget> {
         children: [
           Row(
             children: [
-              SailText.primary14(
+              SailText.primary13(
                 'RPC:',
               ),
               Expanded(
@@ -82,12 +82,12 @@ class RpcWidgetState extends State<RpcWidget> {
               ),
               ElevatedButton(
                 onPressed: _handleSubmit,
-                child: SailText.primary14('Submit'),
+                child: SailText.primary13('Submit'),
               ),
             ],
           ),
           if (_result != null) _JsonViewer(_result),
-          if (_error != null) SailText.primary14('Error: $_command: $_error'),
+          if (_error != null) SailText.primary13('Error: $_command: $_error'),
         ],
       ),
     );

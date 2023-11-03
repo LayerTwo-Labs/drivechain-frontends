@@ -40,7 +40,7 @@ class LargeEmbeddedInput extends StatelessWidget {
         focusedBorder: InputBorder.none,
         enabledBorder: InputBorder.none,
         hintText: hintText,
-        suffix: suffixText != null ? SailText.mediumPrimary14(suffixText!) : null,
+        suffix: suffixText != null ? SailText.primary13(suffixText!, bold: true) : null,
         contentPadding: const EdgeInsets.all(SailStyleValues.padding20),
         hintStyle: TextStyle(
           color: SailTheme.of(context).colors.textHint,

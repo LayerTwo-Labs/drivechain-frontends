@@ -19,7 +19,7 @@ class WithdrawalBundleTabPage extends StatelessWidget {
       body: ViewModelBuilder.reactive(
         viewModelBuilder: () => WithdrawalBundleTabPageViewModel(),
         builder: ((context, viewModel, child) {
-          return SailText.primary14(
+          return SailText.primary13(
             'Withdrawal bundle status: ${viewModel.withdrawalBundleStatus}',
           );
         }),

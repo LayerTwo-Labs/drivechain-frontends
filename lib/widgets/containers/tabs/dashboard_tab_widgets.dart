@@ -17,14 +17,14 @@ class DashboardGroup extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  final String? titleTrailing;
+  final Widget? widgetTrailing;
   final Widget? endWidget;
 
   const DashboardGroup({
     super.key,
     required this.title,
     required this.children,
-    this.titleTrailing,
+    this.widgetTrailing,
     this.endWidget,
   });
 
@@ -46,8 +46,11 @@ class DashboardGroup extends StatelessWidget {
                 SailRow(
                   spacing: SailStyleValues.padding10,
                   children: [
-                    SailText.mediumPrimary14(title),
-                    if (titleTrailing != null) SailText.secondary14(titleTrailing!),
+                    SailText.primary13(
+                      title,
+                      bold: true,
+                    ),
+                    if (widgetTrailing != null) widgetTrailing!,
                   ],
                 ),
                 Expanded(child: Container()),
@@ -181,16 +184,16 @@ class PegOutViewModel extends BaseViewModel {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: theme.colors.background.withOpacity(0.9),
-        title: SailText.primary14(
+        title: SailText.primary13(
           'Confirm withdrawal',
         ),
-        content: SailText.primary14(
+        content: SailText.primary13(
           'Do you really want to peg-out?\n${bitcoinAmountController.text} BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: SailText.primary14('Cancel'),
+            child: SailText.primary13('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -206,7 +209,7 @@ class PegOutViewModel extends BaseViewModel {
                 mainchainFee!,
               );
             },
-            child: SailText.primary14(
+            child: SailText.primary13(
               'OK',
             ),
           ),
@@ -246,16 +249,16 @@ class PegOutViewModel extends BaseViewModel {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: theme.colors.background.withOpacity(0.9),
-          title: SailText.primary14(
+          title: SailText.primary13(
             'Success',
           ),
-          content: SailText.primary14(
+          content: SailText.primary13(
             'Submitted peg-out successfully! TXID: $withdrawalTxid',
           ),
           actions: [
             TextButton(
               onPressed: () => _router.popUntilRoot(),
-              child: SailText.primary14('OK'),
+              child: SailText.primary13('OK'),
             ),
           ],
         ),
@@ -272,16 +275,16 @@ class PegOutViewModel extends BaseViewModel {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: theme.colors.background.withOpacity(0.9),
-          title: SailText.primary14(
+          title: SailText.primary13(
             'Failed',
           ),
-          content: SailText.primary14(
+          content: SailText.primary13(
             'Could not execute peg-out: ${error.toString()}',
           ),
           actions: [
             TextButton(
               onPressed: () => _router.popUntilRoot(),
-              child: SailText.primary14('OK'),
+              child: SailText.primary13('OK'),
             ),
           ],
         ),
@@ -446,16 +449,16 @@ class SendOnSidechainViewModel extends BaseViewModel {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: theme.colors.background.withOpacity(0.9),
-        title: SailText.primary14(
+        title: SailText.primary13(
           'Confirm send',
         ),
-        content: SailText.primary14(
+        content: SailText.primary13(
           'Do you really want to send ${bitcoinAmountController.text} BTC to $address with $sidechainExpectedFee SC expected fee?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: SailText.primary14('Cancel'),
+            child: SailText.primary13('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -469,7 +472,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
                 sendAmount!,
               );
             },
-            child: SailText.primary14(
+            child: SailText.primary13(
               'OK',
             ),
           ),
@@ -507,16 +510,16 @@ class SendOnSidechainViewModel extends BaseViewModel {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: theme.colors.background.withOpacity(0.9),
-          title: SailText.primary14(
+          title: SailText.primary13(
             'Success',
           ),
-          content: SailText.primary14(
+          content: SailText.primary13(
             'Sent successfully! TXID: $sendTXID',
           ),
           actions: [
             TextButton(
               onPressed: () => _router.popUntilRoot(),
-              child: SailText.primary14('OK'),
+              child: SailText.primary13('OK'),
             ),
           ],
         ),
@@ -531,16 +534,16 @@ class SendOnSidechainViewModel extends BaseViewModel {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: theme.colors.background.withOpacity(0.9),
-          title: SailText.primary14(
+          title: SailText.primary13(
             'Failed',
           ),
-          content: SailText.primary14(
+          content: SailText.primary13(
             'Could not execute sidechain withdrawal ${error.toString()}',
           ),
           actions: [
             TextButton(
               onPressed: () => _router.popUntilRoot(),
-              child: SailText.primary14('OK'),
+              child: SailText.primary13('OK'),
             ),
           ],
         ),

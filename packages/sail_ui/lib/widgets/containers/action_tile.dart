@@ -39,7 +39,7 @@ class ActionTile extends StatelessWidget {
                 color: theme.colors.text,
               ),
             const SailSpacing(SailStyleValues.padding8),
-            SailText.primary14(title),
+            SailText.primary13(title),
           ],
         ),
       ),
