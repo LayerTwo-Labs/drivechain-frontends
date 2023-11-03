@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/config/this_sidechain.dart';
 import 'package:sidesail/routing/router.dart';
 
 @RoutePage()
@@ -71,7 +72,7 @@ class WithSideNav extends StatelessWidget {
                       child: SailRow(
                         spacing: SailStyleValues.padding05,
                         children: [
-                          SailText.primary12('sample-sidechain'), // sidechain name goes here
+                          SailText.primary12(ThisSidechain.name), // sidechain name goes here
                           SailSVG.icon(SailSVGAsset.iconDropdown, width: 5.5),
                         ],
                       ),
