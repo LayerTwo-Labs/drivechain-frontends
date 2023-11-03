@@ -19,6 +19,7 @@ class HomePage extends StatelessWidget {
         DashboardTabRoute(),
         WithdrawalBundleTabRoute(),
         BlindMergedMiningTabRoute(),
+        SettingsTabRoute(),
       ],
       builder: (context, children, _) {
         final tabsRouter = AutoTabsRouter.of(context);
@@ -100,6 +101,14 @@ class WithSideNav extends StatelessWidget {
                   selected: tabsRouter.activeIndex == 2,
                   onPressed: () {
                     tabsRouter.setActiveIndex(2);
+                  },
+                ),
+                NavEntry(
+                  title: 'Settings',
+                  icon: SailSVGAsset.iconBMMTab,
+                  selected: tabsRouter.activeIndex == 3,
+                  onPressed: () {
+                    tabsRouter.setActiveIndex(3);
                   },
                 ),
               ],

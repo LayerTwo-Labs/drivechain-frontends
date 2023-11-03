@@ -43,6 +43,12 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
+    SettingsTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const SettingsTabPage(),
+      );
+    },
     WithdrawalBundleTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -129,6 +135,20 @@ class SailTestRouteArgs {
   String toString() {
     return 'SailTestRouteArgs{key: $key, child: $child}';
   }
+}
+
+/// generated route for
+/// [SettingsTabPage]
+class SettingsTabRoute extends PageRouteInfo<void> {
+  const SettingsTabRoute({List<PageRouteInfo>? children})
+      : super(
+          SettingsTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SettingsTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
 }
 
 /// generated route for
