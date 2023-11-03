@@ -11,12 +11,16 @@ import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
+import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class DashboardTabPage extends StatelessWidget {
+  AppRouter get router => GetIt.I.get<AppRouter>();
+
   const DashboardTabPage({super.key});
 
   @override
@@ -39,69 +43,119 @@ class DashboardTabPage extends StatelessWidget {
               ),
             ],
           ),
-          body: Column(
+          body: Stack(
             children: [
-              DashboardGroup(
-                title: 'Actions',
-                children: [
-                  ActionTile(
-                    title: 'Peg-out to mainchain',
-                    category: Category.mainchain,
-                    icon: Icons.remove,
-                    onTap: () {
-                      viewModel.pegOut(context);
-                    },
-                  ),
-                  ActionTile(
-                    title: 'Peg-in from mainchain',
-                    category: Category.mainchain,
-                    icon: Icons.add,
-                    onTap: () {
-                      viewModel.pegIn(context);
-                    },
-                  ),
-                  ActionTile(
-                    title: 'Send on sidechain',
-                    category: Category.sidechain,
-                    icon: Icons.remove,
-                    onTap: () {
-                      viewModel.send(context);
-                    },
-                  ),
-                  ActionTile(
-                    title: 'Receive on sidechain',
-                    category: Category.sidechain,
-                    icon: Icons.add,
-                    onTap: () {
-                      viewModel.receive(context);
-                    },
-                  ),
-                ],
-              ),
-              const SailSpacing(SailStyleValues.padding30),
-              DashboardGroup(
-                title: 'Transactions',
-                titleTrailing: viewModel.transactions.length.toString(),
-                endWidget: SailToggle(label: 'Show raw', value: viewModel.showRaw, onChanged: viewModel.toggleRaw),
-                children: [
-                  SailColumn(
-                    spacing: 0,
-                    withDivider: true,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+                  child: Column(
                     children: [
-                      for (final tx in viewModel.transactions)
-                        TxView(
-                          showRAW: viewModel.showRaw,
-                          tx: tx,
-                        ),
+                      DashboardGroup(
+                        title: 'Actions',
+                        children: [
+                          ActionTile(
+                            title: 'Peg-out to mainchain',
+                            category: Category.mainchain,
+                            icon: Icons.remove,
+                            onTap: () {
+                              viewModel.pegOut(context);
+                            },
+                          ),
+                          ActionTile(
+                            title: 'Peg-in from mainchain',
+                            category: Category.mainchain,
+                            icon: Icons.add,
+                            onTap: () {
+                              viewModel.pegIn(context);
+                            },
+                          ),
+                          ActionTile(
+                            title: 'Send on sidechain',
+                            category: Category.sidechain,
+                            icon: Icons.remove,
+                            onTap: () {
+                              viewModel.send(context);
+                            },
+                          ),
+                          ActionTile(
+                            title: 'Receive on sidechain',
+                            category: Category.sidechain,
+                            icon: Icons.add,
+                            onTap: () {
+                              viewModel.receive(context);
+                            },
+                          ),
+                        ],
+                      ),
+                      const SailSpacing(SailStyleValues.padding30),
+                      DashboardGroup(
+                        title: 'Transactions',
+                        widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
+                        endWidget:
+                            SailToggle(label: 'Show raw', value: viewModel.showRaw, onChanged: viewModel.toggleRaw),
+                        children: [
+                          SailColumn(
+                            spacing: 0,
+                            withDivider: true,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final tx in viewModel.transactions)
+                                TxView(
+                                  showRAW: viewModel.showRaw,
+                                  tx: tx,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: DashboardNodeConnection(
+                  onChipPressed: () async {
+                    // TODO
+                  },
+                ),
               ),
             ],
           ),
         );
       }),
+    );
+  }
+}
+
+class DashboardNodeConnection extends ViewModelWidget<HomePageViewModel> {
+  final VoidCallback onChipPressed;
+
+  const DashboardNodeConnection({super.key, required this.onChipPressed});
+
+  @override
+  Widget build(BuildContext context, HomePageViewModel viewModel) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding20),
+      child: SailRow(
+        spacing: SailStyleValues.padding08,
+        children: [
+          if (viewModel.sidechainConnected)
+            const ConnectionSuccessChip(chain: 'sidechain')
+          else
+            ConnectionErrorChip(
+              chain: 'sidechain',
+              onPressed: onChipPressed,
+            ),
+          if (viewModel.mainchainConnected)
+            const ConnectionSuccessChip(chain: 'mainchain')
+          else
+            ConnectionErrorChip(
+              chain: 'mainchain',
+              onPressed: onChipPressed,
+            ),
+        ],
+      ),
     );
   }
 }
@@ -241,11 +295,17 @@ class SingleValueView extends StatelessWidget {
 
 class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
+  MainchainRPC get _mainRPC => GetIt.I.get<MainchainRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
 
+  bool get sidechainConnected => _sideRPC.connected;
+  bool get mainchainConnected => _mainRPC.connected;
+
   String get sidechainBalance => _balanceProvider.balance.toStringAsFixed(8);
   String get sidechainPendingBalance => _balanceProvider.pendingBalance.toStringAsFixed(8);
+
   List<Transaction> get transactions => _transactionsProvider.transactions;
 
   bool showRaw = false;
@@ -257,6 +317,8 @@ class HomePageViewModel extends BaseViewModel {
     // pass notifyListeners of this view model directly
     _balanceProvider.addListener(notifyListeners);
     _transactionsProvider.addListener(notifyListeners);
+    _sideRPC.addListener(notifyListeners);
+    _mainRPC.addListener(notifyListeners);
   }
 
   void toggleRaw(bool value) {
@@ -314,5 +376,7 @@ class HomePageViewModel extends BaseViewModel {
     super.dispose();
     _balanceProvider.removeListener(notifyListeners);
     _transactionsProvider.removeListener(notifyListeners);
+    _sideRPC.removeListener(notifyListeners);
+    _mainRPC.removeListener(notifyListeners);
   }
 }
