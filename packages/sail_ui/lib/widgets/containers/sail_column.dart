@@ -19,8 +19,8 @@ class SailColumn extends StatelessWidget {
     required this.children,
     this.leadingSpacing = false,
     this.trailingSpacing = false,
-    this.crossAxisAlignment = CrossAxisAlignment.center,
-    this.mainAxisAlignment = MainAxisAlignment.center,
+    this.crossAxisAlignment = CrossAxisAlignment.start,
+    this.mainAxisAlignment = MainAxisAlignment.start,
     this.mainAxisSize = MainAxisSize.max,
     this.withDivider = false,
   }) : super(key: key);
