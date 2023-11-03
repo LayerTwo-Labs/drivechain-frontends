@@ -7,6 +7,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -76,8 +77,8 @@ class PegOutAction extends StatelessWidget {
         return DashboardActionModal(
           'Peg-out to mainchain',
           endActionButton: SailButton.primary(
+            'Execute peg-out',
             disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
-            label: 'Execute peg-out',
             loading: viewModel.isBusy,
             size: ButtonSize.small,
             onPressed: () async {
@@ -117,6 +118,7 @@ class PegOutAction extends StatelessWidget {
 class PegOutViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   SidechainRPC get _sidechain => GetIt.I.get<SidechainRPC>();
   MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
@@ -243,6 +245,8 @@ class PegOutViewModel extends BaseViewModel {
 
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
+      // refresh transactions, but don't await, so dialog is showed instantly
+      unawaited(_transactionsProvider.fetch());
 
       final theme = SailTheme.of(context);
       await showDialog(
@@ -305,7 +309,7 @@ class PegInAction extends StatelessWidget {
         return DashboardActionModal(
           'Peg-in from mainchain',
           endActionButton: SailButton.primary(
-            label: 'Generate new address',
+            'Generate new address',
             loading: viewModel.isBusy,
             size: ButtonSize.small,
             onPressed: () async {
@@ -352,8 +356,8 @@ class SendOnSidechainAction extends StatelessWidget {
         return DashboardActionModal(
           'Send on sidechain',
           endActionButton: SailButton.primary(
+            'Execute send',
             disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
-            label: 'Execute send',
             loading: viewModel.isBusy,
             size: ButtonSize.small,
             onPressed: () async {
@@ -389,6 +393,7 @@ class SendOnSidechainAction extends StatelessWidget {
 class SendOnSidechainViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
 
@@ -500,6 +505,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
 
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
+      // refresh transactions, but don't await, so dialog is showed instantly
+      unawaited(_transactionsProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -564,7 +571,7 @@ class ReceiveOnSidechainAction extends StatelessWidget {
         return DashboardActionModal(
           'Receive on sidechain',
           endActionButton: SailButton.primary(
-            label: 'Generate new address',
+            'Generate new address',
             loading: viewModel.isBusy,
             size: ButtonSize.small,
             onPressed: () async {
