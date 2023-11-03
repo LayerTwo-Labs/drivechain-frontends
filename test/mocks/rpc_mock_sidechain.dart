@@ -1,3 +1,4 @@
+import 'package:sidesail/pages/tabs/settings_tab.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class MockSidechainRPC extends SidechainRPC {
@@ -73,5 +74,29 @@ class MockSidechainRPC extends SidechainRPC {
   @override
   Future<int> mainchainBlockCount() async {
     return 1;
+  }
+
+  @override
+  Future<(bool, String?)> testConnection() async {
+    return (true, null);
+  }
+
+  @override
+  SingleNodeConnectionSettings connectionSettings = SingleNodeConnectionSettings(
+    '/path/to/chain.conf',
+    'host',
+    2121,
+    'username',
+    'password',
+  );
+
+  @override
+  Future<void> createClient() async {
+    return;
+  }
+
+  @override
+  Future<void> ping() async {
+    return;
   }
 }

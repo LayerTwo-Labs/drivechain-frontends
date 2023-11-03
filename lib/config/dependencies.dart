@@ -4,27 +4,23 @@ import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/secure_store.dart';
 
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
 Future<void> initGetitDependencies() async {
-  // TODO: this can throw an error. How do we display that to the user?
-  final sidechainConfigFut = readRpcConfig(testchainDatadir(), 'testchain.conf');
-
-  final mainchainConfigFut = readRpcConfig(mainchainDatadir(), 'drivechain.conf');
-
-  final sidechainConfig = await sidechainConfigFut;
-  final mainchainConfig = await mainchainConfigFut;
+  final sideFuture = SidechainRPCLive.create();
+  final mainFuture = MainchainRPCLive.create();
+  final sideRPC = await sideFuture;
+  final mainRPC = await mainFuture;
 
   GetIt.I.registerLazySingleton<SidechainRPC>(
-    () => SidechainRPCLive(sidechainConfig),
+    () => sideRPC,
   );
 
   GetIt.I.registerLazySingleton<MainchainRPC>(
-    () => MainchainRPCLive(mainchainConfig),
+    () => mainRPC,
   );
 
   GetIt.I.registerLazySingleton<AppRouter>(
