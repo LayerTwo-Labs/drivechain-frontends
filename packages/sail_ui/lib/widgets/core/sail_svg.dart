@@ -13,6 +13,7 @@ enum SailSVGAsset {
 
   iconCopy,
   iconDropdown,
+  iconGlobe,
   iconConfirmed,
   iconPending
 }
@@ -38,7 +39,7 @@ class SailSVG {
       builder: (context) {
         final colors = SailTheme.of(context).colors;
 
-        return SailSVG._fromAsset(
+        return SailSVG.fromAsset(
           asset,
           color: coloredAssets.contains(asset) ? null : (isHighlighted ? colors.orange : colors.icon),
           width: width ?? SailStyleValues.iconSizePrimary,
@@ -47,7 +48,7 @@ class SailSVG {
     );
   }
 
-  static SvgPicture _fromAsset(
+  static SvgPicture fromAsset(
     SailSVGAsset asset, {
     double? height,
     double? width,
@@ -82,6 +83,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_copy.svg';
       case SailSVGAsset.iconDropdown:
         return 'assets/svgs/icon_dropdown.svg';
+      case SailSVGAsset.iconGlobe:
+        return 'assets/svgs/icon_globe.svg';
 
       case SailSVGAsset.iconConfirmed:
         return 'assets/svgs/icon_success.svg';

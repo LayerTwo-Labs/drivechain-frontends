@@ -15,10 +15,10 @@ class SailColor {
   final Color textTertiary;
   final Color textHint;
   final Color orange;
-  final Color disabledPrimaryButton;
   final Color icon;
   final Color iconHighlighted;
   final Color error;
+  final Color success;
 
   final Color actionHeader;
   final Color chip;
@@ -36,10 +36,10 @@ class SailColor {
     required this.textTertiary,
     required this.textHint,
     required this.orange,
-    required this.disabledPrimaryButton,
     required this.iconHighlighted,
     required this.icon,
     required this.error,
+    required this.success,
     required this.actionHeader,
     required this.chip,
   });
@@ -57,11 +57,11 @@ class SailColor {
       textSecondary: SailColorScheme.greyDark,
       textTertiary: SailColorScheme.greyMiddle,
       textHint: SailColorScheme.greyMiddle,
-      disabledPrimaryButton: SailColorScheme.orange.withOpacity(0.5),
       iconHighlighted: SailColorScheme.orange,
       icon: SailColorScheme.greyMiddle,
       orange: SailColorScheme.orange,
-      error: SailColorScheme.pink,
+      error: SailColorScheme.red,
+      success: SailColorScheme.green,
       actionHeader: SailColorScheme.whiteDark,
       chip: SailColorScheme.greyMiddle,
     );
@@ -73,7 +73,7 @@ class SailColor {
       backgroundActionModal: SailColorScheme.darkActionModalBackground,
       actionHeader: SailColorScheme.darkActionHeader,
       formField: SailColorScheme.whiteDark,
-      formFieldBorder: SailColorScheme.blackLight,
+      formFieldBorder: SailColorScheme.darkInputBorder,
       divider: SailColorScheme.darkDivider,
       shadow: SailColorScheme.greyLight.withOpacity(0.18),
       text: SailColorScheme.whiteLight,
@@ -81,10 +81,10 @@ class SailColor {
       textTertiary: SailColorScheme.darkTextTertiary,
       textHint: SailColorScheme.darkTextHint,
       orange: SailColorScheme.orange,
-      disabledPrimaryButton: SailColorScheme.orange.withOpacity(0.4),
       iconHighlighted: SailColorScheme.orange,
       icon: SailColorScheme.greyMiddle,
-      error: SailColorScheme.pink,
+      error: SailColorScheme.red,
+      success: SailColorScheme.green,
       chip: SailColorScheme.darkChip,
     );
   }
