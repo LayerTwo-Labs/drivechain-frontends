@@ -24,6 +24,7 @@ class TransactionsProvider extends ChangeNotifier {
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
     transactions = await _rpc.listTransactions();
+    transactions = transactions.reversed.toList();
     initialized = true;
     notifyListeners();
   }
