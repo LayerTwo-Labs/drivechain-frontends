@@ -53,7 +53,7 @@ class WithSideNav extends StatelessWidget {
             child: Column(
               children: [
                 SailRow(
-                  spacing: SailStyleValues.padding8,
+                  spacing: SailStyleValues.padding08,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
@@ -68,7 +68,7 @@ class WithSideNav extends StatelessWidget {
                         // not implemented yet!
                       },
                       child: SailRow(
-                        spacing: SailStyleValues.padding5,
+                        spacing: SailStyleValues.padding05,
                         children: [
                           SailText.primary12('sample-sidechain'), // sidechain name goes here
                           SailSVG.icon(SailSVGAsset.iconDropdown, width: 5.5),
@@ -77,7 +77,7 @@ class WithSideNav extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SailSpacing(SailStyleValues.padding45),
+                const SailSpacing(SailStyleValues.padding50),
                 NavEntry(
                   title: 'Dashboard',
                   icon: SailSVGAsset.iconDashboardTab,
@@ -146,8 +146,8 @@ class NavEntry extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: SailStyleValues.padding8,
-            vertical: SailStyleValues.padding5,
+            horizontal: SailStyleValues.padding08,
+            vertical: SailStyleValues.padding05,
           ),
           child: SailRow(
             spacing: SailStyleValues.padding10,

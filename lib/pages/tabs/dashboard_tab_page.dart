@@ -133,7 +133,7 @@ class _TxViewState extends State<TxView> {
         horizontal: SailStyleValues.padding10,
       ),
       child: SailColumn(
-        spacing: SailStyleValues.padding8,
+        spacing: SailStyleValues.padding08,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailScaleButton(
@@ -186,7 +186,7 @@ class ExpandedTXView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailColumn(
-      spacing: SailStyleValues.padding8,
+      spacing: SailStyleValues.padding08,
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: decodedTX.keys.map((key) {
@@ -213,7 +213,7 @@ class SingleValueView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailRow(
-      spacing: SailStyleValues.padding8,
+      spacing: SailStyleValues.padding08,
       children: [
         if (icon != null)
           icon!
