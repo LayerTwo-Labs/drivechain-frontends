@@ -4,6 +4,8 @@ export './style/style.dart';
 export './widgets/buttons/button.dart';
 export './widgets/buttons/toggle.dart';
 export './widgets/chips/action_header_chip.dart';
+export './widgets/chips/connection_error_chip.dart';
+export './widgets/chips/connection_success_chip.dart';
 export './widgets/containers/action_tile.dart';
 export './widgets/containers/sail_card.dart';
 export './widgets/containers/sail_column.dart';
