@@ -44,21 +44,19 @@ class SailPage extends StatelessWidget {
     if (scrollable) {
       return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        child: body,
+        child: Padding(padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding40), child: body),
       );
     } else {
-      return SafeArea(
-        child: Padding(
-          padding: widgetTitle != null
-              ? const EdgeInsets.all(0)
-              : const EdgeInsets.only(
-                  top: SailStyleValues.padding20,
-                  bottom: SailStyleValues.padding20,
-                  left: SailStyleValues.padding10,
-                  right: SailStyleValues.padding10,
-                ),
-          child: body,
-        ),
+      return Padding(
+        padding: widgetTitle != null
+            ? const EdgeInsets.symmetric(vertical: SailStyleValues.padding10)
+            : const EdgeInsets.only(
+                top: SailStyleValues.padding20,
+                bottom: SailStyleValues.padding20,
+                left: SailStyleValues.padding10,
+                right: SailStyleValues.padding10,
+              ),
+        child: body,
       );
     }
   }
