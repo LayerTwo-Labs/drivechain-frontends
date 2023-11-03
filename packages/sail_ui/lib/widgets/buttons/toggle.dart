@@ -24,7 +24,7 @@ class SailToggle extends StatelessWidget {
         onChanged(!value);
       },
       child: SailRow(
-        spacing: SailStyleValues.padding8,
+        spacing: SailStyleValues.padding08,
         children: [
           Container(
             width: 30,

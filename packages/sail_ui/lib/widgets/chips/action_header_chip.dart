@@ -19,7 +19,7 @@ class ActionHeaderChip extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          vertical: SailStyleValues.padding5,
+          vertical: SailStyleValues.padding05,
           horizontal: SailStyleValues.padding10,
         ),
         child: SailText.primary12(title),
