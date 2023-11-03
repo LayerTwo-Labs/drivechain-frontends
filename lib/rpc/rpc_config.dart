@@ -4,12 +4,14 @@ import 'package:collection/collection.dart';
 import 'package:sidesail/logger.dart';
 
 class Config {
+  final String path;
   final String host;
   final int port;
   final String username;
   final String password;
 
   const Config({
+    required this.path,
     required this.host,
     required this.port,
     required this.username,
@@ -78,6 +80,7 @@ Future<Config> readRpcConfig(String datadir, String confFile) async {
 // Make sure to not include password here
   log.i('resolved conf: $username@$host:$port');
   return Config(
+    path: conf.path,
     host: host,
     port: port,
     username: username,

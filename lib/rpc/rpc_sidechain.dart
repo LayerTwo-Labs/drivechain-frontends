@@ -4,10 +4,12 @@ import 'dart:convert';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/logger.dart';
+import 'package:sidesail/pages/tabs/settings_tab.dart';
+import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 
 /// RPC connection the sidechain node.
-abstract class SidechainRPC {
+abstract class SidechainRPC extends RPCConnection {
   Future<(double, double)> getBalance();
   Future<BmmResult> refreshBMM(int bidSatoshis);
   Future<String> generatePegInAddress();
@@ -33,33 +35,66 @@ abstract class SidechainRPC {
   Future<dynamic> callRAW(String method, [dynamic params]);
 }
 
-class SidechainRPCLive implements SidechainRPC {
-  late RPCClient _client;
+class SidechainRPCLive extends SidechainRPC {
+  RPCClient? _client;
 
-  SidechainRPCLive(Config config) {
+  // responsible for pinging the node every x seconds,
+  // so we can update the UI immediately when the values change
+  Timer? _connectionTimer;
+
+  // hacky way to create an async class
+  // https://stackoverflow.com/a/59304510
+  SidechainRPCLive._create();
+
+  static Future<SidechainRPCLive> create() async {
+    final rpc = SidechainRPCLive._create();
+    await rpc._init();
+    return rpc;
+  }
+
+  Future<void> _init() async {
+    final config = await readRpcConfig(testchainDatadir(), 'testchain.conf');
+    connectionSettings = SingleNodeConnectionSettings(
+      config.path,
+      config.host,
+      config.port,
+      config.username,
+      config.password,
+    );
+    await createClient();
+    await testConnection();
+    _connectionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      await testConnection();
+    });
+  }
+
+  @override
+  Future<void> createClient() async {
     _client = RPCClient(
-      host: config.host,
-      port: config.port,
-      username: config.username,
-      password: config.password,
-      useSSL: false,
+      host: connectionSettings.host,
+      port: connectionSettings.port,
+      username: connectionSettings.username,
+      password: connectionSettings.password,
+      useSSL: connectionSettings.ssl,
     );
 
     // Completely empty client, with no retry logic.
-    _client.dioClient = Dio();
+    _client!.dioClient = Dio();
+
+    log.i('created client');
   }
 
   @override
   Future<(double, double)> getBalance() async {
-    final confirmed = await _client.call('getbalance') as double;
-    final unconfirmed = await _client.call('getunconfirmedbalance') as double;
+    final confirmed = await _client?.call('getbalance') as double;
+    final unconfirmed = await _client?.call('getunconfirmedbalance') as double;
 
     return (confirmed, unconfirmed);
   }
 
   @override
   Future<BmmResult> refreshBMM(int bidSatoshis) async {
-    final res = await _client.call('refreshbmm', [bidSatoshis / 100000000]) as Map<String, dynamic>;
+    final res = await _client?.call('refreshbmm', [bidSatoshis / 100000000]) as Map<String, dynamic>;
 
     return BmmResult.fromJson(res);
   }
@@ -75,7 +110,7 @@ class SidechainRPCLive implements SidechainRPC {
     final refund = await getRefundAddress();
     log.d('got refund address: $refund');
 
-    final withdrawalTxid = await _client.call('createwithdrawal', [
+    final withdrawalTxid = await _client?.call('createwithdrawal', [
       address,
       refund,
       amount,
@@ -88,31 +123,31 @@ class SidechainRPCLive implements SidechainRPC {
 
   @override
   Future<String> generatePegInAddress() async {
-    var address = await _client.call('getnewaddress', ['Sidechain Peg In', 'legacy']);
+    var address = await _client?.call('getnewaddress', ['Sidechain Peg In', 'legacy']);
 
     // This is actually just rather simple stuff. Should be able to
     // do this client side! Just needs the sidechain number, and we're
     // off to the races.
-    var formatted = await _client.call('formatdepositaddress', [address as String]);
+    var formatted = await _client?.call('formatdepositaddress', [address as String]);
 
     return formatted as String;
   }
 
   @override
   Future<String> generateSidechainAddress() async {
-    var address = await _client.call('getnewaddress', ['Sidechain Deposit']);
+    var address = await _client?.call('getnewaddress', ['Sidechain Deposit']);
     return address as String;
   }
 
   @override
   Future<String> getRefundAddress() async {
-    var address = await _client.call('getnewaddress', ['Sidechain Deposit', 'legacy']) as String;
+    var address = await _client?.call('getnewaddress', ['Sidechain Deposit', 'legacy']) as String;
     return address;
   }
 
   @override
   Future<double> estimateFee() async {
-    final estimate = await _client.call('estimatesmartfee', [6]) as Map<String, dynamic>;
+    final estimate = await _client?.call('estimatesmartfee', [6]) as Map<String, dynamic>;
     if (estimate.containsKey('errors')) {
       // 10 sats/byte
       return 0.001;
@@ -131,7 +166,7 @@ class SidechainRPCLive implements SidechainRPC {
       // TODO: do something meaningful with this, we would need it decoded
       // with bitcoin core.
       // BtcTransaction.fromRaw crashes...
-      final bundleHex = await _client.call('getwithdrawalbundle', []);
+      final bundleHex = await _client?.call('getwithdrawalbundle', []);
 
       return 'something: ${(bundleHex as String).substring(0, 20)}...';
     } on RPCException catch (e) {
@@ -148,7 +183,7 @@ class SidechainRPCLive implements SidechainRPC {
 
   @override
   Future<dynamic> callRAW(String method, [dynamic params]) async {
-    return _client.call(method, params).catchError((err) {
+    return _client?.call(method, params).catchError((err) {
       log.t('rpc: $method threw exception: $err');
       throw err;
     });
@@ -156,7 +191,7 @@ class SidechainRPCLive implements SidechainRPC {
 
   @override
   Future<String> sidechainSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final withdrawalTxid = await _client.call('sendtoaddress', [
+    final withdrawalTxid = await _client?.call('sendtoaddress', [
       address,
       amount,
       '',
@@ -170,7 +205,7 @@ class SidechainRPCLive implements SidechainRPC {
   @override
   Future<List<Transaction>> listTransactions() async {
     // first list
-    final transactionsJSON = await _client.call('listtransactions', []) as List<dynamic>;
+    final transactionsJSON = await _client?.call('listtransactions', []) as List<dynamic>;
 
     // then convert to something other than json
     List<Transaction> transactions = transactionsJSON.map((jsonItem) => Transaction.fromMap(jsonItem)).toList();
@@ -179,14 +214,25 @@ class SidechainRPCLive implements SidechainRPC {
 
   @override
   Future<int> mainchainBlockCount() async {
-    final cached = await _client.call('updatemainblockcache') as Map<String, dynamic>;
+    final cached = await _client?.call('updatemainblockcache') as Map<String, dynamic>;
 
     return cached['cachesize'];
   }
 
   @override
   Future<int> blockCount() async {
-    return await _client.call('getblockcount');
+    return await _client?.call('getblockcount');
+  }
+
+  @override
+  Future<void> ping() async {
+    await _client?.call('ping') as Map<String, dynamic>?;
+  }
+
+  @override
+  void dispose() {
+    _connectionTimer?.cancel();
+    super.dispose();
   }
 }
 
