@@ -29,8 +29,9 @@ class SailPage extends StatelessWidget {
           context,
           title: widgetTitle != null
               ? widgetTitle!
-              : SailText.mediumPrimary20(
+              : SailText.primary20(
                   title,
+                  bold: true,
                 ),
         ),
         body: buildBody(context),

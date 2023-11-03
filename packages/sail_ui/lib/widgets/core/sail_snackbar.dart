@@ -21,7 +21,7 @@ void showSnackBar(
         padding: const EdgeInsets.symmetric(
           vertical: SailStyleValues.padding10,
         ),
-        child: SailText.primary14(message),
+        child: SailText.primary13(message),
       ),
     ),
   );

@@ -26,12 +26,17 @@ class DashboardTabPage extends StatelessWidget {
       builder: ((context, viewModel, child) {
         return SailPage(
           title: '',
-          scrollable: true,
           widgetTitle: Row(
             children: [
-              SailText.mediumPrimary14('Balance: ${viewModel.sidechainBalance} SBTC'),
+              SailText.primary13(
+                'Balance: ${viewModel.sidechainBalance} SBTC',
+                bold: true,
+              ),
               Expanded(child: Container()),
-              SailText.mediumPrimary14('Unconfirmed balance: ${viewModel.sidechainPendingBalance} SBTC'),
+              SailText.primary13(
+                'Unconfirmed balance: ${viewModel.sidechainPendingBalance} SBTC',
+                bold: true,
+              ),
             ],
           ),
           body: Column(

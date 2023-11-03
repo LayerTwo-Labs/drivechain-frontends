@@ -15,7 +15,7 @@ class DepositAddress extends StatelessWidget {
         children: [
           Row(
             children: [
-              SailText.primary14(
+              SailText.primary13(
                 'Deposit to this address from the mainchain: ',
               ),
               ElevatedButton(
@@ -23,11 +23,11 @@ class DepositAddress extends StatelessWidget {
                   Clipboard.setData(ClipboardData(text: address));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: SailText.primary14('Copied address'),
+                      content: SailText.primary13('Copied address'),
                     ),
                   );
                 },
-                child: SailText.primary14(address),
+                child: SailText.primary13(address),
               ),
             ],
           ),

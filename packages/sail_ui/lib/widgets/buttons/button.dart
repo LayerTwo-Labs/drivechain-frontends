@@ -12,6 +12,7 @@ class SailButton extends StatelessWidget {
   final bool disabled;
   final bool loading;
   final ButtonSize size;
+  final bool isSecondary;
   final Widget child;
 
   const SailButton._({
@@ -19,11 +20,12 @@ class SailButton extends StatelessWidget {
     required this.disabled,
     required this.loading,
     required this.size,
+    required this.isSecondary,
     required this.child,
   });
 
-  static Widget primary({
-    required String label,
+  static Widget primary(
+    String label, {
     required VoidCallback onPressed,
     required ButtonSize size,
     bool loading = false,
@@ -34,9 +36,29 @@ class SailButton extends StatelessWidget {
       disabled: disabled,
       loading: loading,
       size: size,
+      isSecondary: false,
       child: size == ButtonSize.small || size == ButtonSize.regular
-          ? SailText.mediumPrimary12(label)
-          : SailText.primary14(label),
+          ? SailText.primary12(label, bold: true)
+          : SailText.primary13(label),
+    );
+  }
+
+  static Widget secondary(
+    String label, {
+    required VoidCallback onPressed,
+    required ButtonSize size,
+    bool loading = false,
+    bool disabled = false,
+  }) {
+    return SailButton._(
+      onPressed: onPressed,
+      disabled: disabled,
+      loading: loading,
+      isSecondary: true,
+      size: size,
+      child: size == ButtonSize.small || size == ButtonSize.regular
+          ? SailText.primary12(label, bold: true)
+          : SailText.primary13(label),
     );
   }
 
@@ -53,13 +75,14 @@ class SailButton extends StatelessWidget {
       disabled: disabled,
       loading: loading,
       size: size,
+      isSecondary: false,
       child: SailRow(
-        spacing: SailStyleValues.padding8,
+        spacing: SailStyleValues.padding08,
         children: [
           icon,
           size == ButtonSize.small || size == ButtonSize.regular
-              ? SailText.mediumPrimary12(label)
-              : SailText.primary14(label),
+              ? SailText.primary12(label, bold: true)
+              : SailText.primary13(label),
         ],
       ),
     );
@@ -68,17 +91,17 @@ class SailButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = SailTheme.of(context).colors;
+    final backgroundColor = isSecondary ? colors.chip : colors.orange;
 
     switch (size) {
       case ButtonSize.small:
         return SailRawButton(
           disabled: disabled,
-          disabledColor: colors.disabledPrimaryButton,
-          backgroundColor: colors.orange,
+          backgroundColor: backgroundColor,
           onPressed: onPressed,
           loading: loading,
           padding: const EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding5,
+            vertical: SailStyleValues.padding05,
             horizontal: SailStyleValues.padding10,
           ),
           child: child,
@@ -87,12 +110,11 @@ class SailButton extends StatelessWidget {
       case ButtonSize.regular:
         return SailRawButton(
           disabled: disabled,
-          disabledColor: colors.disabledPrimaryButton,
-          backgroundColor: colors.orange,
+          backgroundColor: backgroundColor,
           onPressed: onPressed,
           loading: loading,
           padding: const EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding8,
+            vertical: SailStyleValues.padding08,
             horizontal: SailStyleValues.padding15,
           ),
           child: child,
@@ -101,8 +123,7 @@ class SailButton extends StatelessWidget {
       case ButtonSize.large:
         return SailRawButton(
           disabled: disabled,
-          disabledColor: colors.disabledPrimaryButton,
-          backgroundColor: colors.orange,
+          backgroundColor: backgroundColor,
           onPressed: onPressed,
           loading: loading,
           padding: const EdgeInsets.symmetric(
@@ -136,7 +157,7 @@ class SailTextButton extends StatelessWidget {
       focusColor: theme.colors.backgroundActionModal.withOpacity(0.1),
       hoverColor: theme.colors.backgroundActionModal.withOpacity(0.1),
       splashColor: Colors.transparent,
-      child: SailText.mediumSecondary12(label),
+      child: SailText.secondary12(label, bold: true),
     );
   }
 }
@@ -144,7 +165,6 @@ class SailTextButton extends StatelessWidget {
 class SailRawButton extends StatefulWidget {
   final bool disabled;
   final bool loading;
-  final Color disabledColor;
   final Color backgroundColor;
   final VoidCallback? onPressed;
   final Widget child;
@@ -154,7 +174,6 @@ class SailRawButton extends StatefulWidget {
     Key? key,
     required this.disabled,
     required this.loading,
-    required this.disabledColor,
     required this.backgroundColor,
     required this.onPressed,
     required this.child,
@@ -178,7 +197,6 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
         disabled: disabled,
         child: MaterialButton(
           color: widget.backgroundColor,
-          disabledColor: widget.backgroundColor,
           enableFeedback: !widget.disabled,
           textColor: theme.colors.text,
           splashColor: Colors.transparent,

@@ -153,7 +153,7 @@ class NavEntry extends StatelessWidget {
             spacing: SailStyleValues.padding10,
             children: [
               SailSVG.icon(icon, width: 16),
-              SailText.mediumPrimary12(title),
+              SailText.primary12(title, bold: true),
               Expanded(child: Container()),
             ],
           ),
