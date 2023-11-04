@@ -239,6 +239,10 @@ class PegOutViewModel extends BaseViewModel {
         mainchainFee,
       );
 
+      log.i(
+        'pegged out successfully',
+      );
+
       if (!context.mounted) {
         return;
       }
