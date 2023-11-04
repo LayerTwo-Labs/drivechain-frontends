@@ -9,6 +9,7 @@ import 'package:sidesail/rpc/rpc_config.dart';
 /// RPC connection to the mainchain node.
 abstract class MainchainRPC extends RPCConnection {
   Future<double> estimateFee();
+  Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash);
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -73,6 +74,11 @@ class MainchainRPCLive extends MainchainRPC {
     // who knows!
     const kbyteInTx = 5;
     return btcPerKb * kbyteInTx;
+  }
+
+  @override
+  Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash) async {
+    return await _client?.call('getworkscore', [sidechain, hash]);
   }
 
   @override

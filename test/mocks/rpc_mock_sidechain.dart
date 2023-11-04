@@ -1,11 +1,7 @@
 import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
 class MockSidechainRPC extends SidechainRPC {
-  @override
-  Future<String> fetchWithdrawalBundleStatus() async {
-    return '<some sensible value>';
-  }
-
   @override
   Future<String> generatePegInAddress() async {
     return 'bc1...?';
@@ -89,5 +85,20 @@ class MockSidechainRPC extends SidechainRPC {
   @override
   Future<void> ping() async {
     return;
+  }
+
+  @override
+  Future<WithdrawalBundle> currentWithdrawalBundle() async {
+    return WithdrawalBundle(
+      hash: '',
+      bundleSize: 0,
+      blockHeight: 0,
+      withdrawals: [],
+    );
+  }
+
+  @override
+  Future<FutureWithdrawalBundle> nextWithdrawalBundle() async {
+    return FutureWithdrawalBundle(cumulativeWeight: 0, withdrawals: []);
   }
 }

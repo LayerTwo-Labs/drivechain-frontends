@@ -7,6 +7,8 @@ import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings_tab.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
+import 'package:sidesail/rpc/rpc_rawtx.dart';
+import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
 /// RPC connection the sidechain node.
 abstract class SidechainRPC extends RPCConnection {
@@ -31,7 +33,10 @@ abstract class SidechainRPC extends RPCConnection {
   Future<double> estimateFee();
   Future<int> mainchainBlockCount();
   Future<int> blockCount();
-  Future<String> fetchWithdrawalBundleStatus();
+
+  Future<WithdrawalBundle> currentWithdrawalBundle();
+  Future<FutureWithdrawalBundle> nextWithdrawalBundle();
+
   Future<dynamic> callRAW(String method, [dynamic params]);
 }
 
@@ -163,27 +168,6 @@ class SidechainRPCLive extends SidechainRPC {
   }
 
   @override
-  Future<String> fetchWithdrawalBundleStatus() async {
-    try {
-      // TODO: do something meaningful with this, we would need it decoded
-      // with bitcoin core.
-      // BtcTransaction.fromRaw crashes...
-      final bundleHex = await _client?.call('getwithdrawalbundle', []);
-
-      return 'something: ${(bundleHex as String).substring(0, 20)}...';
-    } on RPCException catch (e) {
-      if (e.errorCode != RPCError.errNoWithdrawalBundle) {
-        return 'unexpected withdrawal bundle status: $e';
-      }
-
-      return 'no withdrawal bundle yet';
-    } catch (e) {
-      log.e('could not fetch withdrawal bundle: $e', error: e);
-      rethrow;
-    }
-  }
-
-  @override
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     return _client?.call(method, params).catchError((err) {
       log.t('rpc: $method threw exception: $err');
@@ -240,9 +224,39 @@ class SidechainRPCLive extends SidechainRPC {
     _connectionTimer?.cancel();
     super.dispose();
   }
+
+  @override
+  Future<WithdrawalBundle> currentWithdrawalBundle() async {
+    final rawWithdrawalBundle = await _client?.call('getwithdrawalbundle');
+
+    final decoded = await _client?.call('decoderawtransaction', [rawWithdrawalBundle]);
+    final tx = RawTransaction.fromJson(decoded);
+
+    return WithdrawalBundle.fromRawTransaction(
+      tx,
+    );
+  }
+
+  @override
+  Future<FutureWithdrawalBundle> nextWithdrawalBundle() async {
+    final rawNextBundle = await _client?.call('listnextbundlewithdrawals') as List<dynamic>;
+
+    return FutureWithdrawalBundle(
+      cumulativeWeight: 0, // TODO: not sure how to obtain this
+      withdrawals: rawNextBundle
+          .map(
+            (withdrawal) => Withdrawal(
+              mainchainFeesSatoshi: withdrawal['amountmainchainfee'],
+              amountSatoshi: withdrawal['amount'],
+              address: withdrawal['destination'],
+            ),
+          )
+          .toList(),
+    );
+  }
 }
 
-abstract class RPCError {
+class RPCError {
   static const errNoWithdrawalBundle = -100;
   static const errWithdrawalNotFound = -101;
 }
