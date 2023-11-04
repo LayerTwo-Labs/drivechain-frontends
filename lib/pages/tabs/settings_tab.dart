@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:stacked/stacked.dart';
@@ -39,6 +40,7 @@ class SettingsTabPage extends StatelessWidget {
                       settings: viewModel.sidechainSettings,
                       testConnectionValues: viewModel.reconnectSidechain,
                       connectionError: viewModel.sidechainConnectionError,
+                      readError: viewModel.sidechainFileError,
                       loading: viewModel.sidechainBusy,
                     ),
                     NodeConnectionSettings(
@@ -47,6 +49,7 @@ class SettingsTabPage extends StatelessWidget {
                       settings: viewModel.mainchainSettings,
                       testConnectionValues: viewModel.reconnectMainchain,
                       connectionError: viewModel.mainchainConnectionError,
+                      readError: viewModel.mainchainFileError,
                       loading: viewModel.mainchainBusy,
                     ),
                   ],
@@ -67,6 +70,7 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
   final SingleNodeConnectionSettings settings;
   final VoidCallback testConnectionValues;
   final String? connectionError;
+  final String? readError;
   final bool loading;
 
   const NodeConnectionSettings({
@@ -76,6 +80,7 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
     required this.settings,
     required this.testConnectionValues,
     required this.connectionError,
+    required this.readError,
     required this.loading,
   });
 
@@ -105,12 +110,20 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
               ],
             ),
             if (connectionError != null) SailText.secondary12(connectionError!),
+            if (readError != null) SailText.secondary12(readError!),
           ],
         ),
         SailTextField(
           label: 'Config path',
           controller: settings.configPathController,
           hintText: '/the/path/to/your/somethingchain.conf',
+          suffixWidget: Padding(
+            padding: const EdgeInsets.only(left: SailStyleValues.padding08),
+            child: SailTextButton(
+              label: 'Read file',
+              onPressed: settings.readAndSetValuesFromFile,
+            ),
+          ),
         ),
         SailTextField(
           label: 'Host',
@@ -138,10 +151,9 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
             Expanded(child: Container()),
             SailButton.secondary(
               'Reset to config file values',
-              disabled: true,
+              disabled: !settings.inputDifferentThanFile,
               onPressed: () {
-                // TODO: implement this logic! must always keep track of config
-                // file values to do that
+                settings.resetToFileValues();
               },
               size: ButtonSize.regular,
             ),
@@ -175,15 +187,24 @@ class NodeConnectionViewModel extends BaseViewModel {
   String? get sidechainConnectionError => sideRPC.connectionError;
   String? get mainchainConnectionError => mainRPC.connectionError;
 
+  String? get sidechainFileError => sideRPC.connectionSettings.readError;
+  String? get mainchainFileError => mainRPC.connectionSettings.readError;
+
   bool get sidechainBusy => _sidechainBusy;
   bool get mainchainBusy => _mainchainBusy;
 
   bool _sidechainBusy = false;
   bool _mainchainBusy = false;
 
+  bool get sidechainSettingsDifferent => sideRPC.connectionSettings.inputDifferentThanFile;
+  bool get mainchainSettingsDifferent => mainRPC.connectionSettings.inputDifferentThanFile;
+
   NodeConnectionViewModel() {
     mainRPC.addListener(notifyListeners);
+    mainRPC.connectionSettings.addListener(notifyListeners);
+
     sideRPC.addListener(notifyListeners);
+    sideRPC.connectionSettings.addListener(notifyListeners);
   }
 
   Timer? _connectionTimer;
@@ -218,7 +239,9 @@ class NodeConnectionViewModel extends BaseViewModel {
   void dispose() {
     _connectionTimer?.cancel();
     sideRPC.removeListener(notifyListeners);
+    sideRPC.connectionSettings.removeListener(notifyListeners);
     mainRPC.removeListener(notifyListeners);
+    mainRPC.connectionSettings.removeListener(notifyListeners);
     super.dispose();
   }
 }
@@ -236,6 +259,20 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
   String get password => passwordController.text;
   final ssl = false;
 
+  String? readError;
+
+  late String fileConfigPath;
+  late String fileHost;
+  late int filePort;
+  late String fileUsername;
+  late String filePassword;
+  bool get inputDifferentThanFile =>
+      configPathController.text != fileConfigPath ||
+      hostController.text != fileHost ||
+      portController.text != filePort.toString() ||
+      usernameController.text != fileUsername ||
+      passwordController.text != filePassword;
+
   SingleNodeConnectionSettings(
     String path,
     String host,
@@ -243,12 +280,73 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
     String username,
     String password,
   ) {
-    // initial values are those of the config file, hmmmm
+    fileConfigPath = path;
+    fileHost = host;
+    filePort = port;
+    fileUsername = username;
+    filePassword = password;
+
     configPathController.text = path;
     hostController.text = host;
     portController.text = port.toString();
     usernameController.text = username;
     passwordController.text = password;
+
+    configPathController.addListener(notifyListeners);
+    hostController.addListener(notifyListeners);
+    portController.addListener(notifyListeners);
+    usernameController.addListener(notifyListeners);
+    passwordController.addListener(notifyListeners);
+  }
+
+  void resetToFileValues() {
+    configPathController.text = fileConfigPath;
+    hostController.text = fileHost;
+    portController.text = filePort.toString();
+    usernameController.text = fileUsername;
+    passwordController.text = filePassword;
+
+    notifyListeners();
+  }
+
+  void readAndSetValuesFromFile() async {
+    try {
+      var parts = splitPath(configPathController.text);
+      String dataDir = parts.$1;
+      String confFile = parts.$2;
+      readError = null;
+
+      final config = await readRpcConfig(dataDir, confFile);
+      configPathController.text = config.path;
+      hostController.text = config.host;
+      portController.text = config.port.toString();
+      usernameController.text = config.username;
+      passwordController.text = config.password;
+    } catch (error) {
+      readError = error.toString();
+    }
+
+    notifyListeners();
+  }
+
+  (String, String) splitPath(String path) {
+    if (!path.contains('/')) {
+      return ('', '');
+    }
+    String directory = path.substring(0, path.lastIndexOf('/'));
+    String fileName = path.split('/').last;
+
+    return (directory, fileName);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    configPathController.removeListener(notifyListeners);
+    hostController.removeListener(notifyListeners);
+    portController.removeListener(notifyListeners);
+    usernameController.removeListener(notifyListeners);
+    passwordController.removeListener(notifyListeners);
   }
 
   static SingleNodeConnectionSettings empty() {
