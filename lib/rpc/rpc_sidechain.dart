@@ -205,7 +205,10 @@ class SidechainRPCLive extends SidechainRPC {
   @override
   Future<List<Transaction>> listTransactions() async {
     // first list
-    final transactionsJSON = await _client?.call('listtransactions', []) as List<dynamic>;
+    final transactionsJSON = await _client?.call('listtransactions', [
+      '',
+      9999, // how many txs to list. We have not implemented pagination, so we list all
+    ]) as List<dynamic>;
 
     // then convert to something other than json
     List<Transaction> transactions = transactionsJSON.map((jsonItem) => Transaction.fromMap(jsonItem)).toList();
