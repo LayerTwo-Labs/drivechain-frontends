@@ -15,7 +15,8 @@ enum SailSVGAsset {
   iconDropdown,
   iconGlobe,
   iconConfirmed,
-  iconPending
+  iconPending,
+  iconFailed,
 }
 
 /// If you don't want to overwrite the color of the svg, put it in here!
@@ -27,6 +28,7 @@ const coloredAssets = [
   SailSVGAsset.iconSidechain,
   SailSVGAsset.iconConfirmed,
   SailSVGAsset.iconPending,
+  SailSVGAsset.iconFailed,
 ];
 
 class SailSVG {
@@ -90,6 +92,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_success.svg';
       case SailSVGAsset.iconPending:
         return 'assets/svgs/icon_pending.svg';
+      case SailSVGAsset.iconFailed:
+        return 'assets/svgs/icon_failed.svg';
     }
   }
 }

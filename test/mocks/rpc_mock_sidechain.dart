@@ -33,6 +33,7 @@ class MockSidechainRPC extends SidechainRPC {
       nfees: 0,
       txid: '',
       error: '',
+      raw: '',
     );
   }
 
