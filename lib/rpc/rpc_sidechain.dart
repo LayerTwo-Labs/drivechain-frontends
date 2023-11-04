@@ -212,6 +212,7 @@ class SidechainRPCLive extends SidechainRPC {
 
     // then convert to something other than json
     List<Transaction> transactions = transactionsJSON.map((jsonItem) => Transaction.fromMap(jsonItem)).toList();
+    transactions.removeWhere((t) => t.amount == 0);
     return transactions;
   }
 
