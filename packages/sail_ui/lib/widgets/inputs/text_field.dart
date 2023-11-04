@@ -13,6 +13,7 @@ class SailTextField extends StatelessWidget {
   final String? label;
   final String hintText;
   final String? suffix;
+  final Widget? suffixWidget;
   final TextFieldType textFieldType;
   final String? prefix;
   final TextFieldSize size;
@@ -24,6 +25,7 @@ class SailTextField extends StatelessWidget {
     required this.hintText,
     this.textFieldType = TextFieldType.text,
     this.suffix,
+    this.suffixWidget,
     this.prefix,
     this.size = TextFieldSize.regular,
   });
@@ -78,6 +80,7 @@ class SailTextField extends StatelessWidget {
               fontSize: textSize,
             ),
             suffixText: suffix,
+            suffix: suffixWidget,
             prefixStyle: TextStyle(
               color: SailTheme.of(context).colors.textTertiary,
               fontSize: textSize,
