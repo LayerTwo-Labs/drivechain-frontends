@@ -92,8 +92,6 @@ class DashboardTabPage extends StatelessWidget {
                       DashboardGroup(
                         title: 'Transactions',
                         widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
-                        endWidget:
-                            SailToggle(label: 'Show raw', value: viewModel.showRaw, onChanged: viewModel.toggleRaw),
                         children: [
                           SailColumn(
                             spacing: 0,
@@ -102,7 +100,6 @@ class DashboardTabPage extends StatelessWidget {
                             children: [
                               for (final tx in viewModel.transactions)
                                 TxView(
-                                  showRAW: viewModel.showRaw,
                                   tx: tx,
                                 ),
                             ],
@@ -162,10 +159,9 @@ class DashboardNodeConnection extends ViewModelWidget<HomePageViewModel> {
 }
 
 class TxView extends StatefulWidget {
-  final bool showRAW;
   final Transaction tx;
 
-  const TxView({super.key, required this.showRAW, required this.tx});
+  const TxView({super.key, required this.tx});
 
   @override
   State<TxView> createState() => _TxViewState();
@@ -314,8 +310,6 @@ class HomePageViewModel extends BaseViewModel {
 
   List<Transaction> get transactions => _transactionsProvider.transactions;
 
-  bool showRaw = false;
-
   HomePageViewModel() {
     // by adding a listener, we subscribe to changes to the balance
     // provider. We don't use the updates for anything other than
@@ -325,11 +319,6 @@ class HomePageViewModel extends BaseViewModel {
     _transactionsProvider.addListener(notifyListeners);
     _sideRPC.addListener(notifyListeners);
     _mainRPC.addListener(notifyListeners);
-  }
-
-  void toggleRaw(bool value) {
-    showRaw = value;
-    notifyListeners();
   }
 
   void pegOut(BuildContext context) async {
