@@ -130,6 +130,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                                     physics: const NeverScrollableScrollPhysics(),
                                     itemCount: viewModel.bmmAttempts.length,
                                     itemBuilder: (context, index) => BMMAttemptView(
+                                      key: ValueKey<String>(viewModel.bmmAttempts[index].result.txid),
                                       bmmAttempt: viewModel.bmmAttempts[index],
                                       onPressed: () => viewModel.toggleRunning(false),
                                     ),
@@ -224,7 +225,8 @@ class BlindMergedMiningTabPageViewModel extends BaseViewModel {
 
   // Ported from SidechainBMMTableModel::AddAttempt in the testchain codebase
   void _addAttempt(BmmAttempt attempt) {
-    bmmAttempts.add(
+    bmmAttempts.insert(
+      0,
       attempt,
     );
 
