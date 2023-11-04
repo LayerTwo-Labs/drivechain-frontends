@@ -1,40 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 
+enum TextFieldSize { small, regular }
+
+enum TextFieldType { number, bitcoin, text }
+
 class SailTextField extends StatelessWidget {
   final TextEditingController controller;
-  final String label;
+  final String? label;
   final String hintText;
+  final String? suffix;
+  final TextFieldType textFieldType;
+  final String? prefix;
+  final TextFieldSize size;
 
   const SailTextField({
     super.key,
     required this.controller,
     required this.label,
     required this.hintText,
+    this.textFieldType = TextFieldType.text,
+    this.suffix,
+    this.prefix,
+    this.size = TextFieldSize.regular,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final padding = size != TextFieldSize.regular
+        ? const EdgeInsets.all(
+            SailStyleValues.padding15,
+          )
+        : const EdgeInsets.symmetric(
+            vertical: SailStyleValues.padding10,
+            horizontal: SailStyleValues.padding15,
+          );
+    final textSize = size == TextFieldSize.regular ? 15.0 : 12.0;
 
     return SailColumn(
       spacing: SailStyleValues.padding08,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(
-            left: 2,
+        if (label != null)
+          Padding(
+            padding: const EdgeInsets.only(
+              left: 2,
+            ),
+            child: SailText.secondary13(label!),
           ),
-          child: SailText.secondary13(label),
-        ),
         TextField(
           cursorColor: SailColorScheme.orange,
           controller: controller,
           style: TextStyle(
             color: SailTheme.of(context).colors.text,
-            fontSize: 15,
+            fontSize: textSize,
           ),
+          inputFormatters: [
+            if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
+            if (textFieldType == TextFieldType.bitcoin) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
+          ],
           decoration: InputDecoration(
             errorBorder: InputBorder.none,
             disabledBorder: InputBorder.none,
@@ -46,19 +73,47 @@ class SailTextField extends StatelessWidget {
               borderRadius: const BorderRadius.all(Radius.circular(6)),
               borderSide: BorderSide(color: theme.colors.formFieldBorder),
             ),
+            suffixStyle: TextStyle(
+              color: SailTheme.of(context).colors.textTertiary,
+              fontSize: textSize,
+            ),
+            suffixText: suffix,
+            prefixStyle: TextStyle(
+              color: SailTheme.of(context).colors.textTertiary,
+              fontSize: textSize,
+            ),
+            prefixText: prefix,
             fillColor: SailTheme.of(context).colors.background,
             filled: true,
+            contentPadding: padding,
+            isDense: true,
             hintText: hintText,
-            contentPadding: const EdgeInsets.all(
-              SailStyleValues.padding15,
-            ),
             hintStyle: TextStyle(
               color: SailTheme.of(context).colors.textTertiary,
-              fontSize: 15,
+              fontSize: textSize,
             ),
           ),
         ),
       ],
+    );
+  }
+
+  static Widget tiny({
+    required TextEditingController controller,
+    required String hintText,
+    String? label,
+    String? suffix,
+    String? prefix,
+    TextFieldType textFieldType = TextFieldType.text,
+  }) {
+    return SailTextField(
+      controller: controller,
+      label: label,
+      hintText: hintText,
+      suffix: suffix,
+      prefix: prefix,
+      size: TextFieldSize.small,
+      textFieldType: textFieldType,
     );
   }
 }

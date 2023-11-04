@@ -194,6 +194,7 @@ class _TxViewState extends State<TxView> {
               });
             },
             child: SingleValueView(
+              width: expanded ? 95 : 70,
               icon: widget.tx.confirmations >= 1
                   ? Tooltip(
                       message: '${widget.tx.confirmations} confirmations',
@@ -209,7 +210,11 @@ class _TxViewState extends State<TxView> {
               trailingText: DateFormat('dd MMM HH:mm').format(widget.tx.time),
             ),
           ),
-          if (expanded) ExpandedTXView(decodedTX: decodedTx),
+          if (expanded)
+            ExpandedTXView(
+              decodedTX: decodedTx,
+              width: 95,
+            ),
         ],
       ),
     );
@@ -232,8 +237,13 @@ class _TxViewState extends State<TxView> {
 
 class ExpandedTXView extends StatelessWidget {
   final Map<String, dynamic> decodedTX;
+  final double width;
 
-  const ExpandedTXView({super.key, required this.decodedTX});
+  const ExpandedTXView({
+    super.key,
+    required this.decodedTX,
+    required this.width,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +252,11 @@ class ExpandedTXView extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: decodedTX.keys.where((key) => key != 'walletconflicts').map((key) {
-        return SingleValueView(label: key, value: decodedTX[key]);
+        return SingleValueView(
+          label: key,
+          value: decodedTX[key],
+          width: width,
+        );
       }).toList(),
     );
   }
@@ -251,6 +265,7 @@ class ExpandedTXView extends StatelessWidget {
 class SingleValueView extends StatelessWidget {
   final String label;
   final dynamic value;
+  final double width;
   final String? trailingText;
   final Widget? icon;
   final bool copyable;
@@ -259,6 +274,7 @@ class SingleValueView extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
+    required this.width,
     this.trailingText,
     this.icon,
     this.copyable = true,
@@ -276,7 +292,7 @@ class SingleValueView extends StatelessWidget {
             width: 13,
           ),
         SizedBox(
-          width: 95,
+          width: width,
           child: SailText.secondary12(label),
         ),
         SailScaleButton(
