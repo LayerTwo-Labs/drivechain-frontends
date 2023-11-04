@@ -20,4 +20,9 @@ class MockMainchainRPC extends MainchainRPC {
   Future<void> ping() async {
     return;
   }
+
+  @override
+  Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash) async {
+    return 1;
+  }
 }
