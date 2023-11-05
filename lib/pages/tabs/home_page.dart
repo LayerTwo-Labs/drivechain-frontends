@@ -1,10 +1,17 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sidesail/config/this_sidechain.dart';
+import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc_mainchain.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/widgets/containers/chain_overview_card.dart';
+import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class HomePage extends StatelessWidget {
@@ -17,6 +24,7 @@ class HomePage extends StatelessWidget {
     return AutoTabsRouter.builder(
       homeIndex: 1,
       routes: const [
+        SidechainExplorerTabRoute(),
         DashboardTabRoute(),
         WithdrawalBundleTabRoute(),
         BlindMergedMiningTabRoute(),
@@ -26,102 +34,170 @@ class HomePage extends StatelessWidget {
         final tabsRouter = AutoTabsRouter.of(context);
         return Scaffold(
           backgroundColor: theme.colors.background,
-          body: WithSideNav(child: children[tabsRouter.activeIndex]),
+          body: SideNav(
+            child: children[tabsRouter.activeIndex],
+            navigateToSettings: () => tabsRouter.setActiveIndex(4),
+          ),
         );
       },
     );
   }
 }
 
-class WithSideNav extends StatelessWidget {
+class SideNav extends StatefulWidget {
   final Widget child;
+  final VoidCallback navigateToSettings;
 
-  const WithSideNav({super.key, required this.child});
+  const SideNav({
+    super.key,
+    required this.child,
+    required this.navigateToSettings,
+  });
 
+  @override
+  State<SideNav> createState() => _SideNavState();
+}
+
+class _SideNavState extends State<SideNav> {
   @override
   Widget build(BuildContext context) {
     final tabsRouter = AutoTabsRouter.of(context);
     final theme = SailTheme.of(context);
 
-    return Row(
-      children: [
-        SizedBox(
-          width: 221,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: SailStyleValues.padding15,
-              vertical: SailStyleValues.padding20,
-            ),
-            child: Column(
-              children: [
-                SailRow(
-                  spacing: SailStyleValues.padding08,
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => HomePageViewModel(),
+      builder: ((context, viewModel, child) {
+        return Row(
+          children: [
+            SizedBox(
+              width: 221,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: SailStyleValues.padding15,
+                  vertical: SailStyleValues.padding20,
+                ),
+                child: SailColumn(
+                  spacing: 0,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: SailText.primary12('SBTC'), // coin name goes here
-                    ),
-                    SailScaleButton(
+                    ChainOverviewCard(
+                      chain: TestSidechain(),
+                      confirmedBalance: viewModel.balance,
+                      unconfirmedBalance: viewModel.pendingBalance,
+                      highlighted: tabsRouter.activeIndex == 0,
+                      currentChain: true,
                       onPressed: () {
-                        // not implemented yet!
+                        tabsRouter.setActiveIndex(0);
                       },
-                      child: SailRow(
-                        spacing: SailStyleValues.padding05,
-                        children: [
-                          SailText.primary12(ThisSidechain.name), // sidechain name goes here
-                          SailSVG.icon(SailSVGAsset.iconDropdown, width: 5.5),
-                        ],
-                      ),
+                    ),
+                    const SailSpacing(SailStyleValues.padding30),
+                    NavEntry(
+                      title: 'Dashboard',
+                      icon: SailSVGAsset.iconDashboardTab,
+                      selected: tabsRouter.activeIndex == 1,
+                      onPressed: () {
+                        tabsRouter.setActiveIndex(1);
+                      },
+                    ),
+                    NavEntry(
+                      title: 'Withdrawal bundles',
+                      icon: SailSVGAsset.iconWithdrawalBundleTab,
+                      selected: tabsRouter.activeIndex == 2,
+                      onPressed: () {
+                        tabsRouter.setActiveIndex(2);
+                      },
+                    ),
+                    NavEntry(
+                      title: 'Blind-merged-mining',
+                      icon: SailSVGAsset.iconBMMTab,
+                      selected: tabsRouter.activeIndex == 3,
+                      onPressed: () {
+                        tabsRouter.setActiveIndex(3);
+                      },
+                    ),
+                    NavEntry(
+                      title: 'Settings',
+                      icon: SailSVGAsset.iconBMMTab,
+                      selected: tabsRouter.activeIndex == 4,
+                      onPressed: () {
+                        tabsRouter.setActiveIndex(4);
+                      },
+                    ),
+                    Expanded(child: Container()),
+                    NodeConnectionStatus(
+                      onChipPressed: widget.navigateToSettings,
                     ),
                   ],
                 ),
-                const SailSpacing(SailStyleValues.padding50),
-                NavEntry(
-                  title: 'Dashboard',
-                  icon: SailSVGAsset.iconDashboardTab,
-                  selected: tabsRouter.activeIndex == 0,
-                  onPressed: () {
-                    tabsRouter.setActiveIndex(0);
-                  },
-                ),
-                NavEntry(
-                  title: 'Withdrawal bundles',
-                  icon: SailSVGAsset.iconWithdrawalBundleTab,
-                  selected: tabsRouter.activeIndex == 1,
-                  onPressed: () {
-                    tabsRouter.setActiveIndex(1);
-                  },
-                ),
-                NavEntry(
-                  title: 'Blind-merged-mining',
-                  icon: SailSVGAsset.iconBMMTab,
-                  selected: tabsRouter.activeIndex == 2,
-                  onPressed: () {
-                    tabsRouter.setActiveIndex(2);
-                  },
-                ),
-                NavEntry(
-                  title: 'Settings',
-                  icon: SailSVGAsset.iconBMMTab,
-                  selected: tabsRouter.activeIndex == 3,
-                  onPressed: () {
-                    tabsRouter.setActiveIndex(3);
-                  },
-                ),
-              ],
+              ),
             ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: theme.colors.divider,
+            ),
+            Expanded(child: widget.child),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class HomePageViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
+  MainchainRPC get _mainRPC => GetIt.I.get<MainchainRPC>();
+
+  bool get sidechainConnected => _sideRPC.connected;
+  bool get mainchainConnected => _mainRPC.connected;
+
+  double get balance => _balanceProvider.balance;
+  double get pendingBalance => _balanceProvider.pendingBalance;
+
+  HomePageViewModel() {
+    // by adding a listener, we subscribe to changes to the balance
+    // provider. We don't use the updates for anything other than
+    // showing the new value though, so we keep it simple, and just
+    // pass notifyListeners of this view model directly
+    _sideRPC.addListener(notifyListeners);
+    _mainRPC.addListener(notifyListeners);
+    _balanceProvider.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _sideRPC.removeListener(notifyListeners);
+    _mainRPC.removeListener(notifyListeners);
+    _balanceProvider.removeListener(notifyListeners);
+  }
+}
+
+class NodeConnectionStatus extends ViewModelWidget<HomePageViewModel> {
+  final VoidCallback onChipPressed;
+
+  const NodeConnectionStatus({super.key, required this.onChipPressed});
+
+  @override
+  Widget build(BuildContext context, HomePageViewModel viewModel) {
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      children: [
+        if (viewModel.sidechainConnected)
+          const ConnectionSuccessChip(chain: 'sidechain')
+        else
+          ConnectionErrorChip(
+            chain: 'sidechain',
+            onPressed: onChipPressed,
           ),
-        ),
-        VerticalDivider(
-          width: 1,
-          thickness: 1,
-          color: theme.colors.divider,
-        ),
-        Expanded(child: child),
+        if (viewModel.mainchainConnected)
+          const ConnectionSuccessChip(chain: 'mainchain')
+        else
+          ConnectionErrorChip(
+            chain: 'mainchain',
+            onPressed: onChipPressed,
+          ),
       ],
     );
   }
