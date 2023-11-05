@@ -1,5 +1,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:sidesail/storage/client_settings.dart';
+
+abstract class KeyValueStore {
+  Future<String?> getString(String key);
+  Future<void> setString(String key, String value);
+  Future<void> delete(String key);
+}
 
 class SecureStore implements KeyValueStore {
   final _storage = const FlutterSecureStorage();
