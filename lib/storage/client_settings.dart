@@ -1,8 +1,4 @@
-abstract class KeyValueStore {
-  Future<String?> getString(String key);
-  Future<void> setString(String key, String value);
-  Future<void> delete(String key);
-}
+import 'package:sidesail/storage/secure_store.dart';
 
 class ClientSettings {
   final KeyValueStore store;

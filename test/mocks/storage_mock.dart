@@ -1,4 +1,4 @@
-import 'package:sidesail/storage/client_settings.dart';
+import 'package:sidesail/storage/secure_store.dart';
 
 class MockStore implements KeyValueStore {
   final _db = {};
