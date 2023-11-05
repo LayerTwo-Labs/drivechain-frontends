@@ -6,11 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sidesail/config/this_sidechain.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
-import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
@@ -24,7 +23,7 @@ class WithdrawalBundleTabPage extends StatelessWidget {
       viewModelBuilder: () => WithdrawalBundleTabPageViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
-          title: 'Withdrawal bundles',
+          title: '',
           body: SingleChildScrollView(
             child: Column(
               children: [
@@ -102,7 +101,7 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
     try {
       currentBundle = await _sidechain.currentWithdrawalBundle();
       nextBundle = await _sidechain.nextWithdrawalBundle();
-      votes = await _mainchain.getWithdrawalBundleWorkScore(ThisSidechain.slot, currentBundle!.hash);
+      votes = await _mainchain.getWithdrawalBundleWorkScore(TestSidechain.slot, currentBundle!.hash);
     } on RPCException catch (err) {
       if (err.errorCode != RPCError.errNoWithdrawalBundle) {
         rethrow;
@@ -151,7 +150,7 @@ class _WithdrawalViewState extends State<WithdrawalView> {
         spacing: SailStyleValues.padding08,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SingleValueView(
+          SingleValueContainer(
             width: 70,
             icon: Tooltip(
               message: 'Unconfirmed',

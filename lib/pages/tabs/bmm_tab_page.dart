@@ -357,7 +357,7 @@ class _BMMAttemptViewState extends State<BMMAttemptView> {
                 expanded = !expanded;
               });
             },
-            child: SingleValueView(
+            child: SingleValueContainer(
               width: expanded ? 180 : 70,
               icon: Tooltip(
                 message: status,
