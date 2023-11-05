@@ -2,8 +2,13 @@ version: "3.9"
 services:
   mainchain:
     image: barebitcoin/mainchain:latest
-    pull_policy: always
     volumes: [$HOME/.drivechain:/drivechain]
+    healthcheck:
+      # This doesn't verify that' we're able to query the JSON-RPC interface,
+      # but merely that the container is listening on the RPC port.
+      test: ["CMD", "curl", "http://localhost:18443"]
+      interval: 1s
+      start_interval: 20s
     ports: ["18443:18443"]
     command:
       - drivechaind
@@ -17,7 +22,15 @@ services:
 
   testchain:
     image: barebitcoin/testchain:latest
-    pull_policy: always
+    healthcheck:
+      # This doesn't verify that' we're able to query the JSON-RPC interface,
+      # but merely that the container is listening on the RPC port.
+      test: ["CMD", "curl", "http://localhost:19000"]
+      interval: 1s
+      start_interval: 20s
+    depends_on:
+      mainchain:
+        condition: service_healthy
     volumes: [$HOME/.testchain:/testchain]
     ports: ["19000:19000"]
 
@@ -31,3 +44,20 @@ services:
       - -txindex
       - -regtest
       - -datadir=/testchain
+
+  ethside:
+    image: barebitcoin/ethside # TODO: change this once the image is pushed somewhere
+    depends_on:
+      mainchain:
+        condition: service_healthy
+    entrypoint: geth
+    ports:
+      - 8545:8545 # HTTP RPC
+      - 8551:8551 # Authenticated RPC
+    command:
+      - --http # enable HTTP RPC
+      - --http.addr=0.0.0.0 # TODO: add auth config? --authrpc.jwtsecret, --authrpc.addr=0.0.0.0, --authrpc.vhosts=*
+      - --main.host=mainchain
+      - --main.password=password
+      - --main.user=user
+      - --main.port=18443
