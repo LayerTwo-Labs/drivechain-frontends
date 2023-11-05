@@ -8,6 +8,7 @@ abstract class SailStyleValues {
   static const double padding05 = 5;
   static const double padding08 = 8;
   static const double padding10 = 10;
+  static const double padding12 = 12;
   static const double padding15 = 15;
   static const double padding20 = 20;
   static const double padding25 = 25;
