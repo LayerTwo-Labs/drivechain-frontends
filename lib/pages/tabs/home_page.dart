@@ -69,65 +69,62 @@ class _SideNavState extends State<SideNav> {
       builder: ((context, viewModel, child) {
         return Row(
           children: [
-            SizedBox(
-              width: 221,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: SailStyleValues.padding15,
-                  vertical: SailStyleValues.padding20,
-                ),
-                child: SailColumn(
-                  spacing: 0,
-                  children: [
-                    ChainOverviewCard(
-                      chain: TestSidechain(),
-                      confirmedBalance: viewModel.balance,
-                      unconfirmedBalance: viewModel.pendingBalance,
-                      highlighted: tabsRouter.activeIndex == 0,
-                      currentChain: true,
-                      onPressed: () {
-                        tabsRouter.setActiveIndex(0);
-                      },
-                    ),
-                    const SailSpacing(SailStyleValues.padding30),
-                    NavEntry(
-                      title: 'Dashboard',
-                      icon: SailSVGAsset.iconDashboardTab,
-                      selected: tabsRouter.activeIndex == 1,
-                      onPressed: () {
-                        tabsRouter.setActiveIndex(1);
-                      },
-                    ),
-                    NavEntry(
-                      title: 'Withdrawal bundles',
-                      icon: SailSVGAsset.iconWithdrawalBundleTab,
-                      selected: tabsRouter.activeIndex == 2,
-                      onPressed: () {
-                        tabsRouter.setActiveIndex(2);
-                      },
-                    ),
-                    NavEntry(
-                      title: 'Blind-merged-mining',
-                      icon: SailSVGAsset.iconBMMTab,
-                      selected: tabsRouter.activeIndex == 3,
-                      onPressed: () {
-                        tabsRouter.setActiveIndex(3);
-                      },
-                    ),
-                    NavEntry(
-                      title: 'Settings',
-                      icon: SailSVGAsset.iconBMMTab,
-                      selected: tabsRouter.activeIndex == 4,
-                      onPressed: () {
-                        tabsRouter.setActiveIndex(4);
-                      },
-                    ),
-                    Expanded(child: Container()),
-                    NodeConnectionStatus(
-                      onChipPressed: widget.navigateToSettings,
-                    ),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: SailStyleValues.padding15,
+                vertical: SailStyleValues.padding20,
+              ),
+              child: SailColumn(
+                spacing: 0,
+                children: [
+                  ChainOverviewCard(
+                    chain: TestSidechain(),
+                    confirmedBalance: viewModel.balance,
+                    unconfirmedBalance: viewModel.pendingBalance,
+                    highlighted: tabsRouter.activeIndex == 0,
+                    currentChain: true,
+                    onPressed: () {
+                      tabsRouter.setActiveIndex(0);
+                    },
+                  ),
+                  const SailSpacing(SailStyleValues.padding30),
+                  NavEntry(
+                    title: 'Dashboard',
+                    icon: SailSVGAsset.iconDashboardTab,
+                    selected: tabsRouter.activeIndex == 1,
+                    onPressed: () {
+                      tabsRouter.setActiveIndex(1);
+                    },
+                  ),
+                  NavEntry(
+                    title: 'Withdrawal bundles',
+                    icon: SailSVGAsset.iconWithdrawalBundleTab,
+                    selected: tabsRouter.activeIndex == 2,
+                    onPressed: () {
+                      tabsRouter.setActiveIndex(2);
+                    },
+                  ),
+                  NavEntry(
+                    title: 'Blind-merged-mining',
+                    icon: SailSVGAsset.iconBMMTab,
+                    selected: tabsRouter.activeIndex == 3,
+                    onPressed: () {
+                      tabsRouter.setActiveIndex(3);
+                    },
+                  ),
+                  NavEntry(
+                    title: 'Settings',
+                    icon: SailSVGAsset.iconBMMTab,
+                    selected: tabsRouter.activeIndex == 4,
+                    onPressed: () {
+                      tabsRouter.setActiveIndex(4);
+                    },
+                  ),
+                  Expanded(child: Container()),
+                  NodeConnectionStatus(
+                    onChipPressed: widget.navigateToSettings,
+                  ),
+                ],
               ),
             ),
             VerticalDivider(
@@ -222,26 +219,29 @@ class NavEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return SailScaleButton(
-      onPressed: onPressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
-        decoration: BoxDecoration(
-          color: selected ? theme.colors.actionHeader : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: SailStyleValues.padding08,
-            vertical: SailStyleValues.padding05,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 180),
+      child: SailScaleButton(
+        onPressed: onPressed,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
+          decoration: BoxDecoration(
+            color: selected ? theme.colors.actionHeader : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
           ),
-          child: SailRow(
-            spacing: SailStyleValues.padding10,
-            children: [
-              SailSVG.icon(icon, width: 16),
-              SailText.primary12(title, bold: true),
-              Expanded(child: Container()),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: SailStyleValues.padding08,
+              vertical: SailStyleValues.padding05,
+            ),
+            child: SailRow(
+              spacing: SailStyleValues.padding10,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SailSVG.icon(icon, width: 16),
+                SailText.primary12(title, bold: true),
+              ],
+            ),
           ),
         ),
       ),
