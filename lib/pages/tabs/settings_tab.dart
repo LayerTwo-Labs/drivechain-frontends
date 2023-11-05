@@ -280,11 +280,7 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
     String username,
     String password,
   ) {
-    fileConfigPath = path;
-    fileHost = host;
-    filePort = port;
-    fileUsername = username;
-    filePassword = password;
+    _setFileValues(path, host, port, username, password);
 
     configPathController.text = path;
     hostController.text = host;
@@ -297,6 +293,14 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
     portController.addListener(notifyListeners);
     usernameController.addListener(notifyListeners);
     passwordController.addListener(notifyListeners);
+  }
+
+  void _setFileValues(String path, String host, int port, String username, String password) {
+    fileConfigPath = path;
+    fileHost = host;
+    filePort = port;
+    fileUsername = username;
+    filePassword = password;
   }
 
   void resetToFileValues() {
@@ -322,6 +326,8 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
       portController.text = config.port.toString();
       usernameController.text = config.username;
       passwordController.text = config.password;
+
+      _setFileValues(config.path, config.host, config.port, config.username, config.password);
     } catch (error) {
       readError = error.toString();
     }
