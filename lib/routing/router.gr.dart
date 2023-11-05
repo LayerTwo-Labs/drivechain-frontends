@@ -49,6 +49,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const SettingsTabPage(),
       );
     },
+    SidechainExplorerTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const SidechainExplorerTabPage(),
+      );
+    },
     WithdrawalBundleTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -147,6 +153,20 @@ class SettingsTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'SettingsTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [SidechainExplorerTabPage]
+class SidechainExplorerTabRoute extends PageRouteInfo<void> {
+  const SidechainExplorerTabRoute({List<PageRouteInfo>? children})
+      : super(
+          SidechainExplorerTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SidechainExplorerTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
