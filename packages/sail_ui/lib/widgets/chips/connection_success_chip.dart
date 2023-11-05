@@ -14,8 +14,8 @@ class ConnectionSuccessChip extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
+        border: Border.all(color: theme.colors.formFieldBorder, width: 0.5),
         borderRadius: const BorderRadius.all(Radius.circular(4)),
-        color: theme.colors.formFieldBorder,
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(
