@@ -29,6 +29,9 @@ RUN make
 
 FROM debian:bullseye-slim 
 
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends curl
+
 COPY --from=worker /testchain/src/testchaind /testchain/src/testchain-cli /usr/bin
 
 # Verify we installed correctly

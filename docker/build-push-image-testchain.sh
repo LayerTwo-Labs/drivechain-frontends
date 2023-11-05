@@ -10,8 +10,9 @@ echo Building Docker image based off SHA $TESTCHAIN_VERSION
 
 # TODO: update DEPENDS for non-ARM machines
 docker build \
+    --platform linux/amd64 \
     --build-arg TESTCHAIN_VERSION=$TESTCHAIN_VERSION \
-    --build-arg DEPENDS=aarch64-unknown-linux-gnu \
+    --build-arg DEPENDS=x86_64-pc-linux-gnu \
     -t barebitcoin/testchain \
     --file Dockerfile.testchain . 
 
