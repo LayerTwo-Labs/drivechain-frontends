@@ -80,7 +80,7 @@ class PegOutAction extends StatelessWidget {
             'Execute peg-out',
             disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
             loading: viewModel.isBusy,
-            size: ButtonSize.small,
+            size: ButtonSize.regular,
             onPressed: () async {
               viewModel.executePegOut(context);
             },
@@ -315,7 +315,7 @@ class PegInAction extends StatelessWidget {
           endActionButton: SailButton.primary(
             'Generate new address',
             loading: viewModel.isBusy,
-            size: ButtonSize.small,
+            size: ButtonSize.regular,
             onPressed: () async {
               await viewModel.generatePegInAddress();
             },
@@ -363,7 +363,7 @@ class SendOnSidechainAction extends StatelessWidget {
             'Execute send',
             disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
             loading: viewModel.isBusy,
-            size: ButtonSize.small,
+            size: ButtonSize.regular,
             onPressed: () async {
               viewModel.executeSendOnSidechain(context);
             },
@@ -577,7 +577,7 @@ class ReceiveOnSidechainAction extends StatelessWidget {
           endActionButton: SailButton.primary(
             'Generate new address',
             loading: viewModel.isBusy,
-            size: ButtonSize.small,
+            size: ButtonSize.regular,
             onPressed: () async {
               await viewModel.generateSidechainAddress();
             },

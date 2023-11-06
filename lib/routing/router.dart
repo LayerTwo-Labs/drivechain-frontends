@@ -5,6 +5,7 @@ import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/settings_tab.dart';
 import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
+import 'package:sidesail/pages/tabs/transfer_mainchain_tab_route.dart';
 import 'package:sidesail/pages/tabs/withdrawal_bundle_tab_page.dart';
 import 'package:sidesail/pages/test_page.dart';
 
@@ -38,6 +39,9 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: SidechainExplorerTabRoute.page,
+            ),
+            AutoRoute(
+              page: TransferMainchainTabRoute.page,
             ),
             AutoRoute(
               page: WithdrawalBundleTabRoute.page,

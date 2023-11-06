@@ -196,6 +196,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
         onPressed: widget.onPressed,
         disabled: disabled,
         child: MaterialButton(
+          disabledColor: widget.backgroundColor,
           color: widget.backgroundColor,
           enableFeedback: !widget.disabled,
           textColor: theme.colors.text,

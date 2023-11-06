@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -36,23 +37,7 @@ class DashboardTabPage extends StatelessWidget {
                     title: 'Actions',
                     children: [
                       ActionTile(
-                        title: 'Peg-out to mainchain',
-                        category: Category.mainchain,
-                        icon: Icons.remove,
-                        onTap: () {
-                          viewModel.pegOut(context);
-                        },
-                      ),
-                      ActionTile(
-                        title: 'Peg-in from mainchain',
-                        category: Category.mainchain,
-                        icon: Icons.add,
-                        onTap: () {
-                          viewModel.pegIn(context);
-                        },
-                      ),
-                      ActionTile(
-                        title: 'Send on sidechain',
+                        title: 'Send ${viewModel.chain.ticker}',
                         category: Category.sidechain,
                         icon: Icons.remove,
                         onTap: () {
@@ -60,7 +45,7 @@ class DashboardTabPage extends StatelessWidget {
                         },
                       ),
                       ActionTile(
-                        title: 'Receive on sidechain',
+                        title: 'Receive ${viewModel.chain.ticker}',
                         category: Category.sidechain,
                         icon: Icons.add,
                         onTap: () {
@@ -204,38 +189,14 @@ class ExpandedTXView extends StatelessWidget {
 class DashboardTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
 
   List<Transaction> get transactions => _transactionsProvider.transactions;
 
+  Sidechain get chain => _sideRPC.chain;
+
   DashboardTabViewModel() {
-    // by adding a listener, we subscribe to changes to the balance
-    // provider. We don't use the updates for anything other than
-    // showing the new value though, so we keep it simple, and just
-    // pass notifyListeners of this view model directly
     _transactionsProvider.addListener(notifyListeners);
-  }
-
-  void pegOut(BuildContext context) async {
-    final theme = SailTheme.of(context);
-
-    await showDialog(
-      context: context,
-      barrierColor: theme.colors.background.withOpacity(0.4),
-      builder: (BuildContext context) {
-        return const PegOutAction();
-      },
-    );
-  }
-
-  void pegIn(BuildContext context) async {
-    final theme = SailTheme.of(context);
-    await showDialog(
-      context: context,
-      barrierColor: theme.colors.background.withOpacity(0.4),
-      builder: (BuildContext context) {
-        return const PegInAction();
-      },
-    );
   }
 
   void send(BuildContext context) async {
