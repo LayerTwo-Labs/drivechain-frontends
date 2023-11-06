@@ -91,7 +91,7 @@ class SailButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = SailTheme.of(context).colors;
-    final backgroundColor = isSecondary ? colors.chip : colors.orange;
+    final backgroundColor = isSecondary ? colors.chip : colors.primary;
 
     switch (size) {
       case ButtonSize.small:

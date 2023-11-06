@@ -26,7 +26,7 @@ class LargeEmbeddedInput extends StatelessWidget {
 
     return TextField(
       controller: controller,
-      cursorColor: theme.colors.orange,
+      cursorColor: theme.colors.primary,
       style: TextStyle(
         color: SailTheme.of(context).colors.text,
         fontSize: 15,

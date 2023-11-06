@@ -31,7 +31,7 @@ class SailToggle extends StatelessWidget {
             height: 20,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(1000),
-              color: value ? theme.colors.orange : theme.colors.textSecondary,
+              color: value ? theme.colors.primary : theme.colors.textSecondary,
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
