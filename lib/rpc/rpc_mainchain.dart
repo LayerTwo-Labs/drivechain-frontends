@@ -5,11 +5,13 @@ import 'package:dio/dio.dart';
 import 'package:sidesail/pages/tabs/settings_tab.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 /// RPC connection to the mainchain node.
 abstract class MainchainRPC extends RPCConnection {
   Future<double> estimateFee();
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash);
+  Future<List<Transaction>> listTransactions();
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -74,6 +76,19 @@ class MainchainRPCLive extends MainchainRPC {
     // who knows!
     const kbyteInTx = 5;
     return btcPerKb * kbyteInTx;
+  }
+
+  @override
+  Future<List<Transaction>> listTransactions() async {
+    // first list
+    final transactionsJSON = await _client?.call('listtransactions', [
+      '',
+      100, // how many txs to list. We have not implemented pagination, so we list all
+    ]) as List<dynamic>;
+
+    // then convert to something other than json
+    List<Transaction> transactions = transactionsJSON.map((jsonItem) => Transaction.fromMap(jsonItem)).toList();
+    return transactions;
   }
 
   @override

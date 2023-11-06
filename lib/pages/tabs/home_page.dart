@@ -26,6 +26,7 @@ class HomePage extends StatelessWidget {
       routes: const [
         SidechainExplorerTabRoute(),
         DashboardTabRoute(),
+        TransferMainchainTabRoute(),
         WithdrawalBundleTabRoute(),
         BlindMergedMiningTabRoute(),
         SettingsTabRoute(),
@@ -36,7 +37,7 @@ class HomePage extends StatelessWidget {
           backgroundColor: theme.colors.background,
           body: SideNav(
             child: children[tabsRouter.activeIndex],
-            navigateToSettings: () => tabsRouter.setActiveIndex(4),
+            navigateToSettings: () => tabsRouter.setActiveIndex(5),
           ),
         );
       },
@@ -97,27 +98,38 @@ class _SideNavState extends State<SideNav> {
                     },
                   ),
                   NavEntry(
-                    title: 'Withdrawal bundles',
-                    icon: SailSVGAsset.iconWithdrawalBundleTab,
+                    title: 'Mainchain Dashboard',
+                    icon: SailSVGAsset.iconDashboardTab,
                     selected: tabsRouter.activeIndex == 2,
                     onPressed: () {
                       tabsRouter.setActiveIndex(2);
                     },
                   ),
-                  NavEntry(
-                    title: 'Blind-merged-mining',
-                    icon: SailSVGAsset.iconBMMTab,
-                    selected: tabsRouter.activeIndex == 3,
-                    onPressed: () {
-                      tabsRouter.setActiveIndex(3);
-                    },
+                  SubNavEntryContainer(
+                    open: tabsRouter.activeIndex == 2 || tabsRouter.activeIndex == 3 || tabsRouter.activeIndex == 4,
+                    subs: [
+                      SubNavEntry(
+                        title: 'Withdrawal explorer',
+                        selected: tabsRouter.activeIndex == 3,
+                        onPressed: () {
+                          tabsRouter.setActiveIndex(3);
+                        },
+                      ),
+                      SubNavEntry(
+                        title: 'Blind Merged Mining',
+                        selected: tabsRouter.activeIndex == 4,
+                        onPressed: () {
+                          tabsRouter.setActiveIndex(4);
+                        },
+                      ),
+                    ],
                   ),
                   NavEntry(
                     title: 'Settings',
                     icon: SailSVGAsset.iconBMMTab,
-                    selected: tabsRouter.activeIndex == 4,
+                    selected: tabsRouter.activeIndex == 5,
                     onPressed: () {
-                      tabsRouter.setActiveIndex(4);
+                      tabsRouter.setActiveIndex(5);
                     },
                   ),
                   Expanded(child: Container()),
@@ -155,10 +167,6 @@ class HomePageViewModel extends BaseViewModel {
   Sidechain get chain => _sideRPC.chain;
 
   HomePageViewModel() {
-    // by adding a listener, we subscribe to changes to the balance
-    // provider. We don't use the updates for anything other than
-    // showing the new value though, so we keep it simple, and just
-    // pass notifyListeners of this view model directly
     _sideRPC.addListener(notifyListeners);
     _mainRPC.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
@@ -245,6 +253,101 @@ class NavEntry extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class SubNavEntry extends StatelessWidget {
+  final String title;
+
+  final bool selected;
+  final VoidCallback onPressed;
+
+  const SubNavEntry({
+    super.key,
+    required this.title,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 153, maxWidth: 153),
+      child: SailScaleButton(
+        onPressed: onPressed,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: selected ? theme.colors.actionHeader : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: SailColumn(
+            spacing: 0,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: SailStyleValues.padding08,
+                  vertical: SailStyleValues.padding05,
+                ),
+                child: SailText.primary12(title, bold: true),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SubNavEntryContainer extends StatelessWidget {
+  final bool open;
+  final List<SubNavEntry> subs;
+
+  const SubNavEntryContainer({
+    super.key,
+    required this.open,
+    required this.subs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    if (!open) {
+      return Container();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: SailStyleValues.padding30,
+        top: 1,
+        bottom: SailStyleValues.padding05,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: theme.colors.divider,
+              width: 1.0,
+            ),
+          ),
+        ),
+        child: SailRow(
+          spacing: 0,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SailSpacing(SailStyleValues.padding08),
+            Column(
+              children: [
+                for (final sub in subs) sub,
+              ],
+            ),
+          ],
         ),
       ),
     );

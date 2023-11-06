@@ -1,4 +1,5 @@
 import 'package:sidesail/rpc/rpc_mainchain.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class MockMainchainRPC extends MainchainRPC {
   @override
@@ -24,5 +25,10 @@ class MockMainchainRPC extends MainchainRPC {
   @override
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash) async {
     return 1;
+  }
+
+  @override
+  Future<List<Transaction>> listTransactions() async {
+    return List.empty();
   }
 }
