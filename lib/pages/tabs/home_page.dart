@@ -78,7 +78,7 @@ class _SideNavState extends State<SideNav> {
                 spacing: 0,
                 children: [
                   ChainOverviewCard(
-                    chain: TestSidechain(),
+                    chain: viewModel.chain,
                     confirmedBalance: viewModel.balance,
                     unconfirmedBalance: viewModel.pendingBalance,
                     highlighted: tabsRouter.activeIndex == 0,
@@ -89,7 +89,7 @@ class _SideNavState extends State<SideNav> {
                   ),
                   const SailSpacing(SailStyleValues.padding30),
                   NavEntry(
-                    title: 'Dashboard',
+                    title: '${viewModel.chain.name} Dashboard',
                     icon: SailSVGAsset.iconDashboardTab,
                     selected: tabsRouter.activeIndex == 1,
                     onPressed: () {
@@ -151,6 +151,8 @@ class HomePageViewModel extends BaseViewModel {
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
+
+  Sidechain get chain => _sideRPC.chain;
 
   HomePageViewModel() {
     // by adding a listener, we subscribe to changes to the balance
