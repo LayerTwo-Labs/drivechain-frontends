@@ -14,7 +14,7 @@ class SailColor {
   final Color textSecondary;
   final Color textTertiary;
   final Color textHint;
-  final Color orange;
+  final Color primary;
   final Color icon;
   final Color iconHighlighted;
   final Color error;
@@ -35,7 +35,7 @@ class SailColor {
     required this.textSecondary,
     required this.textTertiary,
     required this.textHint,
-    required this.orange,
+    required this.primary,
     required this.iconHighlighted,
     required this.icon,
     required this.error,
@@ -44,7 +44,7 @@ class SailColor {
     required this.chip,
   });
 
-  factory SailColor.lightTheme() {
+  factory SailColor.lightTheme(Color primary) {
     return SailColor(
       background: SailColorScheme.white,
       backgroundSecondary: SailColorScheme.whiteDark,
@@ -57,16 +57,16 @@ class SailColor {
       textSecondary: SailColorScheme.greyDark,
       textTertiary: SailColorScheme.greyMiddle,
       textHint: SailColorScheme.greyMiddle,
-      iconHighlighted: SailColorScheme.orange,
+      iconHighlighted: primary,
       icon: SailColorScheme.greyMiddle,
-      orange: SailColorScheme.orange,
+      primary: primary,
       error: SailColorScheme.red,
       success: SailColorScheme.green,
       actionHeader: SailColorScheme.whiteDark,
       chip: SailColorScheme.greyMiddle,
     );
   }
-  factory SailColor.darkTheme() {
+  factory SailColor.darkTheme(Color primary) {
     return SailColor(
       background: SailColorScheme.darkBackground,
       backgroundSecondary: SailColorScheme.blackLight,
@@ -80,8 +80,8 @@ class SailColor {
       textSecondary: SailColorScheme.darkTextSecondary,
       textTertiary: SailColorScheme.darkTextTertiary,
       textHint: SailColorScheme.darkTextHint,
-      orange: SailColorScheme.orange,
-      iconHighlighted: SailColorScheme.orange,
+      primary: primary,
+      iconHighlighted: primary,
       icon: SailColorScheme.greyMiddle,
       error: SailColorScheme.red,
       success: SailColorScheme.green,

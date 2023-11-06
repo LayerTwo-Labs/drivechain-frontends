@@ -43,7 +43,7 @@ class SailSVG {
 
         return SailSVG.fromAsset(
           asset,
-          color: coloredAssets.contains(asset) ? null : (isHighlighted ? colors.orange : colors.icon),
+          color: coloredAssets.contains(asset) ? null : (isHighlighted ? colors.primary : colors.icon),
           width: width ?? SailStyleValues.iconSizePrimary,
         );
       },

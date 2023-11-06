@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme_data.dart';
 
 enum BThemeType {
@@ -9,7 +10,7 @@ class SailTheme extends StatelessWidget {
   final Widget child;
   final SailThemeData data;
 
-  static final kFallbackTheme = SailThemeData.lightTheme();
+  static final kFallbackTheme = SailThemeData.lightTheme(SailColorScheme.orange);
 
   const SailTheme({
     super.key,

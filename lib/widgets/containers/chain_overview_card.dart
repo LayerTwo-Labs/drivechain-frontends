@@ -46,7 +46,7 @@ class ChainOverviewCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.orange,
+                      color: chain.color,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: SailText.primary12(chain.ticker),

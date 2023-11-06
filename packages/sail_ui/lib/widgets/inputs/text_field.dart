@@ -54,7 +54,7 @@ class SailTextField extends StatelessWidget {
             child: SailText.secondary13(label!),
           ),
         TextField(
-          cursorColor: SailColorScheme.orange,
+          cursorColor: theme.colors.primary,
           controller: controller,
           style: TextStyle(
             color: SailTheme.of(context).colors.text,

@@ -11,6 +11,7 @@ abstract class SailColorScheme {
   static const green = Color(0xff2AB517);
   static const orangeLight = Color(0xffFEEDD8);
   static const orange = Color(0xffFF8000);
+  static const purple = Color(0xffBB87FC);
   static const white = Color(0xffFFFFFF);
   static const whiteDark = Color(0xffF5F5F5);
   static const greyDark = Color.fromRGBO(115, 115, 115, 1);
