@@ -51,6 +51,7 @@ class WithdrawalBundleTabPage extends StatelessWidget {
                   title: 'Current withdrawal bundle',
                   endWidget: SailText.primary12(
                     [
+                      'ID: ${viewModel.currentBundle?.hash}',
                       'Created at block height ${viewModel.currentBundle?.blockHeight}',
                       '${viewModel.votes}/${viewModel.votesRequired} votes',
                       '${viewModel.currentBundle?.bundleSize}/${viewModel.currentBundle?.maxBundleSize} vbytes',
@@ -157,7 +158,7 @@ class _WithdrawalViewState extends State<WithdrawalView> {
               child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
             ),
             copyable: false,
-            label: 'TODO',
+            label: widget.withdrawal.status,
             value: extractTitle(widget.withdrawal),
           ),
         ],

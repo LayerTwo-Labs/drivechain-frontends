@@ -78,7 +78,14 @@ class MainchainRPCLive extends MainchainRPC {
 
   @override
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash) async {
-    return await _client?.call('getworkscore', [sidechain, hash]);
+    try {
+      final workscore = await _client?.call('getworkscore', [sidechain, hash]);
+      return workscore;
+    } on RPCException {
+      // This exception can be thrown if the bundle hasn't been added to the
+      // Sidechain DB yet. Avoid erroring here, and instead return 0.
+      return 0;
+    }
   }
 
   @override

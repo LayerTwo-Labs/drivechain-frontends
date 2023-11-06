@@ -232,8 +232,26 @@ class SidechainRPCLive extends SidechainRPC {
     final decoded = await _client?.call('decoderawtransaction', [rawWithdrawalBundle]);
     final tx = RawTransaction.fromJson(decoded);
 
+    final info = await _client?.call(
+      'getwithdrawalbundleinfo',
+      [tx.hash],
+    );
+
+    final withdrawalIDs = info['withdrawals'] as List<dynamic>;
+
+    final withdrawals = await Future.wait(
+      withdrawalIDs.map(
+        (id) => _client!.call(
+          'getwithdrawal',
+          [id],
+        ).then((json) => Withdrawal.fromJson(json)),
+      ),
+    );
+
     return WithdrawalBundle.fromRawTransaction(
       tx,
+      BundleInfo.fromJson(info),
+      withdrawals,
     );
   }
 
@@ -249,6 +267,9 @@ class SidechainRPCLive extends SidechainRPC {
               mainchainFeesSatoshi: withdrawal['amountmainchainfee'],
               amountSatoshi: withdrawal['amount'],
               address: withdrawal['destination'],
+              hashBlindTx: '', // TODO
+              refundDestination: '', // TODO
+              status: '', // TODO
             ),
           )
           .toList(),
@@ -257,6 +278,7 @@ class SidechainRPCLive extends SidechainRPC {
 }
 
 class RPCError {
+  static const errMisc = -3;
   static const errNoWithdrawalBundle = -100;
   static const errWithdrawalNotFound = -101;
 }
@@ -414,4 +436,36 @@ String? ifNonEmpty(String input) {
   }
 
   return input;
+}
+
+class BundleInfo {
+  final int amountSatoshi;
+  final int feesSatoshi;
+  final int weight;
+  final int height;
+
+  BundleInfo({
+    required this.amountSatoshi,
+    required this.feesSatoshi,
+    required this.weight,
+    required this.height,
+  });
+
+  factory BundleInfo.fromJson(Map<String, dynamic> json) {
+    return BundleInfo(
+      amountSatoshi: json['amount'],
+      feesSatoshi: json['fees'],
+      weight: json['weight'],
+      height: json['height'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'amount': amountSatoshi,
+      'fees': feesSatoshi,
+      'weight': weight,
+      'height': height,
+    };
+  }
 }
