@@ -1,27 +1,49 @@
+import 'package:flutter/material.dart';
+import 'package:sail_ui/sail_ui.dart';
+
 abstract class Sidechain {
   String name = '';
-  String ticker = '';
-  static const int slot = 0;
+  int slot = 0;
+  Color color = Colors.transparent;
+  SidechainType get type;
+  String get ticker {
+    return 'SC$slot';
+  }
 }
 
-// TODO: get this from config, RPC, something
-class TestSidechain implements Sidechain {
-  static const int slot = 1;
+abstract class SideWithTicker implements Sidechain {
+  @override
+  String get ticker {
+    return 'SC$slot';
+  }
+}
 
+class TestSidechain extends SideWithTicker {
   @override
   String name = 'Testchain';
 
   @override
-  String ticker = 'SC1';
+  int slot = 1;
+
+  @override
+  Color color = SailColorScheme.orange;
+
+  @override
+  SidechainType get type => SidechainType.testChain;
 }
 
-// TODO: get this from config, RPC, something
-class EthereumSidechain implements Sidechain {
-  static const int slot = 6;
-
+class EthereumSidechain extends SideWithTicker {
   @override
   String name = 'Ethereum';
 
   @override
-  String ticker = 'SC6';
+  int slot = 6;
+
+  @override
+  Color color = SailColorScheme.purple;
+
+  @override
+  SidechainType get type => SidechainType.ethereum;
 }
+
+enum SidechainType { testChain, ethereum }

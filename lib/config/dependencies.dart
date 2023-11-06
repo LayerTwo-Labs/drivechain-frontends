@@ -1,4 +1,6 @@
 import 'package:get_it/get_it.dart';
+import 'package:sidesail/app.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -9,15 +11,10 @@ import 'package:sidesail/storage/secure_store.dart';
 
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
-Future<void> initGetitDependencies() async {
-  final sideFuture = SidechainRPCLive.create();
+Future<void> initGetitDependencies(Sidechain chain) async {
   final mainFuture = MainchainRPCLive.create();
-  final sideRPC = await sideFuture;
+  await setSidechainRPC(chain);
   final mainRPC = await mainFuture;
-
-  GetIt.I.registerLazySingleton<SidechainRPC>(
-    () => sideRPC,
-  );
 
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainRPC,
@@ -39,4 +36,29 @@ Future<void> initGetitDependencies() async {
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
   );
+}
+
+// register all global dependencies, for use in views, or in view models
+// each dependency can only be registered once
+Future<void> setSidechainRPC(Sidechain chain) async {
+  SidechainRPCLive sidechainRPC;
+  switch (chain.type) {
+    case SidechainType.testChain:
+      sidechainRPC = await SidechainRPCLive.create();
+      break;
+
+    case SidechainType.ethereum:
+      // TODO: Replace with EthereumRPCLive
+      sidechainRPC = await SidechainRPCLive.create();
+      break;
+  }
+
+  if (GetIt.I.isRegistered<SidechainRPC>()) {
+    GetIt.I.unregister<SidechainRPC>();
+  }
+  GetIt.I.registerLazySingleton<SidechainRPC>(
+    () => sidechainRPC,
+  );
+
+  SailApp.sailAppKey.currentState?.rebuildUI();
 }
