@@ -3,12 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:sidesail/app.dart';
 import 'package:sidesail/config/dependencies.dart';
+import 'package:sidesail/config/runtime_args.dart';
+import 'package:sidesail/config/sidechains.dart';
 
 const appName = 'SideSail';
 
 Future<void> start() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initGetitDependencies();
+  Sidechain chain;
+  if (RuntimeArgs.chain == 'ethereum') {
+    chain = EthereumSidechain();
+  } else {
+    chain = TestSidechain();
+  }
+
+  await initGetitDependencies(chain);
 
   runApp(
     SailApp(

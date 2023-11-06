@@ -101,7 +101,7 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
     try {
       currentBundle = await _sidechain.currentWithdrawalBundle();
       nextBundle = await _sidechain.nextWithdrawalBundle();
-      votes = await _mainchain.getWithdrawalBundleWorkScore(TestSidechain.slot, currentBundle!.hash);
+      votes = await _mainchain.getWithdrawalBundleWorkScore(TestSidechain().slot, currentBundle!.hash);
     } on RPCException catch (err) {
       if (err.errorCode != RPCError.errNoWithdrawalBundle) {
         rethrow;
