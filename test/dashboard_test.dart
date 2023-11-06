@@ -39,9 +39,8 @@ void main() {
 
     // Verify that there's a submit button.
     expect(find.text('Actions'), findsOneWidget);
-    expect(find.text('Peg-out to mainchain'), findsOneWidget);
-    expect(find.text('Peg-in from mainchain'), findsOneWidget);
-    expect(find.text('Send on sidechain'), findsOneWidget);
+    expect(find.text('Send SC1'), findsOneWidget);
+    expect(find.text('Receive SC1'), findsOneWidget);
     expect(find.text('Transactions'), findsOneWidget);
 
     txProvider.stopPolling();

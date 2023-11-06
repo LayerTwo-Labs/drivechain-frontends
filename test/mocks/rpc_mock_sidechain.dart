@@ -1,7 +1,12 @@
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
 class MockSidechainRPC extends SidechainRPC {
+  MockSidechainRPC() {
+    chain = TestSidechain();
+  }
+
   @override
   Future<String> generatePegInAddress() async {
     return 'bc1...?';

@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
@@ -35,19 +36,19 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           confirmedBalance: viewModel.balance,
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
-                          currentChain: true,
+                          currentChain: viewModel.chain.type == SidechainType.testChain,
                           onPressed: () {
-                            // not implemented yet
+                            viewModel.setSidechainRPC(TestSidechain());
                           },
                         ),
                         ChainOverviewCard(
                           chain: EthereumSidechain(),
-                          confirmedBalance: 0,
-                          unconfirmedBalance: 0,
+                          confirmedBalance: viewModel.balance,
+                          unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
-                          currentChain: false,
+                          currentChain: viewModel.chain.type == SidechainType.ethereum,
                           onPressed: () {
-                            // not implemented yet
+                            viewModel.setSidechainRPC(EthereumSidechain());
                           },
                         ),
                       ],
@@ -65,9 +66,12 @@ class SidechainExplorerTabPage extends StatelessWidget {
 
 class SidechainExplorerTabViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
+
+  Sidechain get chain => _sideRPC.chain;
 
   SidechainExplorerTabViewModel() {
     // by adding a listener, we subscribe to changes to the balance
@@ -75,11 +79,17 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
     // showing the new value though, so we keep it simple, and just
     // pass notifyListeners of this view model directly
     _balanceProvider.addListener(notifyListeners);
+    _sideRPC.addListener(notifyListeners);
+  }
+
+  void setSidechainRPC(Sidechain chain) {
+    _sideRPC.setChain(chain);
   }
 
   @override
   void dispose() {
     super.dispose();
     _balanceProvider.removeListener(notifyListeners);
+    _sideRPC.removeListener(notifyListeners);
   }
 }
