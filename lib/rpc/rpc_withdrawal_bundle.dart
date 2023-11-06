@@ -1,4 +1,5 @@
 import 'package:sidesail/rpc/rpc_rawtx.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class WithdrawalBundle {
   WithdrawalBundle({
@@ -10,22 +11,14 @@ class WithdrawalBundle {
 
   factory WithdrawalBundle.fromRawTransaction(
     RawTransaction tx,
+    BundleInfo info,
+    List<Withdrawal> withdrawals,
   ) =>
       WithdrawalBundle(
         hash: tx.hash,
-        bundleSize: tx.size * 4,
-        blockHeight: 0, // TODO: how to get this
-        withdrawals: tx.vout
-            // filter out OP_RETURN
-            .where((out) => out.scriptPubKey.type != 'nulldata')
-            .map(
-              (out) => Withdrawal(
-                mainchainFeesSatoshi: 0, // TODO: how to get this
-                amountSatoshi: (out.value * 100 * 1000 * 1000).toInt(),
-                address: out.scriptPubKey.addresses.first,
-              ),
-            )
-            .toList(),
+        bundleSize: info.weight,
+        blockHeight: info.height,
+        withdrawals: withdrawals,
       );
 
   final String hash;
@@ -56,9 +49,35 @@ class Withdrawal {
     required this.mainchainFeesSatoshi,
     required this.amountSatoshi,
     required this.address,
+    required this.hashBlindTx,
+    required this.refundDestination,
+    required this.status,
   });
 
-  final int mainchainFeesSatoshi; // TODO: how to obtain?
+  final int mainchainFeesSatoshi;
   final int amountSatoshi;
   final String address;
+  final String hashBlindTx;
+  final String refundDestination;
+
+  // Directly from RPC interface.
+  final String status;
+
+  factory Withdrawal.fromJson(Map<String, dynamic> json) => Withdrawal(
+        address: json['destination'],
+        refundDestination: json['refunddestination'],
+        amountSatoshi: json['amount'],
+        mainchainFeesSatoshi: json['amountmainchainfee'],
+        status: json['status'],
+        hashBlindTx: json['hashblindtx'],
+      );
+
+  Map<String, dynamic> toJson() => {
+        'destination': address,
+        'refunddestination': refundDestination,
+        'amount': amountSatoshi,
+        'amountmainchainfee': mainchainFeesSatoshi,
+        'status': status,
+        'hashblindtx': hashBlindTx,
+      };
 }
