@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings_tab.dart';
 import 'package:sidesail/rpc/rpc.dart';
@@ -38,6 +39,12 @@ abstract class SidechainRPC extends RPCConnection {
   Future<FutureWithdrawalBundle> nextWithdrawalBundle();
 
   Future<dynamic> callRAW(String method, [dynamic params]);
+
+  late Sidechain chain;
+  void setChain(Sidechain newChain) {
+    chain = newChain;
+    notifyListeners();
+  }
 }
 
 class SidechainRPCLive extends SidechainRPC {
@@ -49,7 +56,9 @@ class SidechainRPCLive extends SidechainRPC {
 
   // hacky way to create an async class
   // https://stackoverflow.com/a/59304510
-  SidechainRPCLive._create();
+  SidechainRPCLive._create() {
+    chain = TestSidechain();
+  }
 
   static Future<SidechainRPCLive> create() async {
     final rpc = SidechainRPCLive._create();
