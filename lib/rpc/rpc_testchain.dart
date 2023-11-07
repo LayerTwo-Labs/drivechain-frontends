@@ -4,12 +4,12 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
-import 'package:sidesail/pages/tabs/settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
+import 'package:sidesail/rpc/models/bundle_info.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/models/raw_transaction.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
-import 'package:sidesail/rpc/rpc_rawtx.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
@@ -267,36 +267,4 @@ class RPCError {
   static const errMisc = -3;
   static const errNoWithdrawalBundle = -100;
   static const errWithdrawalNotFound = -101;
-}
-
-class BundleInfo {
-  final int amountSatoshi;
-  final int feesSatoshi;
-  final int weight;
-  final int height;
-
-  BundleInfo({
-    required this.amountSatoshi,
-    required this.feesSatoshi,
-    required this.weight,
-    required this.height,
-  });
-
-  factory BundleInfo.fromJson(Map<String, dynamic> json) {
-    return BundleInfo(
-      amountSatoshi: json['amount'],
-      feesSatoshi: json['fees'],
-      weight: json['weight'],
-      height: json['height'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'amount': amountSatoshi,
-      'fees': feesSatoshi,
-      'weight': weight,
-      'height': height,
-    };
-  }
 }

@@ -10,6 +10,7 @@ import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
+import 'package:sidesail/widgets/containers/tabs/transfer_mainchain_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
