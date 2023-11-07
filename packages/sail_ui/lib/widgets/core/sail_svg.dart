@@ -17,6 +17,7 @@ enum SailSVGAsset {
   iconConfirmed,
   iconPending,
   iconFailed,
+  iconSelected,
 }
 
 /// If you don't want to overwrite the color of the svg, put it in here!
@@ -94,6 +95,9 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_pending.svg';
       case SailSVGAsset.iconFailed:
         return 'assets/svgs/icon_failed.svg';
+
+      case SailSVGAsset.iconSelected:
+        return 'assets/svgs/icon_selected.svg';
     }
   }
 }
