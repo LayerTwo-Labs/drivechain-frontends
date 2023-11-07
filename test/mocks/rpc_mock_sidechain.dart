@@ -1,4 +1,5 @@
 import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
@@ -8,7 +9,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<String> generatePegInAddress() async {
+  Future<String> mainGenerateAddress() async {
     return 'bc1...?';
   }
 
@@ -23,42 +24,22 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<BmmResult> refreshBMM(int bidSatoshis) async {
-    return BmmResult(
-      hashLastMainBlock: '',
-      bmmBlockCreated: '',
-      bmmBlockSubmitted: '',
-      bmmBlockSubmittedBlind: '',
-      ntxn: 0,
-      nfees: 0,
-      txid: '',
-      error: '',
-      raw: '',
-    );
-  }
-
-  @override
-  Future<double> estimateFee() async {
+  Future<double> sideEstimateFee() async {
     return 0.001;
   }
 
   @override
-  Future<String> getRefundAddress() async {
-    return 'sc1_deadbeef';
-  }
-
-  @override
-  Future<String> generateSidechainAddress() async {
+  Future<String> sideGenerateAddress() async {
     return 's1deadbeef';
   }
 
   @override
-  Future<String> pegOut(String address, double amount, double sidechainFee, double mainchainFee) async {
+  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
     return 'txidmainbeef';
   }
 
   @override
-  Future<String> sidechainSend(String address, double amount, bool subtractFeeFromAmount) async {
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
     return 'txidsidebeef';
   }
 
@@ -68,12 +49,12 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<int> blockCount() async {
+  Future<int> sideBlockCount() async {
     return 1;
   }
 
   @override
-  Future<int> mainchainBlockCount() async {
+  Future<int> mainBlockCount() async {
     return 1;
   }
 
@@ -93,7 +74,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<WithdrawalBundle> currentWithdrawalBundle() async {
+  Future<WithdrawalBundle> mainCurrentWithdrawalBundle() async {
     return WithdrawalBundle(
       hash: '',
       bundleSize: 0,
@@ -103,7 +84,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<FutureWithdrawalBundle> nextWithdrawalBundle() async {
+  Future<FutureWithdrawalBundle> mainNextWithdrawalBundle() async {
     return FutureWithdrawalBundle(cumulativeWeight: 0, withdrawals: []);
   }
 }
