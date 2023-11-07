@@ -10,7 +10,8 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/models/bmm_result.dart';
+import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
@@ -151,7 +152,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
 }
 
 class BlindMergedMiningTabPageViewModel extends BaseViewModel {
-  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
+  TestchainRPC get _rpc => GetIt.I.get<TestchainRPC>();
 
   final bidController = TextEditingController();
   final refreshController = TextEditingController();
@@ -190,7 +191,7 @@ class BlindMergedMiningTabPageViewModel extends BaseViewModel {
   // https://github.com/LayerTwo-Labs/testchain/blob/c44e3a737d1780a1a07135657ac0fd7686251933/src/qt/sidechainpage.cpp#L767
   void _handleBmmTick(Timer _) async {
     final res = await _rpc.refreshBMM(bidAmountSats);
-    final currentBlockCount = await _rpc.blockCount();
+    final currentBlockCount = await _rpc.sideBlockCount();
 
     if (res.error != null) {
       log.d('was not able to advance BMM: ${res.error}');
@@ -204,7 +205,7 @@ class BlindMergedMiningTabPageViewModel extends BaseViewModel {
       sidechainBlockHeight: currentBlockCount + 1,
 
       // TODO: fetch mainchain block by TXID to get a correct number
-      mainchainBlockHeight: await _rpc.mainchainBlockCount(),
+      mainchainBlockHeight: await _rpc.mainBlockCount(),
     );
 
     // Add the attempt!
