@@ -1,5 +1,5 @@
-import 'package:sidesail/rpc/rpc_rawtx.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/models/bundle_info.dart';
+import 'package:sidesail/rpc/models/raw_transaction.dart';
 
 class WithdrawalBundle {
   WithdrawalBundle({

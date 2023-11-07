@@ -9,85 +9,34 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
 
-class DashboardGroup extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-
-  final Widget? widgetTrailing;
-  final Widget? endWidget;
-
-  const DashboardGroup({
-    super.key,
-    required this.title,
-    required this.children,
-    this.widgetTrailing,
-    this.endWidget,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return SailColumn(
-      spacing: 0,
-      withDivider: true,
-      children: [
-        Container(
-          height: 36,
-          color: theme.colors.actionHeader,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
-            child: Row(
-              children: [
-                SailRow(
-                  spacing: SailStyleValues.padding10,
-                  children: [
-                    SailText.primary13(
-                      title,
-                      bold: true,
-                    ),
-                    if (widgetTrailing != null) widgetTrailing!,
-                  ],
-                ),
-                Expanded(child: Container()),
-                if (endWidget != null) endWidget!,
-              ],
-            ),
-          ),
-        ),
-        for (final child in children) child,
-      ],
-    );
-  }
-}
-
-class SendOnSidechainAction extends StatelessWidget {
-  const SendOnSidechainAction({super.key});
+class PegOutAction extends StatelessWidget {
+  const PegOutAction({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => SendOnSidechainViewModel(),
+      viewModelBuilder: () => PegOutViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Send on sidechain',
+          'Peg-out to mainchain',
           endActionButton: SailButton.primary(
-            'Execute send',
+            'Execute peg-out',
             disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.executeSendOnSidechain(context);
+              viewModel.executePegOut(context);
             },
           ),
           children: [
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAddressController,
-              hintText: 'Enter a sidechain-address',
+              hintText: 'Enter a mainchain bitcoin-address',
             ),
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
@@ -96,12 +45,16 @@ class SendOnSidechainAction extends StatelessWidget {
               bitcoinInput: true,
             ),
             StaticActionField(
-              label: 'Fee',
-              value: '${viewModel.sidechainExpectedFee ?? 0} BTC',
+              label: 'Mainchain fee',
+              value: '${(viewModel.mainchainFee ?? 0).toStringAsFixed(8)} BTC',
+            ),
+            StaticActionField(
+              label: 'Sidechain fee',
+              value: '${(viewModel.sidechainFee ?? 0).toStringAsFixed(8)} BTC',
             ),
             StaticActionField(
               label: 'Total amount',
-              value: '${viewModel.totalBitcoinAmount} SBTC',
+              value: '${viewModel.totalBitcoinAmount} BTC',
             ),
           ],
         );
@@ -110,52 +63,58 @@ class SendOnSidechainAction extends StatelessWidget {
   }
 }
 
-class SendOnSidechainViewModel extends BaseViewModel {
+class PegOutViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
+  SidechainRPC get _testchain => GetIt.I.get<SidechainRPC>();
+  MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount => (double.tryParse(bitcoinAmountController.text) ?? 0).toStringAsFixed(8);
+  String get totalBitcoinAmount =>
+      ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0))
+          .toStringAsFixed(8);
 
-  double? sidechainExpectedFee;
-  double? get sendAmount => double.tryParse(bitcoinAmountController.text);
+  double? sidechainFee;
+  double? mainchainFee;
+  double? get pegOutAmount => double.tryParse(bitcoinAmountController.text);
 
-  SendOnSidechainViewModel() {
+  PegOutViewModel() {
     bitcoinAddressController.addListener(notifyListeners);
     bitcoinAmountController.addListener(notifyListeners);
     init();
   }
 
   void init() async {
-    await estimateFee();
+    await Future.wait([estimateSidechainFee(), estimateMainchainFee()]);
   }
 
-  void executeSendOnSidechain(BuildContext context) async {
+  void executePegOut(BuildContext context) async {
     setBusy(true);
     notifyListeners();
-    onSidechainSend(context);
+    onPegOut(context);
     setBusy(false);
     notifyListeners();
-
-    await _router.pop();
   }
 
-  Future<void> estimateFee() async {
-    final estimate = await _rpc.sideEstimateFee();
-    sidechainExpectedFee = estimate;
+  Future<void> estimateSidechainFee() async {
+    sidechainFee = await _testchain.sideEstimateFee();
     notifyListeners();
   }
 
-  void onSidechainSend(BuildContext context) async {
-    if (sendAmount == null) {
+  Future<void> estimateMainchainFee() async {
+    mainchainFee = await _mainchain.estimateFee();
+    notifyListeners();
+  }
+
+  void onPegOut(BuildContext context) async {
+    if (pegOutAmount == null) {
       log.e('withdrawal amount was empty');
       return;
     }
-    if (sidechainExpectedFee == null) {
+    if (sidechainFee == null) {
       log.e('sidechain fee was empty');
       return;
     }
@@ -170,15 +129,16 @@ class SendOnSidechainViewModel extends BaseViewModel {
     }
 
     final theme = SailTheme.of(context);
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: theme.colors.background.withOpacity(0.9),
         title: SailText.primary13(
-          'Confirm send',
+          'Confirm withdrawal',
         ),
         content: SailText.primary13(
-          'Do you really want to send ${bitcoinAmountController.text} BTC to $address with $sidechainExpectedFee SC expected fee?',
+          'Do you really want to peg-out?\n${bitcoinAmountController.text} BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
         ),
         actions: [
           TextButton(
@@ -191,10 +151,12 @@ class SendOnSidechainViewModel extends BaseViewModel {
               Navigator.of(context).pop();
 
               // This creates a new dialog on success
-              _doSidechainSend(
+              _doPegOut(
                 context,
                 address,
-                sendAmount!,
+                pegOutAmount!,
+                sidechainFee!,
+                mainchainFee!,
               );
             },
             child: SailText.primary13(
@@ -206,31 +168,37 @@ class SendOnSidechainViewModel extends BaseViewModel {
     );
   }
 
-  void _doSidechainSend(
+  void _doPegOut(
     BuildContext context,
     String address,
     double amount,
+    double sidechainFee,
+    double mainchainFee,
   ) async {
     log.i(
-      'doing sidechain withdrawal: $amount BTC to $address with $sidechainExpectedFee SC fee',
+      'doing peg-out: $amount BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
     );
 
     try {
-      final sendTXID = await _rpc.sideSend(
+      final withdrawalTxid = await _testchain.mainSend(
         address,
         amount,
-        false,
+        sidechainFee,
+        mainchainFee,
       );
-      log.i('sent sidechain withdrawal txid: $sendTXID');
+
+      log.i(
+        'pegged out successfully',
+      );
+
+      if (!context.mounted) {
+        return;
+      }
 
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
       unawaited(_transactionsProvider.fetch());
-
-      if (!context.mounted) {
-        return;
-      }
 
       final theme = SailTheme.of(context);
       await showDialog(
@@ -241,7 +209,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
             'Success',
           ),
           content: SailText.primary13(
-            'Sent successfully! TXID: $sendTXID',
+            'Submitted peg-out successfully! TXID: $withdrawalTxid',
           ),
           actions: [
             TextButton(
@@ -252,6 +220,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
         ),
       );
     } catch (error) {
+      log.e('could not execute peg-out: $error', error: error);
+
       if (!context.mounted) {
         return;
       }
@@ -265,7 +235,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
             'Failed',
           ),
           content: SailText.primary13(
-            'Could not execute sidechain withdrawal ${error.toString()}',
+            'Could not execute peg-out: ${error.toString()}',
           ),
           actions: [
             TextButton(
@@ -280,28 +250,28 @@ class SendOnSidechainViewModel extends BaseViewModel {
   }
 }
 
-class ReceiveOnSidechainAction extends StatelessWidget {
-  const ReceiveOnSidechainAction({super.key});
+class PegInAction extends StatelessWidget {
+  const PegInAction({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ReceiveOnSidechainViewModel(),
+      viewModelBuilder: () => PegInViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Receive on sidechain',
+          'Peg-in from mainchain',
           endActionButton: SailButton.primary(
             'Generate new address',
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              await viewModel.generateSidechainAddress();
+              await viewModel.generatePegInAddress();
             },
           ),
           children: [
             StaticActionField(
               label: 'Address',
-              value: viewModel.sidechainAddress ?? '',
+              value: viewModel.pegInAddress ?? '',
               copyable: true,
             ),
           ],
@@ -311,18 +281,18 @@ class ReceiveOnSidechainAction extends StatelessWidget {
   }
 }
 
-class ReceiveOnSidechainViewModel extends BaseViewModel {
+class PegInViewModel extends BaseViewModel {
   SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
   final log = Logger(level: Level.debug);
 
-  String? sidechainAddress;
+  String? pegInAddress;
 
-  ReceiveOnSidechainViewModel() {
-    generateSidechainAddress();
+  PegInViewModel() {
+    generatePegInAddress();
   }
 
-  Future<void> generateSidechainAddress() async {
-    sidechainAddress = await _rpc.sideGenerateAddress();
+  Future<void> generatePegInAddress() async {
+    pegInAddress = await _rpc.mainGenerateAddress();
     notifyListeners();
   }
 }

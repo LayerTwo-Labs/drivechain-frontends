@@ -1,12 +1,12 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
-import 'package:sidesail/pages/tabs/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
-import 'package:sidesail/pages/tabs/settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
-import 'package:sidesail/pages/tabs/transfer_mainchain_tab_route.dart';
-import 'package:sidesail/pages/tabs/withdrawal_bundle_tab_page.dart';
+import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
+import 'package:sidesail/pages/tabs/testchain/mainchain/transfer_mainchain_tab_route.dart';
+import 'package:sidesail/pages/tabs/testchain/mainchain/withdrawal_bundle_tab_page.dart';
 import 'package:sidesail/pages/test_page.dart';
 
 part 'router.gr.dart';
