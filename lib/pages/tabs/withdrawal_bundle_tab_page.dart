@@ -8,7 +8,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
@@ -80,7 +80,7 @@ class WithdrawalBundleTabPage extends StatelessWidget {
 }
 
 class WithdrawalBundleTabPageViewModel extends BaseViewModel {
-  SidechainRPC get _sidechain => GetIt.I.get<SidechainRPC>();
+  TestchainRPC get _sidechain => GetIt.I.get<TestchainRPC>();
   MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
 
   final searchController = TextEditingController();
@@ -99,11 +99,11 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
 
   void _fetchWithdrawalBundle() async {
     try {
-      currentBundle = await _sidechain.currentWithdrawalBundle();
-      nextBundle = await _sidechain.nextWithdrawalBundle();
+      currentBundle = await _sidechain.mainCurrentWithdrawalBundle();
+      nextBundle = await _sidechain.mainNextWithdrawalBundle();
       votes = await _mainchain.getWithdrawalBundleWorkScore(TestSidechain().slot, currentBundle!.hash);
     } on RPCException catch (err) {
-      if (err.errorCode != RPCError.errNoWithdrawalBundle) {
+      if (err.errorCode != TestchainRPCError.errNoWithdrawalBundle) {
         rethrow;
       }
     } finally {
