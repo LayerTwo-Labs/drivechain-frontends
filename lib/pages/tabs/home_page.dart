@@ -46,7 +46,8 @@ class HomePage extends StatelessWidget {
       const SidechainExplorerTabRoute(),
     ];
     final postRoutes = [
-      const SettingsTabRoute(),
+      const NodeSettingsTabRoute(),
+      const ThemeSettingsTabRoute(),
     ];
 
     List<auto_router.PageRouteInfo<dynamic>> chainRoutes = [];
@@ -122,13 +123,37 @@ class _SideNavState extends State<SideNav> {
                   ),
                   const SailSpacing(SailStyleValues.padding30),
                   for (final navEntry in navWidgets) navEntry,
+                  const SailSpacing(SailStyleValues.padding50),
+                  const NavCategory(category: 'Settings'),
                   NavEntry(
                     title: 'Settings',
                     icon: SailSVGAsset.iconBMMTab,
-                    selected: tabsRouter.activeIndex == tabsRouter.pageCount - 1,
+                    selected: false,
                     onPressed: () {
-                      tabsRouter.setActiveIndex(tabsRouter.pageCount - 1);
+                      // default to second to last route (node settings)
+                      tabsRouter.setActiveIndex(tabsRouter.pageCount - 2);
                     },
+                  ),
+                  SubNavEntryContainer(
+                    // open if second to last or last route is active
+                    open: tabsRouter.activeIndex == tabsRouter.pageCount - 1 ||
+                        tabsRouter.activeIndex == tabsRouter.pageCount - 2,
+                    subs: [
+                      SubNavEntry(
+                        title: 'Node Settings',
+                        selected: tabsRouter.activeIndex == tabsRouter.pageCount - 2,
+                        onPressed: () {
+                          tabsRouter.setActiveIndex(tabsRouter.pageCount - 2);
+                        },
+                      ),
+                      SubNavEntry(
+                        title: 'Theme',
+                        selected: tabsRouter.activeIndex == tabsRouter.pageCount - 1,
+                        onPressed: () {
+                          tabsRouter.setActiveIndex(tabsRouter.pageCount - 1);
+                        },
+                      ),
+                    ],
                   ),
                   Expanded(child: Container()),
                   NodeConnectionStatus(
@@ -163,7 +188,7 @@ class _SideNavState extends State<SideNav> {
           ),
           NavEntry(
             title: 'Mainchain Dashboard',
-            icon: SailSVGAsset.iconDashboardTab,
+            icon: SailSVGAsset.iconWithdrawalBundleTab,
             selected: tabsRouter.activeIndex == 2,
             onPressed: () {
               tabsRouter.setActiveIndex(2);
@@ -258,6 +283,23 @@ class NodeConnectionStatus extends ViewModelWidget<HomePageViewModel> {
             onPressed: onChipPressed,
           ),
       ],
+    );
+  }
+}
+
+class NavCategory extends StatelessWidget {
+  final String category;
+
+  const NavCategory({
+    super.key,
+    required this.category,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: SailStyleValues.padding08, bottom: SailStyleValues.padding08),
+      child: SailText.secondary12(category),
     );
   }
 }

@@ -33,6 +33,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const HomePage(),
       );
     },
+    NodeSettingsTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const NodeSettingsTabPage(),
+      );
+    },
     SailTestRoute.name: (routeData) {
       final args = routeData.argsAs<SailTestRouteArgs>();
       return AutoRoutePage<dynamic>(
@@ -43,16 +49,16 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
-    SettingsTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const SettingsTabPage(),
-      );
-    },
     SidechainExplorerTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const SidechainExplorerTabPage(),
+      );
+    },
+    ThemeSettingsTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ThemeSettingsTabPage(),
       );
     },
     TransferMainchainTabRoute.name: (routeData) {
@@ -113,6 +119,20 @@ class HomeRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [NodeSettingsTabPage]
+class NodeSettingsTabRoute extends PageRouteInfo<void> {
+  const NodeSettingsTabRoute({List<PageRouteInfo>? children})
+      : super(
+          NodeSettingsTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'NodeSettingsTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [SailTestPage]
 class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
   SailTestRoute({
@@ -150,20 +170,6 @@ class SailTestRouteArgs {
 }
 
 /// generated route for
-/// [SettingsTabPage]
-class SettingsTabRoute extends PageRouteInfo<void> {
-  const SettingsTabRoute({List<PageRouteInfo>? children})
-      : super(
-          SettingsTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'SettingsTabRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
 /// [SidechainExplorerTabPage]
 class SidechainExplorerTabRoute extends PageRouteInfo<void> {
   const SidechainExplorerTabRoute({List<PageRouteInfo>? children})
@@ -173,6 +179,20 @@ class SidechainExplorerTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'SidechainExplorerTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [ThemeSettingsTabPage]
+class ThemeSettingsTabRoute extends PageRouteInfo<void> {
+  const ThemeSettingsTabRoute({List<PageRouteInfo>? children})
+      : super(
+          ThemeSettingsTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ThemeSettingsTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

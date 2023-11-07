@@ -2,7 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/theme_settings_tab.dart';
 import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/transfer_mainchain_tab_route.dart';
@@ -50,7 +51,10 @@ class AppRouter extends _$AppRouter {
               page: BlindMergedMiningTabRoute.page,
             ),
             AutoRoute(
-              page: SettingsTabRoute.page,
+              page: NodeSettingsTabRoute.page,
+            ),
+            AutoRoute(
+              page: ThemeSettingsTabRoute.page,
             ),
           ],
         ),
