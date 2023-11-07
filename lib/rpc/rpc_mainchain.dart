@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/pages/tabs/settings_tab.dart';
+import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 /// RPC connection to the mainchain node.
 abstract class MainchainRPC extends RPCConnection {
   Future<double> estimateFee();
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash);
-  Future<List<Transaction>> listTransactions();
+  Future<List<CoreTransaction>> listTransactions();
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -79,7 +79,7 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
-  Future<List<Transaction>> listTransactions() async {
+  Future<List<CoreTransaction>> listTransactions() async {
     // first list
     final transactionsJSON = await _client?.call('listtransactions', [
       '',
@@ -87,7 +87,7 @@ class MainchainRPCLive extends MainchainRPC {
     ]) as List<dynamic>;
 
     // then convert to something other than json
-    List<Transaction> transactions = transactionsJSON.map((jsonItem) => Transaction.fromMap(jsonItem)).toList();
+    List<CoreTransaction> transactions = transactionsJSON.map((jsonItem) => CoreTransaction.fromMap(jsonItem)).toList();
     return transactions;
   }
 

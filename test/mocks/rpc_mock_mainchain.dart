@@ -1,5 +1,5 @@
+import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class MockMainchainRPC extends MainchainRPC {
   @override
@@ -28,7 +28,7 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
-  Future<List<Transaction>> listTransactions() async {
+  Future<List<CoreTransaction>> listTransactions() async {
     return List.empty();
   }
 }
