@@ -51,7 +51,16 @@ dependencies:
   collection: ^1.17.2
   stacked: ^3.4.1+1
   intl: ^0.18.0
+  web3dart: 
+    git:
+      url: https://github.com/xclud/web3dart.git
+      ref: main
+  http: ^1.1.0
+    
 
+# Needed for silencing complaints from adding the web3dart lib
+dependency_overrides: 
+  stream_channel: 2.1.2
 
 dev_dependencies:
   flutter_test:

@@ -4,7 +4,7 @@ import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_ethereum.dart';
+import 'package:sidesail/rpc/rpc_eth.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
@@ -15,11 +15,17 @@ import 'package:sidesail/storage/secure_store.dart';
 // each dependency can only be registered once
 Future<void> initGetitDependencies(Sidechain chain) async {
   final mainFuture = MainchainRPCLive.create();
+  final ethFuture = EthereumRPCLive.create();
   await setSidechainRPC(chain);
   final mainRPC = await mainFuture;
+  final ethRPC = await ethFuture;
 
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainRPC,
+  );
+
+  GetIt.I.registerLazySingleton<EthereumRPC>(
+    () => ethRPC,
   );
 
   GetIt.I.registerLazySingleton<AppRouter>(
