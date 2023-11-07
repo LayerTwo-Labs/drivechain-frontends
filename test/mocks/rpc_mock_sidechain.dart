@@ -1,7 +1,6 @@
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
 class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC() {
@@ -71,20 +70,5 @@ class MockSidechainRPC extends SidechainRPC {
   @override
   Future<void> ping() async {
     return;
-  }
-
-  @override
-  Future<WithdrawalBundle> mainCurrentWithdrawalBundle() async {
-    return WithdrawalBundle(
-      hash: '',
-      bundleSize: 0,
-      blockHeight: 0,
-      withdrawals: [],
-    );
-  }
-
-  @override
-  Future<FutureWithdrawalBundle> mainNextWithdrawalBundle() async {
-    return FutureWithdrawalBundle(cumulativeWeight: 0, withdrawals: []);
   }
 }

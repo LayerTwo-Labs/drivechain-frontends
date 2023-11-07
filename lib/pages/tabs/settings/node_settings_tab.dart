@@ -12,50 +12,39 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
-class SettingsTabPage extends StatelessWidget {
-  const SettingsTabPage({super.key});
+class NodeSettingsTabPage extends StatelessWidget {
+  const NodeSettingsTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return SailPage(
-      title: 'Node settings',
+      title: 'Node Settings',
+      subtitle: 'Manage your node connections',
       scrollable: true,
-      // subtitle: 'Manage your node connections' // TODO
       body: ViewModelBuilder.reactive(
         viewModelBuilder: () => NodeConnectionViewModel(),
         builder: ((context, viewModel, child) {
-          return Row(
+          return SailColumn(
+            spacing: SailStyleValues.padding50,
             children: [
-              Expanded(child: Container()),
-              ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 640,
-                ),
-                child: SailColumn(
-                  spacing: SailStyleValues.padding50,
-                  children: [
-                    NodeConnectionSettings(
-                      name: 'Sidechain',
-                      connected: viewModel.sidechainConnected,
-                      settings: viewModel.sidechainSettings,
-                      testConnectionValues: viewModel.reconnectSidechain,
-                      connectionError: viewModel.sidechainConnectionError,
-                      readError: viewModel.sidechainFileError,
-                      loading: viewModel.sidechainBusy,
-                    ),
-                    NodeConnectionSettings(
-                      name: 'Mainchain',
-                      connected: viewModel.mainchainConnected,
-                      settings: viewModel.mainchainSettings,
-                      testConnectionValues: viewModel.reconnectMainchain,
-                      connectionError: viewModel.mainchainConnectionError,
-                      readError: viewModel.mainchainFileError,
-                      loading: viewModel.mainchainBusy,
-                    ),
-                  ],
-                ),
+              NodeConnectionSettings(
+                name: 'Sidechain',
+                connected: viewModel.sidechainConnected,
+                settings: viewModel.sidechainSettings,
+                testConnectionValues: viewModel.reconnectSidechain,
+                connectionError: viewModel.sidechainConnectionError,
+                readError: viewModel.sidechainFileError,
+                loading: viewModel.sidechainBusy,
               ),
-              Expanded(child: Container()),
+              NodeConnectionSettings(
+                name: 'Mainchain',
+                connected: viewModel.mainchainConnected,
+                settings: viewModel.mainchainSettings,
+                testConnectionValues: viewModel.reconnectMainchain,
+                connectionError: viewModel.mainchainConnectionError,
+                readError: viewModel.mainchainFileError,
+                loading: viewModel.mainchainBusy,
+              ),
             ],
           );
         }),
