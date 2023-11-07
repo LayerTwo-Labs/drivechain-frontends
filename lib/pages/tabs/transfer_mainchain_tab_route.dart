@@ -8,7 +8,7 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
@@ -88,7 +88,7 @@ class TransferMainchainTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
 
-  List<Transaction> get transactions => _transactionsProvider.mainchainTransactions;
+  List<CoreTransaction> get transactions => _transactionsProvider.mainchainTransactions;
 
   TransferMainchainTabViewModel() {
     _transactionsProvider.addListener(notifyListeners);

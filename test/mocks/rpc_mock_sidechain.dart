@@ -63,7 +63,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<List<Transaction>> listTransactions() async {
+  Future<List<CoreTransaction>> listTransactions() async {
     return List.empty();
   }
 

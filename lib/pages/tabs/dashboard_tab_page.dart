@@ -11,6 +11,7 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
@@ -83,7 +84,7 @@ class DashboardTabPage extends StatelessWidget {
 }
 
 class TxView extends StatefulWidget {
-  final Transaction tx;
+  final CoreTransaction tx;
 
   const TxView({super.key, required this.tx});
 
@@ -144,7 +145,7 @@ class _TxViewState extends State<TxView> {
     );
   }
 
-  String extractTXTitle(Transaction tx) {
+  String extractTXTitle(CoreTransaction tx) {
     String title = '${tx.amount.toStringAsFixed(8)} SBTC';
 
     if (tx.address.isEmpty) {
@@ -191,7 +192,7 @@ class DashboardTabViewModel extends BaseViewModel {
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
 
-  List<Transaction> get transactions => _transactionsProvider.transactions;
+  List<CoreTransaction> get transactions => _transactionsProvider.transactions;
 
   Sidechain get chain => _sideRPC.chain;
 
