@@ -25,7 +25,6 @@ class TransferMainchainTabPage extends StatelessWidget {
       viewModelBuilder: () => TransferMainchainTabViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
-          title: '',
           body: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),

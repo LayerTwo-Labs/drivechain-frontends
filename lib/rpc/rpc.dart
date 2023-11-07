@@ -3,7 +3,7 @@
 // is live, and if not, what error message the node returned
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 
 // when you implement this class, you should extend a ChangeNotifier, to get
 // a proper implementation of notifyListeners(), e.g:

@@ -19,7 +19,6 @@ class SidechainExplorerTabPage extends StatelessWidget {
       viewModelBuilder: () => SidechainExplorerTabViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
-          title: '',
           body: SailColumn(
             spacing: SailStyleValues.padding30,
             children: [

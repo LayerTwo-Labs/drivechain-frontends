@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';

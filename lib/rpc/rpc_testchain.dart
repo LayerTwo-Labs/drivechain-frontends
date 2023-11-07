@@ -4,7 +4,7 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
