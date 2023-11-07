@@ -429,7 +429,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   }
 
   Future<void> estimateFee() async {
-    final estimate = await _rpc.estimateFee();
+    final estimate = await _rpc.sideEstimateFee();
     sidechainExpectedFee = estimate;
     notifyListeners();
   }
@@ -500,7 +500,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
     );
 
     try {
-      final sendTXID = await _rpc.sidechainSend(
+      final sendTXID = await _rpc.sideSend(
         address,
         amount,
         false,
@@ -606,7 +606,7 @@ class ReceiveOnSidechainViewModel extends BaseViewModel {
   }
 
   Future<void> generateSidechainAddress() async {
-    sidechainAddress = await _rpc.generateSidechainAddress();
+    sidechainAddress = await _rpc.sideGenerateAddress();
     notifyListeners();
   }
 }
