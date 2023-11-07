@@ -25,7 +25,6 @@ class BlindMergedMiningTabPage extends StatelessWidget {
       viewModelBuilder: () => BlindMergedMiningTabPageViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
-          title: '',
           widgetTitle: SailRow(
             spacing: SailStyleValues.padding08,
             children: [

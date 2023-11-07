@@ -28,53 +28,51 @@ class DashboardTabPage extends StatelessWidget {
       viewModelBuilder: () => DashboardTabViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
-          title: '',
-          body: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
-              child: Column(
-                children: [
-                  DashboardGroup(
-                    title: 'Actions',
-                    children: [
-                      ActionTile(
-                        title: 'Send ${viewModel.chain.ticker}',
-                        category: Category.sidechain,
-                        icon: Icons.remove,
-                        onTap: () {
-                          viewModel.send(context);
-                        },
-                      ),
-                      ActionTile(
-                        title: 'Receive ${viewModel.chain.ticker}',
-                        category: Category.sidechain,
-                        icon: Icons.add,
-                        onTap: () {
-                          viewModel.receive(context);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SailSpacing(SailStyleValues.padding30),
-                  DashboardGroup(
-                    title: 'Transactions',
-                    widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
-                    children: [
-                      SailColumn(
-                        spacing: 0,
-                        withDivider: true,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (final tx in viewModel.transactions)
-                            TxView(
-                              tx: tx,
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+          scrollable: true,
+          body: Padding(
+            padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+            child: Column(
+              children: [
+                DashboardGroup(
+                  title: 'Actions',
+                  children: [
+                    ActionTile(
+                      title: 'Send ${viewModel.chain.ticker}',
+                      category: Category.sidechain,
+                      icon: Icons.remove,
+                      onTap: () {
+                        viewModel.send(context);
+                      },
+                    ),
+                    ActionTile(
+                      title: 'Receive ${viewModel.chain.ticker}',
+                      category: Category.sidechain,
+                      icon: Icons.add,
+                      onTap: () {
+                        viewModel.receive(context);
+                      },
+                    ),
+                  ],
+                ),
+                const SailSpacing(SailStyleValues.padding30),
+                DashboardGroup(
+                  title: 'Transactions',
+                  widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
+                  children: [
+                    SailColumn(
+                      spacing: 0,
+                      withDivider: true,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final tx in viewModel.transactions)
+                          TxView(
+                            tx: tx,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         );

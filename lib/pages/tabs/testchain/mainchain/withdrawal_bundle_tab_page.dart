@@ -23,7 +23,6 @@ class WithdrawalBundleTabPage extends StatelessWidget {
       viewModelBuilder: () => WithdrawalBundleTabPageViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
-          title: '',
           body: SingleChildScrollView(
             child: Column(
               children: [
