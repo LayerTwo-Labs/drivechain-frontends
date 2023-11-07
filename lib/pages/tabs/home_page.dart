@@ -1,4 +1,4 @@
-import 'package:auto_route/auto_route.dart';
+import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -13,35 +13,63 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
 import 'package:stacked/stacked.dart';
 
-@RoutePage()
+@auto_router.RoutePage()
 class HomePage extends StatelessWidget {
+  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
+
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final routes = routesForChain(_sideRPC.chain);
     final theme = SailTheme.of(context);
 
-    return AutoTabsRouter.builder(
+    return auto_router.AutoTabsRouter.builder(
       homeIndex: 1,
-      routes: const [
-        SidechainExplorerTabRoute(),
-        DashboardTabRoute(),
-        TransferMainchainTabRoute(),
-        WithdrawalBundleTabRoute(),
-        BlindMergedMiningTabRoute(),
-        SettingsTabRoute(),
-      ],
+      routes: routes,
       builder: (context, children, _) {
-        final tabsRouter = AutoTabsRouter.of(context);
+        final tabsRouter = auto_router.AutoTabsRouter.of(context);
         return Scaffold(
           backgroundColor: theme.colors.background,
           body: SideNav(
             child: children[tabsRouter.activeIndex],
-            navigateToSettings: () => tabsRouter.setActiveIndex(5),
+            // assume settings tab is final tab!
+            navigateToSettings: () => tabsRouter.setActiveIndex(routes.length - 1),
           ),
         );
       },
     );
+  }
+
+  List<auto_router.PageRouteInfo<dynamic>> routesForChain(Sidechain chain) {
+    final preRoutes = [
+      const SidechainExplorerTabRoute(),
+    ];
+    final postRoutes = [
+      const SettingsTabRoute(),
+    ];
+
+    List<auto_router.PageRouteInfo<dynamic>> chainRoutes = [];
+    switch (chain.type) {
+      case SidechainType.testChain:
+        chainRoutes = [
+          const DashboardTabRoute(),
+          const TransferMainchainTabRoute(),
+          const WithdrawalBundleTabRoute(),
+          const BlindMergedMiningTabRoute(),
+        ];
+
+      case SidechainType.ethereum:
+        chainRoutes = [
+          const DashboardTabRoute(),
+        ];
+    }
+
+    return [
+      ...preRoutes,
+      ...chainRoutes,
+      ...postRoutes,
+    ];
   }
 }
 
@@ -60,14 +88,18 @@ class SideNav extends StatefulWidget {
 }
 
 class _SideNavState extends State<SideNav> {
+  SidechainRPC get _sidechain => GetIt.I.get<SidechainRPC>();
+
   @override
   Widget build(BuildContext context) {
-    final tabsRouter = AutoTabsRouter.of(context);
+    final tabsRouter = auto_router.AutoTabsRouter.of(context);
     final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => HomePageViewModel(),
       builder: ((context, viewModel, child) {
+        final navWidgets = navForChain(_sidechain.chain, viewModel, tabsRouter);
+
         return Row(
           children: [
             Padding(
@@ -89,47 +121,13 @@ class _SideNavState extends State<SideNav> {
                     },
                   ),
                   const SailSpacing(SailStyleValues.padding30),
-                  NavEntry(
-                    title: '${viewModel.chain.name} Dashboard',
-                    icon: SailSVGAsset.iconDashboardTab,
-                    selected: tabsRouter.activeIndex == 1,
-                    onPressed: () {
-                      tabsRouter.setActiveIndex(1);
-                    },
-                  ),
-                  NavEntry(
-                    title: 'Mainchain Dashboard',
-                    icon: SailSVGAsset.iconDashboardTab,
-                    selected: tabsRouter.activeIndex == 2,
-                    onPressed: () {
-                      tabsRouter.setActiveIndex(2);
-                    },
-                  ),
-                  SubNavEntryContainer(
-                    open: tabsRouter.activeIndex == 2 || tabsRouter.activeIndex == 3 || tabsRouter.activeIndex == 4,
-                    subs: [
-                      SubNavEntry(
-                        title: 'Withdrawal explorer',
-                        selected: tabsRouter.activeIndex == 3,
-                        onPressed: () {
-                          tabsRouter.setActiveIndex(3);
-                        },
-                      ),
-                      SubNavEntry(
-                        title: 'Blind Merged Mining',
-                        selected: tabsRouter.activeIndex == 4,
-                        onPressed: () {
-                          tabsRouter.setActiveIndex(4);
-                        },
-                      ),
-                    ],
-                  ),
+                  for (final navEntry in navWidgets) navEntry,
                   NavEntry(
                     title: 'Settings',
                     icon: SailSVGAsset.iconBMMTab,
-                    selected: tabsRouter.activeIndex == 5,
+                    selected: tabsRouter.activeIndex == tabsRouter.pageCount - 1,
                     onPressed: () {
-                      tabsRouter.setActiveIndex(5);
+                      tabsRouter.setActiveIndex(tabsRouter.pageCount - 1);
                     },
                   ),
                   Expanded(child: Container()),
@@ -149,6 +147,60 @@ class _SideNavState extends State<SideNav> {
         );
       }),
     );
+  }
+
+  List<Widget> navForChain(Sidechain chain, HomePageViewModel viewModel, auto_router.TabsRouter tabsRouter) {
+    switch (chain.type) {
+      case SidechainType.testChain:
+        return [
+          NavEntry(
+            title: '${viewModel.chain.name} Dashboard',
+            icon: SailSVGAsset.iconDashboardTab,
+            selected: tabsRouter.activeIndex == 1,
+            onPressed: () {
+              tabsRouter.setActiveIndex(1);
+            },
+          ),
+          NavEntry(
+            title: 'Mainchain Dashboard',
+            icon: SailSVGAsset.iconDashboardTab,
+            selected: tabsRouter.activeIndex == 2,
+            onPressed: () {
+              tabsRouter.setActiveIndex(2);
+            },
+          ),
+          SubNavEntryContainer(
+            open: tabsRouter.activeIndex == 2 || tabsRouter.activeIndex == 3 || tabsRouter.activeIndex == 4,
+            subs: [
+              SubNavEntry(
+                title: 'Withdrawal explorer',
+                selected: tabsRouter.activeIndex == 3,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(3);
+                },
+              ),
+              SubNavEntry(
+                title: 'Blind Merged Mining',
+                selected: tabsRouter.activeIndex == 4,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(4);
+                },
+              ),
+            ],
+          ),
+        ];
+      case SidechainType.ethereum:
+        return [
+          NavEntry(
+            title: '${viewModel.chain.name} Dashboard',
+            icon: SailSVGAsset.iconDashboardTab,
+            selected: tabsRouter.activeIndex == 1,
+            onPressed: () {
+              tabsRouter.setActiveIndex(1);
+            },
+          ),
+        ];
+    }
   }
 }
 
