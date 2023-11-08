@@ -18,12 +18,12 @@ WORKDIR /testchain
 
 RUN git checkout $TESTCHAIN_VERSION
 
-RUN cd depends && make
-RUN ./autogen.sh
+RUN cd depends && env NO_QT=1 NO_UPNP=1 make
 
 # Which platform triple depends was compiled for
 ARG DEPENDS
 
+RUN ./autogen.sh
 RUN ./configure --prefix=/testchain/depends/$DEPENDS  --disable-bench --disable-tests --with-incompatible-bdb
 RUN make
 

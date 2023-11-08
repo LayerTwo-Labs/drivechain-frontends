@@ -39,8 +39,8 @@ void main() {
 
     // Verify that there's a submit button.
     expect(find.text('Actions'), findsOneWidget);
-    expect(find.text('Send SC1'), findsOneWidget);
-    expect(find.text('Receive SC1'), findsOneWidget);
+    expect(find.text('Send SC0'), findsOneWidget);
+    expect(find.text('Receive SC0'), findsOneWidget);
     expect(find.text('Transactions'), findsOneWidget);
 
     txProvider.stopPolling();
