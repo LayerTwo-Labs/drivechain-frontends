@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
@@ -81,7 +82,7 @@ class TestchainRPCLive extends TestchainRPC {
 
   @override
   Future<BmmResult> refreshBMM(int bidSatoshis) async {
-    final res = await _client?.call('refreshbmm', [bidSatoshis / 100000000]) as Map<String, dynamic>;
+    final res = await _client?.call('refreshbmm', [satoshiToBTC(bidSatoshis)]) as Map<String, dynamic>;
 
     return BmmResult.fromJson(res);
   }

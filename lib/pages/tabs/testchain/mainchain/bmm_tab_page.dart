@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
@@ -380,7 +381,7 @@ class _BMMAttemptViewState extends State<BMMAttemptView> {
 
   String extractTXTitle(BmmAttempt attempt) {
     String title =
-        '${(attempt.bidSatoshis / 100000000).toStringAsFixed(8)} BTC bid containing ${attempt.result.ntxn} transaction(s) with ${attempt.result.nfees.toStringAsFixed(8)} SBTC total fees';
+        '${(satoshiToBTC(attempt.bidSatoshis)).toStringAsFixed(8)} BTC bid containing ${attempt.result.ntxn} transaction(s) with ${attempt.result.nfees.toStringAsFixed(8)} SBTC total fees';
     return title;
   }
 }
