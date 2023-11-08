@@ -23,7 +23,7 @@ class TestSidechain extends SideWithTicker {
   String name = 'Testchain';
 
   @override
-  int slot = 1;
+  int slot = 0;
 
   @override
   Color color = SailColorScheme.orange;
