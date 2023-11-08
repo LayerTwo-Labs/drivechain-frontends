@@ -249,9 +249,9 @@ class TestchainRPCLive extends TestchainRPC {
               mainchainFeesSatoshi: withdrawal['amountmainchainfee'],
               amountSatoshi: withdrawal['amount'],
               address: withdrawal['destination'],
-              hashBlindTx: '', // TODO
-              refundDestination: '', // TODO
-              status: '', // TODO
+              hashBlindTx: withdrawal['hashblindtx'],
+              refundDestination: withdrawal['refunddestination'],
+              status: withdrawal['status'],
             ),
           )
           .toList(),
