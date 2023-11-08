@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
 import 'package:sidesail/rpc/models/raw_transaction.dart';
 
@@ -29,6 +31,9 @@ class WithdrawalBundle {
   /// Block number this withdrawal bundle was initiated.
   final int blockHeight;
 
+  double get totalBitcoin => satoshiToBTC(withdrawals.map((e) => e.amountSatoshi).toList().sum);
+  double get totalFeesBitcoin => satoshiToBTC(withdrawals.map((e) => e.mainchainFeesSatoshi).toList().sum);
+
   final List<Withdrawal> withdrawals;
 }
 
@@ -57,6 +62,9 @@ class Withdrawal {
   final int mainchainFeesSatoshi;
   final int amountSatoshi;
   final String address;
+
+  // TODO: what even is this? From testchain codebase:  Hash of transaction minus the serialization output
+  // No clue what the user can use this for.
   final String hashBlindTx;
   final String refundDestination;
 
