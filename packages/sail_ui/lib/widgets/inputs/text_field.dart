@@ -16,17 +16,23 @@ class SailTextField extends StatelessWidget {
   final Widget? suffixWidget;
   final TextFieldType textFieldType;
   final String? prefix;
+  final Widget? prefixWidget;
+  final Widget? prefixIcon;
+  final BoxConstraints? prefixIconConstraints;
   final TextFieldSize size;
 
   const SailTextField({
     super.key,
     required this.controller,
-    required this.label,
+    this.label,
     required this.hintText,
     this.textFieldType = TextFieldType.text,
     this.suffix,
     this.suffixWidget,
     this.prefix,
+    this.prefixWidget,
+    this.prefixIcon,
+    this.prefixIconConstraints,
     this.size = TextFieldSize.regular,
   });
 
@@ -86,6 +92,9 @@ class SailTextField extends StatelessWidget {
               fontSize: textSize,
             ),
             prefixText: prefix,
+            prefix: prefixWidget,
+            prefixIcon: prefixIcon,
+            prefixIconConstraints: prefixIconConstraints,
             fillColor: SailTheme.of(context).colors.background,
             filled: true,
             contentPadding: padding,
