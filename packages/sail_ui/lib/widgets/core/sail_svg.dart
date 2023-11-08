@@ -11,11 +11,13 @@ enum SailSVGAsset {
   iconMainchain,
   iconSidechain,
 
+  iconSearch,
   iconCopy,
   iconDropdown,
   iconGlobe,
   iconConfirmed,
   iconPending,
+  iconPendingHalf,
   iconFailed,
   iconSelected,
 }
@@ -29,6 +31,7 @@ const coloredAssets = [
   SailSVGAsset.iconSidechain,
   SailSVGAsset.iconConfirmed,
   SailSVGAsset.iconPending,
+  SailSVGAsset.iconPendingHalf,
   SailSVGAsset.iconFailed,
 ];
 
@@ -93,11 +96,17 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_success.svg';
       case SailSVGAsset.iconPending:
         return 'assets/svgs/icon_pending.svg';
+
+      case SailSVGAsset.iconPendingHalf:
+        return 'assets/svgs/icon_pending_half.svg';
+
       case SailSVGAsset.iconFailed:
         return 'assets/svgs/icon_failed.svg';
 
       case SailSVGAsset.iconSelected:
         return 'assets/svgs/icon_selected.svg';
+      case SailSVGAsset.iconSearch:
+        return 'assets/svgs/icon_search.svg';
     }
   }
 }
