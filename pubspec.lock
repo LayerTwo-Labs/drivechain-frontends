@@ -189,8 +189,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
-      resolved-ref: cbbe7e98a95d2d43dd4f53038a73eca5dafb64cb
+      ref: ca2f50ed899386c5fb8f144b1c438b8673f23e22
+      resolved-ref: ca2f50ed899386c5fb8f144b1c438b8673f23e22
       url: "https://github.com/barebitcoin/dart_coin_rpc.git"
     source: git
     version: "2.1.5"
