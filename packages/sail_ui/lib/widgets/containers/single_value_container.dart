@@ -5,7 +5,7 @@ import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class SingleValueContainer extends StatelessWidget {
-  final String? label;
+  final String label;
   final dynamic value;
   final double width;
   final String? trailingText;
@@ -14,7 +14,7 @@ class SingleValueContainer extends StatelessWidget {
 
   const SingleValueContainer({
     super.key,
-    this.label,
+    required this.label,
     required this.value,
     required this.width,
     this.trailingText,
@@ -33,21 +33,21 @@ class SingleValueContainer extends StatelessWidget {
           const SizedBox(
             width: 13,
           ),
-        if (label != null)
-          SizedBox(
-            width: width,
-            child: SailText.secondary12(label!),
-          ),
-        SailScaleButton(
-          onPressed: copyable
-              ? () {
-                  Clipboard.setData(ClipboardData(text: value.toString()));
-                  showSnackBar(context, 'Copied $label');
-                }
-              : null,
-          child: SailText.primary12(value.toString()),
+        SizedBox(
+          width: width,
+          child: SailText.secondary12(label),
         ),
-        Expanded(child: Container()),
+        Expanded(
+          child: SailScaleButton(
+            onPressed: copyable
+                ? () {
+                    Clipboard.setData(ClipboardData(text: value.toString()));
+                    showSnackBar(context, 'Copied $label');
+                  }
+                : null,
+            child: SailText.primary12(value.toString()),
+          ),
+        ),
         if (trailingText != null) SailText.secondary12(trailingText!),
       ],
     );

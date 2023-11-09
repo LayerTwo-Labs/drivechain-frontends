@@ -7,6 +7,7 @@ import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
+import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 
 class RPCWidget extends StatefulWidget {
   const RPCWidget({super.key});
@@ -15,11 +16,24 @@ class RPCWidget extends StatefulWidget {
   RPCWidgetState createState() => RPCWidgetState();
 }
 
+class Result {
+  late int id;
+  final String command;
+  final String? success;
+  final String? error;
+
+  Result({
+    required this.command,
+    required this.success,
+    required this.error,
+  }) {
+    id = UniqueKey().hashCode;
+  }
+}
+
 class RPCWidgetState extends State<RPCWidget> {
   EthereumRPC get rpc => GetIt.I.get<EthereumRPC>();
-  dynamic _result;
-  String _command = '';
-  String? _error;
+  List<Result> results = [];
 
   Future<dynamic> _callRpc(String args) async {
     if (args.trim().isEmpty) {
@@ -50,18 +64,26 @@ class RPCWidgetState extends State<RPCWidget> {
     try {
       var res = await _callRpc(selection);
 
-      setState(() {
-        _command = selection;
-        _result = res;
-        _error = null;
-      });
+      results.insert(
+        0,
+        Result(
+          command: selection,
+          success: res.toString(),
+          error: null,
+        ),
+      );
     } catch (e) {
-      setState(() {
-        _command = selection;
-        _result = null;
-        _error = e.toString();
-      });
+      results.insert(
+        0,
+        Result(
+          command: selection,
+          success: null,
+          error: e.toString(),
+        ),
+      );
     }
+
+    setState(() {});
   }
 
   @override
@@ -135,86 +157,49 @@ class RPCWidgetState extends State<RPCWidget> {
             ),
           ],
         ),
-        if (_result != null) _JSONView(_result),
-        if (_error != null) _ErrorView('$_command: $_error'),
+        DashboardGroup(
+          title: 'Responses',
+          children: [
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: results.length,
+              itemBuilder: (context, index) => ResultView(
+                key: ValueKey<int>(results[index].id),
+                result: results[index],
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
 }
 
-class _JSONView extends StatelessWidget {
-  final dynamic json;
+class ResultView extends StatelessWidget {
+  final Result result;
 
-  const _JSONView(this.json);
-
-  String prettyPrintJson(dynamic json) {
-    JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-    var printed = encoder.convert(json);
-    return printed;
-  }
+  const ResultView({super.key, required this.result});
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
-      padding: true,
-      child: SailColumn(
-        spacing: SailStyleValues.padding50,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SailColumn(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: SailStyleValues.padding08,
-            withDivider: true,
-            trailingSpacing: true,
-            children: [
-              const ActionHeaderChip(title: 'Response'),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: SailStyleValues.padding10,
-                ),
-                child: SailText.primary12(json.toString()),
-              ),
-            ],
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: SailStyleValues.padding15,
+        horizontal: SailStyleValues.padding10,
       ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String error;
-
-  const _ErrorView(this.error);
-
-  @override
-  Widget build(BuildContext context) {
-    return SailRawCard(
-      padding: true,
       child: SailColumn(
-        spacing: SailStyleValues.padding50,
-        mainAxisSize: MainAxisSize.min,
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailColumn(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: SailStyleValues.padding08,
-            withDivider: true,
-            trailingSpacing: true,
-            children: [
-              const SailErrorShadow(
-                enabled: true,
-                small: true,
-                child: ActionHeaderChip(title: 'Error'),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: SailStyleValues.padding10,
-                ),
-                child: SailText.primary12(error),
-              ),
-            ],
+          SingleValueContainer(
+            width: 95,
+            icon: result.error == null
+                ? SailSVG.icon(SailSVGAsset.iconConfirmed, width: 13)
+                : SailSVG.icon(SailSVGAsset.iconFailed, width: 13),
+            copyable: true,
+            label: result.command.split(' ').first,
+            value: result.error ?? result.success,
           ),
         ],
       ),

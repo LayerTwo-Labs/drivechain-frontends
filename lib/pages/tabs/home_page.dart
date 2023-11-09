@@ -16,20 +16,32 @@ import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class HomePage extends StatelessWidget {
-  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
-
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final routes = routesForChain(_sideRPC.chain);
     final theme = SailTheme.of(context);
+    const routes = [
+      // common routes
+      SidechainExplorerTabRoute(),
+      // testchain routes
+      DashboardTabRoute(),
+      TransferMainchainTabRoute(),
+      WithdrawalBundleTabRoute(),
+      BlindMergedMiningTabRoute(),
+
+      // ethereum routes
+      EthereumRPCTabRoute(),
+
+      // trailing common routes
+      NodeSettingsTabRoute(),
+      ThemeSettingsTabRoute(),
+    ];
 
     return auto_router.AutoTabsRouter.builder(
       homeIndex: 1,
       routes: routes,
-      builder: (context, children, _) {
-        final tabsRouter = auto_router.AutoTabsRouter.of(context);
+      builder: (context, children, tabsRouter) {
         return Scaffold(
           backgroundColor: theme.colors.background,
           body: SideNav(
@@ -40,40 +52,6 @@ class HomePage extends StatelessWidget {
         );
       },
     );
-  }
-
-  List<auto_router.PageRouteInfo<dynamic>> routesForChain(Sidechain chain) {
-    final preRoutes = [
-      const SidechainExplorerTabRoute(),
-    ];
-    final postRoutes = [
-      const NodeSettingsTabRoute(),
-      const ThemeSettingsTabRoute(),
-    ];
-
-    List<auto_router.PageRouteInfo<dynamic>> chainRoutes = [];
-    switch (chain.type) {
-      case SidechainType.testChain:
-        chainRoutes = [
-          const DashboardTabRoute(),
-          const TransferMainchainTabRoute(),
-          const WithdrawalBundleTabRoute(),
-          const BlindMergedMiningTabRoute(),
-        ];
-        break;
-
-      case SidechainType.ethereum:
-        chainRoutes = [
-          const EthereumRPCTabRoute(),
-        ];
-        break;
-    }
-
-    return [
-      ...preRoutes,
-      ...chainRoutes,
-      ...postRoutes,
-    ];
   }
 }
 
@@ -222,9 +200,9 @@ class _SideNavState extends State<SideNav> {
           NavEntry(
             title: '${viewModel.chain.name} Dashboard',
             icon: SailSVGAsset.iconDashboardTab,
-            selected: tabsRouter.activeIndex == 1,
+            selected: tabsRouter.activeIndex == 5,
             onPressed: () {
-              tabsRouter.setActiveIndex(1);
+              tabsRouter.setActiveIndex(5);
             },
           ),
         ];
