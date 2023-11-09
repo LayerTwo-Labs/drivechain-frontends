@@ -4,7 +4,7 @@ import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_eth.dart';
+import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
@@ -63,14 +63,15 @@ Future<void> setSidechainRPC(Sidechain chain) async {
       break;
 
     case SidechainType.ethereum:
-      final testchainRPC = await EthereumRPCLive.create();
+      final ethRPC = await EthereumRPCLive.create();
       if (GetIt.I.isRegistered<EthereumRPC>()) {
         GetIt.I.unregister<EthereumRPC>();
       }
       GetIt.I.registerLazySingleton<EthereumRPC>(
-        () => testchainRPC,
+        () => ethRPC,
       );
-      sidechainRPC = testchainRPC;
+
+      sidechainRPC = ethRPC;
       break;
   }
 
