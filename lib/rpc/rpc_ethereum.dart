@@ -1,18 +1,20 @@
 import 'package:http/http.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
-import 'package:sidesail/rpc/rpc.dart';
+import 'package:sidesail/rpc/models/core_transaction.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/web3dart.dart';
 
-abstract class EthereumRPC extends RPCConnection {
-  Future<dynamic> call(String rpc, [args]);
-}
+abstract class EthereumRPC extends SidechainRPC {}
 
 class EthereumRPCLive extends EthereumRPC {
+  final sgweiPerSat = 1000000000;
+
   late Web3Client _client;
 
   @override
-  Future<dynamic> call(String rpc, [args]) async {
-    return _client.makeRPCCall(rpc, args);
+  Future<dynamic> callRAW(String method, [params]) async {
+    return _client.makeRPCCall(method, params);
   }
 
   // Apparently Ethereum doesn't have a conf file?
@@ -22,7 +24,9 @@ class EthereumRPCLive extends EthereumRPC {
     _client = Web3Client(url, Client());
   }
 
-  EthereumRPCLive._create();
+  EthereumRPCLive._create() {
+    chain = EthereumSidechain();
+  }
 
   static Future<EthereumRPCLive> create() async {
     final rpc = EthereumRPCLive._create();
@@ -45,6 +49,42 @@ class EthereumRPCLive extends EthereumRPC {
     await _client.getChainId();
     return;
   }
+
+  @override
+  Future<(double, double)> getBalance() async {
+    final account = await _account();
+    final balance = await _client.getBalance(account);
+    return (balance.getInEther.toDouble(), 0.0);
+  }
+
+  Future<EthereumAddress> _account() async {
+    final accountFut = await callRAW('eth_accounts');
+    final accounts = await accountFut as List<dynamic>;
+
+    if (accounts.isEmpty) {
+      throw Exception('Create account from cli using personal.newAccount before getting balance');
+    }
+
+    return EthereumAddress.fromHex(accounts[0] as String);
+  }
+
+  Future<bool> _deposit(int amountSat, int feeSat) async {
+    final amount = sgweiPerSat * amountSat;
+    final fee = sgweiPerSat * feeSat;
+    final account = await _account();
+    final deposit = await callRAW('eth_deposit', [account.hex, _toHex(amount), _toHex(fee)]);
+    return deposit as bool;
+  }
+
+  String _toHex(int number) {
+    return '0x${number.toRadixString(16)}';
+  }
+
+  @override
+  Future<List<CoreTransaction>> listTransactions() async {
+    // TODO: Implement listtransactions
+    return List.empty();
+  }
 }
 
 /// List of all known RPC methods available /
@@ -54,7 +94,6 @@ final ethRpcMethods = [
   'net_version',
   'net_listening',
   'net_peerCount',
-  'eth_protocolVersion',
   'eth_syncing',
   'eth_coinbase',
   'eth_chainId',
