@@ -56,42 +56,18 @@ Future<void> _initSidechainRPC(Sidechain chain) async {
     () => ethRPC,
   );
 
-  SidechainRPC sidechainRPC;
+  SidechainSubRPC sidechainSubRPC;
   switch (chain.type) {
     case SidechainType.testChain:
-      sidechainRPC = testRPC;
+      sidechainSubRPC = testRPC;
       break;
 
     case SidechainType.ethereum:
-      sidechainRPC = ethRPC;
+      sidechainSubRPC = ethRPC;
       break;
   }
 
   GetIt.I.registerLazySingleton<SidechainRPC>(
-    () => sidechainRPC,
-  );
-}
-
-// swap out the SidechainRPC type in GetIt with the appropriate
-// rpc. All of them are already registered, so this is pretty quick
-void swapSidechainRPC(Sidechain chain) async {
-  SidechainRPC sidechainRPC;
-  switch (chain.type) {
-    case SidechainType.testChain:
-      final testchainRPC = GetIt.I.get<TestchainRPC>();
-      sidechainRPC = testchainRPC;
-      break;
-
-    case SidechainType.ethereum:
-      final ethRPC = GetIt.I.get<EthereumRPC>();
-      sidechainRPC = ethRPC;
-      break;
-  }
-
-  if (GetIt.I.isRegistered<SidechainRPC>()) {
-    GetIt.I.unregister<SidechainRPC>();
-  }
-  GetIt.I.registerLazySingleton<SidechainRPC>(
-    () => sidechainRPC,
+    () => SidechainRPC(subRPC: sidechainSubRPC),
   );
 }
