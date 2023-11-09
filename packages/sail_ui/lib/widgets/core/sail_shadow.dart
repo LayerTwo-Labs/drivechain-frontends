@@ -71,11 +71,13 @@ class SailShadow extends StatelessWidget {
 class SailErrorShadow extends StatelessWidget {
   final bool enabled;
   final Widget child;
+  final bool small;
 
   const SailErrorShadow({
     super.key,
     required this.enabled,
     required this.child,
+    this.small = false,
   });
 
   @override
@@ -92,21 +94,21 @@ class SailErrorShadow extends StatelessWidget {
             BoxShadow(
               color: theme.colors.error,
               spreadRadius: 0,
-              blurRadius: 24,
+              blurRadius: small ? 6 : 24,
               offset: const Offset(0, 5),
             ),
             // Left shadow
             BoxShadow(
               color: theme.colors.error,
               spreadRadius: 0,
-              blurRadius: 24,
+              blurRadius: small ? 6 : 24,
               offset: const Offset(-5, 0),
             ),
             // Right shadow
             BoxShadow(
               color: theme.colors.error,
               spreadRadius: 0,
-              blurRadius: 24,
+              blurRadius: small ? 6 : 24,
               offset: const Offset(5, 0),
             ),
           ],
