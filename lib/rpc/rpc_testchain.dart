@@ -15,7 +15,7 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
 /// RPC connection the sidechain node.
-abstract class TestchainRPC extends SidechainRPC {
+abstract class TestchainRPC extends SidechainSubRPC {
   Future<String> mainSend(
     String address,
     double amount,

@@ -41,7 +41,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.testChain,
-                          onPressed: () => viewModel.setSidechainRPC(TestSidechain()),
+                          onPressed: () => viewModel.setSidechainRPC(test),
                         ),
                         ChainOverviewCard(
                           chain: EthereumSidechain(),
@@ -49,7 +49,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.ethereum,
-                          onPressed: () => viewModel.setSidechainRPC(EthereumSidechain()),
+                          onPressed: () => viewModel.setSidechainRPC(eth),
                         ),
                       ],
                     ),
@@ -82,8 +82,8 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
     _sideRPC.addListener(notifyListeners);
   }
 
-  void setSidechainRPC(Sidechain chain) {
-    _sideRPC.setChain(chain);
+  void setSidechainRPC(SidechainSubRPC sideSubRPC) {
+    _sideRPC.setSubRPC(sideSubRPC);
     notifyListeners();
   }
 

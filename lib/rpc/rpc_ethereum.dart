@@ -5,7 +5,7 @@ import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/web3dart.dart';
 
-abstract class EthereumRPC extends SidechainRPC {}
+abstract class EthereumRPC extends SidechainSubRPC {}
 
 class EthereumRPCLive extends EthereumRPC {
   final sgweiPerSat = 1000000000;
