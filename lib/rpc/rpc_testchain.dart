@@ -16,6 +16,24 @@ import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
 /// RPC connection the sidechain node.
 abstract class TestchainRPC extends SidechainRPC {
+  Future<String> mainSend(
+    String address,
+    double amount,
+    double sidechainFee,
+    double mainchainFee,
+  );
+  Future<String> mainGenerateAddress();
+  Future<int> mainBlockCount();
+
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  );
+  Future<String> sideGenerateAddress();
+  Future<int> sideBlockCount();
+  Future<double> sideEstimateFee();
+
   Future<BmmResult> refreshBMM(int bidSatoshis);
 
   /// Returns null if there's no current bundle

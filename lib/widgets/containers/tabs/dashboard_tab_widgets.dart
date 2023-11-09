@@ -9,7 +9,7 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
 
@@ -115,7 +115,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
+  TestchainRPC get _rpc => GetIt.I.get<TestchainRPC>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
@@ -312,7 +312,7 @@ class ReceiveOnSidechainAction extends StatelessWidget {
 }
 
 class ReceiveOnSidechainViewModel extends BaseViewModel {
-  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
+  TestchainRPC get _rpc => GetIt.I.get<TestchainRPC>();
   final log = Logger(level: Level.debug);
 
   String? sidechainAddress;
