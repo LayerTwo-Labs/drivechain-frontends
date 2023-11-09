@@ -17,7 +17,18 @@ import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 /// RPC connection the sidechain node.
 abstract class TestchainRPC extends SidechainRPC {
   Future<BmmResult> refreshBMM(int bidSatoshis);
-  Future<WithdrawalBundle> mainCurrentWithdrawalBundle();
+
+  /// Returns null if there's no current bundle
+  Future<WithdrawalBundle?> mainCurrentWithdrawalBundle();
+
+  // TODO: such a mess that this takes in a status...
+  // This is because the status isn't explicitly returned anywhere, but rather
+  // deduced by where you got the bundle hash from.
+  // testchain-cli getwithdrawalbundleinfo => pending
+  // drivechain-cli listfailedwithdrawals  => failed
+  // drivechain-cli listspentwithdrawals   => success
+  Future<WithdrawalBundle> lookupWithdrawalBundle(String hash, BundleStatus status);
+
   Future<FutureWithdrawalBundle> mainNextWithdrawalBundle();
 }
 
@@ -208,15 +219,10 @@ class TestchainRPCLive extends TestchainRPC {
   }
 
   @override
-  Future<WithdrawalBundle> mainCurrentWithdrawalBundle() async {
-    final rawWithdrawalBundle = await _client?.call('getwithdrawalbundle');
-
-    final decoded = await _client?.call('decoderawtransaction', [rawWithdrawalBundle]);
-    final tx = RawTransaction.fromJson(decoded);
-
+  Future<WithdrawalBundle> lookupWithdrawalBundle(String hash, BundleStatus status) async {
     final info = await _client?.call(
       'getwithdrawalbundleinfo',
-      [tx.hash],
+      [hash],
     );
 
     final withdrawalIDs = info['withdrawals'] as List<dynamic>;
@@ -230,11 +236,29 @@ class TestchainRPCLive extends TestchainRPC {
       ),
     );
 
-    return WithdrawalBundle.fromRawTransaction(
-      tx,
+    return WithdrawalBundle.fromWithdrawals(
+      hash,
+      status,
       BundleInfo.fromJson(info),
       withdrawals,
     );
+  }
+
+  @override
+  Future<WithdrawalBundle?> mainCurrentWithdrawalBundle() async {
+    dynamic rawWithdrawalBundle;
+    try {
+      rawWithdrawalBundle = await _client?.call('getwithdrawalbundle');
+    } on RPCException catch (err) {
+      if (err.errorCode == RPCError.errNoWithdrawalBundle) {
+        return null;
+      }
+      rethrow;
+    }
+
+    final decoded = await _client?.call('decoderawtransaction', [rawWithdrawalBundle]);
+    final tx = RawTransaction.fromJson(decoded);
+    return lookupWithdrawalBundle(tx.hash, BundleStatus.pending);
   }
 
   @override

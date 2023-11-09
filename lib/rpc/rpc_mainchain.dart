@@ -12,6 +12,9 @@ abstract class MainchainRPC extends RPCConnection {
   Future<double> estimateFee();
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash);
   Future<List<CoreTransaction>> listTransactions();
+  Future<List<MainchainWithdrawal>> listSpentWithdrawals();
+  Future<List<MainchainWithdrawal>> listFailedWithdrawals();
+  Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot);
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -104,6 +107,24 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
+  Future<List<MainchainWithdrawal>> listSpentWithdrawals() async {
+    final withdrawals = await _client?.call('listspentwithdrawals') as List<dynamic>;
+    return withdrawals.map((w) => MainchainWithdrawal.fromJson(w)).toList();
+  }
+
+  @override
+  Future<List<MainchainWithdrawal>> listFailedWithdrawals() async {
+    final withdrawals = await _client?.call('listfailedwithdrawals') as List<dynamic>;
+    return withdrawals.map((w) => MainchainWithdrawal.fromJson(w)).toList();
+  }
+
+  @override
+  Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot) async {
+    final statuses = await _client?.call('listwithdrawalstatus', [slot]) as List<dynamic>;
+    return statuses.map((e) => MainchainWithdrawalStatus.fromJson(e)).toList();
+  }
+
+  @override
   Future<void> ping() async {
     await _client?.call('ping') as Map<String, dynamic>?;
   }
@@ -113,4 +134,64 @@ class MainchainRPCLive extends MainchainRPC {
     _connectionTimer?.cancel();
     super.dispose();
   }
+}
+
+class MainchainWithdrawalStatus {
+  /// Blocks left until this withdrawal times out.
+  int blocksLeft;
+
+  /// Hash of withdrawal
+  String hash;
+
+  // Amount of votes this withdrawal has received.
+  int score;
+
+  MainchainWithdrawalStatus({
+    required this.blocksLeft,
+    required this.hash,
+    required this.score,
+  });
+
+  factory MainchainWithdrawalStatus.fromJson(Map<String, dynamic> json) => MainchainWithdrawalStatus(
+        blocksLeft: json['nblocksleft'] as int,
+        hash: json['hash'] as String,
+        score: json['nworkscore'] as int,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'nblocksleft': blocksLeft,
+        'hash': hash,
+        'nworkscore': score,
+      };
+}
+
+class MainchainWithdrawal {
+  /// Sidechain this withdrawal happened from
+  int sidechain;
+
+  /// Hash of withdrawal
+  String hash;
+
+  /// If this is a successful, hash of block Withdrawal was spent in.
+  /// Otherwise, null.
+  /// Can be fed into `drivechain-cli getblock`
+  String? blockHash;
+
+  MainchainWithdrawal({
+    required this.sidechain,
+    required this.hash,
+    required this.blockHash,
+  });
+
+  factory MainchainWithdrawal.fromJson(Map<String, dynamic> json) => MainchainWithdrawal(
+        sidechain: json['nsidechain'] as int,
+        hash: json['hash'] as String,
+        blockHash: json['hashblock'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'nsidechain': sidechain,
+        'hash': hash,
+        'hashblock': blockHash,
+      };
 }

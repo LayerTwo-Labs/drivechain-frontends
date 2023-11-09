@@ -31,4 +31,19 @@ class MockMainchainRPC extends MainchainRPC {
   Future<List<CoreTransaction>> listTransactions() async {
     return List.empty();
   }
+
+  @override
+  Future<List<MainchainWithdrawal>> listSpentWithdrawals() async {
+    return List.empty();
+  }
+
+  @override
+  Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot) async {
+    return List.empty();
+  }
+
+  @override
+  Future<List<MainchainWithdrawal>> listFailedWithdrawals() async {
+    return List.empty();
+  }
 }

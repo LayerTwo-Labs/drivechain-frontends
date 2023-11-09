@@ -1,28 +1,33 @@
 import 'package:collection/collection.dart';
 import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
-import 'package:sidesail/rpc/models/raw_transaction.dart';
+
+enum BundleStatus { pending, failed, success }
 
 class WithdrawalBundle {
   WithdrawalBundle({
+    required this.status,
     required this.hash,
     required this.bundleSize,
     required this.blockHeight,
     required this.withdrawals,
   });
 
-  factory WithdrawalBundle.fromRawTransaction(
-    RawTransaction tx,
+  factory WithdrawalBundle.fromWithdrawals(
+    String hash,
+    BundleStatus status,
     BundleInfo info,
     List<Withdrawal> withdrawals,
   ) =>
       WithdrawalBundle(
-        hash: tx.hash,
+        hash: hash,
+        status: status,
         bundleSize: info.weight,
         blockHeight: info.height,
         withdrawals: withdrawals,
       );
 
+  final BundleStatus status;
   final String hash;
 
   final int bundleSize;

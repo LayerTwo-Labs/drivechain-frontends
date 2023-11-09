@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:collection/collection.dart';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -72,26 +73,31 @@ class WithdrawalBundleTabPage extends StatelessWidget {
                 const SailSpacing(SailStyleValues.padding30),
                 DashboardGroup(
                   title: 'Bundle history',
-                  widgetTrailing: SailText.secondary13('${viewModel.bundleCount} bundle(s)'),
+                  widgetTrailing: SailText.secondary13('${viewModel.bundles.length} bundle(s)'),
                   children: [
                     SailColumn(
                       spacing: 0,
                       withDivider: true,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (!viewModel.hasDoneInitialFetch) LoadingIndicator.overlay(),
-                        viewModel.currentBundle == null
-                            // TODO: proper no bundle view
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(SailStyleValues.padding30),
-                                  child: SailText.primary20('No withdrawal bundle'),
-                                ),
-                              )
-                            : BundleView(
-                                bundle: viewModel.currentBundle!,
-                                votes: viewModel.votes ?? 0,
+                        ...[
+                          if (!viewModel.hasDoneInitialFetch) LoadingIndicator.overlay(),
+                          // TODO: proper no bundle view
+                          if (viewModel.bundleCount == 0)
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(SailStyleValues.padding30),
+                                child: SailText.primary20('No withdrawal bundle'),
                               ),
+                            ),
+                        ],
+                        ...viewModel.bundles.map(
+                          (bundle) => BundleView(
+                            bundle: bundle,
+                            timesOutIn: viewModel.timesOutIn(bundle.hash),
+                            votes: viewModel.votes(bundle.hash),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -118,19 +124,100 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
   Timer? _withdrawalBundleTimer;
 
   bool hasDoneInitialFetch = false;
+
   WithdrawalBundle? currentBundle;
+  int? votesCurrentBundle;
+
+  List<MainchainWithdrawalStatus> statuses = [];
+  List<WithdrawalBundle> successfulBundles = [];
+  List<WithdrawalBundle> failedBundles = [];
+
+  int get bundleCount => successfulBundles.length + failedBundles.length + (currentBundle != null ? 1 : 0);
+  Iterable<WithdrawalBundle> get bundles => [
+        if (currentBundle != null) currentBundle!,
+        ...successfulBundles,
+        ...failedBundles,
+      ]
+          .sortedByCompare(
+            (
+              b1,
+            ) =>
+                b1.blockHeight,
+            (a, b) => a.compareTo(b),
+          )
+          .reversed; // we want the newest first!
+
   FutureWithdrawalBundle? nextBundle;
 
-  int? votes;
+  int votes(String hash) {
+    bool byHash(WithdrawalBundle bundle) => bundle.hash == hash;
 
-  // TODO: add support for historic bundles
-  int get bundleCount => currentBundle == null ? 0 : 1;
+    if (successfulBundles.firstWhereOrNull(byHash) != null) {
+      return bundleVotesRequired;
+    }
+
+    if (failedBundles.firstWhereOrNull(byHash) != null) {
+      return 0;
+    }
+
+    if (hash == currentBundle?.hash) {
+      return votesCurrentBundle ?? 0;
+    }
+
+    // TODO; return 0 zero here?
+    throw 'received hash for unknown bundle: $hash';
+  }
+
+  /// Block count until a bundle times out
+  int timesOutIn(String hash) {
+    final stat = statuses.firstWhereOrNull((element) => element.hash == hash);
+    return stat?.blocksLeft ?? 0;
+  }
 
   void _fetchWithdrawalBundle() async {
     try {
-      currentBundle = await _sidechain.mainCurrentWithdrawalBundle();
-      nextBundle = await _sidechain.mainNextWithdrawalBundle();
-      votes = await _mainchain.getWithdrawalBundleWorkScore(_sidechain.chain.slot, currentBundle!.hash);
+      final statusesFut = _mainchain.listWithdrawalStatus(_sidechain.chain.slot);
+      final currentFut = _sidechain.mainCurrentWithdrawalBundle();
+      final rawSuccessfulBundlesFut = _mainchain.listSpentWithdrawals();
+      final rawFailedBundlesFut = _mainchain.listFailedWithdrawals();
+      final nextFut = _sidechain.mainNextWithdrawalBundle();
+
+      statuses = await statusesFut;
+      final rawSuccessfulBundles = await rawSuccessfulBundlesFut;
+      final rawFailedBundles = await rawFailedBundlesFut;
+
+      bool removeOtherChains(MainchainWithdrawal w) => w.sidechain == _sidechain.chain.slot;
+      Future<WithdrawalBundle> Function(MainchainWithdrawal w) getBundle(BundleStatus status) =>
+          (MainchainWithdrawal w) => _sidechain.lookupWithdrawalBundle(w.hash, status);
+
+      // Cooky town: passing in a status parameter to this...
+      final successfulBundlesFut = Future.wait(
+        rawSuccessfulBundles.where(removeOtherChains).map(getBundle(BundleStatus.success)),
+      );
+
+      final failedBundlesFut = Future.wait(
+        rawFailedBundles.where(removeOtherChains).map(getBundle(BundleStatus.failed)),
+      );
+
+      successfulBundles = await successfulBundlesFut;
+      failedBundles = await failedBundlesFut;
+
+      currentBundle = await currentFut.then((bundle) {
+        // `testchain-cli getwithdrawalbundle` continues to return the most recent bundle, also
+        // after it shows up in `drivechain-cli listspentwithdrawals/listfailedwithdrawals`.
+        // Filter that out, so it doesn't show up twice.
+        final allBundles = [...successfulBundles, ...failedBundles];
+        if (allBundles.firstWhereOrNull((success) => success.hash == (bundle?.hash ?? '')) != null) {
+          return null;
+        }
+        return bundle;
+      });
+
+      if (currentBundle != null) {
+        votesCurrentBundle = await _mainchain.getWithdrawalBundleWorkScore(_sidechain.chain.slot, currentBundle!.hash);
+      }
+
+      nextBundle = await nextFut;
       hasDoneInitialFetch = true;
     } on RPCException catch (err) {
       if (err.errorCode != TestchainRPCError.errNoWithdrawalBundle) {
@@ -210,15 +297,32 @@ class _UnbundledWithdrawalViewState extends State<UnbundledWithdrawalView> {
   }
 }
 
+const int bundleVotesRequired = 131; // higher on mainnet. take into consideration, somehow
+
 class BundleView extends StatefulWidget {
   final WithdrawalBundle bundle;
-  bool get confirmed => votes >= votesRequired;
+
+  (String, SailSVGAsset) statusAndIcon() {
+    switch (bundle.status) {
+      case BundleStatus.pending:
+        return ('Pending', SailSVGAsset.iconPendingHalf);
+
+      case BundleStatus.failed:
+        return ('Failed', SailSVGAsset.iconFailed);
+
+      case BundleStatus.success:
+        return ('Final', SailSVGAsset.iconConfirmed);
+    }
+  }
 
   final int votes;
-  final int votesRequired = 131; // higher on mainnet. take into consideration, somehow
+
+  /// Blocks left until the bundle times out.
+  final int timesOutIn;
 
   const BundleView({
     super.key,
+    required this.timesOutIn,
     required this.votes,
     required this.bundle,
   });
@@ -237,6 +341,7 @@ class _BundleViewState extends State<BundleView> {
 
   @override
   Widget build(BuildContext context) {
+    final (tooltipMessage, icon) = widget.statusAndIcon();
     return Padding(
       padding: const EdgeInsets.symmetric(
         vertical: SailStyleValues.padding15,
@@ -255,19 +360,17 @@ class _BundleViewState extends State<BundleView> {
             child: SingleValueContainer(
               width: bundleViewWidth,
               icon: Tooltip(
-                message: widget.confirmed ? 'Final' : 'Pending',
-                child: SailSVG.icon(
-                  widget.confirmed ? SailSVGAsset.iconConfirmed : SailSVGAsset.iconPendingHalf,
-                  width: 13,
-                ),
+                message: tooltipMessage,
+                child: SailSVG.icon(icon, width: 13),
               ),
               copyable: false,
-              label: '${widget.votes}/${widget.votesRequired} ACKs',
+              label:
+                  widget.bundle.status == BundleStatus.failed ? 'Failed' : '${widget.votes}/$bundleVotesRequired ACKs',
               value:
                   'Peg-out of ${widget.bundle.totalBitcoin.toStringAsFixed(8)} BTC in ${widget.bundle.withdrawals.length} transactions',
             ),
           ),
-          if (expanded) ExpandedBundleView(bundle: widget.bundle),
+          if (expanded) ExpandedBundleView(timesOutIn: widget.timesOutIn, bundle: widget.bundle),
         ],
       ),
     );
@@ -280,13 +383,15 @@ class _BundleViewState extends State<BundleView> {
   }
 }
 
-const bundleViewWidth = 130.0;
+const bundleViewWidth = 160.0;
 
 class ExpandedBundleView extends StatelessWidget {
   final WithdrawalBundle bundle;
+  final int timesOutIn;
 
   const ExpandedBundleView({
     super.key,
+    required this.timesOutIn,
     required this.bundle,
   });
 
@@ -300,6 +405,7 @@ class ExpandedBundleView extends StatelessWidget {
   static const double maxWeight = (maxStandardTxWeight / witnessScaleFactor) / 2;
 
   Map<String, dynamic> get _values => {
+        if (bundle.status == BundleStatus.pending) 'blocks until timeout': timesOutIn,
         'block hash': bundle.hash,
         'total amount': '${bundle.totalBitcoin.toStringAsFixed(8)} BTC',
         'withdrawal count': bundle.withdrawals.length,
