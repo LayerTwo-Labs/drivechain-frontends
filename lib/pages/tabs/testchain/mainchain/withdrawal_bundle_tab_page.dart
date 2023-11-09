@@ -283,6 +283,7 @@ class _UnbundledWithdrawalViewState extends State<UnbundledWithdrawalView> {
                 ),
               ),
               copyable: false,
+              label: '',
               value:
                   '${satoshiToBTC(widget.withdrawal.amountSatoshi).toStringAsFixed(8)} BTC to ${widget.withdrawal.address}',
             ),

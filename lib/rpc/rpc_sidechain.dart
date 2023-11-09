@@ -15,7 +15,7 @@ abstract class SidechainRPC extends RPCConnection {
   late Sidechain chain;
   void setChain(Sidechain newChain) {
     chain = newChain;
-    setSidechainRPC(newChain);
+    swapSidechainRPC(newChain);
     notifyListeners();
   }
 }

@@ -16,8 +16,7 @@ class EthereumRPCTabPage extends StatelessWidget {
     return const SailPage(
       scrollable: true,
       title: 'Ethereum RPC',
-      subtitle:
-          'Here you can call eth rpcs directly to the eth-sidechain. Try typing in "eth_blockNumber" in the input below.',
+      subtitle: 'Call RPCs directly to the Ethereum sidechain. Try typing in "eth_blockNumber" in the input below.',
       body: Padding(
         padding: EdgeInsets.only(bottom: SailStyleValues.padding30),
         child: Column(

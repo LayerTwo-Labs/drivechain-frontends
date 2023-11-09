@@ -68,6 +68,7 @@ class EthereumRPCLive extends EthereumRPC {
     return EthereumAddress.fromHex(accounts[0] as String);
   }
 
+  // ignore: unused_element
   Future<bool> _deposit(int amountSat, int feeSat) async {
     final amount = sgweiPerSat * amountSat;
     final fee = sgweiPerSat * feeSat;

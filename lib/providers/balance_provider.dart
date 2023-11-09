@@ -20,6 +20,7 @@ class BalanceProvider extends ChangeNotifier {
   BalanceProvider() {
     fetch();
     _startPolling();
+    _rpc.addListener(fetch);
   }
 
   // call this function from anywhere to refresh the balance
@@ -45,5 +46,6 @@ class BalanceProvider extends ChangeNotifier {
     super.dispose();
     // Cancel timer when provider is disposed (never?)
     _timer.cancel();
+    _rpc.removeListener(notifyListeners);
   }
 }

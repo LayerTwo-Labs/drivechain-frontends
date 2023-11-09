@@ -4,13 +4,18 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class SidechainExplorerTabPage extends StatelessWidget {
+  TestchainRPC get test => GetIt.I.get<TestchainRPC>();
+  EthereumRPC get eth => GetIt.I.get<EthereumRPC>();
+
   const SidechainExplorerTabPage({super.key});
 
   @override
@@ -36,9 +41,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.testChain,
-                          onPressed: () {
-                            viewModel.setSidechainRPC(TestSidechain());
-                          },
+                          onPressed: () => viewModel.setSidechainRPC(TestSidechain()),
                         ),
                         ChainOverviewCard(
                           chain: EthereumSidechain(),
@@ -46,9 +49,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.ethereum,
-                          onPressed: () {
-                            viewModel.setSidechainRPC(EthereumSidechain());
-                          },
+                          onPressed: () => viewModel.setSidechainRPC(EthereumSidechain()),
                         ),
                       ],
                     ),
@@ -83,6 +84,7 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
 
   void setSidechainRPC(Sidechain chain) {
     _sideRPC.setChain(chain);
+    notifyListeners();
   }
 
   @override
