@@ -106,12 +106,9 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
           label: 'Config path',
           controller: settings.configPathController,
           hintText: '/the/path/to/your/somethingchain.conf',
-          suffixWidget: Padding(
-            padding: const EdgeInsets.only(left: SailStyleValues.padding08),
-            child: SailTextButton(
-              label: 'Read file',
-              onPressed: settings.readAndSetValuesFromFile,
-            ),
+          suffixWidget: SailTextButton(
+            label: 'Read file',
+            onPressed: settings.readAndSetValuesFromFile,
           ),
         ),
         SailTextField(

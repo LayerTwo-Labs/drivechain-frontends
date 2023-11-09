@@ -10,6 +10,7 @@ enum TextFieldType { number, bitcoin, text }
 
 class SailTextField extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final String? label;
   final String hintText;
   final String? suffix;
@@ -20,6 +21,7 @@ class SailTextField extends StatelessWidget {
   final Widget? prefixIcon;
   final BoxConstraints? prefixIconConstraints;
   final TextFieldSize size;
+  final void Function(String)? onSubmitted;
 
   const SailTextField({
     super.key,
@@ -34,6 +36,8 @@ class SailTextField extends StatelessWidget {
     this.prefixIcon,
     this.prefixIconConstraints,
     this.size = TextFieldSize.regular,
+    this.focusNode,
+    this.onSubmitted,
   });
 
   @override
@@ -62,6 +66,8 @@ class SailTextField extends StatelessWidget {
         TextField(
           cursorColor: theme.colors.primary,
           controller: controller,
+          focusNode: focusNode,
+          onSubmitted: onSubmitted,
           style: TextStyle(
             color: SailTheme.of(context).colors.text,
             fontSize: textSize,
@@ -86,7 +92,10 @@ class SailTextField extends StatelessWidget {
               fontSize: textSize,
             ),
             suffixText: suffix,
-            suffix: suffixWidget,
+            suffix: Padding(
+              padding: const EdgeInsets.only(left: SailStyleValues.padding08),
+              child: suffixWidget,
+            ),
             prefixStyle: TextStyle(
               color: SailTheme.of(context).colors.textTertiary,
               fontSize: textSize,
