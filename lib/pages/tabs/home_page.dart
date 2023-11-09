@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart' as auto_router;
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -13,7 +14,7 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
 import 'package:stacked/stacked.dart';
 
-@auto_router.RoutePage()
+@RoutePage()
 class HomePage extends StatelessWidget {
   SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
 
@@ -34,7 +35,7 @@ class HomePage extends StatelessWidget {
           body: SideNav(
             child: children[tabsRouter.activeIndex],
             // assume settings tab is final tab!
-            navigateToSettings: () => tabsRouter.setActiveIndex(routes.length - 1),
+            navigateToSettings: () => tabsRouter.setActiveIndex(routes.length - 2),
           ),
         );
       },
@@ -59,11 +60,13 @@ class HomePage extends StatelessWidget {
           const WithdrawalBundleTabRoute(),
           const BlindMergedMiningTabRoute(),
         ];
+        break;
 
       case SidechainType.ethereum:
         chainRoutes = [
-          const DashboardTabRoute(),
+          const EthereumRPCTabRoute(),
         ];
+        break;
     }
 
     return [

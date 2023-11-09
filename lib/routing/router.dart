@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+import 'package:sidesail/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/pages/tabs/settings/theme_settings_tab.dart';
@@ -49,6 +50,9 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: BlindMergedMiningTabRoute.page,
+            ),
+            AutoRoute(
+              page: EthereumRPCTabRoute.page,
             ),
             AutoRoute(
               page: NodeSettingsTabRoute.page,
