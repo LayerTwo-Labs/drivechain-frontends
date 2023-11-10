@@ -15,7 +15,18 @@ Clean logo emphasizing a sail with an embedded chain pattern. The design is mini
 A work-in-progress sidechain UI.
 
 ```shell
-# Choose macos, when prompted.
-# TOOD: how can this be specified from the command?
-$ flutter run
+$ flutter run -d macos
+```
+
+# Releasing and that kinda stuff
+
+### macOS
+
+Generate icons with
+[CandyIcons](https://www.candyicons.com/free-tools/app-icon-assets-generator).
+Gives the nice, rounded icon.
+
+```bash
+$ flutter build macos
+# result is located in ./build/macos/Build/Products/Release
 ```
