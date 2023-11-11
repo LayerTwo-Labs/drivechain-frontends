@@ -193,13 +193,13 @@ class ResultView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SingleValueContainer(
-            width: 95,
+            width: 0,
             icon: result.error == null
                 ? SailSVG.icon(SailSVGAsset.iconConfirmed, width: 13)
                 : SailSVG.icon(SailSVGAsset.iconFailed, width: 13),
             copyable: true,
-            label: result.command.split(' ').first,
-            value: result.error ?? result.success,
+            customCopyValue: result.error ?? result.success,
+            value: '> ${result.command}\n${result.error ?? result.success}',
           ),
         ],
       ),
