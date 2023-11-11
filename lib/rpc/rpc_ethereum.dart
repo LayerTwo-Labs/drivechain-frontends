@@ -5,7 +5,10 @@ import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/web3dart.dart';
 
-abstract class EthereumRPC extends SidechainSubRPC {}
+abstract class EthereumRPC extends SidechainSubRPC {
+  EthereumAddress? account;
+  Future<void> newAccount();
+}
 
 class EthereumRPCLive extends EthereumRPC {
   final sgweiPerSat = 1000000000;
@@ -26,6 +29,11 @@ class EthereumRPCLive extends EthereumRPC {
 
   EthereumRPCLive._create() {
     chain = EthereumSidechain();
+    try {
+      _setAndGetAccount();
+    } catch (error) {
+      //
+    }
   }
 
   static Future<EthereumRPCLive> create() async {
@@ -40,7 +48,6 @@ class EthereumRPCLive extends EthereumRPC {
     connectionSettings = SingleNodeConnectionSettings('', 'localhost', 8545, '', '');
 
     await createClient();
-
     await testConnection();
   }
 
@@ -52,12 +59,16 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   Future<(double, double)> getBalance() async {
-    final account = await _account();
+    final account = await _setAndGetAccount();
     final balance = await _client.getBalance(account);
     return (balance.getInEther.toDouble(), 0.0);
   }
 
-  Future<EthereumAddress> _account() async {
+  Future<EthereumAddress> _setAndGetAccount() async {
+    if (account != null) {
+      return account!;
+    }
+
     final accountFut = await callRAW('eth_accounts');
     final accounts = await accountFut as List<dynamic>;
 
@@ -65,15 +76,27 @@ class EthereumRPCLive extends EthereumRPC {
       throw Exception('Create account from cli using personal.newAccount before getting balance');
     }
 
-    return EthereumAddress.fromHex(accounts[0] as String);
+    account = EthereumAddress.fromHex(accounts[0] as String);
+    return account!;
+  }
+
+  @override
+  Future<void> newAccount() async {
+    final accountFut = await callRAW('personal_newAccount', ['passphrase', 'passphrase']);
+    final accountStr = await accountFut as String;
+
+    if (accountStr.isEmpty) {
+      throw Exception('Could not create account. Try using cli with personal.newAccount');
+    }
+
+    account = EthereumAddress.fromHex(accountStr);
   }
 
   // ignore: unused_element
   Future<bool> _deposit(int amountSat, int feeSat) async {
     final amount = sgweiPerSat * amountSat;
     final fee = sgweiPerSat * feeSat;
-    final account = await _account();
-    final deposit = await callRAW('eth_deposit', [account.hex, _toHex(amount), _toHex(fee)]);
+    final deposit = await callRAW('eth_deposit', [account!.hex, _toHex(amount), _toHex(fee)]);
     return deposit as bool;
   }
 
