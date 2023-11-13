@@ -6,7 +6,6 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
@@ -14,6 +13,7 @@ import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
+import 'package:sidesail/widgets/dialog.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -199,10 +199,8 @@ class DashboardTabViewModel extends BaseViewModel {
   }
 
   void send(BuildContext context) async {
-    final theme = SailTheme.of(context);
-    await showDialog(
+    await showThemedDialog(
       context: context,
-      barrierColor: theme.colors.background.withOpacity(0.4),
       builder: (BuildContext context) {
         return const SendOnSidechainAction();
       },
@@ -210,10 +208,8 @@ class DashboardTabViewModel extends BaseViewModel {
   }
 
   void receive(BuildContext context) async {
-    final theme = SailTheme.of(context);
-    await showDialog(
+    await showThemedDialog(
       context: context,
-      barrierColor: theme.colors.background.withOpacity(0.4),
       builder: (BuildContext context) {
         return const ReceiveOnSidechainAction();
       },

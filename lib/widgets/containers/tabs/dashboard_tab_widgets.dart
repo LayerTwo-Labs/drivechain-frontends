@@ -11,6 +11,7 @@ import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
+import 'package:sidesail/widgets/dialog.dart';
 import 'package:stacked/stacked.dart';
 
 class DashboardGroup extends StatelessWidget {
@@ -169,11 +170,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
       return;
     }
 
-    final theme = SailTheme.of(context);
-    await showDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: theme.colors.background.withOpacity(0.9),
         title: SailText.primary13(
           'Confirm send',
         ),
@@ -232,11 +231,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
         return;
       }
 
-      final theme = SailTheme.of(context);
-      await showDialog(
+      await showThemedDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: theme.colors.background.withOpacity(0.9),
           title: SailText.primary13(
             'Success',
           ),
@@ -256,11 +253,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
         return;
       }
 
-      final theme = SailTheme.of(context);
-      await showDialog(
+      await showThemedDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: theme.colors.background.withOpacity(0.9),
           title: SailText.primary13(
             'Failed',
           ),
