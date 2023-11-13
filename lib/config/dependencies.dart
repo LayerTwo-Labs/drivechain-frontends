@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
@@ -34,6 +35,9 @@ Future<void> initGetitDependencies(Sidechain initialChain) async {
     // we start polling for balance updates
     () => BalanceProvider(),
   );
+
+  GetIt.I.registerLazySingleton(() => ProcessProvider());
+
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
   );

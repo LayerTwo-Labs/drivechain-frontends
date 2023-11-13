@@ -51,15 +51,15 @@ dependencies:
   collection: ^1.17.2
   stacked: ^3.4.1+1
   intl: ^0.18.0
-  web3dart: 
+  web3dart:
     git:
       url: https://github.com/xclud/web3dart.git
       ref: main
   http: ^1.1.0
-    
+  path_provider: ^2.1.1
 
 # Needed for silencing complaints from adding the web3dart lib
-dependency_overrides: 
+dependency_overrides:
   stream_channel: 2.1.2
 
 dev_dependencies:
@@ -84,6 +84,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/bin/
 
   fonts:
     - family: SourceCodePro
