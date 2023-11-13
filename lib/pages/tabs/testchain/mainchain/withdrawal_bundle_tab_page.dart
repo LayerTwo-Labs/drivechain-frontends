@@ -312,7 +312,7 @@ class BundleView extends StatefulWidget {
         return ('Failed', SailSVGAsset.iconFailed);
 
       case BundleStatus.success:
-        return ('Final', SailSVGAsset.iconConfirmed);
+        return ('Final', SailSVGAsset.iconSuccess);
     }
   }
 

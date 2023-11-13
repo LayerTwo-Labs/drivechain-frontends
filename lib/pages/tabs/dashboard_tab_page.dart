@@ -121,7 +121,7 @@ class _TxViewState extends State<TxView> {
               icon: widget.tx.confirmations >= 1
                   ? Tooltip(
                       message: '${widget.tx.confirmations} confirmations',
-                      child: SailSVG.icon(SailSVGAsset.iconConfirmed, width: 13),
+                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
                     )
                   : Tooltip(
                       message: 'Unconfirmed',

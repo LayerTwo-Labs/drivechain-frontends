@@ -195,7 +195,7 @@ class ResultView extends StatelessWidget {
           SingleValueContainer(
             width: 0,
             icon: result.error == null
-                ? SailSVG.icon(SailSVGAsset.iconConfirmed, width: 13)
+                ? SailSVG.icon(SailSVGAsset.iconSuccess, width: 13)
                 : SailSVG.icon(SailSVGAsset.iconFailed, width: 13),
             copyable: true,
             customCopyValue: result.error ?? result.success,
