@@ -4,6 +4,7 @@ import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/web3dart.dart';
+import 'package:web3dart/json_rpc.dart' as jsonrpc;
 
 abstract class EthereumRPC extends SidechainSubRPC {
   EthereumAddress? account;
@@ -17,7 +18,16 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   Future<dynamic> callRAW(String method, [params]) async {
-    return _client.makeRPCCall(method, params);
+    try {
+      final res = await _client.makeRPCCall(method, params);
+      return res;
+    } on jsonrpc.RPCError catch (err) {
+      const magicErrCode = -32601; // no clue what this is
+      if (err.errorCode == magicErrCode && method.startsWith('personal')) {
+        throw "The 'personal' API is not enabled on your Ethereum node. Add the \n`--http.api=personal` argument, and try again.";
+      }
+      rethrow;
+    }
   }
 
   // Apparently Ethereum doesn't have a conf file?
@@ -82,11 +92,11 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   Future<void> newAccount() async {
-    final accountFut = await callRAW('personal_newAccount', ['passphrase', 'passphrase']);
+    final accountFut = await callRAW('personal_newAccount', ['passphrase']);
     final accountStr = await accountFut as String;
 
     if (accountStr.isEmpty) {
-      throw Exception('Could not create account. Try using cli with personal.newAccount');
+      throw Exception('Could not create account. Try using CLI with personal.newAccount');
     }
 
     account = EthereumAddress.fromHex(accountStr);
@@ -155,6 +165,22 @@ final ethRpcMethods = [
   'eth_getFilterChanges',
   'eth_getFilterLogs',
   'eth_getLogs',
+
+  // Wallet (?) stuff
+  'personal_newAccount',
+  'personal_importRawKey',
+  'personal_unlockAccount',
+  'personal_ecRecover',
+  'personal_sign',
+  'personal_sendTransaction',
+  'personal_lockAccount',
+  'personal_listAccounts',
+  'personal_openWallet',
+  'personal_deriveAccount',
+  'personal_signTransaction',
+  'personal_unpair',
+  'personal_initializeWallet',
+  'personal_listWallets',
 
   // Sidechain specific RPC calls
   'eth_deposit',
