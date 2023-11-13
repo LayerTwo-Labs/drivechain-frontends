@@ -85,9 +85,12 @@ class SendOnSidechainAction extends StatelessWidget {
             },
           ),
           children: [
-            LargeEmbeddedInput(
-              controller: viewModel.bitcoinAddressController,
-              hintText: 'Enter a sidechain-address',
+            Focus(
+              autofocus: true,
+              child: LargeEmbeddedInput(
+                controller: viewModel.bitcoinAddressController,
+                hintText: 'Enter a sidechain-address',
+              ),
             ),
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
@@ -119,7 +122,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount => (double.tryParse(bitcoinAmountController.text) ?? 0).toStringAsFixed(8);
+  String get totalBitcoinAmount =>
+      ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)).toStringAsFixed(8);
 
   double? sidechainExpectedFee;
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
