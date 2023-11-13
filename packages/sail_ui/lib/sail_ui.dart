@@ -10,6 +10,7 @@ export './widgets/containers/action_tile.dart';
 export './widgets/containers/sail_border.dart';
 export './widgets/containers/sail_card.dart';
 export './widgets/containers/sail_column.dart';
+export './widgets/containers/sail_dialogs.dart';
 export './widgets/containers/sail_page.dart';
 export './widgets/containers/single_value_container.dart';
 export './widgets/core/sail_shadow.dart';

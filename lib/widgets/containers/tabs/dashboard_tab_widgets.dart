@@ -11,7 +11,6 @@ import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
-import 'package:sidesail/widgets/dialog.dart';
 import 'package:stacked/stacked.dart';
 
 class DashboardGroup extends StatelessWidget {
