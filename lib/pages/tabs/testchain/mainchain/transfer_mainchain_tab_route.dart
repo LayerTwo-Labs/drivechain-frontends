@@ -33,7 +33,7 @@ class TransferMainchainTabPage extends StatelessWidget {
                     title: 'Actions',
                     children: [
                       ActionTile(
-                        title: 'Peg-out to mainchain',
+                        title: 'Peg-out to parent chain',
                         category: Category.mainchain,
                         icon: Icons.remove,
                         onTap: () {
@@ -41,7 +41,7 @@ class TransferMainchainTabPage extends StatelessWidget {
                         },
                       ),
                       ActionTile(
-                        title: 'Peg-in from mainchain',
+                        title: 'Peg-in from parent chain',
                         category: Category.mainchain,
                         icon: Icons.add,
                         onTap: () {
