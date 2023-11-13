@@ -40,7 +40,7 @@ class NodeSettingsTabPage extends StatelessWidget {
                 loading: viewModel._sidechainBusy,
               ),
               NodeConnectionSettings(
-                name: 'Mainchain',
+                name: 'Parent Chain',
                 connected: viewModel.mainRPC.connected,
                 settings: viewModel.mainRPC.conf,
                 testConnectionValues: viewModel.reconnectMainchain,

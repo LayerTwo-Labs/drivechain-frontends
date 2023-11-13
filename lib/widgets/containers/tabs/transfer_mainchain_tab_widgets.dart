@@ -23,7 +23,7 @@ class PegOutAction extends StatelessWidget {
       viewModelBuilder: () => PegOutViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Peg-out to mainchain',
+          'Peg-out to parent chain',
           endActionButton: SailButton.primary(
             'Execute peg-out',
             disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
@@ -45,7 +45,7 @@ class PegOutAction extends StatelessWidget {
               bitcoinInput: true,
             ),
             StaticActionField(
-              label: 'Mainchain fee',
+              label: 'Parent chain fee',
               value: '${(viewModel.mainchainFee ?? 0).toStringAsFixed(8)} BTC',
             ),
             StaticActionField(
@@ -252,7 +252,7 @@ class PegInAction extends StatelessWidget {
       viewModelBuilder: () => PegInViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Peg-in from mainchain',
+          'Peg-in from parent chain',
           endActionButton: SailButton.primary(
             'Generate new address',
             loading: viewModel.isBusy,
