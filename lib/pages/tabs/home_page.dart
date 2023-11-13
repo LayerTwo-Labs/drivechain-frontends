@@ -14,6 +14,9 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
 import 'package:stacked/stacked.dart';
 
+const TestchainHome = 1;
+const EthereumHome = 6;
+
 @RoutePage()
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -24,8 +27,10 @@ class HomePage extends StatelessWidget {
     const routes = [
       // common routes
       SidechainExplorerTabRoute(),
+
       // testchain routes
       DashboardTabRoute(),
+      TestchainRPCTabRoute(),
       TransferMainchainTabRoute(),
       WithdrawalBundleTabRoute(),
       BlindMergedMiningTabRoute(),
@@ -39,7 +44,7 @@ class HomePage extends StatelessWidget {
     ];
 
     return auto_router.AutoTabsRouter.builder(
-      homeIndex: 1,
+      homeIndex: TestchainHome,
       routes: routes,
       builder: (context, children, tabsRouter) {
         return Scaffold(
@@ -162,34 +167,60 @@ class _SideNavState extends State<SideNav> {
           NavEntry(
             title: '${viewModel.chain.name} Dashboard',
             icon: SailSVGAsset.iconDashboardTab,
-            selected: tabsRouter.activeIndex == 1,
+            selected: false,
             onPressed: () {
-              tabsRouter.setActiveIndex(1);
-            },
-          ),
-          NavEntry(
-            title: 'Mainchain Dashboard',
-            icon: SailSVGAsset.iconWithdrawalBundleTab,
-            selected: tabsRouter.activeIndex == 2,
-            onPressed: () {
-              tabsRouter.setActiveIndex(2);
+              tabsRouter.setActiveIndex(TestchainHome);
             },
           ),
           SubNavEntryContainer(
-            open: tabsRouter.activeIndex == 2 || tabsRouter.activeIndex == 3 || tabsRouter.activeIndex == 4,
+            open: tabsRouter.activeIndex == TestchainHome || tabsRouter.activeIndex == 2,
             subs: [
               SubNavEntry(
-                title: 'Withdrawal explorer',
+                title: 'Transfer',
+                selected: tabsRouter.activeIndex == TestchainHome,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(TestchainHome);
+                },
+              ),
+              SubNavEntry(
+                title: 'Send RPC',
+                selected: tabsRouter.activeIndex == 2,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(2);
+                },
+              ),
+            ],
+          ),
+          NavEntry(
+            title: 'Parent Chain Dashboard',
+            icon: SailSVGAsset.iconWithdrawalBundleTab,
+            selected: false,
+            onPressed: () {
+              tabsRouter.setActiveIndex(3);
+            },
+          ),
+          SubNavEntryContainer(
+            open: tabsRouter.activeIndex == 3 || tabsRouter.activeIndex == 4 || tabsRouter.activeIndex == 5,
+            subs: [
+              SubNavEntry(
+                title: 'Transfer',
                 selected: tabsRouter.activeIndex == 3,
                 onPressed: () {
                   tabsRouter.setActiveIndex(3);
                 },
               ),
               SubNavEntry(
-                title: 'Blind Merged Mining',
+                title: 'Withdrawal explorer',
                 selected: tabsRouter.activeIndex == 4,
                 onPressed: () {
                   tabsRouter.setActiveIndex(4);
+                },
+              ),
+              SubNavEntry(
+                title: 'Blind Merged Mining',
+                selected: tabsRouter.activeIndex == 5,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(5);
                 },
               ),
             ],
@@ -200,10 +231,22 @@ class _SideNavState extends State<SideNav> {
           NavEntry(
             title: '${viewModel.chain.name} Dashboard',
             icon: SailSVGAsset.iconDashboardTab,
-            selected: tabsRouter.activeIndex == 5,
+            selected: false,
             onPressed: () {
-              tabsRouter.setActiveIndex(5);
+              tabsRouter.setActiveIndex(EthereumHome);
             },
+          ),
+          SubNavEntryContainer(
+            open: tabsRouter.activeIndex == EthereumHome,
+            subs: [
+              SubNavEntry(
+                title: 'Send RPC',
+                selected: tabsRouter.activeIndex == EthereumHome,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(EthereumHome);
+                },
+              ),
+            ],
           ),
         ];
     }

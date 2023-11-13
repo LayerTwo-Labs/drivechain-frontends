@@ -33,6 +33,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const EthereumRPCTabPage(),
       );
     },
+    TestchainRPCTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const TestchainRPCTabPage(),
+      );
+    },
     HomeRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -106,6 +112,20 @@ class DashboardTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'DashboardTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [TestchainRPCTabPage]
+class TestchainRPCTabRoute extends PageRouteInfo<void> {
+  const TestchainRPCTabRoute({List<PageRouteInfo>? children})
+      : super(
+          TestchainRPCTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'TestchainRPCTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
