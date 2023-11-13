@@ -92,10 +92,12 @@ class SailTextField extends StatelessWidget {
               fontSize: textSize,
             ),
             suffixText: suffix,
-            suffix: Padding(
-              padding: const EdgeInsets.only(left: SailStyleValues.padding08),
-              child: suffixWidget,
-            ),
+            suffix: suffixWidget == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(left: SailStyleValues.padding08),
+                    child: suffixWidget,
+                  ),
             prefixStyle: TextStyle(
               color: SailTheme.of(context).colors.textTertiary,
               fontSize: textSize,
