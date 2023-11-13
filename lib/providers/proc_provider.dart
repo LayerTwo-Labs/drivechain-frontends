@@ -25,7 +25,9 @@ class ProcessProvider extends ChangeNotifier {
 
   // Starts a binary located in the asset bundle included with the app.
   Future<int> start(BuildContext context, String binary, List<String> args) async {
-    // TODO: lookup based on arch + platform
+    // We're NOT looking up here based on platform and architecture. That is instead
+    // handled at app bundling time, where it's up the person/process cutting the
+    // release to place the appropriate binaries in the correct place.
     final binResource = await DefaultAssetBundle.of(context).load('assets/bin/$binary');
 
     final temp = await getTemporaryDirectory();
