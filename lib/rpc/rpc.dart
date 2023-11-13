@@ -11,11 +11,9 @@ import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 abstract class RPCConnection extends ChangeNotifier {
   final _log = Logger(level: Level.debug);
 
-  RPCConnection()
-      : connectionError = '',
-        connected = false;
-
-  Future<void> createClient();
+  RPCConnection({
+    required this.conf,
+  });
 
   // ping method that tests whether the connection is successful
   // should throw if call is not successful
@@ -43,7 +41,7 @@ abstract class RPCConnection extends ChangeNotifier {
   }
 
   // values for tracking connection state, and error (if any)
-  late SingleNodeConnectionSettings connectionSettings;
+  SingleNodeConnectionSettings conf;
   String? connectionError;
-  bool connected;
+  bool connected = false;
 }

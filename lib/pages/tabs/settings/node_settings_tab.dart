@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -29,21 +31,22 @@ class NodeSettingsTabPage extends StatelessWidget {
             children: [
               NodeConnectionSettings(
                 name: 'Sidechain',
-                connected: viewModel.sidechainConnected,
-                settings: viewModel.sidechainSettings,
+                sidechain: viewModel.sidechain.rpc.chain,
+                connected: viewModel.sidechain.rpc.connected,
+                settings: viewModel.sidechain.rpc.conf,
                 testConnectionValues: viewModel.reconnectSidechain,
-                connectionError: viewModel.sidechainConnectionError,
-                readError: viewModel.sidechainFileError,
-                loading: viewModel.sidechainBusy,
+                connectionError: viewModel.sidechain.rpc.connectionError,
+                readError: viewModel.sidechain.rpc.conf.readError,
+                loading: viewModel._sidechainBusy,
               ),
               NodeConnectionSettings(
                 name: 'Mainchain',
-                connected: viewModel.mainchainConnected,
-                settings: viewModel.mainchainSettings,
+                connected: viewModel.mainRPC.connected,
+                settings: viewModel.mainRPC.conf,
                 testConnectionValues: viewModel.reconnectMainchain,
-                connectionError: viewModel.mainchainConnectionError,
-                readError: viewModel.mainchainFileError,
-                loading: viewModel.mainchainBusy,
+                connectionError: viewModel.mainRPC.connectionError,
+                readError: viewModel.mainRPC.conf.readError,
+                loading: viewModel._mainchainBusy,
               ),
             ],
           );
@@ -54,6 +57,7 @@ class NodeSettingsTabPage extends StatelessWidget {
 }
 
 class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
+  final Sidechain? sidechain;
   final String name;
   final bool connected;
   final SingleNodeConnectionSettings settings;
@@ -71,6 +75,7 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
     required this.connectionError,
     required this.readError,
     required this.loading,
+    this.sidechain,
   });
 
   @override
@@ -108,7 +113,7 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
           hintText: '/the/path/to/your/somethingchain.conf',
           suffixWidget: SailTextButton(
             label: 'Read file',
-            onPressed: settings.readAndSetValuesFromFile,
+            onPressed: () => settings.readAndSetValuesFromFile(sidechain),
           ),
         ),
         SailTextField(
@@ -161,36 +166,18 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
 enum ConnectionStatus { connected, unconnected }
 
 class NodeConnectionViewModel extends BaseViewModel {
-  SidechainRPC get sideRPC => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   MainchainRPC get mainRPC => GetIt.I.get<MainchainRPC>();
-
-  SingleNodeConnectionSettings get sidechainSettings => sideRPC.connectionSettings;
-  SingleNodeConnectionSettings get mainchainSettings => mainRPC.connectionSettings;
-
-  bool get sidechainConnected => sideRPC.connected;
-  bool get mainchainConnected => mainRPC.connected;
-
-  String? get sidechainConnectionError => sideRPC.connectionError;
-  String? get mainchainConnectionError => mainRPC.connectionError;
-
-  String? get sidechainFileError => sideRPC.connectionSettings.readError;
-  String? get mainchainFileError => mainRPC.connectionSettings.readError;
-
-  bool get sidechainBusy => _sidechainBusy;
-  bool get mainchainBusy => _mainchainBusy;
 
   bool _sidechainBusy = false;
   bool _mainchainBusy = false;
 
-  bool get sidechainSettingsDifferent => sideRPC.connectionSettings.inputDifferentThanFile;
-  bool get mainchainSettingsDifferent => mainRPC.connectionSettings.inputDifferentThanFile;
-
   NodeConnectionViewModel() {
     mainRPC.addListener(notifyListeners);
-    mainRPC.connectionSettings.addListener(notifyListeners);
+    mainRPC.conf.addListener(notifyListeners);
 
-    sideRPC.addListener(notifyListeners);
-    sideRPC.connectionSettings.addListener(notifyListeners);
+    sidechain.addListener(notifyListeners);
+    sidechain.rpc.conf.addListener(notifyListeners);
   }
 
   Timer? _connectionTimer;
@@ -199,10 +186,9 @@ class NodeConnectionViewModel extends BaseViewModel {
     _sidechainBusy = true;
     notifyListeners();
 
-    await sideRPC.createClient();
     // calling this will propagate the results to the local
-    // sidechainConnetced bool
-    await sideRPC.testConnection();
+    // sidechainConnected bool
+    await sidechain.rpc.testConnection();
 
     _sidechainBusy = false;
     notifyListeners();
@@ -212,9 +198,8 @@ class NodeConnectionViewModel extends BaseViewModel {
     _mainchainBusy = true;
     notifyListeners();
 
-    await mainRPC.createClient();
     // calling this will propagate the results to the local
-    // sidechainConnetced bool
+    // mainchainConnected bool
     await mainRPC.testConnection();
 
     _mainchainBusy = false;
@@ -224,10 +209,12 @@ class NodeConnectionViewModel extends BaseViewModel {
   @override
   void dispose() {
     _connectionTimer?.cancel();
-    sideRPC.removeListener(notifyListeners);
-    sideRPC.connectionSettings.removeListener(notifyListeners);
+    sidechain.removeListener(notifyListeners);
+    sidechain.rpc.conf.removeListener(notifyListeners);
+
     mainRPC.removeListener(notifyListeners);
-    mainRPC.connectionSettings.removeListener(notifyListeners);
+    mainRPC.conf.removeListener(notifyListeners);
+
     super.dispose();
   }
 }
@@ -299,21 +286,27 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  void readAndSetValuesFromFile() async {
+  void readAndSetValuesFromFile(Sidechain? sidechain) async {
     try {
       var parts = splitPath(configPathController.text);
       String dataDir = parts.$1;
       String confFile = parts.$2;
       readError = null;
 
-      final config = await readRpcConfig(dataDir, confFile);
-      configPathController.text = config.path;
+      final config = await readRpcConfig(dataDir, confFile, sidechain);
+      configPathController.text = config.fileConfigPath;
       hostController.text = config.host;
       portController.text = config.port.toString();
       usernameController.text = config.username;
       passwordController.text = config.password;
 
-      _setFileValues(config.path, config.host, config.port, config.username, config.password);
+      _setFileValues(
+        config.fileConfigPath,
+        config.host,
+        config.port,
+        config.username,
+        config.password,
+      );
     } catch (error) {
       readError = error.toString();
     }
@@ -321,12 +314,14 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  // TODO: might need tweaking on Windows
   (String, String) splitPath(String path) {
-    if (!path.contains('/')) {
+    final sep = Platform.pathSeparator;
+    if (!path.contains(sep)) {
       return ('', '');
     }
-    String directory = path.substring(0, path.lastIndexOf('/'));
-    String fileName = path.split('/').last;
+    String directory = path.substring(0, path.lastIndexOf(sep));
+    String fileName = path.split(sep).last;
 
     return (directory, fileName);
   }

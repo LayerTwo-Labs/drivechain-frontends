@@ -1,24 +1,23 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 abstract class Sidechain {
-  String name = '';
-  int slot = 0;
-  Color color = Colors.transparent;
+  String get name;
+  int get slot;
+  Color get color;
   SidechainType get type;
+
+  // TODO: turn this into a function that takes a regtest/signet/whatever param
+  int get rpcPort;
+
   String get ticker {
     return 'SC$slot';
   }
 }
 
-abstract class SideWithTicker implements Sidechain {
-  @override
-  String get ticker {
-    return 'SC$slot';
-  }
-}
-
-class TestSidechain extends SideWithTicker {
+class TestSidechain extends Sidechain {
   @override
   String name = 'Testchain';
 
@@ -30,9 +29,12 @@ class TestSidechain extends SideWithTicker {
 
   @override
   SidechainType get type => SidechainType.testChain;
+
+  @override
+  int get rpcPort => 18743;
 }
 
-class EthereumSidechain extends SideWithTicker {
+class EthereumSidechain extends Sidechain {
   @override
   String name = 'Ethereum';
 
@@ -44,6 +46,68 @@ class EthereumSidechain extends SideWithTicker {
 
   @override
   SidechainType get type => SidechainType.ethereum;
+
+  @override
+  int get rpcPort => 8545;
 }
 
 enum SidechainType { testChain, ethereum }
+
+extension SidechainPaths on SidechainType {
+  String confFile() {
+    switch (this) {
+      case SidechainType.testChain:
+        return 'testchain.conf';
+      case SidechainType.ethereum:
+        return '???';
+    }
+  }
+
+  String datadir() {
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']; // windows!
+    if (home == null) {
+      throw 'unable to determine HOME location';
+    }
+
+    if (Platform.isLinux) {
+      return _filePath([
+        home,
+        _linuxDirname(),
+      ]);
+    } else if (Platform.isMacOS) {
+      return _filePath([
+        home,
+        'Library',
+        'Application Support',
+        _macosDirname(),
+      ]);
+    } else if (Platform.isWindows) {
+      throw 'TODO: windows';
+    } else {
+      throw 'unsupported operating system: ${Platform.operatingSystem}';
+    }
+  }
+
+  String _linuxDirname() {
+    switch (this) {
+      case SidechainType.testChain:
+        return '.testchain';
+      case SidechainType.ethereum:
+        // TODO: correct?
+        return '.ethereum';
+    }
+  }
+
+  String _macosDirname() {
+    switch (this) {
+      case SidechainType.testChain:
+        return 'Testchain';
+      case SidechainType.ethereum:
+        return 'Ethereum';
+    }
+  }
+}
+
+String _filePath(List<String> segments) {
+  return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
+}

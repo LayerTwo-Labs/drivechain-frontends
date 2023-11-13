@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 
 class Config {
   final String path;
@@ -28,7 +30,7 @@ const network = 'regtest';
 // 2. Inspect cookie
 // 3. Defaults
 //
-Future<Config> readRpcConfig(String datadir, String confFile) async {
+Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFile, Sidechain? sidechain) async {
   final networkDir = _filePath([datadir, network]);
 
   final conf = File(_filePath([datadir, confFile]));
@@ -75,16 +77,16 @@ Future<Config> readRpcConfig(String datadir, String confFile) async {
   }
 
   host ??= 'localhost';
-  port ??= confFile.startsWith('testchain') ? _defaultSidechainPorts[network]! : _defaultMainchainPorts[network]!;
+  port ??= sidechain == null ? _defaultMainchainPorts[network]! : sidechain.rpcPort;
 
 // Make sure to not include password here
   log.i('resolved conf: $username@$host:$port');
-  return Config(
-    path: conf.path,
-    host: host,
-    port: port,
-    username: username,
-    password: password,
+  return SingleNodeConnectionSettings(
+    conf.path,
+    host,
+    port,
+    username,
+    password,
   );
 }
 
@@ -119,42 +121,9 @@ String mainchainDatadir() {
   }
 }
 
-// TODO: make this configurable when adding support for more sidechains
-// TODO: this might need permissions configuration for Windows and Linux?
-String testchainDatadir() {
-  final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']; // windows!
-  if (home == null) {
-    throw 'unable to determine HOME location';
-  }
-
-  if (Platform.isLinux) {
-    return _filePath([
-      home,
-      '.testchain',
-    ]);
-  } else if (Platform.isMacOS) {
-    return _filePath([
-      home,
-      'Library',
-      'Application Support',
-      'Testchain',
-    ]);
-  } else if (Platform.isWindows) {
-    throw 'TODO: windows';
-  } else {
-    throw 'unsupported operating system: ${Platform.operatingSystem}';
-  }
-}
-
 String _filePath(List<String> segments) {
   return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }
-
-// TODO: this would need to take chain into account
-// TODO: add more nets
-Map<String, int> _defaultSidechainPorts = {
-  'regtest': 18743,
-};
 
 // TODO: add more nets
 Map<String, int> _defaultMainchainPorts = {
