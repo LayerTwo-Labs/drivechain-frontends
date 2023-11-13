@@ -68,7 +68,7 @@ class ChainOverviewCard extends StatelessWidget {
                     SailRow(
                       spacing: SailStyleValues.padding08,
                       children: [
-                        SailSVG.icon(SailSVGAsset.iconConfirmed),
+                        SailSVG.icon(SailSVGAsset.iconSuccess),
                         SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
                       ],
                     ),

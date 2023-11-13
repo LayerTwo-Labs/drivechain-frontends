@@ -305,7 +305,7 @@ class BmmAttempt {
       return ('Failed', SailSVGAsset.iconFailed);
     }
     if (connected) {
-      return ('Success', SailSVGAsset.iconConfirmed);
+      return ('Success', SailSVGAsset.iconSuccess);
     }
 
     return ('Trying...', SailSVGAsset.iconPending);
