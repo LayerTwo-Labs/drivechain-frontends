@@ -1,3 +1,11 @@
 import 'package:logger/logger.dart';
 
-final log = Logger(level: Level.debug);
+final printer = PrettyPrinter(
+  printTime: true,
+  printEmojis: false,
+);
+
+final log = Logger(
+  level: Level.debug,
+  printer: printer,
+);
