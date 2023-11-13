@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
@@ -12,6 +11,7 @@ import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
+import 'package:sidesail/widgets/dialog.dart';
 import 'package:stacked/stacked.dart';
 
 class PegOutAction extends StatelessWidget {
@@ -128,12 +128,9 @@ class PegOutViewModel extends BaseViewModel {
       return;
     }
 
-    final theme = SailTheme.of(context);
-
-    await showDialog(
+    await showThemedDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: theme.colors.background.withOpacity(0.9),
         title: SailText.primary13(
           'Confirm withdrawal',
         ),
@@ -200,11 +197,9 @@ class PegOutViewModel extends BaseViewModel {
       // refresh transactions, but don't await, so dialog is showed instantly
       unawaited(_transactionsProvider.fetch());
 
-      final theme = SailTheme.of(context);
-      await showDialog(
+      await showThemedDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: theme.colors.background.withOpacity(0.9),
           title: SailText.primary13(
             'Success',
           ),
@@ -226,11 +221,9 @@ class PegOutViewModel extends BaseViewModel {
         return;
       }
 
-      final theme = SailTheme.of(context);
-      await showDialog(
+      await showThemedDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: theme.colors.background.withOpacity(0.9),
           title: SailText.primary13(
             'Failed',
           ),
