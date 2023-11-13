@@ -12,7 +12,6 @@ import 'package:web3dart/web3dart.dart';
 @RoutePage()
 class EthereumRPCTabPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
 
   const EthereumRPCTabPage({super.key});
 
@@ -56,11 +55,13 @@ class EthereumRPCTabPage extends StatelessWidget {
               Expanded(child: Container()),
             ],
           ),
-          body: const Padding(
-            padding: EdgeInsets.only(bottom: SailStyleValues.padding30),
+          body: Padding(
+            padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
             child: Column(
               children: [
-                RPCWidget(),
+                RPCWidget(
+                  rpcMethods: ethRPCMethods,
+                ),
               ],
             ),
           ),

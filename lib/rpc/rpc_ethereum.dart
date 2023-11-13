@@ -103,7 +103,7 @@ class EthereumRPCLive extends EthereumRPC {
 }
 
 /// List of all known RPC methods available /
-final ethRpcMethods = [
+final ethRPCMethods = [
   // Sidechain specific RPC calls
   'eth_deposit',
   'eth_withdraw',

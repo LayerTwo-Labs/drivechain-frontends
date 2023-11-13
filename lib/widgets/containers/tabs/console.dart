@@ -6,11 +6,16 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/logger.dart';
-import 'package:sidesail/rpc/rpc_ethereum.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 
 class RPCWidget extends StatefulWidget {
-  const RPCWidget({super.key});
+  final List<String> rpcMethods;
+
+  const RPCWidget({
+    super.key,
+    required this.rpcMethods,
+  });
 
   @override
   RPCWidgetState createState() => RPCWidgetState();
@@ -32,7 +37,7 @@ class Result {
 }
 
 class RPCWidgetState extends State<RPCWidget> {
-  EthereumRPC get rpc => GetIt.I.get<EthereumRPC>();
+  SidechainRPC get rpc => GetIt.I.get<SidechainRPC>();
   List<Result> results = [];
 
   Future<dynamic> _callRpc(String args) async {
@@ -99,9 +104,9 @@ class RPCWidgetState extends State<RPCWidget> {
               child: Autocomplete<String>(
                 optionsBuilder: (TextEditingValue textEditingValue) {
                   if (textEditingValue.text == '') {
-                    return const Iterable<String>.empty();
+                    return widget.rpcMethods;
                   }
-                  return ethRpcMethods.where((String option) {
+                  return widget.rpcMethods.where((String option) {
                     return option.contains(textEditingValue.text.toLowerCase());
                   });
                 },
