@@ -36,7 +36,11 @@ class BalanceProvider extends ChangeNotifier {
 
   void _startPolling() {
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      await fetch();
+      try {
+        await fetch();
+      } catch (error) {
+        // do nothing with it, just don't spam the console
+      }
       notifyListeners();
     });
   }
