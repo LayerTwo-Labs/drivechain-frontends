@@ -51,7 +51,6 @@ class ProcessProvider extends ChangeNotifier {
       args,
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
     );
-    log.d('started "$binary" with pid ${process.pid}');
     _runningProcesses.add(process.pid);
 
     // Let output streaming chug in the background
@@ -61,6 +60,9 @@ class ProcessProvider extends ChangeNotifier {
 
     // Error messages while starting up are written here
     _stderrStreams[process.pid] = process.stderr.transform(utf8.decoder);
+
+    // By default, this doesn't resolve to anything
+    var processExited = Completer<bool>();
 
     // Register a handler for when the process stops.
     unawaited(
@@ -72,8 +74,10 @@ class ProcessProvider extends ChangeNotifier {
           level = Level.info;
         }
 
-        final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
-        log.log(level, '"$binary" exited with code $code: $errLogs');
+        log.log(level, '"$binary" exited with code $code');
+
+        // Resolve the process exit future
+        processExited.complete(true);
 
         // Forward to listeners that the process finished.
         _exitCodes[process.pid] = code;
@@ -81,6 +85,21 @@ class ProcessProvider extends ChangeNotifier {
         notifyListeners();
       }),
     );
+
+    // If the process exits within 0.5 second, it's not really properly started!
+    final exited = await Future.any([
+      Future.delayed(const Duration(milliseconds: 500), () {
+        return false;
+      }),
+      processExited.future,
+    ]);
+
+    if (exited) {
+      final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
+      throw '"$binary" exited with code ${_exitCodes[process.pid]}: ${errLogs.last}';
+    }
+
+    log.d('started "$binary" with pid ${process.pid}');
 
     notifyListeners();
     return process.pid;

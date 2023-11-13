@@ -29,7 +29,7 @@ abstract class RPCConnection extends ChangeNotifier {
       connectionError = null;
       connected = true;
     } catch (error) {
-      _log.e('could not ping: ${error.toString()}!');
+      _log.t('could not ping: ${error.toString()}!');
       connectionError = error.toString();
       connected = false;
     } finally {

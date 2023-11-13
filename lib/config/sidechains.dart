@@ -15,6 +15,8 @@ abstract class Sidechain {
   String get ticker {
     return 'SC$slot';
   }
+
+  String get binary;
 }
 
 class TestSidechain extends Sidechain {
@@ -32,6 +34,9 @@ class TestSidechain extends Sidechain {
 
   @override
   int get rpcPort => 18743;
+
+  @override
+  String get binary => 'testchaind';
 }
 
 class EthereumSidechain extends Sidechain {
@@ -49,6 +54,9 @@ class EthereumSidechain extends Sidechain {
 
   @override
   int get rpcPort => 8545;
+
+  @override
+  String get binary => 'sidegeth';
 }
 
 enum SidechainType { testChain, ethereum }
