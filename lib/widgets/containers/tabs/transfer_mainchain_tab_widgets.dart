@@ -128,40 +128,21 @@ class PegOutViewModel extends BaseViewModel {
       return;
     }
 
-    await showThemedDialog(
+    await infoDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: SailText.primary13(
-          'Confirm withdrawal',
-        ),
-        content: SailText.primary13(
+      action: 'Peg-out to parent chain',
+      title: 'Confirm withdrawal',
+      subtitle:
           'Do you really want to peg-out?\n${bitcoinAmountController.text} BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: SailText.primary13('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              // Pop the currently visible dialog
-              Navigator.of(context).pop();
-
-              // This creates a new dialog on success
-              _doPegOut(
-                context,
-                address,
-                pegOutAmount!,
-                sidechainFee!,
-                mainchainFee!,
-              );
-            },
-            child: SailText.primary13(
-              'OK',
-            ),
-          ),
-        ],
-      ),
+      onConfirm: () {
+        _doPegOut(
+          context,
+          address,
+          pegOutAmount!,
+          sidechainFee!,
+          mainchainFee!,
+        );
+      },
     );
   }
 
@@ -197,22 +178,11 @@ class PegOutViewModel extends BaseViewModel {
       // refresh transactions, but don't await, so dialog is showed instantly
       unawaited(_transactionsProvider.fetch());
 
-      await showThemedDialog(
+      await successDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: SailText.primary13(
-            'Success',
-          ),
-          content: SailText.primary13(
-            'Submitted peg-out successfully! TXID: $withdrawalTxid',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => _router.popUntilRoot(),
-              child: SailText.primary13('OK'),
-            ),
-          ],
-        ),
+        action: 'Peg-out to parent chain',
+        title: 'Submitted peg-out successfully',
+        subtitle: 'TXID: $withdrawalTxid',
       );
     } catch (error) {
       log.e('could not execute peg-out: $error', error: error);
@@ -221,23 +191,14 @@ class PegOutViewModel extends BaseViewModel {
         return;
       }
 
-      await showThemedDialog(
+      await errorDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: SailText.primary13(
-            'Failed',
-          ),
-          content: SailText.primary13(
-            'Could not execute peg-out: ${error.toString()}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => _router.popUntilRoot(),
-              child: SailText.primary13('OK'),
-            ),
-          ],
-        ),
+        action: 'Peg-out to parent chain',
+        title: 'Could not execute peg-out',
+        subtitle: error.toString(),
       );
+      // also pop the info modal
+      await _router.pop();
       return;
     }
   }

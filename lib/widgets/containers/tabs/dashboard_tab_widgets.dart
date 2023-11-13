@@ -169,37 +169,16 @@ class SendOnSidechainViewModel extends BaseViewModel {
       return;
     }
 
-    await showThemedDialog(
+    await infoDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: SailText.primary13(
-          'Confirm send',
-        ),
-        content: SailText.primary13(
+      action: 'Send on sidechain',
+      title: 'Confirm send',
+      subtitle:
           'Do you really want to send ${bitcoinAmountController.text} BTC to $address with $sidechainExpectedFee SC expected fee?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: SailText.primary13('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              // Pop the currently visible dialog
-              Navigator.of(context).pop();
-
-              // This creates a new dialog on success
-              _doSidechainSend(
-                context,
-                address,
-                sendAmount!,
-              );
-            },
-            child: SailText.primary13(
-              'OK',
-            ),
-          ),
-        ],
+      onConfirm: () => _doSidechainSend(
+        context,
+        address,
+        sendAmount!,
       ),
     );
   }
@@ -230,45 +209,26 @@ class SendOnSidechainViewModel extends BaseViewModel {
         return;
       }
 
-      await showThemedDialog(
+      await successDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: SailText.primary13(
-            'Success',
-          ),
-          content: SailText.primary13(
-            'Sent successfully! TXID: $sendTXID',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => _router.popUntilRoot(),
-              child: SailText.primary13('OK'),
-            ),
-          ],
-        ),
+        action: 'Send on sidechain',
+        title: 'You sent $amount BTC to $address',
+        subtitle: 'TXID: $sendTXID',
       );
     } catch (error) {
       if (!context.mounted) {
         return;
       }
 
-      await showThemedDialog(
+      await errorDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: SailText.primary13(
-            'Failed',
-          ),
-          content: SailText.primary13(
-            'Could not execute sidechain withdrawal ${error.toString()}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => _router.popUntilRoot(),
-              child: SailText.primary13('OK'),
-            ),
-          ],
-        ),
+        action: 'Send on sidechain',
+        title: 'Could not execute withdrawal',
+        subtitle: error.toString(),
       );
+      // also pop the info modal
+      await _router.pop();
+
       return;
     }
   }
