@@ -60,7 +60,7 @@ services:
       # made by Paul. Think it's some sort of wallet functionality? Not sure,
       # tbh. Went looking for a list of available APIs, without finding
       # anything.
-      - --http.api=net,eth,personal,web3
+      - --http.api=eth,web3,personal,admin,jeth,miner,net,txpool
       - --http.addr=0.0.0.0
       - --main.host=mainchain
       - --main.password=password
