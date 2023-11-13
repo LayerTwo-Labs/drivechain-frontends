@@ -14,6 +14,7 @@ import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -53,7 +54,8 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
   /// Unrecoverable error on startup we can't get past.
   dynamic _initBinariesError;
-  String mainchainStartupMessage = "Checking if 'drivechaind' is started";
+  String mainchainStartupMessage = 'Checking if mainchain is started';
+  String sidechainStartupMessage = 'Checking if sidechain is started';
   bool binariesStarted = false;
   SailThemeData? theme;
 
@@ -63,7 +65,24 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
     unawaited(
-      initRPCs().then((_) => initBinaries()),
+      initRPCs().then(
+        (_) => Future.wait([
+          initMainchainBinary(),
+          initSidechainBinary(),
+          // let the spinner work for at least one second, to avoid flickering
+          Future.delayed(const Duration(seconds: 1)),
+        ])
+            .then(
+              (_) => setState(() {
+                binariesStarted = true;
+              }),
+            )
+            .onError(
+              (error, stackTrace) => setState(() {
+                _initBinariesError = error.toString();
+              }),
+            ),
+      ),
     );
   }
 
@@ -124,60 +143,71 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     await Future.wait([mainchainFut, sidechainFut]);
   }
 
-  Future<void> initBinaries() async {
-    log.d('init binaries: checking mainchain connection');
+  Future<void> initMainchainBinary() async {
+    return _initBinary('drivechaind', mainchain, (msg) {
+      setState(
+        () {
+          mainchainStartupMessage = msg;
+        },
+      );
+    });
+  }
 
-    // First, let the mainchain connection check finish.
-    await mainchain.initDone;
+  Future<void> initSidechainBinary() async {
+    return _initBinary(_sidechain.rpc.chain.binary, _sidechain.rpc, (msg) {
+      setState(
+        () {
+          sidechainStartupMessage = msg;
+        },
+      );
+    });
+  }
+
+  Future<void> _initBinary(String binary, RPCConnection conn, void Function(String) updateMsg) async {
+    log.d('init binaries: checking $binary connection');
+
+    // First, let the RPC connection check finish.
+    await conn.initDone;
 
     // If we managed to connect, we're finished here!
-    if (mainchain.connected) {
-      log.d('init binaries: mainchain is already running, not doing anything');
-      setState(() {
-        binariesStarted = true;
-      });
+    if (conn.connected) {
+      updateMsg("'$binary' is already running");
+      log.d('init binaries: $binary is already running, not doing anything');
       return;
     }
 
     // We have to start the mainchain
-    final tempDir = await Directory.systemTemp.createTemp('drivechaind');
-    final tempLogFile = await File('${tempDir.path}/drivechaind.debug.log').create(recursive: true);
+    final tempDir = await Directory.systemTemp.createTemp(binary);
+    final tempLogFile = await File('${tempDir.path}/$binary.debug.log').create(recursive: true);
 
     if (!context.mounted) {
       return;
     }
 
+    // TODO: update this when adding other nodes with different args
     final args = [
       '-debuglogfile=${tempLogFile.path}',
       '-regtest',
     ];
 
-    log.d('init binaries: starting drivechaind $args');
+    log.d('init binaries: starting $binary $args');
 
     try {
-      final pid = await processes.start(context, 'drivechaind', args);
-      log.d('init binaries: started drivechaind with PID $pid');
-      setState(() {
-        mainchainStartupMessage = "Started 'drivechaind', waiting for successful RPC connection";
-      });
+      final pid = await processes.start(context, binary, args);
+      log.d('init binaries: started $binary with PID $pid');
+      updateMsg("Started '$binary', waiting for successful RPC connection");
     } catch (err) {
-      log.w('init binaries: unable to start drivechaind', error: err);
-      return setState(() {
-        _initBinariesError = err;
-      });
+      throw 'unable to start $binary: $err';
     }
 
     // Add timeout?
-    log.i('init binaries: waiting for mainchain connection');
+    log.i('init binaries: waiting for $binary connection');
     await waitForBoolToBeTrue(() async {
-      final (connected, _) = await mainchain.testConnection();
+      final (connected, _) = await conn.testConnection();
       return connected;
     });
 
-    log.i('init binaries: mainchain connected');
-    return setState(() {
-      binariesStarted = true;
-    });
+    log.i('init binaries: $binary connected');
   }
 
   Future<void> loadTheme([SailThemeValues? themeToLoad]) async {
@@ -205,6 +235,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
         spacing: SailStyleValues.padding25,
         children: [
           SailText.primary20('Mainchain starting up: $mainchainStartupMessage'),
+          SailText.primary20('Sidechain starting up: $sidechainStartupMessage'),
           const SailCircularProgressIndicator(),
         ],
       );
