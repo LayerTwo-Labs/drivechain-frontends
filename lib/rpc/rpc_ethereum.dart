@@ -71,6 +71,8 @@ class EthereumRPCLive extends EthereumRPC {
   Future<(double, double)> getBalance() async {
     final account = await _setAndGetAccount();
     final balance = await _client.getBalance(account);
+
+    notifyListeners();
     return (balance.getInEther.toDouble(), 0.0);
   }
 
@@ -100,6 +102,7 @@ class EthereumRPCLive extends EthereumRPC {
     }
 
     account = EthereumAddress.fromHex(accountStr);
+    notifyListeners();
   }
 
   // ignore: unused_element
