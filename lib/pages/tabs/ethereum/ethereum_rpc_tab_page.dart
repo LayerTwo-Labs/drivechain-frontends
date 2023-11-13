@@ -12,6 +12,7 @@ import 'package:web3dart/web3dart.dart';
 @RoutePage()
 class EthereumRPCTabPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
+  AppRouter get _router => GetIt.I.get<AppRouter>();
 
   const EthereumRPCTabPage({super.key});
 
@@ -30,7 +31,29 @@ class EthereumRPCTabPage extends StatelessWidget {
               if (viewModel.account == null)
                 SailButton.primary(
                   'Create account',
-                  onPressed: viewModel.createAccount,
+                  onPressed: () async {
+                    try {
+                      await viewModel.createAccount();
+                    } catch (err) {
+                      if (!context.mounted) {
+                        return;
+                      }
+
+                      await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: SailText.primary20('Could not create account'),
+                          content: SailText.secondary13(err.toString()),
+                          actions: [
+                            TextButton(
+                              onPressed: () => _router.popUntilRoot(),
+                              child: SailText.primary13('OK'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
                   size: ButtonSize.small,
                 ),
               if (viewModel.account == null)
@@ -64,7 +87,7 @@ class EthereumRPCTabPageViewModel extends BaseViewModel {
 
   bool running = false;
 
-  void createAccount() async {
+  Future<void> createAccount() async {
     if (account != null) {
       throw Exception('you can only make one account using the GUI');
     }
