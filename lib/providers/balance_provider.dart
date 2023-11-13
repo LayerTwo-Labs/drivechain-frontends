@@ -5,7 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class BalanceProvider extends ChangeNotifier {
-  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
 
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these
@@ -20,12 +20,12 @@ class BalanceProvider extends ChangeNotifier {
   BalanceProvider() {
     fetch();
     _startPolling();
-    _rpc.addListener(fetch);
+    sidechain.addListener(fetch);
   }
 
   // call this function from anywhere to refresh the balance
   Future<void> fetch() async {
-    final (bal, pendingBal) = await _rpc.getBalance();
+    final (bal, pendingBal) = await sidechain.rpc.getBalance();
     // TODO: Handle error?
     balance = bal;
     pendingBalance = pendingBal;
@@ -46,6 +46,6 @@ class BalanceProvider extends ChangeNotifier {
     super.dispose();
     // Cancel timer when provider is disposed (never?)
     _timer.cancel();
-    _rpc.removeListener(notifyListeners);
+    sidechain.removeListener(notifyListeners);
   }
 }

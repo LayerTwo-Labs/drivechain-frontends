@@ -1,15 +1,13 @@
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 
 class MockMainchainRPC extends MainchainRPC {
+  MockMainchainRPC() : super(conf: SingleNodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', ''));
+
   @override
   Future<double> estimateFee() async {
     return 0.001;
-  }
-
-  @override
-  Future<void> createClient() async {
-    return;
   }
 
   @override

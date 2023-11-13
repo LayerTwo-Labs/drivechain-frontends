@@ -9,9 +9,12 @@ import 'package:sail_ui/theme/theme_data.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sail_ui/widgets/core/scaffold.dart';
 import 'package:sail_ui/widgets/loading_indicator.dart';
+import 'package:sidesail/config/runtime_args.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/storage/client_settings.dart';
@@ -43,7 +46,7 @@ class SailApp extends StatefulWidget {
 
 class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   AppRouter get router => GetIt.I.get<AppRouter>();
-  SidechainRPC get _sidechain => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   ProcessProvider get processes => GetIt.I.get<ProcessProvider>();
   final settings = GetIt.I.get<ClientSettings>();
@@ -59,7 +62,9 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
-    unawaited(initBinaries());
+    unawaited(
+      initRPCs().then((_) => initBinaries()),
+    );
   }
 
   void rebuildUI() {
@@ -72,12 +77,51 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   SailThemeData _themeDataFromTheme(SailThemeValues theme) {
     switch (theme) {
       case SailThemeValues.light:
-        return SailThemeData.lightTheme(_sidechain.chain.color);
+        return SailThemeData.lightTheme(_sidechain.rpc.chain.color);
       case SailThemeValues.dark:
-        return SailThemeData.darkTheme(_sidechain.chain.color);
+        return SailThemeData.darkTheme(_sidechain.rpc.chain.color);
       default:
         throw Exception('Could not get theme');
     }
+  }
+
+  Future<void> initRPCs() async {
+    // Not ideal, but fuck it
+    if (RuntimeArgs.isInTest) {
+      return;
+    }
+
+    final mainchainFut = readRpcConfig(mainchainDatadir(), 'drivechain.conf', null).then(
+      (conf) async {
+        log.d('read mainchain RPC configuration');
+        mainchain.conf = conf;
+        final (connected, connectionError) = await mainchain.testConnection();
+
+        if (!connected) {
+          log.w('mainchain NOT connected: $connectionError');
+        } else {
+          log.d('mainchain connected');
+        }
+      },
+    );
+
+    final sidechainFut = readRpcConfig(
+      _sidechain.rpc.chain.type.datadir(),
+      _sidechain.rpc.chain.type.confFile(),
+      _sidechain.rpc.chain,
+    ).then((conf) async {
+      log.d('read sidechain RPC configuration');
+      _sidechain.rpc.conf = conf;
+
+      final (connected, connectionError) = await _sidechain.rpc.testConnection();
+      if (!connected) {
+        log.w('sidechain NOT connected: $connectionError');
+      } else {
+        log.d('sidechain connected');
+      }
+    });
+
+    await Future.wait([mainchainFut, sidechainFut]);
   }
 
   Future<void> initBinaries() async {
@@ -140,7 +184,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     themeToLoad ??= (await settings.getValue(ThemeSetting())).value;
     if (themeToLoad == SailThemeValues.platform) {
       // ignore: deprecated_member_use
-      themeToLoad = WidgetsBinding.instance.window.platformBrightness == Brightness.light //
+      themeToLoad = WidgetsBinding.instance.window.platformBrightness == Brightness.light
           ? SailThemeValues.light
           : SailThemeValues.dark;
     }
@@ -173,9 +217,9 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     if (inInitialSetup) {
       return MaterialApp(
         home: Material(
-          color: _sidechain.chain.color,
+          color: _sidechain.rpc.chain.color,
           child: SailTheme(
-            data: SailThemeData.lightTheme(_sidechain.chain.color),
+            data: SailThemeData.lightTheme(_sidechain.rpc.chain.color),
             child: SailScaffold(
               body: Center(
                 // TODO: better error message with troubleshooting tips here

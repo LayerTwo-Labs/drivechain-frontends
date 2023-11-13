@@ -8,7 +8,7 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class TransactionsProvider extends ChangeNotifier {
   MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
-  SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
 
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these
@@ -27,7 +27,7 @@ class TransactionsProvider extends ChangeNotifier {
 
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
-    transactions = await _rpc.listTransactions();
+    transactions = await sidechain.rpc.listTransactions();
     transactions = transactions.reversed.toList();
 
     mainchainTransactions = await _mainchainRPC.listTransactions();

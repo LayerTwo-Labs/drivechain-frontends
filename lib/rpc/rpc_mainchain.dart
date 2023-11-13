@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
-import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc.dart';
-import 'package:sidesail/rpc/rpc_config.dart';
 
 /// RPC connection to the mainchain node.
 abstract class MainchainRPC extends RPCConnection {
+  MainchainRPC({required super.conf});
+
   Future<double> estimateFee();
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash);
   Future<List<CoreTransaction>> listTransactions();
@@ -18,57 +18,36 @@ abstract class MainchainRPC extends RPCConnection {
 }
 
 class MainchainRPCLive extends MainchainRPC {
-  RPCClient? _client;
+  RPCClient _client() {
+    final client = RPCClient(
+      host: conf.host,
+      port: conf.port,
+      username: conf.username,
+      password: conf.password,
+      useSSL: false,
+    );
+
+    // Completely empty client, with no retry logic.
+    client.dioClient = Dio();
+    return client;
+  }
 
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the values change
   Timer? _connectionTimer;
 
-  // hacky way to create an async class
-  // https://stackoverflow.com/a/59304510
-  MainchainRPCLive._create();
-
-  static Future<MainchainRPCLive> create() async {
-    final rpc = MainchainRPCLive._create();
-    await rpc._init();
-    return rpc;
-  }
-
-  Future<void> _init() async {
-    final config = await readRpcConfig(mainchainDatadir(), 'drivechain.conf');
-    connectionSettings = SingleNodeConnectionSettings(
-      config.path,
-      config.host,
-      config.port,
-      config.username,
-      config.password,
-    );
-    await createClient();
-    await testConnection();
-    _connectionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      await testConnection();
+  MainchainRPCLive({required super.conf}) {
+    // Wait for the initial setup to be done, then start a timer
+    initDone.then((value) {
+      _connectionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+        await testConnection();
+      });
     });
-
-    // could connect, aaand we start polling!
-  }
-
-  @override
-  Future<void> createClient() async {
-    _client = RPCClient(
-      host: connectionSettings.host,
-      port: connectionSettings.port,
-      username: connectionSettings.username,
-      password: connectionSettings.password,
-      useSSL: connectionSettings.ssl,
-    );
-
-    // Completely empty client, with no retry logic.
-    _client!.dioClient = Dio();
   }
 
   @override
   Future<double> estimateFee() async {
-    final estimate = await _client?.call('estimatesmartfee', [6]) as Map<String, dynamic>;
+    final estimate = await _client().call('estimatesmartfee', [6]) as Map<String, dynamic>;
     if (estimate.containsKey('errors')) {
       // 10 sats/byte
       return 0.001;
@@ -84,7 +63,7 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<List<CoreTransaction>> listTransactions() async {
     // first list
-    final transactionsJSON = await _client?.call('listtransactions', [
+    final transactionsJSON = await _client().call('listtransactions', [
       '',
       100, // how many txs to list. We have not implemented pagination, so we list all
     ]) as List<dynamic>;
@@ -97,7 +76,7 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash) async {
     try {
-      final workscore = await _client?.call('getworkscore', [sidechain, hash]);
+      final workscore = await _client().call('getworkscore', [sidechain, hash]);
       return workscore;
     } on RPCException {
       // This exception can be thrown if the bundle hasn't been added to the
@@ -108,25 +87,25 @@ class MainchainRPCLive extends MainchainRPC {
 
   @override
   Future<List<MainchainWithdrawal>> listSpentWithdrawals() async {
-    final withdrawals = await _client?.call('listspentwithdrawals') as List<dynamic>;
+    final withdrawals = await _client().call('listspentwithdrawals') as List<dynamic>;
     return withdrawals.map((w) => MainchainWithdrawal.fromJson(w)).toList();
   }
 
   @override
   Future<List<MainchainWithdrawal>> listFailedWithdrawals() async {
-    final withdrawals = await _client?.call('listfailedwithdrawals') as List<dynamic>;
+    final withdrawals = await _client().call('listfailedwithdrawals') as List<dynamic>;
     return withdrawals.map((w) => MainchainWithdrawal.fromJson(w)).toList();
   }
 
   @override
   Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot) async {
-    final statuses = await _client?.call('listwithdrawalstatus', [slot]) as List<dynamic>;
+    final statuses = await _client().call('listwithdrawalstatus', [slot]) as List<dynamic>;
     return statuses.map((e) => MainchainWithdrawalStatus.fromJson(e)).toList();
   }
 
   @override
   Future<void> ping() async {
-    await _client?.call('ping') as Map<String, dynamic>?;
+    await _client().call('ping') as Map<String, dynamic>?;
   }
 
   @override

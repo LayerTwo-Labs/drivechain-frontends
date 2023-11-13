@@ -1,12 +1,16 @@
 import 'package:http/http.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/json_rpc.dart' as jsonrpc;
 import 'package:web3dart/web3dart.dart';
 
-abstract class EthereumRPC extends SidechainSubRPC {
+abstract class EthereumRPC extends SidechainRPC {
+  // TODO: implement authed RPCs
+  EthereumRPC({
+    required super.conf,
+  }) : super(chain: EthereumSidechain());
+
   EthereumAddress? account;
   Future<void> newAccount();
 }
@@ -14,7 +18,12 @@ abstract class EthereumRPC extends SidechainSubRPC {
 class EthereumRPCLive extends EthereumRPC {
   final sgweiPerSat = 1000000000;
 
-  late Web3Client _client;
+  EthereumRPCLive({required super.conf});
+
+  Web3Client get _client => Web3Client(
+        'http://${conf.host}:${conf.port}',
+        Client(),
+      );
 
   @override
   Future<dynamic> callRAW(String method, [params]) async {
@@ -28,37 +37,6 @@ class EthereumRPCLive extends EthereumRPC {
       }
       rethrow;
     }
-  }
-
-  // Apparently Ethereum doesn't have a conf file?
-  @override
-  Future<void> createClient() async {
-    final url = 'http://${connectionSettings.host}:${connectionSettings.port}';
-    _client = Web3Client(url, Client());
-  }
-
-  EthereumRPCLive._create() {
-    chain = EthereumSidechain();
-    try {
-      _setAndGetAccount();
-    } catch (error) {
-      //
-    }
-  }
-
-  static Future<EthereumRPCLive> create() async {
-    final rpc = EthereumRPCLive._create();
-    await rpc._init();
-    return rpc;
-  }
-
-  Future<void> _init() async {
-    // TODO: implement authed RPCs
-    // TODO: make this configurable
-    connectionSettings = SingleNodeConnectionSettings('', 'localhost', 8545, '', '');
-
-    await createClient();
-    await testConnection();
   }
 
   @override

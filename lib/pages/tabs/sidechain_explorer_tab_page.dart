@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/app.dart';
 import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/logger.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -46,7 +47,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.testChain,
-                          onPressed: () => viewModel.setSidechainRPC(test, app),
+                          onPressed: () => viewModel.setSidechain(test, app),
                         ),
                         ChainOverviewCard(
                           chain: EthereumSidechain(),
@@ -54,7 +55,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.ethereum,
-                          onPressed: () => viewModel.setSidechainRPC(eth, app),
+                          onPressed: () => viewModel.setSidechain(eth, app),
                         ),
                       ],
                     ),
@@ -71,22 +72,18 @@ class SidechainExplorerTabPage extends StatelessWidget {
 
 class SidechainExplorerTabViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
   SailThemeValues theme = SailThemeValues.light;
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
 
-  Sidechain get chain => _sideRPC.chain;
+  Sidechain get chain => sidechain.rpc.chain;
 
   SidechainExplorerTabViewModel() {
-    // by adding a listener, we subscribe to changes to the balance
-    // provider. We don't use the updates for anything other than
-    // showing the new value though, so we keep it simple, and just
-    // pass notifyListeners of this view model directly
     _balanceProvider.addListener(notifyListeners);
-    _sideRPC.addListener(notifyListeners);
+    sidechain.addListener(notifyListeners);
     _init();
   }
 
@@ -94,8 +91,10 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
   }
 
-  void setSidechainRPC(SidechainSubRPC sideSubRPC, SailAppState sailApp) {
-    _sideRPC.setSubRPC(sideSubRPC);
+  void setSidechain(SidechainRPC rpc, SailAppState sailApp) {
+    log.d('setting sidechain RPC to "${rpc.chain.name}"');
+    sidechain.rpc = rpc;
+
     notifyListeners();
     sailApp.loadTheme(theme);
   }
@@ -104,6 +103,6 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
   void dispose() {
     super.dispose();
     _balanceProvider.removeListener(notifyListeners);
-    _sideRPC.removeListener(notifyListeners);
+    sidechain.removeListener(notifyListeners);
   }
 }

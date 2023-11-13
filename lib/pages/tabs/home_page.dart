@@ -70,7 +70,7 @@ class SideNav extends StatefulWidget {
 }
 
 class _SideNavState extends State<SideNav> {
-  SidechainRPC get _sidechain => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +80,7 @@ class _SideNavState extends State<SideNav> {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => HomePageViewModel(),
       builder: ((context, viewModel, child) {
-        final navWidgets = navForChain(_sidechain.chain, viewModel, tabsRouter);
+        final navWidgets = navForChain(_sidechain.rpc.chain, viewModel, tabsRouter);
 
         return Row(
           children: [
@@ -213,16 +213,16 @@ class _SideNavState extends State<SideNav> {
 class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
   MainchainRPC get _mainRPC => GetIt.I.get<MainchainRPC>();
 
-  bool get sidechainConnected => _sideRPC.connected;
+  bool get sidechainConnected => _sideRPC.rpc.connected;
   bool get mainchainConnected => _mainRPC.connected;
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
 
-  Sidechain get chain => _sideRPC.chain;
+  Sidechain get chain => _sideRPC.rpc.chain;
 
   HomePageViewModel() {
     _sideRPC.addListener(notifyListeners);

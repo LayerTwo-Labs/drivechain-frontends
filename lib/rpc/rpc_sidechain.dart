@@ -1,67 +1,66 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc.dart';
 
 /// RPC connection for all sidechain nodes
-abstract class SidechainSubRPC extends RPCConnection {
+abstract class SidechainRPC extends RPCConnection {
+  SidechainRPC({required super.conf, required this.chain});
+
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
 
   Future<(double, double)> getBalance();
   Future<List<CoreTransaction>> listTransactions();
 
-  late Sidechain chain;
+  Sidechain chain;
 }
 
-/// RPC connection for all sidechain nodes
-class SidechainRPC extends SidechainSubRPC {
-  SidechainSubRPC subRPC;
-
-  SidechainRPC({
-    required this.subRPC,
-  }) {
-    chain = subRPC.chain;
+// Wraps a sidechain, with logic for notifying listeners when the underlying
+// RPC connection changes.
+class SidechainContainer extends ChangeNotifier {
+  SidechainContainer(SidechainRPC rpc) : _rpc = rpc {
+    rpc.addListener(notifyListeners);
+    rpc.initDone.then(
+      (_) => _startConnectionTimer(),
+    );
   }
 
-  // values for tracking connection state, and error (if any)
-  @override
-  SingleNodeConnectionSettings get connectionSettings => subRPC.connectionSettings;
-  @override
-  bool get connected => subRPC.connected;
-  @override
-  String? get connectionError => subRPC.connectionError;
+  // responsible for pinging the node every x seconds,
+  // so we can update the UI immediately when the values change
+  Timer? _connectionTimer;
+  void _startConnectionTimer() {
+    _connectionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      await _rpc.testConnection();
+    });
+  }
 
-  void setSubRPC(SidechainSubRPC newSubRPC) {
-    subRPC = newSubRPC;
-    chain = subRPC.chain;
+  @override
+  void dispose() {
+    _connectionTimer?.cancel();
+    _rpc.removeListener(notifyListeners);
+    super.dispose();
+  }
+
+  SidechainRPC _rpc;
+  SidechainRPC get rpc => _rpc;
+  set rpc(SidechainRPC r) {
+    // remove the old listener
+    _rpc.removeListener(notifyListeners);
+
+    // assign the new var
+    _rpc = r;
+
+    // add the new listener
+    _rpc.addListener(notifyListeners);
+
+    _connectionTimer?.cancel();
+    _startConnectionTimer();
+
+    unawaited(r.testConnection());
+
     notifyListeners();
-  }
-
-  @override
-  Future<dynamic> callRAW(String method, [List<dynamic>? params]) async {
-    return await subRPC.callRAW(method, params);
-  }
-
-  @override
-  Future<(double, double)> getBalance() async {
-    return subRPC.getBalance();
-  }
-
-  @override
-  Future<List<CoreTransaction>> listTransactions() {
-    return subRPC.listTransactions();
-  }
-
-  @override
-  Future<void> createClient() async {
-    return subRPC.createClient();
-  }
-
-  @override
-  Future<void> ping() async {
-    return subRPC.ping();
   }
 }
 

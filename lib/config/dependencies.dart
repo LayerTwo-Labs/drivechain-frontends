@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
@@ -11,15 +12,19 @@ import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/secure_store.dart';
 
+// This gets overwritten at a later point, just here to make the
+// type system happy.
+final _emptyNodeConf = SingleNodeConnectionSettings('', '', 0, '', '');
+
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
-Future<void> initGetitDependencies(Sidechain initialChain) async {
-  final mainFuture = MainchainRPCLive.create();
-  await _initSidechainRPC(initialChain);
-  final mainRPC = await mainFuture;
+Future<void> initDependencies(Sidechain chain) async {
+  GetIt.I.allowReassignment = true;
+
+  await _initSidechainRPC(chain);
 
   GetIt.I.registerLazySingleton<MainchainRPC>(
-    () => mainRPC,
+    () => MainchainRPCLive(conf: _emptyNodeConf),
   );
 
   GetIt.I.registerLazySingleton<AppRouter>(
@@ -47,31 +52,34 @@ Future<void> initGetitDependencies(Sidechain initialChain) async {
 // rpcs in parallell, so they're ready instantly when swapping
 // we can also query the balance
 Future<void> _initSidechainRPC(Sidechain chain) async {
-  final ethFuture = EthereumRPCLive.create();
-  final testFuture = TestchainRPCLive.create();
-
-  final ethRPC = await ethFuture;
-  final testRPC = await testFuture;
-
-  GetIt.I.registerLazySingleton<TestchainRPC>(
-    () => testRPC,
-  );
-  GetIt.I.registerLazySingleton<EthereumRPC>(
-    () => ethRPC,
-  );
-
-  SidechainSubRPC sidechainSubRPC;
+  SidechainRPC Function() getSidechain;
   switch (chain.type) {
     case SidechainType.testChain:
-      sidechainSubRPC = testRPC;
-      break;
+      getSidechain = () => GetIt.I.get<TestchainRPC>();
 
     case SidechainType.ethereum:
-      sidechainSubRPC = ethRPC;
-      break;
+      getSidechain = () => GetIt.I.get<EthereumRPC>();
   }
+  GetIt.I.registerLazySingleton<TestchainRPC>(
+    () => TestchainRPCLive(conf: _emptyNodeConf),
+  );
+  GetIt.I.registerLazySingleton<EthereumRPC>(
+    () {
+      final sc = EthereumSidechain();
+      // TODO: make this properly configurable
+      return EthereumRPCLive(
+        conf: SingleNodeConnectionSettings(
+          'todo.conf',
+          'localhost',
+          sc.rpcPort,
+          '',
+          '',
+        ),
+      );
+    },
+  );
 
-  GetIt.I.registerLazySingleton<SidechainRPC>(
-    () => SidechainRPC(subRPC: sidechainSubRPC),
+  GetIt.I.registerLazySingleton<SidechainContainer>(
+    () => SidechainContainer(getSidechain()),
   );
 }

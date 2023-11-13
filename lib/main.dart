@@ -10,15 +10,31 @@ const appName = 'SideSail';
 
 Future<void> start() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   Sidechain chain;
-  if (RuntimeArgs.chain == 'ethereum') {
-    chain = EthereumSidechain();
-  } else {
-    chain = TestSidechain();
+  // Sanity check we're getting a supported chain.
+  switch (RuntimeArgs.chain) {
+    case '': // default to testchain
+    case 'testchain':
+      chain = TestSidechain();
+
+    case 'ethereum':
+      chain = EthereumSidechain();
+
+    default:
+      return runApp(
+        SailApp(
+          builder: (context, router) => const Center(
+            child: Text(
+              'Unsupported CHAIN parameter: ${RuntimeArgs.chain}',
+              style: TextStyle(fontSize: 40),
+            ),
+          ),
+        ),
+      );
   }
 
-  await initGetitDependencies(chain);
-
+  await initDependencies(chain);
   runApp(
     SailApp(
       // the initial route is defined in routing/router.dart

@@ -188,11 +188,11 @@ class ExpandedTXView extends StatelessWidget {
 class DashboardTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
-  SidechainRPC get _sideRPC => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
 
   List<CoreTransaction> get transactions => _transactionsProvider.transactions;
 
-  Sidechain get chain => _sideRPC.chain;
+  Sidechain get chain => _sideRPC.rpc.chain;
 
   DashboardTabViewModel() {
     _transactionsProvider.addListener(notifyListeners);

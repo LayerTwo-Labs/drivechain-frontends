@@ -21,7 +21,7 @@ final txProvider = TransactionsProvider();
 
 void main() {
   setUpAll(() async {
-    GetIt.I.registerLazySingleton<SidechainRPC>(() => MockSidechainRPC(subRPC: MockSidechainSubRPC()));
+    GetIt.I.registerLazySingleton<SidechainContainer>(() => SidechainContainer(MockSidechainRPC()));
     GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
 
     GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
