@@ -4,14 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
-import 'package:sidesail/widgets/dialog.dart';
 import 'package:stacked/stacked.dart';
 
 class PegOutAction extends StatelessWidget {
@@ -34,9 +32,12 @@ class PegOutAction extends StatelessWidget {
             },
           ),
           children: [
-            LargeEmbeddedInput(
-              controller: viewModel.bitcoinAddressController,
-              hintText: 'Enter a mainchain bitcoin-address',
+            Focus(
+              autofocus: true,
+              child: LargeEmbeddedInput(
+                controller: viewModel.bitcoinAddressController,
+                hintText: 'Enter a parent chain bitcoin-address',
+              ),
             ),
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
