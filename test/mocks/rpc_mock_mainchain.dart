@@ -13,9 +13,10 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
-  Future<(bool, String?)> testConnection() async {
-    return (true, null);
-  }
+  bool get connected => true;
+
+  @override
+  Future<void> get initDone => Future.value();
 
   @override
   Future<void> ping() async {
