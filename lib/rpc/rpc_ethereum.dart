@@ -3,8 +3,8 @@ import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:web3dart/web3dart.dart';
 import 'package:web3dart/json_rpc.dart' as jsonrpc;
+import 'package:web3dart/web3dart.dart';
 
 abstract class EthereumRPC extends SidechainSubRPC {
   EthereumAddress? account;
@@ -123,11 +123,15 @@ class EthereumRPCLive extends EthereumRPC {
 
 /// List of all known RPC methods available /
 final ethRpcMethods = [
+  // Sidechain specific RPC calls
+  'eth_deposit',
+  'eth_withdraw',
+  'eth_getUnspentWithdrawals',
+  'eth_refund',
+
   'web3_clientVersion',
   'web3_sha3',
-  'net_version',
-  'net_listening',
-  'net_peerCount',
+
   'eth_syncing',
   'eth_coinbase',
   'eth_chainId',
@@ -167,24 +171,71 @@ final ethRpcMethods = [
   'eth_getLogs',
 
   // Wallet (?) stuff
-  'personal_newAccount',
-  'personal_importRawKey',
-  'personal_unlockAccount',
-  'personal_ecRecover',
-  'personal_sign',
-  'personal_sendTransaction',
-  'personal_lockAccount',
+  'personal_getListAccounts',
   'personal_listAccounts',
   'personal_openWallet',
-  'personal_deriveAccount',
-  'personal_signTransaction',
-  'personal_unpair',
-  'personal_initializeWallet',
+  'personal_unlockAccount',
+  'personal_getListWallets',
   'personal_listWallets',
+  'personal_sendTransaction',
+  'personal_unpair',
+  'personal_deriveAccount',
+  'personal_importRawKey',
+  'personal_lockAccount',
+  'personal_sign',
+  'personal_ecRecover',
+  'personal_initializeWallet',
+  'personal_newAccount',
+  'personal_signTransaction',
 
-  // Sidechain specific RPC calls
-  'eth_deposit',
-  'eth_withdraw',
-  'eth_getUnspentWithdrawals',
-  'eth_refund',
+  'admin_startHTTP',
+  'admin_addPeer',
+  'admin_importChain',
+  'admin_startRPC',
+  'admin_addTrustedPeer',
+  'admin_startWS',
+  'admin_nodeInfo',
+  'admin_stopHTTP',
+  'admin_peers',
+  'admin_stopRPC',
+  'admin_datadir',
+  'admin_stopWS',
+  'admin_exportChain',
+  'admin_removePeer',
+  'admin_getDatadir',
+  'admin_removeTrustedPeer',
+  'admin_getNodeInfo',
+  'admin_sleep',
+  'admin_getPeers',
+  'admin_sleepBlocks',
+  'admin_clearHistory',
+
+  'jeth_newAccount',
+  'jeth_sign',
+  'jeth_unlockAccount',
+  'jeth_openWallet',
+
+  'miner_setGasLimit',
+  'miner_stop',
+  'miner_getHashrate',
+  'miner_setGasPrice',
+  'miner_setEtherbase',
+  'miner_setRecommitInterval',
+  'miner_setExtra',
+  'miner_start',
+
+  'net_getListening',
+  'net_getVersion',
+  'net_peerCount',
+  'net_getPeerCount',
+  'net_listening',
+  'net_version',
+
+  'txpool_contentFrom',
+  'txpool_getStatus',
+  'txpool_getContent',
+  'txpool_content',
+  'txpool_getInspect',
+  'txpool_inspect',
+  'txpool_status',
 ];
