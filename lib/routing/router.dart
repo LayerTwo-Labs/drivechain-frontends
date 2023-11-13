@@ -10,6 +10,7 @@ import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/transfer_mainchain_tab_route.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/withdrawal_bundle_tab_page.dart';
+import 'package:sidesail/pages/tabs/testchain/testchain_rpc_tab_page.dart';
 import 'package:sidesail/pages/test_page.dart';
 
 part 'router.gr.dart';
@@ -37,11 +38,14 @@ class AppRouter extends _$AppRouter {
           initial: true,
           children: [
             AutoRoute(
+              page: SidechainExplorerTabRoute.page,
+            ),
+            AutoRoute(
               page: DashboardTabRoute.page,
               initial: RuntimeArgs.chain == 'testchain' ? true : false,
             ),
             AutoRoute(
-              page: SidechainExplorerTabRoute.page,
+              page: TestchainRPCTabRoute.page,
             ),
             AutoRoute(
               page: TransferMainchainTabRoute.page,
