@@ -218,12 +218,12 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
       }
 
       nextBundle = await nextFut;
-      hasDoneInitialFetch = true;
     } on RPCException catch (err) {
       if (err.errorCode != TestchainRPCError.errNoWithdrawalBundle) {
         rethrow;
       }
     } finally {
+      hasDoneInitialFetch = true;
       notifyListeners();
     }
   }
