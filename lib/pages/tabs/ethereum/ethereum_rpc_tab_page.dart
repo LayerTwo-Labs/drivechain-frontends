@@ -54,6 +54,7 @@ class EthereumRPCTabPage extends StatelessWidget {
                       );
                     }
                   },
+                  loading: viewModel.isBusy,
                   size: ButtonSize.small,
                 ),
               if (viewModel.account == null)
@@ -88,11 +89,14 @@ class EthereumRPCTabPageViewModel extends BaseViewModel {
   bool running = false;
 
   Future<void> createAccount() async {
+    setBusy(true);
     if (account != null) {
       throw Exception('you can only make one account using the GUI');
     }
 
     await _rpc.newAccount();
+    setBusy(false);
+    notifyListeners();
   }
 
   @override
