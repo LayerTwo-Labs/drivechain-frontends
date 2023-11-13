@@ -13,13 +13,16 @@ enum SailSVGAsset {
 
   iconSearch,
   iconCopy,
-  iconDropdown,
+  iconArrow,
+  iconArrowForward,
+  iconClose,
   iconGlobe,
 
   iconSuccess,
   iconPending,
   iconPendingHalf,
   iconFailed,
+  iconInfo,
   iconSelected,
 }
 
@@ -34,6 +37,7 @@ const coloredAssets = [
   SailSVGAsset.iconPending,
   SailSVGAsset.iconPendingHalf,
   SailSVGAsset.iconFailed,
+  SailSVGAsset.iconInfo,
 ];
 
 class SailSVG {
@@ -86,10 +90,16 @@ extension AsAssetPath on SailSVGAsset {
       case SailSVGAsset.iconSidechain:
         return 'assets/svgs/icon_sidechain.svg';
 
+      case SailSVGAsset.iconSearch:
+        return 'assets/svgs/icon_search.svg';
       case SailSVGAsset.iconCopy:
         return 'assets/svgs/icon_copy.svg';
-      case SailSVGAsset.iconDropdown:
-        return 'assets/svgs/icon_dropdown.svg';
+      case SailSVGAsset.iconArrow:
+        return 'assets/svgs/icon_arrow_down.svg';
+      case SailSVGAsset.iconArrowForward:
+        return 'assets/svgs/icon_arrow_forward.svg';
+      case SailSVGAsset.iconClose:
+        return 'assets/svgs/icon_close.svg';
       case SailSVGAsset.iconGlobe:
         return 'assets/svgs/icon_globe.svg';
 
@@ -97,17 +107,14 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_success.svg';
       case SailSVGAsset.iconPending:
         return 'assets/svgs/icon_pending.svg';
-
       case SailSVGAsset.iconPendingHalf:
         return 'assets/svgs/icon_pending_half.svg';
-
       case SailSVGAsset.iconFailed:
         return 'assets/svgs/icon_failed.svg';
-
+      case SailSVGAsset.iconInfo:
+        return 'assets/svgs/icon_info.svg';
       case SailSVGAsset.iconSelected:
         return 'assets/svgs/icon_selected.svg';
-      case SailSVGAsset.iconSearch:
-        return 'assets/svgs/icon_search.svg';
     }
   }
 }

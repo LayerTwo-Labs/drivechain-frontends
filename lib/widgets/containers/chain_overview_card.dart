@@ -55,7 +55,7 @@ class ChainOverviewCard extends StatelessWidget {
                     spacing: SailStyleValues.padding05,
                     children: [
                       SailText.primary12(chain.name),
-                      SailSVG.icon(SailSVGAsset.iconDropdown, width: 5.5),
+                      SailSVG.icon(SailSVGAsset.iconArrow, width: 5.5),
                     ],
                   ),
                 ],
