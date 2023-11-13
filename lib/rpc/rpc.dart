@@ -20,6 +20,11 @@ abstract class RPCConnection extends ChangeNotifier {
   // ping method that tests whether the connection is successful
   // should throw if call is not successful
   Future<void> ping();
+
+  bool _initDone = false;
+
+  Future<void> get initDone => _initDone ? Future.value() : Future.any([]);
+
   Future<(bool, String?)> testConnection() async {
     try {
       await ping();
@@ -29,6 +34,8 @@ abstract class RPCConnection extends ChangeNotifier {
       _log.e('could not ping: ${error.toString()}!');
       connectionError = error.toString();
       connected = false;
+    } finally {
+      _initDone = true;
     }
     notifyListeners();
 
