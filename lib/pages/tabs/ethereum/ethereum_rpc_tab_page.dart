@@ -39,18 +39,11 @@ class EthereumRPCTabPage extends StatelessWidget {
                         return;
                       }
 
-                      await showDialog(
+                      await errorDialog(
                         context: context,
-                        builder: (context) => AlertDialog(
-                          title: SailText.primary20('Could not create account'),
-                          content: SailText.secondary13(err.toString()),
-                          actions: [
-                            TextButton(
-                              onPressed: () => _router.popUntilRoot(),
-                              child: SailText.primary13('OK'),
-                            ),
-                          ],
-                        ),
+                        action: 'Create account',
+                        title: 'Could not create account',
+                        subtitle: err.toString(),
                       );
                     }
                   },
@@ -89,13 +82,16 @@ class EthereumRPCTabPageViewModel extends BaseViewModel {
   bool running = false;
 
   Future<void> createAccount() async {
-    setBusy(true);
-    if (account != null) {
-      throw Exception('you can only make one account using the GUI');
-    }
+    try {
+      setBusy(true);
+      if (account != null) {
+        throw Exception('you can only make one account using the GUI');
+      }
 
-    await _rpc.newAccount();
-    setBusy(false);
+      await _rpc.newAccount();
+    } finally {
+      setBusy(false);
+    }
     notifyListeners();
   }
 
