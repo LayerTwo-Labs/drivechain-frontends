@@ -21,10 +21,8 @@ Future<void> loadFonts() async {
 
 extension TestExtension on WidgetTester {
   Future<void> pumpSailPage(
-    Widget child, {
-    bool requireIntensionKyc = false,
-    bool requireKycLevel2 = false,
-  }) async {
+    Widget child,
+  ) async {
     await _setDeviceSize();
     await loadFonts();
     await registerTestDependencies();
