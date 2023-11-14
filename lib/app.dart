@@ -164,7 +164,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   }
 
   Future<void> _initBinary(String binary, RPCConnection conn, void Function(String) updateMsg) async {
-    log.d('init binaries: checking $binary connection');
+    log.d('init binaries: checking $binary connection ${conn.conf.host}:${conn.conf.port}');
 
     // First, let the RPC connection check finish.
     await conn.initDone;

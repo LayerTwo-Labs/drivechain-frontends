@@ -19,8 +19,6 @@ final _emptyNodeConf = SingleNodeConnectionSettings('', '', 0, '', '');
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
 Future<void> initDependencies(Sidechain chain) async {
-  GetIt.I.allowReassignment = true;
-
   await _initSidechainRPC(chain);
 
   GetIt.I.registerLazySingleton<MainchainRPC>(
