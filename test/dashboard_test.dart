@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -21,8 +22,10 @@ final txProvider = TransactionsProvider();
 
 void main() {
   setUpAll(() async {
-    GetIt.I.registerLazySingleton<SidechainContainer>(() => SidechainContainer(MockSidechainRPC()));
+    final sidechain = await SidechainContainer.create(MockSidechainRPC());
+    GetIt.I.registerLazySingleton<SidechainContainer>(() => sidechain);
     GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
+    GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
 
     GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
     final balanceProvider = BalanceProvider();
