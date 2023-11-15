@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sidesail/logger.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -40,8 +41,12 @@ class TransactionsProvider extends ChangeNotifier {
 
   void _startPolling() {
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      await fetch();
-      notifyListeners();
+      try {
+        await fetch();
+        notifyListeners();
+      } catch (error) {
+        log.t('could not fetch transactions: $error');
+      }
     });
   }
 
