@@ -40,8 +40,8 @@ dependencies:
   dart_coin_rpc:
     git:
       url: https://github.com/barebitcoin/dart_coin_rpc.git
-      # master, as of 08.11.2023
-      ref: ca2f50ed899386c5fb8f144b1c438b8673f23e22
+      # master, as of 14.11.2023
+      ref: a728ad303df4b8056863e650d7f9be8a0d7ee49c
   flutter_highlighter: ^0.1.1
   logger: ^2.0.2+1
   dio: ^4.0.6
