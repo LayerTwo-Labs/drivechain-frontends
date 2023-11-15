@@ -41,7 +41,7 @@ class TestSidechain extends Sidechain {
 
 class EthereumSidechain extends Sidechain {
   @override
-  String name = 'Ethereum';
+  String name = 'EthSide';
 
   @override
   int slot = 6;

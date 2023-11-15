@@ -8,6 +8,7 @@ import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
@@ -48,7 +49,7 @@ class PegOutAction extends StatelessWidget {
               value: '${(viewModel.mainchainFee ?? 0).toStringAsFixed(8)} BTC',
             ),
             StaticActionField(
-              label: 'Sidechain fee',
+              label: '${viewModel.sidechain.rpc.chain.name} fee',
               value: '${(viewModel.sidechainFee ?? 0).toStringAsFixed(8)} BTC',
             ),
             StaticActionField(
@@ -67,6 +68,7 @@ class PegOutViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
+  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   TestchainRPC get _testchain => GetIt.I.get<TestchainRPC>();
   MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
 
