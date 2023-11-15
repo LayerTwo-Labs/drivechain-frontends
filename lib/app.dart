@@ -7,6 +7,7 @@ import 'package:sail_ui/theme/theme_data.dart';
 import 'package:sail_ui/widgets/core/scaffold.dart';
 import 'package:sail_ui/widgets/loading_indicator.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/storage/client_settings.dart';
@@ -94,6 +95,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     return mainchain.initBinary(
       context,
       mainchain.binary,
+      bitcoinCoreBinaryArgs(mainchain.conf),
     );
   }
 
@@ -101,6 +103,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     return _sidechain.rpc.initBinary(
       context,
       _sidechain.rpc.chain.binary,
+      _sidechain.rpc.binaryArgs(mainchain.conf),
     );
   }
 

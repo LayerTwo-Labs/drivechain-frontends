@@ -9,6 +9,7 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
@@ -328,14 +329,14 @@ class SideNavViewModel extends BaseViewModel {
                     initializing: _mainRPC.initializingBinary,
                     connected: _mainRPC.connected,
                     errorMessage: _mainRPC.connectionError,
-                    restartDaemon: () => _mainRPC.initBinary(context, _mainRPC.binary),
+                    restartDaemon: () => initMainchainBinary(context),
                   ),
                   DaemonConnectionCard(
                     chainName: _sideRPC.rpc.chain.name,
                     initializing: _sideRPC.rpc.initializingBinary,
                     connected: _sideRPC.rpc.connected,
                     errorMessage: _sideRPC.rpc.connectionError,
-                    restartDaemon: () => _sideRPC.rpc.initBinary(context, _sideRPC.rpc.chain.binary),
+                    restartDaemon: () => initSidechainBinary(context),
                   ),
                 ],
               ),
@@ -371,13 +372,17 @@ class SideNavViewModel extends BaseViewModel {
     return _mainRPC.initBinary(
       context,
       _mainRPC.binary,
+      bitcoinCoreBinaryArgs(_mainRPC.conf),
     );
   }
 
-  Future<void> initSidechainBinary(BuildContext context) async {
+  Future<void> initSidechainBinary(
+    BuildContext context,
+  ) async {
     return _sideRPC.rpc.initBinary(
       context,
       _sideRPC.rpc.chain.binary,
+      _sideRPC.rpc.binaryArgs(_mainRPC.conf),
     );
   }
 }

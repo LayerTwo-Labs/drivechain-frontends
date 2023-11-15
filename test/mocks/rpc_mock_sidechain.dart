@@ -30,4 +30,11 @@ class MockSidechainRPC extends SidechainRPC {
   Future<List<CoreTransaction>> listTransactions() async {
     return List.empty();
   }
+
+  @override
+  List<String> binaryArgs(
+    SingleNodeConnectionSettings mainchainConf,
+  ) {
+    return List.empty();
+  }
 }
