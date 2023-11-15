@@ -96,6 +96,7 @@ Future<T?> widgetDialog<T>({
   required DialogType dialogType,
   required Widget child,
   double maxWidth = 640,
+  String? dialogText,
 }) async {
   final theme = SailTheme.of(context);
 
@@ -119,6 +120,7 @@ Future<T?> widgetDialog<T>({
                 DialogHeader(
                   action: action,
                   dialogType: dialogType,
+                  dialogText: dialogText,
                   onClose: () {
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
@@ -139,12 +141,14 @@ class DialogHeader extends StatelessWidget {
   final DialogType dialogType;
   final String action;
   final VoidCallback onClose;
+  final String? dialogText;
 
   const DialogHeader({
     super.key,
     required this.dialogType,
     required this.action,
     required this.onClose,
+    this.dialogText,
   });
 
   @override
@@ -157,7 +161,7 @@ class DialogHeader extends StatelessWidget {
           dialogType: dialogType,
         ),
         SailSVG.fromAsset(SailSVGAsset.iconArrowForward),
-        SailText.primary12(textForType(dialogType)),
+        SailText.primary12(dialogText ?? textForType(dialogType)),
         Expanded(child: Container()),
         SailScaleButton(
           onPressed: onClose,

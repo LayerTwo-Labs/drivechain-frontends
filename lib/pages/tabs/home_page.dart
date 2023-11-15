@@ -12,6 +12,7 @@ import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
+import 'package:sidesail/widgets/containers/daemon_connection_card.dart';
 import 'package:stacked/stacked.dart';
 
 const TestchainHome = 1;
@@ -83,7 +84,16 @@ class _SideNavState extends State<SideNav> {
     final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => HomePageViewModel(),
+      viewModelBuilder: () => SideNavViewModel(navigateToSettings: widget.navigateToSettings),
+      fireOnViewModelReadyOnce: true,
+      onViewModelReady: (viewModel) => {
+        if (!viewModel.mainchainConnected || !viewModel.sidechainConnected)
+          {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              viewModel.displayConnectionStatusDialog(context);
+            }),
+          },
+      },
       builder: ((context, viewModel, child) {
         final navWidgets = navForChain(_sidechain.rpc.chain, viewModel, tabsRouter);
 
@@ -143,7 +153,7 @@ class _SideNavState extends State<SideNav> {
                   ),
                   Expanded(child: Container()),
                   NodeConnectionStatus(
-                    onChipPressed: widget.navigateToSettings,
+                    onChipPressed: () => viewModel.displayConnectionStatusDialog(context),
                   ),
                 ],
               ),
@@ -160,7 +170,7 @@ class _SideNavState extends State<SideNav> {
     );
   }
 
-  List<Widget> navForChain(Sidechain chain, HomePageViewModel viewModel, auto_router.TabsRouter tabsRouter) {
+  List<Widget> navForChain(Sidechain chain, SideNavViewModel viewModel, auto_router.TabsRouter tabsRouter) {
     switch (chain.type) {
       case SidechainType.testChain:
         return [
@@ -253,7 +263,9 @@ class _SideNavState extends State<SideNav> {
   }
 }
 
-class HomePageViewModel extends BaseViewModel {
+class SideNavViewModel extends BaseViewModel {
+  final VoidCallback navigateToSettings;
+
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
@@ -262,12 +274,18 @@ class HomePageViewModel extends BaseViewModel {
   bool get sidechainConnected => _sideRPC.rpc.connected;
   bool get mainchainConnected => _mainRPC.connected;
 
+  bool get sidechainInitializing => _sideRPC.rpc.initializingBinary;
+  bool get mainchainInitializing => _mainRPC.initializingBinary;
+
+  String? get sidechainError => _sideRPC.rpc.connectionError;
+  String? get mainchainError => _mainRPC.connectionError;
+
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
 
   Sidechain get chain => _sideRPC.rpc.chain;
 
-  HomePageViewModel() {
+  SideNavViewModel({required this.navigateToSettings}) {
     _sideRPC.addListener(notifyListeners);
     _mainRPC.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
@@ -280,30 +298,120 @@ class HomePageViewModel extends BaseViewModel {
     _mainRPC.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
   }
+
+  Future<void> displayConnectionStatusDialog(
+    BuildContext context,
+  ) async {
+    await widgetDialog(
+      context: context,
+      action: 'Startup connection',
+      dialogText: 'Daemon status',
+      dialogType: DialogType.info,
+      maxWidth: 536,
+      child: ViewModelBuilder.reactive(
+        viewModelBuilder: () => SideNavViewModel(navigateToSettings: navigateToSettings),
+        builder: ((context, viewModel, child) {
+          return SailColumn(
+            spacing: SailStyleValues.padding20,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SailSpacing(SailStyleValues.padding08),
+              if (!_mainRPC.connected || !_sideRPC.rpc.connected)
+                SailText.secondary12('You cannot use ${_sideRPC.rpc.chain.name} until nodes are connected'),
+              SailRow(
+                spacing: SailStyleValues.padding12,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DaemonConnectionCard(
+                    chainName: 'Parent Chain',
+                    initializing: _mainRPC.initializingBinary,
+                    connected: _mainRPC.connected,
+                    errorMessage: _mainRPC.connectionError,
+                    restartDaemon: () => _mainRPC.initBinary(context, _mainRPC.binary),
+                  ),
+                  DaemonConnectionCard(
+                    chainName: _sideRPC.rpc.chain.name,
+                    initializing: _sideRPC.rpc.initializingBinary,
+                    connected: _sideRPC.rpc.connected,
+                    errorMessage: _sideRPC.rpc.connectionError,
+                    restartDaemon: () => _sideRPC.rpc.initBinary(context, _sideRPC.rpc.chain.binary),
+                  ),
+                ],
+              ),
+              const SailSpacing(SailStyleValues.padding10),
+              SailRow(
+                spacing: SailStyleValues.padding12,
+                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  SailTextButton(
+                    label: 'Configure connection parameters',
+                    onPressed: navigateToSettings,
+                  ),
+                  if (!_mainRPC.connected || !_sideRPC.rpc.connected)
+                    SailButton.primary(
+                      'Test connection',
+                      onPressed: () {
+                        _sideRPC.rpc.testConnection();
+                        _mainRPC.testConnection();
+                      },
+                      size: ButtonSize.regular,
+                    ),
+                ],
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  Future<void> initMainchainBinary(BuildContext context) async {
+    return _mainRPC.initBinary(
+      context,
+      _mainRPC.binary,
+    );
+  }
+
+  Future<void> initSidechainBinary(BuildContext context) async {
+    return _sideRPC.rpc.initBinary(
+      context,
+      _sideRPC.rpc.chain.binary,
+    );
+  }
 }
 
-class NodeConnectionStatus extends ViewModelWidget<HomePageViewModel> {
+class NodeConnectionStatus extends ViewModelWidget<SideNavViewModel> {
   final VoidCallback onChipPressed;
 
   const NodeConnectionStatus({super.key, required this.onChipPressed});
 
   @override
-  Widget build(BuildContext context, HomePageViewModel viewModel) {
+  Widget build(BuildContext context, SideNavViewModel viewModel) {
     return SailColumn(
       spacing: SailStyleValues.padding08,
       children: [
-        if (viewModel.sidechainConnected)
-          const ConnectionSuccessChip(chain: 'sidechain')
+        if (viewModel.sidechainConnected || viewModel.sidechainInitializing)
+          ConnectionStatusChip(
+            chain: 'sidechain',
+            initializing: viewModel.sidechainInitializing,
+            onPressed: onChipPressed,
+          )
         else
           ConnectionErrorChip(
             chain: 'sidechain',
             onPressed: onChipPressed,
           ),
-        if (viewModel.mainchainConnected)
-          const ConnectionSuccessChip(chain: 'mainchain')
+        if (viewModel.mainchainConnected || viewModel.mainchainInitializing)
+          ConnectionStatusChip(
+            chain: 'parent chain',
+            initializing: viewModel.mainchainInitializing,
+            onPressed: onChipPressed,
+          )
         else
           ConnectionErrorChip(
-            chain: 'mainchain',
+            chain: 'parent chain',
             onPressed: onChipPressed,
           ),
       ],
