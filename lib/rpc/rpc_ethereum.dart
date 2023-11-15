@@ -1,5 +1,6 @@
 import 'package:http/http.dart';
 import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/json_rpc.dart' as jsonrpc;
@@ -98,6 +99,22 @@ class EthereumRPCLive extends EthereumRPC {
   Future<List<CoreTransaction>> listTransactions() async {
     // TODO: Implement listtransactions
     return List.empty();
+  }
+
+  @override
+  List<String> binaryArgs(
+    SingleNodeConnectionSettings mainchainConf,
+  ) {
+    return [
+      '--http',
+      '--http.api=eth,web3,personal,admin,jeth,miner,net,txpool',
+      '--http.addr=0.0.0.0',
+      '--http.port=${conf.port}',
+      '--main.host=${mainchainConf.host}',
+      '--main.password=${mainchainConf.password}',
+      '--main.user=${mainchainConf.username}',
+      '--main.port=${mainchainConf.port}',
+    ];
   }
 }
 

@@ -2,7 +2,6 @@
 // also includes functions for checking whether the connection
 // is live, and if not, what error message the node returned
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -52,6 +51,7 @@ abstract class RPCConnection extends ChangeNotifier {
   Future<void> initBinary(
     BuildContext context,
     String binary,
+    List<String> args,
   ) async {
     initializingBinary = true;
     notifyListeners();
@@ -68,15 +68,6 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    final tempDir = await Directory.systemTemp.createTemp(binary);
-    final tempLogFile = await File('${tempDir.path}/$binary.debug.log').create(recursive: true);
-
-    // TODO: update this when adding other nodes with different args
-    final args = [
-      '-debuglogfile=${tempLogFile.path}',
-      '-regtest',
-    ];
-
     if (!context.mounted) {
       initializingBinary = false;
       notifyListeners();
@@ -87,13 +78,13 @@ abstract class RPCConnection extends ChangeNotifier {
     // resulting from the process not being able to start
     _connectionTimer?.cancel();
 
-    log.d('init binaries: starting $binary $args');
+    log.d('init binaries: starting $binary ${args.join(" ")}');
 
     try {
       final pid = await processes.start(context, binary, args);
       log.d('init binaries: started $binary with PID $pid');
     } catch (err) {
-      log.e('init binaries: could not start $binary daemon $err');
+      log.e('init binaries: could not start $binary daemon', error: err);
       initializingBinary = false;
       connectionError = 'could not start $binary daemon: $err';
       connected = false;
@@ -103,16 +94,31 @@ abstract class RPCConnection extends ChangeNotifier {
 
     // Add timeout?
     log.i('init binaries: waiting for $binary connection');
-    await waitForBoolToBeTrue(() async {
-      log.d('waiting for successful RPC-connection');
-      final (connected, _) = await testConnection();
-      return connected;
-    });
 
-    initializingBinary = false;
-    startConnectionTimer();
+    const timeout = Duration(seconds: 5);
+    try {
+      await Future.any([
+        // Happy case: able to connect
+        waitForBoolToBeTrue(() async {
+          final (connected, _) = await testConnection();
+          return connected;
+        }),
+
+        Future.delayed(timeout).then(
+          (_) => throw "'$binary' connection timed out after ${timeout.inSeconds}s",
+        ),
+        // Timeout case!
+      ]);
+
+      log.i('init binaries: $binary connected');
+
+      initializingBinary = false;
+      startConnectionTimer();
+    } catch (err) {
+      connectionError = err.toString();
+    }
+
     notifyListeners();
-    log.i('init binaries: $binary connected');
   }
 
   // responsible for pinging the node every x seconds,

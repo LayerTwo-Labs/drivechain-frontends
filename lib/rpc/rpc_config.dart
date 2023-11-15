@@ -121,6 +121,17 @@ String mainchainDatadir() {
   }
 }
 
+List<String> bitcoinCoreBinaryArgs(
+  SingleNodeConnectionSettings conf,
+) {
+  return [
+    '-regtest',
+    '-rpcuser=${conf.username}',
+    '-rpcpassword=${conf.password}',
+    '-rpcport=${conf.port}',
+  ];
+}
+
 String _filePath(List<String> segments) {
   return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }
