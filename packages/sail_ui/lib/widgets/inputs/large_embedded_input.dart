@@ -10,6 +10,7 @@ class LargeEmbeddedInput extends StatelessWidget {
   final bool bitcoinInput;
   final Widget? suffixWidget;
   final String? suffixText;
+  final bool autofocus;
 
   const LargeEmbeddedInput({
     super.key,
@@ -18,6 +19,7 @@ class LargeEmbeddedInput extends StatelessWidget {
     this.bitcoinInput = false,
     this.suffixWidget,
     this.suffixText,
+    this.autofocus = false,
   });
 
   @override
@@ -25,6 +27,7 @@ class LargeEmbeddedInput extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return TextField(
+      autofocus: autofocus,
       controller: controller,
       cursorColor: theme.colors.primary,
       style: TextStyle(

@@ -85,12 +85,10 @@ class SendOnSidechainAction extends StatelessWidget {
             },
           ),
           children: [
-            Focus(
+            LargeEmbeddedInput(
+              controller: viewModel.bitcoinAddressController,
+              hintText: 'Enter a sidechain-address',
               autofocus: true,
-              child: LargeEmbeddedInput(
-                controller: viewModel.bitcoinAddressController,
-                hintText: 'Enter a sidechain-address',
-              ),
             ),
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
@@ -173,17 +171,10 @@ class SendOnSidechainViewModel extends BaseViewModel {
       return;
     }
 
-    await infoDialog(
-      context: context,
-      action: 'Send on sidechain',
-      title: 'Confirm send',
-      subtitle:
-          'Do you really want to send ${bitcoinAmountController.text} BTC to $address with $sidechainExpectedFee SC expected fee?',
-      onConfirm: () => _doSidechainSend(
-        context,
-        address,
-        sendAmount!,
-      ),
+    _doSidechainSend(
+      context,
+      address,
+      sendAmount!,
     );
   }
 

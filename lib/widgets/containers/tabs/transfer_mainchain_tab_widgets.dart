@@ -32,12 +32,10 @@ class PegOutAction extends StatelessWidget {
             },
           ),
           children: [
-            Focus(
+            LargeEmbeddedInput(
+              controller: viewModel.bitcoinAddressController,
+              hintText: 'Enter a parent chain bitcoin-address',
               autofocus: true,
-              child: LargeEmbeddedInput(
-                controller: viewModel.bitcoinAddressController,
-                hintText: 'Enter a parent chain bitcoin-address',
-              ),
             ),
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
@@ -129,21 +127,12 @@ class PegOutViewModel extends BaseViewModel {
       return;
     }
 
-    await infoDialog(
-      context: context,
-      action: 'Peg-out to parent chain',
-      title: 'Confirm withdrawal',
-      subtitle:
-          'Do you really want to peg-out?\n${bitcoinAmountController.text} BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
-      onConfirm: () {
-        _doPegOut(
-          context,
-          address,
-          pegOutAmount!,
-          sidechainFee!,
-          mainchainFee!,
-        );
-      },
+    _doPegOut(
+      context,
+      address,
+      pegOutAmount!,
+      sidechainFee!,
+      mainchainFee!,
     );
   }
 
