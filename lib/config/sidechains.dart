@@ -67,6 +67,7 @@ extension SidechainPaths on SidechainType {
       case SidechainType.testChain:
         return 'testchain.conf';
       case SidechainType.ethereum:
+        // TODO: make this properly configurable
         return '???';
     }
   }

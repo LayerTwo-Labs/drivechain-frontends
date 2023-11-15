@@ -17,9 +17,11 @@ Future<void> start() async {
     case '': // default to testchain
     case 'testchain':
       chain = TestSidechain();
+      break;
 
     case 'ethereum':
       chain = EthereumSidechain();
+      break;
 
     default:
       return runApp(
