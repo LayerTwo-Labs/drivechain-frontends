@@ -41,9 +41,17 @@ Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFi
   String? password;
   String? host;
   int? port;
+  final defaultPort = sidechain == null ? _defaultMainchainPorts[network]! : sidechain.rpcPort;
 
   if (!await conf.exists() && !await cookie.exists()) {
-    throw 'could not find neither conf ($conf) nor cookie ($cookie)';
+    log.d('missing both conf ($conf) and cookie ($cookie), returning default settings');
+    return SingleNodeConnectionSettings(
+      '',
+      'localhost',
+      defaultPort,
+      'user',
+      'password',
+    );
   }
 
   if (await cookie.exists()) {
@@ -77,7 +85,7 @@ Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFi
   }
 
   host ??= 'localhost';
-  port ??= sidechain == null ? _defaultMainchainPorts[network]! : sidechain.rpcPort;
+  port ??= defaultPort;
 
 // Make sure to not include password here
   log.i('resolved conf: $username@$host:$port');
