@@ -25,13 +25,18 @@ class BalanceProvider extends ChangeNotifier {
 
   // call this function from anywhere to refresh the balance
   Future<void> fetch() async {
-    final (bal, pendingBal) = await sidechain.rpc.getBalance();
-    // TODO: Handle error?
-    balance = bal;
-    pendingBalance = pendingBal;
+    // Explicitly ignoring errors here. RPC connection issues are handled
+    // elsewhere!
+    try {
+      final (bal, pendingBal) = await sidechain.rpc.getBalance();
+      balance = bal;
+      pendingBalance = pendingBal;
 
-    initialized = true;
-    notifyListeners();
+      initialized = true;
+      notifyListeners();
+    } catch (err) {
+      //
+    }
   }
 
   void _startPolling() {
