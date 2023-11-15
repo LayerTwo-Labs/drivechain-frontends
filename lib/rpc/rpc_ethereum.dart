@@ -42,7 +42,6 @@ class EthereumRPCLive extends EthereumRPC {
   @override
   Future<void> ping() async {
     await _client.getChainId();
-    return;
   }
 
   @override

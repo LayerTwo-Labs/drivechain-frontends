@@ -14,12 +14,7 @@ class MockMainchainRPC extends MainchainRPC {
   bool get connected => true;
 
   @override
-  Future<void> get initDone => Future.value();
-
-  @override
-  Future<void> ping() async {
-    return;
-  }
+  Future<void> ping() async {}
 
   @override
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash) async {

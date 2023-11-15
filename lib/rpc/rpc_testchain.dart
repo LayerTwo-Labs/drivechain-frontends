@@ -199,7 +199,7 @@ class TestchainRPCLive extends TestchainRPC {
 
   @override
   Future<void> ping() async {
-    await _client().call('ping') as Map<String, dynamic>?;
+    await _client().call('ping');
   }
 
   @override

@@ -24,12 +24,7 @@ class MockSidechainRPC extends SidechainRPC {
   bool get connected => true;
 
   @override
-  Future<void> get initDone => Future.value();
-
-  @override
-  Future<void> ping() async {
-    return;
-  }
+  Future<void> ping() async {}
 
   @override
   Future<List<CoreTransaction>> listTransactions() async {
