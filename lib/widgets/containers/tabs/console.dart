@@ -37,7 +37,7 @@ class Result {
 }
 
 class RPCWidgetState extends State<RPCWidget> {
-  SidechainRPC get rpc => GetIt.I.get<SidechainRPC>();
+  SidechainContainer get rpc => GetIt.I.get<SidechainContainer>();
   List<Result> results = [];
 
   Future<dynamic> _callRpc(String args) async {
@@ -55,7 +55,7 @@ class RPCWidgetState extends State<RPCWidget> {
     }
 
     final method = fields.first;
-    var res = await rpc.callRAW(method, params);
+    var res = await rpc.rpc.callRAW(method, params);
 
     log.t(
       'eth: $method completed in ${DateTime.now().difference(start)}',
