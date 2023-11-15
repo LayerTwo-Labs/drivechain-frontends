@@ -19,31 +19,28 @@ abstract class SidechainRPC extends RPCConnection {
 
 // Wraps a sidechain, with logic for notifying listeners when the underlying
 // RPC connection changes.
+// tests the connection on launch, and correctly set connection params
+// based on the result
 class SidechainContainer extends ChangeNotifier {
-  SidechainContainer(SidechainRPC rpc) : _rpc = rpc {
-    rpc.addListener(notifyListeners);
-    rpc.initDone.then(
-      (_) => _startConnectionTimer(),
-    );
-  }
-
-  // responsible for pinging the node every x seconds,
-  // so we can update the UI immediately when the values change
-  Timer? _connectionTimer;
-  void _startConnectionTimer() {
-    _connectionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      await _rpc.testConnection();
-    });
-  }
-
-  @override
-  void dispose() {
-    _connectionTimer?.cancel();
-    _rpc.removeListener(notifyListeners);
-    super.dispose();
-  }
-
   SidechainRPC _rpc;
+
+  // hacky way to create an async class
+  // https://stackoverflow.com/a/59304510
+  SidechainContainer._create(this._rpc);
+  static Future<SidechainContainer> create(SidechainRPC initRPC) async {
+    final container = SidechainContainer._create(initRPC);
+    await container.init();
+    return container;
+  }
+
+  Future<void> init() async {
+    await _rpc.testConnection();
+
+    // assigning here calls the set-method, adding listeners,
+    // starting connection timers etc.
+    rpc = _rpc;
+  }
+
   SidechainRPC get rpc => _rpc;
   set rpc(SidechainRPC r) {
     // remove the old listener
@@ -55,12 +52,17 @@ class SidechainContainer extends ChangeNotifier {
     // add the new listener
     _rpc.addListener(notifyListeners);
 
-    _connectionTimer?.cancel();
-    _startConnectionTimer();
+    _rpc.startConnectionTimer();
 
     unawaited(r.testConnection());
 
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _rpc.removeListener(notifyListeners);
+    super.dispose();
   }
 }
 

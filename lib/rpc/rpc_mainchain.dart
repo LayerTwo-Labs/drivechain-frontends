@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc.dart';
 
@@ -15,6 +16,8 @@ abstract class MainchainRPC extends RPCConnection {
   Future<List<MainchainWithdrawal>> listSpentWithdrawals();
   Future<List<MainchainWithdrawal>> listFailedWithdrawals();
   Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot);
+
+  final binary = 'drivechaind';
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -32,17 +35,18 @@ class MainchainRPCLive extends MainchainRPC {
     return client;
   }
 
-  // responsible for pinging the node every x seconds,
-  // so we can update the UI immediately when the values change
-  Timer? _connectionTimer;
+  // hacky way to create an async class
+  // https://stackoverflow.com/a/59304510
+  MainchainRPCLive._create({required super.conf});
+  static Future<MainchainRPCLive> create(SingleNodeConnectionSettings conf) async {
+    final container = MainchainRPCLive._create(conf: conf);
+    await container.init();
+    return container;
+  }
 
-  MainchainRPCLive({required super.conf}) {
-    // Wait for the initial setup to be done, then start a timer
-    initDone.then((value) {
-      _connectionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-        await testConnection();
-      });
-    });
+  Future<void> init() async {
+    await testConnection();
+    startConnectionTimer();
   }
 
   @override
@@ -105,13 +109,7 @@ class MainchainRPCLive extends MainchainRPC {
 
   @override
   Future<void> ping() async {
-    await _client().call('ping') as Map<String, dynamic>?;
-  }
-
-  @override
-  void dispose() {
-    _connectionTimer?.cancel();
-    super.dispose();
+    await _client().call('ping');
   }
 }
 
