@@ -22,7 +22,7 @@ Future<T?> infoDialog<T>({
   required String subtitle,
   required VoidCallback onConfirm,
 }) async {
-  return await _baseDialog(
+  return await _baseDialogSimple(
     context: context,
     action: action,
     title: title,
@@ -38,7 +38,7 @@ Future<T?> successDialog<T>({
   required String title,
   required String subtitle,
 }) async {
-  return await _baseDialog(
+  return await _baseDialogSimple(
     context: context,
     action: action,
     title: title,
@@ -54,7 +54,7 @@ Future<T?> errorDialog<T>({
   required String title,
   required String subtitle,
 }) async {
-  return await _baseDialog(
+  return await _baseDialogSimple(
     context: context,
     action: action,
     title: title,
@@ -64,13 +64,38 @@ Future<T?> errorDialog<T>({
   );
 }
 
-Future<T?> _baseDialog<T>({
+Future<T?> _baseDialogSimple<T>({
   required BuildContext context,
   required String action,
   required String title,
   required String subtitle,
   required DialogType dialogType,
   required VoidCallback? onConfirm,
+}) async {
+  return widgetDialog(
+    context: context,
+    action: action,
+    dialogType: dialogType,
+    child: SailColumn(
+      spacing: 0,
+      children: [
+        const SailSpacing(SailStyleValues.padding12),
+        SailText.primary20(title),
+        const SailSpacing(SailStyleValues.padding08),
+        SailText.secondary13(subtitle),
+        const SailSpacing(SailStyleValues.padding30),
+        DialogButtons(onPressed: onConfirm),
+      ],
+    ),
+  );
+}
+
+Future<T?> widgetDialog<T>({
+  required BuildContext context,
+  required String action,
+  required DialogType dialogType,
+  required Widget child,
+  double maxWidth = 640,
 }) async {
   final theme = SailTheme.of(context);
 
@@ -79,8 +104,8 @@ Future<T?> _baseDialog<T>({
     builder: (context) => Dialog(
       backgroundColor: theme.colors.actionHeader,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 640,
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
         ),
         child: SailRawCard(
           child: Padding(
@@ -98,12 +123,7 @@ Future<T?> _baseDialog<T>({
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                 ),
-                const SailSpacing(SailStyleValues.padding12),
-                SailText.primary20(title),
-                const SailSpacing(SailStyleValues.padding08),
-                SailText.secondary13(subtitle),
-                const SailSpacing(SailStyleValues.padding30),
-                DialogButtons(onPressed: onConfirm),
+                child,
               ],
             ),
           ),

@@ -19,6 +19,7 @@ class SailColor {
   final Color iconHighlighted;
   final Color error;
   final Color success;
+  final Color yellow;
 
   final Color actionHeader;
   final Color chip;
@@ -40,6 +41,7 @@ class SailColor {
     required this.icon,
     required this.error,
     required this.success,
+    required this.yellow,
     required this.actionHeader,
     required this.chip,
   });
@@ -62,6 +64,7 @@ class SailColor {
       primary: primary,
       error: SailColorScheme.red,
       success: SailColorScheme.green,
+      yellow: SailColorScheme.yellow,
       actionHeader: SailColorScheme.whiteDark,
       chip: SailColorScheme.greyMiddle,
     );
@@ -85,6 +88,7 @@ class SailColor {
       icon: SailColorScheme.greyMiddle,
       error: SailColorScheme.red,
       success: SailColorScheme.green,
+      yellow: SailColorScheme.yellow,
       chip: SailColorScheme.darkChip,
     );
   }

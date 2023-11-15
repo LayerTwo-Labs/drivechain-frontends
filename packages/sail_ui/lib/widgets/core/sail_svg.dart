@@ -13,6 +13,7 @@ enum SailSVGAsset {
 
   iconSearch,
   iconCopy,
+  iconRestart,
   iconArrow,
   iconArrowForward,
   iconClose,
@@ -94,6 +95,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_search.svg';
       case SailSVGAsset.iconCopy:
         return 'assets/svgs/icon_copy.svg';
+      case SailSVGAsset.iconRestart:
+        return 'assets/svgs/icon_restart.svg';
       case SailSVGAsset.iconArrow:
         return 'assets/svgs/icon_arrow_down.svg';
       case SailSVGAsset.iconArrowForward:
