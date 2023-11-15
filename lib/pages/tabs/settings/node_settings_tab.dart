@@ -30,7 +30,7 @@ class NodeSettingsTabPage extends StatelessWidget {
             spacing: SailStyleValues.padding50,
             children: [
               NodeConnectionSettings(
-                name: 'Sidechain',
+                name: viewModel.sidechain.rpc.chain.name,
                 sidechain: viewModel.sidechain.rpc.chain,
                 connected: viewModel.sidechain.rpc.connected,
                 settings: viewModel.sidechain.rpc.conf,

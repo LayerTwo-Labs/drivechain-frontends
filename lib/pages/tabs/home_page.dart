@@ -383,6 +383,7 @@ class SideNavViewModel extends BaseViewModel {
 }
 
 class NodeConnectionStatus extends ViewModelWidget<SideNavViewModel> {
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
   final VoidCallback onChipPressed;
 
   const NodeConnectionStatus({super.key, required this.onChipPressed});
@@ -394,13 +395,13 @@ class NodeConnectionStatus extends ViewModelWidget<SideNavViewModel> {
       children: [
         if (viewModel.sidechainConnected || viewModel.sidechainInitializing)
           ConnectionStatusChip(
-            chain: 'sidechain',
+            chain: _sidechain.rpc.chain.name,
             initializing: viewModel.sidechainInitializing,
             onPressed: onChipPressed,
           )
         else
           ConnectionErrorChip(
-            chain: 'sidechain',
+            chain: _sidechain.rpc.chain.name,
             onPressed: onChipPressed,
           ),
         if (viewModel.mainchainConnected || viewModel.mainchainInitializing)
