@@ -26,8 +26,8 @@ class ActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return GestureDetector(
-      onTap: onTap,
+    return SailScaleButton(
+      onPressed: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding15, horizontal: SailStyleValues.padding30),
         child: Row(

@@ -21,17 +21,17 @@ class StaticActionField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailScaleButton(
-      onPressed: () async {
-        if (copyable) {
-          await Clipboard.setData(
-            ClipboardData(text: value),
-          );
-          if (!context.mounted) {
-            return;
-          }
-          showSnackBar(context, 'Copied address');
-        }
-      },
+      onPressed: copyable
+          ? () async {
+              await Clipboard.setData(
+                ClipboardData(text: value),
+              );
+              if (!context.mounted) {
+                return;
+              }
+              showSnackBar(context, 'Copied address');
+            }
+          : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: SailStyleValues.padding20,
