@@ -23,6 +23,10 @@ Future<void> start() async {
       chain = EthereumSidechain();
       break;
 
+    case 'zcash':
+      chain = ZCashSidechain();
+      break;
+
     default:
       return runApp(
         SailApp(

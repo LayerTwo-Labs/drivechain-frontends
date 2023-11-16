@@ -10,6 +10,7 @@ import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
+import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/secure_store.dart';
 
@@ -90,6 +91,13 @@ Future<void> _initSidechainRPC(Sidechain chain) async {
     () => ethChain,
   );
 
+  final zChain = ZCashRPCLive(
+    conf: ethConf,
+  );
+  GetIt.I.registerLazySingleton<ZCashRPC>(
+    () => zChain,
+  );
+
   SidechainRPC sidechain;
   switch (chain.type) {
     case SidechainType.testChain:
@@ -97,6 +105,9 @@ Future<void> _initSidechainRPC(Sidechain chain) async {
 
     case SidechainType.ethereum:
       sidechain = ethChain;
+
+    case SidechainType.zcash:
+      sidechain = zChain;
   }
 
   final sidechainContainer = await SidechainContainer.create(sidechain);
