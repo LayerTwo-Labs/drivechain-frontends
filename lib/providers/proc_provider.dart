@@ -25,14 +25,38 @@ class ProcessProvider extends ChangeNotifier {
 
   // Starts a binary located in the asset bundle included with the app.
   Future<int> start(BuildContext context, String binary, List<String> args) async {
+    if (Platform.isWindows) {
+      binary = '$binary.exe';
+    }
     // We're NOT looking up here based on platform and architecture. That is instead
     // handled at app bundling time, where it's up the person/process cutting the
     // release to place the appropriate binaries in the correct place.
-    final binResource = await DefaultAssetBundle.of(context).load('assets/bin/$binary');
+    final binResource = await DefaultAssetBundle.of(context).load(
+      // Assets don't operate with platform path separators, just /
+      'assets/bin/$binary',
+    );
 
     final temp = await getTemporaryDirectory();
 
-    final file = File('${temp.path}/$binary');
+    final ts = DateTime.now();
+    // Add a random element to the file path. Windows doesn't like
+    // it when two processes open the same file...
+    final randDir = Directory(
+      filePath([
+        temp.path,
+        // Add a random element to the file path. Windows doesn't like
+        // it when two processes open the same file...
+        ts.millisecondsSinceEpoch.toString(),
+      ]),
+    );
+    await randDir.create();
+
+    final file = File(
+      filePath([
+        randDir.path,
+        binary,
+      ]),
+    );
 
     // Have to convert the ByteData -> List<int>. Side note: why tf does writeAsBytes
     // operate on a list of numbers? Jesus
@@ -42,9 +66,11 @@ class ProcessProvider extends ChangeNotifier {
       buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
     );
 
-    // Must be executable before we can start.
-    // TODO: what to do on Windows here
-    await Process.run('chmod', ['+x', file.path]);
+    // Windows doesn't do executable permissions, apparently
+    if (!Platform.isWindows) {
+      // Must be executable before we can start.
+      await Process.run('chmod', ['+x', file.path]);
+    }
 
     final process = await Process.start(
       file.path,
@@ -74,7 +100,10 @@ class ProcessProvider extends ChangeNotifier {
           level = Level.info;
         }
 
-        log.log(level, '"$binary" exited with code $code');
+        final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
+        _stderrStreams[process.pid] = Stream.fromIterable(errLogs);
+
+        log.log(level, '"$binary" exited with code $code: $errLogs');
 
         // Resolve the process exit future
         processExited.complete(true);
@@ -96,6 +125,7 @@ class ProcessProvider extends ChangeNotifier {
 
     if (exited) {
       final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
+      _stderrStreams[process.pid] = Stream.fromIterable(errLogs);
       throw '"$binary" exited with code ${_exitCodes[process.pid]}: ${errLogs.last}';
     }
 
@@ -112,4 +142,10 @@ class ProcessProvider extends ChangeNotifier {
     log.d('dispose process provider: killing processes $_runningProcesses');
     _runningProcesses.forEach(Process.killPid);
   }
+}
+
+/// Join a list of filepath segments based on the underlying platform
+/// path separator
+String filePath(List<String> segments) {
+  return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }

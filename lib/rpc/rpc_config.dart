@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/providers/proc_provider.dart';
 
 class Config {
   final String path;
@@ -31,11 +32,11 @@ const network = 'regtest';
 // 3. Defaults
 //
 Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFile, Sidechain? sidechain) async {
-  final networkDir = _filePath([datadir, network]);
+  final networkDir = filePath([datadir, network]);
 
-  final conf = File(_filePath([datadir, confFile]));
+  final conf = File(filePath([datadir, confFile]));
 
-  final cookie = File(_filePath([networkDir, '.cookie']));
+  final cookie = File(filePath([networkDir, '.cookie']));
 
   String? username;
   String? password;
@@ -111,19 +112,24 @@ String mainchainDatadir() {
   }
 
   if (Platform.isLinux) {
-    return _filePath([
+    return filePath([
       home,
       '.drivechain',
     ]);
   } else if (Platform.isMacOS) {
-    return _filePath([
+    return filePath([
       home,
       'Library',
       'Application Support',
       'Drivechain',
     ]);
   } else if (Platform.isWindows) {
-    throw 'TODO: windows';
+    return filePath([
+      home,
+      'AppData',
+      'Roaming',
+      'Drivechain',
+    ]);
   } else {
     throw 'unsupported operating system: ${Platform.operatingSystem}';
   }
@@ -138,10 +144,6 @@ List<String> bitcoinCoreBinaryArgs(
     '-rpcpassword=${conf.password}',
     '-rpcport=${conf.port}',
   ];
-}
-
-String _filePath(List<String> segments) {
-  return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }
 
 // TODO: add more nets
