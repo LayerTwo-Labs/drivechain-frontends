@@ -11,4 +11,8 @@ abstract class RuntimeArgs {
     'CHAIN',
     defaultValue: 'testchain',
   );
+  static const bool withoutSwappableChains = bool.fromEnvironment(
+    'NO_SWAPPABLE_CHAINS',
+    defaultValue: true,
+  );
 }

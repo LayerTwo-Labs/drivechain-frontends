@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -121,9 +122,11 @@ class _SideNavState extends State<SideNav> {
                     unconfirmedBalance: viewModel.pendingBalance,
                     highlighted: tabsRouter.activeIndex == 0,
                     currentChain: true,
-                    onPressed: () {
-                      tabsRouter.setActiveIndex(0);
-                    },
+                    onPressed: RuntimeArgs.withoutSwappableChains
+                        ? null
+                        : () {
+                            tabsRouter.setActiveIndex(0);
+                          },
                   ),
                   const SailSpacing(SailStyleValues.padding30),
                   for (final navEntry in navWidgets) navEntry,
