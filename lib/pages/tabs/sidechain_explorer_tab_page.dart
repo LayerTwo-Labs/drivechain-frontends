@@ -9,6 +9,7 @@ import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
+import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/sail_settings/theme_settings.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
@@ -19,6 +20,7 @@ import 'package:stacked/stacked.dart';
 class SidechainExplorerTabPage extends StatelessWidget {
   TestchainRPC get test => GetIt.I.get<TestchainRPC>();
   EthereumRPC get eth => GetIt.I.get<EthereumRPC>();
+  ZCashRPC get zcash => GetIt.I.get<ZCashRPC>();
 
   const SidechainExplorerTabPage({super.key});
 
@@ -56,6 +58,14 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.ethereum,
                           onPressed: () => viewModel.setSidechain(eth, app),
+                        ),
+                        ChainOverviewCard(
+                          chain: ZCashSidechain(),
+                          confirmedBalance: viewModel.balance,
+                          unconfirmedBalance: viewModel.pendingBalance,
+                          highlighted: false,
+                          currentChain: viewModel.chain.type == SidechainType.zcash,
+                          onPressed: () => viewModel.setSidechain(zcash, app),
                         ),
                       ],
                     ),
