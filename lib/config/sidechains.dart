@@ -39,6 +39,26 @@ class TestSidechain extends Sidechain {
   String get binary => 'testchaind';
 }
 
+class ZCashSidechain extends Sidechain {
+  @override
+  String name = 'ZSide';
+
+  @override
+  int slot = 1;
+
+  @override
+  Color color = SailColorScheme.blue;
+
+  @override
+  SidechainType get type => SidechainType.zcash;
+
+  @override
+  int get rpcPort => 8545;
+
+  @override
+  String get binary => 'sidezcash';
+}
+
 class EthereumSidechain extends Sidechain {
   @override
   String name = 'EthSide';
@@ -59,7 +79,7 @@ class EthereumSidechain extends Sidechain {
   String get binary => 'sidegeth';
 }
 
-enum SidechainType { testChain, ethereum }
+enum SidechainType { testChain, ethereum, zcash }
 
 extension SidechainPaths on SidechainType {
   String confFile() {
@@ -67,6 +87,9 @@ extension SidechainPaths on SidechainType {
       case SidechainType.testChain:
         return 'testchain.conf';
       case SidechainType.ethereum:
+        // TODO: make this properly configurable
+        return '???';
+      case SidechainType.zcash:
         // TODO: make this properly configurable
         return '???';
     }
@@ -104,6 +127,9 @@ extension SidechainPaths on SidechainType {
       case SidechainType.ethereum:
         // TODO: correct?
         return '.ethereum';
+      case SidechainType.zcash:
+        // TODO: correct?
+        return '.ethereum';
     }
   }
 
@@ -113,6 +139,8 @@ extension SidechainPaths on SidechainType {
         return 'Testchain';
       case SidechainType.ethereum:
         return 'Ethereum';
+      case SidechainType.zcash:
+        return 'ZCash';
     }
   }
 }
