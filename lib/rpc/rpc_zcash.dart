@@ -12,7 +12,7 @@ abstract class ZCashRPC extends SidechainRPC {
     required super.conf,
   }) : super(chain: ZCashSidechain());
 
-  String? address = 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q';
+  String address = 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q';
 
   Future<List<OperationStatus>> listOperations();
   Future<List<ShieldedUTXO>> listShieldedCoins();

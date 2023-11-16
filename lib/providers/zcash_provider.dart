@@ -12,6 +12,7 @@ class ZCashProvider extends ChangeNotifier {
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these
   // variables.
+  String get zcashAddress => rpc.address;
   List<OperationStatus> operations = [];
   List<ShieldedUTXO> shieldedUTXOs = [];
   List<UnshieldedUTXO> unshieldedUTXOs = [];
