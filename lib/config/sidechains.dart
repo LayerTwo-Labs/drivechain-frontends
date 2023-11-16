@@ -156,6 +156,8 @@ extension SidechainPaths on SidechainType {
         return 'Testchain';
       case SidechainType.ethereum:
         return 'Ethereum';
+      case SidechainType.zcash:
+        return 'ZCash';
     }
   }
 }
