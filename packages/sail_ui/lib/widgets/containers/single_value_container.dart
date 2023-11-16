@@ -10,6 +10,7 @@ class SingleValueContainer extends StatelessWidget {
   final double width;
   final String? trailingText;
   final Widget? icon;
+  final Widget? prefixAction;
   final bool copyable;
   final String? customCopyValue;
 
@@ -20,6 +21,7 @@ class SingleValueContainer extends StatelessWidget {
     this.label,
     this.trailingText,
     this.icon,
+    this.prefixAction,
     this.copyable = true,
     this.customCopyValue,
   });
@@ -27,9 +29,12 @@ class SingleValueContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailRow(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       spacing: SailStyleValues.padding08,
       children: [
+        if (prefixAction != null) prefixAction!,
+        if (prefixAction != null) const SailSpacing(SailStyleValues.padding12),
         if (icon != null)
           icon!
         else

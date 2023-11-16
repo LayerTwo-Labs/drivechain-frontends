@@ -18,6 +18,7 @@ import 'package:stacked/stacked.dart';
 
 const TestchainHome = 1;
 const EthereumHome = 6;
+const ZCashHome = 7;
 
 @RoutePage()
 class HomePage extends StatelessWidget {
@@ -26,6 +27,9 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    // it doesn't work to change routes after the application is launched,
+    // so we're forced to add all of them, and just keep our mouth straight
+    // when setting the active index
     const routes = [
       // common routes
       SidechainExplorerTabRoute(),
@@ -39,6 +43,9 @@ class HomePage extends StatelessWidget {
 
       // ethereum routes
       EthereumRPCTabRoute(),
+
+      // zcash routes
+      ZCashShieldTabRoute(),
 
       // trailing common routes
       NodeSettingsTabRoute(),
@@ -255,6 +262,71 @@ class _SideNavState extends State<SideNav> {
                 selected: tabsRouter.activeIndex == EthereumHome,
                 onPressed: () {
                   tabsRouter.setActiveIndex(EthereumHome);
+                },
+              ),
+            ],
+          ),
+        ];
+
+      case SidechainType.zcash:
+        return [
+          NavEntry(
+            title: '${viewModel.chain.name} Dashboard',
+            icon: SailSVGAsset.iconDashboardTab,
+            selected: false,
+            onPressed: () {
+              tabsRouter.setActiveIndex(TestchainHome);
+            },
+          ),
+          SubNavEntryContainer(
+            open: tabsRouter.activeIndex == TestchainHome || tabsRouter.activeIndex == ZCashHome,
+            subs: [
+              SubNavEntry(
+                title: 'Transfer',
+                selected: tabsRouter.activeIndex == TestchainHome,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(TestchainHome);
+                },
+              ),
+              SubNavEntry(
+                title: 'Shield/Deshield',
+                selected: tabsRouter.activeIndex == ZCashHome,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(ZCashHome);
+                },
+              ),
+            ],
+          ),
+          NavEntry(
+            title: 'Parent Chain Dashboard',
+            icon: SailSVGAsset.iconWithdrawalBundleTab,
+            selected: false,
+            onPressed: () {
+              tabsRouter.setActiveIndex(3);
+            },
+          ),
+          SubNavEntryContainer(
+            open: tabsRouter.activeIndex == 3 || tabsRouter.activeIndex == 4 || tabsRouter.activeIndex == 5,
+            subs: [
+              SubNavEntry(
+                title: 'Transfer',
+                selected: tabsRouter.activeIndex == 3,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(3);
+                },
+              ),
+              SubNavEntry(
+                title: 'Withdrawal explorer',
+                selected: tabsRouter.activeIndex == 4,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(4);
+                },
+              ),
+              SubNavEntry(
+                title: 'Blind Merged Mining',
+                selected: tabsRouter.activeIndex == 5,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(5);
                 },
               ),
             ],
