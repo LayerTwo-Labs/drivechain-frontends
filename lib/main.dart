@@ -6,25 +6,27 @@ import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 
-const appName = 'SideSail';
-
 Future<void> start() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  String appName;
   Sidechain chain;
   // Sanity check we're getting a supported chain.
   switch (RuntimeArgs.chain) {
     case '': // default to testchain
     case 'testchain':
       chain = TestSidechain();
+      appName = chain.name;
       break;
 
     case 'ethereum':
       chain = EthereumSidechain();
+      appName = chain.name;
       break;
 
     case 'zcash':
       chain = ZCashSidechain();
+      appName = chain.name;
       break;
 
     default:
