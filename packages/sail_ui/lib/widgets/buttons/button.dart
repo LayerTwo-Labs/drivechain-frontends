@@ -243,7 +243,7 @@ class SailScaleButton extends StatefulWidget {
 class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProviderStateMixin {
   late final AnimationController _scaleController = AnimationController(
     vsync: this,
-    lowerBound: 0.98,
+    lowerBound: 0.995,
     upperBound: 1.0,
     value: 1,
     duration: const Duration(milliseconds: 20),

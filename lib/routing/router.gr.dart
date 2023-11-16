@@ -33,16 +33,10 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const EthereumRPCTabPage(),
       );
     },
-    TestchainRPCTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const TestchainRPCTabPage(),
-      );
-    },
     HomeRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: HomePage(),
+        child: const HomePage(),
       );
     },
     NodeSettingsTabRoute.name: (routeData) {
@@ -67,6 +61,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const SidechainExplorerTabPage(),
       );
     },
+    TestchainRPCTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const TestchainRPCTabPage(),
+      );
+    },
     ThemeSettingsTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -83,6 +83,12 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const WithdrawalBundleTabPage(),
+      );
+    },
+    ZCashShieldTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ZCashShieldTabPage(),
       );
     },
   };
@@ -112,20 +118,6 @@ class DashboardTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'DashboardTabRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [TestchainRPCTabPage]
-class TestchainRPCTabRoute extends PageRouteInfo<void> {
-  const TestchainRPCTabRoute({List<PageRouteInfo>? children})
-      : super(
-          TestchainRPCTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'TestchainRPCTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -224,6 +216,20 @@ class SidechainExplorerTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [TestchainRPCTabPage]
+class TestchainRPCTabRoute extends PageRouteInfo<void> {
+  const TestchainRPCTabRoute({List<PageRouteInfo>? children})
+      : super(
+          TestchainRPCTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'TestchainRPCTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [ThemeSettingsTabPage]
 class ThemeSettingsTabRoute extends PageRouteInfo<void> {
   const ThemeSettingsTabRoute({List<PageRouteInfo>? children})
@@ -261,6 +267,20 @@ class WithdrawalBundleTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'WithdrawalBundleTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [ZCashShieldTabPage]
+class ZCashShieldTabRoute extends PageRouteInfo<void> {
+  const ZCashShieldTabRoute({List<PageRouteInfo>? children})
+      : super(
+          ZCashShieldTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ZCashShieldTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

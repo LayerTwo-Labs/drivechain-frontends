@@ -4,6 +4,7 @@ import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
+import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
@@ -52,6 +53,10 @@ Future<void> initDependencies(Sidechain chain) async {
 
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
+  );
+
+  GetIt.I.registerLazySingleton<ZCashProvider>(
+    () => ZCashProvider(),
   );
 }
 
