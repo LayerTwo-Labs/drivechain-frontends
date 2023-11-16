@@ -24,6 +24,13 @@ class ZCashShieldTabPage extends StatelessWidget {
       builder: ((context, viewModel, child) {
         return SailPage(
           scrollable: true,
+          widgetTitle: SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailText.secondary13('Your ZCash-address: ${viewModel.zcashAddress}'),
+              Expanded(child: Container()),
+            ],
+          ),
           body: Padding(
             padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
             child: SailColumn(
@@ -108,6 +115,7 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
 
+  String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations;
   List<UnshieldedUTXO> get unshieldedUTXOs => _zcashProvider.unshieldedUTXOs;
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
