@@ -10,7 +10,7 @@ class ChainOverviewCard extends StatelessWidget {
   final double unconfirmedBalance;
   final bool highlighted;
   final bool currentChain;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const ChainOverviewCard({
     super.key,
@@ -55,7 +55,7 @@ class ChainOverviewCard extends StatelessWidget {
                     spacing: SailStyleValues.padding05,
                     children: [
                       SailText.primary12(chain.name),
-                      SailSVG.icon(SailSVGAsset.iconArrow, width: 5.5),
+                      if (onPressed != null) SailSVG.icon(SailSVGAsset.iconArrow, width: 5.5),
                     ],
                   ),
                 ],
