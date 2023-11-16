@@ -69,10 +69,6 @@ class TestchainRPCLive extends TestchainRPC {
     return client;
   }
 
-  // responsible for pinging the node every x seconds,
-  // so we can update the UI immediately when the values change
-  Timer? _connectionTimer;
-
   TestchainRPCLive({required super.conf});
 
   @override
@@ -202,12 +198,6 @@ class TestchainRPCLive extends TestchainRPC {
   @override
   Future<void> ping() async {
     await _client().call('ping');
-  }
-
-  @override
-  void dispose() {
-    _connectionTimer?.cancel();
-    super.dispose();
   }
 
   @override
