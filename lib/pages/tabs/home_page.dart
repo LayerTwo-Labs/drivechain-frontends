@@ -140,8 +140,7 @@ class _SideNavState extends State<SideNav> {
                   ),
                   SubNavEntryContainer(
                     // open if second to last or last route is active
-                    open: tabsRouter.activeIndex == tabsRouter.pageCount - 1 ||
-                        tabsRouter.activeIndex == tabsRouter.pageCount - 2,
+                    open: true,
                     subs: [
                       SubNavEntry(
                         title: 'Node Settings',
@@ -191,7 +190,7 @@ class _SideNavState extends State<SideNav> {
             },
           ),
           SubNavEntryContainer(
-            open: tabsRouter.activeIndex == TestchainHome || tabsRouter.activeIndex == 2,
+            open: true,
             subs: [
               SubNavEntry(
                 title: 'Transfer',
@@ -218,7 +217,7 @@ class _SideNavState extends State<SideNav> {
             },
           ),
           SubNavEntryContainer(
-            open: tabsRouter.activeIndex == 3 || tabsRouter.activeIndex == 4 || tabsRouter.activeIndex == 5,
+            open: true,
             subs: [
               SubNavEntry(
                 title: 'Transfer',
@@ -255,7 +254,7 @@ class _SideNavState extends State<SideNav> {
             },
           ),
           SubNavEntryContainer(
-            open: tabsRouter.activeIndex == EthereumHome,
+            open: true,
             subs: [
               SubNavEntry(
                 title: 'Send RPC',
@@ -279,7 +278,7 @@ class _SideNavState extends State<SideNav> {
             },
           ),
           SubNavEntryContainer(
-            open: tabsRouter.activeIndex == TestchainHome || tabsRouter.activeIndex == ZCashHome,
+            open: true,
             subs: [
               SubNavEntry(
                 title: 'Transfer',
@@ -306,7 +305,7 @@ class _SideNavState extends State<SideNav> {
             },
           ),
           SubNavEntryContainer(
-            open: tabsRouter.activeIndex == 3 || tabsRouter.activeIndex == 4 || tabsRouter.activeIndex == 5,
+            open: true,
             subs: [
               SubNavEntry(
                 title: 'Transfer',
