@@ -1,5 +1,3 @@
-import 'package:dart_coin_rpc/dart_coin_rpc.dart';
-import 'package:dio/dio.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
@@ -23,22 +21,8 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<String> melt(List<UnshieldedUTXO> utxos);
 }
 
-class ZCashRPCLive extends ZCashRPC {
-  RPCClient _client() {
-    final client = RPCClient(
-      host: conf.host,
-      port: conf.port,
-      username: conf.username,
-      password: conf.password,
-      useSSL: false,
-    );
-
-    // no retry logic!
-    client.dioClient = Dio();
-    return client;
-  }
-
-  ZCashRPCLive({required super.conf});
+class MockZCashRPC extends ZCashRPC {
+  MockZCashRPC({required super.conf});
 
   @override
   Future<dynamic> callRAW(String method, [params]) async {
@@ -93,7 +77,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00002250,
-    "confirmations": 0,
+    "confirmations": 1,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -111,7 +95,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00002250,
-    "confirmations": 0,
+    "confirmations": 29,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -126,7 +110,7 @@ class ZCashRPCLive extends ZCashRPC {
       UnshieldedUTXO(
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
-        confirmations: 0,
+        confirmations: 1,
         time: DateTime.now(),
         raw: '''  {
     "account": "",
@@ -136,7 +120,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00010000,
-    "confirmations": 0,
+    "confirmations": 1,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -145,7 +129,7 @@ class ZCashRPCLive extends ZCashRPC {
       UnshieldedUTXO(
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
-        confirmations: 0,
+        confirmations: 5,
         time: DateTime.now(),
         raw: '''  {
     "account": "",
@@ -155,7 +139,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00010000,
-    "confirmations": 0,
+    "confirmations": 5,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -164,7 +148,7 @@ class ZCashRPCLive extends ZCashRPC {
       UnshieldedUTXO(
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 0.00010000,
-        confirmations: 0,
+        confirmations: 10,
         time: DateTime.now(),
         raw: '''  {
     "account": "",
@@ -174,7 +158,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00000000,
-    "confirmations": 0,
+    "confirmations": 10,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -183,7 +167,7 @@ class ZCashRPCLive extends ZCashRPC {
       UnshieldedUTXO(
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
-        confirmations: 0,
+        confirmations: 35,
         time: DateTime.now(),
         raw: '''  {
     "account": "",
@@ -193,7 +177,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00001000,
-    "confirmations": 0,
+    "confirmations": 35,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -208,7 +192,7 @@ class ZCashRPCLive extends ZCashRPC {
       ShieldedUTXO(
         address: 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q',
         amount: 859.0,
-        confirmations: 0,
+        confirmations: 3,
         time: DateTime.now(),
         raw: '''  {
     "account": "",
@@ -218,7 +202,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00001000,
-    "confirmations": 0,
+    "confirmations": 3,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -227,7 +211,7 @@ class ZCashRPCLive extends ZCashRPC {
       ShieldedUTXO(
         address: 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q',
         amount: 859.0,
-        confirmations: 0,
+        confirmations: 54,
         time: DateTime.now(),
         raw: '''  {
     "account": "",
@@ -237,7 +221,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00001000,
-    "confirmations": 0,
+    "confirmations": 54,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -246,7 +230,7 @@ class ZCashRPCLive extends ZCashRPC {
       ShieldedUTXO(
         address: 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q',
         amount: 0.0001000,
-        confirmations: 0,
+        confirmations: 98,
         time: DateTime.now(),
         raw: '''  {
     "account": "",
@@ -256,7 +240,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00001000,
-    "confirmations": 0,
+    "confirmations": 98,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312
@@ -265,7 +249,7 @@ class ZCashRPCLive extends ZCashRPC {
       ShieldedUTXO(
         address: 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q',
         amount: 859.0,
-        confirmations: 0,
+        confirmations: 99,
         time: DateTime.now(),
         raw: '''  {
     "account": "",
@@ -275,7 +259,7 @@ class ZCashRPCLive extends ZCashRPC {
     "label": "Sidechain Deposit",
     "vout": 0,
     "fee": -0.00001000,
-    "confirmations": 0,
+    "confirmations": 99,
     "txid": "c80870f301d288294cdf79ecc9d9dd8a96f57bf4725210475eb662ec82b96acd",
     "time": 1699362312,
     "timereceived": 1699362312

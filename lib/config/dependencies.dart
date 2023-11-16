@@ -96,8 +96,8 @@ Future<void> _initSidechainRPC(Sidechain chain) async {
     () => ethChain,
   );
 
-  final zChain = ZCashRPCLive(
-    conf: ethConf,
+  final zChain = MockZCashRPC(
+    conf: _emptyNodeConf,
   );
   GetIt.I.registerLazySingleton<ZCashRPC>(
     () => zChain,
