@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/providers/proc_provider.dart';
 
 abstract class Sidechain {
   String get name;
@@ -102,19 +103,24 @@ extension SidechainPaths on SidechainType {
     }
 
     if (Platform.isLinux) {
-      return _filePath([
+      return filePath([
         home,
         _linuxDirname(),
       ]);
     } else if (Platform.isMacOS) {
-      return _filePath([
+      return filePath([
         home,
         'Library',
         'Application Support',
         _macosDirname(),
       ]);
     } else if (Platform.isWindows) {
-      throw 'TODO: windows';
+      return filePath([
+        home,
+        'AppData',
+        'Roaming',
+        _windowsDirname(),
+      ]);
     } else {
       throw 'unsupported operating system: ${Platform.operatingSystem}';
     }
@@ -143,8 +149,13 @@ extension SidechainPaths on SidechainType {
         return 'ZCash';
     }
   }
-}
 
-String _filePath(List<String> segments) {
-  return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
+  String _windowsDirname() {
+    switch (this) {
+      case SidechainType.testChain:
+        return 'Testchain';
+      case SidechainType.ethereum:
+        return 'Ethereum';
+    }
+  }
 }

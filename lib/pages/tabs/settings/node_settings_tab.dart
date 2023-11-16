@@ -314,7 +314,6 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  // TODO: might need tweaking on Windows
   (String, String) splitPath(String path) {
     final sep = Platform.pathSeparator;
     if (!path.contains(sep)) {

@@ -175,7 +175,9 @@ class TestchainRPCLive extends TestchainRPC {
     final transactionsJSON = await _client().call('listtransactions', [
       '',
       9999, // how many txs to list. We have not implemented pagination, so we list all
-    ]) as List<dynamic>;
+    ]).catchError(
+      (err) => List.empty(), // might be connection issues, don't error
+    ) as List<dynamic>;
 
     // then convert to something other than json
     List<CoreTransaction> transactions = transactionsJSON.map((jsonItem) => CoreTransaction.fromMap(jsonItem)).toList();
