@@ -1,3 +1,4 @@
+import 'package:sidesail/logger.dart';
 import 'package:sidesail/storage/secure_store.dart';
 
 class ClientSettings {
@@ -8,7 +9,14 @@ class ClientSettings {
   });
 
   Future<SettingValue<T>> getValue<T extends Object>(SettingValue<T> setting) async {
-    final jsonString = await store.getString(setting.key);
+    String? jsonString;
+    try {
+      jsonString = await store.getString(setting.key);
+    } catch (err) {
+      // Linux throws here, if the setting is not found
+      log.e('could not get $setting value', error: err);
+      jsonString = null;
+    }
     if (jsonString == null) return setting.withValue(null);
 
     final value = setting.fromJson(jsonString);
