@@ -34,8 +34,10 @@ echo Downloading binaries for $platform + $chain
 bash ./scripts/download-binaries.sh $platform $chain
 
 echo Flavorizing for $platform
-bash ./scripts/flavorize-$platform.sh
+bash ./scripts/flavorize-$platform.sh $app_name
 
 echo Building $app_name release 
-flutter clean
-flutter build $platform
+bash ./scripts/build-$platform.sh
+
+# Reset to the pre-flavorized versions.
+git checkout windows pubspec.yaml
