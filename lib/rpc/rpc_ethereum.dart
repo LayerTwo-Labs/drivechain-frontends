@@ -52,7 +52,6 @@ class EthereumRPCLive extends EthereumRPC {
     final account = await _setAndGetAccount();
     final balance = await _client.getBalance(account);
 
-    notifyListeners();
     return (balance.getInEther.toDouble(), 0.0);
   }
 

@@ -28,61 +28,63 @@ class ChainOverviewCard extends StatelessWidget {
 
     return SailScaleButton(
       onPressed: onPressed,
-      child: SizedBox(
-        width: 200,
-        height: 87,
-        child: SailBorder(
-          padding: const EdgeInsets.symmetric(
-            horizontal: SailStyleValues.padding12,
-            vertical: SailStyleValues.padding08,
-          ),
-          backgroundColor: highlighted ? theme.colors.actionHeader : null,
-          child: SailColumn(
-            spacing: 0,
-            children: [
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: chain.color,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: SailText.primary12(chain.ticker),
-                  ),
-                  SailRow(
-                    spacing: SailStyleValues.padding05,
-                    children: [
-                      SailText.primary12(chain.name),
-                      if (onPressed != null) SailSVG.icon(SailSVGAsset.iconArrow, width: 5.5),
-                    ],
-                  ),
-                ],
-              ),
-              if (!currentChain) SailText.secondary12('Open ${chain.name}'),
-              if (currentChain)
-                Column(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 200),
+        child: SizedBox(
+          height: 87,
+          child: SailBorder(
+            padding: const EdgeInsets.symmetric(
+              horizontal: SailStyleValues.padding12,
+              vertical: SailStyleValues.padding08,
+            ),
+            backgroundColor: highlighted ? theme.colors.actionHeader : null,
+            child: SailColumn(
+              spacing: 0,
+              children: [
+                SailRow(
+                  spacing: SailStyleValues.padding08,
                   children: [
-                    const SailSpacing(SailStyleValues.padding08),
-                    SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailSVG.icon(SailSVGAsset.iconSuccess),
-                        SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: chain.color,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: SailText.primary12(chain.ticker),
                     ),
-                    const SailSpacing(SailStyleValues.padding08),
                     SailRow(
-                      spacing: SailStyleValues.padding08,
+                      spacing: SailStyleValues.padding05,
                       children: [
-                        SailSVG.icon(SailSVGAsset.iconPending),
-                        SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
+                        SailText.primary12(chain.name),
+                        if (onPressed != null) SailSVG.icon(SailSVGAsset.iconArrow, width: 5.5),
                       ],
                     ),
                   ],
                 ),
-            ],
+                if (!currentChain) SailText.secondary12('Open ${chain.name}'),
+                if (currentChain)
+                  Column(
+                    children: [
+                      const SailSpacing(SailStyleValues.padding08),
+                      SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailSVG.icon(SailSVGAsset.iconSuccess),
+                          SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
+                        ],
+                      ),
+                      const SailSpacing(SailStyleValues.padding08),
+                      SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailSVG.icon(SailSVGAsset.iconPending),
+                          SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
+                        ],
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),
