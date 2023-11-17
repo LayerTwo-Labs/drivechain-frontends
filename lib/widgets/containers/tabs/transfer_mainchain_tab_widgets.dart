@@ -7,19 +7,24 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
 
 class PegOutAction extends StatelessWidget {
-  const PegOutAction({super.key});
+  final String? staticAddress;
+
+  const PegOutAction({
+    super.key,
+    this.staticAddress,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => PegOutViewModel(),
+      viewModelBuilder: () => PegOutViewModel(staticAddress: staticAddress),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
           'Peg-out to parent chain',
@@ -37,6 +42,7 @@ class PegOutAction extends StatelessWidget {
               controller: viewModel.bitcoinAddressController,
               hintText: 'Enter a parent chain bitcoin-address',
               autofocus: true,
+              disabled: staticAddress != null,
             ),
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
@@ -69,7 +75,6 @@ class PegOutViewModel extends BaseViewModel {
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
-  TestchainRPC get _testchain => GetIt.I.get<TestchainRPC>();
   MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
 
   final bitcoinAddressController = TextEditingController();
@@ -82,9 +87,15 @@ class PegOutViewModel extends BaseViewModel {
   double? mainchainFee;
   double? get pegOutAmount => double.tryParse(bitcoinAmountController.text);
 
-  PegOutViewModel() {
+  final String? staticAddress;
+  PegOutViewModel({this.staticAddress}) {
     bitcoinAddressController.addListener(notifyListeners);
     bitcoinAmountController.addListener(notifyListeners);
+
+    if (staticAddress != null) {
+      bitcoinAddressController.text = staticAddress!;
+    }
+
     init();
   }
 
@@ -101,7 +112,7 @@ class PegOutViewModel extends BaseViewModel {
   }
 
   Future<void> estimateSidechainFee() async {
-    sidechainFee = await _testchain.sideEstimateFee();
+    sidechainFee = await sidechain.rpc.sideEstimateFee();
     notifyListeners();
   }
 
@@ -150,7 +161,7 @@ class PegOutViewModel extends BaseViewModel {
     );
 
     try {
-      final withdrawalTxid = await _testchain.mainSend(
+      final withdrawalTxid = await sidechain.rpc.mainSend(
         address,
         amount,
         sidechainFee,
@@ -228,7 +239,7 @@ class PegInAction extends StatelessWidget {
 }
 
 class PegInViewModel extends BaseViewModel {
-  TestchainRPC get _rpc => GetIt.I.get<TestchainRPC>();
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
   final log = Logger(level: Level.debug);
 
   String? pegInAddress;
@@ -238,7 +249,133 @@ class PegInViewModel extends BaseViewModel {
   }
 
   Future<void> generatePegInAddress() async {
-    pegInAddress = await _rpc.mainGenerateAddress();
+    pegInAddress = await _sidechain.rpc.mainGenerateAddress();
     notifyListeners();
+  }
+}
+
+class PegInEthAction extends StatelessWidget {
+  const PegInEthAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => PegInEthViewModel(),
+      builder: ((context, viewModel, child) {
+        return DashboardActionModal(
+          'Peg-in from parent chain',
+          endActionButton: SailButton.primary(
+            'Deposit funds',
+            loading: viewModel.isBusy,
+            size: ButtonSize.regular,
+            onPressed: () async {
+              await viewModel.deposit(context);
+            },
+          ),
+          children: [
+            LargeEmbeddedInput(
+              controller: viewModel.bitcoinAmountController,
+              hintText: 'How much do you want to deposit?',
+              suffixText: 'BTC',
+              bitcoinInput: true,
+            ),
+            StaticActionField(
+              label: 'Deposit to',
+              value: viewModel.pegInAddress ?? '',
+              copyable: true,
+            ),
+            StaticActionField(
+              label: '${viewModel.sidechain.rpc.chain.name} fee',
+              value: '${(viewModel.sidechainFee ?? 0).toStringAsFixed(8)} BTC',
+            ),
+            StaticActionField(
+              label: 'Total amount',
+              value: '${viewModel.totalBitcoinAmount} BTC',
+            ),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class PegInEthViewModel extends BaseViewModel {
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  AppRouter get _router => GetIt.I.get<AppRouter>();
+  EthereumRPC get _ethRPC => GetIt.I.get<EthereumRPC>();
+  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
+  final log = Logger(level: Level.debug);
+
+  final bitcoinAmountController = TextEditingController();
+  String get totalBitcoinAmount =>
+      ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)).toStringAsFixed(8);
+
+  String? pegInAddress;
+  double? sidechainFee;
+
+  PegInEthViewModel() {
+    generatePegInAddress();
+  }
+
+  Future<void> generatePegInAddress() async {
+    pegInAddress = await _ethRPC.mainGenerateAddress();
+    sidechainFee = await _ethRPC.sideEstimateFee();
+    notifyListeners();
+  }
+
+  Future<void> deposit(BuildContext context) async {
+    if (sidechainFee == null) {
+      log.e('sidechainfee was empty');
+      return;
+    }
+
+    final amount = (double.tryParse(bitcoinAmountController.text) ?? 0);
+
+    await _ethRPC.deposit(amount, sidechainFee!);
+
+    log.i(
+      'doing deposit: $amount BTC to $pegInAddress',
+    );
+
+    try {
+      final success = await _ethRPC.deposit(
+        amount,
+        sidechainFee!,
+      );
+
+      if (!context.mounted) {
+        return;
+      }
+
+      // refresh balance, but don't await, so dialog is showed instantly
+      unawaited(_balanceProvider.fetch());
+
+      if (!success) {
+        throw Exception('got false response');
+      }
+
+      await successDialog(
+        context: context,
+        action: 'Peg-in from parent chain',
+        title: 'Deposited from parent-chain successfully',
+        subtitle: '',
+      );
+    } catch (error) {
+      log.e('could not execute peg-out: $error', error: error);
+
+      if (!context.mounted) {
+        return;
+      }
+
+      await errorDialog(
+        context: context,
+        action: 'Peg-in from parent chain',
+        title: 'Could not deposit from parent-chain',
+        subtitle: error.toString(),
+      );
+      // also pop the info modal
+      await _router.pop();
+      return;
+    }
   }
 }

@@ -304,6 +304,26 @@ class _SideNavState extends State<SideNav> {
               ),
             ],
           ),
+          NavEntry(
+            title: 'Parent Chain Dashboard',
+            icon: SailSVGAsset.iconWithdrawalBundleTab,
+            selected: false,
+            onPressed: () {
+              tabsRouter.setActiveIndex(3);
+            },
+          ),
+          SubNavEntryContainer(
+            open: true,
+            subs: [
+              SubNavEntry(
+                title: 'Transfer',
+                selected: tabsRouter.activeIndex == 3,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(3);
+                },
+              ),
+            ],
+          ),
         ];
 
       case SidechainType.zcash:
