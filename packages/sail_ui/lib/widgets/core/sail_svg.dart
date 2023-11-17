@@ -18,6 +18,7 @@ enum SailSVGAsset {
   iconArrowForward,
   iconClose,
   iconGlobe,
+  iconExpand,
 
   iconSuccess,
   iconPending,
@@ -105,6 +106,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_close.svg';
       case SailSVGAsset.iconGlobe:
         return 'assets/svgs/icon_globe.svg';
+      case SailSVGAsset.iconExpand:
+        return 'assets/svgs/icon_expand.svg';
 
       case SailSVGAsset.iconSuccess:
         return 'assets/svgs/icon_success.svg';
