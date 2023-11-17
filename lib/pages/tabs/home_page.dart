@@ -87,6 +87,8 @@ class SideNav extends StatefulWidget {
 class _SideNavState extends State<SideNav> {
   SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
 
+  bool collapsed = false;
+
   @override
   Widget build(BuildContext context) {
     final tabsRouter = auto_router.AutoTabsRouter.of(context);
@@ -113,60 +115,94 @@ class _SideNavState extends State<SideNav> {
                 horizontal: SailStyleValues.padding15,
                 vertical: SailStyleValues.padding20,
               ),
-              child: SailColumn(
-                spacing: 0,
-                children: [
-                  ChainOverviewCard(
-                    chain: viewModel.chain,
-                    confirmedBalance: viewModel.balance,
-                    unconfirmedBalance: viewModel.pendingBalance,
-                    highlighted: tabsRouter.activeIndex == 0,
-                    currentChain: true,
-                    onPressed: RuntimeArgs.withoutSwappableChains
-                        ? null
-                        : () {
-                            tabsRouter.setActiveIndex(0);
+              child: collapsed
+                  ? SailColumn(
+                      spacing: 0,
+                      children: [
+                        SailScaleButton(
+                          onPressed: () {
+                            setState(() {
+                              collapsed = false;
+                            });
                           },
-                  ),
-                  const SailSpacing(SailStyleValues.padding30),
-                  for (final navEntry in navWidgets) navEntry,
-                  const SailSpacing(SailStyleValues.padding50),
-                  const NavCategory(category: 'Settings'),
-                  NavEntry(
-                    title: 'Settings',
-                    icon: SailSVGAsset.iconBMMTab,
-                    selected: false,
-                    onPressed: () {
-                      // default to second to last route (node settings)
-                      tabsRouter.setActiveIndex(tabsRouter.pageCount - 2);
-                    },
-                  ),
-                  SubNavEntryContainer(
-                    // open if second to last or last route is active
-                    open: true,
-                    subs: [
-                      SubNavEntry(
-                        title: 'Node Settings',
-                        selected: tabsRouter.activeIndex == tabsRouter.pageCount - 2,
-                        onPressed: () {
-                          tabsRouter.setActiveIndex(tabsRouter.pageCount - 2);
-                        },
-                      ),
-                      SubNavEntry(
-                        title: 'Theme',
-                        selected: tabsRouter.activeIndex == tabsRouter.pageCount - 1,
-                        onPressed: () {
-                          tabsRouter.setActiveIndex(tabsRouter.pageCount - 1);
-                        },
-                      ),
-                    ],
-                  ),
-                  Expanded(child: Container()),
-                  NodeConnectionStatus(
-                    onChipPressed: () => viewModel.displayConnectionStatusDialog(context),
-                  ),
-                ],
-              ),
+                          child: SailSVG.icon(SailSVGAsset.iconExpand),
+                        ),
+                        Expanded(child: Container()),
+                      ],
+                    )
+                  : SailColumn(
+                      spacing: 0,
+                      children: [
+                        SailRow(
+                          spacing: SailStyleValues.padding12,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ChainOverviewCard(
+                              chain: viewModel.chain,
+                              confirmedBalance: viewModel.balance,
+                              unconfirmedBalance: viewModel.pendingBalance,
+                              highlighted: tabsRouter.activeIndex == 0,
+                              currentChain: true,
+                              onPressed: RuntimeArgs.withoutSwappableChains
+                                  ? null
+                                  : () {
+                                      tabsRouter.setActiveIndex(0);
+                                    },
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: SailStyleValues.padding05,
+                              ),
+                              child: SailScaleButton(
+                                onPressed: () {
+                                  setState(() {
+                                    collapsed = true;
+                                  });
+                                },
+                                child: SailSVG.icon(SailSVGAsset.iconExpand),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SailSpacing(SailStyleValues.padding30),
+                        for (final navEntry in navWidgets) navEntry,
+                        const SailSpacing(SailStyleValues.padding50),
+                        const NavCategory(category: 'Settings'),
+                        NavEntry(
+                          title: 'Settings',
+                          icon: SailSVGAsset.iconBMMTab,
+                          selected: false,
+                          onPressed: () {
+                            // default to second to last route (node settings)
+                            tabsRouter.setActiveIndex(tabsRouter.pageCount - 2);
+                          },
+                        ),
+                        SubNavEntryContainer(
+                          // open if second to last or last route is active
+                          open: true,
+                          subs: [
+                            SubNavEntry(
+                              title: 'Node Settings',
+                              selected: tabsRouter.activeIndex == tabsRouter.pageCount - 2,
+                              onPressed: () {
+                                tabsRouter.setActiveIndex(tabsRouter.pageCount - 2);
+                              },
+                            ),
+                            SubNavEntry(
+                              title: 'Theme',
+                              selected: tabsRouter.activeIndex == tabsRouter.pageCount - 1,
+                              onPressed: () {
+                                tabsRouter.setActiveIndex(tabsRouter.pageCount - 1);
+                              },
+                            ),
+                          ],
+                        ),
+                        Expanded(child: Container()),
+                        NodeConnectionStatus(
+                          onChipPressed: () => viewModel.displayConnectionStatusDialog(context),
+                        ),
+                      ],
+                    ),
             ),
             VerticalDivider(
               width: 1,
@@ -536,7 +572,7 @@ class NavEntry extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 180),
+      constraints: const BoxConstraints(minWidth: 187),
       child: SailScaleButton(
         onPressed: onPressed,
         child: Container(
@@ -583,7 +619,7 @@ class SubNavEntry extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 153, maxWidth: 153),
+      constraints: const BoxConstraints(minWidth: 163, maxWidth: 163),
       child: SailScaleButton(
         onPressed: onPressed,
         child: DecoratedBox(
