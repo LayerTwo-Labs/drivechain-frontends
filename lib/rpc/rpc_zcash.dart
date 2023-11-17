@@ -1,3 +1,4 @@
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
@@ -295,6 +296,21 @@ class MockZCashRPC extends ZCashRPC {
   @override
   Future<String> melt(List<UnshieldedUTXO> utxos) async {
     return 'opid-7c484106 409a-47dc-b853-3c641beaf166';
+  }
+
+  @override
+  Future<String> mainGenerateAddress() async {
+    return formatDepositAddress('3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi', chain.slot);
+  }
+
+  @override
+  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
+    return 'some-sidechain-txid';
+  }
+
+  @override
+  Future<double> sideEstimateFee() async {
+    return 0.0001;
   }
 }
 

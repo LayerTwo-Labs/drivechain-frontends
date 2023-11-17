@@ -20,13 +20,6 @@ abstract class TestchainRPC extends SidechainRPC {
     required super.conf,
   }) : super(chain: TestSidechain());
 
-  Future<String> mainSend(
-    String address,
-    double amount,
-    double sidechainFee,
-    double mainchainFee,
-  );
-  Future<String> mainGenerateAddress();
   Future<int> mainBlockCount();
 
   Future<String> sideSend(
@@ -36,7 +29,6 @@ abstract class TestchainRPC extends SidechainRPC {
   );
   Future<String> sideGenerateAddress();
   Future<int> sideBlockCount();
-  Future<double> sideEstimateFee();
 
   Future<BmmResult> refreshBMM(int bidSatoshis);
 
