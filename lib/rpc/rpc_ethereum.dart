@@ -1,4 +1,5 @@
 import 'package:http/http.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
@@ -14,6 +15,7 @@ abstract class EthereumRPC extends SidechainRPC {
 
   EthereumAddress? account;
   Future<void> newAccount();
+  Future<bool> deposit(double amount, double fee);
 }
 
 class EthereumRPCLive extends EthereumRPC {
@@ -83,11 +85,11 @@ class EthereumRPCLive extends EthereumRPC {
     notifyListeners();
   }
 
-  // ignore: unused_element
-  Future<bool> _deposit(int amountSat, int feeSat) async {
-    final amount = sgweiPerSat * amountSat;
-    final fee = sgweiPerSat * feeSat;
-    final deposit = await callRAW('eth_deposit', [account!.hex, _toHex(amount), _toHex(fee)]);
+  @override
+  Future<bool> deposit(double amount, double fee) async {
+    final depositAmount = sgweiPerSat * btcToSatoshi(amount);
+    final depositFee = sgweiPerSat * btcToSatoshi(fee);
+    final deposit = await callRAW('eth_deposit', [account!.hex, _toHex(depositAmount), _toHex(depositFee)]);
     return deposit as bool;
   }
 
@@ -107,7 +109,7 @@ class EthereumRPCLive extends EthereumRPC {
   ) {
     return [
       '--http',
-      '--http.api=eth,web3,personal,admin,jeth,miner,net,txpool',
+      '--http.api=eth,web3,personal,admin,miner,net,txpool',
       '--http.addr=0.0.0.0',
       '--http.port=${conf.port}',
       '--main.host=${mainchainConf.host}',
@@ -115,6 +117,35 @@ class EthereumRPCLive extends EthereumRPC {
       '--main.user=${mainchainConf.username}',
       '--main.port=${mainchainConf.port}',
     ];
+  }
+
+  @override
+  Future<String> mainGenerateAddress() async {
+    if (account == null) {
+      return '';
+    }
+    return formatDepositAddress(account!.hex, chain.slot);
+  }
+
+  @override
+  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
+    final withdrawAmount = sgweiPerSat * btcToSatoshi(amount);
+    final fee = sgweiPerSat * btcToSatoshi(sidechainFee + mainchainFee);
+    final withdraw = await callRAW(
+      'eth_withdraw',
+      [
+        account!.hex,
+        _toHex(withdrawAmount.toInt()),
+        _toHex(fee),
+      ],
+    ) as String;
+
+    return withdraw;
+  }
+
+  @override
+  Future<double> sideEstimateFee() async {
+    return 0.0001;
   }
 }
 
@@ -206,11 +237,6 @@ final ethRPCMethods = [
   'admin_getPeers',
   'admin_sleepBlocks',
   'admin_clearHistory',
-
-  'jeth_newAccount',
-  'jeth_sign',
-  'jeth_unlockAccount',
-  'jeth_openWallet',
 
   'miner_setGasLimit',
   'miner_stop',

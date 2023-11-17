@@ -20,6 +20,16 @@ abstract class SidechainRPC extends RPCConnection {
   Future<(double, double)> getBalance();
   Future<List<CoreTransaction>> listTransactions();
 
+  Future<String> mainSend(
+    String address,
+    double amount,
+    double sidechainFee,
+    double mainchainFee,
+  );
+  Future<String> mainGenerateAddress();
+
+  Future<double> sideEstimateFee();
+
   Sidechain chain;
 }
 
