@@ -11,6 +11,7 @@ class LargeEmbeddedInput extends StatelessWidget {
   final Widget? suffixWidget;
   final String? suffixText;
   final bool autofocus;
+  final bool disabled;
 
   const LargeEmbeddedInput({
     super.key,
@@ -20,6 +21,7 @@ class LargeEmbeddedInput extends StatelessWidget {
     this.suffixWidget,
     this.suffixText,
     this.autofocus = false,
+    this.disabled = false,
   });
 
   @override
@@ -28,6 +30,7 @@ class LargeEmbeddedInput extends StatelessWidget {
 
     return TextField(
       autofocus: autofocus,
+      enabled: !disabled,
       controller: controller,
       cursorColor: theme.colors.primary,
       style: TextStyle(

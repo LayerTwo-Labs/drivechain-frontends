@@ -4,10 +4,13 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/bitcoin.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:sidesail/widgets/containers/tabs/transfer_mainchain_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
@@ -86,6 +89,7 @@ class TransferMainchainTabPage extends StatelessWidget {
 class TransferMainchainTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
 
   List<CoreTransaction> get transactions => _transactionsProvider.mainchainTransactions;
 
@@ -94,15 +98,31 @@ class TransferMainchainTabViewModel extends BaseViewModel {
   }
 
   void pegOut(BuildContext context) async {
+    String? staticAddress;
+    if (_sidechain.rpc.chain.type == SidechainType.ethereum) {
+      staticAddress = formatDepositAddress('0xc96aaa54e2d44c299564da76e1cd3184a2386b8d', _sidechain.rpc.chain.slot);
+    }
+
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const PegOutAction();
+        return PegOutAction(
+          staticAddress: staticAddress,
+        );
       },
     );
   }
 
   void pegIn(BuildContext context) async {
+    if (_sidechain.rpc.chain.type == SidechainType.ethereum) {
+      return await showThemedDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return const PegInEthAction();
+        },
+      );
+    }
+
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {

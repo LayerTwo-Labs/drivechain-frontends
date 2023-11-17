@@ -98,7 +98,7 @@ class RPCWidgetState extends State<RPCWidget> {
     var screenSize = MediaQuery.of(context).size;
 
     return SizedBox(
-      height: screenSize.height * 0.7,
+      height: screenSize.height * 0.6,
       child: SailColumn(
         spacing: SailStyleValues.padding08,
         children: [
