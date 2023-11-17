@@ -10,8 +10,8 @@ fi
 
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
-# Name of executable when compiled
-sed -i "s/sidesail/$lower_app_name/" windows/CMakeLists.txt    
+# Name of executable + app
+sed -i "s/SideSail/$app_name/" windows/CMakeLists.txt    
 
 # Name of main window
 sed -i "s/SideSail/$app_name/" windows/runner/main.cpp
