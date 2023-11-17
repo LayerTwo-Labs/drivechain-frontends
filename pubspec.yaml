@@ -75,6 +75,7 @@ dev_dependencies:
   flutter_lints: ^2.0.0
   auto_route_generator: ^7.3.2
   build_runner:
+  msix: ^3.16.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -123,3 +124,21 @@ flutter:
         - asset: fonts/SourceCodePro-BlackItalic.ttf
           style: italic
           weight: 600
+
+# Windows release stuff.
+# This currently relies on having a self-signed certificate
+# locally available, which must be changed before this is
+# properly deployed (either published to the MS store or 
+# as an installer on a website somewhere).
+# https://pub.dev/packages/msix
+msix_config:
+  display_name: TestSail
+  languages: en-us
+  publisher_display_name: LayerTwo Labs
+  identity_name: com.layertwolabs.testsail
+  logo_path: logo.png
+  capabilities: internetClientServer
+  output_name: TestSail
+  install_certificate: false
+  certificate_path: CERTIFICATE.pfx
+  certificate_password: ""
