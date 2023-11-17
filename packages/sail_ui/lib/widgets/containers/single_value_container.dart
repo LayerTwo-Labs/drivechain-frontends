@@ -12,7 +12,6 @@ class SingleValueContainer extends StatelessWidget {
   final Widget? icon;
   final Widget? prefixAction;
   final bool copyable;
-  final String? customCopyValue;
 
   const SingleValueContainer({
     super.key,
@@ -23,14 +22,13 @@ class SingleValueContainer extends StatelessWidget {
     this.icon,
     this.prefixAction,
     this.copyable = true,
-    this.customCopyValue,
   });
 
   @override
   Widget build(BuildContext context) {
     return SailRow(
       crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       spacing: SailStyleValues.padding08,
       children: [
         if (prefixAction != null) prefixAction!,
@@ -50,7 +48,7 @@ class SingleValueContainer extends StatelessWidget {
           child: SailScaleButton(
             onPressed: copyable
                 ? () {
-                    Clipboard.setData(ClipboardData(text: customCopyValue ?? value.toString()));
+                    Clipboard.setData(ClipboardData(text: value.toString()));
                     showSnackBar(context, 'Copied ${copyLabel()}');
                   }
                 : null,
@@ -63,7 +61,7 @@ class SingleValueContainer extends StatelessWidget {
   }
 
   String copyLabel() {
-    final textToShow = label ?? customCopyValue ?? value.toString();
+    final textToShow = label ?? value.toString();
     if (textToShow.length > 50) {
       return '${textToShow.substring(0, 50)}...';
     }

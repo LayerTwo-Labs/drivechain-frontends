@@ -29,8 +29,8 @@ class ChainOverviewCard extends StatelessWidget {
     return SailScaleButton(
       onPressed: onPressed,
       child: SizedBox(
-        width: 180,
-        height: 81,
+        width: 200,
+        height: 87,
         child: SailBorder(
           padding: const EdgeInsets.symmetric(
             horizontal: SailStyleValues.padding12,
