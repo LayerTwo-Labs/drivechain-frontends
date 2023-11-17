@@ -57,6 +57,7 @@ dependencies:
       ref: main
   http: ^1.1.0
   path_provider: ^2.1.1
+  crypto: ^3.0.1
 
 # Needed for silencing complaints from adding the web3dart lib
 dependency_overrides:

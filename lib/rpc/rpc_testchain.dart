@@ -113,13 +113,9 @@ class TestchainRPCLive extends TestchainRPC {
   @override
   Future<String> mainGenerateAddress() async {
     var address = await _client().call('getnewaddress', ['Sidechain Peg In', 'legacy']);
+    final formatted = formatDepositAddress(address, chain.slot);
 
-    // This is actually just rather simple stuff. Should be able to
-    // do this client side! Just needs the sidechain number, and we're
-    // off to the races.
-    var formatted = await _client().call('formatdepositaddress', [address as String]);
-
-    return formatted as String;
+    return formatted;
   }
 
   @override
