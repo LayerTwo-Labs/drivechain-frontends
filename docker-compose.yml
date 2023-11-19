@@ -18,7 +18,38 @@ services:
       - -rpcallowip=0.0.0.0/0
       - -rpcbind=0.0.0.0:18443
       - -rpcport=18443
+      - -rpcuser=user
+      - -rpcpassword=password
       - -datadir=/drivechain
+
+  zside:
+    image: barebitcoin/zside:latest
+    depends_on:
+      mainchain:
+        condition: service_healthy
+    healthcheck:
+      # This doesn't verify that' we're able to query the JSON-RPC interface,
+      # but merely that the container is listening on the RPC port.
+      test: ["CMD", "curl", "http://localhost:20000"]
+      interval: 1s
+      start_interval: 20s
+    volumes:
+      - $PWD/zcash.conf:/root/.zcash/zcash.conf
+      # for some reason zcash requires the conf file, unable to pass as CLI opts
+      - $HOME/.zcash-params:/root/.zcash-params 
+    environment: 
+      RUST_LOG: info # logs from the Rust Drivechain lib is controlled here
+    ports:
+      - 20000:20000
+    command:
+      - -regtest
+      - -printtoconsole
+      - -mainhost=mainchain
+      - -rpcuser=user
+      - -rpcpassword=password
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0:20000
+      - -rpcport=20000
 
   testchain:
     image: barebitcoin/testchain:latest
