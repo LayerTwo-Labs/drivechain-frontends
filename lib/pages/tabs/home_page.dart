@@ -28,9 +28,10 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    // it doesn't work to change routes after the application is launched,
-    // so we're forced to add all of them, and just keep our mouth straight
-    // when setting the active index
+    // all routes must be added on-launch, and can't ever change.
+    // To support multiple chains, we need to keep very good
+    // track of what index is what route when setting the active
+    // index, and showing the sidenav for a specific chain
     const routes = [
       // common routes
       SidechainExplorerTabRoute(),
