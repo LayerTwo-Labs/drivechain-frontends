@@ -58,15 +58,14 @@ class WithdrawalBundleTabPage extends StatelessWidget {
                 ),
                 DashboardGroup(
                   title: 'Unbundled transactions',
-                  widgetTrailing: SailText.secondary13('${viewModel.nextBundle?.withdrawals.length ?? 0}'),
+                  widgetTrailing: SailText.secondary13('${viewModel.unbundledTransactions.length}'),
                   children: [
                     SailColumn(
                       spacing: 0,
                       withDivider: true,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: (viewModel.nextBundle?.withdrawals ?? [])
-                          .map((e) => UnbundledWithdrawalView(withdrawal: e))
-                          .toList(),
+                      children:
+                          (viewModel.unbundledTransactions).map((e) => UnbundledWithdrawalView(withdrawal: e)).toList(),
                     ),
                   ],
                 ),
@@ -138,6 +137,7 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
         ...successfulBundles,
         ...failedBundles,
       ]
+          .where((element) => searchController.text == '' || element.hash.contains(searchController.text))
           .sortedByCompare(
             (
               b1,
@@ -147,7 +147,9 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
           )
           .reversed; // we want the newest first!
 
-  FutureWithdrawalBundle? nextBundle;
+  List<Withdrawal> _unbundledTransactions = [];
+  Iterable<Withdrawal> get unbundledTransactions => _unbundledTransactions
+      .where((element) => searchController.text == '' || element.hashBlindTx.contains(searchController.text));
 
   int votes(String hash) {
     bool byHash(WithdrawalBundle bundle) => bundle.hash == hash;
@@ -217,7 +219,7 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
         votesCurrentBundle = await _mainchain.getWithdrawalBundleWorkScore(_sidechain.chain.slot, currentBundle!.hash);
       }
 
-      nextBundle = await nextFut;
+      _unbundledTransactions = (await nextFut).withdrawals;
     } on RPCException catch (err) {
       if (err.errorCode != TestchainRPCError.errNoWithdrawalBundle) {
         rethrow;
@@ -274,7 +276,7 @@ class _UnbundledWithdrawalViewState extends State<UnbundledWithdrawalView> {
               });
             },
             child: SingleValueContainer(
-              width: bundleViewWidth,
+              width: expanded ? expandedBundleViewWidth : 0,
               icon: Tooltip(
                 message: 'Pending',
                 child: SailSVG.icon(
@@ -359,7 +361,7 @@ class _BundleViewState extends State<BundleView> {
               });
             },
             child: SingleValueContainer(
-              width: bundleViewWidth,
+              width: expanded ? expandedBundleViewWidth : 50,
               icon: Tooltip(
                 message: tooltipMessage,
                 child: SailSVG.icon(icon, width: 13),
@@ -384,7 +386,7 @@ class _BundleViewState extends State<BundleView> {
   }
 }
 
-const bundleViewWidth = 160.0;
+const expandedBundleViewWidth = 135.0;
 
 class ExpandedBundleView extends StatelessWidget {
   final WithdrawalBundle bundle;
@@ -427,7 +429,7 @@ class ExpandedBundleView extends StatelessWidget {
         return SingleValueContainer(
           label: key,
           value: _values[key],
-          width: bundleViewWidth,
+          width: expandedBundleViewWidth,
         );
       }).toList(),
     );
@@ -443,9 +445,9 @@ class ExpandedUnbundledWithdrawalView extends StatelessWidget {
   });
 
   Map<String, dynamic> get _values => {
-        'txid': withdrawal.hashBlindTx,
+        'hashblindtx': withdrawal.hashBlindTx,
         'amount': '${satoshiToBTC(withdrawal.amountSatoshi).toStringAsFixed(8)} BTC',
-        'mainchain fee': '${satoshiToBTC(withdrawal.mainchainFeesSatoshi).toStringAsFixed(8)} BTC',
+        'amountmainchainfee': '${satoshiToBTC(withdrawal.mainchainFeesSatoshi).toStringAsFixed(8)} BTC',
       };
 
   @override
@@ -460,7 +462,7 @@ class ExpandedUnbundledWithdrawalView extends StatelessWidget {
         return SingleValueContainer(
           label: key,
           value: _values[key],
-          width: bundleViewWidth,
+          width: expandedBundleViewWidth,
         );
       }).toList(),
     );
