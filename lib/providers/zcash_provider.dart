@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sidesail/logger.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
 class ZCashProvider extends ChangeNotifier {
   ZCashRPC get rpc => GetIt.I.get<ZCashRPC>();
+  Logger get log => GetIt.I.get<Logger>();
 
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these

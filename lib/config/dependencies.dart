@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
@@ -23,6 +25,9 @@ final _emptyNodeConf = SingleNodeConnectionSettings('', '', 0, '', '');
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
 Future<void> initDependencies(Sidechain chain) async {
+  final log = await logger();
+  GetIt.I.registerLazySingleton<Logger>(() => log);
+
   await _initSidechainRPC(chain);
 
   SingleNodeConnectionSettings mainchainConf = _emptyNodeConf;
