@@ -1,8 +1,9 @@
 import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/proc_provider.dart';
 
@@ -32,6 +33,8 @@ const network = 'regtest';
 // 3. Defaults
 //
 Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFile, Sidechain? sidechain) async {
+  final log = GetIt.I.get<Logger>();
+
   final networkDir = filePath([datadir, network]);
 
   final conf = File(filePath([datadir, confFile]));

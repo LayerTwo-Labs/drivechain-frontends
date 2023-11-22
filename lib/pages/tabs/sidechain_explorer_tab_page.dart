@@ -1,10 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/app.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/logger.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -84,6 +84,7 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
+  Logger get log => GetIt.I.get<Logger>();
   SailThemeValues theme = SailThemeValues.light;
 
   double get balance => _balanceProvider.balance;

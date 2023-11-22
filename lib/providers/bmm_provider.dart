@@ -3,13 +3,14 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sidesail/logger.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 
 class BMMProvider extends ChangeNotifier {
   TestchainRPC get _rpc => GetIt.I.get<TestchainRPC>();
+  Logger get log => GetIt.I.get<Logger>();
 
   List<BmmAttempt> bmmAttempts = [];
   bool initialized = false;

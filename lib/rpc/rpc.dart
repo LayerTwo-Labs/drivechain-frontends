@@ -7,8 +7,8 @@ import 'dart:io';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/app.dart';
-import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/proc_provider.dart';
 
@@ -16,6 +16,8 @@ import 'package:sidesail/providers/proc_provider.dart';
 // a proper implementation of notifyListeners(), e.g:
 // YourClass extends ChangeNotifier implements RPCConnection
 abstract class RPCConnection extends ChangeNotifier {
+  Logger get log => GetIt.I.get<Logger>();
+
   RPCConnection({
     required this.conf,
   });

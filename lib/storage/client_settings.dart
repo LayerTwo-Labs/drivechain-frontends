@@ -1,8 +1,11 @@
-import 'package:sidesail/logger.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/storage/secure_store.dart';
 
 class ClientSettings {
   final KeyValueStore store;
+
+  Logger get log => GetIt.I.get<Logger>();
 
   const ClientSettings({
     required this.store,

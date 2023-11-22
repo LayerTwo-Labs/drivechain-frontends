@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sidesail/logger.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -10,6 +10,7 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 class TransactionsProvider extends ChangeNotifier {
   MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
+  Logger get log => GetIt.I.get<Logger>();
 
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these

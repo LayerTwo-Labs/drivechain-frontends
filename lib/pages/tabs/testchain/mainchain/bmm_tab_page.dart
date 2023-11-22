@@ -4,10 +4,10 @@ import 'dart:convert';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/bitcoin.dart';
-import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
@@ -151,6 +151,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
 
 class BlindMergedMiningTabPageViewModel extends BaseViewModel {
   BMMProvider get _bmmProvider => GetIt.I.get<BMMProvider>();
+  Logger get log => GetIt.I.get<Logger>();
 
   final bidController = TextEditingController();
   final refreshController = TextEditingController();
