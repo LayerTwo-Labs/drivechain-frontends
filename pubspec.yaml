@@ -132,13 +132,13 @@ flutter:
 # as an installer on a website somewhere).
 # https://pub.dev/packages/msix
 msix_config:
-  display_name: TestSail
+  display_name: SideSail
   languages: en-us
   publisher_display_name: LayerTwo Labs
-  identity_name: com.layertwolabs.testsail
+  identity_name: com.layertwolabs.sidesail
   logo_path: logo.png
   capabilities: internetClientServer
-  output_name: TestSail
+  output_name: SideSail
   install_certificate: false
   certificate_path: CERTIFICATE.pfx
   certificate_password: ""
