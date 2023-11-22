@@ -2,10 +2,11 @@
 // also includes functions for checking whether the connection
 // is live, and if not, what error message the node returned
 import 'dart:async';
+import 'dart:io';
 
+import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sidesail/app.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
@@ -15,8 +16,6 @@ import 'package:sidesail/providers/proc_provider.dart';
 // a proper implementation of notifyListeners(), e.g:
 // YourClass extends ChangeNotifier implements RPCConnection
 abstract class RPCConnection extends ChangeNotifier {
-  final _log = Logger(level: Level.debug);
-
   RPCConnection({
     required this.conf,
   });
@@ -33,8 +32,29 @@ abstract class RPCConnection extends ChangeNotifier {
       connectionError = null;
       connected = true;
     } catch (error) {
-      _log.t('could not ping: ${error.toString()}!');
-      connectionError = error.toString();
+      log.t('could not ping: ${error.toString()}!');
+
+      // Only update the error message if we're finished with binary init
+      if (!initializingBinary) {
+        String msg = error.toString();
+
+        if (error is SocketException) {
+          msg = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
+        } else if (error is HTTPException) {
+          // gotta parse out the error...
+
+          // Looks like this: SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
+
+          msg = error.message;
+          RegExp regExp = RegExp(r'\(([^)]+)\)');
+          final match = regExp.firstMatch(error.message);
+          if (match != null) {
+            msg = match.group(1)!;
+          }
+        }
+
+        connectionError = msg;
+      }
       connected = false;
     } finally {
       notifyListeners();
@@ -80,8 +100,9 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.d('init binaries: starting $binary ${args.join(" ")}');
 
+    int pid;
     try {
-      final pid = await processes.start(context, binary, args);
+      pid = await processes.start(context, binary, args);
       log.d('init binaries: started $binary with PID $pid');
     } catch (err) {
       log.e('init binaries: could not start $binary daemon', error: err);
@@ -113,9 +134,24 @@ abstract class RPCConnection extends ChangeNotifier {
       log.i('init binaries: $binary connected');
 
       initializingBinary = false;
+      log.i('init binaries: starting connection timer for $binary');
       startConnectionTimer();
     } catch (err) {
-      connectionError = err.toString();
+      log.e("init binaries: couldn't connect to $binary", error: err);
+
+      // We've quit! Assuming there's error logs, somewhere.
+      if (!processes.running(pid)) {
+        final logs = await processes.stderr(pid).toList();
+        log.e('$binary exited before we could connect, dumping logs');
+        for (var line in logs) {
+          log.e('$binary: $line');
+        }
+
+        var lastLine = _stripFromString(logs.last, ': ');
+        connectionError = lastLine;
+      } else {
+        connectionError = err.toString();
+      }
     }
 
     notifyListeners();
@@ -136,4 +172,27 @@ abstract class RPCConnection extends ChangeNotifier {
     super.dispose();
     _connectionTimer?.cancel();
   }
+}
+
+String _stripFromString(String input, String whatToStrip) {
+  int startIndex = 0, endIndex = input.length;
+
+  for (int i = 0; i <= input.length; i++) {
+    if (i == input.length) {
+      return '';
+    }
+    if (!whatToStrip.contains(input[i])) {
+      startIndex = i;
+      break;
+    }
+  }
+
+  for (int i = input.length - 1; i >= 0; i--) {
+    if (!whatToStrip.contains(input[i])) {
+      endIndex = i;
+      break;
+    }
+  }
+
+  return input.substring(startIndex, endIndex + 1);
 }

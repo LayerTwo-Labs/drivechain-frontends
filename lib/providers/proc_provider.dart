@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sidesail/logger.dart';
 
 class ProcessProvider extends ChangeNotifier {
   ProcessProvider();
+
+  Logger get log => GetIt.I.get<Logger>();
 
   // List of currently running processes.
   List<int> pids = [];
@@ -103,7 +105,7 @@ class ProcessProvider extends ChangeNotifier {
         final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
         _stderrStreams[process.pid] = Stream.fromIterable(errLogs);
 
-        log.log(level, '"$binary" exited with code $code: $errLogs');
+        log.log(level, '"$binary" exited with code $code: ${errLogs.last}');
 
         // Resolve the process exit future
         processExited.complete(true);
