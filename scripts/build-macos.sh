@@ -1,1 +1,1 @@
-flutter build macos
+flutter build macos --dart-define-from-file=build-vars.env

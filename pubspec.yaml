@@ -134,6 +134,7 @@ flutter:
 msix_config:
   display_name: SideSail
   languages: en-us
+  windows_build_args: --dart-define-from-file=build-vars.env
   publisher_display_name: LayerTwo Labs
   identity_name: com.layertwolabs.sidesail
   logo_path: logo.png
