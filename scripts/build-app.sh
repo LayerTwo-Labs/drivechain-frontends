@@ -34,10 +34,12 @@ echo Downloading binaries for $platform + $chain
 bash ./scripts/download-binaries.sh $platform $chain
 
 echo Flavorizing for $platform
+echo CHAIN=$chain > build-vars.env
 bash ./scripts/flavorize-$platform.sh $app_name
 
 echo Building $app_name release 
 bash ./scripts/build-$platform.sh
 
 # Reset to the pre-flavorized versions.
-git checkout windows pubspec.yaml
+git checkout windows macos linux pubspec.yaml
+rm build-vars.env
