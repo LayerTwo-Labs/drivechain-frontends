@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/app.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/storage/client_settings.dart';
@@ -55,6 +56,9 @@ Future<void> registerTestDependencies() async {
     GetIt.I.registerLazySingleton<AppRouter>(
       () => AppRouter(),
     );
+  }
+  if (!GetIt.I.isRegistered<Logger>()) {
+    GetIt.I.registerLazySingleton<Logger>(() => Logger());
   }
 
   if (!GetIt.I.isRegistered<ClientSettings>()) {
