@@ -64,10 +64,10 @@ class TestchainRPCLive extends TestchainRPC {
 
   @override
   Future<(double, double)> getBalance() async {
-    final confirmed = await _client().call('getbalance') as double;
-    final unconfirmed = await _client().call('getunconfirmedbalance') as double;
+    final confirmedFut = _client().call('getbalance');
+    final unconfirmedFut = _client().call('getunconfirmedbalance');
 
-    return (confirmed, unconfirmed);
+    return (await confirmedFut as double, await unconfirmedFut as double);
   }
 
   @override

@@ -36,7 +36,6 @@ services:
     volumes:
       - $PWD/zcash.conf:/root/.zcash/zcash.conf
       # for some reason zcash requires the conf file, unable to pass as CLI opts
-      - $HOME/.zcash-params:/root/.zcash-params 
     environment: 
       RUST_LOG: info # logs from the Rust Drivechain lib is controlled here
     ports:
