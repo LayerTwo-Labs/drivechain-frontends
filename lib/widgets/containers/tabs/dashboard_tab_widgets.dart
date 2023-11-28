@@ -9,7 +9,7 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_testchain.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
 
@@ -116,7 +116,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
-  TestchainRPC get _rpc => GetIt.I.get<TestchainRPC>();
+  SidechainContainer get _rpc => GetIt.I.get<SidechainContainer>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
@@ -147,7 +147,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   }
 
   Future<void> estimateFee() async {
-    final estimate = await _rpc.sideEstimateFee();
+    final estimate = await _rpc.rpc.sideEstimateFee();
     sidechainExpectedFee = estimate;
     notifyListeners();
   }
@@ -188,7 +188,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
     );
 
     try {
-      final sendTXID = await _rpc.sideSend(
+      final sendTXID = await _rpc.rpc.sideSend(
         address,
         amount,
         false,
@@ -261,7 +261,7 @@ class ReceiveOnSidechainAction extends StatelessWidget {
 }
 
 class ReceiveOnSidechainViewModel extends BaseViewModel {
-  TestchainRPC get _rpc => GetIt.I.get<TestchainRPC>();
+  SidechainContainer get _rpc => GetIt.I.get<SidechainContainer>();
   final log = Logger(level: Level.debug);
 
   String? sidechainAddress;
@@ -271,7 +271,7 @@ class ReceiveOnSidechainViewModel extends BaseViewModel {
   }
 
   Future<void> generateSidechainAddress() async {
-    sidechainAddress = await _rpc.sideGenerateAddress();
+    sidechainAddress = await _rpc.rpc.sideGenerateAddress();
     notifyListeners();
   }
 }

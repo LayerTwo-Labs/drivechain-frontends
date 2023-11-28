@@ -29,7 +29,14 @@ abstract class SidechainRPC extends RPCConnection {
   );
   Future<String> mainGenerateAddress();
 
+  Future<String> sideSend(
+    String address,
+    double amount,
+    bool subtractFeeFromAmount,
+  );
+  Future<String> sideGenerateAddress();
   Future<double> sideEstimateFee();
+  Future<int> sideBlockCount();
 
   Sidechain chain;
 }

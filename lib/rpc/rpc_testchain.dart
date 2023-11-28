@@ -21,14 +21,6 @@ abstract class TestchainRPC extends SidechainRPC {
 
   Future<int> mainBlockCount();
 
-  Future<String> sideSend(
-    String address,
-    double amount,
-    bool subtractFeeFromAmount,
-  );
-  Future<String> sideGenerateAddress();
-  Future<int> sideBlockCount();
-
   Future<BmmResult> refreshBMM(int bidSatoshis);
 
   /// Returns null if there's no current bundle

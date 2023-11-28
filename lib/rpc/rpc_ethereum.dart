@@ -146,6 +146,24 @@ class EthereumRPCLive extends EthereumRPC {
   Future<double> sideEstimateFee() async {
     return 0.0001;
   }
+
+  @override
+  Future<int> sideBlockCount() {
+    // TODO: implement sideBlockCount
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String> sideGenerateAddress() {
+    // TODO: implement sideGenerateAddress
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+    // TODO: implement sideSend
+    throw UnimplementedError();
+  }
 }
 
 /// List of all known RPC methods available /
