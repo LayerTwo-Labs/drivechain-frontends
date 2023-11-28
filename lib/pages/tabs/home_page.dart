@@ -48,6 +48,7 @@ class HomePage extends StatelessWidget {
 
       // zcash routes
       ZCashShieldTabRoute(),
+      ZCashRPCTabRoute(),
 
       // trailing common routes
       NodeSettingsTabRoute(),
@@ -358,6 +359,13 @@ class _SideNavState extends State<SideNav> {
                   tabsRouter.setActiveIndex(ZCashHome);
                 },
               ),
+              SubNavEntry(
+                title: 'Send RPC',
+                selected: tabsRouter.activeIndex == ZCashHome + 1,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(ZCashHome + 1);
+                },
+              ),
             ],
           ),
           NavEntry(
@@ -376,20 +384,6 @@ class _SideNavState extends State<SideNav> {
                 selected: tabsRouter.activeIndex == 3,
                 onPressed: () {
                   tabsRouter.setActiveIndex(3);
-                },
-              ),
-              SubNavEntry(
-                title: 'Withdrawal explorer',
-                selected: tabsRouter.activeIndex == 4,
-                onPressed: () {
-                  tabsRouter.setActiveIndex(4);
-                },
-              ),
-              SubNavEntry(
-                title: 'Blind Merged Mining',
-                selected: tabsRouter.activeIndex == 5,
-                onPressed: () {
-                  tabsRouter.setActiveIndex(5);
                 },
               ),
             ],
