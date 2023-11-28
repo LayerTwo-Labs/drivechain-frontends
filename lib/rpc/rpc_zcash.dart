@@ -110,55 +110,126 @@ class ZcashRPCLive extends ZCashRPC {
   Future<List<OperationStatus>> listOperations() async {
     // Can also pass specific IDs here. When not passing any, all
     // known results are returned.
-    return await _client().call('z_getoperationresult');
+    final operationResults = await _client().call('z_getoperationresult') as List<dynamic>;
+    // then convert to something other than pure json
+    if (operationResults.isEmpty) {
+      return List.empty();
+    }
+    List<OperationStatus> operations = operationResults
+        .map(
+          (jsonItem) => OperationStatus.fromMap(jsonItem),
+        )
+        .toList();
+    return operations;
   }
 
   @override
   Future<List<ShieldedUTXO>> listShieldedCoins() async {
-    return await _client().call('z_listunspent');
+    final shieldedCoins = await _client().call('z_listunspent') as List<dynamic>;
+    if (shieldedCoins.isEmpty) {
+      return List.empty();
+    }
+
+    List<ShieldedUTXO> utxos = shieldedCoins
+        .map(
+          (jsonItem) => ShieldedUTXO.fromMap(jsonItem),
+        )
+        .toList();
+
+    return utxos;
   }
 
   @override
-  Future<List<CoreTransaction>> listTransactions() {
-    // TODO: implement listTransactions
-    throw UnimplementedError();
+  Future<List<CoreTransaction>> listTransactions() async {
+    final transactionsJSON = await _client().call('listtransactions', [
+      '',
+      9999, // how many txs to list. We have not implemented pagination, so we list all
+    ]).catchError(
+      (err) => List.empty(), // might be connection issues, don't error
+    ) as List<dynamic>;
+
+    // then convert to something other than json
+    List<CoreTransaction> transactions = transactionsJSON.map((jsonItem) => CoreTransaction.fromMap(jsonItem)).toList();
+    transactions.removeWhere((t) => t.amount == 0);
+    return transactions;
   }
 
   @override
   Future<List<UnshieldedUTXO>> listUnshieldedCoins() async {
     // TODO: verify this just returns unshielded coins. might have to
     // diff z_listunspent and listunspent?
-    return await _client().call('listunspent');
+    final unspent = await _client().call('listunspent');
+    if (unspent.isEmpty) {
+      return List.empty();
+    }
+
+    List<UnshieldedUTXO> unspentUTXOs = unspent
+        .map(
+          (jsonItem) => UnshieldedUTXO.fromMap(jsonItem),
+        )
+        .toList();
+
+    return unspentUTXOs;
   }
 
   @override
-  Future<String> mainGenerateAddress() {
-    // TODO: implement mainGenerateAddress
-    throw UnimplementedError();
+  Future<String> mainGenerateAddress() async {
+    final address = await _client().call('getnewaddress');
+    return formatDepositAddress(address, chain.slot);
   }
 
   @override
-  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) {
-    // TODO: implement mainSend
-    throw UnimplementedError();
+  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
+    return await _client().call('withdraw', [address, amount, false]);
   }
 
   @override
-  Future<String> melt(List<UnshieldedUTXO> utxos) {
+  Future<String> melt(List<UnshieldedUTXO> utxos) async {
     // TODO: implement melt
     throw UnimplementedError();
   }
 
   @override
-  Future<String> shield(UnshieldedUTXO utxo, double amount) {
+  Future<String> shield(UnshieldedUTXO utxo, double amount) async {
     // TODO: implement shield
     throw UnimplementedError();
   }
 
   @override
-  Future<double> sideEstimateFee() {
-    // TODO: implement sideEstimateFee
-    throw UnimplementedError();
+  Future<double> sideEstimateFee() async {
+    return 0.0001;
+  }
+
+  Future<String> _getNewAddress() async {
+    return await _client().call('z_getnewaddress');
+  }
+
+  @override
+  Future<String> sideGenerateAddress() async {
+    final addresses = await _client().call('z_listaddresses') as List<dynamic>;
+    if (addresses.isEmpty) {
+      return _getNewAddress();
+    }
+
+    return addresses.first as String;
+  }
+
+  @override
+  Future<int> sideBlockCount() async {
+    return await _client().call('getblockcount');
+  }
+
+  @override
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+    final withdrawalTxid = await _client().call('sendtoaddress', [
+      address,
+      amount,
+      '',
+      '',
+      subtractFeeFromAmount,
+    ]);
+
+    return withdrawalTxid;
   }
 }
 
