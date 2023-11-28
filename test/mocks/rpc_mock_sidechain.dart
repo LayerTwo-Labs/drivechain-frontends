@@ -53,4 +53,19 @@ class MockSidechainRPC extends SidechainRPC {
   Future<double> sideEstimateFee() async {
     return 0.0001;
   }
+
+  @override
+  Future<int> sideBlockCount() async {
+    return 69;
+  }
+
+  @override
+  Future<String> sideGenerateAddress() async {
+    return 'taddress';
+  }
+
+  @override
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+    return 'deadbeefdeadbeefdeadbeef';
+  }
 }

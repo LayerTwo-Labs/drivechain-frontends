@@ -41,10 +41,6 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<String> melt(List<UnshieldedUTXO> utxos);
 }
 
-class MockZCashRPC extends ZCashRPC {
-  MockZCashRPC({required super.conf});
-
-  @override
 class ZcashRPCLive extends ZCashRPC {
   ZcashRPCLive({required super.conf});
 
