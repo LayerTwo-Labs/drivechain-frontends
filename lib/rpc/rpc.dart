@@ -70,6 +70,10 @@ abstract class RPCConnection extends ChangeNotifier {
   String? connectionError;
   bool connected = false;
 
+  /// Called before the binary is started. Can be used to
+  /// do setup needed for the binary to start.
+  Future<void> preInitBinary(BuildContext context) async {}
+
   Future<void> initBinary(
     BuildContext context,
     String binary,
@@ -100,10 +104,18 @@ abstract class RPCConnection extends ChangeNotifier {
     // resulting from the process not being able to start
     _connectionTimer?.cancel();
 
+    await preInitBinary(context);
+
     log.d('init binaries: starting $binary ${args.join(" ")}');
 
     int pid;
     try {
+      if (!context.mounted) {
+        initializingBinary = false;
+        notifyListeners();
+        return;
+      }
+
       pid = await processes.start(context, binary, args);
       log.d('init binaries: started $binary with PID $pid');
     } catch (err) {

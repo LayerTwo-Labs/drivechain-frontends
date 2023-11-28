@@ -1,24 +1,30 @@
+import 'dart:io';
+
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:sidesail/bitcoin.dart';
+import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 abstract class ZCashRPC extends SidechainRPC {
-  ZCashRPC({
-    required super.conf,
-  }) : super(chain: ZCashSidechain());
-
   @override
-  List<String> binaryArgs(SingleNodeConnectionSettings mainchainConf) {
+  Future<List<String>> binaryArgs(SingleNodeConnectionSettings mainchainConf) async {
     final baseArgs = bitcoinCoreBinaryArgs(
       conf,
     );
+    final paramsDir = filePath([
+      (await RuntimeArgs.datadir()).path,
+      'zcash-params',
+    ]);
     final sidechainArgs = [
+      '-paramsdir=$paramsDir',
       '-mainchainrpcport=${mainchainConf.port}',
       '-mainchainrpchost=${mainchainConf.host}',
       '-mainchainrpcuser=${mainchainConf.username}',
@@ -26,6 +32,40 @@ abstract class ZCashRPC extends SidechainRPC {
     ];
     return [...baseArgs, ...sidechainArgs];
   }
+
+  // Make sure the ZCash params are present when starting the binary.
+  @override
+  Future<void> preInitBinary(BuildContext context) async {
+    // TODO: we're doing a crude tranfer of files here. In a better
+    // setup we should be checking the hash sums of the files, to
+    // ensure integrity.
+    final files = ['sapling-output.params', 'sapling-spend.params', 'sprout-groth16.params'];
+
+    final datadir = await RuntimeArgs.datadir();
+    final zcashParamsDir = filePath([datadir.path, 'zcash-params']);
+
+    await Directory(zcashParamsDir).create(recursive: true);
+
+    log.i('transferring zcash parameter files $files to parameter datadir $zcashParamsDir');
+
+    if (!context.mounted) {
+      return;
+    }
+
+    for (final file in files) {
+      await readAssetToFile(
+        context,
+        filePath([zcashParamsDir, file]),
+        'assets/zcash-params/$file',
+      );
+    }
+
+    log.d('transferred all zcash parameter files');
+  }
+
+  ZCashRPC({
+    required super.conf,
+  }) : super(chain: ZCashSidechain());
 
   /// There's no account in the wallet out of the box. Calling this
   /// either creates a new one, or returns an already existing one

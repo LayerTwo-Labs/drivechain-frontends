@@ -103,7 +103,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     return _sidechain.rpc.initBinary(
       context,
       _sidechain.rpc.chain.binary,
-      _sidechain.rpc.binaryArgs(mainchain.conf),
+      await _sidechain.rpc.binaryArgs(mainchain.conf),
     );
   }
 

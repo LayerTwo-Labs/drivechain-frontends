@@ -33,9 +33,9 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  List<String> binaryArgs(
+  Future<List<String>> binaryArgs(
     SingleNodeConnectionSettings mainchainConf,
-  ) {
+  ) async {
     return List.empty();
   }
 

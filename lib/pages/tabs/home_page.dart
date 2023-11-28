@@ -511,7 +511,7 @@ class SideNavViewModel extends BaseViewModel {
     return _sideRPC.rpc.initBinary(
       context,
       _sideRPC.rpc.chain.binary,
-      _sideRPC.rpc.binaryArgs(_mainRPC.conf),
+      await _sideRPC.rpc.binaryArgs(_mainRPC.conf),
     );
   }
 }

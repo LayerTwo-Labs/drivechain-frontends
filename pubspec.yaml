@@ -89,6 +89,7 @@ flutter:
 
   assets:
     - assets/bin/
+    - assets/zcash-params/
 
   fonts:
     - family: SourceCodePro

@@ -33,10 +33,9 @@ class ProcessProvider extends ChangeNotifier {
     // We're NOT looking up here based on platform and architecture. That is instead
     // handled at app bundling time, where it's up the person/process cutting the
     // release to place the appropriate binaries in the correct place.
-    final binResource = await DefaultAssetBundle.of(context).load(
-      // Assets don't operate with platform path separators, just /
-      'assets/bin/$binary',
-    );
+    //
+    // Assets don't operate with platform path separators, just /
+    final asset = 'assets/bin/$binary';
 
     final temp = await getTemporaryDirectory();
 
@@ -53,19 +52,14 @@ class ProcessProvider extends ChangeNotifier {
     );
     await randDir.create();
 
-    final file = File(
-      filePath([
-        randDir.path,
-        binary,
-      ]),
-    );
+    if (!context.mounted) {
+      throw 'Build context not mounted';
+    }
 
-    // Have to convert the ByteData -> List<int>. Side note: why tf does writeAsBytes
-    // operate on a list of numbers? Jesus
-    // https://stackoverflow.com/a/50121777
-    final buffer = binResource.buffer;
-    await file.writeAsBytes(
-      buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
+    final file = await readAssetToFile(
+      context,
+      filePath([randDir.path, binary]),
+      asset,
     );
 
     // Windows doesn't do executable permissions, apparently
@@ -150,4 +144,19 @@ class ProcessProvider extends ChangeNotifier {
 /// path separator
 String filePath(List<String> segments) {
   return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
+}
+
+Future<File> readAssetToFile(BuildContext context, String filePath, String asset) async {
+  final binResource = await DefaultAssetBundle.of(context).load(asset);
+  final file = File(filePath);
+
+  // Have to convert the ByteData -> List<int>. Side note: why tf does writeAsBytes
+  // operate on a list of numbers? Jesus
+  // https://stackoverflow.com/a/50121777
+  final buffer = binResource.buffer;
+  await file.writeAsBytes(
+    buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
+  );
+
+  return file;
 }

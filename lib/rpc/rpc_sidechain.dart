@@ -11,7 +11,7 @@ abstract class SidechainRPC extends RPCConnection {
   SidechainRPC({required super.conf, required this.chain});
 
   /// Args to pass to the binary on startup.
-  List<String> binaryArgs(
+  Future<List<String>> binaryArgs(
     SingleNodeConnectionSettings mainchainConf,
   );
 
