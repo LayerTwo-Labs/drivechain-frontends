@@ -45,7 +45,7 @@ class ZCashSidechain extends Sidechain {
   String name = 'ZSide';
 
   @override
-  int slot = 1;
+  int slot = 5;
 
   @override
   Color color = SailColorScheme.blue;
