@@ -106,8 +106,18 @@ Future<void> _initSidechainRPC(Sidechain chain) async {
     () => ethChain,
   );
 
-  final zChain = MockZCashRPC(
-    conf: _emptyNodeConf,
+  SingleNodeConnectionSettings zcashConf = _emptyNodeConf;
+  try {
+    zcashConf = await readRpcConfig(
+      '.',
+      ZCashSidechain().type.confFile(),
+      ZCashSidechain(),
+    );
+  } catch (error) {
+    // do nothing, just don't exit
+  }
+  final zChain = ZcashRPCLive(
+    conf: zcashConf,
   );
   GetIt.I.registerLazySingleton<ZCashRPC>(
     () => zChain,
