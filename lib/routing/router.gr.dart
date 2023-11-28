@@ -85,6 +85,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const WithdrawalBundleTabPage(),
       );
     },
+    ZCashRPCTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ZCashRPCTabPage(),
+      );
+    },
     ZCashShieldTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -267,6 +273,20 @@ class WithdrawalBundleTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'WithdrawalBundleTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [ZCashRPCTabPage]
+class ZCashRPCTabRoute extends PageRouteInfo<void> {
+  const ZCashRPCTabRoute({List<PageRouteInfo>? children})
+      : super(
+          ZCashRPCTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ZCashRPCTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
