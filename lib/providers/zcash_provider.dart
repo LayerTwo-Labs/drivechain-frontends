@@ -13,7 +13,7 @@ class ZCashProvider extends ChangeNotifier {
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these
   // variables.
-  String get zcashAddress => rpc.address;
+  String zcashAddress = '';
   List<OperationStatus> operations = [];
   List<ShieldedUTXO> shieldedUTXOs = [];
   List<UnshieldedUTXO> unshieldedUTXOs = [];
@@ -29,6 +29,7 @@ class ZCashProvider extends ChangeNotifier {
 
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
+    zcashAddress = await rpc.sideGenerateAddress();
     operations = await rpc.listOperations();
     shieldedUTXOs = await rpc.listShieldedCoins();
     unshieldedUTXOs = await rpc.listUnshieldedCoins();
