@@ -52,7 +52,7 @@ class HomePage extends StatelessWidget {
 
       // trailing common routes
       NodeSettingsTabRoute(),
-      ThemeSettingsTabRoute(),
+      SettingsTabRoute(),
     ];
 
     return auto_router.AutoTabsRouter.builder(
@@ -191,7 +191,7 @@ class _SideNavState extends State<SideNav> {
                               },
                             ),
                             SubNavEntry(
-                              title: 'Theme',
+                              title: 'App settings',
                               selected: tabsRouter.activeIndex == tabsRouter.pageCount - 1,
                               onPressed: () {
                                 tabsRouter.setActiveIndex(tabsRouter.pageCount - 1);

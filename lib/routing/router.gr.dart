@@ -55,6 +55,12 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
+    SettingsTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const SettingsTabPage(),
+      );
+    },
     SidechainExplorerTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -65,12 +71,6 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const TestchainRPCTabPage(),
-      );
-    },
-    ThemeSettingsTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const ThemeSettingsTabPage(),
       );
     },
     TransferMainchainTabRoute.name: (routeData) {
@@ -208,6 +208,20 @@ class SailTestRouteArgs {
 }
 
 /// generated route for
+/// [SettingsTabPage]
+class SettingsTabRoute extends PageRouteInfo<void> {
+  const SettingsTabRoute({List<PageRouteInfo>? children})
+      : super(
+          SettingsTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SettingsTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [SidechainExplorerTabPage]
 class SidechainExplorerTabRoute extends PageRouteInfo<void> {
   const SidechainExplorerTabRoute({List<PageRouteInfo>? children})
@@ -231,20 +245,6 @@ class TestchainRPCTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'TestchainRPCTabRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [ThemeSettingsTabPage]
-class ThemeSettingsTabRoute extends PageRouteInfo<void> {
-  const ThemeSettingsTabRoute({List<PageRouteInfo>? children})
-      : super(
-          ThemeSettingsTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'ThemeSettingsTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

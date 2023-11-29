@@ -5,17 +5,19 @@ import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class StaticActionField extends StatelessWidget {
-  final String label;
+  final String? label;
   final String value;
   final bool copyable;
   final Widget? suffixWidget;
+  final Widget? prefixWidget;
 
   const StaticActionField({
     super.key,
-    required this.label,
+    this.label,
     required this.value,
     this.copyable = false,
     this.suffixWidget,
+    this.prefixWidget,
   });
 
   @override
@@ -29,7 +31,7 @@ class StaticActionField extends StatelessWidget {
               if (!context.mounted) {
                 return;
               }
-              showSnackBar(context, 'Copied address');
+              showSnackBar(context, "Copied '$value'");
             }
           : null,
       child: Padding(
@@ -39,10 +41,12 @@ class StaticActionField extends StatelessWidget {
         ),
         child: Row(
           children: [
-            SizedBox(
-              width: 150,
-              child: SailText.secondary13(label),
-            ),
+            if (prefixWidget != null) prefixWidget!,
+            if (label != null)
+              SizedBox(
+                width: 150,
+                child: SailText.secondary13(label!),
+              ),
             SailText.primary13(value),
             Expanded(child: Container()),
             if (suffixWidget != null) suffixWidget!,
