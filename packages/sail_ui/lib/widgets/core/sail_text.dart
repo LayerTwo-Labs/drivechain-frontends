@@ -186,7 +186,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.twelve.copyWith(
-            color: customColor ?? theme.colors.textTertiary,
+            color: customColor ?? theme.colors.textSecondary,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
           textAlign: textAlign,

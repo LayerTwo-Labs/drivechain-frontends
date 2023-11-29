@@ -17,7 +17,7 @@ abstract class SailColorScheme {
   static const whiteDark = Color(0xffF5F5F5);
   static const greyDark = Color.fromRGBO(115, 115, 115, 1);
   static const greyMiddle = Color(0xffC1C1C1);
-  static const greyLight = Color(0xff707070);
+  static const greyLight = Color(0xff737373);
   static const blackLight = Color.fromARGB(255, 18, 18, 18);
   static const blackTertiary = Color(0xff21232E);
   static const superLightGreen = Color(0xffEEF8ED);
