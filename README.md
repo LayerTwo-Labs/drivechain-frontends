@@ -104,6 +104,7 @@ Generate icons with
 Gives the nice, rounded icon.
 
 ```bash
-$ flutter build macos
+# replace testchain with whatever other chain you're building
+$ bash ./scripts/build-app.sh macos testchain
 # result is located in ./build/macos/Build/Products/Release
 ```
