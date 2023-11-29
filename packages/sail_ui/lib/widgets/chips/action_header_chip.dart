@@ -22,7 +22,7 @@ class ActionHeaderChip extends StatelessWidget {
           vertical: SailStyleValues.padding05,
           horizontal: SailStyleValues.padding10,
         ),
-        child: SailText.primary12(title),
+        child: SailText.secondary12(title),
       ),
     );
   }

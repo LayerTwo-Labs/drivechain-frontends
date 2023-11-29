@@ -43,7 +43,7 @@ class ConnectionStatusChip extends StatelessWidget {
                 InitializingDaemonSVG(
                   animate: initializing,
                 ),
-              if (!initializing) SailText.primary12('Connected to $chain'),
+              if (!initializing) SailText.secondary12('Connected to $chain'),
             ],
           ),
         ),

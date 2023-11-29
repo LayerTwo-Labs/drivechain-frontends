@@ -217,7 +217,11 @@ class _SideNavState extends State<SideNav> {
     );
   }
 
-  List<Widget> navForChain(Sidechain chain, SideNavViewModel viewModel, auto_router.TabsRouter tabsRouter) {
+  List<Widget> navForChain(
+    Sidechain chain,
+    SideNavViewModel viewModel,
+    auto_router.TabsRouter tabsRouter,
+  ) {
     switch (chain.type) {
       case SidechainType.testChain:
         return [
@@ -612,7 +616,7 @@ class NavEntry extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 SailSVG.icon(icon, width: 16),
-                SailText.primary12(title, bold: true),
+                SailText.secondary12(title, bold: true),
               ],
             ),
           ),
@@ -622,7 +626,7 @@ class NavEntry extends StatelessWidget {
   }
 }
 
-class SubNavEntry extends StatelessWidget {
+class SubNavEntry extends StatefulWidget {
   final String title;
 
   final bool selected;
@@ -636,29 +640,50 @@ class SubNavEntry extends StatelessWidget {
   });
 
   @override
+  State<SubNavEntry> createState() => _SubNavEntryState();
+}
+
+class _SubNavEntryState extends State<SubNavEntry> {
+  bool mouseIsOver = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 163, maxWidth: 163),
-      child: SailScaleButton(
-        onPressed: onPressed,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: selected ? theme.colors.actionHeader : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: SailColumn(
-            spacing: 0,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: SailStyleValues.padding08,
-                  vertical: SailStyleValues.padding05,
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() {
+          mouseIsOver = true;
+        });
+      },
+      onExit: (_) {
+        setState(() {
+          mouseIsOver = false;
+        });
+      },
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 163, maxWidth: 163),
+        child: SailScaleButton(
+          onPressed: widget.onPressed,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: widget.selected ? theme.colors.actionHeader : Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: SailColumn(
+              spacing: 0,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SailStyleValues.padding08,
+                    vertical: SailStyleValues.padding05,
+                  ),
+                  child: mouseIsOver || widget.selected
+                      ? SailText.primary12(widget.title, bold: true)
+                      : SailText.secondary12(widget.title, bold: true),
                 ),
-                child: SailText.primary12(title, bold: true),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -41,7 +41,7 @@ class StaticActionField extends StatelessWidget {
           children: [
             SizedBox(
               width: 150,
-              child: SailText.primary13(label),
+              child: SailText.secondary13(label),
             ),
             SailText.primary13(value),
             Expanded(child: Container()),

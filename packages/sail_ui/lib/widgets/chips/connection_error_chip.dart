@@ -38,7 +38,10 @@ class ConnectionErrorChip extends StatelessWidget {
                   SailSVGAsset.iconGlobe,
                   color: Colors.white,
                 ),
-                SailText.primary12('Not connected to $chain'),
+                SailText.primary12(
+                  'Not connected to $chain',
+                  customColor: Colors.white,
+                ),
               ],
             ),
           ),

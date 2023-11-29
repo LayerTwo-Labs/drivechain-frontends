@@ -91,5 +91,6 @@ class ThemeSettingsViewModel extends BaseViewModel {
 
   Future<void> _init() async {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
+    notifyListeners();
   }
 }
