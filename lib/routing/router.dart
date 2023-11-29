@@ -4,8 +4,8 @@ import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
+import 'package:sidesail/pages/tabs/settings/app_settings_tab.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
-import 'package:sidesail/pages/tabs/settings/theme_settings_tab.dart';
 import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/transfer_mainchain_tab_route.dart';
@@ -23,9 +23,9 @@ part 'router.gr.dart';
 *  is the component you route to.
 *  
 *  Use the [watch] flag to watch the files' system for edits and rebuild as necessary.
-*  $ flutter packages pub run build_runner watch
+*  $ dart run build_runner watch
 *  if you want the generator to run one time and exit, use
-*  $ flutter packages pub run build_runner build  --delete-conflicting-outputs
+*  $ dart run build_runner build  --delete-conflicting-outputs
 
 */
 @AutoRouterConfig(replaceInRouteName: 'Page,Route')
@@ -73,7 +73,7 @@ class AppRouter extends _$AppRouter {
               page: NodeSettingsTabRoute.page,
             ),
             AutoRoute(
-              page: ThemeSettingsTabRoute.page,
+              page: SettingsTabRoute.page,
             ),
           ],
         ),
