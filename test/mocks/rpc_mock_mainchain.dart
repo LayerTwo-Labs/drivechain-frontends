@@ -1,4 +1,5 @@
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/rpc/models/active_sidechains.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 
@@ -39,5 +40,30 @@ class MockMainchainRPC extends MainchainRPC {
   @override
   Future<List<MainchainWithdrawal>> listFailedWithdrawals() async {
     return List.empty();
+  }
+
+  @override
+  Future<ActiveSidechain> createSidechainProposal(int slot, String title) async {
+    return ActiveSidechain(
+      title: title,
+      description: "it's a mocked blockchain",
+      nversion: 69,
+    );
+  }
+
+  @override
+  Future<List<String>> generate(int blocks) async {
+    return List.filled(blocks, 'deadbeef');
+  }
+
+  @override
+  Future<List<ActiveSidechain>> listActiveSidechains() async {
+    return [
+      ActiveSidechain(
+        title: 'Testchain',
+        description: "it's still a mocked blockchain",
+        nversion: 69,
+      ),
+    ];
   }
 }
