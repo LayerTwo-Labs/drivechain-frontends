@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/rpc/models/active_sidechains.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc.dart';
 
@@ -10,6 +11,9 @@ import 'package:sidesail/rpc/rpc.dart';
 abstract class MainchainRPC extends RPCConnection {
   MainchainRPC({required super.conf});
 
+  Future<List<String>> generate(int blocks);
+  Future<List<ActiveSidechain>> listActiveSidechains();
+  Future<ActiveSidechain> createSidechainProposal(int slot, String title);
   Future<double> estimateFee();
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash);
   Future<List<CoreTransaction>> listTransactions();
@@ -115,6 +119,25 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<void> ping() async {
     await _client().call('ping');
+  }
+
+  @override
+  Future<List<ActiveSidechain>> listActiveSidechains() async {
+    final res = await _client().call('listactivesidechains') as List<dynamic>;
+
+    return res.map((s) => ActiveSidechain.fromJson(s)).toList();
+  }
+
+  @override
+  Future<ActiveSidechain> createSidechainProposal(int slot, String title) async {
+    final res = await _client().call('createsidechainproposal', [slot, title]);
+    return ActiveSidechain.fromJson(res);
+  }
+
+  @override
+  Future<List<String>> generate(int blocks) async {
+    final res = await _client().call('generate', [blocks]) as List<dynamic>;
+    return res.map((e) => e.toString()).toList();
   }
 }
 

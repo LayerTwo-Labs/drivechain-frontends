@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/theme/theme_data.dart';
 import 'package:sail_ui/widgets/core/scaffold.dart';
@@ -41,6 +43,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   AppRouter get router => GetIt.I.get<AppRouter>();
   SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
+  Logger get log => GetIt.I.get<Logger>();
   final settings = GetIt.I.get<ClientSettings>();
 
   SailThemeData? theme;
@@ -92,11 +95,45 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   }
 
   Future<void> initMainchainBinary() async {
-    return mainchain.initBinary(
+    await mainchain.initBinary(
       context,
       mainchain.binary,
       bitcoinCoreBinaryArgs(mainchain.conf),
     );
+
+    log.d('mainchain init: checking if ${_sidechain.rpc.chain.name} is an active sidechain');
+    final activeSidechains = await mainchain.listActiveSidechains();
+    final ourSidechain = activeSidechains.firstWhereOrNull((chain) => chain.title == _sidechain.rpc.chain.name);
+    if (ourSidechain != null) {
+      log.i('mainchain init: ${ourSidechain.title} is active');
+      return;
+    }
+
+    log.i(
+      'mainchain init: we are NOT an active sidechain, creating proposal',
+      error: activeSidechains.map((e) => e.toJson()),
+    );
+
+    await mainchain.createSidechainProposal(_sidechain.rpc.chain.slot, _sidechain.rpc.chain.name);
+
+    const numBlocks = 21;
+    log.i('mainchain init: generating $numBlocks blocks to broadcast proposal');
+    await mainchain.generate(numBlocks);
+
+    log.i('mainchain init: verifying sidechain is active');
+    final didActivate = await mainchain
+        .listActiveSidechains()
+        .then((active) => (active.firstWhereOrNull((chain) => chain.title == _sidechain.rpc.chain.name)));
+
+    if (didActivate == null) {
+      log.e(
+        'mainchain init: was not able to activate sidechain',
+        error: await mainchain.listActiveSidechains().then((xs) => xs.map((chain) => chain.toJson())),
+      );
+      throw 'Was not able to activate sidechain';
+    }
+
+    log.i('mainchain init: successfully activated sidechain');
   }
 
   Future<void> initSidechainBinary() async {
