@@ -9,6 +9,12 @@ abstract class RuntimeArgs {
 
   /// Datadir for the current flavor of sidesail
   static Future<Directory> datadir() async {
+    const fromEnv = String.fromEnvironment('DATADIR');
+    if (fromEnv.isNotEmpty) {
+      final dir = Directory(fromEnv);
+      return dir;
+    }
+
     final dir = await getApplicationSupportDirectory();
     return Directory([dir.path, Platform.pathSeparator, chain].join(''));
   }
