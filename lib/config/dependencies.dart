@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
@@ -45,8 +46,12 @@ Future<void> initDependencies(Sidechain chain) async {
     () => AppRouter(),
   );
 
+  final prefs = await SharedPreferences.getInstance();
   GetIt.I.registerLazySingleton<ClientSettings>(
-    () => ClientSettings(store: SecureStore()),
+    () => ClientSettings(
+        store: Storage(
+      preferences: prefs,
+    )),
   );
 
   GetIt.I.registerLazySingleton<BalanceProvider>(
