@@ -1,4 +1,4 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 abstract class KeyValueStore {
   Future<String?> getString(String key);
@@ -6,22 +6,26 @@ abstract class KeyValueStore {
   Future<void> delete(String key);
 }
 
-class SecureStore implements KeyValueStore {
-  final _storage = const FlutterSecureStorage();
+class Storage implements KeyValueStore {
+  final SharedPreferences preferences;
+
+  Storage({
+    required this.preferences,
+  });
 
   @override
-  Future<String?> getString(String key) {
-    final value = _storage.read(key: key);
+  Future<String?> getString(String key) async {
+    final value = preferences.getString(key);
     return value;
   }
 
   @override
   Future<void> setString(String key, String value) async {
-    await _storage.write(key: key, value: value);
+    await preferences.setString(key, value);
   }
 
   @override
   Future<void> delete(String key) async {
-    await _storage.delete(key: key);
+    await preferences.remove(key);
   }
 }

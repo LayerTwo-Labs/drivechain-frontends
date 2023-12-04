@@ -47,7 +47,6 @@ dependencies:
   dio: ^4.0.6
   auto_route: ^7.8.4
   get_it: ^7.6.4
-  flutter_secure_storage: ^9.0.0
   collection: ^1.17.2
   stacked: ^3.4.1+1
   intl: ^0.18.0
@@ -58,6 +57,7 @@ dependencies:
   http: ^1.1.0
   path_provider: ^2.1.1
   crypto: ^3.0.1
+  shared_preferences: ^2.2.2
 
 # Needed for silencing complaints from adding the web3dart lib
 dependency_overrides:
