@@ -49,9 +49,10 @@ Future<void> initDependencies(Sidechain chain) async {
   final prefs = await SharedPreferences.getInstance();
   GetIt.I.registerLazySingleton<ClientSettings>(
     () => ClientSettings(
-        store: Storage(
-      preferences: prefs,
-    )),
+      store: Storage(
+        preferences: prefs,
+      ),
+    ),
   );
 
   GetIt.I.registerLazySingleton<BalanceProvider>(
