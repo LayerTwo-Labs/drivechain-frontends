@@ -740,7 +740,7 @@ packages:
   sail_ui:
     dependency: "direct main"
     description:
-      path: "packages/sail_ui"
+      path: "../sail_ui"
       relative: true
     source: path
     version: "0.0.1"
