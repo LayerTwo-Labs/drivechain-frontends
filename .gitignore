@@ -45,3 +45,4 @@ app.*.map.json
 
 # Binaries for the nodes
 assets/bin
+zcash.conf
