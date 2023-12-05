@@ -24,5 +24,5 @@ sed -i "s/sidesail/$lower_app_name/" windows/runner/Runner.rc
 # about the sed expressions in order to only touch the
 # msix_config stanza
 sed -i "s/display_name: SideSail/display_name: $app_name/" pubspec.yaml
-sed -i "s/output_name: sidesail/output_name: $lower_app_name/" pubspec.yaml
+sed -i "s/output_name: SideSail/output_name: $app_name/" pubspec.yaml
 sed -i "s/com.layertwolabs.sidesail/com.layertwolabs.$lower_app_name/" pubspec.yaml
