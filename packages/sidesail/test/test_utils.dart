@@ -15,7 +15,7 @@ Future<void> _setDeviceSize() async {
 }
 
 Future<void> loadFonts() async {
-  final sourceCodePro = rootBundle.load('fonts/SourceCodePro-Regular.ttf');
+  final sourceCodePro = rootBundle.load('../sail_ui/fonts/SourceCodePro-Regular.ttf');
   final fontLoader = FontLoader('SourceCodePro')..addFont(sourceCodePro);
   await fontLoader.load();
 }
