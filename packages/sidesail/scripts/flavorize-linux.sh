@@ -10,5 +10,9 @@ fi
 
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
-echo TODO >&2
-exit 1
+# Name of executable + app
+sed -i "s/sidesail/$lower_app_name/" linux/CMakeLists.txt    
+
+# Name of main window
+sed -i "s/SideSail/$app_name/" linux/my_application.cc
+sed -i "s/SideSail/$lower_app_name/" linux/my_application.cc    

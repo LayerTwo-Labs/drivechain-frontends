@@ -1,0 +1,1 @@
+flutter build linux --dart-define-from-file=build-vars.env
