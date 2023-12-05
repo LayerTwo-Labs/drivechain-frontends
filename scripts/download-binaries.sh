@@ -83,14 +83,14 @@ DC_VERSION="0.45.00"
 # Fetch the drivechain binaries irregardless of what platform we're 
 # releasing for. 
 drivechain_file=mainchain-$DC_VERSION-$version_postfix.$extension
-wget $RELEASES/$drivechain_file
+curl -O $RELEASES/$drivechain_file
 $unpack_cmd $drivechain_file
 
 mv mainchain-$DC_VERSION/bin/drivechaind$bin_name_postfix $old_cwd/assets/bin
 
 # Only fetch binaries for the specific sidechain we're interested in
 sidechain_file=$chain-$sidechain_version-$version_postfix.$extension
-wget $RELEASES/$sidechain_file
+curl -O $RELEASES/$sidechain_file
 $unpack_cmd $sidechain_file
 
 mv $chain-$sidechain_version/bin/$sidechain_bin_name$bin_name_postfix $old_cwd/assets/bin
