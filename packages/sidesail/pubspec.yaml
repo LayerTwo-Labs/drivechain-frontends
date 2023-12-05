@@ -32,7 +32,7 @@ dependencies:
   flutter:
     sdk: flutter
   sail_ui:
-    path: packages/sail_ui
+    path: ../sail_ui
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -93,35 +93,35 @@ flutter:
   fonts:
     - family: SourceCodePro
       fonts:
-        - asset: fonts/SourceCodePro-ExtraLight.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-ExtraLight.ttf
           weight: 200
-        - asset: fonts/SourceCodePro-Light.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-Light.ttf
           weight: 300
-        - asset: fonts/SourceCodePro-Regular.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-Regular.ttf
           weight: 400
-        - asset: fonts/SourceCodePro-Medium.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-Medium.ttf
           weight: 500
-        - asset: fonts/SourceCodePro-Bold.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-Bold.ttf
           weight: 600
-        - asset: fonts/SourceCodePro-Black.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-Black.ttf
           weight: 700
 
-        - asset: fonts/SourceCodePro-ExtraLightItalic.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-ExtraLightItalic.ttf
           style: italic
           weight: 200
-        - asset: fonts/SourceCodePro-LightItalic.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-LightItalic.ttf
           style: italic
           weight: 300
-        - asset: fonts/SourceCodePro-Italic.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-Italic.ttf
           style: italic
           weight: 400
-        - asset: fonts/SourceCodePro-MediumItalic.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-MediumItalic.ttf
           style: italic
           weight: 500
-        - asset: fonts/SourceCodePro-BoldItalic.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-BoldItalic.ttf
           style: italic
           weight: 600
-        - asset: fonts/SourceCodePro-BlackItalic.ttf
+        - asset: ../sail_ui/fonts/SourceCodePro-BlackItalic.ttf
           style: italic
           weight: 600
 
