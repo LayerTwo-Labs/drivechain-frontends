@@ -101,9 +101,9 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
       bitcoinCoreBinaryArgs(mainchain.conf),
     );
 
-    log.d('mainchain init: checking if ${_sidechain.rpc.chain.name} is an active sidechain');
+    log.d('mainchain init: checking if ${_sidechain.rpc.chain.slot} is an active sidechain');
     final activeSidechains = await mainchain.listActiveSidechains();
-    final ourSidechain = activeSidechains.firstWhereOrNull((chain) => chain.title == _sidechain.rpc.chain.name);
+    final ourSidechain = activeSidechains.firstWhereOrNull((chain) => chain.slot == _sidechain.rpc.chain.slot);
     if (ourSidechain != null) {
       log.i('mainchain init: ${ourSidechain.title} is active');
       return;
@@ -116,14 +116,14 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
     await mainchain.createSidechainProposal(_sidechain.rpc.chain.slot, _sidechain.rpc.chain.name);
 
-    const numBlocks = 21;
+    const numBlocks = 22;
     log.i('mainchain init: generating $numBlocks blocks to broadcast proposal');
     await mainchain.generate(numBlocks);
 
     log.i('mainchain init: verifying sidechain is active');
     final didActivate = await mainchain
         .listActiveSidechains()
-        .then((active) => (active.firstWhereOrNull((chain) => chain.title == _sidechain.rpc.chain.name)));
+        .then((active) => (active.firstWhereOrNull((chain) => chain.slot == _sidechain.rpc.chain.slot)));
 
     if (didActivate == null) {
       log.e(
