@@ -21,7 +21,15 @@ abstract class EthereumRPC extends SidechainRPC {
 class EthereumRPCLive extends EthereumRPC {
   final sgweiPerSat = 1000000000;
 
-  EthereumRPCLive({required super.conf});
+  EthereumRPCLive({required super.conf}) {
+    try {
+      _setAndGetAccount();
+    } catch (error) {
+      // we could not get the account, probably because it doesn't exist
+      // try to make one!
+      newAccount();
+    }
+  }
 
   Web3Client get _client => Web3Client(
         'http://${conf.host}:${conf.port}',
