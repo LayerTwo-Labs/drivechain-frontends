@@ -8,4 +8,4 @@ repos:
           - "-l 120"
 
       - id: flutter-analyze
-        args: [lib/*]
+        args: [packages/sidesail/lib/*]
