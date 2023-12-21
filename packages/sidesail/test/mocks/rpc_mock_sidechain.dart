@@ -7,7 +7,7 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
       : super(
-          conf: SingleNodeConnectionSettings('mock town', 'mock mock', 1337, '', ''),
+          conf: SingleNodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
           chain: TestSidechain(),
         );
 

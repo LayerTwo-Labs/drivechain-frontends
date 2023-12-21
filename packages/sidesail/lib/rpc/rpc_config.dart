@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/proc_provider.dart';
@@ -23,9 +24,6 @@ class Config {
   });
 }
 
-// TODO: add signet support
-const network = 'regtest';
-
 // Order of precedence:
 //
 // 1. Conf file
@@ -35,9 +33,12 @@ const network = 'regtest';
 Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFile, Sidechain? sidechain) async {
   final log = GetIt.I.get<Logger>();
 
-  final networkDir = filePath([datadir, network]);
-
   final conf = File(filePath([datadir, confFile]));
+
+  var network = RuntimeArgs.network;
+
+  // Mainnet == empty string, special datadirs only apply to non-mainnet
+  final networkDir = filePath([datadir, network == 'mainnet' ? '' : network]);
 
   final cookie = File(filePath([networkDir, '.cookie']));
 
@@ -45,7 +46,7 @@ Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFi
   String? password;
   String? host;
   int? port;
-  final defaultPort = sidechain == null ? _defaultMainchainPorts[network]! : sidechain.rpcPort;
+  final defaultPort = sidechain?.rpcPort ?? _defaultMainchainPorts[network]!;
 
   if (!await conf.exists() && !await cookie.exists()) {
     log.d('missing both conf ($conf) and cookie ($cookie), returning default settings');
@@ -55,6 +56,7 @@ Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFi
       defaultPort,
       'user',
       'password',
+      network == 'regtest',
     );
   }
 
@@ -92,13 +94,14 @@ Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFi
   port ??= defaultPort;
 
 // Make sure to not include password here
-  log.i('resolved conf: $username@$host:$port');
+  log.i('resolved conf: $username@$host:$port on $network');
   return SingleNodeConnectionSettings(
     conf.path,
     host,
     port,
     username,
     password,
+    network == 'regtest',
   );
 }
 
@@ -149,7 +152,7 @@ List<String> bitcoinCoreBinaryArgs(
   ];
 }
 
-// TODO: add more nets
 Map<String, int> _defaultMainchainPorts = {
+  'mainnet': 8883,
   'regtest': 18443,
 };

@@ -5,7 +5,8 @@
 A work-in-progress sidechain UI.
 
 ```shell
-$ flutter run -d macos
+
+$ cd packages/sidesail && flutter run -d macos
 ```
 
 # Releasing and that kinda stuff

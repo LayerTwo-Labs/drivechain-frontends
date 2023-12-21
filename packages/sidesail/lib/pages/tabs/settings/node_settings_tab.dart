@@ -220,6 +220,11 @@ class NodeConnectionViewModel extends BaseViewModel {
 }
 
 class SingleNodeConnectionSettings extends ChangeNotifier {
+  /// On local networks (i.e. regtest, simnet) we can mine blocks
+  /// on the mainchain and activate new sidechains. That's NOT
+  /// possible on global networks.
+  late final bool isLocalNetwork;
+
   final configPathController = TextEditingController();
   final hostController = TextEditingController();
   final portController = TextEditingController();
@@ -252,8 +257,10 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
     int port,
     String username,
     String password,
+    bool localNetwork,
   ) {
     _setFileValues(path, host, port, username, password);
+    isLocalNetwork = localNetwork;
 
     configPathController.text = path;
     hostController.text = host;
@@ -336,6 +343,6 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
   }
 
   static SingleNodeConnectionSettings empty() {
-    return SingleNodeConnectionSettings('', '', 0, '', '');
+    return SingleNodeConnectionSettings('', '', 0, '', '', false);
   }
 }

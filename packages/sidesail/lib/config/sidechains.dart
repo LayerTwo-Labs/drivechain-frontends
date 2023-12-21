@@ -89,7 +89,7 @@ extension SidechainPaths on SidechainType {
         return 'testchain.conf';
       case SidechainType.ethereum:
         // TODO: make this properly configurable
-        return '???';
+        return 'config.toml';
       case SidechainType.zcash:
         // TODO: make this properly configurable
         return 'zcash.conf';
