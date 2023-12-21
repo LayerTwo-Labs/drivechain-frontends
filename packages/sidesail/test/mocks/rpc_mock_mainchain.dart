@@ -4,7 +4,7 @@ import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 
 class MockMainchainRPC extends MainchainRPC {
-  MockMainchainRPC() : super(conf: SingleNodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', ''));
+  MockMainchainRPC() : super(conf: SingleNodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', '', true));
 
   @override
   Future<double> estimateFee() async {

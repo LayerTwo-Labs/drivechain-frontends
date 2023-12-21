@@ -54,6 +54,8 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
 
+    log.i('starting sidesail');
+
     // always attempt to start binaries. If we're already
     // connected (handled in dependencies), the start binary
     // function makes sure to not restart it
@@ -101,12 +103,16 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
       bitcoinCoreBinaryArgs(mainchain.conf),
     );
 
-    log.d('mainchain init: checking if ${_sidechain.rpc.chain.slot} is an active sidechain');
+    log.d('mainchain init: checking if ${_sidechain.rpc.chain.name} is an active sidechain');
     final activeSidechains = await mainchain.listActiveSidechains();
-    final ourSidechain = activeSidechains.firstWhereOrNull((chain) => chain.slot == _sidechain.rpc.chain.slot);
+    final ourSidechain = activeSidechains.firstWhereOrNull((chain) => chain.title == _sidechain.rpc.chain.name);
     if (ourSidechain != null) {
       log.i('mainchain init: ${ourSidechain.title} is active');
       return;
+    }
+
+    if (!mainchain.conf.isLocalNetwork) {
+      throw "${_sidechain.rpc.chain.name} chain is not active, and we're unable to activate it";
     }
 
     log.i(
