@@ -145,11 +145,11 @@ class _SideNavState extends State<SideNav> {
                               unconfirmedBalance: viewModel.pendingBalance,
                               highlighted: tabsRouter.activeIndex == 0,
                               currentChain: true,
-                              onPressed: RuntimeArgs.withoutSwappableChains
-                                  ? null
-                                  : () {
+                              onPressed: RuntimeArgs.swappableChains
+                                  ? () {
                                       tabsRouter.setActiveIndex(0);
-                                    },
+                                    }
+                                  : null,
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(

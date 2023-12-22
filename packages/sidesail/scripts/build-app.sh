@@ -34,7 +34,7 @@ echo Downloading binaries for $platform + $chain
 bash ./scripts/download-binaries.sh $platform $chain
 
 echo Flavorizing for $platform
-echo CHAIN=$chain > build-vars.env
+echo SIDESAIL_CHAIN=$chain > build-vars.env
 bash ./scripts/flavorize-$platform.sh $app_name
 
 echo Building $app_name release 
