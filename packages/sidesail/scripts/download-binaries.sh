@@ -76,9 +76,9 @@ cd $dl_dir
 
 # In the browser this is available under release.drivechain.info, but that's
 # for some reason just an iframe to this location. 
-RELEASES="http://172.105.148.135/drivechain/launcher"
+RELEASES="http://172.105.148.135/drivechain/"
 
-DC_VERSION="0.45.00"
+DC_VERSION="0.46.00"
 
 # Fetch the drivechain binaries irregardless of what platform we're 
 # releasing for. 
@@ -90,7 +90,7 @@ mv mainchain-$DC_VERSION/bin/drivechaind$bin_name_postfix $old_cwd/assets/bin
 
 # Only fetch binaries for the specific sidechain we're interested in
 sidechain_file=$chain-$sidechain_version-$version_postfix.$extension
-curl -O $RELEASES/$sidechain_file
+curl -O $RELEASES/launcher/$sidechain_file
 $unpack_cmd $sidechain_file
 
 mv $chain-$sidechain_version/bin/$sidechain_bin_name$bin_name_postfix $old_cwd/assets/bin
