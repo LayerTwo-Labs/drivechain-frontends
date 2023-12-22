@@ -38,7 +38,7 @@ echo SIDESAIL_CHAIN=$chain > build-vars.env
 bash ./scripts/flavorize-$platform.sh $app_name
 
 echo Building $app_name release 
-bash ./scripts/build-$platform.sh
+bash ./scripts/build-$platform.sh $app_name
 
 # Reset to the pre-flavorized versions.
 git checkout windows macos linux pubspec.yaml
