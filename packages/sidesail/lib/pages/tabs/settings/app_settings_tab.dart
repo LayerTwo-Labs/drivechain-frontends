@@ -20,6 +20,7 @@ class SettingsTabPage extends StatelessWidget {
     final app = SailApp.of(context);
 
     return SailPage(
+      scrollable: true,
       title: 'Application settings',
       body: ViewModelBuilder.reactive(
         viewModelBuilder: () => ThemeSettingsViewModel(),
@@ -93,6 +94,30 @@ class SettingsTabPage extends StatelessWidget {
                   child: SailSVG.icon(SailSVGAsset.iconCopy),
                 ),
                 value: '${viewModel.datadir}${Platform.pathSeparator}debug.log',
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding20),
+                child: SailText.primary20('Active chain', bold: true),
+              ),
+              StaticActionField(
+                copyable: true,
+                prefixWidget: Padding(
+                  padding: const EdgeInsets.only(right: SailStyleValues.padding10),
+                  child: SailSVG.icon(SailSVGAsset.iconCopy),
+                ),
+                value: RuntimeArgs.chain,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding20),
+                child: SailText.primary20('Active network', bold: true),
+              ),
+              StaticActionField(
+                copyable: true,
+                prefixWidget: Padding(
+                  padding: const EdgeInsets.only(right: SailStyleValues.padding10),
+                  child: SailSVG.icon(SailSVGAsset.iconCopy),
+                ),
+                value: RuntimeArgs.network,
               ),
             ],
           );

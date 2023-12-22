@@ -32,10 +32,10 @@ Future<void> start() async {
     default:
       return runApp(
         SailApp(
-          builder: (context, router) => const Center(
+          builder: (context, router) => Center(
             child: Text(
-              'Unsupported CHAIN parameter: ${RuntimeArgs.chain}',
-              style: TextStyle(fontSize: 40),
+              'Unsupported chain: ${RuntimeArgs.chain}',
+              style: const TextStyle(fontSize: 40),
             ),
           ),
         ),
