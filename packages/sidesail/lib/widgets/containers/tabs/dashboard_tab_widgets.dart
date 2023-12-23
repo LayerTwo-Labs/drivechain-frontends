@@ -138,10 +138,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
 
   void executeSendOnSidechain(BuildContext context) async {
     setBusy(true);
-    notifyListeners();
     onSidechainSend(context);
     setBusy(false);
-    notifyListeners();
 
     await _router.pop();
   }

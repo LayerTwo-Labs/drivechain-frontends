@@ -105,10 +105,8 @@ class PegOutViewModel extends BaseViewModel {
 
   void executePegOut(BuildContext context) async {
     setBusy(true);
-    notifyListeners();
     onPegOut(context);
     setBusy(false);
-    notifyListeners();
   }
 
   Future<void> estimateSidechainFee() async {

@@ -8,7 +8,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
-import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
@@ -72,7 +71,7 @@ class ShieldUTXOAction extends StatelessWidget {
 class ShieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
 
@@ -89,10 +88,8 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
 
   void shield(BuildContext context, UnshieldedUTXO utxo) async {
     setBusy(true);
-    notifyListeners();
     executeShield(context, utxo);
     setBusy(false);
-    notifyListeners();
   }
 
   void executeShield(BuildContext context, UnshieldedUTXO utxo) async {
@@ -122,7 +119,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_transactionsProvider.fetch());
+      unawaited(_zcashProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -157,7 +154,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
 class DeshieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
 
@@ -174,10 +171,8 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
 
   void deshield(BuildContext context, ShieldedUTXO utxo) async {
     setBusy(true);
-    notifyListeners();
     executeDeshield(context, utxo);
     setBusy(false);
-    notifyListeners();
   }
 
   void executeDeshield(BuildContext context, ShieldedUTXO utxo) async {
@@ -207,7 +202,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_transactionsProvider.fetch());
+      unawaited(_zcashProvider.fetch());
 
       if (!context.mounted) {
         return;
@@ -358,7 +353,6 @@ class MeltAction extends StatelessWidget {
 class MeltActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
@@ -376,10 +370,8 @@ class MeltActionViewModel extends BaseViewModel {
 
   void melt(BuildContext context) async {
     setBusy(true);
-    notifyListeners();
     _executeMelt(context);
     setBusy(false);
-    notifyListeners();
   }
 
   void _executeMelt(BuildContext context) async {
@@ -405,7 +397,7 @@ class MeltActionViewModel extends BaseViewModel {
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
       // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_transactionsProvider.fetch());
+      unawaited(_zcashProvider.fetch());
 
       if (!context.mounted) {
         return;
