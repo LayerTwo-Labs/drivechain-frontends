@@ -204,8 +204,19 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
-    // TODO: implement shield
-    throw UnimplementedError();
+    final zAddress = await sideGenerateAddress();
+    final operationID = await _client().call('z_sendmany', [
+      utxo.address,
+      [
+        {
+          'address': zAddress,
+          'amount': amount,
+        }
+      ],
+      1,
+    ]);
+
+    return operationID as String;
   }
 
   @override
