@@ -44,7 +44,7 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: DashboardTabRoute.page,
-              initial: RuntimeArgs.chain == 'testchain' ? true : false,
+              initial: RuntimeArgs.chain.toLowerCase() == 'testchain' ? true : false,
             ),
             AutoRoute(
               page: TestchainRPCTabRoute.page,
@@ -60,11 +60,11 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: EthereumRPCTabRoute.page,
-              initial: RuntimeArgs.chain == 'ethereum' ? true : false,
+              initial: RuntimeArgs.chain.toLowerCase() == 'ethSide' ? true : false,
             ),
             AutoRoute(
               page: ZCashShieldTabRoute.page,
-              initial: RuntimeArgs.chain == 'zcash' ? true : false,
+              initial: RuntimeArgs.chain.toLowerCase() == 'zSide' ? true : false,
             ),
             AutoRoute(
               page: ZCashRPCTabRoute.page,
