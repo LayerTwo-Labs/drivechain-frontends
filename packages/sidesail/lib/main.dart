@@ -19,27 +19,24 @@ Future<void> start() async {
       appName = chain.name;
       break;
 
+    case 'ethereum':
     case 'ethside':
       chain = EthereumSidechain();
       appName = chain.name;
       break;
-
+  
+    case 'zcash':
     case 'zside':
       chain = ZCashSidechain();
       appName = chain.name;
       break;
 
     default:
-      return runApp(
-        SailApp(
-          builder: (context, router) => Center(
-            child: Text(
-              'Unsupported chain: ${RuntimeArgs.chain}',
-              style: const TextStyle(fontSize: 40),
-            ),
-          ),
-        ),
-      );
+      // Just throw an error here. We used to initialize
+      // the app with an error message, but we won't be able
+      // to do that successfully because initializing deps
+      // crashes as well. 
+      throw "unsupported chain: ${RuntimeArgs.chain}";
   }
 
   await initDependencies(chain);
