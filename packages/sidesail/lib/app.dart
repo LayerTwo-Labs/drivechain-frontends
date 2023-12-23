@@ -8,7 +8,9 @@ import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/theme/theme_data.dart';
 import 'package:sail_ui/widgets/core/scaffold.dart';
 import 'package:sail_ui/widgets/loading_indicator.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/routing/router.dart';
+import 'package:sidesail/rpc/models/active_sidechains.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -105,9 +107,9 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
     log.d('mainchain init: checking if ${_sidechain.rpc.chain.name} is an active sidechain');
     final activeSidechains = await mainchain.listActiveSidechains();
-    final ourSidechain = activeSidechains.firstWhereOrNull((chain) => chain.title == _sidechain.rpc.chain.name);
-    if (ourSidechain != null) {
-      log.i('mainchain init: ${ourSidechain.title} is active');
+    final ourSidechain = isCurrentChainActive(activeChains: activeSidechains, currentChain: _sidechain.rpc.chain);
+    if (ourSidechain) {
+      log.i('mainchain init: ${_sidechain.rpc.chain.name} is active');
       return;
     }
 
@@ -127,11 +129,9 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     await mainchain.generate(numBlocks);
 
     log.i('mainchain init: verifying sidechain is active');
-    final didActivate = await mainchain
-        .listActiveSidechains()
-        .then((active) => (active.firstWhereOrNull((chain) => chain.slot == _sidechain.rpc.chain.slot)));
-
-    if (didActivate == null) {
+    final chains = await mainchain.listActiveSidechains();
+    final isActive = isCurrentChainActive(activeChains: chains, currentChain: _sidechain.rpc.chain);
+    if (!isActive) {
       log.e(
         'mainchain init: was not able to activate sidechain',
         error: await mainchain.listActiveSidechains().then((xs) => xs.map((chain) => chain.toJson())),
@@ -192,4 +192,12 @@ Future<void> waitForBoolToBeTrue(
     await Future.delayed(pollInterval);
     await waitForBoolToBeTrue(boolGetter, pollInterval: pollInterval);
   }
+}
+
+bool isCurrentChainActive({
+  required List<ActiveSidechain> activeChains,
+  required Sidechain currentChain,
+}) {
+  final foundMatch = activeChains.firstWhereOrNull((chain) => chain.title == currentChain.name);
+  return foundMatch != null;
 }
