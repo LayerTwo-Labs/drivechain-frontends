@@ -4,16 +4,16 @@ class ActiveSidechain {
   final String title;
   final String description;
   final int nversion;
-  final String? hashid1;
-  final String? hashid2;
+  final String hashid1;
+  final String hashid2;
 
   ActiveSidechain({
     this.slot,
     required this.title,
     required this.description,
     required this.nversion,
-    this.hashid1,
-    this.hashid2,
+    this.hashid1 = '0000000000000000000000000000000000000000000000000000000000000000',
+    this.hashid2 = '0000000000000000000000000000000000000000',
   });
 
   factory ActiveSidechain.fromJson(Map<String, dynamic> json) {
