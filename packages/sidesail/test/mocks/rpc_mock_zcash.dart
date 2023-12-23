@@ -90,10 +90,10 @@ class MockZCashRPC extends ZCashRPC {
   Future<List<UnshieldedUTXO>> listUnshieldedCoins() async {
     return [
       UnshieldedUTXO(
+        txid: 'db5566c1d4072b1652156faa8461f6cae68d8cc4b3249589c70efb1175b17502',
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
         confirmations: 1,
-        time: DateTime.now(),
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -109,10 +109,10 @@ class MockZCashRPC extends ZCashRPC {
   }''',
       ),
       UnshieldedUTXO(
+        txid: 'db5566c1d4072b1652156faa8461f6cae68d8cc4b3249589c70efb1175b17502',
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
         confirmations: 5,
-        time: DateTime.now(),
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -128,10 +128,10 @@ class MockZCashRPC extends ZCashRPC {
   }''',
       ),
       UnshieldedUTXO(
+        txid: 'db5566c1d4072b1652156faa8461f6cae68d8cc4b3249589c70efb1175b17502',
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 0.00010000,
         confirmations: 10,
-        time: DateTime.now(),
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -147,10 +147,10 @@ class MockZCashRPC extends ZCashRPC {
   }''',
       ),
       UnshieldedUTXO(
+        txid: 'db5566c1d4072b1652156faa8461f6cae68d8cc4b3249589c70efb1175b17502',
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
         confirmations: 35,
-        time: DateTime.now(),
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
