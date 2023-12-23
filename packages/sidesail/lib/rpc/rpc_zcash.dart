@@ -71,20 +71,32 @@ class ZcashRPCLive extends ZCashRPC {
   Future<double> _balanceForAccount(int account, int confirmations) async {
     return await _client.call().call('z_getbalanceforaccount', [account, confirmations]).then(
       (res) {
-        final pools = res.pools;
-        return pools.transparent.valueZat + pools.sapling.valueZat + pools.orchard.valueZat;
+        final pools = res['pools'];
+        if (pools.containsKey('transparent') && pools.containsKey('sapling') && pools.containsKey('orchard')) {
+          return pools['transparent']['valueZat'] + pools['sapling']['valueZat'] + pools['orchard']['valueZat'];
+        }
+        return 0;
       },
     );
+  }
+
+  Future<(double, double)> _transparentBalance(int account) async {
+    final confirmedFut = _client().call('getbalance');
+    final unconfirmedFut = _client().call('getunconfirmedbalance');
+
+    return (await confirmedFut as double, await unconfirmedFut as double);
   }
 
   @override
   Future<(double, double)> getBalance() async {
     final acc = await account();
 
+    final (transparentConfirmed, transparentUnconfirmed) = await _transparentBalance(acc);
+
     final confirmed = await _balanceForAccount(acc, 1);
     final confirmedAndUnconfirmed = await _balanceForAccount(acc, 0);
 
-    return (confirmed, confirmedAndUnconfirmed - confirmed);
+    return (confirmed + transparentConfirmed, transparentUnconfirmed + confirmedAndUnconfirmed - confirmed);
   }
 
   @override
@@ -158,17 +170,18 @@ class ZcashRPCLive extends ZCashRPC {
   Future<List<UnshieldedUTXO>> listUnshieldedCoins() async {
     // TODO: verify this just returns unshielded coins. might have to
     // diff z_listunspent and listunspent?
-    final unspent = await _client().call('listunspent');
+    final unspent = await _client().call('listunspent') as List<dynamic>;
     if (unspent.isEmpty) {
       return List.empty();
     }
 
-    List<UnshieldedUTXO> unspentUTXOs = unspent
-        .map(
-          (jsonItem) => UnshieldedUTXO.fromMap(jsonItem),
-        )
-        .toList();
+    List<UnshieldedUTXO> unspentUTXOs = unspent.map(
+      (jsonItem) {
+        return UnshieldedUTXO.fromMap(jsonItem);
+      },
+    ).toList();
 
+    unspentUTXOs.removeWhere((t) => t.amount == 0);
     return unspentUTXOs;
   }
 
