@@ -46,7 +46,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   Logger get log => GetIt.I.get<Logger>();
-  final settings = GetIt.I.get<ClientSettings>();
+  ClientSettings get settings => GetIt.I.get<ClientSettings>();
 
   SailThemeData? theme;
 
@@ -56,7 +56,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
 
-    log.i('starting sidesail');
+    //log.i('starting sidesail');
 
     // always attempt to start binaries. If we're already
     // connected (handled in dependencies), the start binary
