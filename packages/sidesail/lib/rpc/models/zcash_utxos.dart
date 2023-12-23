@@ -37,26 +37,26 @@ class ShieldedUTXO {
 }
 
 class UnshieldedUTXO {
+  final String txid;
   final String address;
   final double amount;
   final int confirmations;
-  final DateTime time;
   final String raw;
 
   UnshieldedUTXO({
+    required this.txid,
     required this.address,
     required this.amount,
     required this.confirmations,
-    required this.time,
     required this.raw,
   });
 
   factory UnshieldedUTXO.fromMap(Map<String, dynamic> map) {
     return UnshieldedUTXO(
+      txid: map['txid'] ?? '',
       address: map['address'] ?? '',
       amount: map['amount'] ?? 0.0,
       confirmations: map['confirmations'] ?? 0.0,
-      time: DateTime.fromMillisecondsSinceEpoch((map['time'] ?? 0) * 1000),
       raw: jsonEncode(map),
     );
   }
@@ -65,10 +65,10 @@ class UnshieldedUTXO {
   String toJson() => jsonEncode(toMap());
 
   Map<String, dynamic> toMap() => {
+        'txid': txid,
         'address': address,
         'amount': amount,
         'confirmations': confirmations,
-        'time': time.millisecondsSinceEpoch ~/ 1000,
       };
 }
 
