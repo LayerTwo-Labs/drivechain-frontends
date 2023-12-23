@@ -12,19 +12,19 @@ Future<void> start() async {
   String appName;
   Sidechain chain;
   // Sanity check we're getting a supported chain.
-  switch (RuntimeArgs.chain) {
+  switch (RuntimeArgs.chain.toLowerCase()) {
     case '': // default to testchain
     case 'testchain':
       chain = TestSidechain();
       appName = chain.name;
       break;
 
-    case 'ethereum':
+    case 'ethside':
       chain = EthereumSidechain();
       appName = chain.name;
       break;
 
-    case 'zcash':
+    case 'zside':
       chain = ZCashSidechain();
       appName = chain.name;
       break;

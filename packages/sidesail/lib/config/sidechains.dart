@@ -42,7 +42,7 @@ class TestSidechain extends Sidechain {
 
 class ZCashSidechain extends Sidechain {
   @override
-  String name = 'ZSide';
+  String name = 'zSide';
 
   @override
   int slot = 5;
@@ -132,10 +132,10 @@ extension SidechainPaths on SidechainType {
         return '.testchain';
       case SidechainType.ethereum:
         // TODO: correct?
-        return '.ethereum';
+        return '.ethside';
       case SidechainType.zcash:
         // TODO: correct?
-        return '.ethereum';
+        return '.zside';
     }
   }
 
@@ -144,9 +144,9 @@ extension SidechainPaths on SidechainType {
       case SidechainType.testChain:
         return 'Testchain';
       case SidechainType.ethereum:
-        return 'Ethereum';
+        return 'EthSide';
       case SidechainType.zcash:
-        return 'ZCash';
+        return 'ZSide';
     }
   }
 
@@ -155,9 +155,9 @@ extension SidechainPaths on SidechainType {
       case SidechainType.testChain:
         return 'Testchain';
       case SidechainType.ethereum:
-        return 'Ethereum';
+        return 'EthSide';
       case SidechainType.zcash:
-        return 'ZCash';
+        return 'ZSide';
     }
   }
 }
