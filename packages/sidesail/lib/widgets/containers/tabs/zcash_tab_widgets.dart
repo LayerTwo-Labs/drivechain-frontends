@@ -80,7 +80,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
   String get totalBitcoinAmount =>
       ((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)).toStringAsFixed(8);
 
-  double shieldFee = 0.0001;
+  double shieldFee = 0.00001;
   double? get amount => double.tryParse(bitcoinAmountController.text);
 
   ShieldUTXOActionViewModel() {
