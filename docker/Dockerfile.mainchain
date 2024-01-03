@@ -15,7 +15,6 @@ WORKDIR /mainchain
 
 RUN git checkout $MAINCHAIN_VERSION
 
-RUN cd depends && make 
 RUN cd depends && env NO_QT=1 NO_UPNP=1 make
 
 # Which platform triple depends was compiled for
