@@ -31,8 +31,11 @@ class MockZCashRPC extends ZCashRPC {
     return [
       OperationStatus(
         id: 'opid-7c484106 409a-47dc-b853-3c641beaf166',
-        confirmations: 0,
-        time: DateTime.now(),
+        status: 'success',
+        method: 'z_sendmany',
+        error: '',
+        params: '',
+        creationTime: DateTime.now(),
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -49,8 +52,11 @@ class MockZCashRPC extends ZCashRPC {
       ),
       OperationStatus(
         id: 'opid-7c484106 409a-47dc-b853-3c641beaf166',
-        confirmations: 1,
-        time: DateTime.now(),
+        status: 'success',
+        method: 'z_sendmany',
+        params: '',
+        error: '',
+        creationTime: DateTime.now(),
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -67,8 +73,11 @@ class MockZCashRPC extends ZCashRPC {
       ),
       OperationStatus(
         id: 'opid-7c484106 409a-47dc-b853-3c641beaf166',
-        confirmations: 29,
-        time: DateTime.now(),
+        status: 'success',
+        method: 'z_sendmany',
+        params: '',
+        error: '',
+        creationTime: DateTime.now(),
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",

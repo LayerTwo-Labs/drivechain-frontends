@@ -30,7 +30,7 @@ class ZCashProvider extends ChangeNotifier {
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
     zcashAddress = await rpc.sideGenerateAddress();
-    operations = await rpc.listOperations();
+    operations.addAll(await rpc.listOperations());
     shieldedUTXOs = await rpc.listShieldedCoins();
     unshieldedUTXOs = await rpc.listUnshieldedCoins();
 

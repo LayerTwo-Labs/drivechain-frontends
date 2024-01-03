@@ -50,6 +50,27 @@ class ZCashShieldTabPage extends StatelessWidget {
                   ],
                 ),
                 DashboardGroup(
+                  title: 'Operation statuses',
+                  children: [
+                    SailColumn(
+                      spacing: 0,
+                      withDivider: true,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: viewModel.operations.length,
+                          itemBuilder: (context, index) => OperationView(
+                            key: ValueKey<String>(viewModel.operations[index].id),
+                            tx: viewModel.operations[index],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                DashboardGroup(
                   title: 'Unshielded UTXOs',
                   widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
                   endWidget: SailToggle(
@@ -104,7 +125,7 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
 
   String get zcashAddress => _zcashProvider.zcashAddress;
-  List<OperationStatus> get operations => _zcashProvider.operations;
+  List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => showAll || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;

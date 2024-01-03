@@ -472,20 +472,20 @@ class _OperationViewState extends State<OperationView> {
               });
             },
             child: SingleValueContainer(
-              width: expanded ? 95 : 70,
-              icon: widget.tx.confirmations >= 1
+              width: 95,
+              icon: widget.tx.status == 'success'
                   ? Tooltip(
-                      message: '${widget.tx.confirmations} confirmations',
+                      message: 'Success',
                       child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
                     )
                   : Tooltip(
-                      message: 'Unconfirmed',
-                      child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+                      message: 'Failed',
+                      child: SailSVG.icon(SailSVGAsset.iconFailed, width: 13),
                     ),
               copyable: false,
-              label: '${widget.tx.confirmations} confs',
+              label: widget.tx.method,
               value: widget.tx.id,
-              trailingText: DateFormat('dd MMM HH:mm').format(widget.tx.time),
+              trailingText: DateFormat('dd MMM HH:mm').format(widget.tx.creationTime),
             ),
           ),
           if (expanded)

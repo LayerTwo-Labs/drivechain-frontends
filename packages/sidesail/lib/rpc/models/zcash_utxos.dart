@@ -105,22 +105,31 @@ class UnshieldedUTXO {
 
 class OperationStatus {
   final String id;
-  final int confirmations;
-  final DateTime time;
+  final String status;
+  final String error;
+  final String method;
+  final String params;
+  final DateTime creationTime;
   final String raw;
 
   OperationStatus({
     required this.id,
-    required this.confirmations,
-    required this.time,
+    required this.status,
+    required this.error,
+    required this.method,
+    required this.params,
+    required this.creationTime,
     required this.raw,
   });
 
   factory OperationStatus.fromMap(Map<String, dynamic> map) {
     return OperationStatus(
       id: map['id'] ?? '',
-      confirmations: map['confirmations'] ?? 0,
-      time: DateTime.fromMillisecondsSinceEpoch((map['time'] ?? 0) * 1000),
+      status: map['status'] ?? '',
+      error: map.containsKey('error') ? jsonEncode(map['error']) : '',
+      method: map['method'] ?? '',
+      params: jsonEncode(map['params']),
+      creationTime: DateTime.fromMillisecondsSinceEpoch((map['creation_time'] ?? 0) * 1000),
       raw: jsonEncode(map),
     );
   }
@@ -130,7 +139,10 @@ class OperationStatus {
 
   Map<String, dynamic> toMap() => {
         'id': id,
-        'confirmations': confirmations,
-        'time': time.millisecondsSinceEpoch ~/ 1000,
+        'statu': status,
+        'error': error,
+        'method': method,
+        'params': params,
+        'creation_time': creationTime.millisecondsSinceEpoch ~/ 1000,
       };
 }
