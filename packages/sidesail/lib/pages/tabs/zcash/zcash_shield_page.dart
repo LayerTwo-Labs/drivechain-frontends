@@ -69,6 +69,11 @@ class ZCashShieldTabPage extends StatelessWidget {
                 DashboardGroup(
                   title: 'Unshielded UTXOs',
                   widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
+                  endWidget: SailToggle(
+                    label: 'Show all UTXOs',
+                    value: viewModel.showAll,
+                    onChanged: (to) => viewModel.setShowAll(to),
+                  ),
                   children: [
                     SailColumn(
                       spacing: 0,
@@ -96,7 +101,7 @@ class ZCashShieldTabPage extends StatelessWidget {
                         for (final utxo in viewModel.shieldedUTXOs)
                           ShieldedUTXOView(
                             utxo: utxo,
-                            shieldAction: () => viewModel.deshield(context, utxo),
+                            deshieldAction: () => viewModel.deshield(context, utxo),
                           ),
                       ],
                     ),
@@ -117,8 +122,16 @@ class ZCashShieldTabViewModel extends BaseViewModel {
 
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations;
-  List<UnshieldedUTXO> get unshieldedUTXOs => _zcashProvider.unshieldedUTXOs;
+  List<UnshieldedUTXO> get unshieldedUTXOs =>
+      _zcashProvider.unshieldedUTXOs.where((u) => showAll || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
+
+  bool showAll = false;
+
+  void setShowAll(bool to) {
+    showAll = to;
+    notifyListeners();
+  }
 
   ZCashShieldTabViewModel() {
     _zcashProvider.addListener(notifyListeners);
