@@ -35,7 +35,7 @@ class BalanceProvider extends ChangeNotifier {
       initialized = true;
       notifyListeners();
     } catch (err) {
-      //
+      print('could not get balance $err');
     }
   }
 
