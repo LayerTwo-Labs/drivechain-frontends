@@ -145,7 +145,7 @@ List<String> bitcoinCoreBinaryArgs(
   SingleNodeConnectionSettings conf,
 ) {
   return [
-    '-regtest',
+    conf.isLocalNetwork ? '-regtest' : '',
     '-rpcuser=${conf.username}',
     '-rpcpassword=${conf.password}',
     '-rpcport=${conf.port}',
