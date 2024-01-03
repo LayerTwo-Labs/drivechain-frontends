@@ -50,23 +50,6 @@ class ZCashShieldTabPage extends StatelessWidget {
                   ],
                 ),
                 DashboardGroup(
-                  title: 'Operation statuses',
-                  widgetTrailing: SailText.secondary13('Showing 3 latest attempts'),
-                  children: [
-                    SailColumn(
-                      spacing: 0,
-                      withDivider: true,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final tx in viewModel.operations)
-                          OperationView(
-                            tx: tx,
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-                DashboardGroup(
                   title: 'Unshielded UTXOs',
                   widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
                   endWidget: SailToggle(
