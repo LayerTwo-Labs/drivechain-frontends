@@ -283,4 +283,9 @@ class MockZCashRPC extends ZCashRPC {
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
     return 'txiddeadbeef';
   }
+
+  @override
+  Future<String> getNewAddress() async {
+    return 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu';
+  }
 }

@@ -162,11 +162,19 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
   String get totalBitcoinAmount =>
       ((double.tryParse(bitcoinAmountController.text) ?? 0) + (deshieldFee)).toStringAsFixed(8);
 
+  String deshieldAddress = '';
   double deshieldFee = 0.0001;
   double? get amount => double.tryParse(bitcoinAmountController.text);
 
   DeshieldUTXOActionViewModel() {
     bitcoinAmountController.addListener(notifyListeners);
+
+    init();
+  }
+
+  void init() async {
+    deshieldAddress = await _rpc.getNewAddress();
+    notifyListeners();
   }
 
   void deshield(BuildContext context, ShieldedUTXO utxo) async {
@@ -245,7 +253,7 @@ class DeshieldUTXOAction extends StatelessWidget {
       viewModelBuilder: () => DeshieldUTXOActionViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Shield coins',
+          'Deshield coins',
           endActionButton: SailButton.primary(
             'Execute shield',
             disabled: viewModel.bitcoinAmountController.text.isEmpty,
@@ -267,9 +275,9 @@ class DeshieldUTXOAction extends StatelessWidget {
               label: 'Deshield from',
               value: 'Your Z-address',
             ),
-            const StaticActionField(
-              label: 'Desshield to',
-              value: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
+            StaticActionField(
+              label: 'Deshield to',
+              value: viewModel.deshieldAddress,
             ),
             StaticActionField(
               label: 'Deshield fee',
@@ -563,9 +571,9 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
 
 class ShieldedUTXOView extends StatefulWidget {
   final ShieldedUTXO utxo;
-  final VoidCallback shieldAction;
+  final VoidCallback deshieldAction;
 
-  const ShieldedUTXOView({super.key, required this.utxo, required this.shieldAction});
+  const ShieldedUTXOView({super.key, required this.utxo, required this.deshieldAction});
 
   @override
   State<ShieldedUTXOView> createState() => _ShieldedUTXOViewState();
@@ -601,7 +609,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
               width: 130,
               prefixAction: SailButton.secondary(
                 'Deshield',
-                onPressed: widget.shieldAction,
+                onPressed: widget.deshieldAction,
                 size: ButtonSize.small,
                 disabled: widget.utxo.amount <= 0.0001000,
               ),
@@ -617,7 +625,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
               copyable: false,
               label: '${widget.utxo.amount.toStringAsFixed(8)} BTC',
               value: widget.utxo.address,
-              trailingText: widget.utxo.txid,
+              trailingText: '',
             ),
           ),
           if (expanded)

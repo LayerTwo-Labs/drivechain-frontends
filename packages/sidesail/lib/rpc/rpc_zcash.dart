@@ -37,8 +37,10 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<List<UnshieldedUTXO>> listUnshieldedCoins();
 
   Future<String> shield(UnshieldedUTXO utxo, double amount);
-  Future<String> deshield(ShieldedUTXO utxo, double amount);
   Future<String> melt(List<UnshieldedUTXO> utxos);
+
+  Future<String> deshield(ShieldedUTXO utxo, double amount);
+  Future<String> getNewAddress();
 }
 
 class ZcashRPCLive extends ZCashRPC {
@@ -113,9 +115,20 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> deshield(ShieldedUTXO utxo, double amount) {
-    // TODO: implement deshield
-    throw UnimplementedError();
+  Future<String> deshield(ShieldedUTXO utxo, double amount) async {
+    final regularAddress = await getNewAddress();
+    final operationID = await _client().call('z_sendmany', [
+      utxo.address,
+      [
+        {
+          'address': regularAddress,
+          'amount': amount,
+        }
+      ],
+      1,
+    ]);
+
+    return operationID as String;
   }
 
   @override
@@ -224,7 +237,7 @@ class ZcashRPCLive extends ZCashRPC {
     return 0.0001;
   }
 
-  Future<String> _getNewAddress() async {
+  Future<String> _getNewShieldedAddress() async {
     return await _client().call('z_getnewaddress');
   }
 
@@ -232,7 +245,7 @@ class ZcashRPCLive extends ZCashRPC {
   Future<String> sideGenerateAddress() async {
     final addresses = await _client().call('z_listaddresses') as List<dynamic>;
     if (addresses.isEmpty) {
-      return _getNewAddress();
+      return _getNewShieldedAddress();
     }
 
     return addresses.first as String;
@@ -254,6 +267,11 @@ class ZcashRPCLive extends ZCashRPC {
     ]);
 
     return withdrawalTxid;
+  }
+
+  @override
+  Future<String> getNewAddress() async {
+    return await _client().call('getnewaddress');
   }
 }
 
