@@ -617,7 +617,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
               copyable: false,
               label: '${widget.utxo.amount.toStringAsFixed(8)} BTC',
               value: widget.utxo.address,
-              trailingText: DateFormat('dd MMM HH:mm').format(widget.utxo.time),
+              trailingText: widget.utxo.txid,
             ),
           ),
           if (expanded)
