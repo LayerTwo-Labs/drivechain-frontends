@@ -43,9 +43,11 @@ case "$chain" in
     ;;
 
     "ethereum")
+    sidechain_bin_name=sidegeth
     ;;
 
     "zcash")
+    sidechain_bin_name=sidezcashd
     ;;
 
     *)
@@ -61,9 +63,10 @@ mkdir -p assets/bin
 
 dl_dir=$(mktemp -d)
 
-echo Working directory: $dl_dir
-
 old_cwd=$(pwd)
+bin_dir=$old_cwd/bins
+assets_dir=$old_cwd/assets/bin
+
 cd $dl_dir
 
 # Fetch the binaries we're going to bundle alongside the UI. Currently 
@@ -74,25 +77,41 @@ cd $dl_dir
 # well if we're on ARM, and for Linux and Windows we're not bothering with 
 # compatability at this stage. 
 
-# In the browser this is available under release.drivechain.info, but that's
-# for some reason just an iframe to this location. 
-RELEASES="http://172.105.148.135/drivechain/"
+RELEASES="https://releases.drivechain.info"
 
-DC_VERSION="0.46.00"
+DC_VERSION="0.46.03"
 
-# Fetch the drivechain binaries irregardless of what platform we're 
-# releasing for. 
-drivechain_file=mainchain-$DC_VERSION-$version_postfix.$extension
-curl -O $RELEASES/$drivechain_file
-$unpack_cmd $drivechain_file
+drivechain=drivechaind$bin_name_postfix
 
-mv mainchain-$DC_VERSION/bin/drivechaind$bin_name_postfix $old_cwd/assets/bin
+# Avoid fetching the binary if it already exists
+if ! test -f $bin_dir/$drivechain; then
+    echo Mainchain binary does not exist: $bin_dir/$drivechain
 
-# Only fetch binaries for the specific sidechain we're interested in
-sidechain_file=$chain-$sidechain_version-$version_postfix.$extension
-curl -O $RELEASES/launcher/$sidechain_file
-$unpack_cmd $sidechain_file
+    # Fetch the drivechain binaries irregardless of what platform we're 
+    # releasing for. 
+    drivechain_file=mainchain-$DC_VERSION-$version_postfix.$extension
 
-mv $chain-$sidechain_version/bin/$sidechain_bin_name$bin_name_postfix $old_cwd/assets/bin
+    curl -O $RELEASES/$drivechain_file
+    $unpack_cmd $drivechain_file
+
+    mv mainchain-$DC_VERSION/bin/$drivechain $bin_dir/$drivechain
+fi 
+
+cp $bin_dir/$drivechain $assets_dir/$drivechain
+
+sidechain=$sidechain_bin_name$bin_name_postfix
+
+if ! test -f $bin_dir/$sidechain; then
+    echo Sidechain binary does not exist: $bin_dir/$sidechain
+
+    # Only fetch binaries for the specific sidechain we're interested in
+    sidechain_file=$chain-$sidechain_version-$version_postfix.$extension
+    curl -O $RELEASES/$sidechain_file
+    $unpack_cmd $sidechain_file
+
+    mv $chain-$sidechain_version/bin/$sidechain $bin_dir/$sidechain
+fi;
+
+cp $bin_dir/$sidechain $assets_dir/$sidechain
 
 cd $old_cwd
