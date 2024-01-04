@@ -74,6 +74,8 @@ class ProcessProvider extends ChangeNotifier {
       await Process.run('chmod', ['+x', file.path]);
     }
 
+    log.d('starting $binary with args $args');
+
     final process = await Process.start(
       file.path,
       args,
