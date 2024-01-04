@@ -17,7 +17,7 @@ abstract class RuntimeArgs {
     }
 
     final dir = await getApplicationSupportDirectory();
-    return Directory([dir.path, Platform.pathSeparator, chain].join(''));
+    return Directory([dir.path, chain].join(Platform.pathSeparator));
   }
 
   // use like flutter run --dart-define=SIDESAIL_CHAIN=ethereum
@@ -26,6 +26,8 @@ abstract class RuntimeArgs {
   static String chain = _chain.isNotEmpty ? _chain : 'testchain';
 
   static bool consoleLog = Platform.environment['SIDESAIL_LOG_CONSOLE']?.isNotEmpty ?? false;
+
+  static bool fileLog = Platform.environment['SIDESAIL_LOG_FILE']?.isNotEmpty ?? false;
 
   static bool swappableChains = Platform.environment['SIDESAIL_SWAPPABLE_CHAINS']?.isNotEmpty ??
       const bool.fromEnvironment('SIDESAIL_SWAPPABLE_CHAINS');
