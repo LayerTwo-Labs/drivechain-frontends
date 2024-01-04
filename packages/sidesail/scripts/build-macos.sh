@@ -17,6 +17,10 @@ flutter build macos --dart-define-from-file=build-vars.env
 zip_name=$lower_app_name-osx64.zip 
 echo Zipping into $zip_name
 
+old_cwd=$PWD
 cd ./build/macos/Build/Products/Release 
 ditto -c -k --sequesterRsrc --keepParent $app_name.app testsail-osx64.zip 
 zip -9rq $zip_name ./$app_name.app 
+
+mkdir -p $old_cwd/release
+cp $zip_name $old_cwd/release/
