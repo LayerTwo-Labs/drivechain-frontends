@@ -149,7 +149,10 @@ List<String> bitcoinCoreBinaryArgs(
     '-rpcuser=${conf.username}',
     '-rpcpassword=${conf.password}',
     '-rpcport=${conf.port}',
-  ];
+  ]
+      // important: empty strings trip up the binary
+      .where((arg) => arg.isNotEmpty)
+      .toList();
 }
 
 Map<String, int> _defaultMainchainPorts = {
