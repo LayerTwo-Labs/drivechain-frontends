@@ -16,8 +16,10 @@ LogPrinter _printer() {
 }
 
 Future<LogOutput> _logoutput() async {
-  // NOT in release mode: print everything to console
-  if (!kReleaseMode || RuntimeArgs.consoleLog) {
+  if (!RuntimeArgs.fileLog) {
+    // force file log
+  } else if (!kReleaseMode || RuntimeArgs.consoleLog) {
+    // NOT in release mode: print everything to console
     return ConsoleOutput();
   }
 
@@ -25,7 +27,8 @@ Future<LogOutput> _logoutput() async {
   await datadir.create(recursive: true);
 
   // If we're in release, just write to file.
-  final logFile = File('${datadir.path}${Platform.pathSeparator}debug.log');
+  final path = [datadir.path, 'debug.log'].join(Platform.pathSeparator);
+  final logFile = File(path);
   return FileOutput(file: logFile);
 }
 
