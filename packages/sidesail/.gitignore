@@ -1,1 +1,6 @@
 bins/
+assets/bin
+release/
+
+# Files created by node binaries
+zcash.conf

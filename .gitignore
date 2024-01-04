@@ -43,8 +43,3 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Binaries for the nodes
-assets/bin
-
-# Files created by node binaries
-zcash.conf
