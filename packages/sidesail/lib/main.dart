@@ -24,7 +24,7 @@ Future<void> start() async {
       chain = EthereumSidechain();
       appName = chain.name;
       break;
-  
+
     case 'zcash':
     case 'zside':
       chain = ZCashSidechain();
@@ -35,8 +35,8 @@ Future<void> start() async {
       // Just throw an error here. We used to initialize
       // the app with an error message, but we won't be able
       // to do that successfully because initializing deps
-      // crashes as well. 
-      throw "unsupported chain: ${RuntimeArgs.chain}";
+      // crashes as well.
+      throw 'unsupported chain: ${RuntimeArgs.chain}';
   }
 
   await initDependencies(chain);
