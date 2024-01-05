@@ -37,7 +37,6 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<List<UnshieldedUTXO>> listUnshieldedCoins();
 
   Future<String> shield(UnshieldedUTXO utxo, double amount);
-  Future<String> melt(List<UnshieldedUTXO> utxos);
 
   Future<String> deshield(ShieldedUTXO utxo, double amount);
   Future<String> getNewAddress();
@@ -210,12 +209,6 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> melt(List<UnshieldedUTXO> utxos) async {
-    // TODO: implement melt
-    throw UnimplementedError();
-  }
-
-  @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
     final zAddress = await sideGenerateAddress();
     final operationID = await _client().call('z_sendmany', [
@@ -234,7 +227,7 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<double> sideEstimateFee() async {
-    return 0.0001;
+    return 0.00001;
   }
 
   Future<String> _getNewShieldedAddress() async {

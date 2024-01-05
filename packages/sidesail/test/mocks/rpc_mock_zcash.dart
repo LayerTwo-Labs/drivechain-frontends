@@ -254,11 +254,6 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<String> melt(List<UnshieldedUTXO> utxos) async {
-    return 'opid-7c484106 409a-47dc-b853-3c641beaf166';
-  }
-
-  @override
   Future<String> mainGenerateAddress() async {
     return formatDepositAddress('3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi', chain.slot);
   }
