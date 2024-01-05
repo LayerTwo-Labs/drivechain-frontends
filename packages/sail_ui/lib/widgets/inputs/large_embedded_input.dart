@@ -8,6 +8,7 @@ class LargeEmbeddedInput extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final bool bitcoinInput;
+  final bool numberInput;
   final Widget? suffixWidget;
   final String? suffixText;
   final bool autofocus;
@@ -18,6 +19,7 @@ class LargeEmbeddedInput extends StatelessWidget {
     required this.controller,
     required this.hintText,
     this.bitcoinInput = false,
+    this.numberInput = false,
     this.suffixWidget,
     this.suffixText,
     this.autofocus = false,
@@ -39,6 +41,7 @@ class LargeEmbeddedInput extends StatelessWidget {
       ),
       inputFormatters: [
         if (bitcoinInput) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
+        if (numberInput) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
       ],
       decoration: InputDecoration(
         errorBorder: InputBorder.none,
