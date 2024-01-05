@@ -79,7 +79,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
   String get totalBitcoinAmount =>
       ((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)).toStringAsFixed(8);
 
-  double shieldFee = 0.00001;
+  double get shieldFee => _zcashProvider.sideFee;
   double? get amount => double.tryParse(bitcoinAmountController.text);
 
   ShieldUTXOActionViewModel() {
@@ -163,7 +163,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
       ((double.tryParse(bitcoinAmountController.text) ?? 0) + (deshieldFee)).toStringAsFixed(8);
 
   String deshieldAddress = '';
-  double deshieldFee = 0.0001;
+  double get deshieldFee => _zcashProvider.sideFee;
   double? get amount => double.tryParse(bitcoinAmountController.text);
 
   DeshieldUTXOActionViewModel() {
@@ -319,10 +319,10 @@ class MeltAction extends StatelessWidget {
       viewModelBuilder: () => MeltActionViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Shield coins',
+          'Melt all UTXOs',
           endActionButton: SailButton.primary(
-            'Execute shield',
-            disabled: viewModel.bitcoinAmountController.text.isEmpty,
+            'Execute melt',
+            disabled: viewModel.meltInMinutesController.text.isEmpty,
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
@@ -330,26 +330,34 @@ class MeltAction extends StatelessWidget {
             },
           ),
           children: [
+            LargeEmbeddedInput(
+              controller: viewModel.meltInMinutesController,
+              hintText: 'How many minutes should the melt take?',
+              suffixText: 'minutes',
+              numberInput: true,
+              autofocus: true,
+            ),
             const StaticActionField(
               label: 'Shield to',
               value: 'Your Z-address',
             ),
-            const StaticActionField(
+            StaticActionField(
               label: 'Shield from',
               value:
-                  'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu\ntmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu\ntmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu\ntmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
+                  // extract address, then join on a newline
+                  viewModel.meltableUTXOs.map((utxo) => utxo.address).join('\n'),
             ),
             StaticActionField(
-              label: 'Shield fee',
-              value: '${viewModel.shieldFee} ${viewModel._rpc.chain.ticker}',
+              label: 'Melt fee',
+              value: '${viewModel.meltFee.toStringAsFixed(8)} ${viewModel._rpc.chain.ticker}',
             ),
             StaticActionField(
-              label: 'Shield amount',
+              label: 'Melt amount',
               value: '${viewModel.meltAmount.toStringAsFixed(8)} ${viewModel._rpc.chain.ticker}',
             ),
             StaticActionField(
               label: 'Total amount',
-              value: '${viewModel.totalBitcoinAmount} ${viewModel._rpc.chain.ticker}',
+              value: '${viewModel.totalBitcoinAmount.toStringAsFixed(8)} ${viewModel._rpc.chain.ticker}',
             ),
           ],
         );
@@ -365,24 +373,30 @@ class MeltActionViewModel extends BaseViewModel {
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
 
-  final bitcoinAmountController = TextEditingController();
-  double get meltAmount =>
-      _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).reduce((value, element) => value + element);
-  String get totalBitcoinAmount => (meltAmount + shieldFee).toStringAsFixed(8);
+  double get shieldFee => _zcashProvider.sideFee;
 
-  double shieldFee = 0.0001;
+  final bitcoinAmountController = TextEditingController();
+  double get totalBitcoinAmount => (meltAmount + meltFee);
+
+  List<UnshieldedUTXO> get meltableUTXOs =>
+      _zcashProvider.unshieldedUTXOs.where((utxo) => utxo.amount > 0.0001).toList();
+  double get meltAmount =>
+      _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).reduce((value, element) => value + element) - meltFee;
+  double get meltFee => (_zcashProvider.sideFee * meltableUTXOs.length);
+  TextEditingController meltInMinutesController = TextEditingController();
 
   MeltActionViewModel() {
     bitcoinAmountController.addListener(notifyListeners);
+    meltInMinutesController.addListener(notifyListeners);
   }
 
   void melt(BuildContext context) async {
     setBusy(true);
-    _executeMelt(context);
+    _initiateMelt(context);
     setBusy(false);
   }
 
-  void _executeMelt(BuildContext context) async {
+  void _initiateMelt(BuildContext context) async {
     // Because the function is async, the view might disappear/unmount
     // by the time it's used. The linter doesn't like that, and wants
     // you to check whether the view is mounted before using it
@@ -390,17 +404,15 @@ class MeltActionViewModel extends BaseViewModel {
       return;
     }
 
-    final utxos = _zcashProvider.unshieldedUTXOs;
-
     log.i(
-      'melting ${utxos.length} utxos: $meltAmount BTC to with $shieldFee shield fee',
+      'melting ${meltableUTXOs.length} utxos: $meltAmount BTC to with $shieldFee shield fee',
     );
 
     try {
-      final shieldID = await _rpc.melt(
-        utxos,
+      final willMeltAt = await _zcashProvider.melt(
+        meltableUTXOs,
+        double.tryParse(meltInMinutesController.text) ?? 1,
       );
-      log.i('melt operation ID: $shieldID');
 
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
@@ -414,8 +426,10 @@ class MeltActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Initiated melt',
-        title: 'You shielded ${utxos.length} coins for a total of $totalBitcoinAmount BTC to your Z-address',
-        subtitle: 'OPID: $shieldID',
+        title:
+            'You will shield ${meltableUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} BTC to your Z-address',
+        subtitle:
+            'Will melt in ${willMeltAt.map((e) => e.toStringAsFixed(e.roundToDouble() == e ? 0 : 2)).join(', ')} minutes.\nDont close the application until ${meltInMinutesController.text} minute(s) have passed',
       );
     } catch (error) {
       if (!context.mounted) {
@@ -433,6 +447,13 @@ class MeltActionViewModel extends BaseViewModel {
 
       return;
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    bitcoinAmountController.removeListener(notifyListeners);
+    meltInMinutesController.removeListener(notifyListeners);
   }
 }
 
