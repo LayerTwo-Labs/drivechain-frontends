@@ -4,6 +4,8 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/pages/tabs/home_page.dart';
+import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
@@ -22,14 +24,12 @@ class ZCashShieldTabPage extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashShieldTabViewModel(),
       builder: ((context, viewModel, child) {
+        final tabsRouter = AutoTabsRouter.of(context);
+
         return SailPage(
           scrollable: true,
-          widgetTitle: SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SailText.secondary13('Your ZCash-address: ${viewModel.zcashAddress}'),
-              Expanded(child: Container()),
-            ],
+          widgetTitle: ZCashWidgetTitle(
+            depositNudgeAction: () => tabsRouter.setActiveIndex(ParentChainHome),
           ),
           body: Padding(
             padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
@@ -123,12 +123,15 @@ class ZCashShieldTabPage extends StatelessWidget {
 class ZCashShieldTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => showAll || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
+
+  double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
   bool showAll = false;
 
@@ -139,6 +142,7 @@ class ZCashShieldTabViewModel extends BaseViewModel {
 
   ZCashShieldTabViewModel() {
     _zcashProvider.addListener(notifyListeners);
+    _balanceProvider.addListener(notifyListeners);
     init();
   }
 
@@ -175,5 +179,62 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   void dispose() {
     super.dispose();
     _zcashProvider.removeListener(notifyListeners);
+    _balanceProvider.removeListener(notifyListeners);
+  }
+}
+
+@RoutePage()
+class ZCashWidgetTitle extends ViewModelWidget<ZCashShieldTabViewModel> {
+  final VoidCallback depositNudgeAction;
+
+  AppRouter get router => GetIt.I.get<AppRouter>();
+
+  const ZCashWidgetTitle({
+    super.key,
+    required this.depositNudgeAction,
+  });
+
+  @override
+  Widget build(BuildContext context, ZCashShieldTabViewModel viewModel) {
+    if (viewModel.balance == 0) {
+      return SailRow(
+        spacing: SailStyleValues.padding08,
+        children: [
+          SailText.secondary13('Your ZCash-address: ${viewModel.zcashAddress}'),
+          Expanded(child: Container()),
+        ],
+      );
+    }
+
+    return SailRow(
+      spacing: SailStyleValues.padding08,
+      children: [
+        SailButton.primary(
+          'Deposit coins',
+          onPressed: () async {
+            try {
+              depositNudgeAction();
+            } catch (err) {
+              if (!context.mounted) {
+                return;
+              }
+
+              await errorDialog(
+                context: context,
+                action: 'Deposit coins',
+                title: 'Could not move to deposit tab',
+                subtitle: err.toString(),
+              );
+            }
+          },
+          loading: viewModel.isBusy,
+          size: ButtonSize.small,
+        ),
+        SailText.secondary12(
+          'To get started, you must deposit coins to your sidechain. Peg-In on the Parent Chain tab',
+        ),
+        Expanded(child: Container()),
+      ],
+    );
   }
 }
