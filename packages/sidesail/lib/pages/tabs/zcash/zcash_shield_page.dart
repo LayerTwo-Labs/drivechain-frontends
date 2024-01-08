@@ -47,6 +47,14 @@ class ZCashShieldTabPage extends StatelessWidget {
                         viewModel.melt(context);
                       },
                     ),
+                    ActionTile(
+                      title: 'Cast all shielded UTXOs',
+                      category: Category.sidechain,
+                      icon: Icons.cast,
+                      onTap: () {
+                        viewModel.cast(context);
+                      },
+                    ),
                   ],
                 ),
                 DashboardGroup(
@@ -153,6 +161,15 @@ class ZCashShieldTabViewModel extends BaseViewModel {
       context: context,
       builder: (BuildContext context) {
         return const MeltAction();
+      },
+    );
+  }
+
+  void cast(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const CastAction();
       },
     );
   }
