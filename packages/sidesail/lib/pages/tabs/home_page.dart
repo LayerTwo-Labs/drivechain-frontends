@@ -18,6 +18,7 @@ import 'package:sidesail/widgets/containers/daemon_connection_card.dart';
 import 'package:stacked/stacked.dart';
 
 const TestchainHome = 1;
+const ParentChainHome = 3;
 const EthereumHome = 6;
 const ZCashHome = 7;
 
@@ -39,7 +40,9 @@ class HomePage extends StatelessWidget {
       // testchain routes
       DashboardTabRoute(),
       TestchainRPCTabRoute(),
+
       TransferMainchainTabRoute(),
+
       WithdrawalBundleTabRoute(),
       BlindMergedMiningTabRoute(),
 
@@ -258,7 +261,7 @@ class _SideNavState extends State<SideNav> {
             icon: SailSVGAsset.iconWithdrawalBundleTab,
             selected: false,
             onPressed: () {
-              tabsRouter.setActiveIndex(3);
+              tabsRouter.setActiveIndex(ParentChainHome);
             },
           ),
           SubNavEntryContainer(
@@ -266,9 +269,9 @@ class _SideNavState extends State<SideNav> {
             subs: [
               SubNavEntry(
                 title: 'Transfer',
-                selected: tabsRouter.activeIndex == 3,
+                selected: tabsRouter.activeIndex == ParentChainHome,
                 onPressed: () {
-                  tabsRouter.setActiveIndex(3);
+                  tabsRouter.setActiveIndex(ParentChainHome);
                 },
               ),
               SubNavEntry(
@@ -315,7 +318,7 @@ class _SideNavState extends State<SideNav> {
             icon: SailSVGAsset.iconWithdrawalBundleTab,
             selected: false,
             onPressed: () {
-              tabsRouter.setActiveIndex(3);
+              tabsRouter.setActiveIndex(ParentChainHome);
             },
           ),
           SubNavEntryContainer(
@@ -323,9 +326,9 @@ class _SideNavState extends State<SideNav> {
             subs: [
               SubNavEntry(
                 title: 'Transfer',
-                selected: tabsRouter.activeIndex == 3,
+                selected: tabsRouter.activeIndex == ParentChainHome,
                 onPressed: () {
-                  tabsRouter.setActiveIndex(3);
+                  tabsRouter.setActiveIndex(ParentChainHome);
                 },
               ),
             ],
@@ -373,7 +376,7 @@ class _SideNavState extends State<SideNav> {
             icon: SailSVGAsset.iconWithdrawalBundleTab,
             selected: false,
             onPressed: () {
-              tabsRouter.setActiveIndex(3);
+              tabsRouter.setActiveIndex(ParentChainHome);
             },
           ),
           SubNavEntryContainer(
@@ -381,9 +384,9 @@ class _SideNavState extends State<SideNav> {
             subs: [
               SubNavEntry(
                 title: 'Transfer',
-                selected: tabsRouter.activeIndex == 3,
+                selected: tabsRouter.activeIndex == ParentChainHome,
                 onPressed: () {
-                  tabsRouter.setActiveIndex(3);
+                  tabsRouter.setActiveIndex(ParentChainHome);
                 },
               ),
             ],
