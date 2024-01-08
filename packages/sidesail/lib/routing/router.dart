@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sidesail/config/runtime_args.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
@@ -44,7 +45,7 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: DashboardTabRoute.page,
-              initial: RuntimeArgs.chain.toLowerCase() == 'testchain' ? true : false,
+              initial: RuntimeArgs.chain.toLowerCase() == TestSidechain().name.toLowerCase() ? true : false,
             ),
             AutoRoute(
               page: TestchainRPCTabRoute.page,
@@ -60,11 +61,11 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: EthereumRPCTabRoute.page,
-              initial: RuntimeArgs.chain.toLowerCase() == 'ethSide' ? true : false,
+              initial: RuntimeArgs.chain.toLowerCase() == EthereumSidechain().name.toLowerCase() ? true : false,
             ),
             AutoRoute(
               page: ZCashShieldTabRoute.page,
-              initial: RuntimeArgs.chain.toLowerCase() == 'zSide' ? true : false,
+              initial: RuntimeArgs.chain.toLowerCase() == ZCashSidechain().name.toLowerCase() ? true : false,
             ),
             AutoRoute(
               page: ZCashRPCTabRoute.page,
