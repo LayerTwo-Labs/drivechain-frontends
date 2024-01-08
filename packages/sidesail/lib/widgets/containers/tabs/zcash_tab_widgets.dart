@@ -457,6 +457,153 @@ class MeltActionViewModel extends BaseViewModel {
   }
 }
 
+class CastAction extends StatelessWidget {
+  const CastAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => CastActionViewModel(),
+      builder: ((context, viewModel, child) {
+        return DashboardActionModal(
+          'Cast all UTXOs',
+          endActionButton: SailButton.primary(
+            'Execute cast',
+            disabled: viewModel.castInMinutesController.text.isEmpty,
+            loading: viewModel.isBusy,
+            size: ButtonSize.regular,
+            onPressed: () async {
+              viewModel.cast(context);
+            },
+          ),
+          children: [
+            LargeEmbeddedInput(
+              controller: viewModel.castInMinutesController,
+              hintText: 'How many minutes should the cast take?',
+              suffixText: 'minutes',
+              numberInput: true,
+              autofocus: true,
+            ),
+            const StaticActionField(
+              label: 'Shield to',
+              value: 'Your Z-address',
+            ),
+            StaticActionField(
+              label: 'Shield from',
+              value:
+                  // extract address, then join on a newline
+                  viewModel.castableUTXOs.map((utxo) => utxo.address).join('\n'),
+            ),
+            StaticActionField(
+              label: 'Cast fee',
+              value: '${viewModel.castFee.toStringAsFixed(8)} ${viewModel._rpc.chain.ticker}',
+            ),
+            StaticActionField(
+              label: 'Cast amount',
+              value: '${viewModel.castAmount.toStringAsFixed(8)} ${viewModel._rpc.chain.ticker}',
+            ),
+            StaticActionField(
+              label: 'Total amount',
+              value: '${viewModel.totalBitcoinAmount.toStringAsFixed(8)} ${viewModel._rpc.chain.ticker}',
+            ),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class CastActionViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  AppRouter get _router => GetIt.I.get<AppRouter>();
+  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
+  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+
+  double get shieldFee => _zcashProvider.sideFee;
+
+  final bitcoinAmountController = TextEditingController();
+  double get totalBitcoinAmount => (castAmount + castFee);
+
+  List<UnshieldedUTXO> get castableUTXOs =>
+      _zcashProvider.unshieldedUTXOs.where((utxo) => utxo.amount > 0.0001).toList();
+  double get castAmount =>
+      _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).reduce((value, element) => value + element) - castFee;
+  double get castFee => (_zcashProvider.sideFee * castableUTXOs.length);
+  TextEditingController castInMinutesController = TextEditingController();
+
+  CastActionViewModel() {
+    bitcoinAmountController.addListener(notifyListeners);
+    castInMinutesController.addListener(notifyListeners);
+  }
+
+  void cast(BuildContext context) async {
+    setBusy(true);
+    _initiateCast(context);
+    setBusy(false);
+  }
+
+  void _initiateCast(BuildContext context) async {
+    // Because the function is async, the view might disappear/unmount
+    // by the time it's used. The linter doesn't like that, and wants
+    // you to check whether the view is mounted before using it
+    if (!context.mounted) {
+      return;
+    }
+
+    log.i(
+      'casting ${castableUTXOs.length} utxos: $castAmount BTC to with $shieldFee shield fee',
+    );
+
+    try {
+      final willCastAt = await _zcashProvider.melt(
+        castableUTXOs,
+        double.tryParse(castInMinutesController.text) ?? 1,
+      );
+
+      // refresh balance, but don't await, so dialog is showed instantly
+      unawaited(_balanceProvider.fetch());
+      // refresh transactions, but don't await, so dialog is showed instantly
+      unawaited(_zcashProvider.fetch());
+
+      if (!context.mounted) {
+        return;
+      }
+
+      await successDialog(
+        context: context,
+        action: 'Initiated cast',
+        title:
+            'You will deshield ${castableUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} BTC to your Z-address',
+        subtitle:
+            'Will cast in ${willCastAt.map((e) => e.toStringAsFixed(e.roundToDouble() == e ? 0 : 2)).join(', ')} minutes.\nDont close the application until ${castInMinutesController.text} minute(s) have passed',
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      await errorDialog(
+        context: context,
+        action: 'Cast coins',
+        title: 'Could not cast coins',
+        subtitle: error.toString(),
+      );
+      // also pop the info modal
+      await _router.pop();
+
+      return;
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    bitcoinAmountController.removeListener(notifyListeners);
+    castInMinutesController.removeListener(notifyListeners);
+  }
+}
+
 class OperationView extends StatefulWidget {
   final OperationStatus tx;
 
@@ -505,7 +652,7 @@ class _OperationViewState extends State<OperationView> {
                     ),
               copyable: false,
               label: widget.tx.method,
-              value: widget.tx.id,
+              value: widget.tx.params,
               trailingText: DateFormat('dd MMM HH:mm').format(widget.tx.creationTime),
             ),
           ),
