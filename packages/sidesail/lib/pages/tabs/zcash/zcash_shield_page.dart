@@ -104,6 +104,11 @@ class ZCashShieldTabPage extends StatelessWidget {
                 DashboardGroup(
                   title: 'Shielded UTXOs',
                   widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
+                  endWidget: SailToggle(
+                    label: 'Safe cast-mode ${viewModel.castMode ? 'enabled' : 'disabled'}',
+                    value: viewModel.castMode,
+                    onChanged: (to) => viewModel.setCastMode(to),
+                  ),
                   children: [
                     SailColumn(
                       spacing: 0,
@@ -114,6 +119,7 @@ class ZCashShieldTabPage extends StatelessWidget {
                           ShieldedUTXOView(
                             utxo: utxo,
                             deshieldAction: () => viewModel.deshield(context, utxo),
+                            castMode: viewModel.castMode,
                           ),
                       ],
                     ),
@@ -142,9 +148,15 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
   bool showAll = false;
+  bool castMode = true;
 
   void setShowAll(bool to) {
     showAll = to;
+    notifyListeners();
+  }
+
+  void setCastMode(bool to) {
+    castMode = to;
     notifyListeners();
   }
 
@@ -184,12 +196,21 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   }
 
   void deshield(BuildContext context, ShieldedUTXO shieldedUTXO) async {
-    await showThemedDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return DeshieldUTXOAction(utxo: shieldedUTXO);
-      },
-    );
+    if (castMode) {
+      await showThemedDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return CastUTXOAction(utxo: shieldedUTXO);
+        },
+      );
+    } else {
+      await showThemedDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return DeshieldUTXOAction(utxo: shieldedUTXO);
+        },
+      );
+    }
   }
 
   @override
@@ -213,7 +234,7 @@ class ZCashWidgetTitle extends ViewModelWidget<ZCashShieldTabViewModel> {
 
   @override
   Widget build(BuildContext context, ZCashShieldTabViewModel viewModel) {
-    if (viewModel.balance == 0) {
+    if (viewModel.balance != 0) {
       return SailRow(
         spacing: SailStyleValues.padding08,
         children: [
