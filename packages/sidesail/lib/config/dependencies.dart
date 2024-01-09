@@ -6,6 +6,7 @@ import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
+import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
@@ -73,6 +74,10 @@ Future<void> initDependencies(Sidechain chain) async {
 
   GetIt.I.registerLazySingleton<ZCashProvider>(
     () => ZCashProvider(),
+  );
+
+  GetIt.I.registerLazySingleton<CastProvider>(
+    () => CastProvider(),
   );
 }
 

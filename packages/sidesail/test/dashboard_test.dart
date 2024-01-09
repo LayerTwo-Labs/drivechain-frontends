@@ -7,8 +7,10 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/proc_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
@@ -26,6 +28,8 @@ void main() {
     GetIt.I.registerLazySingleton<SidechainContainer>(() => sidechain);
     GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
     GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
+    GetIt.I.registerLazySingleton<CastProvider>(() => CastProvider());
+    GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
     GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
     final balanceProvider = BalanceProvider();
