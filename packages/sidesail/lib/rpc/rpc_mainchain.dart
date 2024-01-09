@@ -4,7 +4,7 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
-import 'package:sidesail/rpc/models/core_transaction.dart';
+import 'package:sidesail/rpc/models/utxo.dart';
 import 'package:sidesail/rpc/rpc.dart';
 
 /// RPC connection to the mainchain node.
@@ -16,7 +16,7 @@ abstract class MainchainRPC extends RPCConnection {
   Future<ActiveSidechain> createSidechainProposal(int slot, String title);
   Future<double> estimateFee();
   Future<int> getWithdrawalBundleWorkScore(int sidechain, String hash);
-  Future<List<CoreTransaction>> listTransactions();
+  Future<List<UTXO>> listUnspent();
   Future<List<MainchainWithdrawal>> listSpentWithdrawals();
   Future<List<MainchainWithdrawal>> listFailedWithdrawals();
   Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot);
@@ -69,20 +69,17 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
-  Future<List<CoreTransaction>> listTransactions() async {
+  Future<List<UTXO>> listUnspent() async {
     // first list
-    final transactionsJSON = await _client().call('listtransactions', [
-      '',
-      100, // how many txs to list. We have not implemented pagination, so we list all
-    ]).catchError(
-      (
-        err, // can happen on startup
-      ) =>
-          List.empty(),
-    ) as List<dynamic>;
+    final transactionsJSON = await _client().call('listunspent').catchError(
+          (
+            err, // can happen on startup
+          ) =>
+              List.empty(),
+        ) as List<dynamic>;
 
     // then convert to something other than json
-    List<CoreTransaction> transactions = transactionsJSON.map((jsonItem) => CoreTransaction.fromMap(jsonItem)).toList();
+    List<UTXO> transactions = transactionsJSON.map((jsonItem) => UTXO.fromMap(jsonItem)).toList();
     return transactions;
   }
 

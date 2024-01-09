@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class BalanceProvider extends ChangeNotifier {
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
+  Logger log = GetIt.I.get<Logger>();
 
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these
@@ -36,7 +38,7 @@ class BalanceProvider extends ChangeNotifier {
       notifyListeners();
     } catch (err) {
       // ignore: avoid_print
-      print('could not get balance $err');
+      log.e('could not get balance $err');
     }
   }
 

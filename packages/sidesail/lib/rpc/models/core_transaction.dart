@@ -1,5 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+
 class CoreTransaction {
   final String address;
   final String category;
@@ -86,4 +91,81 @@ class CoreTransaction {
         'bip125-replaceable': bip125Replaceable,
         'abandoned': abandoned,
       };
+}
+
+class CoreTransactionView extends StatefulWidget {
+  final CoreTransaction tx;
+
+  const CoreTransactionView({super.key, required this.tx});
+
+  @override
+  State<CoreTransactionView> createState() => _CoreTransactionViewState();
+}
+
+class _CoreTransactionViewState extends State<CoreTransactionView> {
+  bool expanded = false;
+  late Map<String, dynamic> decodedTx;
+  @override
+  void initState() {
+    super.initState();
+    decodedTx = jsonDecode(widget.tx.raw);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: SailStyleValues.padding15,
+        horizontal: SailStyleValues.padding10,
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailScaleButton(
+            onPressed: () {
+              setState(() {
+                expanded = !expanded;
+              });
+            },
+            child: SingleValueContainer(
+              width: expanded ? 95 : 70,
+              icon: widget.tx.confirmations >= 1
+                  ? Tooltip(
+                      message: '${widget.tx.confirmations} confirmations',
+                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
+                    )
+                  : Tooltip(
+                      message: 'Unconfirmed',
+                      child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+                    ),
+              copyable: false,
+              label: widget.tx.category,
+              value: extractTXTitle(widget.tx),
+              trailingText: DateFormat('dd MMM HH:mm').format(widget.tx.time),
+            ),
+          ),
+          if (expanded)
+            ExpandedTXView(
+              decodedTX: decodedTx,
+              width: 95,
+            ),
+        ],
+      ),
+    );
+  }
+
+  String extractTXTitle(CoreTransaction tx) {
+    String title = '${tx.amount.toStringAsFixed(8)} SBTC';
+
+    if (tx.address.isEmpty) {
+      return '$title in ${tx.txid}';
+    }
+
+    if (tx.amount.isNegative || tx.amount == 0) {
+      return '$title to ${tx.address}';
+    }
+
+    return '+$title from ${tx.address}';
+  }
 }
