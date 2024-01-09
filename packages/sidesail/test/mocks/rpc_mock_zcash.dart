@@ -292,4 +292,9 @@ class MockZCashRPC extends ZCashRPC {
   Future<String> getNewAddress() async {
     return 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu';
   }
+
+  @override
+  Future<String> cast(ShieldedUTXO utxo, double amount, List<String> addresses) async {
+    return 'opid-7c484106 409a-47dc-b853-3c641beaf166';
+  }
 }

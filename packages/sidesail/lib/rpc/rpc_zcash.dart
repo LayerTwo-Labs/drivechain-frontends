@@ -37,8 +37,12 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<List<UnshieldedUTXO>> listUnshieldedCoins();
 
   Future<String> shield(UnshieldedUTXO utxo, double amount);
-
   Future<String> deshield(ShieldedUTXO utxo, double amount);
+
+  // how many UTXOs each cast will be split into when deshielding them
+  double numUTXOsPerCast = 4;
+  Future<String> cast(ShieldedUTXO utxo, double amount, List<String> addresses);
+
   Future<String> getNewAddress();
 }
 
@@ -121,7 +125,39 @@ class ZcashRPCLive extends ZCashRPC {
       [
         {
           'address': regularAddress,
-          'amount': amount,
+          'amount': double.parse(amount.toStringAsFixed(8)),
+        }
+      ],
+      1,
+    ]);
+
+    return operationID as String;
+  }
+
+  @override
+  Future<String> cast(ShieldedUTXO utxo, double amount, List<String> addresses) async {
+    if (addresses.length != 4) {
+      throw Exception('cast address list length must be exactly 4');
+    }
+
+    final operationID = await _client().call('z_sendmany', [
+      utxo.address,
+      [
+        {
+          'address': addresses[0],
+          'amount': double.parse(amount.toStringAsFixed(8)),
+        },
+        {
+          'address': addresses[1],
+          'amount': double.parse(amount.toStringAsFixed(8)),
+        },
+        {
+          'address': addresses[2],
+          'amount': double.parse(amount.toStringAsFixed(8)),
+        },
+        {
+          'address': addresses[3],
+          'amount': double.parse(amount.toStringAsFixed(8)),
         }
       ],
       1,
