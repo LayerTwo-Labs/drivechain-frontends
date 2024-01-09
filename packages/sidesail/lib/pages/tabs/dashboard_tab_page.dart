@@ -1,9 +1,6 @@
-import 'dart:convert';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
@@ -64,7 +61,7 @@ class DashboardTabPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         for (final tx in viewModel.transactions)
-                          TxView(
+                          CoreTransactionView(
                             tx: tx,
                           ),
                       ],
@@ -77,83 +74,6 @@ class DashboardTabPage extends StatelessWidget {
         );
       }),
     );
-  }
-}
-
-class TxView extends StatefulWidget {
-  final CoreTransaction tx;
-
-  const TxView({super.key, required this.tx});
-
-  @override
-  State<TxView> createState() => _TxViewState();
-}
-
-class _TxViewState extends State<TxView> {
-  bool expanded = false;
-  late Map<String, dynamic> decodedTx;
-  @override
-  void initState() {
-    super.initState();
-    decodedTx = jsonDecode(widget.tx.raw);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
-      ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              width: expanded ? 95 : 70,
-              icon: widget.tx.confirmations >= 1
-                  ? Tooltip(
-                      message: '${widget.tx.confirmations} confirmations',
-                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-                    )
-                  : Tooltip(
-                      message: 'Unconfirmed',
-                      child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-                    ),
-              copyable: false,
-              label: widget.tx.category,
-              value: extractTXTitle(widget.tx),
-              trailingText: DateFormat('dd MMM HH:mm').format(widget.tx.time),
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: decodedTx,
-              width: 95,
-            ),
-        ],
-      ),
-    );
-  }
-
-  String extractTXTitle(CoreTransaction tx) {
-    String title = '${tx.amount.toStringAsFixed(8)} SBTC';
-
-    if (tx.address.isEmpty) {
-      return '$title in ${tx.txid}';
-    }
-
-    if (tx.amount.isNegative || tx.amount == 0) {
-      return '$title to ${tx.address}';
-    }
-
-    return '+$title from ${tx.address}';
   }
 }
 

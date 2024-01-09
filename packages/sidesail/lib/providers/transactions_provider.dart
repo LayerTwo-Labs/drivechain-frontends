@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
+import 'package:sidesail/rpc/models/utxo.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
@@ -15,7 +16,7 @@ class TransactionsProvider extends ChangeNotifier {
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these
   // variables.
-  List<CoreTransaction> mainchainTransactions = [];
+  List<UTXO> unspentMainchainUTXOs = [];
   List<CoreTransaction> transactions = [];
   bool initialized = false;
 
@@ -32,8 +33,8 @@ class TransactionsProvider extends ChangeNotifier {
     transactions = await sidechain.rpc.listTransactions();
     transactions = transactions.reversed.toList();
 
-    mainchainTransactions = await _mainchainRPC.listTransactions();
-    mainchainTransactions = mainchainTransactions.reversed.toList();
+    unspentMainchainUTXOs = await _mainchainRPC.listUnspent();
+    unspentMainchainUTXOs = unspentMainchainUTXOs.reversed.toList();
 
     initialized = true;
 

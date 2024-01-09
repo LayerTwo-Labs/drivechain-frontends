@@ -6,10 +6,9 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/models/core_transaction.dart';
+import 'package:sidesail/rpc/models/utxo.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:sidesail/widgets/containers/tabs/transfer_mainchain_tab_widgets.dart';
@@ -55,8 +54,8 @@ class TransferMainchainTabPage extends StatelessWidget {
                   ),
                   const SailSpacing(SailStyleValues.padding30),
                   DashboardGroup(
-                    title: 'Transactions',
-                    widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
+                    title: 'UTXOs',
+                    widgetTrailing: SailText.secondary13(viewModel.utxos.length.toString()),
                     children: [
                       SailColumn(
                         spacing: 0,
@@ -66,10 +65,10 @@ class TransferMainchainTabPage extends StatelessWidget {
                           ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: viewModel.transactions.length,
-                            itemBuilder: (context, index) => TxView(
-                              key: ValueKey<String>(viewModel.transactions[index].txid),
-                              tx: viewModel.transactions[index],
+                            itemCount: viewModel.utxos.length,
+                            itemBuilder: (context, index) => UTXOView(
+                              key: ValueKey<String>(viewModel.utxos[index].txid),
+                              utxo: viewModel.utxos[index],
                             ),
                           ),
                         ],
@@ -91,7 +90,7 @@ class TransferMainchainTabViewModel extends BaseViewModel {
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
 
-  List<CoreTransaction> get transactions => _transactionsProvider.mainchainTransactions;
+  List<UTXO> get utxos => _transactionsProvider.unspentMainchainUTXOs;
 
   TransferMainchainTabViewModel() {
     _transactionsProvider.addListener(notifyListeners);
