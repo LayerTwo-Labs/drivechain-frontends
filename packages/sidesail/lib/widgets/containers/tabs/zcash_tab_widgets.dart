@@ -8,10 +8,10 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
-import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
@@ -151,6 +151,58 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
   }
 }
 
+class DeshieldUTXOAction extends StatelessWidget {
+  final ShieldedUTXO utxo;
+
+  const DeshieldUTXOAction({super.key, required this.utxo});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => DeshieldUTXOActionViewModel(),
+      builder: ((context, viewModel, child) {
+        return DashboardActionModal(
+          'Deshield coins',
+          endActionButton: SailButton.primary(
+            'Execute shield',
+            disabled: viewModel.bitcoinAmountController.text.isEmpty,
+            loading: viewModel.isBusy,
+            size: ButtonSize.regular,
+            onPressed: () async {
+              viewModel.executeDeshield(context, utxo);
+            },
+          ),
+          children: [
+            LargeEmbeddedInput(
+              controller: viewModel.bitcoinAmountController,
+              hintText: 'How much do you want to deshield?',
+              suffixText: 'BTC',
+              bitcoinInput: true,
+              autofocus: true,
+            ),
+            const StaticActionField(
+              label: 'Deshield from',
+              value: 'Your Z-address',
+            ),
+            StaticActionField(
+              label: 'Deshield to',
+              value: viewModel.deshieldAddress,
+            ),
+            StaticActionField(
+              label: 'Deshield fee',
+              value: '${viewModel.deshieldFee}',
+            ),
+            StaticActionField(
+              label: 'Total amount',
+              value: viewModel.totalBitcoinAmount,
+            ),
+          ],
+        );
+      }),
+    );
+  }
+}
+
 class DeshieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
@@ -242,50 +294,51 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
   }
 }
 
-class DeshieldUTXOAction extends StatelessWidget {
+class CastUTXOAction extends StatelessWidget {
   final ShieldedUTXO utxo;
 
-  const DeshieldUTXOAction({super.key, required this.utxo});
+  const CastUTXOAction({super.key, required this.utxo});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => DeshieldUTXOActionViewModel(),
+      viewModelBuilder: () => CastUTXOActionViewModel(utxo: utxo),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Deshield coins',
+          'Cast single UTXO',
           endActionButton: SailButton.primary(
-            'Execute shield',
-            disabled: viewModel.bitcoinAmountController.text.isEmpty,
+            'Execute cast',
             loading: viewModel.isBusy,
+            disabled: viewModel.includedInBundle == null,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.executeDeshield(context, utxo);
+              viewModel.executeCast(context, utxo);
             },
           ),
           children: [
-            LargeEmbeddedInput(
-              controller: viewModel.bitcoinAmountController,
-              hintText: 'How much do you want to deshield?',
-              suffixText: 'BTC',
-              bitcoinInput: true,
-              autofocus: true,
-            ),
             const StaticActionField(
               label: 'Deshield from',
               value: 'Your Z-address',
             ),
             StaticActionField(
               label: 'Deshield to',
-              value: viewModel.deshieldAddress,
+              value: viewModel.castAddresses.join('\n'),
             ),
             StaticActionField(
               label: 'Deshield fee',
               value: '${viewModel.deshieldFee}',
             ),
             StaticActionField(
+              label: 'Amount per UTXO',
+              value: viewModel.perNewUtxoAmount.toStringAsFixed(8),
+            ),
+            StaticActionField(
               label: 'Total amount',
-              value: viewModel.totalBitcoinAmount,
+              value: viewModel.totalBitcoinAmount.toStringAsFixed(8),
+            ),
+            StaticActionField(
+              label: 'Executed at',
+              value: viewModel.executeTime.toString(),
             ),
           ],
         );
@@ -294,19 +347,106 @@ class DeshieldUTXOAction extends StatelessWidget {
   }
 }
 
-class DeshieldUTXOViewModel extends BaseViewModel {
-  TestchainRPC get _rpc => GetIt.I.get<TestchainRPC>();
+class CastUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  CastProvider get _castProvider => GetIt.I.get<CastProvider>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  AppRouter get _router => GetIt.I.get<AppRouter>();
+  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
 
-  String? sidechainAddress;
+  CastBundle? get includedInBundle => _castProvider.findBundleForAmount(utxo.amount);
+  double get perNewUtxoAmount => includedInBundle != null ? ((includedInBundle!.castAmount - deshieldFee)) : 0;
+  double get totalBitcoinAmount => ((perNewUtxoAmount * _rpc.numUTXOsPerCast) + deshieldFee);
+  String get executeTime =>
+      includedInBundle == null ? 'Could not find fitting bundle' : includedInBundle!.executeTime.toString();
 
-  DeshieldUTXOViewModel() {
-    generateSidechainAddress();
+  double get deshieldFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
+
+  List<String> castAddresses = [];
+
+  ShieldedUTXO utxo;
+
+  CastUTXOActionViewModel({required this.utxo}) {
+    init();
   }
 
-  Future<void> generateSidechainAddress() async {
-    sidechainAddress = await _rpc.sideGenerateAddress();
+  void init() async {
+    castAddresses.add(await _rpc.getNewAddress());
+    castAddresses.add(await _rpc.getNewAddress());
+    castAddresses.add(await _rpc.getNewAddress());
+    castAddresses.add(await _rpc.getNewAddress());
+
     notifyListeners();
+  }
+
+  void cast(BuildContext context, ShieldedUTXO utxo) async {
+    setBusy(true);
+    executeCast(context, utxo);
+    setBusy(false);
+  }
+
+  void executeCast(BuildContext context, ShieldedUTXO utxo) async {
+    if (includedInBundle == null) {
+      log.e('was not eligible for a bundle');
+      await errorDialog(
+        context: context,
+        action: 'Cast single UTXO',
+        title: 'This UTXO is not eligible for being included in a bundle, amount is probably too low.',
+        subtitle: error.toString(),
+      );
+      return;
+    }
+
+    // Because the function is async, the view might disappear/unmount
+    // by the time it's used. The linter doesn't like that, and wants
+    // you to check whether the view is mounted before using it
+    if (!context.mounted) {
+      return;
+    }
+
+    log.i(
+      'casting utxo: $perNewUtxoAmount BTC to $castAddresses with $deshieldFee deshield fee',
+    );
+
+    try {
+      _castProvider.addPendingCast(
+        includedInBundle!,
+        PendingCast(fromUTXO: utxo, toAddresses: castAddresses, perUTXOAmount: perNewUtxoAmount),
+      );
+
+      // refresh balance, but don't await, so dialog is showed instantly
+      unawaited(_balanceProvider.fetch());
+      // refresh transactions, but don't await, so dialog is showed instantly
+      unawaited(_zcashProvider.fetch());
+
+      if (!context.mounted) {
+        return;
+      }
+
+      await successDialog(
+        context: context,
+        action: 'Cast single UTXO',
+        title: 'You casted $totalBitcoinAmount BTC to $castAddresses',
+        subtitle: 'Will be executed at ${includedInBundle!.executeTime}',
+      );
+      await _router.pop();
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      await errorDialog(
+        context: context,
+        action: 'Cast single UTXO',
+        title: 'Could not cast coins for UTXO',
+        subtitle: error.toString(),
+      );
+      // also pop the info modal
+      await _router.pop();
+
+      return;
+    }
   }
 }
 
@@ -740,8 +880,14 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
 class ShieldedUTXOView extends StatefulWidget {
   final ShieldedUTXO utxo;
   final VoidCallback deshieldAction;
+  final bool castMode;
 
-  const ShieldedUTXOView({super.key, required this.utxo, required this.deshieldAction});
+  const ShieldedUTXOView({
+    super.key,
+    required this.utxo,
+    required this.deshieldAction,
+    required this.castMode,
+  });
 
   @override
   State<ShieldedUTXOView> createState() => _ShieldedUTXOViewState();
@@ -776,7 +922,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
             child: SingleValueContainer(
               width: 130,
               prefixAction: SailButton.secondary(
-                'Deshield',
+                widget.castMode ? 'Cast' : 'Deshield',
                 onPressed: widget.deshieldAction,
                 size: ButtonSize.small,
                 disabled: widget.utxo.amount <= 0.0001000,
