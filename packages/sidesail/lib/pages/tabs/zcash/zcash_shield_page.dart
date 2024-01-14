@@ -37,28 +37,11 @@ class ZCashShieldTabPage extends StatelessWidget {
               spacing: SailStyleValues.padding30,
               children: [
                 DashboardGroup(
-                  title: 'Actions',
-                  children: [
-                    ActionTile(
-                      title: 'Melt all unshielded UTXOs',
-                      category: Category.sidechain,
-                      icon: Icons.shield,
-                      onTap: () {
-                        viewModel.melt(context);
-                      },
-                    ),
-                    ActionTile(
-                      title: 'Cast all shielded UTXOs',
-                      category: Category.sidechain,
-                      icon: Icons.handyman,
-                      onTap: () {
-                        viewModel.cast(context);
-                      },
-                    ),
-                  ],
-                ),
-                DashboardGroup(
                   title: 'Operation statuses',
+                  endWidget: SailTextButton(
+                    label: 'Clear',
+                    onPressed: () => viewModel.clear(),
+                  ),
                   children: [
                     SailColumn(
                       spacing: 0,
@@ -96,6 +79,7 @@ class ZCashShieldTabPage extends StatelessWidget {
                           UnshieldedUTXOView(
                             utxo: utxo,
                             shieldAction: () => viewModel.shield(context, utxo),
+                            meltMode: false,
                           ),
                       ],
                     ),
@@ -104,11 +88,6 @@ class ZCashShieldTabPage extends StatelessWidget {
                 DashboardGroup(
                   title: 'Shielded UTXOs',
                   widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
-                  endWidget: SailToggle(
-                    label: 'Safe cast-mode ${viewModel.castMode ? 'enabled' : 'disabled'}',
-                    value: viewModel.castMode,
-                    onChanged: (to) => viewModel.setCastMode(to),
-                  ),
                   children: [
                     SailColumn(
                       spacing: 0,
@@ -119,7 +98,7 @@ class ZCashShieldTabPage extends StatelessWidget {
                           ShieldedUTXOView(
                             utxo: utxo,
                             deshieldAction: () => viewModel.deshield(context, utxo),
-                            castMode: viewModel.castMode,
+                            castMode: false,
                           ),
                       ],
                     ),
@@ -148,25 +127,21 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
   bool showAll = false;
-  bool castMode = true;
 
   void setShowAll(bool to) {
     showAll = to;
     notifyListeners();
   }
 
-  void setCastMode(bool to) {
-    castMode = to;
-    notifyListeners();
-  }
-
   ZCashShieldTabViewModel() {
     _zcashProvider.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
-    init();
   }
 
-  Future<void> init() async {}
+  Future<void> clear() async {
+    _zcashProvider.operations = List.empty();
+    notifyListeners();
+  }
 
   void melt(BuildContext context) async {
     await showThemedDialog(
@@ -196,21 +171,12 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   }
 
   void deshield(BuildContext context, ShieldedUTXO shieldedUTXO) async {
-    if (castMode) {
-      await showThemedDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return CastUTXOAction(utxo: shieldedUTXO);
-        },
-      );
-    } else {
-      await showThemedDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return DeshieldUTXOAction(utxo: shieldedUTXO);
-        },
-      );
-    }
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return DeshieldUTXOAction(utxo: shieldedUTXO);
+      },
+    );
   }
 
   @override
