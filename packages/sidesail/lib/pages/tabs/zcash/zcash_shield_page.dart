@@ -50,7 +50,7 @@ class ZCashShieldTabPage extends StatelessWidget {
                     ActionTile(
                       title: 'Cast all shielded UTXOs',
                       category: Category.sidechain,
-                      icon: Icons.cast,
+                      icon: Icons.handyman,
                       onTap: () {
                         viewModel.cast(context);
                       },
