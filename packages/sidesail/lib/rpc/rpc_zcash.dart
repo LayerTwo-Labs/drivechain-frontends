@@ -287,15 +287,19 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final withdrawalTxid = await _client().call('sendtoaddress', [
-      address,
-      amount,
-      '',
-      '',
-      subtractFeeFromAmount,
+    final zAddress = await sideGenerateAddress();
+    final txid = await _client().call('z_sendmany', [
+      zAddress,
+      [
+        {
+          'address': address,
+          'amount': double.parse(amount.toStringAsFixed(8)),
+        }
+      ],
+      1,
     ]);
 
-    return withdrawalTxid;
+    return txid;
   }
 
   @override
