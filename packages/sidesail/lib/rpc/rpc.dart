@@ -107,7 +107,13 @@ abstract class RPCConnection extends ChangeNotifier {
 
     int pid;
     try {
-      pid = await processes.start(context, binary, args);
+      pid = await processes.start(
+        context,
+        binary,
+        args,
+        stopNode,
+        binary,
+      );
       log.d('init binaries: started $binary with PID $pid');
     } catch (err) {
       log.e('init binaries: could not start $binary daemon', error: err);

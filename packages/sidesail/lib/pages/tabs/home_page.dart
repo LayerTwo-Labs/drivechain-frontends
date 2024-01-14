@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -9,6 +12,7 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
@@ -23,8 +27,54 @@ const EthereumHome = 6;
 const ZCashHome = 7;
 
 @RoutePage()
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  ProcessProvider get _proccessProvider => GetIt.I.get<ProcessProvider>();
+
+  var _closeAlertOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    FlutterWindowClose.setWindowShouldCloseHandler(() async {
+      if (_closeAlertOpen) return false;
+      _closeAlertOpen = true;
+
+      var processesExited = Completer<bool>();
+      unawaited(_proccessProvider.shutdown().then((_) => processesExited.complete(true)));
+
+      if (!mounted) return true;
+
+      unawaited(
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Shutting down nodes...'),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  processesExited.complete(true);
+                  Navigator.of(context).pop(true);
+                  _closeAlertOpen = false;
+                },
+                child: const Text('Force close'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await processesExited.future;
+      return true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
