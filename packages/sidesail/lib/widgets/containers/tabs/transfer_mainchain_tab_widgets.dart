@@ -198,10 +198,10 @@ class PegOutViewModel extends BaseViewModel {
         title: 'Could not execute peg-out',
         subtitle: error.toString(),
       );
-      // also pop the info modal
-      await _router.pop();
-      return;
     }
+
+    // also pop the info modal
+    await _router.pop();
   }
 }
 
@@ -371,9 +371,9 @@ class PegInEthViewModel extends BaseViewModel {
         title: 'Could not deposit from parent-chain',
         subtitle: error.toString(),
       );
-      // also pop the info modal
-      await _router.pop();
-      return;
     }
+
+    // also pop the info modal
+    await _router.pop();
   }
 }
