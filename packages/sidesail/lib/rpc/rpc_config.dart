@@ -6,7 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
-import 'package:sidesail/providers/proc_provider.dart';
+import 'package:sidesail/providers/process_provider.dart';
 
 class Config {
   final String path;
