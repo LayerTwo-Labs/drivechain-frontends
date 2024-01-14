@@ -172,6 +172,11 @@ class EthereumRPCLive extends EthereumRPC {
     // TODO: implement sideSend
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> stopNode() async {
+    return;
+  }
 }
 
 /// List of all known RPC methods available /

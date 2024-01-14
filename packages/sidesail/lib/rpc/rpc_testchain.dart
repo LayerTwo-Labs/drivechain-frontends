@@ -258,6 +258,11 @@ class TestchainRPCLive extends TestchainRPC {
     ];
     return [...baseArgs, ...sidechainArgs];
   }
+
+  @override
+  Future<void> stopNode() async {
+    await _client().call('stop');
+  }
 }
 
 class TestchainRPCError {

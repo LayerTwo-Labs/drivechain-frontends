@@ -26,6 +26,9 @@ abstract class RPCConnection extends ChangeNotifier {
   // should throw if call is not successful
   Future<void> ping();
 
+  // attempt to stop the node gracefully
+  Future<void> stopNode();
+
   bool initializingBinary = false;
 
   Future<(bool, String?)> testConnection() async {
