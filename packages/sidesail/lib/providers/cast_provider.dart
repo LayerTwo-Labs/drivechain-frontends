@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidesail/bitcoin.dart';
+import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
@@ -13,23 +14,22 @@ const maxCastFactor = 14;
 class CastBundle {
   int powerOf;
   VoidCallback executeAction;
+  double castFee;
   late DateTime executeTime;
-  late Timer executeTimer;
 
   num get castAmount => satoshiToBTC(lowestCastValueSats << (powerOf - 1));
-
   List<PendingCast> pendingCasts = [];
 
   CastBundle({
     required this.powerOf,
     required this.executeAction,
+    required this.castFee,
   }) {
     // Lowest one (0.00016384) will be done every 14 minutes,
     // highest one every minute
     final executeIn = Duration(seconds: (maxCastFactor - powerOf + 1));
-
     executeTime = DateTime.now().add(executeIn);
-    executeTimer = Timer(executeIn, executeAction);
+    Timer(executeIn, executeAction);
   }
 
   void addPendingCast(PendingCast newPending) {
@@ -53,14 +53,27 @@ class PendingCast {
 }
 
 class CastProvider extends ChangeNotifier {
+  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
   Logger get log => GetIt.I.get<Logger>();
+  double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
 
-  List<CastBundle> futureCasts = List.filled(maxCastFactor + 1, CastBundle(powerOf: 0, executeAction: () => {}));
+  List<CastBundle> futureCasts = List.filled(
+    maxCastFactor + 1,
+    CastBundle(
+      powerOf: 0,
+      executeAction: () => {},
+      castFee: 0,
+    ),
+  );
 
   CastProvider() {
     for (int i = 1; i <= maxCastFactor; i++) {
-      final newBundle = CastBundle(powerOf: i, executeAction: () => executeCast(i));
+      final newBundle = CastBundle(
+        powerOf: i,
+        executeAction: () => _executeCast(i),
+        castFee: castFee,
+      );
 
       log.i(
         'created new bundle executeTime=${newBundle.executeTime} powerOf=${newBundle.powerOf} amountSats=${newBundle.castAmount}',
@@ -70,7 +83,7 @@ class CastProvider extends ChangeNotifier {
     }
   }
 
-  void executeCast(int powerOf) async {
+  void _executeCast(int powerOf) async {
     final bundle = futureCasts.elementAt(powerOf);
     log.d('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
 
@@ -79,7 +92,11 @@ class CastProvider extends ChangeNotifier {
       log.i('casted utxo=${pending.fromUTXO.amount} perUTXOAmount=${pending.perUTXOAmount} opid=$opid');
     }
 
-    final newBundle = CastBundle(powerOf: bundle.powerOf, executeAction: () => executeCast(powerOf));
+    final newBundle = CastBundle(
+      powerOf: bundle.powerOf,
+      executeAction: () => _executeCast(powerOf),
+      castFee: castFee,
+    );
     futureCasts[bundle.powerOf] = newBundle;
     log.d('recreated next bundle to be executed at ${newBundle.executeTime} arraySize=${futureCasts.length}');
   }
@@ -89,7 +106,7 @@ class CastProvider extends ChangeNotifier {
       final bundle = futureCasts[i];
 
       final factor = amount / bundle.castAmount.toInt();
-      if (factor >= 4) {
+      if (factor >= _rpc.numUTXOsPerCast) {
         // the amount fit in 4 utxos! This is the bundle we're looking for
         log.d(
           'found fitting bundle bundleAmount=${bundle.castAmount} factor=$factor shallExecuteAt=${bundle.executeTime} powerOf=${bundle.powerOf}',
