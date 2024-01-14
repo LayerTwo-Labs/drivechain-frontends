@@ -7,26 +7,41 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 
+class SailProcess {
+  final int pid;
+  final String name;
+  Future<void> Function() cleanup;
+
+  SailProcess({
+    required this.pid,
+    required this.name,
+    required this.cleanup,
+  });
+}
+
 class ProcessProvider extends ChangeNotifier {
   ProcessProvider();
 
   Logger get log => GetIt.I.get<Logger>();
 
-  // List of currently running processes.
-  List<int> pids = [];
-
   final Map<int, int> _exitCodes = {};
-  final List<int> _runningProcesses = [];
+  final Map<int, SailProcess> runningProcesses = {};
 
   final Map<int, Stream<String>> _stdoutStreams = {};
   final Map<int, Stream<String>> _stderrStreams = {};
 
   Stream<String> stdout(int pid) => _stdoutStreams[pid] ?? const Stream.empty();
   Stream<String> stderr(int pid) => _stderrStreams[pid] ?? const Stream.empty();
-  bool running(int pid) => _runningProcesses.contains(pid);
+  bool running(int pid) => runningProcesses.containsKey(pid);
 
   // Starts a binary located in the asset bundle included with the app.
-  Future<int> start(BuildContext context, String binary, List<String> args) async {
+  Future<int> start(
+    BuildContext context,
+    String binary,
+    List<String> args,
+    Future<void> Function() cleanup,
+    String processName,
+  ) async {
     if (Platform.isWindows) {
       binary = '$binary.exe';
     }
@@ -81,7 +96,11 @@ class ProcessProvider extends ChangeNotifier {
       args,
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
     );
-    _runningProcesses.add(process.pid);
+    runningProcesses[process.pid] = SailProcess(
+      pid: process.pid,
+      cleanup: cleanup,
+      name: processName,
+    );
 
     // Let output streaming chug in the background
 
@@ -114,7 +133,7 @@ class ProcessProvider extends ChangeNotifier {
 
         // Forward to listeners that the process finished.
         _exitCodes[process.pid] = code;
-        _runningProcesses.remove(process.pid);
+        runningProcesses.remove(process.pid);
         notifyListeners();
       }),
     );
@@ -139,12 +158,22 @@ class ProcessProvider extends ChangeNotifier {
     return process.pid;
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  Future<void> shutdown() async {
+    log.d('dispose process provider: killing processes $runningProcesses');
 
-    log.d('dispose process provider: killing processes $_runningProcesses');
-    _runningProcesses.forEach(Process.killPid);
+    await Future.wait(runningProcesses.values.map((process) => _shutdownSingle(process)));
+  }
+
+  Future<void> _shutdownSingle(SailProcess process) async {
+    try {
+      log.i('shutting down nicely pid=${process.pid} ');
+      await process.cleanup();
+      log.d('shut down nicely pid=${process.pid} ');
+    } catch (error) {
+      // if we couldn't clean up nicely, we throw an error!
+      log.e('could not clean up nicely, killing pid=${process.pid}');
+      Process.killPid(process.pid, ProcessSignal.sigterm);
+    }
   }
 }
 
