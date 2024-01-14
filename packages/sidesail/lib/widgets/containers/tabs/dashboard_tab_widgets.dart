@@ -219,11 +219,10 @@ class SendOnSidechainViewModel extends BaseViewModel {
         title: 'Could not execute withdrawal',
         subtitle: error.toString(),
       );
-      // also pop the info modal
-      await _router.pop();
-
-      return;
     }
+
+    // also pop the info modal
+    await _router.pop();
   }
 }
 
