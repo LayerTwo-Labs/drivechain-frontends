@@ -58,6 +58,7 @@ dependencies:
   path_provider: ^2.1.1
   crypto: ^3.0.1
   shared_preferences: ^2.2.2
+  flutter_window_close: ^1.0.0
 
 # Needed for silencing complaints from adding the web3dart lib
 dependency_overrides:
