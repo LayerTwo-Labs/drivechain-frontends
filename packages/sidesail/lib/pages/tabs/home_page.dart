@@ -37,42 +37,14 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   ProcessProvider get _proccessProvider => GetIt.I.get<ProcessProvider>();
 
-  var _closeAlertOpen = false;
+  bool _closeAlertOpen = false;
 
   @override
   void initState() {
     super.initState();
 
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
-      if (_closeAlertOpen) return false;
-      _closeAlertOpen = true;
-
-      var processesExited = Completer<bool>();
-      unawaited(_proccessProvider.shutdown().then((_) => processesExited.complete(true)));
-
-      if (!mounted) return true;
-
-      unawaited(
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Shutting down nodes...'),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  processesExited.complete(true);
-                  Navigator.of(context).pop(true);
-                  _closeAlertOpen = false;
-                },
-                child: const Text('Force close'),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      await processesExited.future;
-      return true;
+      return await displayShutdownModal(context);
     });
   }
 
@@ -122,6 +94,69 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  Future<bool> displayShutdownModal(
+    BuildContext context,
+  ) async {
+    if (_closeAlertOpen) return false;
+    _closeAlertOpen = true;
+
+    var processesExited = Completer<bool>();
+    unawaited(_proccessProvider.shutdown().then((_) => processesExited.complete(true)));
+
+    if (!mounted) return true;
+
+    unawaited(
+      widgetDialog(
+        context: context,
+        action: 'Shutdown status',
+        dialogText: 'Shutting down nodes...',
+        dialogType: DialogType.info,
+        maxWidth: 536,
+        child: SailColumn(
+          spacing: SailStyleValues.padding20,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SailSpacing(SailStyleValues.padding08),
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _proccessProvider.runningProcesses.entries.map((entry) {
+                return DaemonConnectionCard(
+                  chainName: '${entry.value.name} with pid ${entry.value.pid}',
+                  initializing: true,
+                  connected: false,
+                  errorMessage: '',
+                  restartDaemon: () => entry.value.cleanup(),
+                );
+              }).toList(),
+            ),
+            const SailSpacing(SailStyleValues.padding10),
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                SailButton.primary(
+                  'Force close',
+                  onPressed: () {
+                    processesExited.complete(true);
+                    Navigator.of(context).pop(true);
+                    _closeAlertOpen = false;
+                  },
+                  size: ButtonSize.regular,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await processesExited.future;
+    return true;
   }
 }
 
