@@ -810,12 +810,27 @@ class CastActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'casting ${_zcashProvider.shieldedUTXOs.length} utxos: $castAmount BTC to with $shieldFee shield fee',
+      'casting ${_zcashProvider.shieldedUTXOs.length} utxos: $castAmount BTC to with $castFee cast fee',
     );
 
     try {
-      for (final _ in includedInBundle) {
-        // TODO
+      List<PendingCastBill>? bundles = [];
+
+      for (final utxo in _zcashProvider.shieldedUTXOs) {
+        final utxoBundle = _castProvider.findBillsForAmount(utxo.amount);
+        if (utxoBundle == null) {
+          continue;
+        }
+        bundles.addAll(utxoBundle.toList());
+
+        log.i(
+          'casting utxo to bills of power ${utxoBundle.map((e) => e.castAmount).join(' BTC, ')}',
+        );
+
+        _castProvider.addPendingUTXO(
+          utxoBundle,
+          utxo: utxo,
+        );
       }
 
       // refresh balance, but don't await, so dialog is showed instantly
@@ -827,13 +842,15 @@ class CastActionViewModel extends BaseViewModel {
         return;
       }
 
+      List<int> uniqueMinutes = bundles.map((bundle) => bundle.executeIn.inSeconds).toSet().toList();
+
       await successDialog(
         context: context,
         action: 'Cast all UTXOs',
         title:
             'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} BTC to your Z-address',
         subtitle:
-            'Will cast in various minutes.\nDont close the application until you have no shielded coins left in your wallet',
+            'Will cast to ${bundles.length} new unique UTXOs in ${uniqueMinutes.join(', ')} seconds.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
     } catch (error) {
       if (!context.mounted) {

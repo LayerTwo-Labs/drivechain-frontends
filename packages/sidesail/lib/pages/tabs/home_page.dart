@@ -72,6 +72,7 @@ class _HomePageState extends State<HomePage> {
       EthereumRPCTabRoute(),
 
       // zcash routes
+      ZCashCastTabRoute(),
       ZCashShieldTabRoute(),
       ZCashRPCTabRoute(),
 
@@ -441,17 +442,24 @@ class _SideNavState extends State<SideNav> {
                 },
               ),
               SubNavEntry(
-                title: 'Shield/Deshield',
+                title: 'Melt/Cast',
                 selected: tabsRouter.activeIndex == ZCashHome,
                 onPressed: () {
                   tabsRouter.setActiveIndex(ZCashHome);
                 },
               ),
               SubNavEntry(
-                title: 'Send RPC',
+                title: 'Shield/Deshield',
                 selected: tabsRouter.activeIndex == ZCashHome + 1,
                 onPressed: () {
                   tabsRouter.setActiveIndex(ZCashHome + 1);
+                },
+              ),
+              SubNavEntry(
+                title: 'Send RPC',
+                selected: tabsRouter.activeIndex == ZCashHome + 2,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(ZCashHome + 2);
                 },
               ),
             ],

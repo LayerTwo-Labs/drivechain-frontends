@@ -85,6 +85,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const WithdrawalBundleTabPage(),
       );
     },
+    ZCashCastTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ZCashCastTabPage(),
+      );
+    },
     ZCashRPCTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -278,6 +284,20 @@ class WithdrawalBundleTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [ZCashCastTabPage]
+class ZCashCastTabRoute extends PageRouteInfo<void> {
+  const ZCashCastTabRoute({List<PageRouteInfo>? children})
+      : super(
+          ZCashCastTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ZCashCastTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [ZCashRPCTabPage]
 class ZCashRPCTabRoute extends PageRouteInfo<void> {
   const ZCashRPCTabRoute({List<PageRouteInfo>? children})
@@ -303,4 +323,41 @@ class ZCashShieldTabRoute extends PageRouteInfo<void> {
   static const String name = 'ZCashShieldTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [ZCashWidgetTitle]
+class ZCashWidgetTitle extends PageRouteInfo<ZCashWidgetTitleArgs> {
+  ZCashWidgetTitle({
+    Key? key,
+    required void Function() depositNudgeAction,
+    List<PageRouteInfo>? children,
+  }) : super(
+          ZCashWidgetTitle.name,
+          args: ZCashWidgetTitleArgs(
+            key: key,
+            depositNudgeAction: depositNudgeAction,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'ZCashWidgetTitle';
+
+  static const PageInfo<ZCashWidgetTitleArgs> page = PageInfo<ZCashWidgetTitleArgs>(name);
+}
+
+class ZCashWidgetTitleArgs {
+  const ZCashWidgetTitleArgs({
+    this.key,
+    required this.depositNudgeAction,
+  });
+
+  final Key? key;
+
+  final void Function() depositNudgeAction;
+
+  @override
+  String toString() {
+    return 'ZCashWidgetTitleArgs{key: $key, depositNudgeAction: $depositNudgeAction}';
+  }
 }
