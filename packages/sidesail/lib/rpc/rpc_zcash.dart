@@ -302,6 +302,11 @@ class ZcashRPCLive extends ZCashRPC {
   Future<String> getNewAddress() async {
     return await _client().call('getnewaddress');
   }
+
+  @override
+  Future<void> stopNode() async {
+    return await _client().call('stop');
+  }
 }
 
 /// List of all known RPC methods available /

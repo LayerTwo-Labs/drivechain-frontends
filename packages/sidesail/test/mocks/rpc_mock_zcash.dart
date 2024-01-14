@@ -297,4 +297,9 @@ class MockZCashRPC extends ZCashRPC {
   Future<String> cast(ShieldedUTXO utxo, double amount, List<String> addresses) async {
     return 'opid-7c484106 409a-47dc-b853-3c641beaf166';
   }
+
+  @override
+  Future<void> stopNode() async {
+    return;
+  }
 }

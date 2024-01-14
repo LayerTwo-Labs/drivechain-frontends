@@ -68,4 +68,9 @@ class MockSidechainRPC extends SidechainRPC {
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
     return 'deadbeefdeadbeefdeadbeef';
   }
+
+  @override
+  Future<void> stopNode() async {
+    return;
+  }
 }

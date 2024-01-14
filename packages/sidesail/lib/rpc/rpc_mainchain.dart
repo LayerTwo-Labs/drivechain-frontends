@@ -136,6 +136,11 @@ class MainchainRPCLive extends MainchainRPC {
     final res = await _client().call('generate', [blocks]) as List<dynamic>;
     return res.map((e) => e.toString()).toList();
   }
+
+  @override
+  Future<void> stopNode() async {
+    await _client().call('stop');
+  }
 }
 
 class MainchainWithdrawalStatus {
