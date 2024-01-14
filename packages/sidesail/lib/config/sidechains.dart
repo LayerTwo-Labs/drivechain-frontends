@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/providers/proc_provider.dart';
+import 'package:sidesail/providers/process_provider.dart';
 
 abstract class Sidechain {
   String get name;
