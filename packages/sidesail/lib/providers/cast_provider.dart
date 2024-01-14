@@ -8,47 +8,57 @@ import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
-const lowestCastValueSats = 1048576;
-const maxCastFactor = 14;
+const lowestCastValueSats = 1;
+const maxCastFactor = 50;
 
-class CastBundle {
+class PendingCastBill {
   int powerOf;
-  VoidCallback executeAction;
   double castFee;
+
+  VoidCallback executeAction;
   late DateTime executeTime;
+  late Duration executeIn;
 
   num get castAmount => satoshiToBTC(lowestCastValueSats << (powerOf - 1));
-  List<PendingCast> pendingCasts = [];
+  List<PendingShield> pendingShields = [];
 
-  CastBundle({
+  PendingCastBill({
     required this.powerOf,
-    required this.executeAction,
     required this.castFee,
+    required this.executeAction,
   }) {
-    // Lowest one (0.00016384) will be done every 14 minutes,
+    // Lowest one (0.00000001) will be done every second,
     // highest one every minute
-    final executeIn = Duration(seconds: (maxCastFactor - powerOf + 1));
+    executeIn = Duration(seconds: (powerOf + 1));
     executeTime = DateTime.now().add(executeIn);
     Timer(executeIn, executeAction);
   }
 
-  void addPendingCast(PendingCast newPending) {
+  void addPendingShield(PendingShield newPending) {
     Logger log = GetIt.I.get<Logger>();
-    log.i('added pending cast to bundle amount=${newPending.perUTXOAmount} powerOf=$powerOf executedAt=$executeTime');
+    log.i('added pending cast amount=${newPending.amount} powerOf=$powerOf executedAt=$executeTime');
 
-    pendingCasts.add(newPending);
+    pendingShields.add(newPending);
   }
 }
 
-class PendingCast {
+class PendingShield {
+  int pow;
   ShieldedUTXO fromUTXO;
-  List<String> toAddresses;
-  double perUTXOAmount;
 
-  PendingCast({
+  double get amount {
+    var amountSats = 1;
+
+    for (int i = 1; i < pow; i++) {
+      amountSats = amountSats * 2;
+    }
+
+    return satoshiToBTC(amountSats);
+  }
+
+  PendingShield({
+    required this.pow,
     required this.fromUTXO,
-    required this.toAddresses,
-    required this.perUTXOAmount,
   });
 }
 
@@ -58,9 +68,9 @@ class CastProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
 
-  List<CastBundle> futureCasts = List.filled(
+  List<PendingCastBill> futureCasts = List.filled(
     maxCastFactor + 1,
-    CastBundle(
+    PendingCastBill(
       powerOf: 0,
       executeAction: () => {},
       castFee: 0,
@@ -69,7 +79,7 @@ class CastProvider extends ChangeNotifier {
 
   CastProvider() {
     for (int i = 1; i <= maxCastFactor; i++) {
-      final newBundle = CastBundle(
+      final newBundle = PendingCastBill(
         powerOf: i,
         executeAction: () => _executeCast(i),
         castFee: castFee,
@@ -87,41 +97,79 @@ class CastProvider extends ChangeNotifier {
     final bundle = futureCasts.elementAt(powerOf);
     log.d('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
 
-    for (final pending in bundle.pendingCasts) {
-      final opid = await _rpc.cast(pending.fromUTXO, pending.perUTXOAmount, pending.toAddresses);
-      log.i('casted utxo=${pending.fromUTXO.amount} perUTXOAmount=${pending.perUTXOAmount} opid=$opid');
+    for (final pending in bundle.pendingShields) {
+      final opid = await _rpc.deshield(pending.fromUTXO, pending.amount);
+      log.i('casted utxo=${pending.fromUTXO.amount} pow=$powerOf opid=$opid');
     }
 
-    final newBundle = CastBundle(
+    final newBill = PendingCastBill(
       powerOf: bundle.powerOf,
       executeAction: () => _executeCast(powerOf),
       castFee: castFee,
     );
-    futureCasts[bundle.powerOf] = newBundle;
-    log.d('recreated next bundle to be executed at ${newBundle.executeTime} arraySize=${futureCasts.length}');
+    futureCasts[bundle.powerOf] = newBill;
+    log.d('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
+
+    await _zcashProvider.fetch();
   }
 
-  CastBundle? findBundleForAmount(double amount) {
-    for (int i = maxCastFactor; i >= 1; i--) {
-      final bundle = futureCasts[i];
-
-      final factor = amount / bundle.castAmount.toInt();
-      if (factor >= _rpc.numUTXOsPerCast) {
-        // the amount fit in 4 utxos! This is the bundle we're looking for
-        log.d(
-          'found fitting bundle bundleAmount=${bundle.castAmount} factor=$factor shallExecuteAt=${bundle.executeTime} powerOf=${bundle.powerOf}',
-        );
-        return bundle;
-      }
+  List<PendingCastBill>? findBillsForAmount(double amount) {
+    if (amount <= 0) {
+      return null;
     }
 
-    log.i('did not find fitting bundle');
-    return null;
+    List<PendingCastBill> bills = [];
+    var nextAmountSats = btcToSatoshi(amount);
+
+    for (int i = 0; i < 4; i++) {
+      // we want to find 4 bills!
+      final (billAmount, powerOf) = findMaxBill(nextAmountSats, 1, 1);
+
+      nextAmountSats = nextAmountSats - billAmount;
+
+      final bundle = PendingCastBill(
+        powerOf: powerOf,
+        executeAction: () => _executeCast(powerOf),
+        castFee: castFee,
+      );
+
+      log.d(
+        'found fitting bundle billAmount=$billAmount powerOf=$powerOf executeTime=${bundle.executeTime}',
+      );
+
+      bills.add(bundle);
+    }
+    return bills;
   }
 
-  void addPendingCast(CastBundle toBundle, PendingCast newPending) {
-    final bundle = futureCasts[toBundle.powerOf];
-    bundle.addPendingCast(newPending);
-    futureCasts[toBundle.powerOf] = bundle;
+  // finds the next highest factor of two that does not exceed maxAmountSats
+  (int, int) findMaxBill(int maxAmountSats, int currentAmountSats, int currentMultiple) {
+    final newAmountSats = currentAmountSats * 2;
+
+    if (newAmountSats >= maxAmountSats) {
+      return (currentAmountSats, currentMultiple);
+    }
+
+    return findMaxBill(maxAmountSats, newAmountSats, currentMultiple + 1);
+  }
+
+  void addPendingUTXO(
+    List<PendingCastBill> newPendingBills, {
+    required ShieldedUTXO utxo,
+  }) {
+    for (final newPending in newPendingBills) {
+      // extract current bundles
+      final bundle = futureCasts[newPending.powerOf];
+
+      // create new bundle
+      final shield = PendingShield(
+        fromUTXO: utxo,
+        pow: newPending.powerOf,
+      );
+      bundle.addPendingShield(shield);
+
+      // add existing+new bundle to future casts
+      futureCasts[newPending.powerOf] = bundle;
+    }
   }
 }
