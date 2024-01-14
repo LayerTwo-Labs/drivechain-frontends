@@ -131,7 +131,6 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
         title: 'You shielded $amount BTC to your Z-address',
         subtitle: 'OPID: $shieldID',
       );
-      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -143,11 +142,10 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
         title: 'Could not shield coins',
         subtitle: error.toString(),
       );
-      // also pop the info modal
-      await _router.pop();
-
-      return;
     }
+
+    // also pop the info modal
+    await _router.pop();
   }
 }
 
@@ -274,7 +272,6 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
         title: 'You deshielded $amount BTC to tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         subtitle: 'OPID: $deshieldID',
       );
-      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -286,11 +283,10 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
         title: 'Could not deshield coins',
         subtitle: error.toString(),
       );
-      // also pop the info modal
-      await _router.pop();
-
-      return;
     }
+
+    // also pop the info modal
+    await _router.pop();
   }
 }
 
@@ -325,8 +321,8 @@ class CastUTXOAction extends StatelessWidget {
               value: viewModel.castAddresses.join('\n'),
             ),
             StaticActionField(
-              label: 'Deshield fee',
-              value: '${viewModel.deshieldFee}',
+              label: 'Cast fee',
+              value: '${viewModel.castFee}',
             ),
             StaticActionField(
               label: 'Amount per UTXO',
@@ -356,12 +352,12 @@ class CastUTXOActionViewModel extends BaseViewModel {
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
 
   CastBundle? get includedInBundle => _castProvider.findBundleForAmount(utxo.amount);
-  double get perNewUtxoAmount => includedInBundle != null ? ((includedInBundle!.castAmount - deshieldFee)) : 0;
-  double get totalBitcoinAmount => ((perNewUtxoAmount * _rpc.numUTXOsPerCast) + deshieldFee);
+  double get perNewUtxoAmount => includedInBundle != null ? ((includedInBundle!.castAmount - castFee)) : 0;
+  double get totalBitcoinAmount => ((perNewUtxoAmount * _rpc.numUTXOsPerCast) + castFee);
   String get executeTime =>
       includedInBundle == null ? 'Could not find fitting bundle' : includedInBundle!.executeTime.toString();
 
-  double get deshieldFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
+  double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
 
   List<String> castAddresses = [];
 
@@ -406,7 +402,7 @@ class CastUTXOActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'casting utxo: $perNewUtxoAmount BTC to $castAddresses with $deshieldFee deshield fee',
+      'casting utxo: $perNewUtxoAmount BTC to $castAddresses with $castFee deshield fee',
     );
 
     try {
@@ -430,7 +426,6 @@ class CastUTXOActionViewModel extends BaseViewModel {
         title: 'You casted $totalBitcoinAmount BTC to $castAddresses',
         subtitle: 'Will be executed at ${includedInBundle!.executeTime}',
       );
-      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -442,11 +437,10 @@ class CastUTXOActionViewModel extends BaseViewModel {
         title: 'Could not cast coins for UTXO',
         subtitle: error.toString(),
       );
-      // also pop the info modal
-      await _router.pop();
-
-      return;
     }
+
+    // also pop the info modal
+    await _router.pop();
   }
 }
 
@@ -582,11 +576,10 @@ class MeltActionViewModel extends BaseViewModel {
         title: 'Could not melt coins',
         subtitle: error.toString(),
       );
-      // also pop the info modal
-      await _router.pop();
-
-      return;
     }
+
+    // also pop the info modal
+    await _router.pop();
   }
 
   @override
@@ -609,7 +602,6 @@ class CastAction extends StatelessWidget {
           'Cast all UTXOs',
           endActionButton: SailButton.primary(
             'Execute cast',
-            disabled: viewModel.castInMinutesController.text.isEmpty,
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
@@ -617,13 +609,6 @@ class CastAction extends StatelessWidget {
             },
           ),
           children: [
-            LargeEmbeddedInput(
-              controller: viewModel.castInMinutesController,
-              hintText: 'How many minutes should the cast take?',
-              suffixText: 'minutes',
-              numberInput: true,
-              autofocus: true,
-            ),
             const StaticActionField(
               label: 'Shield to',
               value: 'Your Z-address',
@@ -655,6 +640,7 @@ class CastAction extends StatelessWidget {
 
 class CastActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
@@ -662,20 +648,26 @@ class CastActionViewModel extends BaseViewModel {
 
   double get shieldFee => _zcashProvider.sideFee;
 
-  final bitcoinAmountController = TextEditingController();
-  double get totalBitcoinAmount => (castAmount + castFee);
+  List<CastBundle> get includedInBundle {
+    final List<CastBundle> bundles = [];
 
-  List<UnshieldedUTXO> get castableUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((utxo) => utxo.amount > 0.0001).toList();
-  double get castAmount =>
-      _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).reduce((value, element) => value + element) - castFee;
-  double get castFee => (_zcashProvider.sideFee * castableUTXOs.length);
-  TextEditingController castInMinutesController = TextEditingController();
+    for (final utxo in _zcashProvider.shieldedUTXOs) {
+      final bundle = _castProvider.findBundleForAmount(utxo.amount);
+      if (bundle != null) {
+        bundles.add(bundle);
+      }
+    }
 
-  CastActionViewModel() {
-    bitcoinAmountController.addListener(notifyListeners);
-    castInMinutesController.addListener(notifyListeners);
+    return bundles;
   }
+
+  List<ShieldedUTXO> get castableUTXOs => _zcashProvider.shieldedUTXOs;
+
+  num get castAmount => includedInBundle.map((e) => e.castAmount).reduce((sum, fee) => sum + fee);
+  num get castFee => includedInBundle.map((e) => e.castFee).reduce((sum, fee) => sum + fee);
+  double get totalBitcoinAmount => (castAmount + castFee).toDouble();
+
+  CastActionViewModel();
 
   void cast(BuildContext context) async {
     setBusy(true);
@@ -692,7 +684,7 @@ class CastActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'casting ${castableUTXOs.length} utxos: $castAmount BTC to with $shieldFee shield fee',
+      'casting ${_zcashProvider.shieldedUTXOs.length} utxos: $castAmount BTC to with $shieldFee shield fee',
     );
 
     try {
@@ -713,9 +705,9 @@ class CastActionViewModel extends BaseViewModel {
         context: context,
         action: 'Initiated cast',
         title:
-            'You will deshield ${castableUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} BTC to your Z-address',
+            'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} BTC to your Z-address',
         subtitle:
-            'Will cast in ${willCastAt.map((e) => e.toStringAsFixed(e.roundToDouble() == e ? 0 : 2)).join(', ')} minutes.\nDont close the application until ${castInMinutesController.text} minute(s) have passed',
+            'Will cast in various minutes.\nDont close the application until you have no shielded coins left in your wallet',
       );
     } catch (error) {
       if (!context.mounted) {
@@ -728,18 +720,10 @@ class CastActionViewModel extends BaseViewModel {
         title: 'Could not cast coins',
         subtitle: error.toString(),
       );
-      // also pop the info modal
-      await _router.pop();
-
-      return;
     }
-  }
 
-  @override
-  void dispose() {
-    super.dispose();
-    bitcoinAmountController.removeListener(notifyListeners);
-    castInMinutesController.removeListener(notifyListeners);
+    // also pop the info modal
+    await _router.pop();
   }
 }
 
