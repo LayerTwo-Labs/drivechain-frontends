@@ -696,10 +696,9 @@ class CastActionViewModel extends BaseViewModel {
     );
 
     try {
-      final willCastAt = await _zcashProvider.melt(
-        castableUTXOs,
-        double.tryParse(castInMinutesController.text) ?? 1,
-      );
+      for (final _ in includedInBundle) {
+        // TODO
+      }
 
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
