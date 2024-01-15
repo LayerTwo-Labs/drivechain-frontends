@@ -9,6 +9,7 @@ import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/models/raw_transaction.dart';
+import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
@@ -76,6 +77,8 @@ class TestchainRPCLive extends TestchainRPC {
     double sidechainFee,
     double mainchainFee,
   ) async {
+    amount = cleanAmount(amount);
+
     // 1. Get refund address for the sidechain withdrawal. This can be any address we control on the SC.
     final refund = await _getRefundAddress();
     log.d('got refund address: $refund');
@@ -135,6 +138,8 @@ class TestchainRPCLive extends TestchainRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+    amount = cleanAmount(amount);
+
     final withdrawalTxid = await _client().call('sendtoaddress', [
       address,
       amount,
