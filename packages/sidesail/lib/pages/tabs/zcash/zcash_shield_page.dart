@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
@@ -21,6 +22,8 @@ class ZCashShieldTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashShieldTabViewModel(),
       builder: ((context, viewModel, child) {
@@ -61,46 +64,61 @@ class ZCashShieldTabPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                DashboardGroup(
-                  title: 'Unshielded UTXOs',
-                  widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
-                  endWidget: SailToggle(
-                    label: 'Show all UTXOs',
-                    value: viewModel.showAll,
-                    onChanged: (to) => viewModel.setShowAll(to),
-                  ),
+                SailRow(
+                  spacing: 0,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SailColumn(
-                      spacing: 0,
-                      withDivider: true,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final utxo in viewModel.unshieldedUTXOs)
-                          UnshieldedUTXOView(
-                            utxo: utxo,
-                            shieldAction: () => viewModel.shield(context, utxo),
-                            meltMode: false,
+                    Flexible(
+                      child: DashboardGroup(
+                        title: 'Unshielded UTXOs',
+                        widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
+                        endWidget: SailToggle(
+                          label: 'Show all UTXOs',
+                          value: viewModel.showAll,
+                          onChanged: (to) => viewModel.setShowAll(to),
+                        ),
+                        children: [
+                          SailColumn(
+                            spacing: 0,
+                            withDivider: true,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final utxo in viewModel.unshieldedUTXOs)
+                                UnshieldedUTXOView(
+                                  utxo: utxo,
+                                  shieldAction: () => viewModel.shield(context, utxo),
+                                  meltMode: false,
+                                ),
+                            ],
                           ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-                DashboardGroup(
-                  title: 'Shielded UTXOs',
-                  widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
-                  children: [
-                    SailColumn(
-                      spacing: 0,
-                      withDivider: true,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final utxo in viewModel.shieldedUTXOs)
-                          ShieldedUTXOView(
-                            utxo: utxo,
-                            deshieldAction: () => viewModel.deshield(context, utxo),
-                            castMode: false,
+                    VerticalDivider(
+                      width: 1,
+                      thickness: 1,
+                      color: theme.colors.divider,
+                    ),
+                    Flexible(
+                      child: DashboardGroup(
+                        title: 'Shielded UTXOs',
+                        widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
+                        children: [
+                          SailColumn(
+                            spacing: 0,
+                            withDivider: true,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final utxo in viewModel.shieldedUTXOs)
+                                ShieldedUTXOView(
+                                  utxo: utxo,
+                                  deshieldAction: () => viewModel.deshield(context, utxo),
+                                  castMode: false,
+                                ),
+                            ],
                           ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
