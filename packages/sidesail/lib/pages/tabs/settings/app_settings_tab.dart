@@ -4,10 +4,12 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/app.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/storage/client_settings.dart';
+import 'package:sidesail/storage/sail_settings/font_settings.dart';
 import 'package:sidesail/storage/sail_settings/theme_settings.dart';
 import 'package:stacked/stacked.dart';
 
@@ -18,6 +20,7 @@ class SettingsTabPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = SailApp.of(context);
+    final theme = SailTheme.of(context);
 
     return SailPage(
       scrollable: true,
@@ -71,6 +74,51 @@ class SettingsTabPage extends StatelessWidget {
                             ),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                  Expanded(child: Container()),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: SailStyleValues.padding20),
+                child: SailText.primary20('Font', bold: true),
+              ),
+              Row(
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 640,
+                    ),
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding10,
+                      children: [
+                        SailRow(
+                          spacing: SailStyleValues.padding15,
+                          children: [
+                            SailButton.primary(
+                              'Source Code Pro',
+                              onPressed: () {
+                                viewModel.setFont(SailFontValues.sourceCodePro);
+                              },
+                              size: ButtonSize.regular,
+                              disabled: viewModel.font == SailFontValues.sourceCodePro,
+                            ),
+                            SailButton.primary(
+                              'Inter',
+                              onPressed: () {
+                                viewModel.setFont(SailFontValues.inter);
+                              },
+                              size: ButtonSize.regular,
+                              disabled: viewModel.font == SailFontValues.inter,
+                            ),
+                          ],
+                        ),
+                        if (viewModel.font != viewModel.fontOnLoad)
+                          SailText.primary12(
+                            'Must restart app to apply font changes',
+                            customColor: theme.colors.yellow,
+                          ),
                       ],
                     ),
                   ),
@@ -136,6 +184,8 @@ class ThemeSettingsViewModel extends BaseViewModel {
 
   String datadir = '';
   SailThemeValues theme = SailThemeValues.light;
+  SailFontValues font = SailFontValues.inter;
+  SailFontValues fontOnLoad = SailFontValues.inter;
 
   void setTheme(SailThemeValues newTheme) async {
     theme = newTheme;
@@ -145,7 +195,15 @@ class ThemeSettingsViewModel extends BaseViewModel {
 
   Future<void> _init() async {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
+    font = (await _clientSettings.getValue(FontSetting())).value;
+    fontOnLoad = font;
     datadir = await RuntimeArgs.datadir().then((dir) => dir.path);
+    notifyListeners();
+  }
+
+  void setFont(SailFontValues newFont) async {
+    font = newFont;
+    await _clientSettings.setValue(FontSetting().withValue(font));
     notifyListeners();
   }
 }
