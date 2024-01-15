@@ -332,10 +332,6 @@ class CastSingleUTXOAction extends StatelessWidget {
               label: 'Total amount',
               value: viewModel.totalBitcoinAmount.toStringAsFixed(8),
             ),
-            StaticActionField(
-              label: 'Executed by',
-              value: viewModel.maxExecuteTime.toString(),
-            ),
           ],
         );
       }),
@@ -351,13 +347,8 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
 
-  List<PendingCastBill>? get includedInBills => _castProvider.findBillsForAmount(utxo.amount - castFee);
-  DateTime get maxExecuteTime => includedInBills!
-      .reduce(
-        (currentMax, bill) => bill.executeTime.isAfter(currentMax.executeTime) ? bill : currentMax,
-      )
-      .executeTime;
-  double get castableAmount => includedInBills!.fold(0, (sum, bill) => sum + bill.castAmount);
+  List<PendingShield>? get includedInBills => _castProvider.findBillsForAmount(utxo);
+  double get castableAmount => includedInBills!.fold(0, (sum, bill) => sum + bill.amount);
   double get totalBitcoinAmount => castableAmount + castFee;
   double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
 
@@ -422,14 +413,12 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
         return;
       }
 
-      List<int> uniqueMinutes = includedInBills!.map((bundle) => bundle.executeIn.inSeconds).toSet().toList();
-
       await successDialog(
         context: context,
         action: 'Cast single UTXO',
         title: 'You will cast $totalBitcoinAmount BTC to $castAddresses',
         subtitle:
-            'Will cast to ${includedInBills!.length} new unique UTXOs in ${uniqueMinutes.join(', ')} seconds.\n\nDont close the application until you have no shielded coins left in your wallet.',
+            'Will cast to ${includedInBills!.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
     } catch (error) {
       if (!context.mounted) {
@@ -774,11 +763,11 @@ class CastActionViewModel extends BaseViewModel {
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
 
   double get shieldFee => _zcashProvider.sideFee;
-  List<PendingCastBill> get includedInBundle {
-    final List<PendingCastBill> bundles = [];
+  List<PendingShield> get includedInBundle {
+    final List<PendingShield> bundles = [];
 
     for (final utxo in _zcashProvider.shieldedUTXOs) {
-      final utxoBundle = _castProvider.findBillsForAmount(utxo.amount);
+      final utxoBundle = _castProvider.findBillsForAmount(utxo);
       if (utxoBundle != null) {
         bundles.addAll(utxoBundle);
       }
@@ -790,7 +779,7 @@ class CastActionViewModel extends BaseViewModel {
   List<ShieldedUTXO> get castableUTXOs => _zcashProvider.shieldedUTXOs;
 
   num get castFee => _rpc.numUTXOsPerCast * shieldFee;
-  num get castAmount => includedInBundle.map((e) => e.castAmount).reduce((sum, fee) => sum + fee);
+  num get castAmount => includedInBundle.map((e) => e.amount).reduce((sum, fee) => sum + fee);
   double get totalBitcoinAmount => (castAmount + castFee).toDouble();
 
   CastActionViewModel();
@@ -814,17 +803,17 @@ class CastActionViewModel extends BaseViewModel {
     );
 
     try {
-      List<PendingCastBill>? bundles = [];
+      List<PendingShield>? bundles = [];
 
       for (final utxo in _zcashProvider.shieldedUTXOs) {
-        final utxoBundle = _castProvider.findBillsForAmount(utxo.amount);
+        final utxoBundle = _castProvider.findBillsForAmount(utxo);
         if (utxoBundle == null) {
           continue;
         }
         bundles.addAll(utxoBundle.toList());
 
         log.i(
-          'casting utxo to bills of power ${utxoBundle.map((e) => e.castAmount).join(' BTC, ')}',
+          'casting utxo to bills of power ${utxoBundle.map((e) => e.amount).join(' BTC, ')}',
         );
 
         _castProvider.addPendingUTXO(
@@ -842,15 +831,13 @@ class CastActionViewModel extends BaseViewModel {
         return;
       }
 
-      List<int> uniqueMinutes = bundles.map((bundle) => bundle.executeIn.inSeconds).toSet().toList();
-
       await successDialog(
         context: context,
         action: 'Cast all UTXOs',
         title:
             'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} BTC to your Z-address',
         subtitle:
-            'Will cast to ${bundles.length} new unique UTXOs in ${uniqueMinutes.join(', ')} seconds.\n\nDont close the application until you have no shielded coins left in your wallet.',
+            'Will cast to ${bundles.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
     } catch (error) {
       if (!context.mounted) {
@@ -1082,5 +1069,104 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
         ],
       ),
     );
+  }
+}
+
+class PendingCastView extends StatefulWidget {
+  final PendingCastBill pending;
+
+  const PendingCastView({
+    super.key,
+    required this.pending,
+  });
+
+  @override
+  State<PendingCastView> createState() => _PendingCastViewState();
+}
+
+class _PendingCastViewState extends State<PendingCastView> {
+  int executeInSeconds = 0;
+  bool expanded = false;
+  late Map<String, dynamic> expandInfo;
+
+  // for counting down until execution
+  Timer? _timer;
+  Duration _timeLeft = const Duration();
+
+  void _startTimer() {
+    _timer?.cancel(); // Cancel any existing timer
+    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      setState(() {
+        _timeLeft = widget.pending.executeTime.difference(DateTime.now());
+        if (_timeLeft.isNegative) {
+          _timeLeft = const Duration(seconds: 0);
+          _timer?.cancel();
+        }
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    expandInfo = convertPendingShieldsToMap(widget.pending.pendingShields);
+    _startTimer();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String countdownText = _timeLeft.isNegative ? 'Executing...' : 'Executing in ${_timeLeft.inSeconds} seconds';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: SailStyleValues.padding15,
+        horizontal: SailStyleValues.padding10,
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailScaleButton(
+            onPressed: () {
+              setState(() {
+                expanded = !expanded;
+              });
+            },
+            child: SingleValueContainer(
+              width: 105,
+              icon: Tooltip(
+                message: 'Success',
+                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+              ),
+              copyable: false,
+              label: widget.pending.castAmount.toStringAsFixed(8),
+              value: 'Will deshield ${widget.pending.pendingShields.length} txs',
+              trailingText: countdownText,
+            ),
+          ),
+          if (expanded)
+            ExpandedTXView(
+              decodedTX: expandInfo,
+              width: 105,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Map<String, dynamic> convertPendingShieldsToMap(List<PendingShield> pendingShields) {
+    Map<String, dynamic> resultMap = {};
+
+    for (int i = 0; i < pendingShields.length; i++) {
+      resultMap[i.toString()] = pendingShields[i].fromUTXO.address;
+    }
+
+    return resultMap;
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 }

@@ -6,6 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
+import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
@@ -57,6 +58,28 @@ class ZCashCastTabPage extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (viewModel.pendingNonEmptyBills.isNotEmpty)
+                  DashboardGroup(
+                    title: 'Pending casts',
+                    children: [
+                      SailColumn(
+                        spacing: 0,
+                        withDivider: true,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: viewModel.pendingNonEmptyBills.length,
+                            itemBuilder: (context, index) => PendingCastView(
+                              key: ValueKey<int>(viewModel.pendingNonEmptyBills[index].powerOf),
+                              pending: viewModel.pendingNonEmptyBills[index],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 DashboardGroup(
                   title: 'Operation statuses',
                   endWidget: SailTextButton(
@@ -137,9 +160,12 @@ class ZCashCastTabPage extends StatelessWidget {
 class ZCashCastTabViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
   String get zcashAddress => _zcashProvider.zcashAddress;
+  List<PendingCastBill> get pendingNonEmptyBills =>
+      _castProvider.futureCasts.where((element) => element.pendingShields.isNotEmpty).toList();
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => showAll || u.amount > 0.0001).toList();
