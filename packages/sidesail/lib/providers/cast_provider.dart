@@ -19,7 +19,7 @@ class PendingCastBill {
   late Duration executeIn;
 
   num get castAmount => satoshiToBTC(lowestCastValueSats << (powerOf - 1));
-  List<PendingShield> pendingShields = [];
+  List<PendingDeshield> pendingShields = [];
 
   PendingCastBill({
     required this.powerOf,
@@ -32,7 +32,7 @@ class PendingCastBill {
     Timer(executeIn, executeAction);
   }
 
-  void addPendingShield(PendingShield newPending) {
+  void addPendingShield(PendingDeshield newPending) {
     Logger log = GetIt.I.get<Logger>();
     log.i('added pending cast amount=${newPending.amount} powerOf=$powerOf executedAt=$executeTime');
 
@@ -40,7 +40,7 @@ class PendingCastBill {
   }
 }
 
-class PendingShield {
+class PendingDeshield {
   int pow;
   ShieldedUTXO fromUTXO;
 
@@ -54,7 +54,7 @@ class PendingShield {
     return satoshiToBTC(amountSats);
   }
 
-  PendingShield({
+  PendingDeshield({
     required this.pow,
     required this.fromUTXO,
   });
@@ -108,13 +108,13 @@ class CastProvider extends ChangeNotifier {
     await _zcashProvider.fetch();
   }
 
-  List<PendingShield>? findBillsForAmount(ShieldedUTXO utxo) {
+  List<PendingDeshield>? findBillsForAmount(ShieldedUTXO utxo) {
     final amount = utxo.amount - castFee;
     if (amount <= 0) {
       return null;
     }
 
-    List<PendingShield> pendingShields = [];
+    List<PendingDeshield> pendingShields = [];
     var nextAmountSats = btcToSatoshi(amount);
 
     for (int i = 0; i < 4; i++) {
@@ -123,7 +123,7 @@ class CastProvider extends ChangeNotifier {
 
       nextAmountSats = nextAmountSats - billAmount;
 
-      final pending = PendingShield(
+      final pending = PendingDeshield(
         fromUTXO: utxo,
         pow: powerOf,
       );
@@ -149,7 +149,7 @@ class CastProvider extends ChangeNotifier {
   }
 
   void addPendingUTXO(
-    List<PendingShield> newPendingBills, {
+    List<PendingDeshield> newPendingBills, {
     required ShieldedUTXO utxo,
   }) {
     for (final newPending in newPendingBills) {
@@ -157,7 +157,7 @@ class CastProvider extends ChangeNotifier {
       final bundle = futureCasts[newPending.pow];
 
       // create new bundle
-      final shield = PendingShield(
+      final shield = PendingDeshield(
         fromUTXO: utxo,
         pow: newPending.pow,
       );

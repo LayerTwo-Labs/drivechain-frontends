@@ -126,10 +126,10 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: _proccessProvider.runningProcesses.entries.map((entry) {
                 return DaemonConnectionCard(
-                  chainName: '${entry.value.name} with pid ${entry.value.pid}',
+                  chainName: entry.value.name,
                   initializing: true,
                   connected: false,
-                  errorMessage: '',
+                  errorMessage: 'with pid ${entry.value.pid}',
                   restartDaemon: () => entry.value.cleanup(),
                 );
               }).toList(),

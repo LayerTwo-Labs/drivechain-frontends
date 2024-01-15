@@ -347,7 +347,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
 
-  List<PendingShield>? get includedInBills => _castProvider.findBillsForAmount(utxo);
+  List<PendingDeshield>? get includedInBills => _castProvider.findBillsForAmount(utxo);
   double get castableAmount => includedInBills!.fold(0, (sum, bill) => sum + bill.amount);
   double get totalBitcoinAmount => castableAmount + castFee;
   double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
@@ -730,14 +730,14 @@ class CastAction extends StatelessWidget {
               value: 'Various transparent addresses',
             ),
             StaticActionField(
-              label: 'Deshield from',
+              label: 'Deshield from (txid)',
               value:
                   // extract address, then join on a newline
-                  viewModel.castableUTXOs.map((utxo) => utxo.address).join('\n'),
+                  viewModel.castableUTXOs.map((utxo) => utxo.txid).join('\n'),
             ),
             StaticActionField(
               label: 'Cast fee',
-              value: '${viewModel.castFee.toStringAsFixed(8)} ${viewModel._rpc.chain.ticker}',
+              value: '${viewModel.castAllFee.toStringAsFixed(8)} ${viewModel._rpc.chain.ticker}',
             ),
             StaticActionField(
               label: 'Cast amount',
@@ -763,8 +763,8 @@ class CastActionViewModel extends BaseViewModel {
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
 
   double get shieldFee => _zcashProvider.sideFee;
-  List<PendingShield> get includedInBundle {
-    final List<PendingShield> bundles = [];
+  List<PendingDeshield> get includedInBundle {
+    final List<PendingDeshield> bundles = [];
 
     for (final utxo in _zcashProvider.shieldedUTXOs) {
       final utxoBundle = _castProvider.findBillsForAmount(utxo);
@@ -776,9 +776,11 @@ class CastActionViewModel extends BaseViewModel {
     return bundles;
   }
 
-  List<ShieldedUTXO> get castableUTXOs => _zcashProvider.shieldedUTXOs;
-
+  // cant cast utxo with less than cast fee
+  List<ShieldedUTXO> get castableUTXOs =>
+      _zcashProvider.shieldedUTXOs.where((element) => element.amount > castFee).toList();
   num get castFee => _rpc.numUTXOsPerCast * shieldFee;
+  num get castAllFee => castFee * castableUTXOs.length;
   num get castAmount => includedInBundle.map((e) => e.amount).reduce((sum, fee) => sum + fee);
   double get totalBitcoinAmount => (castAmount + castFee).toDouble();
 
@@ -803,7 +805,7 @@ class CastActionViewModel extends BaseViewModel {
     );
 
     try {
-      List<PendingShield>? bundles = [];
+      List<PendingDeshield>? bundles = [];
 
       for (final utxo in _zcashProvider.shieldedUTXOs) {
         final utxoBundle = _castProvider.findBillsForAmount(utxo);
@@ -868,11 +870,11 @@ class OperationView extends StatefulWidget {
 
 class _OperationViewState extends State<OperationView> {
   bool expanded = false;
-  late Map<String, dynamic> decodedTx;
+  late Map<String, dynamic> decodedTX;
   @override
   void initState() {
     super.initState();
-    decodedTx = jsonDecode(widget.tx.raw);
+    decodedTX = jsonDecode(widget.tx.raw);
   }
 
   @override
@@ -911,7 +913,7 @@ class _OperationViewState extends State<OperationView> {
           ),
           if (expanded)
             ExpandedTXView(
-              decodedTX: decodedTx,
+              decodedTX: decodedTX,
               width: 105,
             ),
         ],
@@ -1135,7 +1137,7 @@ class _PendingCastViewState extends State<PendingCastView> {
             child: SingleValueContainer(
               width: 105,
               icon: Tooltip(
-                message: 'Success',
+                message: 'Waiting for timer to expire',
                 child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
               ),
               copyable: false,
@@ -1154,11 +1156,11 @@ class _PendingCastViewState extends State<PendingCastView> {
     );
   }
 
-  Map<String, dynamic> convertPendingShieldsToMap(List<PendingShield> pendingShields) {
+  Map<String, dynamic> convertPendingShieldsToMap(List<PendingDeshield> pendingShields) {
     Map<String, dynamic> resultMap = {};
 
     for (int i = 0; i < pendingShields.length; i++) {
-      resultMap[i.toString()] = pendingShields[i].fromUTXO.address;
+      resultMap[i.toString()] = pendingShields[i].fromUTXO.txid;
     }
 
     return resultMap;
