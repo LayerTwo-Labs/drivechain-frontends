@@ -55,7 +55,7 @@ class ShieldUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Shield fee',
-              value: '${viewModel.shieldFee}',
+              value: viewModel.shieldFee.toStringAsFixed(8),
             ),
             StaticActionField(
               label: 'Total amount',
@@ -188,7 +188,7 @@ class DeshieldUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Deshield fee',
-              value: '${viewModel.deshieldFee}',
+              value: viewModel.deshieldFee.toStringAsFixed(8),
             ),
             StaticActionField(
               label: 'Total amount',

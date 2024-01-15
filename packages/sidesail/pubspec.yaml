@@ -92,6 +92,21 @@ flutter:
     - assets/bin/
 
   fonts:
+    - family: Inter
+      fonts:
+        - asset: ../sail_ui/fonts/Inter-ExtraLight.ttf
+          weight: 200
+        - asset: ../sail_ui/fonts/Inter-Light.ttf
+          weight: 300
+        - asset: ../sail_ui/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: ../sail_ui/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: ../sail_ui/fonts/Inter-Bold.ttf
+          weight: 600
+        - asset: ../sail_ui/fonts/Inter-Black.ttf
+          weight: 700
+
     - family: SourceCodePro
       fonts:
         - asset: ../sail_ui/fonts/SourceCodePro-ExtraLight.ttf
