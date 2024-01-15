@@ -13,7 +13,6 @@ const maxCastFactor = 50;
 
 class PendingCastBill {
   int powerOf;
-  double castFee;
 
   VoidCallback executeAction;
   late DateTime executeTime;
@@ -24,12 +23,11 @@ class PendingCastBill {
 
   PendingCastBill({
     required this.powerOf,
-    required this.castFee,
     required this.executeAction,
   }) {
     // Lowest one (0.00000001) will be done every second,
     // highest one every minute
-    executeIn = Duration(seconds: (powerOf + 1));
+    executeIn = Duration(seconds: (powerOf + 1) * 10);
     executeTime = DateTime.now().add(executeIn);
     Timer(executeIn, executeAction);
   }
@@ -73,7 +71,6 @@ class CastProvider extends ChangeNotifier {
     PendingCastBill(
       powerOf: 0,
       executeAction: () => {},
-      castFee: 0,
     ),
   );
 
@@ -82,7 +79,6 @@ class CastProvider extends ChangeNotifier {
       final newBundle = PendingCastBill(
         powerOf: i,
         executeAction: () => _executeCast(i),
-        castFee: castFee,
       );
 
       log.i(
@@ -105,7 +101,6 @@ class CastProvider extends ChangeNotifier {
     final newBill = PendingCastBill(
       powerOf: bundle.powerOf,
       executeAction: () => _executeCast(powerOf),
-      castFee: castFee,
     );
     futureCasts[bundle.powerOf] = newBill;
     log.d('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
@@ -113,12 +108,13 @@ class CastProvider extends ChangeNotifier {
     await _zcashProvider.fetch();
   }
 
-  List<PendingCastBill>? findBillsForAmount(double amount) {
+  List<PendingShield>? findBillsForAmount(ShieldedUTXO utxo) {
+    final amount = utxo.amount - castFee;
     if (amount <= 0) {
       return null;
     }
 
-    List<PendingCastBill> bills = [];
+    List<PendingShield> pendingShields = [];
     var nextAmountSats = btcToSatoshi(amount);
 
     for (int i = 0; i < 4; i++) {
@@ -127,19 +123,18 @@ class CastProvider extends ChangeNotifier {
 
       nextAmountSats = nextAmountSats - billAmount;
 
-      final bundle = PendingCastBill(
-        powerOf: powerOf,
-        executeAction: () => _executeCast(powerOf),
-        castFee: castFee,
+      final pending = PendingShield(
+        fromUTXO: utxo,
+        pow: powerOf,
       );
 
       log.d(
-        'found fitting bundle billAmount=$billAmount powerOf=$powerOf executeTime=${bundle.executeTime}',
+        'found fitting bundle billAmount=$billAmount powerOf=$powerOf',
       );
 
-      bills.add(bundle);
+      pendingShields.add(pending);
     }
-    return bills;
+    return pendingShields;
   }
 
   // finds the next highest factor of two that does not exceed maxAmountSats
@@ -154,22 +149,24 @@ class CastProvider extends ChangeNotifier {
   }
 
   void addPendingUTXO(
-    List<PendingCastBill> newPendingBills, {
+    List<PendingShield> newPendingBills, {
     required ShieldedUTXO utxo,
   }) {
     for (final newPending in newPendingBills) {
       // extract current bundles
-      final bundle = futureCasts[newPending.powerOf];
+      final bundle = futureCasts[newPending.pow];
 
       // create new bundle
       final shield = PendingShield(
         fromUTXO: utxo,
-        pow: newPending.powerOf,
+        pow: newPending.pow,
       );
       bundle.addPendingShield(shield);
 
       // add existing+new bundle to future casts
-      futureCasts[newPending.powerOf] = bundle;
+      futureCasts[newPending.pow] = bundle;
     }
+
+    notifyListeners();
   }
 }
