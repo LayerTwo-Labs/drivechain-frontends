@@ -58,6 +58,28 @@ class ZCashCastTabPage extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (viewModel.pendingMelts.isNotEmpty)
+                  DashboardGroup(
+                    title: 'Pending melts',
+                    children: [
+                      SailColumn(
+                        spacing: 0,
+                        withDivider: true,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: viewModel.pendingMelts.length,
+                            itemBuilder: (context, index) => PendingMeltView(
+                              key: ValueKey<String>(viewModel.pendingMelts[index].utxo.raw),
+                              tx: viewModel.pendingMelts[index],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 if (viewModel.pendingNonEmptyBills.isNotEmpty)
                   DashboardGroup(
                     title: 'Pending casts',
@@ -164,6 +186,8 @@ class ZCashCastTabViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
   String get zcashAddress => _zcashProvider.zcashAddress;
+  List<PendingShield> get pendingMelts =>
+      _zcashProvider.utxosToMelt.where((element) => element.executeTime.isAfter(DateTime.now())).toList();
   List<PendingCastBill> get pendingNonEmptyBills =>
       _castProvider.futureCasts.where((element) => element.pendingShields.isNotEmpty).toList();
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();

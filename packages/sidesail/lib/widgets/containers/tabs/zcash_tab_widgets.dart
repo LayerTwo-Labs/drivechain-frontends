@@ -1172,3 +1172,92 @@ class _PendingCastViewState extends State<PendingCastView> {
     super.dispose();
   }
 }
+
+class PendingMeltView extends StatefulWidget {
+  final PendingShield tx;
+
+  const PendingMeltView({
+    super.key,
+    required this.tx,
+  });
+
+  @override
+  State<PendingMeltView> createState() => _PendingMeltViewState();
+}
+
+class _PendingMeltViewState extends State<PendingMeltView> {
+  int executeInSeconds = 0;
+  bool expanded = false;
+  late Map<String, dynamic> decodedTX;
+
+  // for counting down until execution
+  Timer? _timer;
+  Duration _timeLeft = const Duration();
+
+  void _startTimer() {
+    _timer?.cancel(); // Cancel any existing timer
+    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      setState(() {
+        _timeLeft = widget.tx.executeTime.difference(DateTime.now());
+        if (_timeLeft.isNegative) {
+          _timeLeft = const Duration(seconds: 0);
+          _timer?.cancel();
+        }
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+    decodedTX = jsonDecode(widget.tx.utxo.raw);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String countdownText = _timeLeft.inSeconds <= 0 ? 'Executing...' : 'Executing in ${_timeLeft.inSeconds} seconds';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: SailStyleValues.padding15,
+        horizontal: SailStyleValues.padding10,
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailScaleButton(
+            onPressed: () {
+              setState(() {
+                expanded = !expanded;
+              });
+            },
+            child: SingleValueContainer(
+              width: 105,
+              icon: Tooltip(
+                message: 'Waiting for timer to expire',
+                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+              ),
+              copyable: false,
+              label: widget.tx.utxo.amount.toStringAsFixed(8),
+              value: 'Will melt ${widget.tx.utxo.amount} BTC from ${widget.tx.utxo.address}',
+              trailingText: countdownText,
+            ),
+          ),
+          if (expanded)
+            ExpandedTXView(
+              decodedTX: decodedTX,
+              width: 105,
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+}
