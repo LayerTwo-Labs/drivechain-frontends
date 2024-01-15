@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
@@ -22,6 +23,8 @@ class ZCashCastTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashCastTabViewModel(),
       builder: ((context, viewModel, child) {
@@ -37,71 +40,6 @@ class ZCashCastTabPage extends StatelessWidget {
             child: SailColumn(
               spacing: SailStyleValues.padding30,
               children: [
-                DashboardGroup(
-                  title: 'Actions',
-                  children: [
-                    ActionTile(
-                      title: 'Melt all unshielded UTXOs',
-                      category: Category.sidechain,
-                      icon: Icons.shield,
-                      onTap: () {
-                        viewModel.melt(context);
-                      },
-                    ),
-                    ActionTile(
-                      title: 'Cast all shielded UTXOs',
-                      category: Category.sidechain,
-                      icon: Icons.handyman,
-                      onTap: () {
-                        viewModel.cast(context);
-                      },
-                    ),
-                  ],
-                ),
-                if (viewModel.pendingMelts.isNotEmpty)
-                  DashboardGroup(
-                    title: 'Pending melts',
-                    children: [
-                      SailColumn(
-                        spacing: 0,
-                        withDivider: true,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: viewModel.pendingMelts.length,
-                            itemBuilder: (context, index) => PendingMeltView(
-                              key: ValueKey<String>(viewModel.pendingMelts[index].utxo.raw),
-                              tx: viewModel.pendingMelts[index],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                if (viewModel.pendingNonEmptyBills.isNotEmpty)
-                  DashboardGroup(
-                    title: 'Pending casts',
-                    children: [
-                      SailColumn(
-                        spacing: 0,
-                        withDivider: true,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: viewModel.pendingNonEmptyBills.length,
-                            itemBuilder: (context, index) => PendingCastView(
-                              key: ValueKey<int>(viewModel.pendingNonEmptyBills[index].powerOf),
-                              pending: viewModel.pendingNonEmptyBills[index],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
                 DashboardGroup(
                   title: 'Operation statuses',
                   endWidget: SailTextButton(
@@ -127,46 +65,142 @@ class ZCashCastTabPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                DashboardGroup(
-                  title: 'Unshielded UTXOs',
-                  widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
-                  endWidget: SailToggle(
-                    label: 'Show all UTXOs',
-                    value: viewModel.showAll,
-                    onChanged: (to) => viewModel.setShowAll(to),
-                  ),
+                SailRow(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 0,
                   children: [
-                    SailColumn(
-                      spacing: 0,
-                      withDivider: true,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final utxo in viewModel.unshieldedUTXOs)
-                          UnshieldedUTXOView(
-                            utxo: utxo,
-                            shieldAction: () => viewModel.meltSingle(context, utxo),
-                            meltMode: true,
+                    Flexible(
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding30,
+                        children: [
+                          DashboardGroup(
+                            title: 'Melt Actions',
+                            children: [
+                              ActionTile(
+                                title: 'Melt all unshielded UTXOs',
+                                category: Category.sidechain,
+                                icon: Icons.shield,
+                                onTap: () {
+                                  viewModel.melt(context);
+                                },
+                              ),
+                            ],
                           ),
-                      ],
+                          if (viewModel.pendingMelts.isNotEmpty)
+                            DashboardGroup(
+                              title: 'Pending melts',
+                              children: [
+                                SailColumn(
+                                  spacing: 0,
+                                  withDivider: true,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: viewModel.pendingMelts.length,
+                                      itemBuilder: (context, index) => PendingMeltView(
+                                        key: ValueKey<String>(viewModel.pendingMelts[index].utxo.raw),
+                                        tx: viewModel.pendingMelts[index],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          DashboardGroup(
+                            title: 'Unshielded UTXOs',
+                            widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
+                            endWidget: SailToggle(
+                              label: 'Show all UTXOs',
+                              value: viewModel.showAll,
+                              onChanged: (to) => viewModel.setShowAll(to),
+                            ),
+                            children: [
+                              SailColumn(
+                                spacing: 0,
+                                withDivider: true,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  for (final utxo in viewModel.unshieldedUTXOs)
+                                    UnshieldedUTXOView(
+                                      utxo: utxo,
+                                      shieldAction: () => viewModel.meltSingle(context, utxo),
+                                      meltMode: true,
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-                DashboardGroup(
-                  title: 'Shielded UTXOs',
-                  widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
-                  children: [
-                    SailColumn(
-                      spacing: 0,
-                      withDivider: true,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final utxo in viewModel.shieldedUTXOs)
-                          ShieldedUTXOView(
-                            utxo: utxo,
-                            deshieldAction: () => viewModel.castSingle(context, utxo),
-                            castMode: true,
+                    VerticalDivider(
+                      width: 1,
+                      thickness: 1,
+                      color: theme.colors.divider,
+                    ),
+                    Flexible(
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding30,
+                        children: [
+                          DashboardGroup(
+                            title: 'Cast Actions',
+                            children: [
+                              ActionTile(
+                                title: 'Cast all shielded UTXOs',
+                                category: Category.sidechain,
+                                icon: Icons.handyman,
+                                onTap: () {
+                                  viewModel.cast(context);
+                                },
+                              ),
+                            ],
                           ),
-                      ],
+                          if (viewModel.pendingNonEmptyBills.isNotEmpty)
+                            DashboardGroup(
+                              title: 'Pending casts',
+                              children: [
+                                SailColumn(
+                                  spacing: 0,
+                                  withDivider: true,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: viewModel.pendingNonEmptyBills.length,
+                                      itemBuilder: (context, index) => PendingCastView(
+                                        key: ValueKey<int>(viewModel.pendingNonEmptyBills[index].powerOf),
+                                        pending: viewModel.pendingNonEmptyBills[index],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          DashboardGroup(
+                            title: 'Shielded UTXOs',
+                            widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
+                            children: [
+                              SailColumn(
+                                spacing: 0,
+                                withDivider: true,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  for (final utxo in viewModel.shieldedUTXOs)
+                                    ShieldedUTXOView(
+                                      utxo: utxo,
+                                      deshieldAction: () => viewModel.castSingle(context, utxo),
+                                      castMode: true,
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
