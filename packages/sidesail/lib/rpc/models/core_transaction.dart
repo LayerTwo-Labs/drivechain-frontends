@@ -142,7 +142,7 @@ class _CoreTransactionViewState extends State<CoreTransactionView> {
               copyable: false,
               label: widget.tx.category,
               value: extractTXTitle(widget.tx),
-              trailingText: DateFormat('dd MMM HH:mm').format(widget.tx.time),
+              trailingText: DateFormat('dd MMM HH:mm:ss').format(widget.tx.time),
             ),
           ),
           if (expanded)

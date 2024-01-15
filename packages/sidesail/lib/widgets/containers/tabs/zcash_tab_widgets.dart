@@ -907,8 +907,8 @@ class _OperationViewState extends State<OperationView> {
                     ),
               copyable: false,
               label: widget.tx.method,
-              value: widget.tx.params,
-              trailingText: DateFormat('dd MMM HH:mm').format(widget.tx.creationTime),
+              value: widget.tx.id,
+              trailingText: DateFormat('dd MMM HH:mm:ss').format(widget.tx.creationTime),
             ),
           ),
           if (expanded)
