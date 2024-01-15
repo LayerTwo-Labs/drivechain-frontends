@@ -65,11 +65,11 @@ class AppRouter extends _$AppRouter {
               initial: RuntimeArgs.chain.toLowerCase() == EthereumSidechain().name.toLowerCase() ? true : false,
             ),
             AutoRoute(
-              page: ZCashShieldTabRoute.page,
+              page: ZCashCastTabRoute.page,
               initial: RuntimeArgs.chain.toLowerCase() == ZCashSidechain().name.toLowerCase() ? true : false,
             ),
             AutoRoute(
-              page: ZCashCastTabRoute.page,
+              page: ZCashShieldTabRoute.page,
             ),
             AutoRoute(
               page: ZCashRPCTabRoute.page,
