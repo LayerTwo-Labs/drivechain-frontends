@@ -5,6 +5,7 @@ import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
+import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
@@ -118,13 +119,15 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<String> deshield(ShieldedUTXO utxo, double amount) async {
+    amount = cleanAmount(amount);
+
     final regularAddress = await getNewAddress();
     final operationID = await _client().call('z_sendmany', [
       utxo.address,
       [
         {
           'address': regularAddress,
-          'amount': double.parse(amount.toStringAsFixed(8)),
+          'amount': amount,
         }
       ],
       1,
@@ -208,12 +211,19 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
+    amount = cleanAmount(amount);
+
     return await _client().call('withdraw', [address, amount, false]);
   }
 
   @override
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
+    amount = cleanAmount(amount);
+
+    log.i('shielding $amount BTC from address=${utxo.address} amount=${utxo.amount} BTC confs=${utxo.confirmations}');
+
     final zAddress = await sideGenerateAddress();
+
     final operationID = await _client().call('z_sendmany', [
       utxo.address,
       [
@@ -254,6 +264,8 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+    amount = cleanAmount(amount);
+
     final zAddress = await sideGenerateAddress();
     final txid = await _client().call('z_sendmany', [
       zAddress,

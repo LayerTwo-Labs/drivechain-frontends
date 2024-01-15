@@ -207,3 +207,11 @@ String _stripFromString(String input, String whatToStrip) {
 
   return input.substring(startIndex, endIndex + 1);
 }
+
+double cleanAmount(double amount) {
+  // clean the amount of any excess decimals! Cap it at 8, and let
+  // the front-end be kinda stupid
+  final cleanAmount = double.parse(amount.toStringAsFixed(8));
+
+  return cleanAmount;
+}
