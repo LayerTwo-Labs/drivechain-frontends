@@ -52,31 +52,30 @@ class ZCashProvider extends ChangeNotifier {
   }
 
   // From here on out, MELT CODE BBY
-  List<UnshieldedUTXO> utxosToMelt = [];
+  List<PendingShield> utxosToMelt = [];
   // One timer is added to this list per UTXO the user wants to melt
   // Each timer is given a random duration between 0 and the max minutes
   // the user wants all utxos shielded by
   final List<Timer> _timers = [];
 
   Future<List<double>> melt(List<UnshieldedUTXO> utxos, double completedInMinutes) async {
-    Random random = Random();
     final List<double> meltsWillHappenAt = [];
 
     for (final utxo in utxos) {
-      // Multiply function arg by 60 to get seconds. More precise
-      // if the user wants it done in a few minutes, or sub-minutes
-      final maxCompletionSeconds = (completedInMinutes * 60).toInt();
-      final secondsForThisUTXO = random.nextInt(maxCompletionSeconds) + 1;
-
-      // shield the utxo after x seconds have passed
-      final timer = Timer(
-        Duration(seconds: secondsForThisUTXO),
-        () => rpc.shield(utxo, utxo.amount - sideFee),
+      final pending = PendingShield(
+        utxo: utxo,
+        maxMinutes: completedInMinutes,
+        executeAction: () async {
+          // shield, fetch, notify listeners, then delete from array
+          await rpc.shield(utxo, utxo.amount - sideFee);
+          await fetch();
+          utxosToMelt.removeWhere((u) => u.utxo.txid == utxo.txid && u.utxo.address == utxo.address);
+          notifyListeners();
+        },
       );
 
-      meltsWillHappenAt.add(secondsForThisUTXO / 60);
-
-      _timers.add(timer);
+      utxosToMelt.add(pending);
+      _timers.add(pending.timer);
     }
 
     meltsWillHappenAt.sort((a, b) => a.compareTo(b));
@@ -90,5 +89,35 @@ class ZCashProvider extends ChangeNotifier {
     for (final timer in _timers) {
       timer.cancel();
     }
+  }
+}
+
+class PendingShield {
+  UnshieldedUTXO utxo;
+  double maxMinutes;
+  VoidCallback executeAction;
+
+  late Timer timer;
+  late DateTime executeTime;
+  late Duration executeIn;
+
+  PendingShield({
+    required this.utxo,
+    required this.maxMinutes,
+    required this.executeAction,
+  }) {
+    Random random = Random();
+    // Multiply function arg by 60 to get seconds. More precise
+    // if the user wants it done in a few minutes, or sub-minutes
+    final maxCompletionSeconds = (maxMinutes * 60).toInt();
+    final secondsForThisUTXO = random.nextInt(maxCompletionSeconds) + 1;
+
+    executeIn = Duration(seconds: secondsForThisUTXO);
+    executeTime = DateTime.now().add(executeIn);
+    // timer responsible for shielding the utxo after x seconds have passed
+    timer = Timer(
+      executeIn,
+      executeAction,
+    );
   }
 }
