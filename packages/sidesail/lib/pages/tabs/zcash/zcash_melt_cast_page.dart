@@ -16,10 +16,10 @@ import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
-class ZCashCastTabPage extends StatelessWidget {
+class ZCashMeltCastTabPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const ZCashCastTabPage({super.key});
+  const ZCashMeltCastTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +292,6 @@ class ZCashCastTabViewModel extends BaseViewModel {
   }
 }
 
-@RoutePage()
 class ZCashWidgetTitle extends ViewModelWidget<ZCashCastTabViewModel> {
   final VoidCallback depositNudgeAction;
 
