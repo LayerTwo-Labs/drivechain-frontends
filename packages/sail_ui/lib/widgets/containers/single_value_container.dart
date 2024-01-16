@@ -32,7 +32,7 @@ class SingleValueContainer extends StatelessWidget {
       spacing: SailStyleValues.padding08,
       children: [
         if (prefixAction != null) prefixAction!,
-        if (prefixAction != null) const SailSpacing(SailStyleValues.padding12),
+        if (prefixAction != null) const SailSpacing(SailStyleValues.padding05),
         if (icon != null)
           icon!
         else
