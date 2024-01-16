@@ -131,7 +131,7 @@ class _UTXOViewState extends State<UTXOView> {
   }
 
   String extractTXTitle(UTXO tx) {
-    String title = '${tx.amount.toStringAsFixed(8)} SBTC';
+    String title = '${tx.amount.toStringAsFixed(8)} BTC';
 
     if (tx.address.isEmpty) {
       return '$title in ${tx.txid}';

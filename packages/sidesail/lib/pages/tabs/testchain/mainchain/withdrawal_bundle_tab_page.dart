@@ -10,6 +10,7 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sail_ui/widgets/loading_indicator.dart';
 import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
@@ -335,6 +336,7 @@ class BundleView extends StatefulWidget {
 }
 
 class _BundleViewState extends State<BundleView> {
+  String get ticker => GetIt.I.get<SidechainContainer>().rpc.chain.ticker;
   bool expanded = false;
 
   @override
@@ -380,7 +382,7 @@ class _BundleViewState extends State<BundleView> {
   }
 
   String extractTitle(Withdrawal withdrawal) {
-    final title = '${(withdrawal.amountSatoshi / 100000000).toStringAsFixed(8)} SBTC';
+    final title = '${(withdrawal.amountSatoshi / 100000000).toStringAsFixed(8)} $ticker';
 
     return '$title to ${withdrawal.address}';
   }

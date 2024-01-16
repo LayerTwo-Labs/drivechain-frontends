@@ -11,6 +11,7 @@ import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
@@ -247,6 +248,8 @@ class BMMAttemptView extends StatefulWidget {
 }
 
 class _BMMAttemptViewState extends State<BMMAttemptView> {
+  String get ticker => GetIt.I.get<SidechainContainer>().rpc.chain.ticker;
+
   bool expanded = false;
   late Map<String, dynamic> decodedAttempt;
   @override
@@ -297,7 +300,7 @@ class _BMMAttemptViewState extends State<BMMAttemptView> {
 
   String extractTXTitle(BmmAttempt attempt) {
     String title =
-        '${(satoshiToBTC(attempt.bidSatoshis)).toStringAsFixed(8)} BTC bid containing ${attempt.result.ntxn} transaction(s) with ${satoshiToBTC(attempt.result.nfees).toStringAsFixed(8)} SBTC total fees';
+        '${(satoshiToBTC(attempt.bidSatoshis)).toStringAsFixed(8)} $ticker bid containing ${attempt.result.ntxn} transaction(s) with ${satoshiToBTC(attempt.result.nfees).toStringAsFixed(8)} $ticker total fees';
     return title;
   }
 }

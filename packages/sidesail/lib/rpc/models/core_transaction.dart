@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class CoreTransaction {
   final String address;
@@ -103,6 +105,8 @@ class CoreTransactionView extends StatefulWidget {
 }
 
 class _CoreTransactionViewState extends State<CoreTransactionView> {
+  String get ticker => GetIt.I.get<SidechainContainer>().rpc.chain.ticker;
+
   bool expanded = false;
   late Map<String, dynamic> decodedTx;
   @override
@@ -156,7 +160,7 @@ class _CoreTransactionViewState extends State<CoreTransactionView> {
   }
 
   String extractTXTitle(CoreTransaction tx) {
-    String title = '${tx.amount.toStringAsFixed(8)} SBTC';
+    String title = '${tx.amount.toStringAsFixed(8)} $ticker';
 
     if (tx.address.isEmpty) {
       return '$title in ${tx.txid}';
