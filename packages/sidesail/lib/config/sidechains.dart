@@ -57,7 +57,7 @@ class ZCashSidechain extends Sidechain {
   int get rpcPort => 20000;
 
   @override
-  String get binary => 'sidezcashd';
+  String get binary => 'zsided';
 }
 
 class EthereumSidechain extends Sidechain {
