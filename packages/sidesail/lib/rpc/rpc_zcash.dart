@@ -69,15 +69,40 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   Future<double> _balanceForAccount(int account, int confirmations) async {
-    return await _client.call().call('z_getbalanceforaccount', [account, confirmations]).then(
+    final saplingBalance = await _client.call().call('z_getbalanceforaccount', [account, confirmations]).then(
       (res) {
         final pools = res['pools'];
-        if (pools.containsKey('transparent') && pools.containsKey('sapling') && pools.containsKey('orchard')) {
-          return pools['transparent']['valueZat'] + pools['sapling']['valueZat'] + pools['orchard']['valueZat'];
+        num zBalanceSat = 0;
+        if (pools.containsKey('transparent')) {
+          zBalanceSat += pools['transparent']['valueZat'];
         }
-        return 0;
+        if (pools.containsKey('sapling')) {
+          zBalanceSat += pools['sapling']['valueZat'];
+        }
+        if (pools.containsKey('orchard')) {
+          zBalanceSat += pools['orchard']['valueZat'];
+        }
+
+        return satoshiToBTC(zBalanceSat.toInt());
       },
     );
+
+    var balance = saplingBalance;
+
+    // sometimes we end up with multiple z_addresses. Maybe it's a change-
+    // address, maybe it's something else, who knows!
+    // Balance in those addresses does not show up when calling
+    // z_getbalanceforaccount.
+    // To get the correct balance, we must supplement the sapling balance
+    // from above with the balance of each of the addresses returned from
+    // z_listaddresses.
+    final addresses = await _client().call('z_listaddresses') as List<dynamic>;
+    for (final address in addresses) {
+      final addressBalance = await _client.call().call('z_getbalance', [address, confirmations]);
+      balance += addressBalance;
+    }
+
+    return balance;
   }
 
   Future<(double, double)> _transparentBalance(int account) async {
@@ -181,8 +206,6 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<List<UnshieldedUTXO>> listUnshieldedCoins() async {
-    // TODO: verify this just returns unshielded coins. might have to
-    // diff z_listunspent and listunspent?
     final unspent = await _client().call('listunspent') as List<dynamic>;
     if (unspent.isEmpty) {
       return List.empty();
