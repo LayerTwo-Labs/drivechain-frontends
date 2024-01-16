@@ -97,20 +97,20 @@ class SettingsTabPage extends StatelessWidget {
                           spacing: SailStyleValues.padding15,
                           children: [
                             SailButton.primary(
-                              'Source Code Pro',
-                              onPressed: () {
-                                viewModel.setFont(SailFontValues.sourceCodePro);
-                              },
-                              size: ButtonSize.regular,
-                              disabled: viewModel.font == SailFontValues.sourceCodePro,
-                            ),
-                            SailButton.primary(
                               'Inter',
                               onPressed: () {
                                 viewModel.setFont(SailFontValues.inter);
                               },
                               size: ButtonSize.regular,
                               disabled: viewModel.font == SailFontValues.inter,
+                            ),
+                            SailButton.primary(
+                              'Source Code Pro',
+                              onPressed: () {
+                                viewModel.setFont(SailFontValues.sourceCodePro);
+                              },
+                              size: ButtonSize.regular,
+                              disabled: viewModel.font == SailFontValues.sourceCodePro,
                             ),
                           ],
                         ),
