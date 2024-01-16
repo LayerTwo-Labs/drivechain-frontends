@@ -114,11 +114,6 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
-  Future<void> ping() async {
-    await _client().call('ping');
-  }
-
-  @override
   Future<List<ActiveSidechain>> listActiveSidechains() async {
     final res = await _client().call('listactivesidechains') as List<dynamic>;
 
@@ -140,6 +135,12 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<void> stopNode() async {
     await _client().call('stop');
+  }
+
+  @override
+  Future<int> fetchBlockCount() async {
+    final blockHeight = await _client().call('getblockcount') as int;
+    return blockHeight;
   }
 }
 

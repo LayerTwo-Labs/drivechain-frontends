@@ -36,7 +36,6 @@ abstract class SidechainRPC extends RPCConnection {
   );
   Future<String> sideGenerateAddress();
   Future<double> sideEstimateFee();
-  Future<int> sideBlockCount();
 
   Sidechain chain;
 }

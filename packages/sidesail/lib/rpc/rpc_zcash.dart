@@ -68,11 +68,6 @@ class ZcashRPCLive extends ZCashRPC {
     return await _client().call(method, params);
   }
 
-  @override
-  Future<void> ping() async {
-    await _client().call('ping');
-  }
-
   Future<double> _balanceForAccount(int account, int confirmations) async {
     return await _client.call().call('z_getbalanceforaccount', [account, confirmations]).then(
       (res) {
@@ -221,7 +216,8 @@ class ZcashRPCLive extends ZCashRPC {
     amount = cleanAmount(amount);
 
     log.i(
-        'shielding $amount ${chain.ticker} from address=${utxo.address} amount=${utxo.amount} ${chain.ticker} confs=${utxo.confirmations}');
+      'shielding $amount ${chain.ticker} from address=${utxo.address} amount=${utxo.amount} ${chain.ticker} confs=${utxo.confirmations}',
+    );
 
     final zAddress = await sideGenerateAddress();
 
@@ -259,8 +255,9 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<int> sideBlockCount() async {
-    return await _client().call('getblockcount');
+  Future<int> fetchBlockCount() async {
+    final blockHeight = await _client().call('getblockcount') as int;
+    return blockHeight;
   }
 
   @override
