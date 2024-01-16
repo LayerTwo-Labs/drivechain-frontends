@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class ConnectionStatusChip extends StatelessWidget {
   final String chain;
-  final bool initializing;
+  final int blockHeight;
   final VoidCallback onPressed;
+  final bool initializing;
 
   const ConnectionStatusChip({
     super.key,
     required this.chain,
+    required this.blockHeight,
     required this.onPressed,
     required this.initializing,
   });
@@ -43,13 +46,25 @@ class ConnectionStatusChip extends StatelessWidget {
                 InitializingDaemonSVG(
                   animate: initializing,
                 ),
-              if (!initializing) SailText.secondary12('Connected to $chain'),
+              if (!initializing)
+                SailColumn(
+                  spacing: 0,
+                  children: [
+                    SailText.secondary12('Connected to $chain'),
+                    SailText.secondary12('${formatNumberWithSpace(blockHeight)} blocks'),
+                  ],
+                ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+String formatNumberWithSpace(int number) {
+  final format = NumberFormat('#,##0', 'en_US');
+  return format.format(number).replaceAll(',', ' ');
 }
 
 class InitializingDaemonSVG extends StatefulWidget {
