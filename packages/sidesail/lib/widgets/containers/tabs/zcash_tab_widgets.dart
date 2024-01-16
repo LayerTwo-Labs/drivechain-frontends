@@ -947,7 +947,7 @@ class _OperationViewState extends State<OperationView> {
               });
             },
             child: SingleValueContainer(
-              width: 105,
+              width: 115,
               icon: widget.tx.status == 'success'
                   ? Tooltip(
                       message: 'Success',
@@ -966,7 +966,7 @@ class _OperationViewState extends State<OperationView> {
           if (expanded)
             ExpandedTXView(
               decodedTX: decodedTX,
-              width: 105,
+              width: 115,
             ),
         ],
       ),
@@ -1019,7 +1019,7 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
               });
             },
             child: SingleValueContainer(
-              width: 105,
+              width: 115,
               prefixAction: SailButton.secondary(
                 widget.meltMode ? 'Melt' : 'Shield',
                 onPressed: widget.shieldAction,
@@ -1044,7 +1044,7 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
           if (expanded)
             ExpandedTXView(
               decodedTX: decodedUTXO,
-              width: 105,
+              width: 115,
             ),
         ],
       ),
@@ -1097,7 +1097,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
               });
             },
             child: SingleValueContainer(
-              width: 105,
+              width: 115,
               prefixAction: SailButton.secondary(
                 widget.castMode ? 'Cast' : 'Deshield',
                 onPressed: widget.deshieldAction,
@@ -1122,7 +1122,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
           if (expanded)
             ExpandedTXView(
               decodedTX: decodedUTXO,
-              width: 105,
+              width: 115,
             ),
         ],
       ),
