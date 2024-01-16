@@ -47,7 +47,7 @@ case "$chain" in
     ;;
 
     "zcash")
-    sidechain_bin_name=sidezcashd
+    sidechain_bin_name=zsided
     ;;
 
     *)
