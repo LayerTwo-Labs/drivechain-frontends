@@ -503,6 +503,9 @@ class SideNavViewModel extends BaseViewModel {
   bool get sidechainInitializing => _sideRPC.rpc.initializingBinary;
   bool get mainchainInitializing => _mainRPC.initializingBinary;
 
+  int get sidechainBlockCount => _sideRPC.rpc.blockCount;
+  int get mainchainBlockCount => _mainRPC.blockCount;
+
   String? get sidechainError => _sideRPC.rpc.connectionError;
   String? get mainchainError => _mainRPC.connectionError;
 
@@ -616,7 +619,10 @@ class NodeConnectionStatus extends ViewModelWidget<SideNavViewModel> {
   SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
   final VoidCallback onChipPressed;
 
-  const NodeConnectionStatus({super.key, required this.onChipPressed});
+  const NodeConnectionStatus({
+    super.key,
+    required this.onChipPressed,
+  });
 
   @override
   Widget build(BuildContext context, SideNavViewModel viewModel) {
@@ -627,6 +633,7 @@ class NodeConnectionStatus extends ViewModelWidget<SideNavViewModel> {
           ConnectionStatusChip(
             chain: _sidechain.rpc.chain.name,
             initializing: viewModel.sidechainInitializing,
+            blockHeight: viewModel.sidechainBlockCount,
             onPressed: onChipPressed,
           )
         else
@@ -638,6 +645,7 @@ class NodeConnectionStatus extends ViewModelWidget<SideNavViewModel> {
           ConnectionStatusChip(
             chain: 'parent chain',
             initializing: viewModel.mainchainInitializing,
+            blockHeight: viewModel.mainchainBlockCount,
             onPressed: onChipPressed,
           )
         else
