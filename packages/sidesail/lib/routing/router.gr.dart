@@ -85,10 +85,10 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const WithdrawalBundleTabPage(),
       );
     },
-    ZCashCastTabRoute.name: (routeData) {
+    ZCashMeltCastTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const ZCashCastTabPage(),
+        child: const ZCashMeltCastTabPage(),
       );
     },
     ZCashRPCTabRoute.name: (routeData) {
@@ -97,7 +97,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const ZCashRPCTabPage(),
       );
     },
-    ZCashShieldTabRoute.name: (routeData) {
+    ZCashShieldDeshieldTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ZCashShieldDeshieldTabPage(),
+      );
+    },
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const ZCashShieldTabPage(),
@@ -284,15 +289,15 @@ class WithdrawalBundleTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [ZCashCastTabPage]
-class ZCashCastTabRoute extends PageRouteInfo<void> {
-  const ZCashCastTabRoute({List<PageRouteInfo>? children})
+/// [ZCashMeltCastTabPage]
+class ZCashMeltCastTabRoute extends PageRouteInfo<void> {
+  const ZCashMeltCastTabRoute({List<PageRouteInfo>? children})
       : super(
-          ZCashCastTabRoute.name,
+          ZCashMeltCastTabRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'ZCashCastTabRoute';
+  static const String name = 'ZCashMeltCastTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -312,15 +317,15 @@ class ZCashRPCTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [ZCashShieldTabPage]
-class ZCashShieldTabRoute extends PageRouteInfo<void> {
-  const ZCashShieldTabRoute({List<PageRouteInfo>? children})
+/// [ZCashShieldDeshieldTabPage]
+class ZCashShieldDeshieldTabRoute extends PageRouteInfo<void> {
+  const ZCashShieldDeshieldTabRoute({List<PageRouteInfo>? children})
       : super(
-          ZCashShieldTabRoute.name,
+          ZCashShieldDeshieldTabRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'ZCashShieldTabRoute';
+  static const String name = 'ZCashShieldDeshieldTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

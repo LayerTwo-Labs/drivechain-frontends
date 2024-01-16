@@ -72,8 +72,8 @@ class _HomePageState extends State<HomePage> {
       EthereumRPCTabRoute(),
 
       // zcash routes
-      ZCashCastTabRoute(),
-      ZCashShieldTabRoute(),
+      ZCashMeltCastTabRoute(),
+      ZCashShieldDeshieldTabRoute(),
       ZCashRPCTabRoute(),
 
       // trailing common routes
