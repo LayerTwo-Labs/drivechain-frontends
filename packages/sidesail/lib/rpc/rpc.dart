@@ -22,22 +22,22 @@ abstract class RPCConnection extends ChangeNotifier {
     required this.conf,
   });
 
-  // ping method that tests whether the connection is successful
-  // should throw if call is not successful
-  Future<void> ping();
-
   // attempt to stop the node gracefully
   Future<void> stopNode();
+
+  // gets the current block height for this node
+  // also used to test the connection
+  Future<int> fetchBlockCount();
 
   bool initializingBinary = false;
 
   Future<(bool, String?)> testConnection() async {
     try {
-      await ping();
+      blockCount = await fetchBlockCount();
       connectionError = null;
       connected = true;
     } catch (error) {
-      log.t('could not ping: ${error.toString()}!');
+      log.t('could not test connection: ${error.toString()}!');
 
       // Only update the error message if we're finished with binary init
       if (!initializingBinary) {
@@ -72,6 +72,7 @@ abstract class RPCConnection extends ChangeNotifier {
   SingleNodeConnectionSettings conf;
   String? connectionError;
   bool connected = false;
+  int blockCount = 0;
 
   Future<void> initBinary(
     BuildContext context,

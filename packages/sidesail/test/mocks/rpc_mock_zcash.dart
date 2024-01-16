@@ -12,11 +12,6 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<void> ping() async {
-    return;
-  }
-
-  @override
   Future<(double, double)> getBalance() async {
     return (123.0, 0.0);
   }
@@ -279,7 +274,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<int> sideBlockCount() async {
+  Future<int> fetchBlockCount() async {
     return 100;
   }
 

@@ -51,11 +51,6 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<void> ping() async {
-    await _client.getChainId();
-  }
-
-  @override
   Future<(double, double)> getBalance() async {
     final account = await _setAndGetAccount();
     final balance = await _client.getBalance(account);
@@ -156,9 +151,9 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<int> sideBlockCount() {
-    // TODO: implement sideBlockCount
-    throw UnimplementedError();
+  Future<int> fetchBlockCount() async {
+    final blockCount = await callRAW('eth_blockNumber') as int;
+    return blockCount;
   }
 
   @override
