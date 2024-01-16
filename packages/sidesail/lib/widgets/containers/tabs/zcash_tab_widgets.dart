@@ -12,6 +12,7 @@ import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
@@ -24,7 +25,7 @@ class ShieldUTXOAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ShieldUTXOActionViewModel(),
+      viewModelBuilder: () => ShieldUTXOActionViewModel(utxo),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
           'Shield coins',
@@ -41,7 +42,7 @@ class ShieldUTXOAction extends StatelessWidget {
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
               hintText: 'How much do you want to shield?',
-              suffixText: 'BTC',
+              suffixText: viewModel.ticker,
               bitcoinInput: true,
               autofocus: true,
             ),
@@ -70,6 +71,7 @@ class ShieldUTXOAction extends StatelessWidget {
 
 class ShieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
@@ -80,10 +82,25 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
       ((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)).toStringAsFixed(8);
 
   double get shieldFee => _zcashProvider.sideFee;
+  String get ticker => _sidechainContainer.rpc.chain.ticker;
   double? get amount => double.tryParse(bitcoinAmountController.text);
+  late double maxAmount;
 
-  ShieldUTXOActionViewModel() {
-    bitcoinAmountController.addListener(notifyListeners);
+  ShieldUTXOActionViewModel(UnshieldedUTXO utxo) {
+    maxAmount = utxo.amount - shieldFee;
+    bitcoinAmountController.addListener(_withMaxAmount);
+  }
+
+  void _withMaxAmount() {
+    String currentInput = bitcoinAmountController.text;
+
+    if (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount) {
+      bitcoinAmountController.text = maxAmount.toString();
+      bitcoinAmountController.selection =
+          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+    } else {
+      notifyListeners();
+    }
   }
 
   void shield(BuildContext context, UnshieldedUTXO utxo) async {
@@ -106,7 +123,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'shielding utxo: $amount BTC to ${utxo.address} with $shieldFee shield fee',
+      'shielding utxo: $amount $ticker to ${utxo.address} with $shieldFee shield fee',
     );
 
     try {
@@ -128,7 +145,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Initiated shield',
-        title: 'You shielded $amount BTC to your Z-address',
+        title: 'You shielded $amount $ticker to your Z-address',
         subtitle: 'OPID: $shieldID',
       );
     } catch (error) {
@@ -147,6 +164,12 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
     // also pop the info modal
     await _router.pop();
   }
+
+  @override
+  void dispose() {
+    super.dispose();
+    bitcoinAmountController.removeListener(_withMaxAmount);
+  }
 }
 
 class DeshieldUTXOAction extends StatelessWidget {
@@ -157,7 +180,7 @@ class DeshieldUTXOAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => DeshieldUTXOActionViewModel(),
+      viewModelBuilder: () => DeshieldUTXOActionViewModel(utxo),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
           'Deshield coins',
@@ -174,7 +197,7 @@ class DeshieldUTXOAction extends StatelessWidget {
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
               hintText: 'How much do you want to deshield?',
-              suffixText: 'BTC',
+              suffixText: viewModel.ticker,
               bitcoinInput: true,
               autofocus: true,
             ),
@@ -203,6 +226,7 @@ class DeshieldUTXOAction extends StatelessWidget {
 
 class DeshieldUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
@@ -212,14 +236,30 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
   String get totalBitcoinAmount =>
       ((double.tryParse(bitcoinAmountController.text) ?? 0) + (deshieldFee)).toStringAsFixed(8);
 
-  String deshieldAddress = '';
   double get deshieldFee => _zcashProvider.sideFee;
+  String get ticker => _sidechainContainer.rpc.chain.ticker;
   double? get amount => double.tryParse(bitcoinAmountController.text);
 
-  DeshieldUTXOActionViewModel() {
-    bitcoinAmountController.addListener(notifyListeners);
+  String deshieldAddress = '';
+  late double maxAmount;
+
+  DeshieldUTXOActionViewModel(ShieldedUTXO utxo) {
+    maxAmount = utxo.amount - deshieldFee;
+    bitcoinAmountController.addListener(_withMaxAmount);
 
     init();
+  }
+
+  void _withMaxAmount() {
+    String currentInput = bitcoinAmountController.text;
+
+    if (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount) {
+      bitcoinAmountController.text = maxAmount.toString();
+      bitcoinAmountController.selection =
+          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+    } else {
+      notifyListeners();
+    }
   }
 
   void init() async {
@@ -247,7 +287,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'deshielding utxo: $amount BTC to ${utxo.address} with $deshieldFee deshield fee',
+      'deshielding utxo: $amount $ticker to ${utxo.address} with $deshieldFee deshield fee',
     );
 
     try {
@@ -269,7 +309,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Initiated deshield',
-        title: 'You deshielded $amount BTC to tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
+        title: 'You deshielded $amount $ticker to tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         subtitle: 'OPID: $deshieldID',
       );
     } catch (error) {
@@ -287,6 +327,12 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
 
     // also pop the info modal
     await _router.pop();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    bitcoinAmountController.removeListener(_withMaxAmount);
   }
 }
 
@@ -341,6 +387,7 @@ class CastSingleUTXOAction extends StatelessWidget {
 
 class CastSingleUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
@@ -351,6 +398,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
   double get castableAmount => includedInBills!.fold(0, (sum, bill) => sum + bill.amount);
   double get totalBitcoinAmount => castableAmount + castFee;
   double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
+  String get ticker => _sidechainContainer.rpc.chain.ticker;
 
   List<String> castAddresses = [];
 
@@ -395,7 +443,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'casting utxo: $castableAmount BTC to $castAddresses with $castFee deshield fee',
+      'casting utxo: $castableAmount $ticker to $castAddresses with $castFee deshield fee',
     );
 
     try {
@@ -416,7 +464,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Cast single UTXO',
-        title: 'You will cast $totalBitcoinAmount BTC to $castAddresses',
+        title: 'You will cast $totalBitcoinAmount $ticker to $castAddresses',
         subtitle:
             'Will cast to ${includedInBills!.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
@@ -496,16 +544,17 @@ class MeltAction extends StatelessWidget {
 
 class MeltActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
 
-  double get shieldFee => _zcashProvider.sideFee;
-
   final bitcoinAmountController = TextEditingController();
-  double get totalBitcoinAmount => (meltAmount + meltFee);
 
+  double get shieldFee => _zcashProvider.sideFee;
+  String get ticker => _sidechainContainer.rpc.chain.ticker;
+  double get totalBitcoinAmount => (meltAmount + meltFee);
   List<UnshieldedUTXO> get meltableUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((utxo) => utxo.amount > 0.0001).toList();
   double get meltAmount =>
@@ -533,7 +582,7 @@ class MeltActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'melting ${meltableUTXOs.length} utxos: $meltAmount BTC to with $shieldFee shield fee',
+      'melting ${meltableUTXOs.length} utxos: $meltAmount $ticker to with $shieldFee shield fee',
     );
 
     try {
@@ -555,7 +604,7 @@ class MeltActionViewModel extends BaseViewModel {
         context: context,
         action: 'Initiated melt',
         title:
-            'You will shield ${meltableUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} BTC to your Z-address',
+            'You will shield ${meltableUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} $ticker to your Z-address',
         subtitle:
             'Will melt in ${willMeltAt.map((e) => e.toStringAsFixed(e.roundToDouble() == e ? 0 : 2)).join(', ')} minutes.\nDont close the application until ${meltInMinutesController.text} minute(s) have passed',
       );
@@ -637,6 +686,7 @@ class MeltSingleUTXOAction extends StatelessWidget {
 
 class MeltSingleUTXOActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
@@ -645,7 +695,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
   final UnshieldedUTXO utxo;
 
   String get totalBitcoinAmount => ((castAmount + (shieldFee)).toStringAsFixed(8));
-
+  String get ticker => _sidechainContainer.rpc.chain.ticker;
   double get shieldFee => _zcashProvider.sideFee;
   double get castAmount => utxo.amount - shieldFee;
 
@@ -663,7 +713,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'melting utxo: $castAmount BTC to ${utxo.address} with $shieldFee shield fee',
+      'melting utxo: $castAmount $ticker to ${utxo.address} with $shieldFee shield fee',
     );
 
     try {
@@ -685,7 +735,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Initiated melt',
-        title: 'You melted $castAmount BTC to your Z-address',
+        title: 'You melted $castAmount $ticker to your Z-address',
         subtitle: 'OPID: $shieldID',
       );
     } catch (error) {
@@ -756,12 +806,14 @@ class CastAction extends StatelessWidget {
 
 class CastActionViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
 
+  String get ticker => _sidechainContainer.rpc.chain.ticker;
   double get shieldFee => _zcashProvider.sideFee;
   List<PendingDeshield> get includedInBundle {
     final List<PendingDeshield> bundles = [];
@@ -801,7 +853,7 @@ class CastActionViewModel extends BaseViewModel {
     }
 
     log.i(
-      'casting ${_zcashProvider.shieldedUTXOs.length} utxos: $castAmount BTC to with $castFee cast fee',
+      'casting ${_zcashProvider.shieldedUTXOs.length} utxos: $castAmount $ticker to with $castFee cast fee',
     );
 
     try {
@@ -815,7 +867,7 @@ class CastActionViewModel extends BaseViewModel {
         bundles.addAll(utxoBundle.toList());
 
         log.i(
-          'casting utxo to bills of power ${utxoBundle.map((e) => e.amount).join(' BTC, ')}',
+          'casting utxo to bills of power ${utxoBundle.map((e) => e.amount).join(' $ticker, ')}',
         );
 
         _castProvider.addPendingUTXO(
@@ -837,7 +889,7 @@ class CastActionViewModel extends BaseViewModel {
         context: context,
         action: 'Cast all UTXOs',
         title:
-            'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} BTC to your Z-address',
+            'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${totalBitcoinAmount.toStringAsFixed(8)} $ticker to your Z-address',
         subtitle:
             'Will cast to ${bundles.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
@@ -939,6 +991,8 @@ class UnshieldedUTXOView extends StatefulWidget {
 }
 
 class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
+
   bool expanded = false;
   late Map<String, dynamic> decodedUTXO;
   @override
@@ -965,7 +1019,7 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
               });
             },
             child: SingleValueContainer(
-              width: 130,
+              width: 105,
               prefixAction: SailButton.secondary(
                 widget.meltMode ? 'Melt' : 'Shield',
                 onPressed: widget.shieldAction,
@@ -982,7 +1036,7 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
                       child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
                     ),
               copyable: false,
-              label: '${widget.utxo.amount.toStringAsFixed(8)} BTC',
+              label: '${widget.utxo.amount.toStringAsFixed(8)} ${_sidechainContainer.rpc.chain.ticker}',
               value: widget.utxo.address,
               trailingText: '',
             ),
@@ -1015,6 +1069,8 @@ class ShieldedUTXOView extends StatefulWidget {
 }
 
 class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
+
   bool expanded = false;
   late Map<String, dynamic> decodedUTXO;
   @override
@@ -1041,7 +1097,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
               });
             },
             child: SingleValueContainer(
-              width: 130,
+              width: 105,
               prefixAction: SailButton.secondary(
                 widget.castMode ? 'Cast' : 'Deshield',
                 onPressed: widget.deshieldAction,
@@ -1058,7 +1114,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
                       child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
                     ),
               copyable: false,
-              label: '${widget.utxo.amount.toStringAsFixed(8)} BTC',
+              label: '${widget.utxo.amount.toStringAsFixed(8)} ${_sidechainContainer.rpc.chain.ticker}',
               value: widget.utxo.txid,
               trailingText: '',
             ),
@@ -1186,6 +1242,8 @@ class PendingMeltView extends StatefulWidget {
 }
 
 class _PendingMeltViewState extends State<PendingMeltView> {
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
+
   int executeInSeconds = 0;
   bool expanded = false;
   late Map<String, dynamic> decodedTX;
@@ -1241,7 +1299,8 @@ class _PendingMeltViewState extends State<PendingMeltView> {
               ),
               copyable: false,
               label: widget.tx.utxo.amount.toStringAsFixed(8),
-              value: 'Will melt ${widget.tx.utxo.amount} BTC from ${widget.tx.utxo.address}',
+              value:
+                  'Will melt ${widget.tx.utxo.amount} ${_sidechainContainer.rpc.chain.ticker} from ${widget.tx.utxo.address}',
               trailingText: countdownText,
             ),
           ),

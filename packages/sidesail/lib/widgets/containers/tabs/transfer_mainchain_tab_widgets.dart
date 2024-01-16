@@ -56,7 +56,7 @@ class PegOutAction extends StatelessWidget {
             ),
             StaticActionField(
               label: '${viewModel.sidechain.rpc.chain.name} fee',
-              value: '${(viewModel.sidechainFee ?? 0).toStringAsFixed(8)} BTC',
+              value: '${(viewModel.sidechainFee ?? 0).toStringAsFixed(8)} ${viewModel.sidechain.rpc.chain.ticker}',
             ),
             StaticActionField(
               label: 'Total amount',

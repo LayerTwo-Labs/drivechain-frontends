@@ -220,7 +220,8 @@ class ZcashRPCLive extends ZCashRPC {
   Future<String> shield(UnshieldedUTXO utxo, double amount) async {
     amount = cleanAmount(amount);
 
-    log.i('shielding $amount BTC from address=${utxo.address} amount=${utxo.amount} BTC confs=${utxo.confirmations}');
+    log.i(
+        'shielding $amount ${chain.ticker} from address=${utxo.address} amount=${utxo.amount} ${chain.ticker} confs=${utxo.confirmations}');
 
     final zAddress = await sideGenerateAddress();
 

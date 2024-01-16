@@ -92,17 +92,17 @@ class SendOnSidechainAction extends StatelessWidget {
             ),
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAmountController,
-              hintText: 'Enter a BTC-amount',
-              suffixText: 'BTC',
+              hintText: 'Enter a ${viewModel.ticker}-amount',
+              suffixText: viewModel.ticker,
               bitcoinInput: true,
             ),
             StaticActionField(
               label: 'Fee',
-              value: '${viewModel.sidechainExpectedFee ?? 0} BTC',
+              value: '${(viewModel.sidechainExpectedFee ?? 0).toStringAsFixed(8)} ${viewModel.ticker}',
             ),
             StaticActionField(
               label: 'Total amount',
-              value: '${viewModel.totalBitcoinAmount} SBTC',
+              value: '${viewModel.totalBitcoinAmount} ${viewModel.ticker}',
             ),
           ],
         );
@@ -113,6 +113,8 @@ class SendOnSidechainAction extends StatelessWidget {
 
 class SendOnSidechainViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
+
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
@@ -122,6 +124,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount =>
       ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)).toStringAsFixed(8);
+  String get ticker => _sidechainContainer.rpc.chain.ticker;
 
   double? sidechainExpectedFee;
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
@@ -182,7 +185,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
     double amount,
   ) async {
     log.i(
-      'doing sidechain withdrawal: $amount BTC to $address with $sidechainExpectedFee SC fee',
+      'doing sidechain withdrawal: $amount $ticker to $address with $sidechainExpectedFee SC fee',
     );
 
     try {
@@ -205,7 +208,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Send on sidechain',
-        title: 'You sent $amount BTC to $address',
+        title: 'You sent $amount $ticker to $address',
         subtitle: 'TXID: $sendTXID',
       );
     } catch (error) {
