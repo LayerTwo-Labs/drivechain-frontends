@@ -218,3 +218,86 @@ class ZCashTransferTabViewModel extends BaseViewModel {
     _transactionsProvider.removeListener(notifyListeners);
   }
 }
+
+class ZCashWidgetTitle extends StatelessWidget {
+  final VoidCallback depositNudgeAction;
+
+  AppRouter get router => GetIt.I.get<AppRouter>();
+
+  const ZCashWidgetTitle({
+    super.key,
+    required this.depositNudgeAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => ZCashWidgetTitleViewModel(),
+      builder: ((context, viewModel, child) {
+        if (viewModel.balance != 0) {
+          return SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              SailText.secondary13('Your ZCash-address: ${viewModel.zcashAddress}'),
+              Expanded(child: Container()),
+            ],
+          );
+        }
+
+        return SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            SailButton.primary(
+              'Deposit coins',
+              onPressed: () async {
+                try {
+                  depositNudgeAction();
+                } catch (err) {
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  await errorDialog(
+                    context: context,
+                    action: 'Deposit coins',
+                    title: 'Could not move to deposit tab',
+                    subtitle: err.toString(),
+                  );
+                }
+              },
+              loading: viewModel.isBusy,
+              size: ButtonSize.small,
+            ),
+            SailText.secondary12(
+              'To get started, you must deposit coins to your sidechain. Peg-In on the Parent Chain tab',
+            ),
+            Expanded(child: Container()),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class ZCashWidgetTitleViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+
+  String get zcashAddress => _zcashProvider.zcashAddress;
+  double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
+
+  bool showAll = false;
+
+  ZCashWidgetTitleViewModel() {
+    _zcashProvider.addListener(notifyListeners);
+    _balanceProvider.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _zcashProvider.removeListener(notifyListeners);
+    _balanceProvider.removeListener(notifyListeners);
+  }
+}
