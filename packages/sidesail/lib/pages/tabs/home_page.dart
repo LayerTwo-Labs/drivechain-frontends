@@ -75,6 +75,7 @@ class _HomePageState extends State<HomePage> {
       ZCashMeltCastTabRoute(),
       ZCashShieldDeshieldTabRoute(),
       ZCashRPCTabRoute(),
+      ZCashTransferTabRoute(),
 
       // trailing common routes
       NodeSettingsTabRoute(),
@@ -436,9 +437,9 @@ class _SideNavState extends State<SideNav> {
             subs: [
               SubNavEntry(
                 title: 'Transfer',
-                selected: tabsRouter.activeIndex == TestchainHome,
+                selected: tabsRouter.activeIndex == ZCashHome + 3,
                 onPressed: () {
-                  tabsRouter.setActiveIndex(TestchainHome);
+                  tabsRouter.setActiveIndex(ZCashHome + 3);
                 },
               ),
               SubNavEntry(
