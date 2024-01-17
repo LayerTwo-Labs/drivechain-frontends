@@ -40,10 +40,11 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<String> shield(UnshieldedUTXO utxo, double amount);
   Future<String> deshield(ShieldedUTXO utxo, double amount);
 
+  Future<String> sendTransparent(String address, double amount, bool subtractFeeFromAmount);
+  Future<String> getTransparentAddress();
+
   // how many UTXOs each cast will be split into when deshielding them
   double numUTXOsPerCast = 4;
-
-  Future<String> getNewAddress();
 }
 
 class ZcashRPCLive extends ZCashRPC {
@@ -141,7 +142,7 @@ class ZcashRPCLive extends ZCashRPC {
   Future<String> deshield(ShieldedUTXO utxo, double amount) async {
     amount = cleanAmount(amount);
 
-    final regularAddress = await getNewAddress();
+    final regularAddress = await getTransparentAddress();
     final operationID = await _client().call('z_sendmany', [
       utxo.address,
       [
@@ -287,9 +288,8 @@ class ZcashRPCLive extends ZCashRPC {
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
     amount = cleanAmount(amount);
 
-    final zAddress = await sideGenerateAddress();
     final txid = await _client().call('z_sendmany', [
-      zAddress,
+      'ANY_TADDR',
       [
         {
           'address': address,
@@ -303,7 +303,25 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> getNewAddress() async {
+  Future<String> sendTransparent(String address, double amount, bool subtractFeeFromAmount) async {
+    amount = cleanAmount(amount);
+
+    final txid = await _client().call(
+      'sendtoaddress',
+      [
+        address,
+        double.parse(amount.toStringAsFixed(8)),
+        '',
+        '',
+        subtractFeeFromAmount,
+      ],
+    );
+
+    return txid;
+  }
+
+  @override
+  Future<String> getTransparentAddress() async {
     return await _client().call('getnewaddress');
   }
 

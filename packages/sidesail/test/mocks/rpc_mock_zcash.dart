@@ -284,12 +284,17 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<String> getNewAddress() async {
+  Future<String> getTransparentAddress() async {
     return 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu';
   }
 
   @override
   Future<void> stopNode() async {
     return;
+  }
+
+  @override
+  Future<String> sendTransparent(String address, double amount, bool subtractFeeFromAmount) async {
+    return 'txiddeadbeef';
   }
 }
