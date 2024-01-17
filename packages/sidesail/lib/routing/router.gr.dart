@@ -103,9 +103,10 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const ZCashShieldDeshieldTabPage(),
       );
     },
+    ZCashTransferTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const ZCashShieldTabPage(),
+        child: const ZCashTransferTabPage(),
       );
     },
   };
@@ -331,38 +332,15 @@ class ZCashShieldDeshieldTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [ZCashWidgetTitle]
-class ZCashWidgetTitle extends PageRouteInfo<ZCashWidgetTitleArgs> {
-  ZCashWidgetTitle({
-    Key? key,
-    required void Function() depositNudgeAction,
-    List<PageRouteInfo>? children,
-  }) : super(
-          ZCashWidgetTitle.name,
-          args: ZCashWidgetTitleArgs(
-            key: key,
-            depositNudgeAction: depositNudgeAction,
-          ),
+/// [ZCashTransferTabPage]
+class ZCashTransferTabRoute extends PageRouteInfo<void> {
+  const ZCashTransferTabRoute({List<PageRouteInfo>? children})
+      : super(
+          ZCashTransferTabRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'ZCashWidgetTitle';
+  static const String name = 'ZCashTransferTabRoute';
 
-  static const PageInfo<ZCashWidgetTitleArgs> page = PageInfo<ZCashWidgetTitleArgs>(name);
-}
-
-class ZCashWidgetTitleArgs {
-  const ZCashWidgetTitleArgs({
-    this.key,
-    required this.depositNudgeAction,
-  });
-
-  final Key? key;
-
-  final void Function() depositNudgeAction;
-
-  @override
-  String toString() {
-    return 'ZCashWidgetTitleArgs{key: $key, depositNudgeAction: $depositNudgeAction}';
-  }
+  static const PageInfo<void> page = PageInfo<void>(name);
 }

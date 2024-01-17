@@ -15,6 +15,7 @@ import 'package:sidesail/pages/tabs/testchain/testchain_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_melt_cast_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_shield_deshield_page.dart';
+import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/pages/test_page.dart';
 
 part 'router.gr.dart';
@@ -70,6 +71,9 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: ZCashShieldDeshieldTabRoute.page,
+            ),
+            AutoRoute(
+              page: ZCashTransferTabRoute.page,
             ),
             AutoRoute(
               page: ZCashRPCTabRoute.page,
