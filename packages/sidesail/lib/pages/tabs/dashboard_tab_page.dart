@@ -109,7 +109,7 @@ class DashboardTabViewModel extends BaseViewModel {
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
 
-  List<CoreTransaction> get transactions => _transactionsProvider.transactions;
+  List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
 
   Sidechain get chain => _sideRPC.rpc.chain;
 

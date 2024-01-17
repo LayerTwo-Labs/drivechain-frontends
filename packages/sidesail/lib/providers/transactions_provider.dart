@@ -17,7 +17,7 @@ class TransactionsProvider extends ChangeNotifier {
   // to this class will be notified of changes to these
   // variables.
   List<UTXO> unspentMainchainUTXOs = [];
-  List<CoreTransaction> transactions = [];
+  List<CoreTransaction> sidechainTransactions = [];
   bool initialized = false;
 
   // used for polling
@@ -30,8 +30,8 @@ class TransactionsProvider extends ChangeNotifier {
 
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
-    transactions = await sidechain.rpc.listTransactions();
-    transactions = transactions.reversed.toList();
+    sidechainTransactions = await sidechain.rpc.listTransactions();
+    sidechainTransactions = sidechainTransactions.reversed.toList();
 
     unspentMainchainUTXOs = await _mainchainRPC.listUnspent();
     unspentMainchainUTXOs = unspentMainchainUTXOs.reversed.toList();
