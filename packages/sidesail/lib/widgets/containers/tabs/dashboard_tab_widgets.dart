@@ -66,12 +66,17 @@ class DashboardGroup extends StatelessWidget {
 }
 
 class SendOnSidechainAction extends StatelessWidget {
-  const SendOnSidechainAction({super.key});
+  final Future<String> Function(String address, double amount)? customSendAction;
+
+  const SendOnSidechainAction({
+    super.key,
+    this.customSendAction,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => SendOnSidechainViewModel(),
+      viewModelBuilder: () => SendOnSidechainViewModel(customSendAction: customSendAction),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
           'Send on sidechain',
@@ -129,7 +134,9 @@ class SendOnSidechainViewModel extends BaseViewModel {
   double? sidechainExpectedFee;
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
 
-  SendOnSidechainViewModel() {
+  final Future<String> Function(String address, double amount)? customSendAction;
+
+  SendOnSidechainViewModel({this.customSendAction}) {
     bitcoinAddressController.addListener(notifyListeners);
     bitcoinAmountController.addListener(notifyListeners);
     init();
@@ -189,12 +196,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
     );
 
     try {
-      final sendTXID = await _rpc.rpc.sideSend(
-        address,
-        amount,
-        false,
-      );
-      log.i('sent sidechain withdrawal txid: $sendTXID');
+      final sendTXID = await _send(address, amount);
+      log.i('sent sidechain withdrawal txid: $sendTXID sendTXID');
 
       // refresh balance, but don't await, so dialog is showed instantly
       unawaited(_balanceProvider.fetch());
@@ -227,15 +230,35 @@ class SendOnSidechainViewModel extends BaseViewModel {
     // also pop the info modal
     await _router.pop();
   }
+
+  Future<String> _send(
+    String address,
+    double amount,
+  ) async {
+    if (customSendAction != null) {
+      return await customSendAction!(address, amount);
+    }
+
+    return await _rpc.rpc.sideSend(
+      address,
+      amount,
+      false,
+    );
+  }
 }
 
 class ReceiveOnSidechainAction extends StatelessWidget {
-  const ReceiveOnSidechainAction({super.key});
+  final Future<String> Function()? customReceiveAction;
+
+  const ReceiveOnSidechainAction({
+    super.key,
+    this.customReceiveAction,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ReceiveOnSidechainViewModel(),
+      viewModelBuilder: () => ReceiveOnSidechainViewModel(customReceiveAction: customReceiveAction),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
           'Receive on sidechain',
@@ -265,13 +288,22 @@ class ReceiveOnSidechainViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
 
   String? sidechainAddress;
+  final Future<String> Function()? customReceiveAction;
 
-  ReceiveOnSidechainViewModel() {
+  ReceiveOnSidechainViewModel({this.customReceiveAction}) {
     generateSidechainAddress();
   }
 
   Future<void> generateSidechainAddress() async {
-    sidechainAddress = await _rpc.rpc.sideGenerateAddress();
+    sidechainAddress = await _receive();
     notifyListeners();
+  }
+
+  Future<String> _receive() async {
+    if (customReceiveAction != null) {
+      return await customReceiveAction!();
+    }
+
+    return await _rpc.rpc.sideGenerateAddress();
   }
 }
