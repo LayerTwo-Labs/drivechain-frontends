@@ -6,6 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
+import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -202,60 +203,5 @@ class ZCashShieldTabViewModel extends BaseViewModel {
     super.dispose();
     _zcashProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
-  }
-}
-
-class ZCashWidgetTitle extends ViewModelWidget<ZCashShieldTabViewModel> {
-  final VoidCallback depositNudgeAction;
-
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
-  const ZCashWidgetTitle({
-    super.key,
-    required this.depositNudgeAction,
-  });
-
-  @override
-  Widget build(BuildContext context, ZCashShieldTabViewModel viewModel) {
-    if (viewModel.balance != 0) {
-      return SailRow(
-        spacing: SailStyleValues.padding08,
-        children: [
-          SailText.secondary13('Your ZCash-address: ${viewModel.zcashAddress}'),
-          Expanded(child: Container()),
-        ],
-      );
-    }
-
-    return SailRow(
-      spacing: SailStyleValues.padding08,
-      children: [
-        SailButton.primary(
-          'Deposit coins',
-          onPressed: () async {
-            try {
-              depositNudgeAction();
-            } catch (err) {
-              if (!context.mounted) {
-                return;
-              }
-
-              await errorDialog(
-                context: context,
-                action: 'Deposit coins',
-                title: 'Could not move to deposit tab',
-                subtitle: err.toString(),
-              );
-            }
-          },
-          loading: viewModel.isBusy,
-          size: ButtonSize.small,
-        ),
-        SailText.secondary12(
-          'To get started, you must deposit coins to your sidechain. Peg-In on the Parent Chain tab',
-        ),
-        Expanded(child: Container()),
-      ],
-    );
   }
 }
