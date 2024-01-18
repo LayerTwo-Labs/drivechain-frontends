@@ -185,6 +185,8 @@ class PegOutViewModel extends BaseViewModel {
         title: 'Submitted peg-out successfully',
         subtitle: 'TXID: $withdrawalTxid',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       log.e('could not execute peg-out: $error', error: error);
 
@@ -199,9 +201,6 @@ class PegOutViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 }
 
@@ -358,6 +357,8 @@ class PegInEthViewModel extends BaseViewModel {
         title: 'Deposited from parent-chain successfully',
         subtitle: '',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       log.e('could not execute peg-out: $error', error: error);
 
@@ -372,8 +373,5 @@ class PegInEthViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 }

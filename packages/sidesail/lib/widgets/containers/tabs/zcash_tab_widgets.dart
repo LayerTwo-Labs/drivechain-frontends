@@ -148,6 +148,8 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
         title: 'You shielded $amount $ticker to your Z-address',
         subtitle: 'OPID: $shieldID',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -160,9 +162,6 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 
   @override
@@ -312,6 +311,8 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
         title: 'You deshielded $amount $ticker to tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         subtitle: 'OPID: $deshieldID',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -324,9 +325,6 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 
   @override
@@ -468,6 +466,8 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
         subtitle:
             'Will cast to ${includedInBills!.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -480,9 +480,6 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 }
 
@@ -608,6 +605,8 @@ class MeltActionViewModel extends BaseViewModel {
         subtitle:
             'Will melt in ${willMeltAt.map((e) => e.toStringAsFixed(e.roundToDouble() == e ? 0 : 2)).join(', ')} minutes.\nDont close the application until ${meltInMinutesController.text} minute(s) have passed',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -620,9 +619,6 @@ class MeltActionViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 
   @override
@@ -738,6 +734,8 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
         title: 'You melted $castAmount $ticker to your Z-address',
         subtitle: 'OPID: $shieldID',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -750,9 +748,6 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 }
 
@@ -893,6 +888,8 @@ class CastActionViewModel extends BaseViewModel {
         subtitle:
             'Will cast to ${bundles.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -905,9 +902,6 @@ class CastActionViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 }
 
