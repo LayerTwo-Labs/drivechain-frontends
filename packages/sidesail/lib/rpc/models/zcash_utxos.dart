@@ -29,6 +29,21 @@ class ShieldedUTXO {
     required this.raw,
   });
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+
+    return other is ShieldedUTXO && other.raw == raw;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        txid,
+        raw,
+      );
+
   factory ShieldedUTXO.fromMap(Map<String, dynamic> map) {
     return ShieldedUTXO(
       txid: map['txid'] ?? '',
