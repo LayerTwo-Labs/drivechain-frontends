@@ -13,6 +13,7 @@ import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
+import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -70,6 +71,30 @@ class ZCashTransferTabPage extends StatelessWidget {
                               ),
                             ],
                           ),
+                          DashboardGroup(
+                            title: 'Transparent UTXOs',
+                            widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
+                            endWidget: SailToggle(
+                              label: 'Show all UTXOs',
+                              value: viewModel.showAll,
+                              onChanged: (to) => viewModel.setShowAll(to),
+                            ),
+                            children: [
+                              SailColumn(
+                                spacing: 0,
+                                withDivider: true,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  for (final utxo in viewModel.unshieldedUTXOs)
+                                    UnshieldedUTXOView(
+                                      utxo: utxo,
+                                      shieldAction: null,
+                                      meltMode: true,
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -103,25 +128,27 @@ class ZCashTransferTabPage extends StatelessWidget {
                               ),
                             ],
                           ),
+                          DashboardGroup(
+                            title: 'Private UTXOs',
+                            widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
+                            children: [
+                              SailColumn(
+                                spacing: 0,
+                                withDivider: true,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  for (final utxo in viewModel.shieldedUTXOs)
+                                    ShieldedUTXOView(
+                                      utxo: utxo,
+                                      deshieldAction: null,
+                                      castMode: true,
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                DashboardGroup(
-                  title: 'Transactions',
-                  widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
-                  children: [
-                    SailColumn(
-                      spacing: 0,
-                      withDivider: true,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final tx in viewModel.transactions)
-                          CoreTransactionView(
-                            tx: tx,
-                          ),
-                      ],
                     ),
                   ],
                 ),

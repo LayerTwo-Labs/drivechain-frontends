@@ -1,15 +1,20 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
+import 'package:sidesail/rpc/rpc_mainchain.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
 class ZCashProvider extends ChangeNotifier {
   ZCashRPC get rpc => GetIt.I.get<ZCashRPC>();
   Logger get log => GetIt.I.get<Logger>();
+
+  MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
 
   String zcashAddress = '';
   List<OperationStatus> operations = [];
@@ -17,38 +22,73 @@ class ZCashProvider extends ChangeNotifier {
   List<UnshieldedUTXO> unshieldedUTXOs = [];
   double sideFee = 0.00001;
 
-  // used for polling
-  late Timer _timer;
+  bool _isFetching = false;
 
   ZCashProvider() {
+    // fetch on launch
     fetch();
-    _startPolling();
+
+    // then refetch every time the block count is updated
+    _mainchainRPC.addListener(fetch);
+    _sidechain.rpc.addListener(fetch);
   }
 
-  // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
     try {
-      zcashAddress = await rpc.sideGenerateAddress();
-      operations.addAll(await rpc.listOperations());
-      shieldedUTXOs = await rpc.listShieldedCoins();
-      unshieldedUTXOs = await rpc.listUnshieldedCoins();
-      sideFee = await rpc.sideEstimateFee();
+      if (_isFetching) {
+        return;
+      }
+      _isFetching = true;
+
+      var newZcashAddress = await rpc.sideGenerateAddress();
+      var newOperations = await rpc.listOperations();
+      var newShieldedUTXOs = await rpc.listShieldedCoins();
+      var newUnshieldedUTXOs = await rpc.listUnshieldedCoins();
+      var newSideFee = await rpc.sideEstimateFee();
+
+      if (_dataHasChanged(newZcashAddress, newOperations, newShieldedUTXOs, newUnshieldedUTXOs, newSideFee)) {
+        zcashAddress = newZcashAddress;
+        operations.addAll(newOperations);
+        shieldedUTXOs = newShieldedUTXOs;
+        unshieldedUTXOs = newUnshieldedUTXOs;
+        sideFee = newSideFee;
+        notifyListeners();
+      }
     } catch (error) {
       log.e('zcash_provider could not fetch: $error');
+    } finally {
+      _isFetching = false;
     }
-
-    notifyListeners();
   }
 
-  void _startPolling() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      try {
-        await fetch();
-        notifyListeners();
-      } catch (error) {
-        log.t('could not fetch transactions: $error');
-      }
-    });
+  bool _dataHasChanged(
+    String newZcashAddress,
+    List<OperationStatus> newOperations,
+    List<ShieldedUTXO> newShieldedUTXOs,
+    List<UnshieldedUTXO> newUnshieldedUTXOs,
+    double newSideFee,
+  ) {
+    if (newZcashAddress != zcashAddress) {
+      return true;
+    }
+
+    if (newOperations.isNotEmpty) {
+      return true;
+    }
+
+    if (!listEquals(shieldedUTXOs, newShieldedUTXOs)) {
+      return true;
+    }
+
+    if (!listEquals(unshieldedUTXOs, newUnshieldedUTXOs)) {
+      return true;
+    }
+
+    if (sideFee != newSideFee) {
+      return true;
+    }
+
+    return false;
   }
 
   // From here on out, MELT CODE BBY
@@ -85,7 +125,6 @@ class ZCashProvider extends ChangeNotifier {
   @override
   void dispose() {
     super.dispose();
-    _timer.cancel();
     for (final timer in _timers) {
       timer.cancel();
     }
