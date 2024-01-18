@@ -970,7 +970,7 @@ class _OperationViewState extends State<OperationView> {
 
 class UnshieldedUTXOView extends StatefulWidget {
   final UnshieldedUTXO utxo;
-  final VoidCallback shieldAction;
+  final VoidCallback? shieldAction;
   final bool meltMode;
 
   const UnshieldedUTXOView({
@@ -1013,13 +1013,14 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
               });
             },
             child: SingleValueContainer(
-              width: 115,
-              prefixAction: SailButton.secondary(
-                widget.meltMode ? 'Melt' : 'Shield',
-                onPressed: widget.shieldAction,
-                size: ButtonSize.small,
-                disabled: widget.utxo.amount <= 0.0001000,
-              ),
+              prefixAction: widget.shieldAction == null
+                  ? null
+                  : SailButton.secondary(
+                      widget.meltMode ? 'Melt' : 'Shield',
+                      onPressed: widget.shieldAction!,
+                      size: ButtonSize.small,
+                      disabled: widget.utxo.amount <= 0.0001000,
+                    ),
               icon: widget.utxo.confirmations >= 1
                   ? Tooltip(
                       message: '${widget.utxo.confirmations} confirmations',
@@ -1048,7 +1049,7 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
 
 class ShieldedUTXOView extends StatefulWidget {
   final ShieldedUTXO utxo;
-  final VoidCallback deshieldAction;
+  final VoidCallback? deshieldAction;
   final bool castMode;
 
   const ShieldedUTXOView({
@@ -1091,13 +1092,14 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
               });
             },
             child: SingleValueContainer(
-              width: 115,
-              prefixAction: SailButton.secondary(
-                widget.castMode ? 'Cast' : 'Deshield',
-                onPressed: widget.deshieldAction,
-                size: ButtonSize.small,
-                disabled: widget.utxo.amount <= 0.0001000,
-              ),
+              prefixAction: widget.deshieldAction == null
+                  ? null
+                  : SailButton.secondary(
+                      widget.castMode ? 'Cast' : 'Deshield',
+                      onPressed: widget.deshieldAction!,
+                      size: ButtonSize.small,
+                      disabled: widget.utxo.amount <= 0.0001000,
+                    ),
               icon: widget.utxo.confirmations >= 1
                   ? Tooltip(
                       message: '${widget.utxo.confirmations} confirmations',
