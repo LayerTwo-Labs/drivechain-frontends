@@ -21,6 +21,9 @@ abstract class MainchainRPC extends RPCConnection {
   Future<List<MainchainWithdrawal>> listFailedWithdrawals();
   Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot);
 
+  Future<String> send(String address, double amount, bool subtractFeeFromAmount);
+  Future<String> getNewAddress();
+
   final binary = 'drivechaind';
 }
 
@@ -141,6 +144,26 @@ class MainchainRPCLive extends MainchainRPC {
   Future<int> fetchBlockCount() async {
     final blockHeight = await _client().call('getblockcount') as int;
     return blockHeight;
+  }
+
+  @override
+  Future<String> send(String address, double amount, bool subtractFeeFromAmount) async {
+    amount = cleanAmount(amount);
+
+    final withdrawalTxid = await _client().call('sendtoaddress', [
+      address,
+      amount,
+      '',
+      '',
+      subtractFeeFromAmount,
+    ]);
+
+    return withdrawalTxid;
+  }
+
+  @override
+  Future<String> getNewAddress() async {
+    return await _client().call('getnewaddress');
   }
 }
 

@@ -73,4 +73,14 @@ class MockMainchainRPC extends MainchainRPC {
   Future<int> fetchBlockCount() async {
     return 69;
   }
+
+  @override
+  Future<String> getNewAddress() async {
+    return '3deadbeef';
+  }
+
+  @override
+  Future<String> send(String address, double amount, bool subtractFeeFromAmount) async {
+    return 'txiddeeadbeef';
+  }
 }
