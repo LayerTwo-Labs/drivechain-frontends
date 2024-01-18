@@ -90,22 +90,26 @@ class CastProvider extends ChangeNotifier {
   }
 
   void _executeCast(int powerOf) async {
-    final bundle = futureCasts.elementAt(powerOf);
-    log.d('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
+    try {
+      final bundle = futureCasts.elementAt(powerOf);
+      log.d('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
 
-    for (final pending in bundle.pendingShields) {
-      final opid = await _rpc.deshield(pending.fromUTXO, pending.amount);
-      log.i('casted utxo=${pending.fromUTXO.amount} pow=$powerOf opid=$opid');
+      for (final pending in bundle.pendingShields) {
+        final opid = await _rpc.deshield(pending.fromUTXO, pending.amount);
+        log.i('casted utxo=${pending.fromUTXO.amount} pow=$powerOf opid=$opid');
+      }
+
+      final newBill = PendingCastBill(
+        powerOf: bundle.powerOf,
+        executeAction: () => _executeCast(powerOf),
+      );
+      futureCasts[bundle.powerOf] = newBill;
+      log.d('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
+
+      await _zcashProvider.fetch();
+    } catch (error) {
+      log.e('could not cast ${error.toString()}');
     }
-
-    final newBill = PendingCastBill(
-      powerOf: bundle.powerOf,
-      executeAction: () => _executeCast(powerOf),
-    );
-    futureCasts[bundle.powerOf] = newBill;
-    log.d('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
-
-    await _zcashProvider.fetch();
   }
 
   List<PendingDeshield>? findBillsForAmount(ShieldedUTXO utxo) {
