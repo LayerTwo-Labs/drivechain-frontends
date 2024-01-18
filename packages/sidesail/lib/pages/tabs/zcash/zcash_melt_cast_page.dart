@@ -79,7 +79,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                             title: 'Melt Actions',
                             children: [
                               ActionTile(
-                                title: 'Melt all unshielded UTXOs',
+                                title: 'Melt all transparent UTXOs',
                                 category: Category.sidechain,
                                 icon: Icons.shield,
                                 onTap: () {
@@ -111,7 +111,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                               ],
                             ),
                           DashboardGroup(
-                            title: 'Unshielded UTXOs',
+                            title: 'Transparent UTXOs',
                             widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
                             endWidget: SailToggle(
                               label: 'Show all UTXOs',
@@ -150,7 +150,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                             title: 'Cast Actions',
                             children: [
                               ActionTile(
-                                title: 'Cast all shielded UTXOs',
+                                title: 'Cast all private UTXOs',
                                 category: Category.sidechain,
                                 icon: Icons.handyman,
                                 onTap: () {
@@ -182,7 +182,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                               ],
                             ),
                           DashboardGroup(
-                            title: 'Shielded UTXOs',
+                            title: 'Private UTXOs',
                             widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
                             children: [
                               SailColumn(
