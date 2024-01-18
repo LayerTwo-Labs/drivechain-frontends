@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class BalanceProvider extends ChangeNotifier {
+  MainchainRPC get _mainRPC => GetIt.I.get<MainchainRPC>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   Logger log = GetIt.I.get<Logger>();
 
@@ -16,13 +18,10 @@ class BalanceProvider extends ChangeNotifier {
   double pendingBalance = 0;
   bool initialized = false;
 
-  // used for polling
-  late Timer _timer;
-
   BalanceProvider() {
     fetch();
-    _startPolling();
-    sidechain.addListener(fetch);
+    sidechain.rpc.addListener(fetch);
+    _mainRPC.addListener(fetch);
   }
 
   // call this function from anywhere to refresh the balance
@@ -30,29 +29,44 @@ class BalanceProvider extends ChangeNotifier {
     // Explicitly ignoring errors here. RPC connection issues are handled
     // elsewhere!
     try {
-      final (bal, pendingBal) = await sidechain.rpc.getBalance();
-      balance = bal;
-      pendingBalance = pendingBal;
+      final (newBalance, newPendingBalance) = await sidechain.rpc.getBalance();
+      const newInitialized = true;
 
-      initialized = true;
-      notifyListeners();
+      if (_dataHasChanged(newBalance, newPendingBalance, newInitialized)) {
+        balance = newBalance;
+        pendingBalance = newPendingBalance;
+        initialized = newInitialized;
+        notifyListeners();
+      }
     } catch (err) {
       // ignore: avoid_print
       log.e('could not get balance $err');
     }
   }
 
-  void _startPolling() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      await fetch();
-    });
+  bool _dataHasChanged(
+    double newBalance,
+    double newPendingBalance,
+    bool newInitialized,
+  ) {
+    if (initialized != newInitialized) {
+      return true;
+    }
+
+    if (balance != newBalance) {
+      return true;
+    }
+    if (pendingBalance != newPendingBalance) {
+      return true;
+    }
+
+    return false;
   }
 
   @override
   void dispose() {
     super.dispose();
-    // Cancel timer when provider is disposed (never?)
-    _timer.cancel();
-    sidechain.removeListener(notifyListeners);
+    sidechain.removeListener(fetch);
+    _mainRPC.removeListener(fetch);
   }
 }
