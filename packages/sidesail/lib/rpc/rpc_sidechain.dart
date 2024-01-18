@@ -58,10 +58,20 @@ class SidechainContainer extends ChangeNotifier {
 
   Future<void> init() async {
     await _rpc.testConnection();
+    startConnectionTimer();
 
-    // assigning here calls the set-method, adding listeners,
-    // starting connection timers etc.
+    // assigning here calls the set-method, adding listeners
     rpc = _rpc;
+  }
+
+  // responsible for pinging the currently selected rpc every x seconds
+  // we want to update the UI immediately when the connection drops/begins
+  Timer? _connectionTimer;
+  void startConnectionTimer() {
+    _connectionTimer?.cancel();
+    _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      await _rpc.testConnection();
+    });
   }
 
   SidechainRPC get rpc => _rpc;
@@ -74,10 +84,6 @@ class SidechainContainer extends ChangeNotifier {
 
     // add the new listener
     _rpc.addListener(notifyListeners);
-
-    _rpc.startConnectionTimer();
-
-    unawaited(r.testConnection());
 
     notifyListeners();
   }
