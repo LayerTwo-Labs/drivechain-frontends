@@ -34,16 +34,17 @@ abstract class RPCConnection extends ChangeNotifier {
   Future<(bool, String?)> testConnection() async {
     try {
       final newBlockCount = await fetchBlockCount();
-      if (blockCount == newBlockCount) {
+      connectionError = null;
+      connected = true;
+
+      if (blockCount != newBlockCount) {
+        blockCount = newBlockCount;
+      } else {
         // nothing has changed, don't notify any listeners!
         return (connected, connectionError);
       }
-
-      blockCount = newBlockCount;
-      connectionError = null;
-      connected = true;
     } catch (error) {
-      log.t('could not test connection: ${error.toString()}!');
+      log.e('could not test connection: ${error.toString()}!');
 
       // Only update the error message if we're finished with binary init
       if (!initializingBinary) {
