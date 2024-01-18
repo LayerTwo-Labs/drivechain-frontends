@@ -130,7 +130,7 @@ class DashboardTabViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const ReceiveOnSidechainAction();
+        return const ReceiveAction();
       },
     );
   }
