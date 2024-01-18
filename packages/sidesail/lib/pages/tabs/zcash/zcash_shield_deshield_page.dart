@@ -71,7 +71,7 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                   children: [
                     Flexible(
                       child: DashboardGroup(
-                        title: 'Unshielded UTXOs',
+                        title: 'Transparent UTXOs',
                         widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
                         endWidget: SailToggle(
                           label: 'Show all UTXOs',
@@ -102,7 +102,7 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                     ),
                     Flexible(
                       child: DashboardGroup(
-                        title: 'Shielded UTXOs',
+                        title: 'Private UTXOs',
                         widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
                         children: [
                           SailColumn(
