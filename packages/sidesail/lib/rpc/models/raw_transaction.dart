@@ -19,6 +19,31 @@ class RawTransaction {
     required this.vout,
   });
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+
+    return other is RawTransaction &&
+        other.txid == txid &&
+        other.hash == hash &&
+        other.size == size &&
+        other.vsize == vsize &&
+        other.vin == vin &&
+        other.vout == vout;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        txid,
+        hash,
+        size,
+        vsize,
+        vin,
+        vout,
+      );
+
   factory RawTransaction.fromJson(Map<String, dynamic> json) {
     return RawTransaction(
       txid: json['txid'],
