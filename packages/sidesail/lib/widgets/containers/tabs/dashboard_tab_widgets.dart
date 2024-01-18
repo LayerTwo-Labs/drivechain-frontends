@@ -150,8 +150,6 @@ class SendOnSidechainViewModel extends BaseViewModel {
     setBusy(true);
     onSidechainSend(context);
     setBusy(false);
-
-    await _router.pop();
   }
 
   Future<void> estimateFee() async {
@@ -214,6 +212,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
         title: 'You sent $amount $ticker to $address',
         subtitle: 'TXID: $sendTXID',
       );
+      // also pop the info modal
+      await _router.pop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -226,9 +226,6 @@ class SendOnSidechainViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-
-    // also pop the info modal
-    await _router.pop();
   }
 
   Future<String> _send(
