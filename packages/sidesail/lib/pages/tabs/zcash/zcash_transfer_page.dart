@@ -202,7 +202,7 @@ class ZCashTransferTabViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const ReceiveOnSidechainAction();
+        return const ReceiveAction();
       },
     );
   }
@@ -228,7 +228,7 @@ class ZCashTransferTabViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return ReceiveOnSidechainAction(
+        return ReceiveAction(
           customReceiveAction: () async {
             return await _zcashProvider.rpc.getTransparentAddress();
           },

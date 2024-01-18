@@ -244,21 +244,23 @@ class SendOnSidechainViewModel extends BaseViewModel {
   }
 }
 
-class ReceiveOnSidechainAction extends StatelessWidget {
+class ReceiveAction extends StatelessWidget {
   final Future<String> Function()? customReceiveAction;
+  final String? customTitle;
 
-  const ReceiveOnSidechainAction({
+  const ReceiveAction({
     super.key,
     this.customReceiveAction,
+    this.customTitle,
   });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ReceiveOnSidechainViewModel(customReceiveAction: customReceiveAction),
+      viewModelBuilder: () => ReceiveViewModel(customReceiveAction: customReceiveAction),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Receive on sidechain',
+          customTitle ?? 'Receive on sidechain',
           endActionButton: SailButton.primary(
             'Generate new address',
             loading: viewModel.isBusy,
@@ -280,14 +282,14 @@ class ReceiveOnSidechainAction extends StatelessWidget {
   }
 }
 
-class ReceiveOnSidechainViewModel extends BaseViewModel {
+class ReceiveViewModel extends BaseViewModel {
   SidechainContainer get _rpc => GetIt.I.get<SidechainContainer>();
   final log = Logger(level: Level.debug);
 
   String? sidechainAddress;
   final Future<String> Function()? customReceiveAction;
 
-  ReceiveOnSidechainViewModel({this.customReceiveAction}) {
+  ReceiveViewModel({this.customReceiveAction}) {
     generateSidechainAddress();
   }
 
