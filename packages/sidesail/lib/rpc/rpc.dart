@@ -33,7 +33,13 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Future<(bool, String?)> testConnection() async {
     try {
-      blockCount = await fetchBlockCount();
+      final newBlockCount = await fetchBlockCount();
+      if (blockCount == newBlockCount) {
+        // nothing has changed, don't notify any listeners!
+        return (connected, connectionError);
+      }
+
+      blockCount = newBlockCount;
       connectionError = null;
       connected = true;
     } catch (error) {
@@ -174,7 +180,7 @@ abstract class RPCConnection extends ChangeNotifier {
   Timer? _connectionTimer;
   void startConnectionTimer() {
     _connectionTimer?.cancel();
-    _connectionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();
     });
   }
