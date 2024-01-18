@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
@@ -20,46 +20,43 @@ class TransactionsProvider extends ChangeNotifier {
   List<CoreTransaction> sidechainTransactions = [];
   bool initialized = false;
 
-  // used for polling
-  late Timer _timer;
-
   TransactionsProvider() {
+    _mainchainRPC.addListener(fetch);
+    sidechain.rpc.addListener(fetch);
     fetch();
-    _startPolling();
   }
 
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
-    sidechainTransactions = await sidechain.rpc.listTransactions();
-    sidechainTransactions = sidechainTransactions.reversed.toList();
+    final newUnspentMainchainUTXOs = (await _mainchainRPC.listUnspent()).reversed.toList();
+    final newSidechainTransactions = (await sidechain.rpc.listTransactions()).reversed.toList();
+    const newInitialized = true;
 
-    unspentMainchainUTXOs = await _mainchainRPC.listUnspent();
-    unspentMainchainUTXOs = unspentMainchainUTXOs.reversed.toList();
-
-    initialized = true;
-
-    notifyListeners();
+    if (_dataHasChanged(newUnspentMainchainUTXOs, newSidechainTransactions, newInitialized)) {
+      unspentMainchainUTXOs = newUnspentMainchainUTXOs;
+      sidechainTransactions = newSidechainTransactions;
+      initialized = newInitialized;
+      notifyListeners();
+    }
   }
 
-  void _startPolling() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      try {
-        await fetch();
-        notifyListeners();
-      } catch (error) {
-        log.t('could not fetch transactions: $error');
-      }
-    });
-  }
+  bool _dataHasChanged(
+    List<UTXO> newUnspentMainchainUTXOs,
+    List<CoreTransaction> newSidechainTransactions,
+    bool newInitialized,
+  ) {
+    if (newInitialized != initialized) {
+      return true;
+    }
 
-  void stopPolling() {
-    // Cancel timer when provider is disposed (never?)
-    _timer.cancel();
-  }
+    if (!listEquals(unspentMainchainUTXOs, newUnspentMainchainUTXOs)) {
+      return true;
+    }
 
-  @override
-  void dispose() {
-    super.dispose();
-    stopPolling();
+    if (!listEquals(sidechainTransactions, newSidechainTransactions)) {
+      return true;
+    }
+
+    return false;
   }
 }

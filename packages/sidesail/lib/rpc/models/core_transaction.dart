@@ -48,6 +48,18 @@ class CoreTransaction {
     required this.raw,
   });
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+
+    return other is CoreTransaction && other.raw == raw;
+  }
+
+  @override
+  int get hashCode => Object.hash(txid, raw);
+
   factory CoreTransaction.fromMap(Map<String, dynamic> map) {
     return CoreTransaction(
       address: map['address'] ?? '',

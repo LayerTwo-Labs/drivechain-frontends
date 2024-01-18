@@ -49,7 +49,5 @@ void main() {
     expect(find.text('Send SC0'), findsOneWidget);
     expect(find.text('Receive SC0'), findsOneWidget);
     expect(find.text('Transactions'), findsOneWidget);
-
-    txProvider.stopPolling();
   });
 }

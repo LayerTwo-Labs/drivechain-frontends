@@ -33,6 +33,18 @@ class UTXO {
     required this.raw,
   });
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+
+    return other is UTXO && other.raw == raw;
+  }
+
+  @override
+  int get hashCode => Object.hash(txid, raw);
+
   factory UTXO.fromMap(Map<String, dynamic> map) {
     return UTXO(
       txid: map['txid'] ?? '',
