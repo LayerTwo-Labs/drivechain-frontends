@@ -99,6 +99,10 @@ class EthereumRPCLive extends EthereumRPC {
     return '0x${number.toRadixString(16)}';
   }
 
+  int _fromHex(String hexString) {
+    return int.parse(hexString.replaceFirst('0x', ''), radix: 16);
+  }
+
   @override
   Future<List<CoreTransaction>> listTransactions() async {
     // TODO: Implement listtransactions
@@ -152,8 +156,8 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   Future<int> fetchBlockCount() async {
-    final blockCount = await callRAW('eth_blockNumber') as int;
-    return blockCount;
+    final blockCount = await callRAW('eth_blockNumber');
+    return _fromHex(blockCount);
   }
 
   @override
