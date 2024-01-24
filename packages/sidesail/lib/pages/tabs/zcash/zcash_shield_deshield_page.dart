@@ -74,8 +74,8 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                         title: 'Transparent UTXOs',
                         widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
                         endWidget: SailToggle(
-                          label: 'Show all UTXOs',
-                          value: viewModel.showAll,
+                          label: 'Hide dust UTXOs',
+                          value: viewModel.hideDust,
                           onChanged: (to) => viewModel.setShowAll(to),
                         ),
                         children: [
@@ -140,15 +140,15 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((u) => showAll || u.amount > 0.0001).toList();
+      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
-  bool showAll = false;
+  bool hideDust = false;
 
   void setShowAll(bool to) {
-    showAll = to;
+    hideDust = to;
     notifyListeners();
   }
 
