@@ -312,6 +312,7 @@ class PegInEthViewModel extends BaseViewModel {
 
   PegInEthViewModel() {
     generatePegInAddress();
+    bitcoinAmountController.addListener(notifyListeners);
   }
 
   Future<void> generatePegInAddress() async {
@@ -373,5 +374,11 @@ class PegInEthViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    bitcoinAmountController.removeListener(notifyListeners);
   }
 }
