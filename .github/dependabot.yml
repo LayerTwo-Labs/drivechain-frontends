@@ -3,6 +3,11 @@
 version: 2
 updates:
   - package-ecosystem: pub
-    directory: "/"
+    directory: "/packages/sidesail"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: pub
+    directory: "/packages/sail_ui"
     schedule:
       interval: weekly
