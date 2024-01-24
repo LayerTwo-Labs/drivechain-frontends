@@ -47,6 +47,7 @@ class SailSVG {
     SailSVGAsset asset, {
     bool isHighlighted = false,
     double? width,
+    double? height,
   }) {
     return Builder(
       builder: (context) {
@@ -56,6 +57,7 @@ class SailSVG {
           asset,
           color: coloredAssets.contains(asset) ? null : (isHighlighted ? colors.primary : colors.icon),
           width: width ?? SailStyleValues.iconSizePrimary,
+          height: height ?? SailStyleValues.iconSizePrimary,
         );
       },
     );
