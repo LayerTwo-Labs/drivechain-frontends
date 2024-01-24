@@ -98,10 +98,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_platform_alert
-      sha256: a9fd6791cbed77114daf996124fc71726324668ef4f9df626a7115b90bc8b3fd
+      sha256: "7e4b6fa8bf407522bf4ee1c245129c9974359833867c28826d1b2604bb3c2806"
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.0"
+    version: "0.5.1"
   flutter_svg:
     dependency: "direct main"
     description:
