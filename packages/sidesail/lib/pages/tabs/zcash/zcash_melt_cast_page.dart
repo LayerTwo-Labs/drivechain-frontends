@@ -114,8 +114,8 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                             title: 'Transparent UTXOs',
                             widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
                             endWidget: SailToggle(
-                              label: 'Show all UTXOs',
-                              value: viewModel.showAll,
+                              label: 'Hide dust UTXOs',
+                              value: viewModel.hideDust,
                               onChanged: (to) => viewModel.setShowAll(to),
                             ),
                             children: [
@@ -227,15 +227,15 @@ class ZCashCastTabViewModel extends BaseViewModel {
       _castProvider.futureCasts.where((element) => element.pendingShields.isNotEmpty).toList();
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((u) => showAll || u.amount > 0.0001).toList();
+      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
-  bool showAll = false;
+  bool hideDust = true;
 
   void setShowAll(bool to) {
-    showAll = to;
+    hideDust = to;
     notifyListeners();
   }
 

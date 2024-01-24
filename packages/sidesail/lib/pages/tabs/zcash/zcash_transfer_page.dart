@@ -75,9 +75,9 @@ class ZCashTransferTabPage extends StatelessWidget {
                             title: 'Transparent UTXOs',
                             widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
                             endWidget: SailToggle(
-                              label: 'Show all UTXOs',
-                              value: viewModel.showAll,
-                              onChanged: (to) => viewModel.setShowAll(to),
+                              label: 'Hide dust UTXOs',
+                              value: viewModel.hideDust,
+                              onChanged: (to) => viewModel.setHideDust(to),
                             ),
                             children: [
                               SailColumn(
@@ -170,16 +170,16 @@ class ZCashTransferTabViewModel extends BaseViewModel {
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((u) => showAll || u.amount > 0.0001).toList();
+      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
   List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
-  bool showAll = false;
+  bool hideDust = false;
 
-  void setShowAll(bool to) {
-    showAll = to;
+  void setHideDust(bool to) {
+    hideDust = to;
     notifyListeners();
   }
 
