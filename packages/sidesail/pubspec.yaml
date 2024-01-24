@@ -55,7 +55,7 @@ dependencies:
       url: https://github.com/xclud/web3dart.git
       ref: main
   http: ^1.1.0
-  path_provider: ^2.1.1
+  path_provider: ^2.1.2
   crypto: ^3.0.1
   shared_preferences: ^2.2.2
   flutter_window_close: ^1.0.0
