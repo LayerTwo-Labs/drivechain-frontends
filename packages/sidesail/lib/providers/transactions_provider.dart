@@ -36,7 +36,7 @@ class TransactionsProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newUnspentMainchainUTXOs = (await _mainchainRPC.listUnspent()).reversed.toList();
+      final newUnspentMainchainUTXOs = (await _mainchainRPC.listUnspent()).reversed.take(100).toList();
       final newSidechainTransactions = (await sidechain.rpc.listTransactions()).reversed.toList();
       const newInitialized = true;
 
