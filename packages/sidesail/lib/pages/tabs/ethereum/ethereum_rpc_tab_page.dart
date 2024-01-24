@@ -22,7 +22,7 @@ class EthereumRPCTabPage extends StatelessWidget {
       builder: ((context, viewModel, child) {
         return SailPage(
           scrollable: true,
-          title: 'Ethereum RPC',
+          title: 'RPC',
           subtitle: 'Call RPCs directly to the Ethereum sidechain. Try typing in "eth_blockNumber" in the input below.',
           widgetTitle: SailRow(
             spacing: SailStyleValues.padding08,
@@ -56,7 +56,7 @@ class EthereumRPCTabPage extends StatelessWidget {
             ],
           ),
           body: Padding(
-            padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+            padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding50),
             child: Column(
               children: [
                 RPCWidget(

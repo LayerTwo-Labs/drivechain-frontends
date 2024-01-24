@@ -20,10 +20,10 @@ class ZCashRPCTabPage extends StatelessWidget {
       builder: ((context, viewModel, child) {
         return SailPage(
           scrollable: true,
-          title: 'ZCash RPC',
+          title: 'RPC',
           subtitle: 'Call RPCs directly to the ZCash sidechain. Try typing in "getblockcount" in the input below.',
           body: Padding(
-            padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+            padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding50),
             child: Column(
               children: [
                 RPCWidget(
