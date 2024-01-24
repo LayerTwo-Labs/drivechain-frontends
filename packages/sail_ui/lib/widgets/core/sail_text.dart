@@ -153,6 +153,25 @@ class SailText {
     );
   }
 
+  static Widget secondary15(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.fifteen.copyWith(
+            color: theme.colors.textSecondary,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
+        );
+      },
+    );
+  }
+
   static Widget primary12(
     String label, {
     TextAlign? textAlign,
