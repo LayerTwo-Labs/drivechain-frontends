@@ -77,7 +77,7 @@ class _TopNavState extends State<TopNav> {
                   ),
                   TopNavEntry(
                     title: 'Settings',
-                    icon: SailSVGAsset.iconClose,
+                    icon: SailSVGAsset.iconSettings,
                     selected: topTabIsSelected(tabsRouter.activeIndex, 2),
                     onPressed: () {
                       // default to second to last route (node settings)
