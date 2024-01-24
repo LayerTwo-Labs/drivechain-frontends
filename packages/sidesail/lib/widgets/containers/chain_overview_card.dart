@@ -7,7 +7,7 @@ import 'package:sidesail/config/sidechains.dart';
 class ChainOverviewCard extends StatelessWidget {
   final Sidechain chain;
   final double confirmedBalance;
-  final double unconfirmedBalance;
+  final double? unconfirmedBalance;
   final bool highlighted;
   final bool currentChain;
   final VoidCallback? onPressed;
@@ -25,6 +25,41 @@ class ChainOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+
+    if (unconfirmedBalance == null) {
+      return SailScaleButton(
+        onPressed: onPressed,
+        child: SailBorder(
+          padding: const EdgeInsets.symmetric(
+            horizontal: SailStyleValues.padding05,
+            vertical: SailStyleValues.padding05,
+          ),
+          backgroundColor: highlighted ? theme.colors.actionHeader : null,
+          child: SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
+                decoration: BoxDecoration(
+                  color: chain.color,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: SailText.primary12(chain.ticker, customColor: theme.colors.background),
+              ),
+              SailColumn(
+                spacing: 0,
+                children: [
+                  SailText.secondary12(chain.name),
+                  SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return SailScaleButton(
       onPressed: onPressed,
@@ -78,7 +113,7 @@ class ChainOverviewCard extends StatelessWidget {
                         spacing: SailStyleValues.padding08,
                         children: [
                           SailSVG.icon(SailSVGAsset.iconPending),
-                          SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
+                          SailText.secondary12('${unconfirmedBalance!.toStringAsFixed(8)} ${chain.ticker}'),
                         ],
                       ),
                     ],
