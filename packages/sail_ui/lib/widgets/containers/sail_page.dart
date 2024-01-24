@@ -25,20 +25,23 @@ class SailPage extends StatelessWidget {
     final theme = SailTheme.of(context);
     final backgroundColor = theme.colors.background;
     final scaffold = SelectionArea(
-      child: Scaffold(
-        backgroundColor: backgroundColor,
-        appBar: widgetTitle == null
-            ? null
-            : SailAppBar.build(
-                context,
-                title: Padding(
-                  padding: widgetTitle != null
-                      ? const EdgeInsets.symmetric(vertical: SailStyleValues.padding10)
-                      : const EdgeInsets.all(0),
-                  child: widgetTitle,
+      child: Padding(
+        padding: const EdgeInsets.only(top: SailStyleValues.padding30),
+        child: Scaffold(
+          backgroundColor: backgroundColor,
+          appBar: widgetTitle == null
+              ? null
+              : SailAppBar.build(
+                  context,
+                  title: Padding(
+                    padding: widgetTitle != null
+                        ? const EdgeInsets.symmetric(vertical: SailStyleValues.padding10)
+                        : const EdgeInsets.all(0),
+                    child: widgetTitle,
+                  ),
                 ),
-              ),
-        body: buildBody(context),
+          body: buildBody(context),
+        ),
       ),
     );
     return scaffold;
@@ -110,6 +113,7 @@ Widget _withPadding(
   return Padding(
     padding: const EdgeInsets.only(
       bottom: SailStyleValues.padding20,
+      top: SailStyleValues.padding15,
     ),
     child: child,
   );

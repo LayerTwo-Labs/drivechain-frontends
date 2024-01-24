@@ -17,5 +17,6 @@ export './widgets/core/sail_shadow.dart';
 export './widgets/core/sail_svg.dart';
 export './widgets/inputs/large_embedded_input.dart';
 export './widgets/inputs/text_field.dart';
+export './widgets/nav/nav_components.dart';
 export './widgets/spacing.dart';
 export './widgets/static/static_field.dart';
