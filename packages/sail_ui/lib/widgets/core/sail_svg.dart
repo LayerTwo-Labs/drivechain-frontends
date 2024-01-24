@@ -10,6 +10,7 @@ enum SailSVGAsset {
 
   iconMainchain,
   iconSidechain,
+  iconSettings,
 
   iconSearch,
   iconCopy,
@@ -93,6 +94,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_mainchain.svg';
       case SailSVGAsset.iconSidechain:
         return 'assets/svgs/icon_sidechain.svg';
+      case SailSVGAsset.iconSettings:
+        return 'assets/svgs/icon_settings.svg';
 
       case SailSVGAsset.iconSearch:
         return 'assets/svgs/icon_search.svg';
