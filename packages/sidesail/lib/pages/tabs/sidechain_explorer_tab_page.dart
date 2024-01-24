@@ -4,12 +4,10 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/app.dart';
+import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
-import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/rpc/rpc_testchain.dart';
-import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/sail_settings/theme_settings.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
@@ -18,10 +16,6 @@ import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class SidechainExplorerTabPage extends StatelessWidget {
-  TestchainRPC get test => GetIt.I.get<TestchainRPC>();
-  EthereumRPC get eth => GetIt.I.get<EthereumRPC>();
-  ZCashRPC get zcash => GetIt.I.get<ZCashRPC>();
-
   const SidechainExplorerTabPage({super.key});
 
   @override
@@ -49,7 +43,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.testChain,
-                          onPressed: () => viewModel.setSidechain(test, app),
+                          onPressed: () => viewModel.setSidechain(TestSidechain(), app),
                         ),
                         ChainOverviewCard(
                           chain: EthereumSidechain(),
@@ -57,7 +51,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.ethereum,
-                          onPressed: () => viewModel.setSidechain(eth, app),
+                          onPressed: () => viewModel.setSidechain(EthereumSidechain(), app),
                         ),
                         ChainOverviewCard(
                           chain: ZCashSidechain(),
@@ -65,7 +59,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.zcash,
-                          onPressed: () => viewModel.setSidechain(zcash, app),
+                          onPressed: () => viewModel.setSidechain(ZCashSidechain(), app),
                         ),
                       ],
                     ),
@@ -102,12 +96,16 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
   }
 
-  void setSidechain(SidechainRPC rpc, SailAppState sailApp) {
-    log.d('setting sidechain RPC to "${rpc.chain.name}"');
-    sidechain.rpc = rpc;
+  void setSidechain(Sidechain chain, SailAppState sailApp) async {
+    setBusy(true);
+    final subRPC = await findSubRPC(chain);
 
+    log.d('setting sidechain RPC to "${subRPC.chain.name}"');
+    sidechain.rpc = subRPC;
+
+    setBusy(false);
     notifyListeners();
-    sailApp.loadTheme(theme);
+    await sailApp.loadTheme(theme);
   }
 
   @override

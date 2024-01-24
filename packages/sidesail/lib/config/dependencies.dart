@@ -30,7 +30,11 @@ Future<void> initDependencies(Sidechain chain) async {
   final log = await logger();
   GetIt.I.registerLazySingleton<Logger>(() => log);
 
-  await _initSidechainRPC(chain);
+  final sidechain = await findSubRPC(chain);
+  final sidechainContainer = await SidechainContainer.create(sidechain);
+  GetIt.I.registerLazySingleton<SidechainContainer>(
+    () => sidechainContainer,
+  );
 
   SingleNodeConnectionSettings mainchainConf = _emptyNodeConf;
   try {
@@ -84,7 +88,7 @@ Future<void> initDependencies(Sidechain chain) async {
 // register all rpc connections. We attempt to create all
 // rpcs in parallell, so they're ready instantly when swapping
 // we can also query the balance
-Future<void> _initSidechainRPC(Sidechain chain) async {
+Future<SidechainRPC> findSubRPC(Sidechain chain) async {
   final log = await logger();
 
   SidechainRPC? sidechain;
@@ -105,9 +109,11 @@ Future<void> _initSidechainRPC(Sidechain chain) async {
     final testchain = TestchainRPCLive(conf: testchainConf);
     sidechain = testchain;
 
-    GetIt.I.registerLazySingleton<TestchainRPC>(
-      () => testchain,
-    );
+    if (!GetIt.I.isRegistered<TestchainRPC>()) {
+      GetIt.I.registerLazySingleton<TestchainRPC>(
+        () => testchain,
+      );
+    }
   }
 
   if (chain.type == SidechainType.ethereum) {
@@ -128,9 +134,11 @@ Future<void> _initSidechainRPC(Sidechain chain) async {
     );
     sidechain = ethChain;
 
-    GetIt.I.registerLazySingleton<EthereumRPC>(
-      () => ethChain,
-    );
+    if (!GetIt.I.isRegistered<EthereumRPC>()) {
+      GetIt.I.registerLazySingleton<EthereumRPC>(
+        () => ethChain,
+      );
+    }
   }
 
   if (chain.type == SidechainType.zcash) {
@@ -151,13 +159,12 @@ Future<void> _initSidechainRPC(Sidechain chain) async {
     );
     sidechain = zChain;
 
-    GetIt.I.registerLazySingleton<ZCashRPC>(
-      () => zChain,
-    );
+    if (!GetIt.I.isRegistered<EthereumRPC>()) {
+      GetIt.I.registerLazySingleton<ZCashRPC>(
+        () => zChain,
+      );
+    }
   }
 
-  final sidechainContainer = await SidechainContainer.create(sidechain!);
-  GetIt.I.registerLazySingleton<SidechainContainer>(
-    () => sidechainContainer,
-  );
+  return sidechain!;
 }
