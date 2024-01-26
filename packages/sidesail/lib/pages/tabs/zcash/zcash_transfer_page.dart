@@ -296,7 +296,7 @@ class ZCashWidgetTitle extends StatelessWidget {
               size: ButtonSize.small,
             ),
             SailText.secondary12(
-              'To get started, you must deposit coins to your sidechain. Peg-In on the Parent Chain tab',
+              'To get started, you must deposit coins to your sidechain. Deposit on the Parent Chain tab',
             ),
             Expanded(child: Container()),
           ],
