@@ -7,6 +7,7 @@ import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
+import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/widgets/containers/daemon_connection_card.dart';
@@ -27,7 +28,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   ProcessProvider get _proccessProvider => GetIt.I.get<ProcessProvider>();
+
+  final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
 
   bool _closeAlertOpen = false;
 
@@ -35,9 +39,18 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
+    _notificationProvider.addListener(rebuildNotifications);
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await displayShutdownModal(context);
     });
+  }
+
+  void rebuildNotifications() {
+    notificationsNotifier.value = _notificationProvider.notifications;
+
+    // call notifyListeners manually coz == on List<Widget> doesn't work..
+    // ignore: invalid_use_of_protected_member,invalid_use_of_visible_for_testing_member
+    notificationsNotifier.notifyListeners();
   }
 
   @override
@@ -66,8 +79,9 @@ class _HomePageState extends State<HomePage> {
       // zcash routes
       ZCashMeltCastTabRoute(),
       ZCashShieldDeshieldTabRoute(),
-      ZCashRPCTabRoute(),
       ZCashTransferTabRoute(),
+      ZCashOperationStatusesTabRoute(),
+      ZCashRPCTabRoute(),
 
       // trailing common routes
       NodeSettingsTabRoute(),
@@ -82,7 +96,24 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: theme.colors.background,
           body: TopNav(
             child: SideNav(
-              child: children[tabsRouter.activeIndex],
+              child: Stack(
+                children: [
+                  children[tabsRouter.activeIndex],
+                  ValueListenableBuilder<List<Widget>>(
+                    valueListenable: notificationsNotifier,
+                    builder: (context, val, child) {
+                      return Positioned(
+                        bottom: 10,
+                        right: 10,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: val,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
               // assume settings tab is second to last tab!
               navigateToSettings: () => tabsRouter.setActiveIndex(routes.length - 2),
             ),
