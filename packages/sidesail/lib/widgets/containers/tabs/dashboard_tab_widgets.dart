@@ -66,17 +66,22 @@ class DashboardGroup extends StatelessWidget {
 }
 
 class SendOnSidechainAction extends StatelessWidget {
+  final double? maxAmount;
   final Future<String> Function(String address, double amount)? customSendAction;
 
   const SendOnSidechainAction({
     super.key,
+    this.maxAmount,
     this.customSendAction,
   });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => SendOnSidechainViewModel(customSendAction: customSendAction),
+      viewModelBuilder: () => SendOnSidechainViewModel(
+        customSendAction: customSendAction,
+        maxAmount: maxAmount,
+      ),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
           'Send on sidechain',
@@ -135,11 +140,27 @@ class SendOnSidechainViewModel extends BaseViewModel {
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
 
   final Future<String> Function(String address, double amount)? customSendAction;
+  final double? maxAmount;
 
-  SendOnSidechainViewModel({this.customSendAction}) {
+  SendOnSidechainViewModel({
+    this.customSendAction,
+    this.maxAmount,
+  }) {
     bitcoinAddressController.addListener(notifyListeners);
-    bitcoinAmountController.addListener(notifyListeners);
+    bitcoinAmountController.addListener(_withMaxAmount);
     init();
+  }
+
+  void _withMaxAmount() {
+    String currentInput = bitcoinAmountController.text;
+
+    if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
+      bitcoinAmountController.text = maxAmount.toString();
+      bitcoinAmountController.selection =
+          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+    } else {
+      notifyListeners();
+    }
   }
 
   void init() async {
