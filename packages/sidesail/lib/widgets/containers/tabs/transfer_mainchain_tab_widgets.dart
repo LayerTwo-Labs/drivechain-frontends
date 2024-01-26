@@ -27,9 +27,9 @@ class PegOutAction extends StatelessWidget {
       viewModelBuilder: () => PegOutViewModel(staticAddress: staticAddress),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Peg-out to parent chain',
+          'Withdraw to parent chain',
           endActionButton: SailButton.primary(
-            'Execute peg-out',
+            'Execute withdraw',
             disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
@@ -155,7 +155,7 @@ class PegOutViewModel extends BaseViewModel {
     double mainchainFee,
   ) async {
     log.i(
-      'doing peg-out: $amount BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
+      'doing withdraw: $amount BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
     );
 
     try {
@@ -181,14 +181,14 @@ class PegOutViewModel extends BaseViewModel {
 
       await successDialog(
         context: context,
-        action: 'Peg-out to parent chain',
-        title: 'Submitted peg-out successfully',
+        action: 'Withdraw to parent chain',
+        title: 'Submitted withdraw successfully',
         subtitle: 'TXID: $withdrawalTxid',
       );
       // also pop the info modal
       await _router.pop();
     } catch (error) {
-      log.e('could not execute peg-out: $error', error: error);
+      log.e('could not execute withdraw: $error', error: error);
 
       if (!context.mounted) {
         return;
@@ -196,8 +196,8 @@ class PegOutViewModel extends BaseViewModel {
 
       await errorDialog(
         context: context,
-        action: 'Peg-out to parent chain',
-        title: 'Could not execute peg-out',
+        action: 'Withdraw to parent chain',
+        title: 'Could not execute withdraw',
         subtitle: error.toString(),
       );
     }
@@ -213,7 +213,7 @@ class PegInAction extends StatelessWidget {
       viewModelBuilder: () => PegInViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Peg-in from parent chain',
+          'Deposit from parent chain',
           endActionButton: SailButton.primary(
             'Generate new address',
             loading: viewModel.isBusy,
@@ -260,7 +260,7 @@ class PegInEthAction extends StatelessWidget {
       viewModelBuilder: () => PegInEthViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Peg-in from parent chain',
+          'Deposit from parent chain',
           endActionButton: SailButton.primary(
             'Deposit funds',
             loading: viewModel.isBusy,
@@ -354,14 +354,14 @@ class PegInEthViewModel extends BaseViewModel {
 
       await successDialog(
         context: context,
-        action: 'Peg-in from parent chain',
+        action: 'Deposit from parent chain',
         title: 'Deposited from parent-chain successfully',
         subtitle: '',
       );
       // also pop the info modal
       await _router.pop();
     } catch (error) {
-      log.e('could not execute peg-out: $error', error: error);
+      log.e('could not execute withdraw: $error', error: error);
 
       if (!context.mounted) {
         return;
@@ -369,7 +369,7 @@ class PegInEthViewModel extends BaseViewModel {
 
       await errorDialog(
         context: context,
-        action: 'Peg-in from parent chain',
+        action: 'Deposit from parent chain',
         title: 'Could not deposit from parent-chain',
         subtitle: error.toString(),
       );

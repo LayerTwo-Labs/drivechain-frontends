@@ -91,7 +91,7 @@ class TestchainRPCLive extends TestchainRPC {
       mainchainFee,
     ]);
 
-    log.d('created peg-out: ${withdrawalTxid['txid']}');
+    log.d('created withdraw: ${withdrawalTxid['txid']}');
 
     return withdrawalTxid['txid'];
   }

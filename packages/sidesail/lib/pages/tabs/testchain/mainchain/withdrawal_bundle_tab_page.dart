@@ -372,7 +372,7 @@ class _BundleViewState extends State<BundleView> {
               label:
                   widget.bundle.status == BundleStatus.failed ? 'Failed' : '${widget.votes}/$bundleVotesRequired ACKs',
               value:
-                  'Peg-out of ${widget.bundle.totalBitcoin.toStringAsFixed(8)} BTC in ${widget.bundle.withdrawals.length} transactions',
+                  'Withdraw of ${widget.bundle.totalBitcoin.toStringAsFixed(8)} BTC in ${widget.bundle.withdrawals.length} transactions',
             ),
           ),
           if (expanded) ExpandedBundleView(timesOutIn: widget.timesOutIn, bundle: widget.bundle),
