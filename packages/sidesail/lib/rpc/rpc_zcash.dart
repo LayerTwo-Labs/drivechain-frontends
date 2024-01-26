@@ -261,7 +261,7 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<double> sideEstimateFee() async {
-    return 0.00001;
+    return 0.0001;
   }
 
   Future<String> _getNewShieldedAddress() async {
@@ -286,10 +286,14 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    amount = cleanAmount(amount);
+    var fee = await sideEstimateFee();
 
+    amount = cleanAmount(amount);
+    fee = cleanAmount(fee);
+
+    final zAddress = await sideGenerateAddress();
     final txid = await _client().call('z_sendmany', [
-      'ANY_TADDR',
+      zAddress,
       [
         {
           'address': address,
@@ -297,6 +301,7 @@ class ZcashRPCLive extends ZCashRPC {
         }
       ],
       1,
+      fee,
     ]);
 
     return txid;

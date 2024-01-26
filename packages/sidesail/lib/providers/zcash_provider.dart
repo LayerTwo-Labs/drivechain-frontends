@@ -20,7 +20,7 @@ class ZCashProvider extends ChangeNotifier {
   List<OperationStatus> operations = [];
   List<ShieldedUTXO> shieldedUTXOs = [];
   List<UnshieldedUTXO> unshieldedUTXOs = [];
-  double sideFee = 0.00001;
+  double sideFee = 0.0001;
 
   bool _isFetching = false;
 
