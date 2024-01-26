@@ -73,7 +73,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                           ),
                           DashboardGroup(
                             title: 'Transparent UTXOs',
-                            widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
+                            widgetTrailing: SailText.secondary13(viewModel.transparentUTXOs.length.toString()),
                             endWidget: SailToggle(
                               label: 'Hide dust UTXOs',
                               value: viewModel.hideDust,
@@ -85,7 +85,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 withDivider: true,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  for (final utxo in viewModel.unshieldedUTXOs)
+                                  for (final utxo in viewModel.transparentUTXOs)
                                     UnshieldedUTXOView(
                                       utxo: utxo,
                                       shieldAction: null,
@@ -169,7 +169,7 @@ class ZCashTransferTabViewModel extends BaseViewModel {
 
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
-  List<UnshieldedUTXO> get unshieldedUTXOs =>
+  List<UnshieldedUTXO> get transparentUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
   List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
@@ -190,10 +190,14 @@ class ZCashTransferTabViewModel extends BaseViewModel {
   }
 
   void sendPrivate(BuildContext context) async {
+    final privateBalance = shieldedUTXOs.fold(0.0, (sum, elem) => sum + elem.amount);
+
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const SendOnSidechainAction();
+        return SendOnSidechainAction(
+          maxAmount: privateBalance - _zcashProvider.sideFee,
+        );
       },
     );
   }
@@ -208,15 +212,18 @@ class ZCashTransferTabViewModel extends BaseViewModel {
   }
 
   void sendTransparent(BuildContext context) async {
+    final transparentBalance = transparentUTXOs.fold(0.0, (sum, elem) => sum + elem.amount);
+
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
         return SendOnSidechainAction(
+          maxAmount: transparentBalance,
           customSendAction: (address, amount) async {
             return await _zcashProvider.rpc.sendTransparent(
               address,
               amount,
-              false,
+              true,
             );
           },
         );
