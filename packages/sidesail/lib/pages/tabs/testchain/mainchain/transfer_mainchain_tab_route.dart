@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
@@ -28,8 +27,6 @@ class TransferMainchainTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => TransferMainchainTabViewModel(),
       builder: ((context, viewModel, child) {
@@ -40,71 +37,45 @@ class TransferMainchainTabPage extends StatelessWidget {
               child: SailColumn(
                 spacing: SailStyleValues.padding30,
                 children: [
-                  SailRow(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 0,
+                  SailColumn(
+                    spacing: SailStyleValues.padding30,
                     children: [
-                      Flexible(
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding30,
-                          children: [
-                            DashboardGroup(
-                              title: 'Actions',
-                              children: [
-                                ActionTile(
-                                  title: 'Send on parent chain',
-                                  category: Category.mainchain,
-                                  icon: Icons.remove,
-                                  onTap: () {
-                                    viewModel.send(context);
-                                  },
-                                ),
-                                ActionTile(
-                                  title: 'Receive on parent chain',
-                                  category: Category.mainchain,
-                                  icon: Icons.add,
-                                  onTap: () {
-                                    viewModel.receive(context);
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      VerticalDivider(
-                        width: 1,
-                        thickness: 1,
-                        color: theme.colors.divider,
-                      ),
-                      Flexible(
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding30,
-                          children: [
-                            DashboardGroup(
-                              title: 'Actions',
-                              children: [
-                                ActionTile(
-                                  title: 'Peg-out to parent chain',
-                                  category: Category.mainchain,
-                                  icon: Icons.remove,
-                                  onTap: () {
-                                    viewModel.pegOut(context);
-                                  },
-                                ),
-                                ActionTile(
-                                  title: 'Peg-in from parent chain',
-                                  category: Category.mainchain,
-                                  icon: Icons.add,
-                                  onTap: () {
-                                    viewModel.pegIn(context);
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                      DashboardGroup(
+                        title: 'Actions',
+                        children: [
+                          ActionTile(
+                            title: 'Withdraw to parent chain',
+                            category: Category.mainchain,
+                            icon: Icons.remove,
+                            onTap: () {
+                              viewModel.pegOut(context);
+                            },
+                          ),
+                          ActionTile(
+                            title: 'Deposit from parent chain',
+                            category: Category.mainchain,
+                            icon: Icons.add,
+                            onTap: () {
+                              viewModel.pegIn(context);
+                            },
+                          ),
+                          ActionTile(
+                            title: 'Send on parent chain',
+                            category: Category.mainchain,
+                            icon: Icons.remove,
+                            onTap: () {
+                              viewModel.send(context);
+                            },
+                          ),
+                          ActionTile(
+                            title: 'Receive on parent chain',
+                            category: Category.mainchain,
+                            icon: Icons.add,
+                            onTap: () {
+                              viewModel.receive(context);
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -360,7 +331,7 @@ class SendViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Send on parent chain',
-        title: 'You sent $amount $ticker to $address',
+        title: 'You sent $amount BTC to $address',
         subtitle: 'TXID: $sendTXID',
       );
       // also pop the info modal
