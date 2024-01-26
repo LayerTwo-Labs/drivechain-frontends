@@ -46,7 +46,6 @@ class BalanceProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (err) {
-      // ignore: avoid_print
       log.e('could not get balance $err');
     } finally {
       _isFetching = false;
