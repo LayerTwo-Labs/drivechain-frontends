@@ -91,6 +91,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const ZCashMeltCastTabPage(),
       );
     },
+    ZCashOperationStatusesTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ZCashOperationStatusesTabPage(),
+      );
+    },
     ZCashRPCTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -299,6 +305,20 @@ class ZCashMeltCastTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'ZCashMeltCastTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [ZCashOperationStatusesTabPage]
+class ZCashOperationStatusesTabRoute extends PageRouteInfo<void> {
+  const ZCashOperationStatusesTabRoute({List<PageRouteInfo>? children})
+      : super(
+          ZCashOperationStatusesTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ZCashOperationStatusesTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

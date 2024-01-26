@@ -13,6 +13,7 @@ import 'package:sidesail/pages/tabs/testchain/mainchain/transfer_mainchain_tab_r
 import 'package:sidesail/pages/tabs/testchain/mainchain/withdrawal_bundle_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/testchain_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_melt_cast_page.dart';
+import 'package:sidesail/pages/tabs/zcash/zcash_operation_statuses.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_shield_deshield_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
@@ -74,6 +75,9 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: ZCashTransferTabRoute.page,
+            ),
+            AutoRoute(
+              page: ZCashOperationStatusesTabRoute.page,
             ),
             AutoRoute(
               page: ZCashRPCTabRoute.page,

@@ -171,9 +171,9 @@ class _SideNavState extends State<SideNav> {
             subs: [
               SubNavEntry(
                 title: 'Transfer',
-                selected: tabsRouter.activeIndex == ZCashHome + 3,
+                selected: tabsRouter.activeIndex == ZCashHome + 2,
                 onPressed: () {
-                  tabsRouter.setActiveIndex(ZCashHome + 3);
+                  tabsRouter.setActiveIndex(ZCashHome + 2);
                 },
               ),
             ],
@@ -197,10 +197,17 @@ class _SideNavState extends State<SideNav> {
                 },
               ),
               SubNavEntry(
-                title: 'Send RPC',
-                selected: tabsRouter.activeIndex == ZCashHome + 2,
+                title: 'Operation Statuses',
+                selected: tabsRouter.activeIndex == ZCashHome + 3,
                 onPressed: () {
-                  tabsRouter.setActiveIndex(ZCashHome + 2);
+                  tabsRouter.setActiveIndex(ZCashHome + 3);
+                },
+              ),
+              SubNavEntry(
+                title: 'Send RPC',
+                selected: tabsRouter.activeIndex == ZCashHome + 4,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(ZCashHome + 4);
                 },
               ),
             ],
@@ -245,9 +252,9 @@ class _SideNavState extends State<SideNav> {
             ],
           ),
         ];
-      case 2 || 3 || 4 || 5 || 6 || 7 || 8 || 9 || 10:
+      case 2 || 3 || 4 || 5 || 6 || 7 || 8 || 9 || 10 || 11:
         return _navForChain(chain, viewModel, tabsRouter);
-      case 11 || 12:
+      case 12 || 13:
         return [
           const NavCategory(category: 'Settings'),
           SubNavEntryContainer(
