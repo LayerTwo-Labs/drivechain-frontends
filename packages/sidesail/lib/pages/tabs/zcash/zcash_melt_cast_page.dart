@@ -41,31 +41,6 @@ class ZCashMeltCastTabPage extends StatelessWidget {
             child: SailColumn(
               spacing: SailStyleValues.padding30,
               children: [
-                DashboardGroup(
-                  title: 'Operation statuses',
-                  endWidget: SailTextButton(
-                    label: 'Clear',
-                    onPressed: () => viewModel.clear(),
-                  ),
-                  children: [
-                    SailColumn(
-                      spacing: 0,
-                      withDivider: true,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: viewModel.operations.length,
-                          itemBuilder: (context, index) => OperationView(
-                            key: ValueKey<String>(viewModel.operations[index].id),
-                            tx: viewModel.operations[index],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
                 SailRow(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +200,6 @@ class ZCashCastTabViewModel extends BaseViewModel {
       _zcashProvider.utxosToMelt.where((element) => element.executeTime.isAfter(DateTime.now())).toList();
   List<PendingCastBill> get pendingNonEmptyBills =>
       _castProvider.futureCasts.where((element) => element.pendingShields.isNotEmpty).toList();
-  List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
@@ -241,12 +215,8 @@ class ZCashCastTabViewModel extends BaseViewModel {
 
   ZCashCastTabViewModel() {
     _zcashProvider.addListener(notifyListeners);
+    _castProvider.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
-  }
-
-  Future<void> clear() async {
-    _zcashProvider.operations = List.empty();
-    notifyListeners();
   }
 
   void melt(BuildContext context) async {
@@ -289,6 +259,7 @@ class ZCashCastTabViewModel extends BaseViewModel {
   void dispose() {
     super.dispose();
     _zcashProvider.removeListener(notifyListeners);
+    _castProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
   }
 }

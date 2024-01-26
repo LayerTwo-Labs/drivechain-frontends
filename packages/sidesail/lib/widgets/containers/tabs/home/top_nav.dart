@@ -114,9 +114,10 @@ class _TopNavState extends State<TopNav> {
             activeIndex == ZCashHome ||
             activeIndex == ZCashHome + 1 ||
             activeIndex == ZCashHome + 2 ||
-            activeIndex == ZCashHome + 3;
+            activeIndex == ZCashHome + 3 ||
+            activeIndex == ZCashHome + 4;
       case 2:
-        return activeIndex == 11 || activeIndex == 12;
+        return activeIndex == 12 || activeIndex == 13;
       default:
         return true;
     }

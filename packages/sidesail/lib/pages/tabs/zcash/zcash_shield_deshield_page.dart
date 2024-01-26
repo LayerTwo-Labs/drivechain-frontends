@@ -40,31 +40,6 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
             child: SailColumn(
               spacing: SailStyleValues.padding30,
               children: [
-                DashboardGroup(
-                  title: 'Operation statuses',
-                  endWidget: SailTextButton(
-                    label: 'Clear',
-                    onPressed: () => viewModel.clear(),
-                  ),
-                  children: [
-                    SailColumn(
-                      spacing: 0,
-                      withDivider: true,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: viewModel.operations.length,
-                          itemBuilder: (context, index) => OperationView(
-                            key: ValueKey<String>(viewModel.operations[index].id),
-                            tx: viewModel.operations[index],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
                 SailRow(
                   spacing: 0,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +113,6 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
   String get zcashAddress => _zcashProvider.zcashAddress;
-  List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > 0.0001).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
@@ -155,11 +129,6 @@ class ZCashShieldTabViewModel extends BaseViewModel {
   ZCashShieldTabViewModel() {
     _zcashProvider.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
-  }
-
-  Future<void> clear() async {
-    _zcashProvider.operations = List.empty();
-    notifyListeners();
   }
 
   void melt(BuildContext context) async {
