@@ -7,6 +7,7 @@ import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
+import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
@@ -29,6 +30,10 @@ final _emptyNodeConf = SingleNodeConnectionSettings.empty();
 Future<void> initDependencies(Sidechain chain) async {
   final log = await logger();
   GetIt.I.registerLazySingleton<Logger>(() => log);
+
+  GetIt.I.registerLazySingleton<NotificationProvider>(
+    () => NotificationProvider(),
+  );
 
   final sidechain = await findSubRPC(chain);
   final sidechainContainer = await SidechainContainer.create(sidechain);
@@ -159,7 +164,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
     );
     sidechain = zChain;
 
-    if (!GetIt.I.isRegistered<EthereumRPC>()) {
+    if (!GetIt.I.isRegistered<ZCashRPC>()) {
       GetIt.I.registerLazySingleton<ZCashRPC>(
         () => zChain,
       );
