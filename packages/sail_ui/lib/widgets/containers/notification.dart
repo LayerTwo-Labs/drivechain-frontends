@@ -17,7 +17,6 @@ class SailNotification extends StatelessWidget {
     required this.removeNotification,
     this.onPressed,
   });
-
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
