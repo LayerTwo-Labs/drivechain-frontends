@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -15,6 +17,7 @@ class ZCashProvider extends ChangeNotifier {
 
   MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
   SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
+  NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
 
   String zcashAddress = '';
   List<OperationStatus> operations = [];
@@ -49,6 +52,9 @@ class ZCashProvider extends ChangeNotifier {
       if (_dataHasChanged(newZcashAddress, newOperations, newShieldedUTXOs, newUnshieldedUTXOs, newSideFee)) {
         zcashAddress = newZcashAddress;
         operations.addAll(newOperations);
+        for (final newOp in newOperations) {
+          _notifyNewOperation(newOp);
+        }
         shieldedUTXOs = newShieldedUTXOs;
         unshieldedUTXOs = newUnshieldedUTXOs;
         sideFee = newSideFee;
@@ -91,6 +97,14 @@ class ZCashProvider extends ChangeNotifier {
     return false;
   }
 
+  void _notifyNewOperation(OperationStatus operation) {
+    _notificationProvider.add(
+      title: '${operation.method} ${operation.status == 'success' ? 'succeeded' : 'failed'}',
+      content: operation.id,
+      dialogType: operation.status == 'success' ? DialogType.success : DialogType.error,
+    );
+  }
+
   // From here on out, MELT CODE BBY
   List<PendingShield> utxosToMelt = [];
   // One timer is added to this list per UTXO the user wants to melt
@@ -119,6 +133,7 @@ class ZCashProvider extends ChangeNotifier {
     }
 
     meltsWillHappenAt.sort((a, b) => a.compareTo(b));
+    notifyListeners();
     return meltsWillHappenAt;
   }
 
