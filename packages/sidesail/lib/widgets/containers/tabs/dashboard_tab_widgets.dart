@@ -18,14 +18,14 @@ class DashboardGroup extends StatelessWidget {
   final List<Widget> children;
 
   final Widget? widgetTrailing;
-  final Widget? endWidget;
+  final Widget? widgetEnd;
 
   const DashboardGroup({
     super.key,
     required this.title,
     required this.children,
     this.widgetTrailing,
-    this.endWidget,
+    this.widgetEnd,
   });
 
   @override
@@ -54,7 +54,7 @@ class DashboardGroup extends StatelessWidget {
                   ],
                 ),
                 Expanded(child: Container()),
-                if (endWidget != null) endWidget!,
+                if (widgetEnd != null) widgetEnd!,
               ],
             ),
           ),

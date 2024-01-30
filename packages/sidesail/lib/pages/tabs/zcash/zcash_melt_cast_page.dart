@@ -51,7 +51,8 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                         spacing: SailStyleValues.padding30,
                         children: [
                           DashboardGroup(
-                            title: 'Melt Actions',
+                            title: 'Melt',
+                            widgetEnd: HelpButton(onPressed: () => viewModel.meltHelp(context)),
                             children: [
                               ActionTile(
                                 title: 'Melt all transparent UTXOs',
@@ -88,7 +89,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                           DashboardGroup(
                             title: 'Transparent UTXOs',
                             widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
-                            endWidget: SailToggle(
+                            widgetEnd: SailToggle(
                               label: 'Hide dust UTXOs',
                               value: viewModel.hideDust,
                               onChanged: (to) => viewModel.setShowAll(to),
@@ -122,7 +123,13 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                         spacing: SailStyleValues.padding30,
                         children: [
                           DashboardGroup(
-                            title: 'Cast Actions',
+                            title: 'Cast',
+                            widgetEnd: SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                HelpButton(onPressed: () => viewModel.castHelp(context)),
+                              ],
+                            ),
                             children: [
                               ActionTile(
                                 title: 'Cast all private UTXOs',
@@ -251,6 +258,24 @@ class ZCashCastTabViewModel extends BaseViewModel {
       context: context,
       builder: (BuildContext context) {
         return CastSingleUTXOAction(utxo: shieldedUTXO);
+      },
+    );
+  }
+
+  Future<void> meltHelp(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const MeltHelp();
+      },
+    );
+  }
+
+  Future<void> castHelp(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const CastHelp();
       },
     );
   }

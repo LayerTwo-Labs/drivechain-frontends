@@ -37,9 +37,15 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
               children: [
                 DashboardGroup(
                   title: 'Operation statuses',
-                  endWidget: SailTextButton(
-                    label: 'Clear',
-                    onPressed: () => viewModel.clear(),
+                  widgetEnd: SailRow(
+                    spacing: SailStyleValues.padding12,
+                    children: [
+                      SailTextButton(
+                        label: 'Clear',
+                        onPressed: () => viewModel.clear(),
+                      ),
+                      HelpButton(onPressed: () => viewModel.operationHelp(context)),
+                    ],
                   ),
                   children: [
                     SailColumn(
@@ -82,6 +88,15 @@ class OperationStatusesiewModel extends BaseViewModel {
   Future<void> clear() async {
     _zcashProvider.operations = List.empty();
     notifyListeners();
+  }
+
+  void operationHelp(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const OperationHelp();
+      },
+    );
   }
 
   @override

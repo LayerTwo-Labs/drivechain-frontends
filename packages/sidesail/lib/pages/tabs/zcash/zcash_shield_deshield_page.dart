@@ -48,7 +48,7 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                       child: DashboardGroup(
                         title: 'Transparent UTXOs',
                         widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
-                        endWidget: SailToggle(
+                        widgetEnd: SailToggle(
                           label: 'Hide dust UTXOs',
                           value: viewModel.hideDust,
                           onChanged: (to) => viewModel.setShowAll(to),
