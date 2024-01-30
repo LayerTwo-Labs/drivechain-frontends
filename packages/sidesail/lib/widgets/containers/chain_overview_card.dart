@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
 
 class ChainOverviewCard extends StatelessWidget {
@@ -52,7 +53,7 @@ class ChainOverviewCard extends StatelessWidget {
                 spacing: 0,
                 children: [
                   SailText.secondary12(chain.name),
-                  SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
+                  SailText.secondary12('${formatBitcoin(confirmedBalance)} ${chain.ticker}'),
                 ],
               ),
             ],
@@ -105,7 +106,7 @@ class ChainOverviewCard extends StatelessWidget {
                         spacing: SailStyleValues.padding08,
                         children: [
                           SailSVG.icon(SailSVGAsset.iconSuccess),
-                          SailText.secondary12('${confirmedBalance.toStringAsFixed(8)} ${chain.ticker}'),
+                          SailText.secondary12('${formatBitcoin(confirmedBalance)} ${chain.ticker}'),
                         ],
                       ),
                       const SailSpacing(SailStyleValues.padding08),
@@ -113,7 +114,7 @@ class ChainOverviewCard extends StatelessWidget {
                         spacing: SailStyleValues.padding08,
                         children: [
                           SailSVG.icon(SailSVGAsset.iconPending),
-                          SailText.secondary12('${unconfirmedBalance!.toStringAsFixed(8)} ${chain.ticker}'),
+                          SailText.secondary12('${formatBitcoin(unconfirmedBalance!)} ${chain.ticker}'),
                         ],
                       ),
                     ],

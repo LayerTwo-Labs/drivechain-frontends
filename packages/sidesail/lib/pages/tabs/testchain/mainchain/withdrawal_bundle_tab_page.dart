@@ -288,7 +288,7 @@ class _UnbundledWithdrawalViewState extends State<UnbundledWithdrawalView> {
               copyable: false,
               label: '',
               value:
-                  '${satoshiToBTC(widget.withdrawal.amountSatoshi).toStringAsFixed(8)} BTC to ${widget.withdrawal.address}',
+                  '${formatBitcoin(satoshiToBTC(widget.withdrawal.amountSatoshi))} BTC to ${widget.withdrawal.address}',
             ),
           ),
           if (expanded)
@@ -372,7 +372,7 @@ class _BundleViewState extends State<BundleView> {
               label:
                   widget.bundle.status == BundleStatus.failed ? 'Failed' : '${widget.votes}/$bundleVotesRequired ACKs',
               value:
-                  'Withdraw of ${widget.bundle.totalBitcoin.toStringAsFixed(8)} BTC in ${widget.bundle.withdrawals.length} transactions',
+                  'Withdraw of ${formatBitcoin(widget.bundle.totalBitcoin)} BTC in ${widget.bundle.withdrawals.length} transactions',
             ),
           ),
           if (expanded) ExpandedBundleView(timesOutIn: widget.timesOutIn, bundle: widget.bundle),
@@ -382,7 +382,7 @@ class _BundleViewState extends State<BundleView> {
   }
 
   String extractTitle(Withdrawal withdrawal) {
-    final title = '${(withdrawal.amountSatoshi / 100000000).toStringAsFixed(8)} $ticker';
+    final title = '${formatBitcoin((withdrawal.amountSatoshi / 100000000))} $ticker';
 
     return '$title to ${withdrawal.address}';
   }
@@ -412,10 +412,10 @@ class ExpandedBundleView extends StatelessWidget {
   Map<String, dynamic> get _values => {
         if (bundle.status == BundleStatus.pending) 'blocks until timeout': timesOutIn,
         'block hash': bundle.hash,
-        'total amount': '${bundle.totalBitcoin.toStringAsFixed(8)} BTC',
+        'total amount': '${formatBitcoin(bundle.totalBitcoin)} BTC',
         'withdrawal count': bundle.withdrawals.length,
         'created at height': bundle.blockHeight,
-        'total fees': '${bundle.totalFeesBitcoin.toStringAsFixed(8)} BTC',
+        'total fees': '${formatBitcoin(bundle.totalFeesBitcoin)} BTC',
         'total size': '${bundle.bundleSize}/${maxWeight.toInt()} weight units',
       };
 
@@ -448,8 +448,8 @@ class ExpandedUnbundledWithdrawalView extends StatelessWidget {
 
   Map<String, dynamic> get _values => {
         'hashblindtx': withdrawal.hashBlindTx,
-        'amount': '${satoshiToBTC(withdrawal.amountSatoshi).toStringAsFixed(8)} BTC',
-        'amountmainchainfee': '${satoshiToBTC(withdrawal.mainchainFeesSatoshi).toStringAsFixed(8)} BTC',
+        'amount': '${formatBitcoin(satoshiToBTC(withdrawal.amountSatoshi))} BTC',
+        'amountmainchainfee': '${formatBitcoin(satoshiToBTC(withdrawal.mainchainFeesSatoshi))} BTC',
       };
 
   @override
