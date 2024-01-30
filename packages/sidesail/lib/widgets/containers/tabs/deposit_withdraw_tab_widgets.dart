@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -52,11 +53,11 @@ class PegOutAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Parent chain fee',
-              value: '${(viewModel.mainchainFee ?? 0).toStringAsFixed(8)} BTC',
+              value: '${formatBitcoin((viewModel.mainchainFee ?? 0))} BTC',
             ),
             StaticActionField(
               label: '${viewModel.sidechain.rpc.chain.name} fee',
-              value: '${(viewModel.sidechainFee ?? 0).toStringAsFixed(8)} ${viewModel.sidechain.rpc.chain.ticker}',
+              value: '${formatBitcoin((viewModel.sidechainFee ?? 0))} ${viewModel.sidechain.rpc.chain.ticker}',
             ),
             StaticActionField(
               label: 'Total amount',
@@ -79,9 +80,9 @@ class PegOutViewModel extends BaseViewModel {
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount =>
-      ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0))
-          .toStringAsFixed(8);
+  String get totalBitcoinAmount => formatBitcoin(
+        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)),
+      );
 
   double? sidechainFee;
   double? mainchainFee;
@@ -283,7 +284,7 @@ class PegInEthAction extends StatelessWidget {
             ),
             StaticActionField(
               label: '${viewModel.sidechain.rpc.chain.name} fee',
-              value: '${(viewModel.sidechainFee ?? 0).toStringAsFixed(8)} BTC',
+              value: '${formatBitcoin((viewModel.sidechainFee ?? 0))} BTC',
             ),
             StaticActionField(
               label: 'Total amount',
@@ -305,7 +306,7 @@ class PegInEthViewModel extends BaseViewModel {
 
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount =>
-      ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)).toStringAsFixed(8);
+      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)));
 
   String? pegInAddress;
   double? sidechainFee;
@@ -380,5 +381,33 @@ class PegInEthViewModel extends BaseViewModel {
   void dispose() {
     super.dispose();
     bitcoinAmountController.removeListener(notifyListeners);
+  }
+}
+
+class DepositWithdrawHelp extends StatelessWidget {
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
+
+  const DepositWithdrawHelp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return QuestionContainer(
+      category: 'Deposit & Withdraw help',
+      children: [
+        const QuestionTitle('What are deposits and withdrawals?'),
+        QuestionText(
+          'You are currently connected to two blockchains. Bitcoin Core with BIP 300+301, and a sidechain called ${_sidechain.rpc.chain.name}.',
+        ),
+        const QuestionText(
+          'Deposits and withdrawals move bitcoin from one chain to the other. A deposit adds bitcoin to the sidechain, and a withdrawal removes bitcoin from the sidechain.',
+        ),
+        const QuestionText(
+          'When we use the word deposit or withdraw in this application, we always refer to moving coins across chains.',
+        ),
+        const QuestionText(
+          'Only after you have deposited coins to the sidechain, can you start using it\'s special features! There\'s a special rpc called createsidechaindeposit that lets you deposit from your parent chain wallet.',
+        ),
+      ],
+    );
   }
 }

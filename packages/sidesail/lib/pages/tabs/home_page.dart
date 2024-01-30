@@ -15,9 +15,10 @@ import 'package:sidesail/widgets/containers/tabs/home/side_nav.dart';
 import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
 
 const ParentChainHome = 1;
-const TestchainHome = 3;
-const EthereumHome = 6;
-const ZCashHome = 7;
+const TestchainHome = 4;
+const EthereumHome = 7;
+const ZCashHome = 8;
+const SettingsHome = 13;
 
 @RoutePage()
 class HomePage extends StatefulWidget {
@@ -65,6 +66,7 @@ class _HomePageState extends State<HomePage> {
       SidechainExplorerTabRoute(),
 
       // parent chain routes
+      DepositWithdrawTabRoute(),
       TransferMainchainTabRoute(),
       WithdrawalBundleTabRoute(),
 

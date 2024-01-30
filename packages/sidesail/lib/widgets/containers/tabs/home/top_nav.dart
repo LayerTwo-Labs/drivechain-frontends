@@ -105,7 +105,9 @@ class _TopNavState extends State<TopNav> {
   bool topTabIsSelected(int activeIndex, int parentTab) {
     switch (parentTab) {
       case 0:
-        return activeIndex == ParentChainHome || activeIndex == ParentChainHome + 1;
+        return activeIndex == ParentChainHome ||
+            activeIndex == ParentChainHome + 1 ||
+            activeIndex == ParentChainHome + 2;
       case 1:
         return activeIndex == TestchainHome ||
             activeIndex == TestchainHome + 1 ||
@@ -117,7 +119,7 @@ class _TopNavState extends State<TopNav> {
             activeIndex == ZCashHome + 3 ||
             activeIndex == ZCashHome + 4;
       case 2:
-        return activeIndex == 12 || activeIndex == 13;
+        return activeIndex == SettingsHome || activeIndex == SettingsHome + 1;
       default:
         return true;
     }
