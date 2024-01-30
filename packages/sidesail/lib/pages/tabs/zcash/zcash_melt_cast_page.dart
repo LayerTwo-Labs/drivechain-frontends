@@ -5,6 +5,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
@@ -12,6 +13,7 @@ import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
@@ -128,6 +130,10 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                               spacing: SailStyleValues.padding08,
                               children: [
                                 HelpButton(onPressed: () => viewModel.castHelp(context)),
+                                SailScaleButton(
+                                  child: SailSVG.icon(SailSVGAsset.iconCalendar),
+                                  onPressed: () => viewModel.viewBills(),
+                                ),
                               ],
                             ),
                             children: [
@@ -157,6 +163,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                                       itemBuilder: (context, index) => PendingCastView(
                                         key: ValueKey<int>(viewModel.pendingNonEmptyBills[index].powerOf),
                                         pending: viewModel.pendingNonEmptyBills[index],
+                                        chain: viewModel.chain,
                                       ),
                                     ),
                                   ],
@@ -201,7 +208,10 @@ class ZCashCastTabViewModel extends BaseViewModel {
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
   CastProvider get _castProvider => GetIt.I.get<CastProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
+  AppRouter get router => GetIt.I.get<AppRouter>();
 
+  Sidechain get chain => _sideRPC.rpc.chain;
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<PendingShield> get pendingMelts =>
       _zcashProvider.utxosToMelt.where((element) => element.executeTime.isAfter(DateTime.now())).toList();
@@ -278,6 +288,10 @@ class ZCashCastTabViewModel extends BaseViewModel {
         return const CastHelp();
       },
     );
+  }
+
+  Future<void> viewBills() async {
+    await router.push(const ZCashBillRoute());
   }
 
   @override

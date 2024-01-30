@@ -1,0 +1,3 @@
+<svg id="calendar-empty" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14">
+  <path id="Vector" d="M10,0a4,4,0,0,1,4,4v6a4,4,0,0,1-4,4H4a4,4,0,0,1-4-4V4A4,4,0,0,1,4,0Zm2.5,5H1.5v5A2.5,2.5,0,0,0,4,12.5h6A2.5,2.5,0,0,0,12.5,10Z"/>
+</svg>
