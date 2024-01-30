@@ -88,13 +88,13 @@ class _HomePageState extends State<HomePage> {
       SettingsTabRoute(),
     ];
 
-    return auto_router.AutoTabsRouter.builder(
-      homeIndex: TestchainHome,
-      routes: routes,
-      builder: (context, children, tabsRouter) {
-        return Scaffold(
-          backgroundColor: theme.colors.background,
-          body: TopNav(
+    return Scaffold(
+      backgroundColor: theme.colors.background,
+      body: auto_router.AutoTabsRouter.builder(
+        homeIndex: TestchainHome,
+        routes: routes,
+        builder: (context, children, tabsRouter) {
+          return TopNav(
             child: SideNav(
               child: Stack(
                 children: [
@@ -117,9 +117,9 @@ class _HomePageState extends State<HomePage> {
               // assume settings tab is second to last tab!
               navigateToSettings: () => tabsRouter.setActiveIndex(routes.length - 2),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
