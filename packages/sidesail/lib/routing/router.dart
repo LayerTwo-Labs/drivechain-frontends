@@ -12,6 +12,7 @@ import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/transfer_mainchain_tab_route.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/withdrawal_bundle_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/testchain_rpc_tab_page.dart';
+import 'package:sidesail/pages/tabs/zcash/zcash_bill_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_melt_cast_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_operation_statuses.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_rpc_tab_page.dart';
@@ -89,6 +90,9 @@ class AppRouter extends _$AppRouter {
               page: SettingsTabRoute.page,
             ),
           ],
+        ),
+        AutoRoute(
+          page: ZCashBillRoute.page,
         ),
 
         /// This route is used in tests so that we can pump a widget into a route

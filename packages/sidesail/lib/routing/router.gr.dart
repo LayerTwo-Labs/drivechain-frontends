@@ -27,6 +27,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const DashboardTabPage(),
       );
     },
+    DepositWithdrawTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const DepositWithdrawTabPage(),
+      );
+    },
     EthereumRPCTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -83,6 +89,12 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const WithdrawalBundleTabPage(),
+      );
+    },
+    ZCashBillRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ZCashBillPage(),
       );
     },
     ZCashMeltCastTabRoute.name: (routeData) {
@@ -291,6 +303,20 @@ class WithdrawalBundleTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'WithdrawalBundleTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [ZCashBillPage]
+class ZCashBillRoute extends PageRouteInfo<void> {
+  const ZCashBillRoute({List<PageRouteInfo>? children})
+      : super(
+          ZCashBillRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ZCashBillRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

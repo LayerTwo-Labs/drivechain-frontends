@@ -12,6 +12,8 @@ enum SailSVGAsset {
   iconSidechain,
   iconSettings,
 
+  iconCalendar,
+  iconQuestion,
   iconSearch,
   iconCopy,
   iconRestart,
@@ -97,6 +99,10 @@ extension AsAssetPath on SailSVGAsset {
       case SailSVGAsset.iconSettings:
         return 'assets/svgs/icon_settings.svg';
 
+      case SailSVGAsset.iconCalendar:
+        return 'assets/svgs/icon_calendar.svg';
+      case SailSVGAsset.iconQuestion:
+        return 'assets/svgs/icon_question.svg';
       case SailSVGAsset.iconSearch:
         return 'assets/svgs/icon_search.svg';
       case SailSVGAsset.iconCopy:

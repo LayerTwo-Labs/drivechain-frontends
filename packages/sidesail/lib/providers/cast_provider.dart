@@ -69,7 +69,7 @@ class CastProvider extends ChangeNotifier {
   List<PendingCastBill> futureCasts = List.filled(
     maxCastFactor + 1,
     PendingCastBill(
-      powerOf: 0,
+      powerOf: 1,
       executeAction: () => {},
     ),
   );
@@ -107,6 +107,7 @@ class CastProvider extends ChangeNotifier {
       log.d('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
 
       await _zcashProvider.fetch();
+      notifyListeners();
     } catch (error) {
       log.e('could not cast ${error.toString()}');
     }
