@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';

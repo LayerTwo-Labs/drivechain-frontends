@@ -300,7 +300,7 @@ class _BMMAttemptViewState extends State<BMMAttemptView> {
 
   String extractTXTitle(BmmAttempt attempt) {
     String title =
-        '${(satoshiToBTC(attempt.bidSatoshis)).toStringAsFixed(8)} $ticker bid containing ${attempt.result.ntxn} transaction(s) with ${satoshiToBTC(attempt.result.nfees).toStringAsFixed(8)} $ticker total fees';
+        '${formatBitcoin(satoshiToBTC(attempt.bidSatoshis))} $ticker bid containing ${attempt.result.ntxn} transaction(s) with ${formatBitcoin(satoshiToBTC(attempt.result.nfees))} $ticker total fees';
     return title;
   }
 }

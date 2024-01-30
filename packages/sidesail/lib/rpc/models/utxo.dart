@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 
 class UTXO {
@@ -143,7 +144,7 @@ class _UTXOViewState extends State<UTXOView> {
   }
 
   String extractTXTitle(UTXO tx) {
-    String title = '${tx.amount.toStringAsFixed(8)} BTC';
+    String title = '${formatBitcoin(tx.amount)} BTC';
 
     if (tx.address.isEmpty) {
       return '$title in ${tx.txid}';

@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -108,7 +109,7 @@ class SendOnSidechainAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Fee',
-              value: '${(viewModel.sidechainExpectedFee ?? 0).toStringAsFixed(8)} ${viewModel.ticker}',
+              value: '${(formatBitcoin(viewModel.sidechainExpectedFee ?? 0))} ${viewModel.ticker}',
             ),
             StaticActionField(
               label: 'Total amount',
@@ -133,7 +134,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount =>
-      ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)).toStringAsFixed(8);
+      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)));
   String get ticker => _sidechainContainer.rpc.chain.ticker;
 
   double? sidechainExpectedFee;

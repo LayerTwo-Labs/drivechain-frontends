@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:intl/intl.dart';
 
 double satoshiToBTC(int sats) {
   const int satoshiPerBitcoin = 100000000;
@@ -10,6 +11,10 @@ double satoshiToBTC(int sats) {
 int btcToSatoshi(double btc) {
   const int satoshiPerBitcoin = 100000000;
   return (btc * satoshiPerBitcoin).toInt();
+}
+
+String formatBitcoin(num number) {
+  return NumberFormat('#,##0.00000000', 'en_US').format(number).replaceAll(',', ' ');
 }
 
 String formatDepositAddress(String address, int sidechainNum) {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
@@ -172,7 +173,7 @@ class _CoreTransactionViewState extends State<CoreTransactionView> {
   }
 
   String extractTXTitle(CoreTransaction tx) {
-    String title = '${tx.amount.toStringAsFixed(8)} $ticker';
+    String title = '${formatBitcoin(tx.amount)} $ticker';
 
     if (tx.address.isEmpty) {
       return '$title in ${tx.txid}';
