@@ -159,6 +159,20 @@ class DashboardTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [DepositWithdrawTabPage]
+class DepositWithdrawTabRoute extends PageRouteInfo<void> {
+  const DepositWithdrawTabRoute({List<PageRouteInfo>? children})
+      : super(
+          DepositWithdrawTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'DepositWithdrawTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [EthereumRPCTabPage]
 class EthereumRPCTabRoute extends PageRouteInfo<void> {
   const EthereumRPCTabRoute({List<PageRouteInfo>? children})
@@ -218,7 +232,8 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
 
   static const String name = 'SailTestRoute';
 
-  static const PageInfo<SailTestRouteArgs> page = PageInfo<SailTestRouteArgs>(name);
+  static const PageInfo<SailTestRouteArgs> page =
+      PageInfo<SailTestRouteArgs>(name);
 }
 
 class SailTestRouteArgs {

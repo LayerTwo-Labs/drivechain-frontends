@@ -227,7 +227,7 @@ class _SideNavState extends State<SideNav> {
       case 0:
         return [];
       // parent chain home!
-      case 1:
+      case ParentChainHome || const (ParentChainHome + 1) || const (ParentChainHome + 2):
         return [
           const NavCategory(category: 'Transfer'),
           SubNavEntryContainer(
@@ -240,6 +240,13 @@ class _SideNavState extends State<SideNav> {
                   tabsRouter.setActiveIndex(ParentChainHome);
                 },
               ),
+              SubNavEntry(
+                title: 'Transfer',
+                selected: tabsRouter.activeIndex == ParentChainHome + 1,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(ParentChainHome + 1);
+                },
+              ),
               if (chain.type == SidechainType.testChain)
                 SubNavEntry(
                   title: 'Withdrawal explorer',
@@ -248,13 +255,20 @@ class _SideNavState extends State<SideNav> {
                     tabsRouter.setActiveIndex(4);
                   },
                 ),
-              // TODO BO: Add unique send/receive page
             ],
           ),
         ];
-      case 2 || 3 || 4 || 5 || 6 || 7 || 8 || 9 || 10 || 11:
+      case TestchainHome ||
+            const (TestchainHome + 1) ||
+            const (TestchainHome + 2) ||
+            EthereumHome ||
+            ZCashHome ||
+            const (ZCashHome + 1) ||
+            const (ZCashHome + 2) ||
+            const (ZCashHome + 3) ||
+            const (ZCashHome + 4):
         return _navForChain(chain, viewModel, tabsRouter);
-      case 12 || 13:
+      case SettingsHome || const (SettingsHome + 1):
         return [
           const NavCategory(category: 'Settings'),
           SubNavEntryContainer(
