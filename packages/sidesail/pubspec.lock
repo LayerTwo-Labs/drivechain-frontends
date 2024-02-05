@@ -833,10 +833,10 @@ packages:
     dependency: "direct main"
     description:
       name: stacked
-      sha256: "9b314261e675b6d153caee14c3e8fc4590e8a8f3fdd0f418d545c5963372a46f"
+      sha256: "32641025f7bedf3acddd068008932c5f4d89bd089f1b091f61c9fe466c66229e"
       url: "https://pub.dev"
     source: hosted
-    version: "3.4.1+1"
+    version: "3.4.2"
   stacked_shared:
     dependency: transitive
     description:
