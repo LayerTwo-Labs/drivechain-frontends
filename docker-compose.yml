@@ -71,6 +71,12 @@ services:
       - -rpcallowip=0.0.0.0/0
       - -rpcbind=0.0.0.0:19000
       - -rpcport=19000
+      - -rpcuser=user
+      - -rpcpassword=password
+      - -mainchainrpcport=18443
+      - -mainchainrpchost=mainchain
+      - -mainchainrpcuser=user
+      - -mainchainrpcpassword=password
       - -txindex
       - -regtest
       - -datadir=/testchain
