@@ -50,7 +50,7 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: DashboardTabRoute.page,
-              initial: RuntimeArgs.chain.toLowerCase() == TestSidechain().name.toLowerCase() ? true : false,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.testChain,
             ),
             AutoRoute(
               page: TestchainRPCTabRoute.page,
@@ -69,11 +69,11 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: EthereumRPCTabRoute.page,
-              initial: RuntimeArgs.chain.toLowerCase() == EthereumSidechain().name.toLowerCase() ? true : false,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.ethereum,
             ),
             AutoRoute(
               page: ZCashMeltCastTabRoute.page,
-              initial: RuntimeArgs.chain.toLowerCase() == ZCashSidechain().name.toLowerCase() ? true : false,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.zcash,
             ),
             AutoRoute(
               page: ZCashShieldDeshieldTabRoute.page,

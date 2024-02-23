@@ -12,35 +12,7 @@ import 'package:sidesail/storage/sail_settings/font_settings.dart';
 Future<void> start() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  String appName;
-  Sidechain chain;
-  // Sanity check we're getting a supported chain.
-  switch (RuntimeArgs.chain.toLowerCase()) {
-    case '': // default to testchain
-    case 'testchain':
-      chain = TestSidechain();
-      appName = chain.name;
-      break;
-
-    case 'ethereum':
-    case 'ethside':
-      chain = EthereumSidechain();
-      appName = chain.name;
-      break;
-
-    case 'zcash':
-    case 'zside':
-      chain = ZCashSidechain();
-      appName = chain.name;
-      break;
-
-    default:
-      // Just throw an error here. We used to initialize
-      // the app with an error message, but we won't be able
-      // to do that successfully because initializing deps
-      // crashes as well.
-      throw 'unsupported chain: ${RuntimeArgs.chain}';
-  }
+  Sidechain chain = Sidechain.fromString(RuntimeArgs.chain) ?? TestSidechain();
 
   await initDependencies(chain);
 
@@ -53,7 +25,7 @@ Future<void> start() async {
       builder: (context, router) => MaterialApp.router(
         routerDelegate: router.delegate(),
         routeInformationParser: router.defaultRouteParser(),
-        title: appName,
+        title: chain.name,
         theme: ThemeData(
           fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
           colorScheme: ColorScheme.fromSwatch().copyWith(secondary: const Color(0xffFF8000)),
