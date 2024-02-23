@@ -18,6 +18,22 @@ abstract class Sidechain {
   }
 
   String get binary;
+
+  static Sidechain? fromString(String input) {
+    switch (input.toLowerCase()) {
+      case 'ethereum':
+      case 'ethside':
+        return EthereumSidechain();
+
+      case 'testchain':
+        return TestSidechain();
+
+      case 'zcash':
+      case 'zside':
+        return ZCashSidechain();
+    }
+    return null;
+  }
 }
 
 class TestSidechain extends Sidechain {
