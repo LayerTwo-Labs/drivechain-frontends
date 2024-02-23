@@ -124,8 +124,8 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
 
     await mainchain.createSidechainProposal(_sidechain.rpc.chain.slot, _sidechain.rpc.chain.name);
 
-    const numBlocks = 22;
-    log.i('mainchain init: generating $numBlocks blocks to broadcast proposal');
+    const numBlocks = 144;
+    log.i('mainchain init: generating $numBlocks blocks to broadcast proposal and give user some balance');
     await mainchain.generate(numBlocks);
 
     log.i('mainchain init: verifying sidechain is active');

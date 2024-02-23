@@ -24,8 +24,8 @@ class ActiveSidechain {
 
       // first one is for createsidechainproposal, second is for listactivesidechains...
       nversion: json['version'] ?? json['nversion'],
-      hashid1: json['hashid1'],
-      hashid2: json['hashid2'],
+      hashid1: json['hashID1'] ?? json['hashid1'],
+      hashid2: json['hashID2'] ?? json['hashid2'],
     );
   }
 
