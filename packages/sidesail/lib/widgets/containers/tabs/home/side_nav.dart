@@ -252,7 +252,7 @@ class _SideNavState extends State<SideNav> {
                   title: 'Withdrawal explorer',
                   selected: tabsRouter.activeIndex == 4,
                   onPressed: () {
-                    tabsRouter.setActiveIndex(4);
+                    tabsRouter.setActiveIndex(ParentChainHome + 2);
                   },
                 ),
             ],
