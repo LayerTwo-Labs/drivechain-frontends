@@ -56,8 +56,6 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
 
-    //log.i('starting sidesail');
-
     // always attempt to start binaries. If we're already
     // connected (handled in dependencies), the start binary
     // function makes sure to not restart it
@@ -114,7 +112,8 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     }
 
     if (!mainchain.conf.isLocalNetwork) {
-      throw "${_sidechain.rpc.chain.name} chain is not active, and we're unable to activate it";
+      log.e('${_sidechain.rpc.chain.name} chain is not active, and we\'re unable to activate it');
+      return;
     }
 
     log.i(
