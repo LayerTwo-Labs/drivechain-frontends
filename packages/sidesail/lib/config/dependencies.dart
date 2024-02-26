@@ -43,7 +43,7 @@ Future<void> initDependencies(Sidechain chain) async {
 
   SingleNodeConnectionSettings mainchainConf = _emptyNodeConf;
   try {
-    mainchainConf = await readRpcConfig(mainchainDatadir(), 'drivechain.conf', null);
+    mainchainConf = await readRPCConfig(mainchainDatadir(), 'drivechain.conf', null);
   } catch (error) {
     // do nothing
   }
@@ -103,7 +103,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
 
     SingleNodeConnectionSettings testchainConf = _emptyNodeConf;
     try {
-      testchainConf = await readRpcConfig(
+      testchainConf = await readRPCConfig(
         TestSidechain().type.datadir(),
         TestSidechain().type.confFile(),
         TestSidechain(),
@@ -126,7 +126,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
 
     SingleNodeConnectionSettings ethConf = _emptyNodeConf;
     try {
-      ethConf = await readRpcConfig(
+      ethConf = await readRPCConfig(
         EthereumSidechain().type.datadir(),
         EthereumSidechain().type.confFile(),
         EthereumSidechain(),
@@ -151,10 +151,11 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
 
     SingleNodeConnectionSettings zcashConf = _emptyNodeConf;
     try {
-      zcashConf = await readRpcConfig(
+      zcashConf = await readRPCConfig(
         '.',
         ZCashSidechain().type.confFile(),
         ZCashSidechain(),
+        overrideNetwork: 'regtest',
       );
     } catch (error) {
       // do nothing, just don't exit
