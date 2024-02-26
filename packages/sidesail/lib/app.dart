@@ -8,7 +8,9 @@ import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/theme/theme_data.dart';
 import 'package:sail_ui/widgets/core/scaffold.dart';
 import 'package:sail_ui/widgets/loading_indicator.dart';
+import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
@@ -47,6 +49,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   Logger get log => GetIt.I.get<Logger>();
   ClientSettings get settings => GetIt.I.get<ClientSettings>();
+  ProcessProvider get processProvider => GetIt.I.get<ProcessProvider>();
 
   SailThemeData? theme;
 
@@ -68,6 +71,34 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
       // This is a workaround to trigger the root widget to rebuild.
       SailApp.sailAppKey = GlobalKey();
     });
+  }
+
+  Future<void> restartNodes() async {
+    // first shut down old nodes
+    await processProvider.shutdown();
+
+    try {
+      final newConf = await readRPCConfig(mainchainDatadir(), 'drivechain.conf', null);
+      // then boot fresh ones, with the user-preferred network
+      mainchain.conf = newConf;
+      mainchain.connected = false;
+      // now set new node conf, hmm
+      await initMainchainBinary();
+    } catch (error) {
+      // do nothing
+      log.e('could not reinit mainchain binary ${error.toString()}');
+    }
+
+    try {
+      final newConf = await findSidechainConf(_sidechain.rpc.chain);
+      // then boot fresh ones, with the user-preferred network
+      _sidechain.rpc.conf = newConf;
+      _sidechain.rpc.connected = false;
+      await initSidechainBinary();
+    } catch (error) {
+      // do nothing
+      log.e('could not reinit sidechain binary ${error.toString()}');
+    }
   }
 
   Future<void> loadTheme([SailThemeValues? themeToLoad]) async {
@@ -112,13 +143,12 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     }
 
     if (!mainchain.conf.isLocalNetwork) {
-      log.e('${_sidechain.rpc.chain.name} chain is not active, and we\'re unable to activate it');
+      log.w('${_sidechain.rpc.chain.name} chain is not active, and we\'re unable to activate it');
       return;
     }
 
     log.i(
-      'mainchain init: we are NOT an active sidechain, creating proposal',
-      error: activeSidechains.map((e) => e.toJson()),
+      'mainchain init: we are NOT an active sidechain, creating proposal ${activeSidechains.map((e) => e.toJson())}',
     );
 
     await mainchain.createSidechainProposal(_sidechain.rpc.chain.slot, _sidechain.rpc.chain.name);
@@ -132,8 +162,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     final isActive = isCurrentChainActive(activeChains: chains, currentChain: _sidechain.rpc.chain);
     if (!isActive) {
       log.e(
-        'mainchain init: was not able to activate sidechain',
-        error: await mainchain.listActiveSidechains().then((xs) => xs.map((chain) => chain.toJson())),
+        'mainchain init: was not able to activate sidechain ${await mainchain.listActiveSidechains().then((xs) => xs.map((chain) => chain.toJson()))}',
       );
       throw 'Was not able to activate sidechain';
     }
