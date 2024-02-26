@@ -38,6 +38,7 @@ Future<void> initDependencies(Sidechain chain) async {
       ),
     ),
   );
+  GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
 
   GetIt.I.registerLazySingleton<NotificationProvider>(
     () => NotificationProvider(),
@@ -70,8 +71,6 @@ Future<void> initDependencies(Sidechain chain) async {
     () => BalanceProvider(),
   );
 
-  GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
-
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
   );
@@ -89,28 +88,61 @@ Future<void> initDependencies(Sidechain chain) async {
   );
 }
 
+Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
+  SingleNodeConnectionSettings conf = _emptyNodeConf;
+  switch (chain.type) {
+    case SidechainType.testChain:
+      try {
+        conf = await readRPCConfig(
+          TestSidechain().type.datadir(),
+          TestSidechain().type.confFile(),
+          TestSidechain(),
+        );
+      } catch (error) {
+        // do nothing, just don't exit
+      }
+      break;
+    case SidechainType.ethereum:
+      try {
+        conf = await readRPCConfig(
+          EthereumSidechain().type.datadir(),
+          EthereumSidechain().type.confFile(),
+          EthereumSidechain(),
+        );
+      } catch (error) {
+        // do nothing, just don't exit
+      }
+      break;
+    case SidechainType.zcash:
+      try {
+        conf = await readRPCConfig(
+          '.',
+          ZCashSidechain().type.confFile(),
+          ZCashSidechain(),
+          overrideNetwork: 'regtest',
+        );
+      } catch (error) {
+        // do nothing, just don't exit
+      }
+      break;
+  }
+
+  return conf;
+}
+
 // register all rpc connections. We attempt to create all
 // rpcs in parallell, so they're ready instantly when swapping
 // we can also query the balance
 Future<SidechainRPC> findSubRPC(Sidechain chain) async {
   final log = await logger();
+  final conf = await findSidechainConf(chain);
 
   SidechainRPC? sidechain;
 
   if (chain.type == SidechainType.testChain) {
     log.i('starting init testchain RPC');
 
-    SingleNodeConnectionSettings testchainConf = _emptyNodeConf;
-    try {
-      testchainConf = await readRPCConfig(
-        TestSidechain().type.datadir(),
-        TestSidechain().type.confFile(),
-        TestSidechain(),
-      );
-    } catch (error) {
-      // do nothing, just don't exit
-    }
-    final testchain = TestchainRPCLive(conf: testchainConf);
+    final testchain = TestchainRPCLive(conf: conf);
     sidechain = testchain;
 
     if (!GetIt.I.isRegistered<TestchainRPC>()) {
@@ -123,18 +155,8 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
   if (chain.type == SidechainType.ethereum) {
     log.i('starting init ethereum RPC');
 
-    SingleNodeConnectionSettings ethConf = _emptyNodeConf;
-    try {
-      ethConf = await readRPCConfig(
-        EthereumSidechain().type.datadir(),
-        EthereumSidechain().type.confFile(),
-        EthereumSidechain(),
-      );
-    } catch (error) {
-      // do nothing, just don't exit
-    }
     final ethChain = EthereumRPCLive(
-      conf: ethConf,
+      conf: conf,
     );
     sidechain = ethChain;
 
@@ -148,19 +170,8 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
   if (chain.type == SidechainType.zcash) {
     log.i('starting init zcash RPC');
 
-    SingleNodeConnectionSettings zcashConf = _emptyNodeConf;
-    try {
-      zcashConf = await readRPCConfig(
-        '.',
-        ZCashSidechain().type.confFile(),
-        ZCashSidechain(),
-        overrideNetwork: 'regtest',
-      );
-    } catch (error) {
-      // do nothing, just don't exit
-    }
     final zChain = ZcashRPCLive(
-      conf: zcashConf,
+      conf: conf,
     );
     sidechain = zChain;
 

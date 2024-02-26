@@ -10,6 +10,7 @@ import 'package:sidesail/app.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/sail_settings/font_settings.dart';
+import 'package:sidesail/storage/sail_settings/network_settings.dart';
 import 'package:sidesail/storage/sail_settings/theme_settings.dart';
 import 'package:stacked/stacked.dart';
 
@@ -147,13 +148,28 @@ class SettingsTabPage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding20),
                 child: SailText.primary20('Active network', bold: true),
               ),
-              StaticActionField(
-                copyable: true,
-                prefixWidget: Padding(
-                  padding: const EdgeInsets.only(right: SailStyleValues.padding10),
-                  child: SailSVG.icon(SailSVGAsset.iconCopy),
-                ),
-                value: RuntimeArgs.network,
+              SailRow(
+                spacing: SailStyleValues.padding15,
+                children: [
+                  SailButton.primary(
+                    'Mainnet',
+                    onPressed: () async {
+                      await viewModel.setNetwork(SailNetworkValues.mainnet);
+                      await app.restartNodes();
+                    },
+                    size: ButtonSize.regular,
+                    disabled: viewModel.network == SailNetworkValues.mainnet,
+                  ),
+                  SailButton.primary(
+                    'Regtest',
+                    onPressed: () async {
+                      await viewModel.setNetwork(SailNetworkValues.regtest);
+                      await app.restartNodes();
+                    },
+                    size: ButtonSize.regular,
+                    disabled: viewModel.network == SailNetworkValues.regtest,
+                  ),
+                ],
               ),
             ],
           );
@@ -171,6 +187,8 @@ class ThemeSettingsViewModel extends BaseViewModel {
   }
 
   String datadir = '';
+  // default to mainnet!
+  SailNetworkValues network = SailNetworkValues.mainnet;
   SailThemeValues theme = SailThemeValues.light;
   SailFontValues font = SailFontValues.inter;
   SailFontValues fontOnLoad = SailFontValues.inter;
@@ -181,9 +199,16 @@ class ThemeSettingsViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  Future<void> setNetwork(SailNetworkValues newNetwork) async {
+    network = newNetwork;
+    await _clientSettings.setValue(NetworkSetting().withValue(network));
+    notifyListeners();
+  }
+
   Future<void> _init() async {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
     font = (await _clientSettings.getValue(FontSetting())).value;
+    network = (await _clientSettings.getValue(NetworkSetting())).value;
     fontOnLoad = font;
     datadir = await RuntimeArgs.datadir().then((dir) => dir.path);
     notifyListeners();
