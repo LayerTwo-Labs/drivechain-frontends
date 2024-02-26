@@ -30,6 +30,14 @@ final _emptyNodeConf = SingleNodeConnectionSettings.empty();
 Future<void> initDependencies(Sidechain chain) async {
   final log = await logger();
   GetIt.I.registerLazySingleton<Logger>(() => log);
+  final prefs = await SharedPreferences.getInstance();
+  GetIt.I.registerLazySingleton<ClientSettings>(
+    () => ClientSettings(
+      store: Storage(
+        preferences: prefs,
+      ),
+    ),
+  );
 
   GetIt.I.registerLazySingleton<NotificationProvider>(
     () => NotificationProvider(),
@@ -54,15 +62,6 @@ Future<void> initDependencies(Sidechain chain) async {
 
   GetIt.I.registerLazySingleton<AppRouter>(
     () => AppRouter(),
-  );
-
-  final prefs = await SharedPreferences.getInstance();
-  GetIt.I.registerLazySingleton<ClientSettings>(
-    () => ClientSettings(
-      store: Storage(
-        preferences: prefs,
-      ),
-    ),
   );
 
   GetIt.I.registerLazySingleton<BalanceProvider>(

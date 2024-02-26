@@ -7,6 +7,8 @@ import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/process_provider.dart';
+import 'package:sidesail/storage/client_settings.dart';
+import 'package:sidesail/storage/sail_settings/network_settings.dart';
 
 class Config {
   final String path;
@@ -38,11 +40,14 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
   String? overrideNetwork,
 }) async {
   final log = GetIt.I.get<Logger>();
+  // network parameter is stored in here!
+  ClientSettings clientSettings = GetIt.I.get<ClientSettings>();
 
   final conf = File(filePath([datadir, confFile]));
 
-  // precedence goes like overrideNetwork > runtime args
-  var network = overrideNetwork ?? RuntimeArgs.network;
+  // precedence goes like overrideNetwork > runtime args > saved network
+  var network =
+      overrideNetwork ?? RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
 
   // Mainnet == empty string, special datadirs only apply to non-mainnet
   final networkDir = filePath([datadir, network == 'mainnet' ? '' : network]);

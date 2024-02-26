@@ -35,5 +35,5 @@ abstract class RuntimeArgs {
   static final String _network =
       Platform.environment['SIDESAIL_NETWORK'] ?? const String.fromEnvironment('SIDESAIL_NETWORK');
 
-  static String network = _network.isNotEmpty ? _network : 'mainnet';
+  static String? network = _network.isNotEmpty ? _network : null;
 }
