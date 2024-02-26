@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
@@ -409,5 +410,102 @@ class DepositWithdrawHelp extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class EasyRegtestDeposit extends StatelessWidget {
+  final VoidCallback depositNudgeAction;
+
+  AppRouter get router => GetIt.I.get<AppRouter>();
+
+  const EasyRegtestDeposit({
+    super.key,
+    required this.depositNudgeAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => ZCashWidgetTitleViewModel(),
+      builder: ((context, viewModel, child) {
+        if (viewModel.balance != 0) {
+          return Container();
+        }
+
+        return SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            SailButton.primary(
+              'Easy Deposit',
+              onPressed: () async {
+                try {
+                  await viewModel.easyDeposit();
+                } catch (err) {
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  await errorDialog(
+                    context: context,
+                    action: 'Deposit coins',
+                    title: 'Could not easy-deposit coins. Try pegging in manually with \'createsidechaindeposit\'',
+                    subtitle: err.toString(),
+                  );
+                }
+              },
+              loading: viewModel.isBusy,
+              size: ButtonSize.small,
+            ),
+            SailText.secondary12(
+              'Click the button to deposit coins to your sidechain',
+            ),
+            Expanded(child: Container()),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class ZCashWidgetTitleViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
+  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+
+  double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
+
+  bool showAll = false;
+
+  ZCashWidgetTitleViewModel() {
+    _balanceProvider.addListener(notifyListeners);
+  }
+
+  Future<void> easyDeposit() async {
+    setBusy(true);
+    // step 1, get mainchain balance
+    final balance = await _mainchain.getBalance();
+    final confirmedBalance = balance.$1;
+
+    // step 2, get sidechain deposit address
+    final depositAddress = await _sidechainContainer.rpc.generateDepositAddress();
+
+    // step 3, query createsidechaindeposit with the current chain params
+    final _ = await _mainchain.createSidechainDeposit(
+      _sidechainContainer.rpc.chain.slot,
+      depositAddress,
+      confirmedBalance / 3 * 2,
+    );
+
+    // step 4 confirm the deposit
+    await _mainchain.generate(22);
+
+    setBusy(false);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _balanceProvider.removeListener(notifyListeners);
   }
 }
