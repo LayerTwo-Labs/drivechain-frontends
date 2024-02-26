@@ -50,7 +50,11 @@ abstract class RPCConnection extends ChangeNotifier {
       if (!initializingBinary) {
         String msg = error.toString();
 
-        if (error is SocketException) {
+        if (connectionError != null && msg.contains('Connection refused')) {
+          // an error is already set, and we don't want to override it with
+          // a generic non-informative message!
+          msg = connectionError!;
+        } else if (error is SocketException) {
           msg = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
         } else if (error is HTTPException) {
           // gotta parse out the error...
