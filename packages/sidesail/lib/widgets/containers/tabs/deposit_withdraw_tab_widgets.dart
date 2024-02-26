@@ -247,7 +247,7 @@ class PegInViewModel extends BaseViewModel {
   }
 
   Future<void> generatePegInAddress() async {
-    pegInAddress = await _sidechain.rpc.mainGenerateAddress();
+    pegInAddress = await _sidechain.rpc.generateDepositAddress();
     notifyListeners();
   }
 }
@@ -317,7 +317,7 @@ class PegInEthViewModel extends BaseViewModel {
   }
 
   Future<void> generatePegInAddress() async {
-    pegInAddress = await _ethRPC.mainGenerateAddress();
+    pegInAddress = await _ethRPC.generateDepositAddress();
     sidechainFee = await _ethRPC.sideEstimateFee();
     notifyListeners();
   }

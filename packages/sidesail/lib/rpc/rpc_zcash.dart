@@ -229,7 +229,7 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> mainGenerateAddress() async {
+  Future<String> generateDepositAddress() async {
     final address = await _client().call('getnewaddress');
     return formatDepositAddress(address, chain.slot);
   }
