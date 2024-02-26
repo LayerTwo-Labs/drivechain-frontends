@@ -24,6 +24,10 @@ abstract class MainchainRPC extends RPCConnection {
   Future<String> send(String address, double amount, bool subtractFeeFromAmount);
   Future<String> getNewAddress();
 
+  // util functions for a better UX
+  Future<(double, double)> getBalance();
+  Future<String> createSidechainDeposit(int sidechainSlot, String address, double amount);
+
   final binary = 'drivechaind';
 }
 
@@ -164,6 +168,24 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<String> getNewAddress() async {
     return await _client().call('getnewaddress');
+  }
+
+  @override
+  Future<(double, double)> getBalance() async {
+    final confirmedFut = _client().call('getbalance');
+    final unconfirmedFut = _client().call('getunconfirmedbalance');
+
+    return (await confirmedFut as double, await unconfirmedFut as double);
+  }
+
+  @override
+  Future<String> createSidechainDeposit(int sidechainSlot, String address, double amount) async {
+    amount = cleanAmount(amount);
+
+    final fee = await estimateFee();
+    final txid = await _client().call('createsidechaindeposit', [sidechainSlot, address, amount, fee]) as String;
+
+    return txid;
   }
 }
 

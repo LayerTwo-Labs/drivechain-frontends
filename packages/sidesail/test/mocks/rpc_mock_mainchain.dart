@@ -83,4 +83,14 @@ class MockMainchainRPC extends MainchainRPC {
   Future<String> send(String address, double amount, bool subtractFeeFromAmount) async {
     return 'txiddeeadbeef';
   }
+
+  @override
+  Future<(double, double)> getBalance() async {
+    return (1.0, 2.0);
+  }
+
+  @override
+  Future<String> createSidechainDeposit(int sidechainSlot, String address, double amount) async {
+    return 'txiddeadbeef';
+  }
 }
