@@ -249,7 +249,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<String> mainGenerateAddress() async {
+  Future<String> generateDepositAddress() async {
     return formatDepositAddress('3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi', chain.slot);
   }
 

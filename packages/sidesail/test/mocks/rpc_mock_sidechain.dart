@@ -37,7 +37,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<String> mainGenerateAddress() async {
+  Future<String> generateDepositAddress() async {
     return formatDepositAddress('3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi', 0);
   }
 

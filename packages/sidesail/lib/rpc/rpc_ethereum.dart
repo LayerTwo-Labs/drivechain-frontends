@@ -126,7 +126,7 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<String> mainGenerateAddress() async {
+  Future<String> generateDepositAddress() async {
     if (account == null) {
       return '';
     }
