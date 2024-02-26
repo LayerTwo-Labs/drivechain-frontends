@@ -30,12 +30,19 @@ class Config {
 // 2. Inspect cookie
 // 3. Defaults
 //
-Future<SingleNodeConnectionSettings> readRpcConfig(String datadir, String confFile, Sidechain? sidechain) async {
+Future<SingleNodeConnectionSettings> readRPCConfig(
+  String datadir,
+  String confFile,
+  Sidechain? sidechain, {
+  // if set, will force this network, irregardless of runtime argument
+  String? overrideNetwork,
+}) async {
   final log = GetIt.I.get<Logger>();
 
   final conf = File(filePath([datadir, confFile]));
 
-  var network = RuntimeArgs.network;
+  // precedence goes like overrideNetwork > runtime args
+  var network = overrideNetwork ?? RuntimeArgs.network;
 
   // Mainnet == empty string, special datadirs only apply to non-mainnet
   final networkDir = filePath([datadir, network == 'mainnet' ? '' : network]);

@@ -300,7 +300,7 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
       String confFile = parts.$2;
       readError = null;
 
-      final config = await readRpcConfig(dataDir, confFile, sidechain);
+      final config = await readRPCConfig(dataDir, confFile, sidechain);
       configPathController.text = config.fileConfigPath;
       hostController.text = config.host;
       portController.text = config.port.toString();
