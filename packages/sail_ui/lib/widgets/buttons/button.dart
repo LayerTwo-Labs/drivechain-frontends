@@ -38,8 +38,8 @@ class SailButton extends StatelessWidget {
       size: size,
       isSecondary: false,
       child: size == ButtonSize.small || size == ButtonSize.regular
-          ? SailText.primary12(label, bold: true)
-          : SailText.primary13(label),
+          ? SailText.background12(label, bold: true)
+          : SailText.background13(label),
     );
   }
 

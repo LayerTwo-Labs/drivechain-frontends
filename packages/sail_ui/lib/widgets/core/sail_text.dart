@@ -213,6 +213,48 @@ class SailText {
       },
     );
   }
+
+  static Widget background12(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? customColor,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.twelve.copyWith(
+            color: customColor ?? theme.colors.background,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
+
+  static Widget background13(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? customColor,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.thirteen.copyWith(
+            color: customColor ?? theme.colors.background,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+          ),
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
 }
 
 class Shadow {
