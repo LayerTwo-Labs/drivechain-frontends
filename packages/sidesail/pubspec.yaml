@@ -43,7 +43,7 @@ dependencies:
       # master, as of 14.11.2023
       ref: a728ad303df4b8056863e650d7f9be8a0d7ee49c
   flutter_highlighter: ^0.1.1
-  logger: ^2.0.2+1
+  logger: ^2.1.0
   dio: ^4.0.6
   auto_route: ^7.8.4
   get_it: ^7.6.7
