@@ -58,7 +58,8 @@ abstract class ZCashRPC extends SidechainRPC {
       '-mainport=${mainchainConf.port}',
       '-mainhost=${mainchainConf.host}',
       '-rpcuser=${mainchainConf.username}',
-      '-pcpassword=${mainchainConf.password}',
+      '-rpcpassword=${mainchainConf.password}',
+      '-walletrequirebackup=false', // it's all test-coins!
     ];
     return [...baseArgs, ...sidechainArgs];
   }
