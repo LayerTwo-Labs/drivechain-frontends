@@ -20,7 +20,7 @@ case "$chain" in
     app_name=EthSail
     ;;
 
-    "zcash")
+    "zcash" | "zside")
     app_name=ZSail
     ;;
 
@@ -28,7 +28,6 @@ case "$chain" in
     echo unsupported chain: $chain
     exit 1
 esac
-
 
 echo Downloading binaries for $platform + $chain
 bash ./scripts/download-binaries.sh $platform $chain

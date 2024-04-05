@@ -50,6 +50,10 @@ case "$chain" in
     sidechain_bin_name=zsided
     ;;
 
+    "zcash" | "zside")
+    sidechain_bin_name=zsided
+    ;;
+
     *)
     echo unsupported chain: $chain
     exit 1
