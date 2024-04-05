@@ -20,7 +20,7 @@ case "$chain" in
     app_name=EthSail
     ;;
 
-    "zcash" | "zside")
+    "zcash")
     app_name=ZSail
     ;;
 
@@ -40,5 +40,5 @@ echo Building $app_name release
 bash ./scripts/build-$platform.sh $app_name
 
 # Reset to the pre-flavorized versions.
-git checkout windows macos linux pubspec.yaml
+git checkout -- windows macos linux pubspec.yaml
 rm build-vars.env
