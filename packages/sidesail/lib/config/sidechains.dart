@@ -70,7 +70,7 @@ class ZCashSidechain extends Sidechain {
   SidechainType get type => SidechainType.zcash;
 
   @override
-  int get rpcPort => 20000;
+  int get rpcPort => 8232;
 
   @override
   String get binary => 'zsided';

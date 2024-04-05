@@ -20,16 +20,10 @@ abstract class ZCashRPC extends SidechainRPC {
       conf,
     );
     final sidechainArgs = [
-      '-mainchainrpcport=${mainchainConf.port}',
-      '-mainchainrpchost=${mainchainConf.host}',
-      '-mainchainrpcuser=${mainchainConf.username}',
-      '-mainchainrpcpassword=${mainchainConf.password}',
-      // always regtest for zcash
-      '-regtest',
-      // activates specific zcash-features necessary to make
-      // the sidechain usable
-      '-nuparams=76b809bb:1',
-      '-nuparams=f5b9230b:5',
+      '-mainport=${mainchainConf.port}',
+      '-mainhost=${mainchainConf.host}',
+      '-rpcuser=${mainchainConf.username}',
+      '-pcpassword=${mainchainConf.password}',
     ];
     return [...baseArgs, ...sidechainArgs];
   }

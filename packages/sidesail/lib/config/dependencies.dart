@@ -119,7 +119,6 @@ Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
           '.',
           ZCashSidechain().type.confFile(),
           ZCashSidechain(),
-          overrideNetwork: 'regtest',
         );
       } catch (error) {
         // do nothing, just don't exit
