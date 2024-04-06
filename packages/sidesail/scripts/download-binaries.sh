@@ -112,6 +112,7 @@ if ! test -f $bin_dir/$sidechain; then
 
     # Only fetch binaries for the specific sidechain we're interested in
     sidechain_file=L2-S$sidechain_slot-$sidechain_file_name-x86_64-$version_postfix
+
     curl --fail -O $RELEASES/$sidechain_file.zip
     $unpack_cmd $sidechain_file.zip
 
