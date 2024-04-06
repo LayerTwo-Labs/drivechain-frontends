@@ -693,10 +693,10 @@ packages:
     dependency: transitive
     description:
       name: pointycastle
-      sha256: "7c1e5f0d23c9016c5bbd8b1473d0d3fb3fc851b876046039509e18e0c7485f2c"
+      sha256: "43ac87de6e10afabc85c445745a7b799e04de84cebaa4fd7bf55a5e1e9604d29"
       url: "https://pub.dev"
     source: hosted
-    version: "3.7.3"
+    version: "3.7.4"
   pool:
     dependency: transitive
     description:
@@ -1001,10 +1001,10 @@ packages:
     dependency: transitive
     description:
       name: wallet
-      sha256: "569c91c2af13a9e1119c001f9c09218eccf3f383eb8d15ba13a5b558010c1bc0"
+      sha256: "687fd89a16557649b26189e597792962f405797fc64113e8758eabc2c2605c32"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.12+1"
+    version: "0.0.13"
   watcher:
     dependency: transitive
     description:
@@ -1026,10 +1026,10 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: d9fe4457865ebaee04336d51d2c061773517c9f2
+      resolved-ref: b8e6d9b51fca074537888864ed9e90d1e376c404
       url: "https://github.com/xclud/web3dart.git"
     source: git
-    version: "2.7.2"
+    version: "2.7.3"
   web_socket_channel:
     dependency: transitive
     description:
