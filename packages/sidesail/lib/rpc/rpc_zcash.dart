@@ -16,7 +16,7 @@ import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
-Future<void> writeIfNotExists(Logger log, BuildContext context, File file, String binPath) async {
+Future<void> copyIfNotExists(Logger log, BuildContext context, File file, String binPath) async {
   if (await file.exists()) {
     // if the file already exists, don't do anything
     log.d('file already exists in app directory, not copying');
@@ -38,6 +38,27 @@ Future<void> writeIfNotExists(Logger log, BuildContext context, File file, Strin
   // so we load the asset, and write it to a place we CAN get
   // an absolute path for
   await file.writeAsBytes(binResource.buffer.asUint8List());
+}
+
+Future<void> writeConfFileIfNotExists(Logger log) async {
+  final dataDir = applicationDir();
+  File? file;
+  if (Platform.isLinux) {
+    file = File('$dataDir/.zcash/zcash.conf');
+  } else if (Platform.isMacOS) {
+    file = File('$dataDir/Zcash/zcash.conf');
+  } else if (Platform.isWindows) {
+    file = File('$dataDir/Zcash/zcash.conf');
+  }
+  if (file == null) {
+    return;
+  }
+
+  if (!await file.exists()) {
+    log.i('zcash.conf does not exist, creating');
+    // zcash needs an empty conf file to run
+    await file.create();
+  }
 }
 
 abstract class ZCashRPC extends SidechainRPC {
@@ -80,9 +101,10 @@ abstract class ZCashRPC extends SidechainRPC {
       log.i('got application doc directory, copying params to dir ${appDir.path}');
 
       await Future.wait([
-        writeIfNotExists(log, context, saplingOutput, saplingOutputPath),
-        writeIfNotExists(log, context, saplingSpend, saplingSpendPath),
-        writeIfNotExists(log, context, sproutGroth, sproutGrothPath),
+        copyIfNotExists(log, context, saplingOutput, saplingOutputPath),
+        copyIfNotExists(log, context, saplingSpend, saplingSpendPath),
+        copyIfNotExists(log, context, sproutGroth, sproutGrothPath),
+        writeConfFileIfNotExists(log),
       ]);
 
       // if paramsdir not already specified, add the one we just

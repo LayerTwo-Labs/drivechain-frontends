@@ -119,24 +119,11 @@ extension SidechainPaths on SidechainType {
     }
 
     if (Platform.isLinux) {
-      return filePath([
-        home,
-        _linuxDirname(),
-      ]);
+      return applicationDir(subdir: _linuxDirname());
     } else if (Platform.isMacOS) {
-      return filePath([
-        home,
-        'Library',
-        'Application Support',
-        _macosDirname(),
-      ]);
+      return applicationDir(subdir: _macosDirname());
     } else if (Platform.isWindows) {
-      return filePath([
-        home,
-        'AppData',
-        'Roaming',
-        _windowsDirname(),
-      ]);
+      return applicationDir(subdir: _windowsDirname());
     } else {
       throw 'unsupported operating system: ${Platform.operatingSystem}';
     }
@@ -175,5 +162,37 @@ extension SidechainPaths on SidechainType {
       case SidechainType.zcash:
         return 'ZSide';
     }
+  }
+}
+
+String applicationDir({String? subdir}) {
+  final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']; // windows!
+  if (home == null) {
+    throw 'unable to determine HOME location';
+  }
+
+  subdir = subdir ?? '';
+
+  if (Platform.isLinux) {
+    return filePath([
+      home,
+      subdir,
+    ]);
+  } else if (Platform.isMacOS) {
+    return filePath([
+      home,
+      'Library',
+      'Application Support',
+      subdir,
+    ]);
+  } else if (Platform.isWindows) {
+    return filePath([
+      home,
+      'AppData',
+      'Roaming',
+      subdir,
+    ]);
+  } else {
+    throw 'unsupported operating system: ${Platform.operatingSystem}';
   }
 }
