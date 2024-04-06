@@ -29,7 +29,6 @@ case "$chain" in
     exit 1
 esac
 
-
 echo Downloading binaries for $platform + $chain
 bash ./scripts/download-binaries.sh $platform $chain
 
@@ -41,5 +40,5 @@ echo Building $app_name release
 bash ./scripts/build-$platform.sh $app_name
 
 # Reset to the pre-flavorized versions.
-git checkout windows macos linux pubspec.yaml
+git checkout -- windows macos linux pubspec.yaml
 rm build-vars.env

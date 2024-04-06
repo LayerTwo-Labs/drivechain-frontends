@@ -1,5 +1,12 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:io';
+
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
@@ -9,7 +16,56 @@ import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
+Future<void> copyIfNotExists(Logger log, BuildContext context, File file, String binPath) async {
+  if (await file.exists()) {
+    // if the file already exists, don't do anything
+    log.d('file already exists in app directory, not copying');
+    return;
+  }
+
+  if (!context.mounted) {
+    log.d('writeIfNotExists: context not mounted, exiting');
+    return;
+  }
+
+  // we can only bundle assets in the assets folder, but
+  // it's very hard to get an absolute path there
+  final binResource = await DefaultAssetBundle.of(context).load(
+    'assets/bin/$binPath',
+  );
+
+  log.d('writeIfNotExists: writing file to app directory');
+  // so we load the asset, and write it to a place we CAN get
+  // an absolute path for
+  await file.writeAsBytes(binResource.buffer.asUint8List());
+}
+
+Future<void> writeConfFileIfNotExists(Logger log) async {
+  final dataDir = applicationDir();
+  File? file;
+  if (Platform.isLinux) {
+    file = File('$dataDir/.zcash/zcash.conf');
+  } else if (Platform.isMacOS) {
+    file = File('$dataDir/Zcash/zcash.conf');
+  } else if (Platform.isWindows) {
+    file = File('$dataDir/Zcash/zcash.conf');
+  }
+  if (file == null) {
+    return;
+  }
+
+  if (!await file.exists()) {
+    log.i('zcash.conf does not exist, creating');
+    // zcash needs an empty conf file to run
+    await file.create();
+  }
+}
+
 abstract class ZCashRPC extends SidechainRPC {
+  final saplingOutputPath = 'sapling-output.params';
+  final saplingSpendPath = 'sapling-spend.params';
+  final sproutGrothPath = 'sprout-groth16.params';
+
   ZCashRPC({
     required super.conf,
   }) : super(chain: ZCashSidechain());
@@ -20,18 +76,49 @@ abstract class ZCashRPC extends SidechainRPC {
       conf,
     );
     final sidechainArgs = [
-      '-mainchainrpcport=${mainchainConf.port}',
-      '-mainchainrpchost=${mainchainConf.host}',
-      '-mainchainrpcuser=${mainchainConf.username}',
-      '-mainchainrpcpassword=${mainchainConf.password}',
-      // always regtest for zcash
-      '-regtest',
-      // activates specific zcash-features necessary to make
-      // the sidechain usable
-      '-nuparams=76b809bb:1',
-      '-nuparams=f5b9230b:5',
+      '-mainport=${mainchainConf.port}',
+      '-mainhost=${mainchainConf.host}',
+      '-rpcuser=${mainchainConf.username}',
+      '-rpcpassword=${mainchainConf.password}',
+      '-walletrequirebackup=false', // it's all test-coins!
     ];
     return [...baseArgs, ...sidechainArgs];
+  }
+
+  @override
+  Future<void> initBinary(
+    BuildContext context,
+    String binary,
+    List<String> args,
+  ) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      // first, figure out whether a folder exists
+      final saplingOutput = File('${appDir.path}/$saplingOutputPath');
+      final saplingSpend = File('${appDir.path}/$saplingSpendPath');
+      final sproutGroth = File('${appDir.path}/$sproutGrothPath');
+
+      log.i('got application doc directory, copying params to dir ${appDir.path}');
+
+      await Future.wait([
+        copyIfNotExists(log, context, saplingOutput, saplingOutputPath),
+        copyIfNotExists(log, context, saplingSpend, saplingSpendPath),
+        copyIfNotExists(log, context, sproutGroth, sproutGrothPath),
+        writeConfFileIfNotExists(log),
+      ]);
+
+      // if paramsdir not already specified, add the one we just
+      // created!
+      if (!args.any((arg) => arg.contains('paramsdir'))) {
+        log.i('params dir was not specified, adding custom dir ${appDir.path}');
+        args.add('-paramsdir=${appDir.path}');
+      }
+    } catch (error) {
+      log.e('could not copy params to local directory $error');
+    }
+
+    // after all assets are loaded properly, THEN init the zcash-binary
+    await super.initBinary(context, binary, args);
   }
 
   /// There's no account in the wallet out of the box. Calling this

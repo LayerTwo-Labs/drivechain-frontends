@@ -168,6 +168,6 @@ List<String> bitcoinCoreBinaryArgs(
 }
 
 Map<String, int> _defaultMainchainPorts = {
-  'mainnet': 8883,
+  'mainnet': 8332,
   'regtest': 18443,
 };

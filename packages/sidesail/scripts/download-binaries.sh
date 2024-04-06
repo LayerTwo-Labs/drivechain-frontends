@@ -54,9 +54,6 @@ case "$chain" in
     echo unsupported chain: $chain
     exit 1
 esac
- 
-# Remove any lingering binaries from dev activity. 
-git clean -Xf assets
 
 # Ensure the binary folder is in place. 
 mkdir -p assets/bin
