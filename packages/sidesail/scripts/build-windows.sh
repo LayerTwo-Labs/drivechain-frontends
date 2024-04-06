@@ -17,7 +17,7 @@ lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 # nice with the Flutter caches. Do a proper clean
 # before building.
 clean_cmd="flutter clean"
-build_cmd="dart run msix:create"
+build_cmd="flutter build windows --dart-define-from-file=build-vars.env"
 
 powershell.exe -Command "& {$clean_cmd; $build_cmd; exit}"
 
