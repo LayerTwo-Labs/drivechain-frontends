@@ -8,8 +8,9 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 
-platform="$1"
-chain="$2"
+# normalize to lower case!
+platform=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+chain=$(echo "$2" | tr '[:upper:]' '[:lower:]')
 
 case "$platform" in 
     "windows")
