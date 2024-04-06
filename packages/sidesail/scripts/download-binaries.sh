@@ -13,21 +13,18 @@ chain="$2"
 
 case "$platform" in 
     "windows")
-    version_postfix=win64
-    extension="zip"
+    version_postfix=w64-mingw32
     bin_name_postfix=.exe
     unpack_cmd="unzip"
     ;;
 
     "linux")
-    version_postfix=x86_64-linux-gnu
-    extension="tar.gz"
-    unpack_cmd="tar -xf"
+    version_postfix=unknown-linux-gnu
+    unpack_cmd="unzip"
     ;;
 
     "macos")
-    version_postfix=osx64
-    extension="tar.gz"
+    version_postfix=apple-darwin
     unpack_cmd="tar -xf"
     ;;
 
@@ -38,16 +35,23 @@ esac
 
 case "$chain" in 
     "testchain")
-    sidechain_version="18.01.00"
+    sidechain_slot=0
     sidechain_bin_name=testchaind
+    sidechain_cli_name=testchain-cli
+    sidechain_file_name=Testchain-latest
     ;;
 
     "ethereum")
+    sidechain_slot=6
     sidechain_bin_name=sidegeth
+    sidechain_file_name=EthSide-latest
     ;;
 
     "zcash")
+    sidechain_slot=5
     sidechain_bin_name=zsided
+    sidechain_cli=zside-cli
+    sidechain_file_name=ZSide-latest
     ;;
 
     *)
@@ -64,6 +68,7 @@ old_cwd=$(pwd)
 bin_dir=$old_cwd/bins
 assets_dir=$old_cwd/assets/bin
 
+echo Changing into temporary download dir $dl_dir
 cd $dl_dir
 
 # Fetch the binaries we're going to bundle alongside the UI. Currently 
@@ -76,9 +81,8 @@ cd $dl_dir
 
 RELEASES="https://releases.drivechain.info"
 
-DC_VERSION="0.46.03"
-
 drivechain=drivechaind$bin_name_postfix
+drivechain_cli=drivechain-cli$bin_name_postfix
 
 # Avoid fetching the binary if it already exists
 if ! test -f $bin_dir/$drivechain; then
@@ -86,27 +90,37 @@ if ! test -f $bin_dir/$drivechain; then
 
     # Fetch the drivechain binaries irregardless of what platform we're 
     # releasing for. 
-    drivechain_file=mainchain-$DC_VERSION-$version_postfix.$extension
+    drivechain_file=L1-Mainchain-latest-x86_64-$version_postfix.zip
 
-    curl -O $RELEASES/$drivechain_file
+    curl --fail -O $RELEASES/$drivechain_file
     $unpack_cmd $drivechain_file
 
-    mv mainchain-$DC_VERSION/bin/$drivechain $bin_dir/$drivechain
+    for file in $drivechain $drivechain_cli; do 
+        mv L1-Mainchain-latest-x86_64-$version_postfix/$file $bin_dir/$file
+    done
 fi 
 
 cp $bin_dir/$drivechain $assets_dir/$drivechain
+cp $bin_dir/$drivechain_cli $assets_dir/$drivechain_cli
 
 sidechain=$sidechain_bin_name$bin_name_postfix
+sidechain_cli=$sidechain_cli_name$bin_name_postfix
 
 if ! test -f $bin_dir/$sidechain; then
     echo Sidechain binary does not exist: $bin_dir/$sidechain
 
     # Only fetch binaries for the specific sidechain we're interested in
-    sidechain_file=$chain-$sidechain_version-$version_postfix.$extension
-    curl -O $RELEASES/$sidechain_file
-    $unpack_cmd $sidechain_file
+    sidechain_file=L2-S$sidechain_slot-$sidechain_file_name-x86_64-$version_postfix
+    curl --fail -O $RELEASES/$sidechain_file.zip
+    $unpack_cmd $sidechain_file.zip
 
-    mv $chain-$sidechain_version/bin/$sidechain $bin_dir/$sidechain
+    mv $sidechain_file/$sidechain $bin_dir/$sidechain
+
+    # Not all sidechains have CLIs! Remember to check for existence
+    cli_file=$sidechain_file/$sidechain_cli 
+    if test -e $cli_file; then 
+        mv $cli_file $bin_dir/$sidechain_cli
+    fi 
 fi;
 
 cp $bin_dir/$sidechain $assets_dir/$sidechain
