@@ -24,4 +24,4 @@ powershell.exe -Command "& {$clean_cmd; $build_cmd; exit}"
 zip_name=$lower_app_name-win64.zip
 mkdir -p release
 
-powershell.exe -Command "Compress-Archive -Force build\windows\runner\Release\* release/$zip_name"
+powershell.exe -Command "Compress-Archive -Force build\windows\x64\runner\Release\* release/$zip_name"
