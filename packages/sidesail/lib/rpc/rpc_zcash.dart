@@ -100,13 +100,13 @@ abstract class ZCashRPC extends SidechainRPC {
     List<String> args,
   ) async {
     try {
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDir = await getApplicationSupportDirectory();
       // first, figure out whether a folder exists
       final saplingOutput = File('${appDir.path}/$saplingOutputPath');
       final saplingSpend = File('${appDir.path}/$saplingSpendPath');
       final sproutGroth = File('${appDir.path}/$sproutGrothPath');
 
-      log.i('got application doc directory, copying params to dir ${appDir.path}');
+      log.i('got application support dir, copying params to dir ${appDir.path}');
 
       await Future.wait([
         copyIfNotExists(log, context, saplingOutput, saplingOutputPath),
