@@ -175,7 +175,7 @@ List<String> bitcoinCoreBinaryArgs(
 //
 // confKeyExists(args, 'regtest') => true
 bool _confKeyExists(List<String> args, String key) {
-  return args.any((arg) => arg.contains(key));
+  return args.any((arg) => arg.replaceAll('-', '').split('=').first == key);
 }
 
 void addEntryIfNotSet(List<String> args, String key, String value) {

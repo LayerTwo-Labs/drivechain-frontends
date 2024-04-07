@@ -86,7 +86,6 @@ abstract class ZCashRPC extends SidechainRPC {
 
     addEntryIfNotSet(args, 'walletrequirebackup', 'false');
     addEntryIfNotSet(args, 'addnode', '172.105.148.135');
-    addEntryIfNotSet(args, 'connect', '172.105.148.135');
     addEntryIfNotSet(args, 'server', '1');
     addEntryIfNotSet(args, 'regtest', '1');
 
