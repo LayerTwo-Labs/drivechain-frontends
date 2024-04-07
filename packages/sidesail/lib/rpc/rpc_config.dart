@@ -38,6 +38,7 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
   Sidechain? sidechain, {
   // if set, will force this network, irregardless of runtime argument
   String? overrideNetwork,
+  bool useCookieAuth = true,
 }) async {
   final log = GetIt.I.get<Logger>();
   // network parameter is stored in here!
@@ -72,7 +73,7 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
     );
   }
 
-  if (await cookie.exists()) {
+  if (useCookieAuth && await cookie.exists()) {
     final data = await cookie.readAsString();
     final parts = data.split(':');
     if (parts.length != 2) {
