@@ -171,14 +171,14 @@ class SailRawButton extends StatefulWidget {
   final EdgeInsets? padding;
 
   const SailRawButton({
-    Key? key,
+    super.key,
     required this.disabled,
     required this.loading,
     required this.backgroundColor,
     required this.onPressed,
     required this.child,
     this.padding,
-  }) : super(key: key);
+  });
 
   @override
   State<SailRawButton> createState() => _SailRawButtonState();
@@ -228,13 +228,13 @@ class SailScaleButton extends StatefulWidget {
   final Color? color;
 
   const SailScaleButton({
-    Key? key,
+    super.key,
     required this.onPressed,
     required this.child,
     this.disabled = false,
     this.loading = false,
     this.color,
-  }) : super(key: key);
+  });
 
   @override
   State<SailScaleButton> createState() => _SailScaleButtonState();

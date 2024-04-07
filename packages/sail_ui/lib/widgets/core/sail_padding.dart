@@ -6,10 +6,10 @@ class SailPadding extends StatelessWidget {
   final EdgeInsets? padding;
 
   const SailPadding({
-    Key? key,
+    super.key,
     required this.child,
     this.padding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
