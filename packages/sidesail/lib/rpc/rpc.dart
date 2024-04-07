@@ -137,10 +137,10 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    // Add timeout?
     log.i('init binaries: waiting for $binary connection');
 
-    const timeout = Duration(seconds: 5);
+    // zcash can take a long time. initial sync as well
+    const timeout = Duration(seconds: 5 * 60);
     try {
       await Future.any([
         // Happy case: able to connect
@@ -157,7 +157,6 @@ abstract class RPCConnection extends ChangeNotifier {
 
       log.i('init binaries: $binary connected');
 
-      initializingBinary = false;
       log.i('init binaries: starting connection timer for $binary');
       startConnectionTimer();
     } catch (err) {
@@ -177,6 +176,8 @@ abstract class RPCConnection extends ChangeNotifier {
         connectionError = err.toString();
       }
     }
+
+    initializingBinary = false;
 
     notifyListeners();
   }
