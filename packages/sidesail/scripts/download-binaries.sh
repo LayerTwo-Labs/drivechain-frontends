@@ -60,6 +60,9 @@ case "$chain" in
     exit 1
 esac
 
+# Remove any lingering binaries from dev activity. 
+git clean -Xf assets
+
 # Ensure the binary folder is in place. 
 mkdir -p assets/bin
 
