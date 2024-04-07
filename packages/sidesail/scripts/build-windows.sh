@@ -1,8 +1,7 @@
 set -e 
 
 app_name="$1"
-# Check if exactly one argument is provided
-if [ "$#" -ne 1 ]; then
+if [ "$app_name" = "" ]; then
     echo "Usage: $0 app_name"
     exit 1
 fi
