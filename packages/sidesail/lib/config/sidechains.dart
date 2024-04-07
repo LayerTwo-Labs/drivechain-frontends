@@ -50,7 +50,7 @@ class TestSidechain extends Sidechain {
   SidechainType get type => SidechainType.testChain;
 
   @override
-  int get rpcPort => 18743;
+  int get rpcPort => 8272;
 
   @override
   String get binary => 'testchaind';
