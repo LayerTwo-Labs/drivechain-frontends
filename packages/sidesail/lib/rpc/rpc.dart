@@ -39,6 +39,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
       if (blockCount != newBlockCount) {
         blockCount = newBlockCount;
+        notifyListeners();
       } else {
         // nothing has changed, don't notify any listeners!
         return (connected, connectionError);

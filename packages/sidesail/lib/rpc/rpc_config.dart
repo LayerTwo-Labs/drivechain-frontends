@@ -90,8 +90,8 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
     final confContent = await conf.readAsString();
     final lines = confContent.split('\n').map((e) => e.trim()).toList();
 
-    username ??= _configValue(lines, 'rpcuser');
-    password ??= _configValue(lines, 'rpcpassword');
+    username = _configValue(lines, 'rpcuser') ?? 'user';
+    password = _configValue(lines, 'rpcpassword') ?? 'password';
 
     final rawPort = _configValue(lines, 'rpcport');
     if (rawPort != null) {
