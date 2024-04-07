@@ -72,17 +72,25 @@ abstract class ZCashRPC extends SidechainRPC {
 
   @override
   List<String> binaryArgs(SingleNodeConnectionSettings mainchainConf) {
-    final baseArgs = bitcoinCoreBinaryArgs(
+    final args = bitcoinCoreBinaryArgs(
       conf,
     );
-    final sidechainArgs = [
-      '-mainport=${mainchainConf.port}',
-      '-mainhost=${mainchainConf.host}',
-      '-rpcuser=${mainchainConf.username}',
-      '-rpcpassword=${mainchainConf.password}',
-      '-walletrequirebackup=false', // it's all test-coins!
-    ];
-    return [...baseArgs, ...sidechainArgs];
+
+    addEntryIfNotSet(args, 'mainport', mainchainConf.port.toString());
+    addEntryIfNotSet(args, 'mainhost', mainchainConf.host);
+
+    addEntryIfNotSet(args, 'port', '19019');
+    addEntryIfNotSet(args, 'rpcport', '20000');
+    addEntryIfNotSet(args, 'rpcuser', mainchainConf.username);
+    addEntryIfNotSet(args, 'rpcpassword', mainchainConf.password);
+
+    addEntryIfNotSet(args, 'walletrequirebackup', 'false');
+    addEntryIfNotSet(args, 'addnode', '172.105.148.135');
+    addEntryIfNotSet(args, 'connect', '172.105.148.135');
+    addEntryIfNotSet(args, 'server', '1');
+    addEntryIfNotSet(args, 'regtest', '1');
+
+    return args;
   }
 
   @override
@@ -109,10 +117,7 @@ abstract class ZCashRPC extends SidechainRPC {
 
       // if paramsdir not already specified, add the one we just
       // created!
-      if (!args.any((arg) => arg.contains('paramsdir'))) {
-        log.i('params dir was not specified, adding custom dir ${appDir.path}');
-        args.add('-paramsdir=${appDir.path}');
-      }
+      addEntryIfNotSet(args, 'paramsdir', appDir.path);
     } catch (error) {
       log.e('could not copy params to local directory $error');
     }

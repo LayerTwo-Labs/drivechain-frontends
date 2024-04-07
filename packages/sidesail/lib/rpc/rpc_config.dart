@@ -167,6 +167,29 @@ List<String> bitcoinCoreBinaryArgs(
       .toList();
 }
 
+// checks if the loaded bitcoin core config contains a specific
+// key, e.g:
+// # testchain.conf
+// regtest=1
+//
+// confKeyExists(args, 'regtest') => true
+bool _confKeyExists(List<String> args, String key) {
+  return args.any((arg) => arg.contains(key));
+}
+
+void addEntryIfNotSet(List<String> args, String key, String value) {
+  Logger log = GetIt.I.get<Logger>();
+
+  if (_confKeyExists(args, key)) {
+    return;
+  }
+
+  // args are expected on the form -paramsdir=/home/.zcash
+  final newEntry = '-$key=$value';
+  log.i('$key not present in conf, adding $newEntry');
+  args.add(newEntry);
+}
+
 Map<String, int> _defaultMainchainPorts = {
   'mainnet': 8332,
   'regtest': 18443,
