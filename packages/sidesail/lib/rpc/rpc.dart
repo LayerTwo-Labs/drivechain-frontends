@@ -45,8 +45,6 @@ abstract class RPCConnection extends ChangeNotifier {
         return (connected, connectionError);
       }
     } catch (error) {
-      log.e('could not test connection: ${error.toString()}!');
-
       // Only update the error message if we're finished with binary init
       if (!initializingBinary) {
         String? msg = error.toString();
@@ -73,6 +71,10 @@ abstract class RPCConnection extends ChangeNotifier {
           if (match != null) {
             msg = match.group(1)!;
           }
+        }
+
+        if (connectionError != msg) {
+          log.e('could not test connection: ${error.toString()}!');
         }
 
         connectionError = msg;
