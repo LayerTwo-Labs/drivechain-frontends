@@ -79,8 +79,6 @@ abstract class ZCashRPC extends SidechainRPC {
     addEntryIfNotSet(args, 'mainport', mainchainConf.port.toString());
     addEntryIfNotSet(args, 'mainhost', mainchainConf.host);
 
-    addEntryIfNotSet(args, 'port', '19019');
-    addEntryIfNotSet(args, 'rpcport', '20000');
     addEntryIfNotSet(args, 'rpcuser', mainchainConf.username);
     addEntryIfNotSet(args, 'rpcpassword', mainchainConf.password);
 
