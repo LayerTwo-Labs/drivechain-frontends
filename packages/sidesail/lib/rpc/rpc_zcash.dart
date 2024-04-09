@@ -41,18 +41,23 @@ Future<void> copyIfNotExists(Logger log, BuildContext context, File file, String
 }
 
 Future<void> writeConfFileIfNotExists(Logger log) async {
-  final dataDir = applicationDir();
-  File? file;
+  final appDataDir = applicationDir();
+  Directory? zcashDataDir;
   if (Platform.isLinux) {
-    file = File('$dataDir/.zcash/zcash.conf');
-  } else if (Platform.isMacOS) {
-    file = File('$dataDir/Zcash/zcash.conf');
-  } else if (Platform.isWindows) {
-    file = File('$dataDir/Zcash/zcash.conf');
+    zcashDataDir = Directory('$appDataDir/.zcash');
+  } else if (Platform.isMacOS || Platform.isWindows) {
+    zcashDataDir = Directory('$appDataDir/Zcash');
   }
-  if (file == null) {
+  if (zcashDataDir == null) {
     return;
   }
+
+  if (!await zcashDataDir.exists()) {
+    log.i('zcash data dir does not exist, creating');
+    await zcashDataDir.create(recursive: true);
+  }
+
+  final file = File('${zcashDataDir.path}/zcash.conf');
 
   if (!await file.exists()) {
     log.i('zcash.conf does not exist, creating');
@@ -83,7 +88,10 @@ abstract class ZCashRPC extends SidechainRPC {
     addEntryIfNotSet(args, 'rpcpassword', mainchainConf.password);
 
     addEntryIfNotSet(args, 'walletrequirebackup', 'false');
-    addEntryIfNotSet(args, 'addnode', '172.105.148.135');
+
+    const l2PublicRegtestPeer = '172.105.148.135';
+    addEntryIfNotSet(args, 'addnode', l2PublicRegtestPeer);
+
     addEntryIfNotSet(args, 'server', '1');
     addEntryIfNotSet(args, 'regtest', '1');
 
@@ -116,7 +124,7 @@ abstract class ZCashRPC extends SidechainRPC {
       // created!
       addEntryIfNotSet(args, 'paramsdir', appDir.path);
     } catch (error) {
-      log.e('could not copy params to local directory $error');
+      log.e('could not write Zcash files to local directory $error');
     }
 
     // after all assets are loaded properly, THEN init the zcash-binary
