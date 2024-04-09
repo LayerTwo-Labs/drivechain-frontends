@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
 
       # Note: This workflow uses the latest stable version of the Dart SDK.
@@ -58,7 +58,7 @@ jobs:
         working-directory: packages/sidesail # must be specified here as well, otherwise overwrites top most
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
 
       # Note: This workflow uses the latest stable version of the Dart SDK.
@@ -81,7 +81,7 @@ jobs:
       - run:  sudo apt-get install clang cmake git ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
         if: runner.os == 'Linux'
 
-      - name: Sign macOS app
+      - name: Setup macOS app signing
         if: runner.os == 'macOS'
         run: |
           # import certificate into the keychain
@@ -91,35 +91,43 @@ jobs:
           echo "Creating keychain"
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
 
-          echo "\nSetting default keychain"
+          echo "Setting default keychain"
           security default-keychain -s build.keychain
 
-          echo "\nUnlocking keychain"
+          echo "Unlocking keychain"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
 
-          echo "\nImporting certificate into keychain"
+          echo "Importing certificate into keychain"
           security import ./certificate.p12 -k ~/Library/Keychains/build.keychain -P ${{ secrets.MACOS_CERTIFICATE_PASSWORD }} -T /usr/bin/codesign
 
-          echo "\nSetting key partition list"
+          echo "Setting key partition list"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" ~/Library/Keychains/build.keychain
 
           # Find the Common Name of the certificate we just imported
           security find-certificate -a -p build.keychain > certificate.pem
-          common_name=$(openssl x509 -in certificate.pem -noout -subject | sed -n 's/.*CN *= *\([^,]*\).*/\1/p' | tr -d '\n')
-          echo "determined code sign identity: '$common_name'"
+          cert_subject=$(openssl x509 -in certificate.pem -noout -subject)
+          echo Certificate subject: "'$cert_subject'"
 
-          echo "CODESIGN_IDENTITY=$common_name" >> $GITHUB_ENV
+          cn_part=$(grep -o 'CN = "[^"]*"' <<< "$cert_subject")
+          echo CN part: "'$cn_part'"
 
-          echo "\nCreating notarization API key file"
-          echo ${{ secrets.MACOS_NOTARIZATION_API_KEY }} | base64 --decode > notarization_api_key.p8
+          cn_value=$(sed 's/CN = "\(.*\)"/\1/' <<< "$cn_part")
+          echo CN value: "'$cn_value'"
+
+          echo "Determined code sign identity: '$cn_value'"
+
+          echo "CODESIGN_IDENTITY=$cn_value" >> $GITHUB_ENV
+
+          echo "Creating notarization API key file"
+          echo ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY }} | base64 --decode > notarization_api_key.p8
 
       - name: Build app
         run: |
           # Everything after first line is only relevant for macOS  
           ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.chain }} \
             "$CODESIGN_IDENTITY" $PWD/notarization_api_key.p8 \
-            ${{ secrets.MACOS_NOTARIZATION_API_KEY_ID}} \
-            ${{ secrets.MACOS_NOTARIZATION_API_UUID}}
+            ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
+            ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
 
       - uses: actions/upload-artifact@v4
         with:
