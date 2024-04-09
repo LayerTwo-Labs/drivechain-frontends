@@ -116,9 +116,11 @@ Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
     case SidechainType.zcash:
       try {
         conf = await readRPCConfig(
-          '.',
+          ZCashSidechain().type.datadir(),
           ZCashSidechain().type.confFile(),
           ZCashSidechain(),
+          overrideNetwork: 'regtest',
+          useCookieAuth: false,
         );
       } catch (error) {
         // do nothing, just don't exit

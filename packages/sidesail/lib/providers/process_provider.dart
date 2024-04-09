@@ -19,12 +19,24 @@ class SailProcess {
   });
 }
 
+class ExitTuple {
+  final int code;
+  final String message;
+
+  ExitTuple({
+    required this.code,
+    required this.message,
+  });
+}
+
 class ProcessProvider extends ChangeNotifier {
   ProcessProvider();
 
   Logger get log => GetIt.I.get<Logger>();
 
-  final Map<int, int> _exitCodes = {};
+  final Map<int, ExitTuple> _exitTuples = {};
+  ExitTuple? exited(int pid) => _exitTuples[pid];
+
   final Map<int, SailProcess> runningProcesses = {};
 
   final Map<int, Stream<String>> _stdoutStreams = {};
@@ -132,7 +144,10 @@ class ProcessProvider extends ChangeNotifier {
         processExited.complete(true);
 
         // Forward to listeners that the process finished.
-        _exitCodes[process.pid] = code;
+        _exitTuples[process.pid] = ExitTuple(
+          code: code,
+          message: errLogs.last,
+        );
         runningProcesses.remove(process.pid);
         notifyListeners();
       }),
@@ -147,9 +162,8 @@ class ProcessProvider extends ChangeNotifier {
     ]);
 
     if (exited) {
-      final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
-      _stderrStreams[process.pid] = Stream.fromIterable(errLogs);
-      throw '"$binary" exited with code ${_exitCodes[process.pid]}: ${errLogs.last}';
+      final tuple = _exitTuples[process.pid];
+      throw '"$binary" exited with code ${tuple?.code}: ${tuple?.message}';
     }
 
     log.d('started "$binary" with pid ${process.pid}');

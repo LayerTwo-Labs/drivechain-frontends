@@ -14,7 +14,7 @@ class SailColumn extends StatelessWidget {
   final double spacing;
 
   const SailColumn({
-    Key? key,
+    super.key,
     required this.spacing,
     required this.children,
     this.leadingSpacing = false,
@@ -23,7 +23,7 @@ class SailColumn extends StatelessWidget {
     this.mainAxisAlignment = MainAxisAlignment.start,
     this.mainAxisSize = MainAxisSize.max,
     this.withDivider = false,
-  }) : super(key: key);
+  });
 
   bool notLastOrFirst(int i) => i >= 0 && i < (children.length - 1);
   bool isNotOptional(i) => children[i] is! SailOptional;
@@ -85,7 +85,7 @@ class SailRow extends StatelessWidget {
   final double spacing;
 
   const SailRow({
-    Key? key,
+    super.key,
     required this.spacing,
     required this.children,
     this.leadingSpacing = false,
@@ -93,7 +93,7 @@ class SailRow extends StatelessWidget {
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.mainAxisAlignment = MainAxisAlignment.center,
     this.mainAxisSize = MainAxisSize.min,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

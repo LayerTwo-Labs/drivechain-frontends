@@ -92,7 +92,7 @@ class CastProvider extends ChangeNotifier {
   void _executeCast(int powerOf) async {
     try {
       final bundle = futureCasts.elementAt(powerOf);
-      log.d('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
+      log.t('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
 
       for (final pending in bundle.pendingShields) {
         final opid = await _rpc.deshield(pending.fromUTXO, pending.amount);
@@ -104,7 +104,7 @@ class CastProvider extends ChangeNotifier {
         executeAction: () => _executeCast(powerOf),
       );
       futureCasts[bundle.powerOf] = newBill;
-      log.d('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
+      log.t('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
 
       await _zcashProvider.fetch();
       notifyListeners();

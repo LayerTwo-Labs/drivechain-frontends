@@ -46,7 +46,7 @@ class BalanceProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (err) {
-      log.e('could not get balance $err');
+      // Swallow the error, becomes incredibly noisy
     } finally {
       _isFetching = false;
     }

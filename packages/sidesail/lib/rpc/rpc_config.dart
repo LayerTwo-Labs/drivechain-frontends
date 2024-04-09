@@ -38,6 +38,7 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
   Sidechain? sidechain, {
   // if set, will force this network, irregardless of runtime argument
   String? overrideNetwork,
+  bool useCookieAuth = true,
 }) async {
   final log = GetIt.I.get<Logger>();
   // network parameter is stored in here!
@@ -72,7 +73,7 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
     );
   }
 
-  if (await cookie.exists()) {
+  if (useCookieAuth && await cookie.exists()) {
     final data = await cookie.readAsString();
     final parts = data.split(':');
     if (parts.length != 2) {
@@ -89,8 +90,8 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
     final confContent = await conf.readAsString();
     final lines = confContent.split('\n').map((e) => e.trim()).toList();
 
-    username ??= _configValue(lines, 'rpcuser');
-    password ??= _configValue(lines, 'rpcpassword');
+    username = _configValue(lines, 'rpcuser') ?? 'user';
+    password = _configValue(lines, 'rpcpassword') ?? 'password';
 
     final rawPort = _configValue(lines, 'rpcport');
     if (rawPort != null) {
@@ -165,6 +166,29 @@ List<String> bitcoinCoreBinaryArgs(
       // important: empty strings trip up the binary
       .where((arg) => arg.isNotEmpty)
       .toList();
+}
+
+// checks if the loaded bitcoin core config contains a specific
+// key, e.g:
+// # testchain.conf
+// regtest=1
+//
+// confKeyExists(args, 'regtest') => true
+bool _confKeyExists(List<String> args, String key) {
+  return args.any((arg) => arg.replaceAll('-', '').split('=').first == key);
+}
+
+void addEntryIfNotSet(List<String> args, String key, String value) {
+  Logger log = GetIt.I.get<Logger>();
+
+  if (_confKeyExists(args, key)) {
+    return;
+  }
+
+  // args are expected on the form -paramsdir=/home/.zcash
+  final newEntry = '-$key=$value';
+  log.i('$key not present in conf, adding $newEntry');
+  args.add(newEntry);
 }
 
 Map<String, int> _defaultMainchainPorts = {

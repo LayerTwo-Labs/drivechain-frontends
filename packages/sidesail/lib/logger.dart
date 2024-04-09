@@ -16,7 +16,7 @@ LogPrinter _printer() {
 }
 
 Future<LogOutput> _logoutput() async {
-  if (!RuntimeArgs.fileLog) {
+  if (RuntimeArgs.fileLog) {
     // force file log
   } else if (!kReleaseMode || RuntimeArgs.consoleLog) {
     // NOT in release mode: print everything to console

@@ -25,8 +25,16 @@ class StaticActionField extends StatelessWidget {
     return SailScaleButton(
       onPressed: copyable
           ? () async {
+              // If we contain spaces, make sure to copy a quoted string. This makes
+              // it possible to copy-paste log file locations into a file viewer,
+              // for example.
+              var text = value;
+              if (text.contains(' ')) {
+                text = '"$text"';
+              }
+
               await Clipboard.setData(
-                ClipboardData(text: value),
+                ClipboardData(text: text),
               );
               if (!context.mounted) {
                 return;

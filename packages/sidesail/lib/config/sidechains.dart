@@ -50,7 +50,7 @@ class TestSidechain extends Sidechain {
   SidechainType get type => SidechainType.testChain;
 
   @override
-  int get rpcPort => 18743;
+  int get rpcPort => 8272;
 
   @override
   String get binary => 'testchaind';
@@ -137,8 +137,7 @@ extension SidechainPaths on SidechainType {
         // TODO: correct?
         return '.ethside';
       case SidechainType.zcash:
-        // TODO: correct?
-        return '.zside';
+        return '.zcash';
     }
   }
 
@@ -149,7 +148,7 @@ extension SidechainPaths on SidechainType {
       case SidechainType.ethereum:
         return 'EthSide';
       case SidechainType.zcash:
-        return 'ZSide';
+        return 'Zcash';
     }
   }
 
@@ -160,7 +159,7 @@ extension SidechainPaths on SidechainType {
       case SidechainType.ethereum:
         return 'EthSide';
       case SidechainType.zcash:
-        return 'ZSide';
+        return 'Zcash';
     }
   }
 }

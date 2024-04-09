@@ -39,21 +39,25 @@ abstract class RPCConnection extends ChangeNotifier {
 
       if (blockCount != newBlockCount) {
         blockCount = newBlockCount;
+        notifyListeners();
       } else {
         // nothing has changed, don't notify any listeners!
         return (connected, connectionError);
       }
     } catch (error) {
-      log.e('could not test connection: ${error.toString()}!');
-
       // Only update the error message if we're finished with binary init
       if (!initializingBinary) {
-        String msg = error.toString();
+        String? msg = error.toString();
 
-        if (connectionError != null && msg.contains('Connection refused')) {
-          // an error is already set, and we don't want to override it with
-          // a generic non-informative message!
-          msg = connectionError!;
+        if (msg.contains('Connection refused')) {
+          if (connectionError != null) {
+            // an error is already set, and we don't want to override it with
+            // a generic non-informative message!
+            msg = connectionError!;
+          } else {
+            // don't show a generic Connection refused as the first error
+            msg = null;
+          }
         } else if (error is SocketException) {
           msg = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
         } else if (error is HTTPException) {
@@ -67,6 +71,10 @@ abstract class RPCConnection extends ChangeNotifier {
           if (match != null) {
             msg = match.group(1)!;
           }
+        }
+
+        if (connectionError != msg) {
+          log.e('could not test connection: ${error.toString()}!');
         }
 
         connectionError = msg;
@@ -136,10 +144,10 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    // Add timeout?
     log.i('init binaries: waiting for $binary connection');
 
-    const timeout = Duration(seconds: 5);
+    // zcash can take a long time. initial sync as well
+    const timeout = Duration(seconds: 5 * 60);
     try {
       await Future.any([
         // Happy case: able to connect
@@ -147,6 +155,18 @@ abstract class RPCConnection extends ChangeNotifier {
           final (connected, _) = await testConnection();
           return connected;
         }),
+
+        // Not so happy case: process exited
+        // Throw an error, which causes the error message to be shown
+        // in the daemon status chip
+        waitForBoolToBeTrue(() async {
+          final res = processes.exited(pid);
+          return res != null;
+        }).then(
+          (_) => {
+            throw processes.exited(pid)?.message ?? "'$binary' exited",
+          },
+        ),
 
         Future.delayed(timeout).then(
           (_) => throw "'$binary' connection timed out after ${timeout.inSeconds}s",
@@ -156,7 +176,6 @@ abstract class RPCConnection extends ChangeNotifier {
 
       log.i('init binaries: $binary connected');
 
-      initializingBinary = false;
       log.i('init binaries: starting connection timer for $binary');
       startConnectionTimer();
     } catch (err) {
@@ -176,6 +195,8 @@ abstract class RPCConnection extends ChangeNotifier {
         connectionError = err.toString();
       }
     }
+
+    initializingBinary = false;
 
     notifyListeners();
   }
