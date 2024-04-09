@@ -156,6 +156,18 @@ abstract class RPCConnection extends ChangeNotifier {
           return connected;
         }),
 
+        // Not so happy case: process exited
+        // Throw an error, which causes the error message to be shown
+        // in the daemon status chip
+        waitForBoolToBeTrue(() async {
+          final res = processes.exited(pid);
+          return res != null;
+        }).then(
+          (_) => {
+            throw processes.exited(pid)?.message ?? "'$binary' exited",
+          },
+        ),
+
         Future.delayed(timeout).then(
           (_) => throw "'$binary' connection timed out after ${timeout.inSeconds}s",
         ),
