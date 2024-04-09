@@ -61,7 +61,7 @@ class ZCashProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (error) {
-      log.e('zcash_provider could not fetch: $error');
+      // Swallow the error, makes for noisy logs
     } finally {
       _isFetching = false;
     }
