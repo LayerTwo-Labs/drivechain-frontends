@@ -84,16 +84,15 @@ abstract class ZCashRPC extends SidechainRPC {
     addEntryIfNotSet(args, 'mainport', mainchainConf.port.toString());
     addEntryIfNotSet(args, 'mainhost', mainchainConf.host);
 
-    addEntryIfNotSet(args, 'rpcuser', mainchainConf.username);
-    addEntryIfNotSet(args, 'rpcpassword', mainchainConf.password);
-
     addEntryIfNotSet(args, 'walletrequirebackup', 'false');
 
     const l2PublicRegtestPeer = '172.105.148.135';
     addEntryIfNotSet(args, 'addnode', l2PublicRegtestPeer);
-
     addEntryIfNotSet(args, 'server', '1');
     addEntryIfNotSet(args, 'regtest', '1');
+
+    args.add('-nuparams=76b809bb:1'); // activate overwinter at block height 1
+    args.add('-nuparams=f5b9230b:5'); // activate heartwood at block height 5
 
     return args;
   }
@@ -383,8 +382,17 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<int> fetchBlockCount() async {
+    // the network keeps gettin fooked in regtest, adding the remote node
+    // as a bad peer. We don't want that, so we try to clear banned every time
+    // the block count is refetched
+    await clearBanned();
+
     final blockHeight = await _client().call('getblockcount') as int;
     return blockHeight;
+  }
+
+  Future<void> clearBanned() async {
+    await _client().call('clearbanned');
   }
 
   @override
