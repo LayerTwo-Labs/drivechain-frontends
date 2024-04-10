@@ -91,6 +91,9 @@ abstract class ZCashRPC extends SidechainRPC {
     addEntryIfNotSet(args, 'server', '1');
     addEntryIfNotSet(args, 'regtest', '1');
 
+    args.add('-nuparams=76b809bb:1'); // activate overwinter at block height 1
+    args.add('-nuparams=f5b9230b:5'); // activate heartwood at block height 5
+
     return args;
   }
 
