@@ -81,7 +81,7 @@ class CastProvider extends ChangeNotifier {
         executeAction: () => _executeCast(i),
       );
 
-      log.i(
+      log.d(
         'created new bundle executeTime=${newBundle.executeTime} powerOf=${newBundle.powerOf} amountSats=${newBundle.castAmount}',
       );
 
