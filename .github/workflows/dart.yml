@@ -134,3 +134,38 @@ jobs:
           name: sidesail-binaries-${{ runner.os }}-${{ matrix.chain }}
           if-no-files-found: error
           path: packages/sidesail/release/*
+    
+  upload-artifacts-to-releases-drivechain-info:
+      name: Upload artifacts to releases.drivechain.info
+      runs-on: ubuntu-latest
+      needs: [build]
+      # avoid uploading on PRs
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'LayerTwo-Labs'
+      steps:
+        - name: Download artifacts
+          uses: actions/download-artifact@v4
+
+        - name: Zip artifacts
+          working-directory: . # we set a default above, with a directory that doesn't exist for this job
+          # The files here are already zips. No point in zipping again!
+          run: |
+            mv sidesail-binaries-macOS-testchain/testsail-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip 
+            mv sidesail-binaries-Windows-testchain/testsail-win64.zip L2-S0-TestSail-latest-x86_64-w64-mingw32.zip 
+            mv sidesail-binaries-Linux-testchain/testsail-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip 
+
+            mv sidesail-binaries-macOS-zcash/zsail-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip 
+            mv sidesail-binaries-Linux-zcash/zsail-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip 
+
+            mv sidesail-binaries-macOS-ethereum/ethsail-osx64.zip L2-S6-EthSail-latest-x86_64-apple-darwin.zip 
+            mv sidesail-binaries-Windows-ethereum/ethsail-win64.zip L2-S6-EthSail-latest-x86_64-w64-mingw32.zip 
+            mv sidesail-binaries-Linux-ethereum/ethsail-x86_64-linux-gnu.zip L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip 
+
+        - name: Upload artifacts to releases.drivechain.info
+          uses: cross-the-world/ssh-scp-ssh-pipelines@latest
+          with:
+            host: 45.33.96.47
+            user: root
+            pass: ${{ secrets.RELEASES_SERVER_PW }}
+            port: 22
+            scp: |
+              'L2-S*.zip' => '/var/www/html/'
