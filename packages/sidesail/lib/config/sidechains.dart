@@ -137,7 +137,7 @@ extension SidechainPaths on SidechainType {
         // TODO: correct?
         return '.ethside';
       case SidechainType.zcash:
-        return '.zcash';
+        return '.zcash-drivechain';
     }
   }
 
@@ -148,7 +148,7 @@ extension SidechainPaths on SidechainType {
       case SidechainType.ethereum:
         return 'EthSide';
       case SidechainType.zcash:
-        return 'Zcash';
+        return 'ZcashDrivechain';
     }
   }
 
@@ -159,7 +159,7 @@ extension SidechainPaths on SidechainType {
       case SidechainType.ethereum:
         return 'EthSide';
       case SidechainType.zcash:
-        return 'Zcash';
+        return 'ZcashDrivechain';
     }
   }
 }
