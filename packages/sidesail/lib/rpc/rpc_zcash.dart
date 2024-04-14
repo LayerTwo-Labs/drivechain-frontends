@@ -41,16 +41,8 @@ Future<void> copyIfNotExists(Logger log, BuildContext context, File file, String
 }
 
 Future<void> writeConfFileIfNotExists(Logger log) async {
-  final appDataDir = applicationDir();
-  Directory? zcashDataDir;
-  if (Platform.isLinux) {
-    zcashDataDir = Directory('$appDataDir/.zcash');
-  } else if (Platform.isMacOS || Platform.isWindows) {
-    zcashDataDir = Directory('$appDataDir/Zcash');
-  }
-  if (zcashDataDir == null) {
-    return;
-  }
+  final appDataDir = ZCashSidechain().type.datadir();
+  final zcashDataDir = Directory(appDataDir);
 
   if (!await zcashDataDir.exists()) {
     log.i('zcash data dir does not exist, creating');
