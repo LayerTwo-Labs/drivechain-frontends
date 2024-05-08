@@ -62,8 +62,14 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     // always attempt to start binaries. If we're already
     // connected (handled in dependencies), the start binary
     // function makes sure to not restart it
-    initMainchainBinary();
-    initSidechainBinary();
+    _initBinaries();
+  }
+
+  void _initBinaries() async {
+    // Mainchain must be started properly before attempting the
+    // sidechain
+    await initMainchainBinary();
+    await initSidechainBinary();
   }
 
   void rebuildUI() {
@@ -133,6 +139,18 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
       mainchain.binary,
       bitcoinCoreBinaryArgs(mainchain.conf),
     );
+
+    final info = await mainchain.getBlockchainInfo();
+    var inIBD = info.initialBlockDownload;
+    while (inIBD) {
+      log.i('mainchain init: mainchain has not done inital block download, waiting');
+      // retry querying blockchain info until chain is finished syncing
+      await Future.delayed(const Duration(seconds: 1));
+      final info = await mainchain.getBlockchainInfo();
+      inIBD = info.initialBlockDownload;
+    }
+
+    log.i('mainchain init: mainchain has done inital block download, proceeding');
 
     log.d('mainchain init: checking if ${_sidechain.rpc.chain.name} is an active sidechain');
     final activeSidechains = await mainchain.listActiveSidechains();

@@ -4,6 +4,7 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
+import 'package:sidesail/rpc/models/blockchain_info.dart';
 import 'package:sidesail/rpc/models/utxo.dart';
 import 'package:sidesail/rpc/rpc.dart';
 
@@ -20,6 +21,7 @@ abstract class MainchainRPC extends RPCConnection {
   Future<List<MainchainWithdrawal>> listSpentWithdrawals();
   Future<List<MainchainWithdrawal>> listFailedWithdrawals();
   Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot);
+  Future<BlockchainInfo> getBlockchainInfo();
 
   Future<String> send(String address, double amount, bool subtractFeeFromAmount);
   Future<String> getNewAddress();
@@ -186,6 +188,12 @@ class MainchainRPCLive extends MainchainRPC {
     final txid = await _client().call('createsidechaindeposit', [sidechainSlot, address, amount, fee]) as String;
 
     return txid;
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    final confirmedFut = await _client().call('getblockchaininfo');
+    return BlockchainInfo.fromMap(confirmedFut);
   }
 }
 
