@@ -49,12 +49,25 @@ Future<void> writeConfFileIfNotExists(Logger log) async {
     await zcashDataDir.create(recursive: true);
   }
 
-  final file = File('${zcashDataDir.path}/zcash.conf');
+  final confFile = ZCashSidechain().type.confFile();
+
+  final file = File('${zcashDataDir.path}/$confFile');
 
   if (!await file.exists()) {
-    log.i('zcash.conf does not exist, creating');
-    // zcash needs an empty conf file to run
+    log.i('$confFile does not exist, creating');
+    // zcash needs conf file to run
     await file.create();
+    // so let's write some default values to it
+    await file.writeAsString('''rpcuser=user
+rpcpassword=password
+server=1
+regtest=1
+addnode=172.105.148.135
+rpcport=8232
+nuparams=76b809bb:1
+nuparams=f5b9230b:5
+walletrequirebackup=false
+''');
   }
 }
 
@@ -75,16 +88,6 @@ abstract class ZCashRPC extends SidechainRPC {
 
     addEntryIfNotSet(args, 'mainport', mainchainConf.port.toString());
     addEntryIfNotSet(args, 'mainhost', mainchainConf.host);
-
-    addEntryIfNotSet(args, 'walletrequirebackup', 'false');
-
-    const l2PublicRegtestPeer = '172.105.148.135';
-    addEntryIfNotSet(args, 'addnode', l2PublicRegtestPeer);
-    addEntryIfNotSet(args, 'server', '1');
-    addEntryIfNotSet(args, 'regtest', '1');
-
-    args.add('-nuparams=76b809bb:1'); // activate overwinter at block height 1
-    args.add('-nuparams=f5b9230b:5'); // activate heartwood at block height 5
 
     return args;
   }

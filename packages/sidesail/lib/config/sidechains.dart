@@ -107,7 +107,6 @@ extension SidechainPaths on SidechainType {
         // TODO: make this properly configurable
         return 'config.toml';
       case SidechainType.zcash:
-        // TODO: make this properly configurable
         return 'zcash.conf';
     }
   }

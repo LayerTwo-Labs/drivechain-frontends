@@ -1,5 +1,6 @@
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
+import 'package:sidesail/rpc/models/blockchain_info.dart';
 import 'package:sidesail/rpc/models/utxo.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 
@@ -92,5 +93,10 @@ class MockMainchainRPC extends MainchainRPC {
   @override
   Future<String> createSidechainDeposit(int sidechainSlot, String address, double amount) async {
     return 'txiddeadbeef';
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    return BlockchainInfo(initialBlockDownload: false);
   }
 }

@@ -12,6 +12,8 @@ import 'package:sidesail/app.dart';
 import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
 import 'package:sidesail/providers/process_provider.dart';
 
+const ibdWarning = 'Waiting on L1 initial block download to complete';
+
 // when you implement this class, you should extend a ChangeNotifier, to get
 // a proper implementation of notifyListeners(), e.g:
 // YourClass extends ChangeNotifier implements RPCConnection
@@ -49,7 +51,10 @@ abstract class RPCConnection extends ChangeNotifier {
       if (!initializingBinary) {
         String? msg = error.toString();
 
-        if (msg.contains('Connection refused')) {
+        if (connectionError != null && connectionError!.contains(ibdWarning)) {
+          // don't change the message nothing, we're waiting
+          msg = ibdWarning;
+        } else if (msg.contains('Connection refused')) {
           if (connectionError != null) {
             // an error is already set, and we don't want to override it with
             // a generic non-informative message!
@@ -89,7 +94,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
   // values for tracking connection state, and error (if any)
   SingleNodeConnectionSettings conf;
-  String? connectionError;
+  String? connectionError = ibdWarning;
   bool connected = false;
   int blockCount = 0;
 
