@@ -277,7 +277,7 @@ class _UnbundledWithdrawalViewState extends State<UnbundledWithdrawalView> {
               });
             },
             child: SingleValueContainer(
-              width: expanded ? expandedBundleViewWidth : 0,
+              width: expanded ? bundleViewWidth : 0,
               icon: Tooltip(
                 message: 'Pending',
                 child: SailSVG.icon(
@@ -363,7 +363,7 @@ class _BundleViewState extends State<BundleView> {
               });
             },
             child: SingleValueContainer(
-              width: expanded ? expandedBundleViewWidth : 50,
+              width: bundleViewWidth,
               icon: Tooltip(
                 message: tooltipMessage,
                 child: SailSVG.icon(icon, width: 13),
@@ -372,7 +372,7 @@ class _BundleViewState extends State<BundleView> {
               label:
                   widget.bundle.status == BundleStatus.failed ? 'Failed' : '${widget.votes}/$bundleVotesRequired ACKs',
               value:
-                  'Withdraw of ${formatBitcoin(widget.bundle.totalBitcoin)} BTC in ${widget.bundle.withdrawals.length} transactions',
+                  'Withdraw ${formatBitcoin(widget.bundle.totalBitcoin)} BTC in ${widget.bundle.withdrawals.length} transactions',
             ),
           ),
           if (expanded) ExpandedBundleView(timesOutIn: widget.timesOutIn, bundle: widget.bundle),
@@ -388,7 +388,7 @@ class _BundleViewState extends State<BundleView> {
   }
 }
 
-const expandedBundleViewWidth = 135.0;
+const bundleViewWidth = 135.0;
 
 class ExpandedBundleView extends StatelessWidget {
   final WithdrawalBundle bundle;
@@ -431,7 +431,7 @@ class ExpandedBundleView extends StatelessWidget {
         return SingleValueContainer(
           label: key,
           value: _values[key],
-          width: expandedBundleViewWidth,
+          width: bundleViewWidth,
         );
       }).toList(),
     );
@@ -464,7 +464,7 @@ class ExpandedUnbundledWithdrawalView extends StatelessWidget {
         return SingleValueContainer(
           label: key,
           value: _values[key],
-          width: expandedBundleViewWidth,
+          width: bundleViewWidth,
         );
       }).toList(),
     );
