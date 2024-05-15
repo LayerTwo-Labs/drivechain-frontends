@@ -188,7 +188,7 @@ class PegOutViewModel extends BaseViewModel {
         subtitle: 'TXID: $withdrawalTxid',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       log.e('could not execute withdraw: $error', error: error);
 
@@ -361,7 +361,7 @@ class PegInEthViewModel extends BaseViewModel {
         subtitle: '',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       log.e('could not execute withdraw: $error', error: error);
 

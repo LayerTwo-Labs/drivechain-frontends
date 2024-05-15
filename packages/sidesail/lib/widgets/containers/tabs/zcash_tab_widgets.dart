@@ -150,7 +150,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
         subtitle: 'OPID: $shieldID',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -313,7 +313,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
         subtitle: 'OPID: $deshieldID',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -468,7 +468,7 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
             'Will cast to ${includedInBills!.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -607,7 +607,7 @@ class MeltActionViewModel extends BaseViewModel {
             'Will melt in ${willMeltAt.map((e) => e.toStringAsFixed(e.roundToDouble() == e ? 0 : 2)).join(', ')} minutes.\nDont close the application until ${meltInMinutesController.text} minute(s) have passed',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -736,7 +736,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
         subtitle: 'OPID: $shieldID',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -890,7 +890,7 @@ class CastActionViewModel extends BaseViewModel {
             'Will cast to ${bundles.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       if (!context.mounted) {
         return;
