@@ -366,9 +366,11 @@ class SideNavViewModel extends BaseViewModel {
                   ),
                   DaemonConnectionCard(
                     chainName: _sideRPC.rpc.chain.name,
-                    initializing: _sideRPC.rpc.initializingBinary,
+                    initializing: _mainRPC.inIBD ? true : _sideRPC.rpc.initializingBinary,
                     connected: _sideRPC.rpc.connected,
-                    errorMessage: _sideRPC.rpc.connectionError,
+                    errorMessage: _mainRPC.inIBD
+                        ? 'Waiting on L1 initial block download to complete...'
+                        : _sideRPC.rpc.connectionError,
                     restartDaemon: () => initSidechainBinary(context),
                   ),
                 ],

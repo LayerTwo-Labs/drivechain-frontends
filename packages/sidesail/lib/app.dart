@@ -140,16 +140,6 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
       bitcoinCoreBinaryArgs(mainchain.conf),
     );
 
-    final info = await mainchain.getBlockchainInfo();
-    var inIBD = info.initialBlockDownload;
-    while (inIBD) {
-      log.i('mainchain init: mainchain has not done inital block download, waiting');
-      // retry querying blockchain info until chain is finished syncing
-      await Future.delayed(const Duration(seconds: 1));
-      final info = await mainchain.getBlockchainInfo();
-      inIBD = info.initialBlockDownload;
-    }
-
     log.i('mainchain init: mainchain has done inital block download, proceeding');
 
     log.d('mainchain init: checking if ${_sidechain.rpc.chain.name} is an active sidechain');
