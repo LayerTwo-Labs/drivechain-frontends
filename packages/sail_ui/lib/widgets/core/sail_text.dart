@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
@@ -13,14 +11,14 @@ class _Text extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double systemTextScaleFactor = MediaQuery.of(context).textScaleFactor;
+    var scaler = MediaQuery.of(context).textScaler;
     // cap max text size at a sensible value. Sorry very blind people
-    double cappedTextScaleFactor = math.min(systemTextScaleFactor, 2);
+    scaler = scaler.clamp(maxScaleFactor: 2);
 
     return Text(
       label,
       style: style,
-      textScaleFactor: cappedTextScaleFactor,
+      textScaler: scaler,
       softWrap: true,
       textAlign: textAlign,
     );

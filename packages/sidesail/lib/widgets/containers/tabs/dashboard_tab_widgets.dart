@@ -235,7 +235,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
         subtitle: 'TXID: $sendTXID',
       );
       // also pop the info modal
-      await _router.pop();
+      await _router.maybePop();
     } catch (error) {
       if (!context.mounted) {
         return;
