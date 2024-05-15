@@ -31,6 +31,8 @@ abstract class MainchainRPC extends RPCConnection {
   Future<String> createSidechainDeposit(int sidechainSlot, String address, double amount);
 
   final binary = 'drivechaind';
+
+  bool inIBD = true;
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -60,6 +62,27 @@ class MainchainRPCLive extends MainchainRPC {
   Future<void> init() async {
     await testConnection();
     startConnectionTimer();
+    pollIBDStatus();
+  }
+
+  void pollIBDStatus() async {
+    // start off with the assumption that the parent chain is in IBD
+    inIBD = true;
+    while (inIBD) {
+      try {
+        final info = await getBlockchainInfo();
+        inIBD = info.initialBlockDownload;
+        log.i('mainchain init: mainchain has not done inital block download, waiting');
+        // retry querying blockchain info until chain is finished syncing
+        await Future.delayed(const Duration(seconds: 1));
+      } catch (error) {
+        // probably just cant connect, and is in bootup-phase, which is okay
+      }
+    }
+
+    notifyListeners();
+
+    // ibd is done, and mainchain has successfully started
   }
 
   @override
