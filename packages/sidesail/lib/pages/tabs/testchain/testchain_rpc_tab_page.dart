@@ -21,7 +21,7 @@ class TestchainRPCTabPage extends StatelessWidget {
         return SailPage(
           scrollable: true,
           title: 'RPC',
-          subtitle: 'Call RPCs directly to the Testchain sidechain. Try typing in "getblockcount" in the input below.',
+          subtitle: 'Send RPCs directly to the Testchain sidechain. Try typing in "getblockcount" in the input below.',
           body: Padding(
             padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding50),
             child: Column(

@@ -130,7 +130,7 @@ class _SideNavState extends State<SideNav> {
             open: true,
             subs: [
               SubNavEntry(
-                title: 'Send RPC',
+                title: 'Console',
                 selected: tabsRouter.activeIndex == TestchainHome + 1,
                 onPressed: () {
                   tabsRouter.setActiveIndex(TestchainHome + 1);
@@ -153,7 +153,7 @@ class _SideNavState extends State<SideNav> {
             open: true,
             subs: [
               SubNavEntry(
-                title: 'Send RPC',
+                title: 'Console',
                 selected: tabsRouter.activeIndex == EthereumHome,
                 onPressed: () {
                   tabsRouter.setActiveIndex(EthereumHome);
@@ -204,7 +204,7 @@ class _SideNavState extends State<SideNav> {
                 },
               ),
               SubNavEntry(
-                title: 'Send RPC',
+                title: 'Console',
                 selected: tabsRouter.activeIndex == ZCashHome + 4,
                 onPressed: () {
                   tabsRouter.setActiveIndex(ZCashHome + 4);
