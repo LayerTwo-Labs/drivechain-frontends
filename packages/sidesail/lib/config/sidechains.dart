@@ -131,7 +131,7 @@ extension SidechainPaths on SidechainType {
   String _linuxDirname() {
     switch (this) {
       case SidechainType.testChain:
-        return '.testchain';
+        return 'drivechain_launcher_sidechains/testchain';
       case SidechainType.ethereum:
         // TODO: correct?
         return '.ethside';
@@ -143,7 +143,7 @@ extension SidechainPaths on SidechainType {
   String _macosDirname() {
     switch (this) {
       case SidechainType.testChain:
-        return 'Testchain';
+        return 'drivechain_launcher_sidechains/testchain';
       case SidechainType.ethereum:
         return 'EthSide';
       case SidechainType.zcash:
@@ -154,7 +154,7 @@ extension SidechainPaths on SidechainType {
   String _windowsDirname() {
     switch (this) {
       case SidechainType.testChain:
-        return 'Testchain';
+        return 'drivechain_launcher_sidechains/testchain';
       case SidechainType.ethereum:
         return 'EthSide';
       case SidechainType.zcash:
