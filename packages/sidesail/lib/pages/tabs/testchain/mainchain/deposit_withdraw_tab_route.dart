@@ -67,6 +67,10 @@ class DepositWithdrawTabPage extends StatelessWidget {
                             ),
                         ],
                       ),
+                      const DashboardGroup(
+                        title: 'Withdrawal Explorer',
+                        children: [WithdrawalExplorer()],
+                      ),
                     ],
                   ),
                 ],

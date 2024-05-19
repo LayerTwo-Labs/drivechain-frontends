@@ -39,7 +39,7 @@ class StaticActionField extends StatelessWidget {
               if (!context.mounted) {
                 return;
               }
-              showSnackBar(context, "Copied '$value'");
+              showSnackBar(context, 'Copied $value');
             }
           : null,
       child: Padding(
