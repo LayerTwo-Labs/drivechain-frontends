@@ -76,7 +76,7 @@ class SailSVG {
       asset.toAssetPath(),
       package: 'sail_ui',
       width: width,
-      colorFilter: color != null ? ColorFilter.mode(color, BlendMode.dst) : null,
+      colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
       height: height,
     );
   }
