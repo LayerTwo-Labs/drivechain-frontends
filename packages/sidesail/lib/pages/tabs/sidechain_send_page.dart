@@ -13,15 +13,15 @@ import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
-class DashboardTabPage extends StatelessWidget {
+class SidechainSendPage extends StatelessWidget {
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  const DashboardTabPage({super.key});
+  const SidechainSendPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => DashboardTabViewModel(),
+      viewModelBuilder: () => SidechainSendViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
           scrollable: true,
@@ -104,7 +104,7 @@ class ExpandedTXView extends StatelessWidget {
   }
 }
 
-class DashboardTabViewModel extends BaseViewModel {
+class SidechainSendViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
@@ -113,7 +113,7 @@ class DashboardTabViewModel extends BaseViewModel {
 
   Sidechain get chain => _sideRPC.rpc.chain;
 
-  DashboardTabViewModel() {
+  SidechainSendViewModel() {
     _transactionsProvider.addListener(notifyListeners);
   }
 

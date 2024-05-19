@@ -11,14 +11,31 @@ import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/widgets/containers/daemon_connection_card.dart';
-import 'package:sidesail/widgets/containers/tabs/home/side_nav.dart';
+import 'package:sidesail/widgets/containers/tabs/home/bottom_nav.dart';
 import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
 
-const ParentChainHome = 1;
-const TestchainHome = 4;
-const EthereumHome = 7;
-const ZCashHome = 8;
-const SettingsHome = 13;
+// IMPORTANT: Update router.dart AND routes in HomePage further down
+// in this file, when updating here. Route order should match exactly
+enum Tabs {
+  SidechainExplorer,
+
+  ParentChainPeg,
+  ParentChainTransfer,
+  ParentChainBMM,
+
+  SidechainSend,
+  TestchainConsole,
+
+  EthereumConsole,
+
+  ZCashMeltCast,
+  ZCashShieldDeshield,
+  ZCashTransfer,
+  ZCashOperationStatuses,
+  ZCashConsole,
+
+  SettingsHome,
+}
 
 @RoutePage()
 class HomePage extends StatefulWidget {
@@ -61,6 +78,7 @@ class _HomePageState extends State<HomePage> {
     // To support multiple chains, we need to keep very good
     // track of what index is what route when setting the active
     // index, and showing the sidenav for a specific chain
+    // IMPORTANT: Must matche exactly the order in router.dart
     const routes = [
       // common routes
       SidechainExplorerTabRoute(),
@@ -68,12 +86,11 @@ class _HomePageState extends State<HomePage> {
       // parent chain routes
       DepositWithdrawTabRoute(),
       TransferMainchainTabRoute(),
-      WithdrawalBundleTabRoute(),
+      BlindMergedMiningTabRoute(),
 
       // testchain routes
-      DashboardTabRoute(),
+      SidechainSendRoute(),
       TestchainRPCTabRoute(),
-      BlindMergedMiningTabRoute(),
 
       // ethereum routes
       EthereumRPCTabRoute(),
@@ -86,38 +103,36 @@ class _HomePageState extends State<HomePage> {
       ZCashRPCTabRoute(),
 
       // trailing common routes
-      NodeSettingsTabRoute(),
       SettingsTabRoute(),
     ];
 
     return Scaffold(
       backgroundColor: theme.colors.background,
       body: auto_router.AutoTabsRouter.builder(
-        homeIndex: TestchainHome,
+        homeIndex: Tabs.ParentChainPeg.index,
         routes: routes,
         builder: (context, children, tabsRouter) {
           return TopNav(
-            child: SideNav(
-              child: Stack(
-                children: [
-                  children[tabsRouter.activeIndex],
-                  ValueListenableBuilder<List<Widget>>(
-                    valueListenable: notificationsNotifier,
-                    builder: (context, val, child) {
-                      return Positioned(
-                        bottom: 10,
-                        right: 10,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: val,
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-              // assume settings tab is second to last tab!
-              navigateToSettings: () => tabsRouter.setActiveIndex(routes.length - 2),
+            child: Stack(
+              children: [
+                children[tabsRouter.activeIndex],
+                ValueListenableBuilder<List<Widget>>(
+                  valueListenable: notificationsNotifier,
+                  builder: (context, val, child) {
+                    return Positioned(
+                      bottom: 10,
+                      right: 10,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: val,
+                      ),
+                    );
+                  },
+                ),
+                BottomNav(
+                  navigateToSettings: () => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
+                ),
+              ],
             ),
           );
         },

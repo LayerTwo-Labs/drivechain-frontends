@@ -1,7 +1,7 @@
 import 'package:http/http.dart';
 import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/json_rpc.dart' as jsonrpc;

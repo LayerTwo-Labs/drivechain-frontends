@@ -5,7 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/sail_settings/network_settings.dart';
