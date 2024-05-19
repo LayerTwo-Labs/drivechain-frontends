@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/bitcoin.dart';
-import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 
 class UTXO {
   final String txid;

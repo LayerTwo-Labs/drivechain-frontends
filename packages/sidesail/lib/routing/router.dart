@@ -2,16 +2,14 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
 import 'package:sidesail/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
-import 'package:sidesail/pages/tabs/settings/app_settings_tab.dart';
-import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
+import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/deposit_withdraw_tab_route.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/transfer_mainchain_tab_route.dart';
-import 'package:sidesail/pages/tabs/testchain/mainchain/withdrawal_bundle_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/testchain_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_bill_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_melt_cast_page.dart';
@@ -39,6 +37,8 @@ class AppRouter extends _$AppRouter {
   @override
   RouteType get defaultRouteType => const RouteType.adaptive();
 
+  // IMPORTANT: Update enum Tabs in home_page.dart when updating here,
+  // routes should match exactly
   @override
   List<AutoRoute> get routes => [
         AutoRoute(
@@ -49,23 +49,20 @@ class AppRouter extends _$AppRouter {
               page: SidechainExplorerTabRoute.page,
             ),
             AutoRoute(
-              page: DashboardTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.testChain,
-            ),
-            AutoRoute(
-              page: TestchainRPCTabRoute.page,
-            ),
-            AutoRoute(
               page: DepositWithdrawTabRoute.page,
             ),
             AutoRoute(
               page: TransferMainchainTabRoute.page,
             ),
             AutoRoute(
-              page: WithdrawalBundleTabRoute.page,
+              page: BlindMergedMiningTabRoute.page,
             ),
             AutoRoute(
-              page: BlindMergedMiningTabRoute.page,
+              page: SidechainSendRoute.page,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.testChain,
+            ),
+            AutoRoute(
+              page: TestchainRPCTabRoute.page,
             ),
             AutoRoute(
               page: EthereumRPCTabRoute.page,
@@ -73,10 +70,10 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: ZCashMeltCastTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.zcash,
             ),
             AutoRoute(
               page: ZCashShieldDeshieldTabRoute.page,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.zcash,
             ),
             AutoRoute(
               page: ZCashTransferTabRoute.page,
@@ -86,9 +83,6 @@ class AppRouter extends _$AppRouter {
             ),
             AutoRoute(
               page: ZCashRPCTabRoute.page,
-            ),
-            AutoRoute(
-              page: NodeSettingsTabRoute.page,
             ),
             AutoRoute(
               page: SettingsTabRoute.page,

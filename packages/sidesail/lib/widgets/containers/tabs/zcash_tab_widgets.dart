@@ -8,7 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';

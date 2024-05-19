@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
@@ -25,6 +26,8 @@ class TopNav extends StatefulWidget {
 }
 
 class _TopNavState extends State<TopNav> {
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
+
   @override
   Widget build(BuildContext context) {
     final tabsRouter = auto_router.AutoTabsRouter.of(context);
@@ -34,12 +37,14 @@ class _TopNavState extends State<TopNav> {
       viewModelBuilder: () => TopNavViewModel(),
       fireOnViewModelReadyOnce: true,
       builder: ((context, viewModel, child) {
+        final sidechainNav = _navForSidechain(_sidechain.rpc.chain, viewModel, tabsRouter);
+
         return Column(
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: SailStyleValues.padding15,
-                vertical: SailStyleValues.padding08,
+                vertical: SailStyleValues.padding05,
               ),
               child: SailRow(
                 spacing: SailStyleValues.padding20,
@@ -57,34 +62,73 @@ class _TopNavState extends State<TopNav> {
                         : null,
                   ),
                   Expanded(child: Container()),
-                  TopNavEntry(
-                    title: 'Parent Chain',
-                    icon: SailSVGAsset.iconMainchain,
-                    selected: topTabIsSelected(tabsRouter.activeIndex, 0),
-                    onPressed: () {
-                      // default to second to last route (node settings)
-                      tabsRouter.setActiveIndex(ParentChainHome);
-                    },
+                  SailColumn(
+                    spacing: SailStyleValues.padding10,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SailText.secondary12('Parent Chain'),
+                      SailRow(
+                        spacing: 0,
+                        children: [
+                          NavEntry(
+                            title: 'Deposit/Withdraw',
+                            selected: tabsRouter.activeIndex == Tabs.ParentChainPeg.index,
+                            onPressed: () {
+                              tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+                            },
+                          ),
+                          NavEntry(
+                            title: 'Send',
+                            selected: tabsRouter.activeIndex == Tabs.ParentChainTransfer.index,
+                            onPressed: () {
+                              tabsRouter.setActiveIndex(Tabs.ParentChainTransfer.index);
+                            },
+                          ),
+                          if (_sidechain.rpc.chain.type == SidechainType.testChain)
+                            NavEntry(
+                              title: 'Blind Merged Mining',
+                              selected: tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
+                              onPressed: () {
+                                tabsRouter.setActiveIndex(Tabs.ParentChainBMM.index);
+                              },
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                  TopNavEntry(
-                    title: 'Sidechain',
-                    icon: SailSVGAsset.iconSidechain,
-                    selected: topTabIsSelected(tabsRouter.activeIndex, 1),
-                    onPressed: () {
-                      // default to second to last route (node settings)
-                      tabsRouter.setActiveIndex(viewModel.chainHome);
-                    },
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: VerticalDivider(
+                        width: 1,
+                        thickness: 1,
+                        color: theme.colors.divider,
+                      ),
+                    ),
                   ),
-                  TopNavEntry(
-                    title: 'Settings',
-                    icon: SailSVGAsset.iconSettings,
-                    selected: topTabIsSelected(tabsRouter.activeIndex, 2),
-                    onPressed: () {
-                      // default to second to last route (node settings)
-                      tabsRouter.setActiveIndex(tabsRouter.pageCount - 2);
-                    },
+                  SailColumn(
+                    spacing: SailStyleValues.padding10,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SailText.secondary12('Sidechain'),
+                      SailRow(
+                        spacing: 0,
+                        children: [
+                          ...sidechainNav,
+                        ],
+                      ),
+                    ],
                   ),
                   Expanded(child: Container()),
+                  NavEntry(
+                    title: '',
+                    icon: SailSVGAsset.iconSettings,
+                    selected: tabsRouter.activeIndex == Tabs.SettingsHome.index,
+                    onPressed: () {
+                      // default to second to last route (node settings)
+                      tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
+                    },
+                  ),
                 ],
               ),
             ),
@@ -102,26 +146,93 @@ class _TopNavState extends State<TopNav> {
     );
   }
 
-  bool topTabIsSelected(int activeIndex, int parentTab) {
-    switch (parentTab) {
-      case 0:
-        return activeIndex == ParentChainHome ||
-            activeIndex == ParentChainHome + 1 ||
-            activeIndex == ParentChainHome + 2;
-      case 1:
-        return activeIndex == TestchainHome ||
-            activeIndex == TestchainHome + 1 ||
-            activeIndex == TestchainHome + 2 ||
-            activeIndex == EthereumHome ||
-            activeIndex == ZCashHome ||
-            activeIndex == ZCashHome + 1 ||
-            activeIndex == ZCashHome + 2 ||
-            activeIndex == ZCashHome + 3 ||
-            activeIndex == ZCashHome + 4;
-      case 2:
-        return activeIndex == SettingsHome || activeIndex == SettingsHome + 1;
-      default:
-        return true;
+  List<Widget> _navForSidechain(
+    Sidechain chain,
+    TopNavViewModel viewModel,
+    auto_router.TabsRouter tabsRouter,
+  ) {
+    switch (chain.type) {
+      case SidechainType.testChain:
+        return [
+          SubNavEntryContainer(
+            open: true,
+            subs: [
+              NavEntry(
+                title: 'Send',
+                selected: tabsRouter.activeIndex == Tabs.SidechainSend.index,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(Tabs.SidechainSend.index);
+                },
+              ),
+              NavEntry(
+                title: 'Console',
+                selected: tabsRouter.activeIndex == Tabs.TestchainConsole.index,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(Tabs.TestchainConsole.index);
+                },
+              ),
+            ],
+          ),
+        ];
+      case SidechainType.ethereum:
+        return [
+          SubNavEntryContainer(
+            open: true,
+            subs: [
+              NavEntry(
+                title: 'Console',
+                selected: tabsRouter.activeIndex == Tabs.EthereumConsole.index,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(Tabs.EthereumConsole.index);
+                },
+              ),
+            ],
+          ),
+        ];
+
+      case SidechainType.zcash:
+        return [
+          SubNavEntryContainer(
+            open: true,
+            subs: [
+              NavEntry(
+                title: 'Send',
+                selected: tabsRouter.activeIndex == Tabs.ZCashTransfer.index,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(Tabs.ZCashTransfer.index);
+                },
+              ),
+              NavEntry(
+                title: 'Shield/Deshield',
+                selected: tabsRouter.activeIndex == Tabs.ZCashShieldDeshield.index,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
+                },
+              ),
+              NavEntry(
+                title: 'Melt/Cast',
+                selected: tabsRouter.activeIndex == Tabs.ZCashMeltCast.index,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
+                },
+              ),
+              NavEntry(
+                title: 'Operation Statuses',
+                selected: tabsRouter.activeIndex == Tabs.ZCashOperationStatuses.index,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(Tabs.ZCashOperationStatuses.index);
+                },
+              ),
+              NavEntry(
+                title: 'Console',
+                selected: tabsRouter.activeIndex == Tabs.ZCashConsole.index,
+                onPressed: () {
+                  tabsRouter.setActiveIndex(Tabs.ZCashConsole.index);
+                },
+              ),
+            ],
+          ),
+        ];
     }
   }
 }
@@ -135,11 +246,6 @@ class TopNavViewModel extends BaseViewModel {
   double get pendingBalance => _balanceProvider.pendingBalance;
 
   Sidechain get chain => _sideRPC.rpc.chain;
-  int get chainHome => chain.type == SidechainType.zcash
-      ? ZCashHome
-      : chain.type == SidechainType.testChain
-          ? TestchainHome
-          : EthereumHome;
 
   TopNavViewModel() {
     _balanceProvider.addListener(notifyListeners);

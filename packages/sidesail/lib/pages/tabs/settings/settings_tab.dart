@@ -7,21 +7,30 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/app.dart';
+import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/storage/client_settings.dart';
+import 'package:sidesail/storage/sail_settings/font_settings.dart';
+import 'package:sidesail/storage/sail_settings/network_settings.dart';
+import 'package:sidesail/storage/sail_settings/theme_settings.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
-class NodeSettingsTabPage extends StatelessWidget {
-  const NodeSettingsTabPage({super.key});
+class SettingsTabPage extends StatelessWidget {
+  const SettingsTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final app = SailApp.of(context);
+    final theme = SailTheme.of(context);
+
     return SailPage(
-      title: 'Node Settings',
-      subtitle: 'Manage your node connections',
+      title: 'Settings',
+      subtitle: 'Manage your node connections and theme',
       scrollable: true,
       body: ViewModelBuilder.reactive(
         viewModelBuilder: () => NodeConnectionViewModel(),
@@ -47,6 +56,155 @@ class NodeSettingsTabPage extends StatelessWidget {
                 connectionError: viewModel.mainRPC.connectionError,
                 readError: viewModel.mainRPC.conf.readError,
                 loading: viewModel._mainchainBusy,
+              ),
+              ViewModelBuilder.reactive(
+                viewModelBuilder: () => ThemeSettingsViewModel(),
+                builder: ((context, settingsViewModel, child) {
+                  return SailColumn(
+                    spacing: SailStyleValues.padding10,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.primary20('Theme', bold: true),
+                      Row(
+                        children: [
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: 640,
+                            ),
+                            child: SailColumn(
+                              spacing: SailStyleValues.padding50,
+                              children: [
+                                SailRow(
+                                  spacing: SailStyleValues.padding15,
+                                  children: [
+                                    SailButton.primary(
+                                      'Dark Theme',
+                                      onPressed: () {
+                                        settingsViewModel.setTheme(SailThemeValues.dark);
+                                        app.loadTheme(SailThemeValues.dark);
+                                      },
+                                      size: ButtonSize.regular,
+                                      disabled: settingsViewModel.theme == SailThemeValues.dark,
+                                    ),
+                                    SailButton.primary(
+                                      'Light Theme',
+                                      onPressed: () {
+                                        settingsViewModel.setTheme(SailThemeValues.light);
+                                        app.loadTheme(SailThemeValues.light);
+                                      },
+                                      size: ButtonSize.regular,
+                                      disabled: settingsViewModel.theme == SailThemeValues.light,
+                                    ),
+                                    SailButton.primary(
+                                      'System Theme',
+                                      onPressed: () {
+                                        settingsViewModel.setTheme(SailThemeValues.platform);
+                                        app.loadTheme(SailThemeValues.platform);
+                                      },
+                                      size: ButtonSize.regular,
+                                      disabled: settingsViewModel.theme == SailThemeValues.platform,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(child: Container()),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: SailStyleValues.padding20),
+                        child: SailText.primary20('Font', bold: true),
+                      ),
+                      Row(
+                        children: [
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: 640,
+                            ),
+                            child: SailColumn(
+                              spacing: SailStyleValues.padding10,
+                              children: [
+                                SailRow(
+                                  spacing: SailStyleValues.padding15,
+                                  children: [
+                                    SailButton.primary(
+                                      'Inter',
+                                      onPressed: () {
+                                        settingsViewModel.setFont(SailFontValues.inter);
+                                      },
+                                      size: ButtonSize.regular,
+                                      disabled: settingsViewModel.font == SailFontValues.inter,
+                                    ),
+                                    SailButton.primary(
+                                      'Source Code Pro',
+                                      onPressed: () {
+                                        settingsViewModel.setFont(SailFontValues.sourceCodePro);
+                                      },
+                                      size: ButtonSize.regular,
+                                      disabled: settingsViewModel.font == SailFontValues.sourceCodePro,
+                                    ),
+                                  ],
+                                ),
+                                if (settingsViewModel.font != settingsViewModel.fontOnLoad)
+                                  SailText.primary12(
+                                    'Must restart app to apply font changes',
+                                    customColor: theme.colors.yellow,
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Expanded(child: Container()),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding20),
+                        child: SailText.primary20('Log file', bold: true),
+                      ),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 350),
+                        child: SailText.secondary13(
+                          'The application writes logs to this location. When reporting bugs, please include the content of this file.',
+                        ),
+                      ),
+                      StaticActionField(
+                        copyable: true,
+                        prefixWidget: Padding(
+                          padding: const EdgeInsets.only(right: SailStyleValues.padding10),
+                          child: SailSVG.icon(SailSVGAsset.iconCopy),
+                        ),
+                        value: '${settingsViewModel.datadir}${Platform.pathSeparator}debug.log',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding20),
+                        child: SailText.primary20('Active network', bold: true),
+                      ),
+                      SailRow(
+                        spacing: SailStyleValues.padding15,
+                        children: [
+                          SailButton.primary(
+                            'Mainnet',
+                            onPressed: () async {
+                              await settingsViewModel.setNetwork(SailNetworkValues.mainnet);
+                              await app.restartNodes();
+                            },
+                            size: ButtonSize.regular,
+                            disabled: settingsViewModel.network == SailNetworkValues.mainnet,
+                          ),
+                          SailButton.primary(
+                            'Regtest',
+                            onPressed: () async {
+                              await settingsViewModel.setNetwork(SailNetworkValues.regtest);
+                              await app.restartNodes();
+                            },
+                            size: ButtonSize.regular,
+                            disabled: settingsViewModel.network == SailNetworkValues.regtest,
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                }),
               ),
             ],
           );
@@ -344,5 +502,47 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
 
   static SingleNodeConnectionSettings empty() {
     return SingleNodeConnectionSettings('', '', 0, '', '', false);
+  }
+}
+
+class ThemeSettingsViewModel extends BaseViewModel {
+  ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
+
+  ThemeSettingsViewModel() {
+    _init();
+  }
+
+  String datadir = '';
+  // default to mainnet!
+  SailNetworkValues network = SailNetworkValues.mainnet;
+  SailThemeValues theme = SailThemeValues.light;
+  SailFontValues font = SailFontValues.inter;
+  SailFontValues fontOnLoad = SailFontValues.inter;
+
+  void setTheme(SailThemeValues newTheme) async {
+    theme = newTheme;
+    await _clientSettings.setValue(ThemeSetting().withValue(theme));
+    notifyListeners();
+  }
+
+  Future<void> setNetwork(SailNetworkValues newNetwork) async {
+    network = newNetwork;
+    await _clientSettings.setValue(NetworkSetting().withValue(network));
+    notifyListeners();
+  }
+
+  Future<void> _init() async {
+    theme = (await _clientSettings.getValue(ThemeSetting())).value;
+    font = (await _clientSettings.getValue(FontSetting())).value;
+    network = (await _clientSettings.getValue(NetworkSetting())).value;
+    fontOnLoad = font;
+    datadir = await RuntimeArgs.datadir().then((dir) => dir.path);
+    notifyListeners();
+  }
+
+  void setFont(SailFontValues newFont) async {
+    font = newFont;
+    await _clientSettings.setValue(FontSetting().withValue(font));
+    notifyListeners();
   }
 }

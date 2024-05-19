@@ -1,4 +1,4 @@
-import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
 import 'package:sidesail/rpc/models/blockchain_info.dart';
 import 'package:sidesail/rpc/models/utxo.dart';

@@ -46,14 +46,7 @@ class ConnectionStatusChip extends StatelessWidget {
                 InitializingDaemonSVG(
                   animate: initializing,
                 ),
-              if (!initializing)
-                SailColumn(
-                  spacing: 0,
-                  children: [
-                    SailText.secondary12('Connected to $chain'),
-                    SailText.secondary12('${formatNumberWithSpace(blockHeight)} blocks'),
-                  ],
-                ),
+              if (!initializing) SailText.secondary12('$chain | ${formatNumberWithSpace(blockHeight)} blocks'),
             ],
           ),
         ),

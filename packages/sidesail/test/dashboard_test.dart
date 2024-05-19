@@ -8,7 +8,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/process_provider.dart';
@@ -40,7 +40,7 @@ void main() {
   testWidgets('can render and show balance', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
-      const DashboardTabPage(),
+      const SidechainSendPage(),
     );
     await tester.pumpAndSettle();
 

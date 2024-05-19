@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidesail/app.dart';
-import 'package:sidesail/pages/tabs/settings/node_settings_tab.dart';
+import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/providers/process_provider.dart';
 
 // when you implement this class, you should extend a ChangeNotifier, to get

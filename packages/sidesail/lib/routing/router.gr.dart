@@ -21,12 +21,6 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const BlindMergedMiningTabPage(),
       );
     },
-    DashboardTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const DashboardTabPage(),
-      );
-    },
     DepositWithdrawTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -43,12 +37,6 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const HomePage(),
-      );
-    },
-    NodeSettingsTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const NodeSettingsTabPage(),
       );
     },
     SailTestRoute.name: (routeData) {
@@ -73,6 +61,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const SidechainExplorerTabPage(),
       );
     },
+    SidechainSendRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const SidechainSendPage(),
+      );
+    },
     TestchainRPCTabRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -83,12 +77,6 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const TransferMainchainTabPage(),
-      );
-    },
-    WithdrawalBundleTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const WithdrawalBundleTabPage(),
       );
     },
     ZCashBillRoute.name: (routeData) {
@@ -145,20 +133,6 @@ class BlindMergedMiningTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [DashboardTabPage]
-class DashboardTabRoute extends PageRouteInfo<void> {
-  const DashboardTabRoute({List<PageRouteInfo>? children})
-      : super(
-          DashboardTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'DashboardTabRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
 /// [DepositWithdrawTabPage]
 class DepositWithdrawTabRoute extends PageRouteInfo<void> {
   const DepositWithdrawTabRoute({List<PageRouteInfo>? children})
@@ -196,20 +170,6 @@ class HomeRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'HomeRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [NodeSettingsTabPage]
-class NodeSettingsTabRoute extends PageRouteInfo<void> {
-  const NodeSettingsTabRoute({List<PageRouteInfo>? children})
-      : super(
-          NodeSettingsTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'NodeSettingsTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -280,6 +240,20 @@ class SidechainExplorerTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [SidechainSendPage]
+class SidechainSendRoute extends PageRouteInfo<void> {
+  const SidechainSendRoute({List<PageRouteInfo>? children})
+      : super(
+          SidechainSendRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SidechainSendRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [TestchainRPCTabPage]
 class TestchainRPCTabRoute extends PageRouteInfo<void> {
   const TestchainRPCTabRoute({List<PageRouteInfo>? children})
@@ -303,20 +277,6 @@ class TransferMainchainTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'TransferMainchainTabRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [WithdrawalBundleTabPage]
-class WithdrawalBundleTabRoute extends PageRouteInfo<void> {
-  const WithdrawalBundleTabRoute({List<PageRouteInfo>? children})
-      : super(
-          WithdrawalBundleTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'WithdrawalBundleTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

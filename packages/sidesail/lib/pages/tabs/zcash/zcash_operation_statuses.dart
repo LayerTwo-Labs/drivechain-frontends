@@ -28,7 +28,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
         return SailPage(
           scrollable: true,
           widgetTitle: ZCashWidgetTitle(
-            depositNudgeAction: () => tabsRouter.setActiveIndex(ParentChainHome),
+            depositNudgeAction: () => tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index),
           ),
           body: Padding(
             padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
