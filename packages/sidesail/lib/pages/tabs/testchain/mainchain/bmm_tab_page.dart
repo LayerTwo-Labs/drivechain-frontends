@@ -8,7 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/bitcoin.dart';
-import 'package:sidesail/pages/tabs/dashboard_tab_page.dart';
+import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -25,6 +25,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
       viewModelBuilder: () => BlindMergedMiningTabPageViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
+          scrollable: true,
           widgetTitle: SailRow(
             spacing: SailStyleValues.padding08,
             children: [
