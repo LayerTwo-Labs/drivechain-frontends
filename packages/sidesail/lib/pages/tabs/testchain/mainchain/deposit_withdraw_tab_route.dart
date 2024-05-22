@@ -41,19 +41,19 @@ class DepositWithdrawTabPage extends StatelessWidget {
                         widgetEnd: HelpButton(onPressed: () => viewModel.castHelp(context)),
                         children: [
                           ActionTile(
-                            title: 'Withdraw to parent chain',
-                            category: Category.mainchain,
-                            icon: Icons.remove,
-                            onTap: () {
-                              viewModel.pegOut(context);
-                            },
-                          ),
-                          ActionTile(
                             title: 'Deposit from parent chain',
                             category: Category.mainchain,
                             icon: Icons.add,
                             onTap: () {
                               viewModel.pegIn(context);
+                            },
+                          ),
+                          ActionTile(
+                            title: 'Withdraw to parent chain',
+                            category: Category.mainchain,
+                            icon: Icons.remove,
+                            onTap: () {
+                              viewModel.pegOut(context);
                             },
                           ),
                           if (viewModel.localNetwork)
