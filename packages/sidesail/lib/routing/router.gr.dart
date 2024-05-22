@@ -198,8 +198,7 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
 
   static const String name = 'SailTestRoute';
 
-  static const PageInfo<SailTestRouteArgs> page =
-      PageInfo<SailTestRouteArgs>(name);
+  static const PageInfo<SailTestRouteArgs> page = PageInfo<SailTestRouteArgs>(name);
 }
 
 class SailTestRouteArgs {
