@@ -79,6 +79,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const TransferMainchainTabPage(),
       );
     },
+    WithdrawalExplorerTabRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const WithdrawalExplorerTabPage(),
+      );
+    },
     ZCashBillRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -192,7 +198,8 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
 
   static const String name = 'SailTestRoute';
 
-  static const PageInfo<SailTestRouteArgs> page = PageInfo<SailTestRouteArgs>(name);
+  static const PageInfo<SailTestRouteArgs> page =
+      PageInfo<SailTestRouteArgs>(name);
 }
 
 class SailTestRouteArgs {
@@ -277,6 +284,20 @@ class TransferMainchainTabRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'TransferMainchainTabRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [WithdrawalExplorerTabPage]
+class WithdrawalExplorerTabRoute extends PageRouteInfo<void> {
+  const WithdrawalExplorerTabRoute({List<PageRouteInfo>? children})
+      : super(
+          WithdrawalExplorerTabRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'WithdrawalExplorerTabRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

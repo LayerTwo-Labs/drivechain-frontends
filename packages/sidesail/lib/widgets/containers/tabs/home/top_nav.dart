@@ -77,13 +77,14 @@ class _TopNavState extends State<TopNav> {
                               tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
                             },
                           ),
-                          NavEntry(
-                            title: 'Send',
-                            selected: tabsRouter.activeIndex == Tabs.ParentChainTransfer.index,
-                            onPressed: () {
-                              tabsRouter.setActiveIndex(Tabs.ParentChainTransfer.index);
-                            },
-                          ),
+                          if (_sidechain.rpc.chain.type == SidechainType.testChain)
+                            NavEntry(
+                              title: 'Withdrawal Explorer',
+                              selected: tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
+                              onPressed: () {
+                                tabsRouter.setActiveIndex(Tabs.ParentChainWithdrawalExplorer.index);
+                              },
+                            ),
                           if (_sidechain.rpc.chain.type == SidechainType.testChain)
                             NavEntry(
                               title: 'Blind Merged Mining',

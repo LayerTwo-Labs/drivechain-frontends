@@ -20,7 +20,7 @@ enum Tabs {
   SidechainExplorer,
 
   ParentChainPeg,
-  ParentChainTransfer,
+  ParentChainWithdrawalExplorer,
   ParentChainBMM,
 
   SidechainSend,
@@ -85,7 +85,7 @@ class _HomePageState extends State<HomePage> {
 
       // parent chain routes
       DepositWithdrawTabRoute(),
-      TransferMainchainTabRoute(),
+      WithdrawalExplorerTabRoute(),
       BlindMergedMiningTabRoute(),
 
       // testchain routes
