@@ -5,18 +5,17 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class NavEntry extends StatefulWidget {
   final String title;
+  final SailSVGAsset icon;
 
   final bool selected;
   final VoidCallback onPressed;
 
-  final SailSVGAsset? icon;
-
   const NavEntry({
     super.key,
     required this.title,
+    required this.icon,
     required this.selected,
     required this.onPressed,
-    this.icon,
   });
 
   @override
@@ -48,20 +47,20 @@ class _NavEntryState extends State<NavEntry> {
             color: widget.selected ? theme.colors.actionHeader : Colors.transparent,
             borderRadius: BorderRadius.circular(4),
           ),
-          child: SailColumn(
-            spacing: 0,
-            children: [
-              if (widget.icon != null) SailSVG.icon(widget.icon!, width: 0, height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: SailStyleValues.padding08,
-                  vertical: SailStyleValues.padding05,
-                ),
-                child: mouseIsOver || widget.selected
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: SailStyleValues.padding08,
+              vertical: SailStyleValues.padding05,
+            ),
+            child: SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.icon(widget.icon, width: 16),
+                mouseIsOver || widget.selected
                     ? SailText.primary12(widget.title, bold: true)
                     : SailText.secondary12(widget.title, bold: true),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

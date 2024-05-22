@@ -4,13 +4,18 @@ import 'package:sail_ui/style/style.dart';
 import 'package:sail_ui/theme/theme.dart';
 
 enum SailSVGAsset {
-  iconDashboardTab,
-  iconWithdrawalBundleTab,
-  iconBMMTab,
+  iconTabPeg,
+  iconTabBMM,
+  iconTabWithdrawalExplorer,
 
-  iconMainchain,
-  iconSidechain,
-  iconSettings,
+  iconTabSidechainSend,
+
+  iconTabZCashMeltCast,
+  iconTabZCashShieldDeshield,
+  iconTabZCashOperationStatuses,
+
+  iconTabConsole,
+  iconTabSettings,
 
   iconCalendar,
   iconQuestion,
@@ -36,8 +41,6 @@ enum SailSVGAsset {
 // not supposed to be the same color of the text, or ones that have
 // multiple colors
 const coloredAssets = [
-  SailSVGAsset.iconMainchain,
-  SailSVGAsset.iconSidechain,
   SailSVGAsset.iconSuccess,
   SailSVGAsset.iconPending,
   SailSVGAsset.iconPendingHalf,
@@ -85,19 +88,27 @@ class SailSVG {
 extension AsAssetPath on SailSVGAsset {
   String toAssetPath() {
     switch (this) {
-      case SailSVGAsset.iconDashboardTab:
-        return 'assets/svgs/icon_dashboard_tab.svg';
-      case SailSVGAsset.iconWithdrawalBundleTab:
-        return 'assets/svgs/icon_withdrawal_bundle_tab.svg';
-      case SailSVGAsset.iconBMMTab:
-        return 'assets/svgs/icon_bmm_tab.svg';
+      case SailSVGAsset.iconTabPeg:
+        return 'assets/svgs/icon_tab_peg.svg';
+      case SailSVGAsset.iconTabBMM:
+        return 'assets/svgs/icon_tab_bmm.svg';
+      case SailSVGAsset.iconTabWithdrawalExplorer:
+        return 'assets/svgs/icon_tab_withdrawal_explorer.svg';
 
-      case SailSVGAsset.iconMainchain:
-        return 'assets/svgs/icon_mainchain.svg';
-      case SailSVGAsset.iconSidechain:
-        return 'assets/svgs/icon_sidechain.svg';
-      case SailSVGAsset.iconSettings:
-        return 'assets/svgs/icon_settings.svg';
+      case SailSVGAsset.iconTabSidechainSend:
+        return 'assets/svgs/icon_tab_send.svg';
+
+      case SailSVGAsset.iconTabZCashMeltCast:
+        return 'assets/svgs/icon_tab_melt_cast.svg';
+      case SailSVGAsset.iconTabZCashShieldDeshield:
+        return 'assets/svgs/icon_tab_shield_deshield.svg';
+      case SailSVGAsset.iconTabZCashOperationStatuses:
+        return 'assets/svgs/icon_tab_operation_statuses.svg';
+
+      case SailSVGAsset.iconTabConsole:
+        return 'assets/svgs/icon_tab_console.svg';
+      case SailSVGAsset.iconTabSettings:
+        return 'assets/svgs/icon_tab_settings.svg';
 
       case SailSVGAsset.iconCalendar:
         return 'assets/svgs/icon_calendar.svg';

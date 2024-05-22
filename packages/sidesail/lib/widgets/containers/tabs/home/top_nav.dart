@@ -44,7 +44,6 @@ class _TopNavState extends State<TopNav> {
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: SailStyleValues.padding15,
-                vertical: SailStyleValues.padding05,
               ),
               child: SailRow(
                 spacing: SailStyleValues.padding20,
@@ -76,6 +75,7 @@ class _TopNavState extends State<TopNav> {
                             onPressed: () {
                               tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
                             },
+                            icon: SailSVGAsset.iconTabPeg,
                           ),
                           if (_sidechain.rpc.chain.type == SidechainType.testChain)
                             NavEntry(
@@ -84,6 +84,7 @@ class _TopNavState extends State<TopNav> {
                               onPressed: () {
                                 tabsRouter.setActiveIndex(Tabs.ParentChainWithdrawalExplorer.index);
                               },
+                              icon: SailSVGAsset.iconTabWithdrawalExplorer,
                             ),
                           if (_sidechain.rpc.chain.type == SidechainType.testChain)
                             NavEntry(
@@ -92,6 +93,7 @@ class _TopNavState extends State<TopNav> {
                               onPressed: () {
                                 tabsRouter.setActiveIndex(Tabs.ParentChainBMM.index);
                               },
+                              icon: SailSVGAsset.iconTabBMM,
                             ),
                         ],
                       ),
@@ -99,11 +101,11 @@ class _TopNavState extends State<TopNav> {
                   ),
                   Expanded(
                     child: SizedBox(
-                      height: 50,
+                      height: 60,
                       child: VerticalDivider(
                         width: 1,
                         thickness: 1,
-                        color: theme.colors.divider,
+                        color: theme.colors.icon.withOpacity(0.2),
                       ),
                     ),
                   ),
@@ -120,15 +122,25 @@ class _TopNavState extends State<TopNav> {
                       ),
                     ],
                   ),
+                  Expanded(
+                    child: SizedBox(
+                      height: 60,
+                      child: VerticalDivider(
+                        width: 1,
+                        thickness: 1,
+                        color: theme.colors.icon.withOpacity(0.2),
+                      ),
+                    ),
+                  ),
                   Expanded(child: Container()),
                   NavEntry(
                     title: '',
-                    icon: SailSVGAsset.iconSettings,
                     selected: tabsRouter.activeIndex == Tabs.SettingsHome.index,
                     onPressed: () {
                       // default to second to last route (node settings)
                       tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
                     },
+                    icon: SailSVGAsset.iconTabSettings,
                   ),
                 ],
               ),
@@ -164,6 +176,7 @@ class _TopNavState extends State<TopNav> {
                 onPressed: () {
                   tabsRouter.setActiveIndex(Tabs.SidechainSend.index);
                 },
+                icon: SailSVGAsset.iconTabSidechainSend,
               ),
               NavEntry(
                 title: 'Console',
@@ -171,6 +184,7 @@ class _TopNavState extends State<TopNav> {
                 onPressed: () {
                   tabsRouter.setActiveIndex(Tabs.TestchainConsole.index);
                 },
+                icon: SailSVGAsset.iconTabConsole,
               ),
             ],
           ),
@@ -186,6 +200,7 @@ class _TopNavState extends State<TopNav> {
                 onPressed: () {
                   tabsRouter.setActiveIndex(Tabs.EthereumConsole.index);
                 },
+                icon: SailSVGAsset.iconTabConsole,
               ),
             ],
           ),
@@ -202,6 +217,7 @@ class _TopNavState extends State<TopNav> {
                 onPressed: () {
                   tabsRouter.setActiveIndex(Tabs.ZCashTransfer.index);
                 },
+                icon: SailSVGAsset.iconTabSidechainSend,
               ),
               NavEntry(
                 title: 'Shield/Deshield',
@@ -209,6 +225,7 @@ class _TopNavState extends State<TopNav> {
                 onPressed: () {
                   tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
                 },
+                icon: SailSVGAsset.iconTabZCashShieldDeshield,
               ),
               NavEntry(
                 title: 'Melt/Cast',
@@ -216,6 +233,7 @@ class _TopNavState extends State<TopNav> {
                 onPressed: () {
                   tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
                 },
+                icon: SailSVGAsset.iconTabZCashMeltCast,
               ),
               NavEntry(
                 title: 'Operation Statuses',
@@ -223,6 +241,7 @@ class _TopNavState extends State<TopNav> {
                 onPressed: () {
                   tabsRouter.setActiveIndex(Tabs.ZCashOperationStatuses.index);
                 },
+                icon: SailSVGAsset.iconTabZCashOperationStatuses,
               ),
               NavEntry(
                 title: 'Console',
@@ -230,6 +249,7 @@ class _TopNavState extends State<TopNav> {
                 onPressed: () {
                   tabsRouter.setActiveIndex(Tabs.ZCashConsole.index);
                 },
+                icon: SailSVGAsset.iconTabConsole,
               ),
             ],
           ),
