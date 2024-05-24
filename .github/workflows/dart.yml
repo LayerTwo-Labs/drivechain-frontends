@@ -44,11 +44,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         chain: [testchain, ethereum, zcash]
-        exclude:
-          - os: windows-latest
-            chain: zcash
 
     name: Build binaries
     runs-on: ${{ matrix.os }}
@@ -150,14 +147,12 @@ jobs:
           # The files here are already zips. No point in zipping again!
           run: |
             mv sidesail-binaries-macOS-testchain/testsail-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip 
-            mv sidesail-binaries-Windows-testchain/testsail-win64.zip L2-S0-TestSail-latest-x86_64-w64-mingw32.zip 
             mv sidesail-binaries-Linux-testchain/testsail-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip 
 
             mv sidesail-binaries-macOS-zcash/zsail-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip 
             mv sidesail-binaries-Linux-zcash/zsail-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip 
 
             mv sidesail-binaries-macOS-ethereum/ethsail-osx64.zip L2-S6-EthSail-latest-x86_64-apple-darwin.zip 
-            mv sidesail-binaries-Windows-ethereum/ethsail-win64.zip L2-S6-EthSail-latest-x86_64-w64-mingw32.zip 
             mv sidesail-binaries-Linux-ethereum/ethsail-x86_64-linux-gnu.zip L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip 
 
         - name: Upload artifacts to releases.drivechain.info
