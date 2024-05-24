@@ -55,10 +55,11 @@ class _NavEntryState extends State<NavEntry> {
             child: SailRow(
               spacing: SailStyleValues.padding08,
               children: [
-                SailSVG.icon(widget.icon, width: 16),
-                mouseIsOver || widget.selected
-                    ? SailText.primary12(widget.title, bold: true)
-                    : SailText.secondary12(widget.title, bold: true),
+                SailSVG.icon(widget.icon),
+                if (widget.title != '')
+                  mouseIsOver || widget.selected
+                      ? SailText.primary12(widget.title, bold: true)
+                      : SailText.secondary12(widget.title, bold: true),
               ],
             ),
           ),
@@ -68,38 +69,24 @@ class _NavEntryState extends State<NavEntry> {
   }
 }
 
-class SubNavEntryContainer extends StatelessWidget {
-  final bool open;
+class NavContainer extends StatelessWidget {
+  final String title;
   final List<NavEntry> subs;
 
-  const SubNavEntryContainer({
+  const NavContainer({
     super.key,
-    required this.open,
+    required this.title,
     required this.subs,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    if (!open) {
-      return Container();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: SailStyleValues.padding15,
-      ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(
-              color: theme.colors.divider,
-              width: 1.0,
-            ),
-          ),
-        ),
-        child: SailRow(
+    return SailColumn(
+      spacing: SailStyleValues.padding10,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SailText.secondary12(title),
+        SailRow(
           spacing: 0,
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +94,7 @@ class SubNavEntryContainer extends StatelessWidget {
             for (final sub in subs) sub,
           ],
         ),
-      ),
+      ],
     );
   }
 }
