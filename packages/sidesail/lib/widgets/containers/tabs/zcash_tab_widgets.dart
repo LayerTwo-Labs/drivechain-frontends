@@ -556,7 +556,8 @@ class MeltActionViewModel extends BaseViewModel {
   List<UnshieldedUTXO> get meltableUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((utxo) => utxo.amount > 0.0001).toList();
   double get meltAmount =>
-      _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).reduce((value, element) => value + element) - meltFee;
+      _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).fold(0.0, (value, element) => value + element) -
+      meltFee;
   double get meltFee => (_zcashProvider.sideFee * meltableUTXOs.length);
   TextEditingController meltInMinutesController = TextEditingController();
 
@@ -829,7 +830,7 @@ class CastActionViewModel extends BaseViewModel {
       _zcashProvider.shieldedUTXOs.where((element) => element.amount > castFee).toList();
   num get castFee => _rpc.numUTXOsPerCast * shieldFee;
   num get castAllFee => castFee * castableUTXOs.length;
-  num get castAmount => includedInBundle.map((e) => e.amount).reduce((sum, fee) => sum + fee);
+  num get castAmount => includedInBundle.map((e) => e.amount).fold(0.0, (sum, fee) => sum + fee);
   double get totalBitcoinAmount => (castAmount + castFee).toDouble();
 
   CastActionViewModel();
@@ -1341,7 +1342,7 @@ class CastHelp extends StatelessWidget {
           'For example, 0.75 BTC will be withdrawn in 4 UTXOs. 1x0.67108864 BTC, 1x0.04194304 BTC, 1x0.02097152 BTC and 1x0.01048576 BTC. That sums to 0.74448896 BTC, which is 99.26% of 0.75 BTC.',
         ),
         QuestionText(
-          'The residual 0.00551104 BTC would stay un-withdrawn, in your z-address on the sidechain, to be withdrawn later.',
+          'The residual 0.00551104 BTC will stay un-withdrawn, in your z-address on the sidechain, to be withdrawn later.',
         ),
         QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
       ],
@@ -1389,7 +1390,7 @@ class OperationHelp extends StatelessWidget {
       children: [
         QuestionTitle('What are operations?'),
         QuestionText(
-          'Operations are zcash\'s way of keeping track of what happens to zero-knowledge operations, for example when you shield/deshield/melt/cast',
+          'Operations are zcash\'s way of keeping track of what happens to zero-knowledge operations, for example when you shield/deshield/melt/cast.',
         ),
         QuestionText(
           'In the table below, you can keep track of whether the z_operation fails or succeeds, and view all parameters to each zero-knowledge operation.',
