@@ -148,11 +148,11 @@ class SendOnSidechainViewModel extends BaseViewModel {
     this.maxAmount,
   }) {
     bitcoinAddressController.addListener(notifyListeners);
-    bitcoinAmountController.addListener(_withMaxAmount);
+    bitcoinAmountController.addListener(_capAmount);
     init();
   }
 
-  void _withMaxAmount() {
+  void _capAmount() {
     String currentInput = bitcoinAmountController.text;
 
     if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
