@@ -135,17 +135,22 @@ class TransferMainchainTabViewModel extends BaseViewModel {
 }
 
 class SendOnParentChainAction extends StatelessWidget {
+  final double? maxAmount;
   final Future<String> Function(String address, double amount)? customSendAction;
 
   const SendOnParentChainAction({
     super.key,
+    this.maxAmount,
     this.customSendAction,
   });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => SendViewModel(customSendAction: customSendAction),
+      viewModelBuilder: () => SendViewModel(
+        customSendAction: customSendAction,
+        maxAmount: maxAmount,
+      ),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
           'Send on parent chain',
@@ -204,15 +209,31 @@ class SendViewModel extends BaseViewModel {
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
 
   final Future<String> Function(String address, double amount)? customSendAction;
+  final double? maxAmount;
 
-  SendViewModel({this.customSendAction}) {
+  SendViewModel({
+    this.customSendAction,
+    this.maxAmount,
+  }) {
     bitcoinAddressController.addListener(notifyListeners);
-    bitcoinAmountController.addListener(notifyListeners);
+    bitcoinAmountController.addListener(_capAmount);
     init();
   }
 
   void init() async {
     await estimateFee();
+  }
+
+  void _capAmount() {
+    String currentInput = bitcoinAmountController.text;
+
+    if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
+      bitcoinAmountController.text = maxAmount.toString();
+      bitcoinAmountController.selection =
+          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+    } else {
+      notifyListeners();
+    }
   }
 
   void executeSendOnParentChain(BuildContext context) async {
