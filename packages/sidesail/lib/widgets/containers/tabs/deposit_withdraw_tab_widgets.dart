@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
@@ -94,11 +95,13 @@ class PegOutViewModel extends BaseViewModel {
   double? sidechainFee;
   double? mainchainFee;
   double? get pegOutAmount => double.tryParse(bitcoinAmountController.text);
+  double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0), 0);
 
   final String? staticAddress;
   PegOutViewModel({this.staticAddress}) {
     bitcoinAddressController.addListener(notifyListeners);
-    bitcoinAmountController.addListener(notifyListeners);
+    bitcoinAmountController.addListener(_capAmount);
+    _balanceProvider.addListener(notifyListeners);
 
     if (staticAddress != null) {
       bitcoinAddressController.text = staticAddress!;
@@ -109,6 +112,18 @@ class PegOutViewModel extends BaseViewModel {
 
   void init() async {
     await Future.wait([estimateSidechainFee(), estimateMainchainFee()]);
+  }
+
+  void _capAmount() {
+    String currentInput = bitcoinAmountController.text;
+
+    if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
+      bitcoinAmountController.text = maxAmount.toString();
+      bitcoinAmountController.selection =
+          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+    } else {
+      notifyListeners();
+    }
   }
 
   void executePegOut(BuildContext context) async {
