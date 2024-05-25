@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -196,7 +198,7 @@ class ZCashTransferTabViewModel extends BaseViewModel {
       context: context,
       builder: (BuildContext context) {
         return SendOnSidechainAction(
-          maxAmount: privateBalance - _zcashProvider.sideFee,
+          maxAmount: max(privateBalance - _zcashProvider.sideFee, 0),
         );
       },
     );
