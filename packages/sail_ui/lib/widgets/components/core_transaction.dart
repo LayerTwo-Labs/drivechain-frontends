@@ -1,12 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/bitcoin.dart';
-import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class CoreTransaction {
   final String address;
@@ -110,16 +107,19 @@ class CoreTransaction {
 
 class CoreTransactionView extends StatefulWidget {
   final CoreTransaction tx;
+  final String ticker;
 
-  const CoreTransactionView({super.key, required this.tx});
+  const CoreTransactionView({
+    super.key,
+    required this.tx,
+    required this.ticker,
+  });
 
   @override
   State<CoreTransactionView> createState() => _CoreTransactionViewState();
 }
 
 class _CoreTransactionViewState extends State<CoreTransactionView> {
-  String get ticker => GetIt.I.get<SidechainContainer>().rpc.chain.ticker;
-
   bool expanded = false;
   late Map<String, dynamic> decodedTx;
   @override
@@ -173,7 +173,7 @@ class _CoreTransactionViewState extends State<CoreTransactionView> {
   }
 
   String extractTXTitle(CoreTransaction tx) {
-    String title = '${formatBitcoin(tx.amount)} $ticker';
+    String title = '${formatBitcoin(tx.amount)} ${widget.ticker}';
 
     if (tx.address.isEmpty) {
       return '$title in ${tx.txid}';

@@ -3,68 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
-
-class DashboardGroup extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-
-  final Widget? widgetTrailing;
-  final Widget? widgetEnd;
-
-  const DashboardGroup({
-    super.key,
-    required this.title,
-    required this.children,
-    this.widgetTrailing,
-    this.widgetEnd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return SailColumn(
-      spacing: 0,
-      withDivider: true,
-      children: [
-        Container(
-          height: 36,
-          color: theme.colors.actionHeader,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
-            child: Row(
-              children: [
-                SailRow(
-                  spacing: SailStyleValues.padding10,
-                  children: [
-                    SailText.primary13(
-                      title,
-                      bold: true,
-                    ),
-                    if (widgetTrailing != null) widgetTrailing!,
-                  ],
-                ),
-                Expanded(child: Container()),
-                if (widgetEnd != null) widgetEnd!,
-              ],
-            ),
-          ),
-        ),
-        for (final child in children) child,
-      ],
-    );
-  }
-}
 
 class SendOnSidechainAction extends StatelessWidget {
   final double? maxAmount;

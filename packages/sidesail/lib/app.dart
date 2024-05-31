@@ -8,7 +8,6 @@ import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/theme/theme_data.dart';
 import 'package:sail_ui/widgets/core/scaffold.dart';
 import 'package:sail_ui/widgets/loading_indicator.dart';
-import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -70,41 +69,6 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     // sidechain
     await initMainchainBinary();
     await initSidechainBinary();
-  }
-
-  void rebuildUI() {
-    setState(() {
-      // This is a workaround to trigger the root widget to rebuild.
-      SailApp.sailAppKey = GlobalKey();
-    });
-  }
-
-  Future<void> restartNodes() async {
-    // first shut down old nodes
-    await processProvider.shutdown();
-
-    try {
-      final newConf = await readRPCConfig(mainchainDatadir(), 'drivechain.conf', null);
-      // then boot fresh ones, with the user-preferred network
-      mainchain.conf = newConf;
-      mainchain.connected = false;
-      // now set new node conf, hmm
-      await initMainchainBinary();
-    } catch (error) {
-      // do nothing
-      log.e('could not reinit mainchain binary ${error.toString()}');
-    }
-
-    try {
-      final newConf = await findSidechainConf(_sidechain.rpc.chain);
-      // then boot fresh ones, with the user-preferred network
-      _sidechain.rpc.conf = newConf;
-      _sidechain.rpc.connected = false;
-      await initSidechainBinary();
-    } catch (error) {
-      // do nothing
-      log.e('could not reinit sidechain binary ${error.toString()}');
-    }
   }
 
   Future<void> loadTheme([SailThemeValues? themeToLoad]) async {
@@ -216,17 +180,6 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-}
-
-Future<void> waitForBoolToBeTrue(
-  Future<bool> Function() boolGetter, {
-  Duration pollInterval = const Duration(milliseconds: 100),
-}) async {
-  bool result = await boolGetter();
-  if (!result) {
-    await Future.delayed(pollInterval);
-    await waitForBoolToBeTrue(boolGetter, pollInterval: pollInterval);
   }
 }
 

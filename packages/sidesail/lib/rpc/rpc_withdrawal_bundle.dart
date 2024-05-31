@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:sidesail/bitcoin.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
 
 enum BundleStatus { pending, failed, success }

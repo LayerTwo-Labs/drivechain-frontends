@@ -1,5 +1,5 @@
-import 'package:sidesail/bitcoin.dart';
-import 'package:sidesail/rpc/models/core_transaction.dart';
+import 'package:sail_ui/bitcoin.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 

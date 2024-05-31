@@ -42,6 +42,7 @@ class LargeEmbeddedInput extends StatelessWidget {
       inputFormatters: [
         if (bitcoinInput) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
         if (numberInput) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+        if (bitcoinInput || numberInput) CommaReplacerInputFormatter(),
       ],
       decoration: InputDecoration(
         errorBorder: InputBorder.none,
@@ -85,12 +86,11 @@ class CommaReplacerInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final newText = newValue.text;
+    final newText = newValue.text.replaceAll(',', '.');
 
-    if (newText.contains(',')) {
-      return TextEditingValue(text: newText.replaceAll(',', ','));
-    }
-
-    return newValue;
+    return newValue.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newValue.selection.end),
+    );
   }
 }
