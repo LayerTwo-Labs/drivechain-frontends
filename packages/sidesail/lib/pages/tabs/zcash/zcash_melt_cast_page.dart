@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
+import 'package:sail_ui/widgets/components/dashboard_group.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
@@ -14,7 +15,6 @@ import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 

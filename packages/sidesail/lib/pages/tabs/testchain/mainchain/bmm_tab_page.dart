@@ -5,14 +5,13 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/components/dashboard_group.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sidesail/bitcoin.dart';
-import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()

@@ -7,12 +7,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sidesail/bitcoin.dart';
+import 'package:sail_ui/bitcoin.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
-import 'package:sidesail/rpc/models/core_transaction.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
-import 'package:sidesail/rpc/rpc.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 

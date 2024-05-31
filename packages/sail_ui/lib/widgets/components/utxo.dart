@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/bitcoin.dart';
-import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 
 class UTXO {
   final String txid;
@@ -17,6 +17,7 @@ class UTXO {
   final bool spendable;
   final bool solvable;
   final bool safe;
+  final int? time;
   final String raw;
 
   UTXO({
@@ -31,6 +32,7 @@ class UTXO {
     required this.spendable,
     required this.solvable,
     required this.safe,
+    required this.time,
     required this.raw,
   });
 
@@ -59,6 +61,7 @@ class UTXO {
       spendable: map['spendable'] ?? false,
       solvable: map['solvable'] ?? false,
       safe: map['safe'] ?? false,
+      time: map['time'] ?? false,
       raw: jsonEncode(map),
     );
   }
@@ -78,6 +81,7 @@ class UTXO {
         'spendable': spendable,
         'solvable': solvable,
         'safe': safe,
+        'time': time,
         'raw': raw,
       };
 }
@@ -98,6 +102,19 @@ class _UTXOViewState extends State<UTXOView> {
   void initState() {
     super.initState();
     decodedTx = jsonDecode(widget.utxo.raw);
+  }
+
+  String get formattedDate {
+    if (widget.utxo.time == null) {
+      return '';
+    }
+
+    final date = DateTime.fromMillisecondsSinceEpoch(widget.utxo.time! * 1000);
+    String locale = WidgetsBinding.instance.platformDispatcher.locale.toString();
+    var formatter = DateFormat.yMMMMd(locale).add_Hm();
+    String formattedDate = formatter.format(date);
+
+    return formattedDate;
   }
 
   @override
@@ -130,7 +147,7 @@ class _UTXOViewState extends State<UTXOView> {
                     ),
               copyable: false,
               value: extractTXTitle(widget.utxo),
-              trailingText: 'Spendable: ${widget.utxo.spendable}',
+              trailingText: formattedDate,
             ),
           ),
           if (expanded)

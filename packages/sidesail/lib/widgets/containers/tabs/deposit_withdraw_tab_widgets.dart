@@ -6,10 +6,11 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/components/dashboard_group.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sail_ui/widgets/loading_indicator.dart';
-import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -19,7 +20,6 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
-import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 class PegOutAction extends StatelessWidget {

@@ -4,13 +4,13 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/components/dashboard_group.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sidesail/bitcoin.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/models/utxo.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
@@ -156,7 +156,7 @@ class SendOnParentChainAction extends StatelessWidget {
           'Send on parent chain',
           endActionButton: SailButton.primary(
             'Execute send',
-            disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
+            disabled: viewModel.addressController.text.isEmpty || viewModel.amountController.text.isEmpty,
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
@@ -165,12 +165,12 @@ class SendOnParentChainAction extends StatelessWidget {
           ),
           children: [
             LargeEmbeddedInput(
-              controller: viewModel.bitcoinAddressController,
+              controller: viewModel.addressController,
               hintText: 'Enter a parent chain address',
               autofocus: true,
             ),
             LargeEmbeddedInput(
-              controller: viewModel.bitcoinAmountController,
+              controller: viewModel.amountController,
               hintText: 'Enter a BTC-amount',
               suffixText: 'BTC',
               bitcoinInput: true,
@@ -199,14 +199,13 @@ class SendViewModel extends BaseViewModel {
   AppRouter get _router => GetIt.I.get<AppRouter>();
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
 
-  final bitcoinAddressController = TextEditingController();
-  final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount =>
-      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (expectedFee ?? 0)));
+  final addressController = TextEditingController();
+  final amountController = TextEditingController();
+  String get totalBitcoinAmount => formatBitcoin(((double.tryParse(amountController.text) ?? 0) + (expectedFee ?? 0)));
   String get ticker => _sidechainContainer.rpc.chain.ticker;
 
   double? expectedFee;
-  double? get sendAmount => double.tryParse(bitcoinAmountController.text);
+  double? get sendAmount => double.tryParse(amountController.text);
 
   final Future<String> Function(String address, double amount)? customSendAction;
   final double? maxAmount;
@@ -215,8 +214,8 @@ class SendViewModel extends BaseViewModel {
     this.customSendAction,
     this.maxAmount,
   }) {
-    bitcoinAddressController.addListener(notifyListeners);
-    bitcoinAmountController.addListener(_capAmount);
+    addressController.addListener(notifyListeners);
+    amountController.addListener(_capAmount);
     init();
   }
 
@@ -225,12 +224,11 @@ class SendViewModel extends BaseViewModel {
   }
 
   void _capAmount() {
-    String currentInput = bitcoinAmountController.text;
+    String currentInput = amountController.text;
 
     if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
-      bitcoinAmountController.text = maxAmount.toString();
-      bitcoinAmountController.selection =
-          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
+      amountController.text = maxAmount.toString();
+      amountController.selection = TextSelection.fromPosition(TextPosition(offset: amountController.text.length));
     } else {
       notifyListeners();
     }
@@ -258,7 +256,7 @@ class SendViewModel extends BaseViewModel {
       return;
     }
 
-    final address = bitcoinAddressController.text;
+    final address = addressController.text;
 
     // Because the function is async, the view might disappear/unmount
     // by the time it's used. The linter doesn't like that, and wants

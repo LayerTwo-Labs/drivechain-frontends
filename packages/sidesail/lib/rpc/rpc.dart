@@ -8,7 +8,6 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sidesail/app.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/providers/process_provider.dart';
 
@@ -241,10 +240,13 @@ String _stripFromString(String input, String whatToStrip) {
   return input.substring(startIndex, endIndex + 1);
 }
 
-double cleanAmount(double amount) {
-  // clean the amount of any excess decimals! Cap it at 8, and let
-  // the front-end be kinda stupid
-  final cleanAmount = double.parse(amount.toStringAsFixed(8));
-
-  return cleanAmount;
+Future<void> waitForBoolToBeTrue(
+  Future<bool> Function() boolGetter, {
+  Duration pollInterval = const Duration(milliseconds: 100),
+}) async {
+  bool result = await boolGetter();
+  if (!result) {
+    await Future.delayed(pollInterval);
+    await waitForBoolToBeTrue(boolGetter, pollInterval: pollInterval);
+  }
 }
