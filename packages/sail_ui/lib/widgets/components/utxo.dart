@@ -88,8 +88,13 @@ class UTXO {
 
 class UTXOView extends StatefulWidget {
   final UTXO utxo;
+  final bool externalDirection;
 
-  const UTXOView({super.key, required this.utxo});
+  const UTXOView({
+    super.key,
+    required this.utxo,
+    this.externalDirection = false,
+  });
 
   @override
   State<UTXOView> createState() => _UTXOViewState();
@@ -168,9 +173,9 @@ class _UTXOViewState extends State<UTXOView> {
     }
 
     if (tx.amount.isNegative || tx.amount == 0) {
-      return '$title to ${tx.address}';
+      return '$title ${widget.externalDirection ? 'from' : 'to'} ${tx.address}';
     }
 
-    return '+$title from ${tx.address}';
+    return '${widget.externalDirection ? "" : "+"} $title ${widget.externalDirection ? 'to' : 'from'} ${tx.address}';
   }
 }
