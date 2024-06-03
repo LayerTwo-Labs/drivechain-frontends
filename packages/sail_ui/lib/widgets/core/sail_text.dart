@@ -15,11 +15,10 @@ class _Text extends StatelessWidget {
     // cap max text size at a sensible value. Sorry very blind people
     scaler = scaler.clamp(maxScaleFactor: 2);
 
-    return Text(
+    return SelectableText(
       label,
       style: style,
       textScaler: scaler,
-      softWrap: true,
       textAlign: textAlign,
     );
   }
