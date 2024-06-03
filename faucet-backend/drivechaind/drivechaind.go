@@ -50,7 +50,7 @@ func (c *Client) SendCoins(address btcutil.Address, amount btcutil.Amount) (*cha
 }
 
 func (c *Client) ListTransactions() ([]btcjson.ListTransactionsResult, error) {
-	txs, err := c.client.ListTransactions("*")
+	txs, err := c.client.ListTransactionsCount("*", 1000)
 	if err != nil {
 		return nil, err
 	}
