@@ -74,6 +74,7 @@ type Faucet struct {
 	sender         *drivechaind.Client
 	mu             sync.Mutex
 	dispensed      map[string]bool
+	dispensedIP    map[string]bool
 	totalDispensed int
 }
 
@@ -108,6 +109,7 @@ func (f *Faucet) resetHandler() error {
 			f.mu.Lock()
 			f.totalDispensed = 0
 			f.dispensed = make(map[string]bool)
+			f.dispensedIP = make(map[string]bool)
 			f.mu.Unlock()
 			log.Println("faucet reset: cleared total dispensed coins and address list.")
 		case <-connectionTicker.C:
@@ -121,35 +123,44 @@ func (f *Faucet) resetHandler() error {
 }
 
 type DispenseRequest struct {
-	Address string `json:"address"`
-	Amount  string `json:"amount"`
+	Destination string `json:"destination"`
+	Amount      string `json:"amount"`
 }
 
-func (f *Faucet) validateDispenseArgs(req DispenseRequest) (*btcutil.Address, btcutil.Amount, error, int) {
-	address, err := btcutil.DecodeAddress(req.Address, &chaincfg.MainNetParams)
-	if err != nil {
-		return nil, 0, fmt.Errorf("%s is not a valid bitcoin address", req.Address), http.StatusBadRequest
+func (f *Faucet) validateDispenseArgs(req DispenseRequest) (btcutil.Amount, drivechaind.TransferType, error, int) {
+	if req.Destination == "" {
+		return 0, "", fmt.Errorf("'destination' must be set", req.Amount), http.StatusBadRequest
 	}
 
 	amountFloat, err := strconv.ParseFloat(req.Amount, 64)
 	if err != nil {
-		return nil, 0, fmt.Errorf("%s is not a valid number", req.Amount), http.StatusBadRequest
+		return 0, "", fmt.Errorf("%s is not a valid number", req.Amount), http.StatusBadRequest
+	}
+
+	if amountFloat > 1 || amountFloat == 0 {
+		return 0, "", fmt.Errorf("amount must be less than 1, and greater than zero"), http.StatusBadRequest
 	}
 
 	amount, err := btcutil.NewAmount(amountFloat)
 	if err != nil {
-		return nil, 0, fmt.Errorf("%.8f is not a valid bitcoin amount, expected format like 0.12345678", amountFloat), http.StatusBadRequest
+		return 0, "", fmt.Errorf("%.8f is not a valid bitcoin amount, expected format like 0.12345678", amountFloat), http.StatusBadRequest
 	}
 
 	if f.totalDispensed >= MaxCoinsPer5Min {
-		return nil, 0, fmt.Errorf("faucet limit reached, try again later"), http.StatusTooManyRequests
+		return 0, "", fmt.Errorf("faucet limit reached, try again later"), http.StatusTooManyRequests
 	}
 
-	if f.dispensed[address.EncodeAddress()] {
-		return nil, 0, fmt.Errorf("address have already received coins"), http.StatusForbidden
+	if f.dispensed[req.Destination] {
+		return 0, "", fmt.Errorf("address have already received coins"), http.StatusForbidden
 	}
-
-	return &address, amount, nil, 0
+func getIPFromRequest(r *http.Request) string {
+	ip := r.RemoteAddr
+	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+		ip = forwarded
+	} else if realIP := r.Header.Get("X-Real-Ip"); realIP != "" {
+		ip = realIP
+	}
+	return ip
 }
 
 func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
@@ -162,19 +173,27 @@ func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	address, amount, err, status := f.validateDispenseArgs(req)
+	amount, transferType, err, status := f.validateDispenseArgs(req)
 	if err != nil {
 		writeError(w, err.Error(), status)
 		return
 	}
 
-	f.dispensed[req.Address] = true
-	f.totalDispensed += CoinsPerRequest
+	ip := getIPFromRequest(r)
+	if f.dispensedIP[ip] {
+		writeError(w, "invalid request: must set address and amount", http.StatusTooManyRequests)
+		return
+	}
 
-	txid, err := f.sender.SendCoins(*address, amount)
+	f.dispensed[req.Destination] = true
+	f.totalDispensed += CoinsPerRequest
+	f.dispensed[ip] = true
+
+	txid, err := f.sender.SendCoins(req.Destination, amount, transferType)
 	if err != nil {
 		// undo the dispensation
-		f.dispensed[req.Address] = false
+		f.dispensed[req.Destination] = false
+		f.dispensed[ip] = false
 		f.totalDispensed -= CoinsPerRequest
 
 		err := fmt.Sprintf("could not dispense coins: %s", err)
@@ -184,7 +203,7 @@ func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("sent %.8f to %s in %s\n", amount.ToBTC(), req.Address, txid.String())
+	fmt.Printf("sent %.8f to %s in %s\n", amount.ToBTC(), req.Destination, txid.String())
 
 	response := map[string]string{
 		"txid": txid.String(),
