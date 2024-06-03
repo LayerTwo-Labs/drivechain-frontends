@@ -26,7 +26,7 @@ class TransactionsProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newClaims = (await api.listClaims()).reversed.take(20).toList();
+      final newClaims = (await api.listClaims()).reversed.take(100).toList();
       const newInitialized = true;
 
       if (_dataHasChanged(newClaims, newInitialized)) {

@@ -204,12 +204,7 @@ func (f *Faucet) listClaims(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	onlyWithdrawals := lo.Filter(txs, func(tx btcjson.ListTransactionsResult, index int) bool {
-		// we only want to show withdrawals going from our wallet
-		return tx.Amount <= 0
-	})
-
-	withPositiveAmounts := lo.Map(onlyWithdrawals, func(tx btcjson.ListTransactionsResult, index int) btcjson.ListTransactionsResult {
+	withPositiveAmounts := lo.Map(txs, func(tx btcjson.ListTransactionsResult, index int) btcjson.ListTransactionsResult {
 		// and the amounts makes most sense when positive
 		tx.Amount = math.Abs(tx.Amount)
 		if tx.Fee != nil {
