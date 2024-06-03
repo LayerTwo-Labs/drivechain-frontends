@@ -3,12 +3,14 @@ package drivechaind
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 )
@@ -44,13 +46,54 @@ func NewClient(host, user, password string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) SendCoins(address btcutil.Address, amount btcutil.Amount) (*chainhash.Hash, error) {
-	tx, err := c.client.SendToAddress(address, amount)
-	if err != nil {
-		return nil, err
+type TransferType string
+
+const (
+	Sidechain TransferType = "sidechain"
+	Mainchain TransferType = "mainchain"
+)
+
+func (c *Client) SendCoins(destination string, amount btcutil.Amount, transferType TransferType) (*chainhash.Hash, error) {
+
+	switch transferType {
+	case Mainchain:
+		address, err := btcutil.DecodeAddress(destination, &chaincfg.MainNetParams)
+		if err != nil {
+			return nil, fmt.Errorf("could not decode address: %w", err)
+		}
+
+		tx, err := c.client.SendToAddress(address, amount)
+		if err != nil {
+			return nil, fmt.Errorf("could not send to address: %w", err)
+		}
+		return tx, nil
+
+	case Sidechain:
+		withoutS := strings.TrimPrefix(destination, "s")
+		sidechainNum := strings.Split(withoutS, "_")[0]
+
+		res, err := c.client.RawRequest("createsidechaindeposit", []json.RawMessage{
+			json.RawMessage(sidechainNum),
+			json.RawMessage(destination),
+			json.RawMessage(fmt.Sprintf("%.8f", amount.ToBTC())),
+			json.RawMessage("0.001"), // fixed fee
+		})
+		if err != nil {
+			return nil, fmt.Errorf("create sidechaindeposit: %w", err)
+		}
+
+		var ress []byte
+		if err := res.UnmarshalJSON(ress); err != nil {
+			return nil, fmt.Errorf("unmarshel sidechaindeposit: %w", err)
+		}
+
+		if err != nil {
+		}
+		fmt.Println("createsidechaindeposit:", string(ress))
+		return chainhash.NewHashFromStr(string(ress))
 	}
 
-	return tx, nil
+	return nil, fmt.Errorf("received invalid transfer type %s", transferType)
 }
 
 func (c *Client) ListTransactions() ([]btcjson.ListTransactionsResult, error) {
@@ -75,10 +118,10 @@ func (c *Client) Disconnect() {
 	c.client.Shutdown()
 }
 
-func CheckValidDepositAddress(depositAddress string) (bool, error) {
+func CheckValidDepositAddress(depositAddress string) error {
 	parts := strings.Split(depositAddress, "_")
 	if len(parts) != 3 {
-		return false, errors.New("invalid address format")
+		return errors.New("invalid address format")
 	}
 
 	sidechainNumStr := parts[0]
@@ -91,8 +134,8 @@ func CheckValidDepositAddress(depositAddress string) (bool, error) {
 
 	checksum := parts[2]
 	if checksum != calculatedChecksum {
-		return false, errors.New("sidechain deopsit address invalid, checksums does not match")
+		return errors.New("sidechain deopsit address invalid, checksums does not match")
 	}
 
-	return true, nil
+	return nil
 }
