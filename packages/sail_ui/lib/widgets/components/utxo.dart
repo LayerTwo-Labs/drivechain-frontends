@@ -61,7 +61,7 @@ class UTXO {
       spendable: map['spendable'] ?? false,
       solvable: map['solvable'] ?? false,
       safe: map['safe'] ?? false,
-      time: map['time'] ?? false,
+      time: map['time'],
       raw: jsonEncode(map),
     );
   }

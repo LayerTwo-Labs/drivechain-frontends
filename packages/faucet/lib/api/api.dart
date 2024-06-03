@@ -40,7 +40,7 @@ class APILive extends API {
     final url = Uri.parse("$apiURL/claim");
 
     Map<String, dynamic> requestBody = {
-      'address': address.trim(),
+      'destination': address.trim(),
       'amount': amount.toString().trim(),
     };
 
