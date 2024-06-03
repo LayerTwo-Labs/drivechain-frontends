@@ -167,6 +167,7 @@ class _FaucetPageState extends State<FaucetPage> {
                             itemBuilder: (context, index) => UTXOView(
                               key: ValueKey<String>(viewModel.utxos[index].txid),
                               utxo: viewModel.utxos[index],
+                              externalDirection: true,
                             ),
                           ),
                         ],
