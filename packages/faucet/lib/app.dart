@@ -37,8 +37,9 @@ class FaucetViewModel extends BaseViewModel {
   final addressController = TextEditingController();
   final amountController = TextEditingController();
   String? dispenseErr;
+  bool hideDeposits = true;
 
-  List<UTXO> get utxos => _transactionsProvider.claims;
+  List<UTXO> get utxos => _transactionsProvider.claims.where((tx) => hideDeposits && tx.amount <= 0).toList();
 
   FaucetViewModel() {
     _transactionsProvider.addListener(notifyListeners);
@@ -56,6 +57,11 @@ class FaucetViewModel extends BaseViewModel {
     } else {
       notifyListeners();
     }
+  }
+
+  void setHideDeposits(bool to) {
+    hideDeposits = to;
+    notifyListeners();
   }
 
   Future<String?> claim() async {
@@ -154,6 +160,11 @@ class _FaucetPageState extends State<FaucetPage> {
                   DashboardGroup(
                     title: 'Latest Transactions',
                     widgetTrailing: SailText.secondary13(viewModel.utxos.length.toString()),
+                    widgetEnd: SailToggle(
+                      label: 'Hide deposits',
+                      value: viewModel.hideDeposits,
+                      onChanged: (to) => viewModel.setHideDeposits(to),
+                    ),
                     children: [
                       SailColumn(
                         spacing: 0,
