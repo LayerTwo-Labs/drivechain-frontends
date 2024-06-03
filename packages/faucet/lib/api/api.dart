@@ -46,9 +46,6 @@ class APILive extends API {
 
     final res = await http.post(
       url,
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: json.encode(requestBody),
     );
 
