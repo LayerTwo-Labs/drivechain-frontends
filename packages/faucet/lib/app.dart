@@ -39,7 +39,7 @@ class FaucetViewModel extends BaseViewModel {
   String? dispenseErr;
   bool hideDeposits = true;
 
-  List<UTXO> get utxos => _transactionsProvider.claims.where((tx) => hideDeposits && tx.amount <= 0).toList();
+  List<UTXO> get utxos => _transactionsProvider.claims;
 
   FaucetViewModel() {
     _transactionsProvider.addListener(notifyListeners);
