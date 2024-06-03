@@ -153,6 +153,26 @@ func (f *Faucet) validateDispenseArgs(req DispenseRequest) (btcutil.Amount, driv
 	if f.dispensed[req.Destination] {
 		return 0, "", fmt.Errorf("address have already received coins"), http.StatusForbidden
 	}
+
+	var transferType drivechaind.TransferType
+	// first check whether a mainchain address
+	_, mainchainErr := btcutil.DecodeAddress(req.Destination, &chaincfg.MainNetParams)
+	// then check whether its a sidechain deposit address
+	sidechainErr := drivechaind.CheckValidDepositAddress(req.Destination)
+	switch {
+	case mainchainErr == nil:
+		transferType = drivechaind.Mainchain
+
+	case sidechainErr == nil:
+		transferType = drivechaind.Sidechain
+
+	default:
+		return 0, "", fmt.Errorf("%s is not a valid bitcoin address nor sidechain address", req.Destination), http.StatusBadRequest
+	}
+
+	return amount, transferType, nil, 0
+}
+
 func getIPFromRequest(r *http.Request) string {
 	ip := r.RemoteAddr
 	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
