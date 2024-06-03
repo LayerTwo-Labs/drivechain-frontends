@@ -197,7 +197,7 @@ func (f *Faucet) listClaims(w http.ResponseWriter, r *http.Request) {
 
 	txs, err := f.sender.ListTransactions()
 	if err != nil {
-		err := fmt.Sprintf("could not list coins: %s", err)
+		err := fmt.Sprintf("could not list transactions: %s", err)
 		fmt.Println(err)
 
 		http.Error(w, err, http.StatusBadRequest)
