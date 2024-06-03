@@ -1,6 +1,6 @@
 # faucet
 
-A new Flutter project.
+a drivechain faucet
 
 ## Getting Started
 

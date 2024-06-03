@@ -75,7 +75,7 @@ class FaucetViewModel extends BaseViewModel {
       final txid = await api.claim(addressController.text, amount);
       return txid;
     } catch (error) {
-      dispenseErr = "could not dispense coins: ${error.toString()}";
+      dispenseErr = error.toString();
     } finally {
       setBusy(false);
       notifyListeners();
@@ -160,11 +160,6 @@ class _FaucetPageState extends State<FaucetPage> {
                   DashboardGroup(
                     title: 'Latest Transactions',
                     widgetTrailing: SailText.secondary13(viewModel.utxos.length.toString()),
-                    widgetEnd: SailToggle(
-                      label: 'Hide deposits',
-                      value: viewModel.hideDeposits,
-                      onChanged: (to) => viewModel.setHideDeposits(to),
-                    ),
                     children: [
                       SailColumn(
                         spacing: 0,

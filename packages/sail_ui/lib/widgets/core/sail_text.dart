@@ -7,7 +7,11 @@ class _Text extends StatelessWidget {
   final TextStyle style;
   final TextAlign? textAlign;
 
-  const _Text({required this.label, required this.style, this.textAlign});
+  const _Text({
+    required this.label,
+    required this.style,
+    this.textAlign,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,10 +19,11 @@ class _Text extends StatelessWidget {
     // cap max text size at a sensible value. Sorry very blind people
     scaler = scaler.clamp(maxScaleFactor: 2);
 
-    return SelectableText(
+    return Text(
       label,
       style: style,
       textScaler: scaler,
+      softWrap: true,
       textAlign: textAlign,
     );
   }
