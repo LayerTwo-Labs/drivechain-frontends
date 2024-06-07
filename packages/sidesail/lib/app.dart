@@ -103,8 +103,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
       mainchain.binary,
       bitcoinCoreBinaryArgs(mainchain.conf),
     );
-
-    log.i('mainchain init: mainchain has done inital block download, proceeding');
+    await mainchain.waitForIBD();
 
     log.d('mainchain init: checking if ${_sidechain.rpc.chain.name} is an active sidechain');
     final activeSidechains = await mainchain.listActiveSidechains();
@@ -143,7 +142,15 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   }
 
   Future<void> initSidechainBinary() async {
+    log.i('sidechain init: waiting for initial block download to finish');
+    await mainchain.waitForIBD();
+    log.i('sidechain init: initial block download finished');
+
+    if (!context.mounted) {
+      return;
+    }
     return _sidechain.rpc.initBinary(
+      // ignore: use_build_context_synchronously
       context,
       _sidechain.rpc.chain.binary,
       _sidechain.rpc.binaryArgs(mainchain.conf),

@@ -63,6 +63,7 @@ class BottomNavViewModel extends BaseViewModel {
 
   bool get sidechainInitializing => _sideRPC.rpc.initializingBinary;
   bool get mainchainInitializing => _mainRPC.initializingBinary;
+  bool get inIBD => _mainRPC.inIBD;
 
   int get sidechainBlockCount => _sideRPC.rpc.blockCount;
   int get mainchainBlockCount => _mainRPC.blockCount;
@@ -114,14 +115,14 @@ class BottomNavViewModel extends BaseViewModel {
                     connected: _mainRPC.connected,
                     errorMessage: _mainRPC.connectionError,
                     restartDaemon: () => initMainchainBinary(context),
+                    infoMessage: null,
                   ),
                   DaemonConnectionCard(
                     chainName: _sideRPC.rpc.chain.name,
-                    initializing: _mainRPC.inIBD ? true : _sideRPC.rpc.initializingBinary,
+                    initializing: _sideRPC.rpc.initializingBinary,
                     connected: _sideRPC.rpc.connected,
-                    errorMessage: _mainRPC.inIBD
-                        ? 'Waiting on L1 initial block download to complete...'
-                        : _sideRPC.rpc.connectionError,
+                    errorMessage: _sideRPC.rpc.connectionError,
+                    infoMessage: _mainRPC.inIBD ? 'Waiting on L1 initial block download to complete...' : null,
                     restartDaemon: () => initSidechainBinary(context),
                   ),
                 ],
@@ -192,6 +193,7 @@ class _NodeConnectionStatus extends ViewModelWidget<BottomNavViewModel> {
             initializing: viewModel.sidechainInitializing,
             blockHeight: viewModel.sidechainBlockCount,
             onPressed: onChipPressed,
+            infoMessage: viewModel.inIBD ? 'Waiting on IBD' : null,
           )
         else
           ConnectionErrorChip(
@@ -204,6 +206,7 @@ class _NodeConnectionStatus extends ViewModelWidget<BottomNavViewModel> {
             initializing: viewModel.mainchainInitializing,
             blockHeight: viewModel.mainchainBlockCount,
             onPressed: onChipPressed,
+            infoMessage: null,
           )
         else
           ConnectionErrorChip(

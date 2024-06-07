@@ -23,7 +23,7 @@ class ZCashProvider extends ChangeNotifier {
   List<OperationStatus> operations = [];
   List<ShieldedUTXO> shieldedUTXOs = [];
   List<UnshieldedUTXO> unshieldedUTXOs = [];
-  double sideFee = 0.0001;
+  double sideFee = zcashFee;
 
   bool _isFetching = false;
 
@@ -43,7 +43,7 @@ class ZCashProvider extends ChangeNotifier {
       }
       _isFetching = true;
 
-      var newZcashAddress = await rpc.sideGenerateAddress();
+      var newZcashAddress = await rpc.generateZAddress();
       var newOperations = await rpc.listOperations();
       var newShieldedUTXOs = await rpc.listShieldedCoins();
       var newUnshieldedUTXOs = await rpc.listUnshieldedCoins();

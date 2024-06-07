@@ -14,6 +14,7 @@ import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
+import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
@@ -172,7 +173,7 @@ class ZCashTransferTabViewModel extends BaseViewModel {
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get transparentUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > 0.0001).toList();
+      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zcashFee).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
   List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
 
