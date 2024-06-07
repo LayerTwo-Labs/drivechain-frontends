@@ -44,6 +44,7 @@ class ShieldUTXOAction extends StatelessWidget {
               controller: viewModel.bitcoinAmountController,
               hintText: 'How much do you want to shield?',
               suffixText: viewModel.ticker,
+              disabled: utxo.generated,
               bitcoinInput: true,
               autofocus: true,
             ),
@@ -63,6 +64,10 @@ class ShieldUTXOAction extends StatelessWidget {
               label: 'Total amount',
               value: viewModel.totalBitcoinAmount,
             ),
+            if (utxo.generated)
+              const StaticActionInfo(
+                text: 'This is a coinbase output, and you must shield 100% of the amount',
+              ),
           ],
         );
       }),
@@ -89,6 +94,10 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
   ShieldUTXOActionViewModel(UnshieldedUTXO utxo) {
     maxAmount = utxo.amount - shieldFee;
     bitcoinAmountController.addListener(_withMaxAmount);
+
+    if (utxo.generated) {
+      bitcoinAmountController.text = utxo.amount.toString();
+    }
   }
 
   void _withMaxAmount() {
@@ -145,7 +154,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Initiated shield',
-        title: 'You shielded $amount $ticker to your Z-address',
+        title: 'Initiated shield of $amount $ticker to your Z-address',
         subtitle: 'OPID: $shieldID',
       );
       // also pop the info modal
@@ -290,7 +299,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
     );
 
     try {
-      final deshieldID = await _rpc.deshield(
+      final (deshieldID, address) = await _rpc.deshield(
         utxo,
         amount!,
       );
@@ -308,7 +317,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Initiated deshield',
-        title: 'You deshielded $amount $ticker to tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
+        title: 'Initiated deshield of $amount $ticker to $address',
         subtitle: 'OPID: $deshieldID',
       );
       // also pop the info modal
@@ -462,9 +471,9 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Cast single UTXO',
-        title: 'You will cast $totalBitcoinAmount $ticker to $castAddresses',
+        title: 'Initiated cast of $totalBitcoinAmount $ticker to $castAddresses',
         subtitle:
-            'Will cast to ${includedInBills!.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
+            'Will cast to ${includedInBills!.length} new unique UTXOs.\n\nDont close the application until you have no private coins left in your wallet.',
       );
       // also pop the info modal
       await _router.maybePop();
@@ -553,7 +562,7 @@ class MeltActionViewModel extends BaseViewModel {
   String get ticker => _sidechainContainer.rpc.chain.ticker;
   double get totalBitcoinAmount => (meltAmount + meltFee);
   List<UnshieldedUTXO> get meltableUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((utxo) => utxo.amount > 0.0001).toList();
+      _zcashProvider.unshieldedUTXOs.where((utxo) => utxo.amount > zcashFee).toList();
   double get meltAmount =>
       _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).fold(0.0, (value, element) => value + element) -
       meltFee;
@@ -732,7 +741,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
       await successDialog(
         context: context,
         action: 'Initiated melt',
-        title: 'You melted $castAmount $ticker to your Z-address',
+        title: 'Initiated melt of $castAmount $ticker to your Z-address',
         subtitle: 'OPID: $shieldID',
       );
       // also pop the info modal
@@ -1020,7 +1029,7 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
                       widget.meltMode ? 'Melt' : 'Shield',
                       onPressed: widget.shieldAction!,
                       size: ButtonSize.small,
-                      disabled: widget.utxo.amount <= 0.0001000,
+                      disabled: widget.utxo.amount <= zcashFee,
                     ),
               icon: widget.utxo.confirmations >= 1
                   ? Tooltip(
@@ -1099,7 +1108,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
                       widget.castMode ? 'Cast' : 'Deshield',
                       onPressed: widget.deshieldAction!,
                       size: ButtonSize.small,
-                      disabled: widget.utxo.amount <= 0.0001000,
+                      disabled: widget.utxo.amount <= zcashFee,
                     ),
               icon: widget.utxo.confirmations >= 1
                   ? Tooltip(
@@ -1359,10 +1368,13 @@ class MeltHelp extends StatelessWidget {
       children: [
         QuestionTitle('What is melting?'),
         QuestionText(
-          'Just like cast, melting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.',
+          'Melting shields your transparent UTXOs, but does it in a way to preserve your privacy.',
         ),
         QuestionText(
-          'Melting makes sure that there is no change when you send coins to your z-address.',
+          'It does this by making sure there is no change when you shield coins to your z-address.',
+        ),
+        QuestionText(
+          'Just like cast, melting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.',
         ),
         QuestionText(
           'You can melt per-UTXO, or all UTXOs at once. Both strategies makes sure to spend the full amount of the UTXO, leaving you with no change, or dust.',
@@ -1371,7 +1383,10 @@ class MeltHelp extends StatelessWidget {
           'Together with cast, it\'s a great way to anonymize your coins.',
         ),
         QuestionText(
-          'When melting all your coins, you set the max time (in minutes) that you want the melt to take. The application automatically selects a timeout per UTXO, and makes sure to shield at that specific time. This furthers your privacy by not pegging you to a specific timezone.',
+          'When melting all your coins, you set the max time that you want the melt to take. The application automatically selects a timeout per UTXO, and makes sure to shield at that specific time. This furthers your privacy by not pegging you to a specific timezone.',
+        ),
+        QuestionText(
+          'Because this version uses test money, the melting frequency is much faster than in a real-world scenario. Here, it takes minutes, while with real money it would take days.',
         ),
         QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
       ],

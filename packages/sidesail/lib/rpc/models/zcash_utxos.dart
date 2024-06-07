@@ -87,6 +87,7 @@ class UnshieldedUTXO {
   final String address;
   final double amount;
   final int confirmations;
+  final bool generated;
   final String raw;
 
   UnshieldedUTXO({
@@ -94,6 +95,7 @@ class UnshieldedUTXO {
     required this.address,
     required this.amount,
     required this.confirmations,
+    required this.generated,
     required this.raw,
   });
 
@@ -118,6 +120,7 @@ class UnshieldedUTXO {
       address: map['address'] ?? '',
       amount: map['amount'] ?? 0.0,
       confirmations: map['confirmations'] ?? 0.0,
+      generated: map['generated'] ?? 0.0,
       raw: jsonEncode(map),
     );
   }
@@ -130,6 +133,7 @@ class UnshieldedUTXO {
         'address': address,
         'amount': amount,
         'confirmations': confirmations,
+        'generated': generated,
       };
 }
 

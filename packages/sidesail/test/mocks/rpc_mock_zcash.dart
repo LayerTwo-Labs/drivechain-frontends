@@ -98,6 +98,7 @@ class MockZCashRPC extends ZCashRPC {
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
         confirmations: 1,
+        generated: true,
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -117,6 +118,7 @@ class MockZCashRPC extends ZCashRPC {
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
         confirmations: 5,
+        generated: true,
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -136,6 +138,7 @@ class MockZCashRPC extends ZCashRPC {
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 0.00010000,
         confirmations: 10,
+        generated: true,
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -155,6 +158,7 @@ class MockZCashRPC extends ZCashRPC {
         address: 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu',
         amount: 859.0,
         confirmations: 35,
+        generated: true,
         raw: '''  {
     "account": "",
     "address": "3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi",
@@ -239,8 +243,8 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<String> deshield(ShieldedUTXO utxo, double amount) async {
-    return 'opid-7c484106 409a-47dc-b853-3c641beaf166';
+  Future<(String, String)> deshield(ShieldedUTXO utxo, double amount) async {
+    return ('opid-7c484106 409a-47dc-b853-3c641beaf166', 'tmNaZfsPhg5z97ttG7JA4W86e8Kg2mzkVoS');
   }
 
   @override
@@ -260,7 +264,7 @@ class MockZCashRPC extends ZCashRPC {
 
   @override
   Future<double> sideEstimateFee() async {
-    return 0.0001;
+    return 0.00001;
   }
 
   @override
@@ -269,7 +273,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<String> sideGenerateAddress() async {
+  Future<String> generateZAddress() async {
     return 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q';
   }
 

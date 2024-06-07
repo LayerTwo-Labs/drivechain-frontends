@@ -3,6 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/rpc_zcash.dart';
 
 class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
@@ -48,7 +49,7 @@ class MockSidechainRPC extends SidechainRPC {
 
   @override
   Future<double> sideEstimateFee() async {
-    return 0.0001;
+    return zcashFee;
   }
 
   @override
@@ -57,7 +58,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<String> sideGenerateAddress() async {
+  Future<String> generateZAddress() async {
     return 'taddress';
   }
 
