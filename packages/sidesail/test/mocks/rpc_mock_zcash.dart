@@ -301,4 +301,9 @@ class MockZCashRPC extends ZCashRPC {
   Future<String> sendTransparent(String address, double amount, bool subtractFeeFromAmount) async {
     return 'txiddeadbeef';
   }
+
+  @override
+  Future<List<ShieldedUTXO>> listPrivateTransactions() async {
+    return [];
+  }
 }
