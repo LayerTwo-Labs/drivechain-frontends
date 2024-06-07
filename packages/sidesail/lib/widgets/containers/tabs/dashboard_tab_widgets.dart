@@ -271,6 +271,6 @@ class ReceiveViewModel extends BaseViewModel {
       return await customReceiveAction!();
     }
 
-    return await _rpc.rpc.sideGenerateAddress();
+    return await _rpc.rpc.generateZAddress();
   }
 }

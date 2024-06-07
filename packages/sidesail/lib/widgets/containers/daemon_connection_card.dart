@@ -10,12 +10,15 @@ class DaemonConnectionCard extends StatelessWidget {
   final bool connected;
   final VoidCallback restartDaemon;
 
+  final String? infoMessage;
+
   const DaemonConnectionCard({
     super.key,
     required this.chainName,
     required this.initializing,
     required this.connected,
     required this.errorMessage,
+    required this.infoMessage,
     required this.restartDaemon,
   });
 
@@ -38,11 +41,13 @@ class DaemonConnectionCard extends StatelessWidget {
               children: [
                 SailSVG.fromAsset(
                   SailSVGAsset.iconGlobe,
-                  color: initializing
-                      ? theme.colors.yellow
-                      : connected
-                          ? theme.colors.success
-                          : theme.colors.error,
+                  color: infoMessage != null
+                      ? theme.colors.info
+                      : initializing
+                          ? theme.colors.yellow
+                          : connected
+                              ? theme.colors.success
+                              : theme.colors.error,
                 ),
                 SailText.primary13('$chainName daemon'),
                 Expanded(child: Container()),
@@ -55,7 +60,8 @@ class DaemonConnectionCard extends StatelessWidget {
               ],
             ),
             SailText.secondary12(
-              errorMessage ??
+              infoMessage ??
+                  errorMessage ??
                   (initializing
                       ? 'Initializing...'
                       : connected

@@ -10,12 +10,15 @@ class ConnectionStatusChip extends StatelessWidget {
   final VoidCallback onPressed;
   final bool initializing;
 
+  final String? infoMessage;
+
   const ConnectionStatusChip({
     super.key,
     required this.chain,
     required this.blockHeight,
     required this.onPressed,
     required this.initializing,
+    required this.infoMessage,
   });
 
   @override
@@ -39,7 +42,11 @@ class ConnectionStatusChip extends StatelessWidget {
             children: [
               SailSVG.fromAsset(
                 SailSVGAsset.iconGlobe,
-                color: initializing ? theme.colors.yellow : theme.colors.success,
+                color: infoMessage != null
+                    ? theme.colors.info
+                    : initializing
+                        ? theme.colors.yellow
+                        : theme.colors.success,
               ),
               if (initializing) SailText.primary12('Initializing $chain'),
               if (initializing)

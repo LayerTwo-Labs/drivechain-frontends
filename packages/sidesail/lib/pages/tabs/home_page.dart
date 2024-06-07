@@ -174,6 +174,7 @@ class _HomePageState extends State<HomePage> {
                   connected: false,
                   errorMessage: 'with pid ${entry.value.pid}',
                   restartDaemon: () => entry.value.cleanup(),
+                  infoMessage: null,
                 );
               }).toList(),
             ),

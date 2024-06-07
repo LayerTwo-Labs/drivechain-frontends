@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 
@@ -60,6 +61,33 @@ class StaticActionField extends StatelessWidget {
             if (suffixWidget != null) suffixWidget!,
           ],
         ),
+      ),
+    );
+  }
+}
+
+class StaticActionInfo extends StatelessWidget {
+  final String text;
+
+  const StaticActionInfo({
+    super.key,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SailStyleValues.padding20,
+        vertical: SailStyleValues.padding10,
+      ),
+      child: Row(
+        children: [
+          SailText.background12(text, customColor: theme.colors.info),
+          Expanded(child: Container()),
+        ],
       ),
     );
   }
