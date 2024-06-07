@@ -136,7 +136,7 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<List<UnshieldedUTXO>> listUnshieldedCoins();
 
   Future<String> shield(UnshieldedUTXO utxo, double amount);
-  Future<String> deshield(ShieldedUTXO utxo, double amount);
+  Future<(String, String)> deshield(ShieldedUTXO utxo, double amount);
 
   Future<String> sendTransparent(String address, double amount, bool subtractFeeFromAmount);
   Future<String> getTransparentAddress();
@@ -237,12 +237,13 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> deshield(ShieldedUTXO utxo, double amount) async {
+  Future<(String, String)> deshield(ShieldedUTXO utxo, double amount) async {
     amount = cleanAmount(amount);
 
+    final zAddress = await generateZAddress();
     final regularAddress = await getTransparentAddress();
     final operationID = await _client().call('z_sendmany', [
-      utxo.address,
+      zAddress,
       [
         {
           'address': regularAddress,
@@ -251,9 +252,10 @@ class ZcashRPCLive extends ZCashRPC {
       ],
       1,
       zcashFee,
+      'AllowRevealedRecipients',
     ]);
 
-    return operationID as String;
+    return (operationID as String, regularAddress);
   }
 
   @override
@@ -275,7 +277,7 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<List<ShieldedUTXO>> listShieldedCoins() async {
-    final shieldedCoins = await _client().call('z_listunspent') as List<dynamic>;
+    final shieldedCoins = await _client().call('z_listunspent', [0]) as List<dynamic>;
     if (shieldedCoins.isEmpty) {
       return List.empty();
     }
@@ -306,7 +308,7 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<List<UnshieldedUTXO>> listUnshieldedCoins() async {
-    final unspent = await _client().call('listunspent') as List<dynamic>;
+    final unspent = await _client().call('listunspent', [0]) as List<dynamic>;
     if (unspent.isEmpty) {
       return List.empty();
     }
@@ -342,8 +344,11 @@ class ZcashRPCLive extends ZCashRPC {
       'shielding $amount ${chain.ticker} from address=${utxo.address} amount=${utxo.amount} ${chain.ticker} confs=${utxo.confirmations}',
     );
 
-    final zAddress = await sideGenerateAddress();
+    if (utxo.generated && (amount + zcashFee) != utxo.amount) {
+      throw Exception('must shield full amount for coinbase outputs');
+    }
 
+    final zAddress = await generateZAddress();
     final operationID = await _client().call('z_sendmany', [
       utxo.address,
       [
@@ -360,7 +365,7 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<double> sideEstimateFee() async {
-    return 0.0001;
+    return zcashFee;
   }
 
   Future<String> _getNewShieldedAddress() async {
@@ -368,13 +373,17 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> sideGenerateAddress() async {
-    final addresses = await _client().call('z_listaddresses') as List<dynamic>;
-    if (addresses.isEmpty) {
-      return _getNewShieldedAddress();
-    }
+  Future<String> generateZAddress() async {
+    try {
+      final address = await _client().call('z_getaddressforaccount', [0]) as Map<String, dynamic>;
+      if (!address.containsKey('address')) {
+        return _getNewShieldedAddress();
+      }
 
-    return addresses.first as String;
+      return address['address'] as String;
+    } catch (error) {
+      return '';
+    }
   }
 
   @override
@@ -399,7 +408,7 @@ class ZcashRPCLive extends ZCashRPC {
     amount = cleanAmount(amount);
     fee = cleanAmount(fee);
 
-    final zAddress = await sideGenerateAddress();
+    final zAddress = await generateZAddress();
     final txid = await _client().call('z_sendmany', [
       zAddress,
       [
