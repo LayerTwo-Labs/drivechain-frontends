@@ -46,41 +46,41 @@ abstract class RPCConnection extends ChangeNotifier {
     } catch (error) {
       // Only update the error message if we're finished with binary init
       if (!initializingBinary) {
-        String? msg = error.toString();
+        String? newError = error.toString();
 
-        if (msg.contains('Connection refused')) {
+        if (newError.contains('Connection refused')) {
           if (connectionError != null) {
             // an error is already set, and we don't want to override it with
             // a generic non-informative message!
-            msg = connectionError!;
+            newError = connectionError!;
           } else {
             // don't show a generic Connection refused as the first error
-            msg = null;
+            newError = null;
           }
         } else if (error is SocketException) {
-          msg = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
+          newError = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
         } else if (error is HTTPException) {
           // gotta parse out the error...
 
           // Looks like this: SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
 
-          msg = error.message;
+          newError = error.message;
           RegExp regExp = RegExp(r'\(([^)]+)\)');
           final match = regExp.firstMatch(error.message);
           if (match != null) {
-            msg = match.group(1)!;
+            newError = match.group(1)!;
           }
         }
 
-        if (connectionError != msg) {
+        if (connectionError != newError) {
+          // we have a new error on our hands!
           log.e('could not test connection: ${error.toString()}!');
+          notifyListeners();
         }
 
-        connectionError = msg;
+        connectionError = newError;
       }
       connected = false;
-    } finally {
-      notifyListeners();
     }
 
     return (connected, connectionError);
