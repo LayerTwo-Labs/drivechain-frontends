@@ -51,7 +51,7 @@ class _TopNavState extends State<TopNav> {
                   ChainOverviewCard(
                     chain: viewModel.chain,
                     confirmedBalance: viewModel.balance,
-                    unconfirmedBalance: null,
+                    unconfirmedBalance: viewModel.pendingBalance,
                     highlighted: tabsRouter.activeIndex == 0,
                     currentChain: true,
                     onPressed: RuntimeArgs.swappableChains
