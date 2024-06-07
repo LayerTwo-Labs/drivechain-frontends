@@ -99,4 +99,9 @@ class MockMainchainRPC extends MainchainRPC {
   Future<BlockchainInfo> getBlockchainInfo() async {
     return BlockchainInfo(initialBlockDownload: false);
   }
+
+  @override
+  Future<void> waitForIBD() async {
+    return;
+  }
 }

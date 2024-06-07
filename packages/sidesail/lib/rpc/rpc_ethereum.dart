@@ -151,7 +151,7 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   Future<double> sideEstimateFee() async {
-    return 0.0001;
+    return 0.00001;
   }
 
   @override
@@ -161,7 +161,7 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<String> sideGenerateAddress() {
+  Future<String> generateZAddress() {
     // TODO: implement sideGenerateAddress
     throw UnimplementedError();
   }

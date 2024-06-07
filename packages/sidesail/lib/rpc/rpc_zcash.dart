@@ -15,6 +15,8 @@ import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
+const zcashFee = 0.0001;
+
 Future<void> copyIfNotExists(Logger log, BuildContext context, File file, String binPath) async {
   if (await file.exists()) {
     // if the file already exists, don't do anything
@@ -248,6 +250,7 @@ class ZcashRPCLive extends ZCashRPC {
         }
       ],
       1,
+      zcashFee,
     ]);
 
     return operationID as String;

@@ -15,6 +15,7 @@ import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
@@ -218,7 +219,7 @@ class ZCashCastTabViewModel extends BaseViewModel {
   List<PendingCastBill> get pendingNonEmptyBills =>
       _castProvider.futureCasts.where((element) => element.pendingShields.isNotEmpty).toList();
   List<UnshieldedUTXO> get unshieldedUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > 0.0001).toList();
+      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zcashFee).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;

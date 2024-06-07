@@ -30,6 +30,7 @@ abstract class MainchainRPC extends RPCConnection {
   // util functions for a better UX
   Future<(double, double)> getBalance();
   Future<String> createSidechainDeposit(int sidechainSlot, String address, double amount);
+  Future<void> waitForIBD();
 
   final binary = 'drivechaind';
 
@@ -69,21 +70,32 @@ class MainchainRPCLive extends MainchainRPC {
   void pollIBDStatus() async {
     // start off with the assumption that the parent chain is in IBD
     inIBD = true;
+
+    log.i('mainchain init: waiting for initial block download to finish');
     while (inIBD) {
       try {
         final info = await getBlockchainInfo();
         inIBD = info.initialBlockDownload;
-        log.i('mainchain init: mainchain has not done inital block download, waiting');
-        // retry querying blockchain info until chain is finished syncing
-        await Future.delayed(const Duration(seconds: 1));
       } catch (error) {
         // probably just cant connect, and is in bootup-phase, which is okay
+      } finally {
+        // retry querying blockchain info until chain is finished syncing
+        await Future.delayed(const Duration(seconds: 1));
       }
     }
+
+    log.i('mainchain init: initial block download finished');
 
     notifyListeners();
 
     // ibd is done, and mainchain has successfully started
+  }
+
+  @override
+  Future<void> waitForIBD() async {
+    while (inIBD) {
+      await Future.delayed(const Duration(seconds: 1));
+    }
   }
 
   @override
