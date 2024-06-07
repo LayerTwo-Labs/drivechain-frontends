@@ -8,12 +8,14 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/components/dashboard_group.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/widgets/containers/tabs/dashboard_tab_widgets.dart';
 import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
@@ -98,6 +100,29 @@ class ZCashTransferTabPage extends StatelessWidget {
                               ),
                             ],
                           ),
+                          DashboardGroup(
+                            title: 'Transparent transactions',
+                            widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
+                            children: [
+                              SailColumn(
+                                spacing: 0,
+                                withDivider: true,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: viewModel.transactions.length,
+                                    itemBuilder: (context, index) => CoreTransactionView(
+                                      key: ValueKey<String>(viewModel.transactions[index].txid),
+                                      tx: viewModel.transactions[index],
+                                      ticker: viewModel.chain.ticker,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -169,13 +194,15 @@ class ZCashTransferTabViewModel extends BaseViewModel {
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
 
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<UnshieldedUTXO> get transparentUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zcashFee).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
-  List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
+  List<CoreTransaction> get transactions => _zcashProvider.transparentTransactions;
+  Sidechain get chain => sidechain.rpc.chain;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 

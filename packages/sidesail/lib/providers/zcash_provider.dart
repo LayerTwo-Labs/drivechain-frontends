@@ -23,6 +23,9 @@ class ZCashProvider extends ChangeNotifier {
   List<OperationStatus> operations = [];
   List<ShieldedUTXO> shieldedUTXOs = [];
   List<UnshieldedUTXO> unshieldedUTXOs = [];
+  List<CoreTransaction> transparentTransactions = [];
+  List<ShieldedUTXO> privateTransactions = [];
+
   double sideFee = zcashFee;
 
   bool _isFetching = false;
@@ -45,11 +48,21 @@ class ZCashProvider extends ChangeNotifier {
 
       var newZcashAddress = await rpc.generateZAddress();
       var newOperations = await rpc.listOperations();
-      var newShieldedUTXOs = await rpc.listShieldedCoins();
-      var newUnshieldedUTXOs = await rpc.listUnshieldedCoins();
+      var newShieldedUTXOs = (await rpc.listShieldedCoins()).reversed.toList();
+      var newUnshieldedUTXOs = (await rpc.listUnshieldedCoins()).reversed.toList();
+      var newTransparentTXs = (await rpc.listTransactions()).reversed.toList();
+      var newPrivateTXs = (await rpc.listPrivateTransactions()).reversed.toList();
       var newSideFee = await rpc.sideEstimateFee();
 
-      if (_dataHasChanged(newZcashAddress, newOperations, newShieldedUTXOs, newUnshieldedUTXOs, newSideFee)) {
+      if (_dataHasChanged(
+        newZcashAddress,
+        newOperations,
+        newShieldedUTXOs,
+        newUnshieldedUTXOs,
+        newTransparentTXs,
+        newPrivateTXs,
+        newSideFee,
+      )) {
         zcashAddress = newZcashAddress;
         operations.addAll(newOperations);
         for (final newOp in newOperations) {
@@ -57,6 +70,8 @@ class ZCashProvider extends ChangeNotifier {
         }
         shieldedUTXOs = newShieldedUTXOs;
         unshieldedUTXOs = newUnshieldedUTXOs;
+        transparentTransactions = newTransparentTXs;
+        privateTransactions = newPrivateTXs;
         sideFee = newSideFee;
         notifyListeners();
       }
@@ -72,6 +87,8 @@ class ZCashProvider extends ChangeNotifier {
     List<OperationStatus> newOperations,
     List<ShieldedUTXO> newShieldedUTXOs,
     List<UnshieldedUTXO> newUnshieldedUTXOs,
+    List<CoreTransaction> newTransparentTXs,
+    List<ShieldedUTXO> newPrivateTXs,
     double newSideFee,
   ) {
     if (newZcashAddress != zcashAddress) {
@@ -87,6 +104,14 @@ class ZCashProvider extends ChangeNotifier {
     }
 
     if (!listEquals(unshieldedUTXOs, newUnshieldedUTXOs)) {
+      return true;
+    }
+
+    if (!listEquals(transparentTransactions, newTransparentTXs)) {
+      return true;
+    }
+
+    if (!listEquals(privateTransactions, newPrivateTXs)) {
       return true;
     }
 

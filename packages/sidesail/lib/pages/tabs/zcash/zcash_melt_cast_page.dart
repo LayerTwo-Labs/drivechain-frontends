@@ -113,6 +113,29 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                               ),
                             ],
                           ),
+                          DashboardGroup(
+                            title: 'Transparent transactions',
+                            widgetTrailing: SailText.secondary13(viewModel.transparentTransactions.length.toString()),
+                            children: [
+                              SailColumn(
+                                spacing: 0,
+                                withDivider: true,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: viewModel.transparentTransactions.length,
+                                    itemBuilder: (context, index) => CoreTransactionView(
+                                      key: ValueKey<String>(viewModel.transparentTransactions[index].txid),
+                                      tx: viewModel.transparentTransactions[index],
+                                      ticker: viewModel.chain.ticker,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -221,6 +244,9 @@ class ZCashCastTabViewModel extends BaseViewModel {
   List<UnshieldedUTXO> get unshieldedUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zcashFee).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
+
+  List<CoreTransaction> get transparentTransactions => _zcashProvider.transparentTransactions;
+  List<ShieldedUTXO> get privateTransactions => _zcashProvider.privateTransactions;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 

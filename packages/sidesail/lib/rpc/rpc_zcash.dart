@@ -134,6 +134,7 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<List<OperationStatus>> listOperations();
   Future<List<ShieldedUTXO>> listShieldedCoins();
   Future<List<UnshieldedUTXO>> listUnshieldedCoins();
+  Future<List<ShieldedUTXO>> listPrivateTransactions();
 
   Future<String> shield(UnshieldedUTXO utxo, double amount);
   Future<(String, String)> deshield(ShieldedUTXO utxo, double amount);
@@ -240,10 +241,14 @@ class ZcashRPCLive extends ZCashRPC {
   Future<(String, String)> deshield(ShieldedUTXO utxo, double amount) async {
     amount = cleanAmount(amount);
 
-    final zAddress = await generateZAddress();
+    var from = utxo.address;
+    if (from == '') {
+      from = await generateZAddress();
+    }
+
     final regularAddress = await getTransparentAddress();
     final operationID = await _client().call('z_sendmany', [
-      zAddress,
+      from,
       [
         {
           'address': regularAddress,
@@ -294,8 +299,9 @@ class ZcashRPCLive extends ZCashRPC {
   @override
   Future<List<CoreTransaction>> listTransactions() async {
     final transactionsJSON = await _client().call('listtransactions', [
-      '',
+      '*',
       9999, // how many txs to list. We have not implemented pagination, so we list all
+      0,
     ]).catchError(
       (err) => List.empty(), // might be connection issues, don't error
     ) as List<dynamic>;
@@ -321,6 +327,12 @@ class ZcashRPCLive extends ZCashRPC {
 
     unspentUTXOs.removeWhere((t) => t.amount == 0);
     return unspentUTXOs;
+  }
+
+  @override
+  Future<List<ShieldedUTXO>> listPrivateTransactions() async {
+    List<ShieldedUTXO> txs = [];
+    return txs;
   }
 
   @override
@@ -358,6 +370,7 @@ class ZcashRPCLive extends ZCashRPC {
         }
       ],
       1,
+      zcashFee,
     ]);
 
     return operationID as String;
@@ -374,16 +387,12 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<String> generateZAddress() async {
-    try {
-      final address = await _client().call('z_getaddressforaccount', [0]) as Map<String, dynamic>;
-      if (!address.containsKey('address')) {
-        return _getNewShieldedAddress();
-      }
-
-      return address['address'] as String;
-    } catch (error) {
-      return '';
+    final addresses = await _client().call('z_listaddresses') as List<dynamic>;
+    if (addresses.isEmpty) {
+      return _getNewShieldedAddress();
     }
+
+    return addresses.first as String;
   }
 
   @override
@@ -391,10 +400,14 @@ class ZcashRPCLive extends ZCashRPC {
     // the network keeps gettin fooked in regtest, adding the remote node
     // as a bad peer. We don't want that, so we try to clear banned every time
     // the block count is refetched
-    await clearBanned();
+    final oldBlockHeight = blockCount;
+    final newBlockHeight = await _client().call('getblockcount') as int;
 
-    final blockHeight = await _client().call('getblockcount') as int;
-    return blockHeight;
+    if (oldBlockHeight != newBlockHeight) {
+      await clearBanned();
+    }
+
+    return newBlockHeight;
   }
 
   Future<void> clearBanned() async {
