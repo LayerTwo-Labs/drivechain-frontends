@@ -187,7 +187,7 @@ class _NodeConnectionStatus extends ViewModelWidget<BottomNavViewModel> {
     return SailRow(
       spacing: SailStyleValues.padding08,
       children: [
-        if (viewModel.sidechainConnected || viewModel.sidechainInitializing)
+        if (viewModel.sidechainConnected || viewModel.sidechainInitializing || viewModel.inIBD)
           ConnectionStatusChip(
             chain: _sidechain.rpc.chain.name,
             initializing: viewModel.sidechainInitializing,
