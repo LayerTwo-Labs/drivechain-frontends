@@ -278,7 +278,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<int> fetchBlockCount() async {
+  Future<int> getBlockCount() async {
     return 100;
   }
 

@@ -53,7 +53,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<int> fetchBlockCount() async {
+  Future<int> getBlockCount() async {
     return 69;
   }
 
