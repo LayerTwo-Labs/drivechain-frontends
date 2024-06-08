@@ -68,6 +68,7 @@ rpcport=8232
 nuparams=76b809bb:1
 nuparams=f5b9230b:5
 walletrequirebackup=false
+txindex=1
 ''');
   }
 }
