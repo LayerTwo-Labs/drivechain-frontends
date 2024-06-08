@@ -26,13 +26,13 @@ abstract class RPCConnection extends ChangeNotifier {
 
   // gets the current block height for this node
   // also used to test the connection
-  Future<int> fetchBlockCount();
+  Future<int> getBlockCount();
 
   bool initializingBinary = false;
 
   Future<(bool, String?)> testConnection() async {
     try {
-      final newBlockCount = await fetchBlockCount();
+      final newBlockCount = await getBlockCount();
       connectionError = null;
       connected = true;
 

@@ -155,7 +155,7 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<int> fetchBlockCount() async {
+  Future<int> getBlockCount() async {
     final blockCount = await callRAW('eth_blockNumber');
     return _fromHex(blockCount);
   }

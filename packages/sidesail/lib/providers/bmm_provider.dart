@@ -19,7 +19,7 @@ class BMMProvider extends ChangeNotifier {
   // https://github.com/LayerTwo-Labs/testchain/blob/c44e3a737d1780a1a07135657ac0fd7686251933/src/qt/sidechainpage.cpp#L767
   void handleBmmTick(int bidAmountSats) async {
     final res = await _rpc.refreshBMM(bidAmountSats);
-    final currentBlockCount = await _rpc.fetchBlockCount();
+    final currentBlockCount = await _rpc.getBlockCount();
 
     if (res.error != null) {
       log.d('was not able to advance BMM: ${res.error}');

@@ -173,7 +173,7 @@ class TestchainRPCLive extends TestchainRPC {
   }
 
   @override
-  Future<int> fetchBlockCount() async {
+  Future<int> getBlockCount() async {
     final blockHeight = await _client().call('getblockcount') as int;
     return blockHeight;
   }
