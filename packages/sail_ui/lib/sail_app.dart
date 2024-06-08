@@ -42,7 +42,7 @@ class SailApp extends StatefulWidget {
 class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   ClientSettings get settings => GetIt.I.get<ClientSettings>();
 
-  SailThemeData? theme;
+  SailThemeData theme = SailThemeData.darkTheme(SailColorScheme.orange);
 
   @override
   void initState() {
@@ -81,7 +81,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return SailTheme(
-      data: theme ?? SailThemeData.darkTheme(SailColorScheme.black),
+      data: theme,
       child: widget.builder(context),
     );
   }
