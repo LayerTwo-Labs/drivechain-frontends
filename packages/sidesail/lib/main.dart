@@ -23,7 +23,7 @@ Future<void> start() async {
   await initDependencies(chain);
 
   MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
-  SidechainRPC sidechain = GetIt.I.get<SidechainRPC>();
+  SidechainContainer sidechain = GetIt.I.get<SidechainContainer>();
   AppRouter router = GetIt.I.get<AppRouter>();
   Logger log = GetIt.I.get<Logger>();
 
@@ -49,7 +49,7 @@ Future<void> start() async {
         // ignore: use_build_context_synchronously
         await initSidechainBinary(context, log, mainchain, sidechain);
       },
-      accentColor: sidechain.chain.color,
+      accentColor: sidechain.rpc.chain.color,
       log: log,
     ),
   );
@@ -59,7 +59,7 @@ Future<void> initMainchainBinary(
   BuildContext context,
   Logger log,
   MainchainRPC mainchain,
-  SidechainRPC sidechain,
+  SidechainContainer sidechain,
 ) async {
   await mainchain.initBinary(
     context,
@@ -68,16 +68,16 @@ Future<void> initMainchainBinary(
   );
   await mainchain.waitForIBD();
 
-  log.d('mainchain init: checking if ${sidechain.chain.name} is an active sidechain');
+  log.d('mainchain init: checking if ${sidechain.rpc.chain.name} is an active sidechain');
   final activeSidechains = await mainchain.listActiveSidechains();
-  final ourSidechain = isCurrentChainActive(activeChains: activeSidechains, currentChain: sidechain.chain);
+  final ourSidechain = isCurrentChainActive(activeChains: activeSidechains, currentChain: sidechain.rpc.chain);
   if (ourSidechain) {
-    log.i('mainchain init: ${sidechain.chain.name} is active');
+    log.i('mainchain init: ${sidechain.rpc.chain.name} is active');
     return;
   }
 
   if (!mainchain.conf.isLocalNetwork) {
-    log.w('${sidechain.chain.name} chain is not active, and we\'re unable to activate it');
+    log.w('${sidechain.rpc.chain.name} chain is not active, and we\'re unable to activate it');
     return;
   }
 
@@ -85,7 +85,7 @@ Future<void> initMainchainBinary(
     'mainchain init: we are NOT an active sidechain, creating proposal ${activeSidechains.map((e) => e.toJson())}',
   );
 
-  await mainchain.createSidechainProposal(sidechain.chain.slot, sidechain.chain.name);
+  await mainchain.createSidechainProposal(sidechain.rpc.chain.slot, sidechain.rpc.chain.name);
 
   const numBlocks = 144;
   log.i('mainchain init: generating $numBlocks blocks to broadcast proposal and give user some balance');
@@ -93,7 +93,7 @@ Future<void> initMainchainBinary(
 
   log.i('mainchain init: verifying sidechain is active');
   final chains = await mainchain.listActiveSidechains();
-  final isActive = isCurrentChainActive(activeChains: chains, currentChain: sidechain.chain);
+  final isActive = isCurrentChainActive(activeChains: chains, currentChain: sidechain.rpc.chain);
   if (!isActive) {
     log.e(
       'mainchain init: was not able to activate sidechain ${await mainchain.listActiveSidechains().then((xs) => xs.map((chain) => chain.toJson()))}',
@@ -108,7 +108,7 @@ Future<void> initSidechainBinary(
   BuildContext context,
   Logger log,
   MainchainRPC mainchain,
-  SidechainRPC sidechain,
+  SidechainContainer sidechain,
 ) async {
   log.i('sidechain init: waiting for initial block download to finish');
   await mainchain.waitForIBD();
@@ -117,11 +117,11 @@ Future<void> initSidechainBinary(
   if (!context.mounted) {
     return;
   }
-  return sidechain.initBinary(
+  return sidechain.rpc.initBinary(
     // ignore: use_build_context_synchronously
     context,
-    sidechain.chain.binary,
-    sidechain.binaryArgs(mainchain.conf),
+    sidechain.rpc.chain.binary,
+    sidechain.rpc.binaryArgs(mainchain.conf),
   );
 }
 
