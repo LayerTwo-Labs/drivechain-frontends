@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
-import 'package:sidesail/config/runtime_args.dart';
 
 LogPrinter _printer() {
   if (!kReleaseMode) {
@@ -15,16 +14,15 @@ LogPrinter _printer() {
   return LogfmtPrinter();
 }
 
-Future<LogOutput> _logoutput() async {
-  if (RuntimeArgs.fileLog) {
+Future<LogOutput> _logoutput(bool fileLog, bool consoleLog, Directory? datadir) async {
+  if (fileLog) {
     // force file log
-  } else if (!kReleaseMode || RuntimeArgs.consoleLog) {
+  } else if (!kReleaseMode || consoleLog || datadir == null) {
     // NOT in release mode: print everything to console
     return ConsoleOutput();
   }
 
-  final datadir = await RuntimeArgs.datadir();
-  await datadir.create(recursive: true);
+  await datadir!.create(recursive: true);
 
   // If we're in release, just write to file.
   final path = [datadir.path, 'debug.log'].join(Platform.pathSeparator);
@@ -32,9 +30,9 @@ Future<LogOutput> _logoutput() async {
   return FileOutput(file: logFile);
 }
 
-Future<Logger> logger() async => Logger(
+Future<Logger> logger(bool fileLog, bool consoleLog, Directory? datadir) async => Logger(
       level: Level.debug,
       filter: ProductionFilter(),
       printer: _printer(),
-      output: await _logoutput(),
+      output: await _logoutput(fileLog, consoleLog, datadir),
     );

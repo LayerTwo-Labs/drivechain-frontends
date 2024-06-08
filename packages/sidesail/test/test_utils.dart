@@ -4,9 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sidesail/app.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/storage/client_settings.dart';
 
 import 'mocks/storage_mock.dart';
 
@@ -31,7 +30,7 @@ extension TestExtension on WidgetTester {
 
     await pumpWidget(
       SailApp(
-        builder: (context, router) {
+        builder: (context) {
           final appRouter = GetIt.I.get<AppRouter>();
 
           return MaterialApp.router(
@@ -46,6 +45,9 @@ extension TestExtension on WidgetTester {
             ),
           );
         },
+        initMethod: (_) async => (),
+        accentColor: SailColorScheme.black,
+        log: GetIt.I.get<Logger>(),
       ),
     );
     await pumpAndSettle();
@@ -58,13 +60,14 @@ Future<void> registerTestDependencies() async {
       () => AppRouter(),
     );
   }
+  final log = Logger();
   if (!GetIt.I.isRegistered<Logger>()) {
-    GetIt.I.registerLazySingleton<Logger>(() => Logger());
+    GetIt.I.registerLazySingleton<Logger>(() => log);
   }
 
   if (!GetIt.I.isRegistered<ClientSettings>()) {
     GetIt.I.registerLazySingleton<ClientSettings>(
-      () => ClientSettings(store: MockStore()),
+      () => ClientSettings(store: MockStore(), log: log),
     );
   }
 }

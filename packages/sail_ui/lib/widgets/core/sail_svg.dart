@@ -34,6 +34,9 @@ enum SailSVGAsset {
   iconFailed,
   iconInfo,
   iconSelected,
+
+  iconLightMode,
+  iconDarkMode,
 }
 
 /// If you don't want to overwrite the color of the svg, put it in here!
@@ -143,6 +146,11 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_info.svg';
       case SailSVGAsset.iconSelected:
         return 'assets/svgs/icon_selected.svg';
+
+      case SailSVGAsset.iconLightMode:
+        return 'assets/svgs/icon_light_mode.svg';
+      case SailSVGAsset.iconDarkMode:
+        return 'assets/svgs/icon_dark_mode.svg';
     }
   }
 }

@@ -1,16 +1,31 @@
 import 'package:collection/collection.dart';
-import 'package:sidesail/storage/client_settings.dart';
+import 'package:sail_ui/settings/client_settings.dart';
 
-enum SailThemeValues { light, dark, platform }
+enum SailThemeValues { light, dark, system }
 
 extension NextTheme on SailThemeValues {
   SailThemeValues toggleTheme() {
     if (this == SailThemeValues.dark) {
       return SailThemeValues.light;
     } else if (this == SailThemeValues.light) {
-      return SailThemeValues.dark;
+      return SailThemeValues.system;
     } else {
-      return SailThemeValues.platform;
+      return SailThemeValues.dark;
+    }
+  }
+}
+
+extension ThemeStringer on SailThemeValues {
+  String toReadable() {
+    switch (this) {
+      case SailThemeValues.dark:
+        return 'dark';
+      case SailThemeValues.light:
+        return 'light';
+      case SailThemeValues.system:
+        return 'system';
+      default:
+        return 'unknown';
     }
   }
 }
@@ -22,7 +37,7 @@ class ThemeSetting extends SettingValue<SailThemeValues> {
   String get key => 'theme';
 
   @override
-  SailThemeValues defaultValue() => SailThemeValues.platform;
+  SailThemeValues defaultValue() => SailThemeValues.system;
 
   @override
   String toJson() {

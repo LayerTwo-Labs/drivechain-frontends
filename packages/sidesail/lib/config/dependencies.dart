@@ -1,8 +1,9 @@
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
-import 'package:sidesail/logger.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
@@ -18,8 +19,6 @@ import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
-import 'package:sidesail/storage/client_settings.dart';
-import 'package:sidesail/storage/secure_store.dart';
 
 // This gets overwritten at a later point, just here to make the
 // type system happy.
@@ -28,7 +27,8 @@ final _emptyNodeConf = SingleNodeConnectionSettings.empty();
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
 Future<void> initDependencies(Sidechain chain) async {
-  final log = await logger();
+  final datadir = await RuntimeArgs.datadir();
+  final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, datadir);
   GetIt.I.registerLazySingleton<Logger>(() => log);
   final prefs = await SharedPreferences.getInstance();
   GetIt.I.registerLazySingleton<ClientSettings>(
@@ -36,6 +36,7 @@ Future<void> initDependencies(Sidechain chain) async {
       store: Storage(
         preferences: prefs,
       ),
+      log: log,
     ),
   );
   GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
@@ -135,7 +136,7 @@ Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
 // rpcs in parallell, so they're ready instantly when swapping
 // we can also query the balance
 Future<SidechainRPC> findSubRPC(Sidechain chain) async {
-  final log = await logger();
+  Logger log = GetIt.I.get<Logger>();
   final conf = await findSidechainConf(chain);
 
   SidechainRPC? sidechain;
