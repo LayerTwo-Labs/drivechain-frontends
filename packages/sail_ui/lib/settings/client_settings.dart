@@ -1,14 +1,13 @@
-import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sidesail/storage/secure_store.dart';
+import 'package:sail_ui/settings/secure_store.dart';
 
 class ClientSettings {
   final KeyValueStore store;
-
-  Logger get log => GetIt.I.get<Logger>();
+  final Logger log;
 
   const ClientSettings({
     required this.store,
+    required this.log,
   });
 
   Future<SettingValue<T>> getValue<T extends Object>(SettingValue<T> setting) async {

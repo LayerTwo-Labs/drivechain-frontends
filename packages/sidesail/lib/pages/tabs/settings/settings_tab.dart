@@ -7,15 +7,12 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sidesail/app.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/storage/client_settings.dart';
 import 'package:sidesail/storage/sail_settings/font_settings.dart';
-import 'package:sidesail/storage/sail_settings/theme_settings.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -97,11 +94,11 @@ class SettingsTabPage extends StatelessWidget {
                                     SailButton.primary(
                                       'System Theme',
                                       onPressed: () {
-                                        settingsViewModel.setTheme(SailThemeValues.platform);
-                                        app.loadTheme(SailThemeValues.platform);
+                                        settingsViewModel.setTheme(SailThemeValues.system);
+                                        app.loadTheme(SailThemeValues.system);
                                       },
                                       size: ButtonSize.regular,
-                                      disabled: settingsViewModel.theme == SailThemeValues.platform,
+                                      disabled: settingsViewModel.theme == SailThemeValues.system,
                                     ),
                                   ],
                                 ),
@@ -485,7 +482,6 @@ class ThemeSettingsViewModel extends BaseViewModel {
   }
 
   String datadir = '';
-  // default to mainnet!
   SailThemeValues theme = SailThemeValues.light;
   SailFontValues font = SailFontValues.inter;
   SailFontValues fontOnLoad = SailFontValues.inter;

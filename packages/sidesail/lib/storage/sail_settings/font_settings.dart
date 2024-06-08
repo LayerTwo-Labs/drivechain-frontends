@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:sidesail/storage/client_settings.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 enum SailFontValues { sourceCodePro, inter }
 

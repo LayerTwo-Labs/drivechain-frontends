@@ -1,5 +1,10 @@
 library sail_ui;
 
+export './logger.dart';
+export './sail_app.dart';
+export './settings/client_settings.dart';
+export './settings/secure_store.dart';
+export './settings/theme_settings.dart';
 export './style/style.dart';
 export './widgets/buttons/button.dart';
 export './widgets/buttons/toggle.dart';

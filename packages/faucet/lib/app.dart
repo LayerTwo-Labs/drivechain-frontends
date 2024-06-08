@@ -7,30 +7,13 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/theme/theme_data.dart';
 import 'package:sail_ui/widgets/components/dashboard_group.dart';
+import 'package:sail_ui/widgets/core/sail_padding.dart';
 import 'package:sail_ui/widgets/core/sail_snackbar.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:stacked/stacked.dart';
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return SailTheme(
-        data: SailThemeData.lightTheme(SailColorScheme.orange),
-        child: MaterialApp(
-          title: 'Drivechain Faucet',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-            useMaterial3: true,
-          ),
-          home: const FaucetPage(title: 'Drivechain Faucet'),
-        ));
-  }
-}
-
 class FaucetViewModel extends BaseViewModel {
+  ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
   API get api => GetIt.I.get<API>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
 
@@ -38,13 +21,37 @@ class FaucetViewModel extends BaseViewModel {
   final amountController = TextEditingController();
   String? dispenseErr;
   bool hideDeposits = true;
+  SailThemeValues theme = SailThemeValues.light;
 
   List<UTXO> get utxos => _transactionsProvider.claims;
 
   FaucetViewModel() {
+    _init();
     _transactionsProvider.addListener(notifyListeners);
     addressController.addListener(notifyListeners);
     amountController.addListener(_capAmount);
+  }
+
+  void _init() async {
+    theme = (await _clientSettings.getValue(ThemeSetting())).value;
+  }
+
+  Widget themeIcon(SailThemeData? currentTheme) {
+    SailSVGAsset icon;
+    if (theme == SailThemeValues.system) {
+      if (currentTheme == null || currentTheme.name == 'light') {
+        // what, default to sun
+        icon = SailSVGAsset.iconLightMode;
+      } else {
+        icon = SailSVGAsset.iconDarkMode;
+      }
+    } else if (theme == SailThemeValues.light) {
+      icon = SailSVGAsset.iconLightMode;
+    } else {
+      icon = SailSVGAsset.iconDarkMode;
+    }
+
+    return SailSVG.fromAsset(icon);
   }
 
   void _capAmount() {
@@ -57,6 +64,12 @@ class FaucetViewModel extends BaseViewModel {
     } else {
       notifyListeners();
     }
+  }
+
+  void setTheme(SailThemeValues newTheme) async {
+    theme = newTheme;
+    await _clientSettings.setValue(ThemeSetting().withValue(theme));
+    notifyListeners();
   }
 
   void setHideDeposits(bool to) {
@@ -96,13 +109,32 @@ class FaucetPage extends StatefulWidget {
 class _FaucetPageState extends State<FaucetPage> {
   @override
   Widget build(BuildContext context) {
+    final app = SailApp.of(context);
+    final theme = SailTheme.of(context);
+
     return ViewModelBuilder.reactive(
         viewModelBuilder: () => FaucetViewModel(),
         builder: ((context, viewModel, child) {
           return Scaffold(
+            backgroundColor: theme.colors.background,
             appBar: AppBar(
-              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-              title: Text(widget.title),
+              backgroundColor: theme.colors.background,
+              title: SailText.primary22(widget.title),
+              actions: [
+                SailScaleButton(
+                    onPressed: () {
+                      SailThemeValues nextTheme = viewModel.theme.toggleTheme();
+                      viewModel.setTheme(nextTheme);
+                      app.loadTheme(nextTheme);
+                    },
+                    child: Tooltip(
+                        message: 'Current theme: ${viewModel.theme.toReadable()}',
+                        child: SailPadding(
+                            padding: const EdgeInsets.only(
+                              right: SailStyleValues.padding10,
+                            ),
+                            child: viewModel.themeIcon(app.theme)))),
+              ],
             ),
             body: SingleChildScrollView(
               child: Column(

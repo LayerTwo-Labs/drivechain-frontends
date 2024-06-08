@@ -17,8 +17,10 @@ dependencies:
   cupertino_icons: ^1.0.6
   stacked: ^3.4.2
   get_it: ^7.6.7
+  logger: ^2.2.0
   http: ^1.2.1
   intl: ^0.19.0
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
