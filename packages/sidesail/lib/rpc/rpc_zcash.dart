@@ -475,7 +475,7 @@ final zcashRPCMethods = [
   'getaddresstxids',
   'getaddressutxos',
 
-// blockchain methods
+  // blockchain methods
   'getbestblockhash',
   'getblock',
   'getblockchaininfo',
@@ -496,7 +496,7 @@ final zcashRPCMethods = [
   'verifytxoutproof',
   'z_gettreestate',
 
-// control methods
+  // control methods
   'getexperimentalfeatures',
   'getinfo',
   'getmemoryinfo',
@@ -504,11 +504,11 @@ final zcashRPCMethods = [
   'setlogfilter',
   'stop',
 
-// disclosure methods
+  // disclosure methods
   'z_getpaymentdisclosure',
   'z_validatepaymentdisclosure',
 
-// generating methods
+  // generating methods
   'generate',
   'getgenerate',
   'setgenerate',
@@ -538,7 +538,7 @@ final zcashRPCMethods = [
   'ping',
   'setban',
 
-// raw TXs
+  // raw TXs
   'createrawtransaction',
   'decoderawtransaction',
   'decodescript',
@@ -547,7 +547,7 @@ final zcashRPCMethods = [
   'sendrawtransaction',
   'signrawtransaction',
 
-// util methods
+  // util methods
   'createmultisig',
   'estimatefee',
   'estimatepriority',
@@ -555,7 +555,7 @@ final zcashRPCMethods = [
   'verifymessage',
   'z_validateaddress',
 
-// wallet methods
+  // wallet methods
   'addmultisigaddress',
   'backupwallet',
   'deposit',
@@ -619,8 +619,8 @@ final zcashRPCMethods = [
   'z_shieldcoinbase',
   'z_viewtransaction',
   'zcbenchmark',
-  'zcrawjoinsplit' // deprecated,
-      'zcrawkeygen', // deprecated
+  'zcrawjoinsplit', // deprecated,
+  'zcrawkeygen', // deprecated
   'zcrawreceive', // deprecated
   'zcsamplejoinsplit',
 ];
