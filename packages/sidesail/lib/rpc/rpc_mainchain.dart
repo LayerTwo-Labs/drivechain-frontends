@@ -63,7 +63,6 @@ class MainchainRPCLive extends MainchainRPC {
 
   Future<void> init() async {
     await testConnection();
-    startConnectionTimer();
     pollIBDStatus();
   }
 

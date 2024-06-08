@@ -23,8 +23,17 @@ import 'test_utils.dart';
 final txProvider = TransactionsProvider();
 
 void main() {
+  // there's timers in sidechainrpc and mainchainrpc, that
+  // will get shut off when they're disposed. However, they're
+  // not disposed per test!
+  TestWidgetsFlutterBinding.ensureInitialized({
+    'flutter.test.automatic_wait_for_timers': 'false',
+  });
+
   setUpAll(() async {
-    final sidechain = await SidechainContainer.create(MockSidechainRPC());
+    final sidechainRPC = MockSidechainRPC();
+    final sidechain = await SidechainContainer.create(sidechainRPC);
+    GetIt.I.registerLazySingleton<SidechainRPC>(() => sidechainRPC);
     GetIt.I.registerLazySingleton<SidechainContainer>(() => sidechain);
     GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
     GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
@@ -37,6 +46,7 @@ void main() {
     // don't start test until balance is fetched
     await balanceProvider.fetch();
   });
+
   testWidgets('can render and show balance', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(

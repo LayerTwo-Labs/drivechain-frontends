@@ -104,6 +104,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.d('init binaries: checking $binary connection ${conf.host}:${conf.port}');
 
+    _startConnectionTimer();
     // If we managed to connect to an already running daemon, we're finished here!
     if (connected) {
       log.d('init binaries: $binary is already running, not doing anything');
@@ -117,10 +118,6 @@ abstract class RPCConnection extends ChangeNotifier {
       notifyListeners();
       return;
     }
-
-    // cancel any timers, to not override error message
-    // resulting from the process not being able to start
-    _connectionTimer?.cancel();
 
     log.d('init binaries: starting $binary ${args.join(" ")}');
 
@@ -149,9 +146,10 @@ abstract class RPCConnection extends ChangeNotifier {
     const timeout = Duration(seconds: 5 * 60);
     try {
       await Future.any([
-        // Happy case: able to connect
+        // Happy case: able to connect. we start a poller at the
+        // beginning of this function that sets the connected variable
+        // we return here
         waitForBoolToBeTrue(() async {
-          final (connected, _) = await testConnection();
           return connected;
         }),
 
@@ -174,9 +172,6 @@ abstract class RPCConnection extends ChangeNotifier {
       ]);
 
       log.i('init binaries: $binary connected');
-
-      log.i('init binaries: starting connection timer for $binary');
-      startConnectionTimer();
     } catch (err) {
       log.e("init binaries: couldn't connect to $binary", error: err);
 
@@ -203,8 +198,7 @@ abstract class RPCConnection extends ChangeNotifier {
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the connection drops/begins
   Timer? _connectionTimer;
-  void startConnectionTimer() {
-    _connectionTimer?.cancel();
+  void _startConnectionTimer() {
     _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();
     });
