@@ -122,7 +122,7 @@ class BottomNavViewModel extends BaseViewModel {
                     initializing: _sideRPC.rpc.initializingBinary,
                     connected: _sideRPC.rpc.connected,
                     errorMessage: _sideRPC.rpc.connectionError,
-                    infoMessage: _mainRPC.inIBD ? 'Waiting on L1 initial block download to complete...' : null,
+                    infoMessage: _mainRPC.inIBD ? 'Waiting for L1 initial block download to complete...' : null,
                     restartDaemon: () => initSidechainBinary(context),
                   ),
                 ],
@@ -193,7 +193,7 @@ class _NodeConnectionStatus extends ViewModelWidget<BottomNavViewModel> {
             initializing: viewModel.sidechainInitializing,
             blockHeight: viewModel.sidechainBlockCount,
             onPressed: onChipPressed,
-            infoMessage: viewModel.inIBD ? 'Waiting on IBD' : null,
+            infoMessage: viewModel.inIBD ? 'Waiting for IBD' : null,
           )
         else
           ConnectionErrorChip(
