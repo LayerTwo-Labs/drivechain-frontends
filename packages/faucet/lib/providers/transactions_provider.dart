@@ -60,7 +60,7 @@ class TransactionsProvider extends ChangeNotifier {
     fetch();
 
     _connectionTimer?.cancel();
-    _connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    _connectionTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
       await fetch();
     });
   }

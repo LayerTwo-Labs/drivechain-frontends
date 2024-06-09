@@ -69,6 +69,7 @@ nuparams=76b809bb:1
 nuparams=f5b9230b:5
 walletrequirebackup=false
 txindex=1
+rpcworkqueue=200
 ''');
   }
 }
@@ -225,17 +226,24 @@ class ZcashRPCLive extends ZCashRPC {
     return (confirmed + transparentConfirmed, transparentUnconfirmed + confirmedAndUnconfirmed - confirmed);
   }
 
+  int? cachedAccount;
+
   @override
   Future<int> account() async {
+    if (cachedAccount != null) {
+      return cachedAccount!;
+    }
+
     final existing = await _client().call('z_listaccounts') as List<dynamic>;
 
     if (existing.isNotEmpty) {
-      return existing.first['account'];
+      cachedAccount = existing.first['account'];
+    } else {
+      final newAccount = await _client().call('z_getnewaccount');
+      cachedAccount = newAccount['account'];
     }
 
-    final newAccount = await _client().call('z_getnewaccount');
-
-    return newAccount['account'];
+    return cachedAccount!;
   }
 
   @override
