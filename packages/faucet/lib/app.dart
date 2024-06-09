@@ -149,16 +149,48 @@ class _FaucetPageState extends State<FaucetPage> {
                           children: <Widget>[
                             TextField(
                               controller: viewModel.addressController,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                  color: theme.colors.text.withOpacity(0.3),
+                                )),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: theme.colors.text.withOpacity(0.6),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide:
+                                      BorderSide(color: theme.colors.text.withOpacity(0.9)), // Set focused border color
+                                ),
                                 labelText: 'Enter address',
+                                focusColor: theme.colors.text,
                               ),
+                              cursorColor: theme.colors.primary,
+                              style: TextStyle(color: theme.colors.text),
                             ),
                             TextField(
                               controller: viewModel.amountController,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                  color: theme.colors.text.withOpacity(0.3),
+                                )),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: theme.colors.text.withOpacity(0.6),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide:
+                                      BorderSide(color: theme.colors.text.withOpacity(0.9)), // Set focused border color
+                                ),
                                 labelText: 'Enter amount (max 1 BTC)',
+                                focusColor: theme.colors.text,
+                              ),
+                              cursorColor: theme.colors.primary,
+                              style: TextStyle(
+                                color: theme.colors.text,
                               ),
                               inputFormatters: [
                                 CommaReplacerInputFormatter(),
