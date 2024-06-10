@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #
-git pull
 
 cd faucet-backend
 go install ./...
 sudo systemctl restart faucet
 
 cd ../packages/faucet
+flutter clean
+flutter pub get
 flutter build web
