@@ -24,7 +24,7 @@ func main() {
 	var opts Options
 	_, err := flags.Parse(&opts)
 	if err != nil {
-		log.Fatalf("could not parse flags: %w", err)
+		log.Fatalf("could not parse flags: %s", err)
 	}
 
 	sender, err := drivechaind.NewClient(opts.RPCHost, opts.RPCUser, opts.RPCPassword)
@@ -129,7 +129,7 @@ type DispenseRequest struct {
 
 func (f *Faucet) validateDispenseArgs(req DispenseRequest) (btcutil.Amount, drivechaind.TransferType, error, int) {
 	if req.Destination == "" {
-		return 0, "", fmt.Errorf("'destination' must be set", req.Amount), http.StatusBadRequest
+		return 0, "", fmt.Errorf("'destination' must be set"), http.StatusBadRequest
 	}
 
 	amountFloat, err := strconv.ParseFloat(req.Amount, 64)
@@ -201,13 +201,13 @@ func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
 
 	ip := getIPFromRequest(r)
 	if f.dispensedIP[ip] {
-		writeError(w, "invalid request: must set address and amount", http.StatusTooManyRequests)
+		writeError(w, "dispense threshold exceeded", http.StatusTooManyRequests)
 		return
 	}
 
 	f.dispensed[req.Destination] = true
-	f.totalDispensed += CoinsPerRequest
 	f.dispensed[ip] = true
+	f.totalDispensed += CoinsPerRequest
 
 	txid, err := f.sender.SendCoins(req.Destination, amount, transferType)
 	if err != nil {
