@@ -31,17 +31,16 @@ class ChainOverviewCard extends StatelessWidget {
       onPressed: onPressed,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 200),
-        child: SizedBox(
-          height: 87,
-          child: SailBorder(
-            padding: const EdgeInsets.symmetric(
-              horizontal: SailStyleValues.padding12,
-              vertical: SailStyleValues.padding08,
-            ),
-            backgroundColor: highlighted ? theme.colors.actionHeader : null,
-            child: SailColumn(
-              spacing: 0,
-              children: [
+        child: SailBorder(
+          padding: const EdgeInsets.symmetric(
+            horizontal: SailStyleValues.padding12,
+            vertical: SailStyleValues.padding08,
+          ),
+          backgroundColor: highlighted ? theme.colors.actionHeader : null,
+          child: SailColumn(
+            spacing: 0,
+            children: [
+              if (onPressed != null)
                 SailRow(
                   spacing: SailStyleValues.padding08,
                   children: [
@@ -62,36 +61,35 @@ class ChainOverviewCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (!currentChain) SailText.secondary12('Open ${chain.name}'),
-                if (currentChain)
-                  Column(
-                    children: [
-                      const SailSpacing(SailStyleValues.padding08),
-                      Tooltip(
-                        message: 'Confirmed balance',
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            SailSVG.icon(SailSVGAsset.iconSuccess),
-                            SailText.secondary12('${formatBitcoin(confirmedBalance)} ${chain.ticker}'),
-                          ],
-                        ),
+              if (!currentChain) SailText.secondary12('Open ${chain.name}'),
+              if (currentChain)
+                Row(
+                  children: [
+                    const SailSpacing(SailStyleValues.padding08),
+                    Tooltip(
+                      message: 'Confirmed balance',
+                      child: SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailSVG.icon(SailSVGAsset.iconSuccess),
+                          SailText.secondary12('${formatBitcoin(confirmedBalance)} ${chain.ticker}'),
+                        ],
                       ),
-                      const SailSpacing(SailStyleValues.padding08),
-                      Tooltip(
-                        message: 'Unconfirmed balance',
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            SailSVG.icon(SailSVGAsset.iconPending),
-                            SailText.secondary12('${formatBitcoin(unconfirmedBalance)} ${chain.ticker}'),
-                          ],
-                        ),
+                    ),
+                    const SailSpacing(SailStyleValues.padding08),
+                    Tooltip(
+                      message: 'Unconfirmed balance',
+                      child: SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailSVG.icon(SailSVGAsset.iconPending),
+                          SailText.secondary12('${formatBitcoin(unconfirmedBalance)} ${chain.ticker}'),
+                        ],
                       ),
-                    ],
-                  ),
-              ],
-            ),
+                    ),
+                  ],
+                ),
+            ],
           ),
         ),
       ),
