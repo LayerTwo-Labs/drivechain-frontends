@@ -30,6 +30,6 @@ func TestCheckValidDepositAddress(t *testing.T) {
 		err = drivechaind.CheckValidDepositAddress("s6_0xc96aaa54e2d44c299564da76e1cd3184a2386b8d_adfbb5")
 		require.Error(t, err)
 		err = drivechaind.CheckValidDepositAddress("s5_tmEoMXN71n8cQ7VNjP3EpEEn6fbXMvASwXt_0ad45c")
-		require.NoError(t, err)
+		require.Error(t, err)
 	})
 }
