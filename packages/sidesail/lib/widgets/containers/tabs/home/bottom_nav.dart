@@ -1,12 +1,16 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/widgets/containers/chain_overview_card.dart';
 import 'package:sidesail/widgets/containers/daemon_connection_card.dart';
 import 'package:stacked/stacked.dart';
 
@@ -25,6 +29,8 @@ class BottomNav extends StatefulWidget {
 class _BottomNavState extends State<BottomNav> {
   @override
   Widget build(BuildContext context) {
+    final tabsRouter = AutoTabsRouter.of(context);
+
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => BottomNavViewModel(navigateToSettings: widget.navigateToSettings),
       fireOnViewModelReadyOnce: true,
@@ -41,8 +47,25 @@ class _BottomNavState extends State<BottomNav> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            _NodeConnectionStatus(
-              onChipPressed: () => viewModel.displayConnectionStatusDialog(context),
+            Row(
+              children: [
+                ChainOverviewCard(
+                  chain: viewModel.chain,
+                  confirmedBalance: viewModel.balance,
+                  unconfirmedBalance: viewModel.pendingBalance,
+                  highlighted: tabsRouter.activeIndex == 0,
+                  currentChain: true,
+                  onPressed: RuntimeArgs.swappableChains
+                      ? () {
+                          tabsRouter.setActiveIndex(0);
+                        }
+                      : null,
+                ),
+                Expanded(child: Container()),
+                _NodeConnectionStatus(
+                  onChipPressed: () => viewModel.displayConnectionStatusDialog(context),
+                ),
+              ],
             ),
           ],
         );
@@ -57,6 +80,10 @@ class BottomNavViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
   MainchainRPC get _mainRPC => GetIt.I.get<MainchainRPC>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+
+  double get balance => _balanceProvider.balance;
+  double get pendingBalance => _balanceProvider.pendingBalance;
 
   bool get sidechainConnected => _sideRPC.rpc.connected;
   bool get mainchainConnected => _mainRPC.connected;

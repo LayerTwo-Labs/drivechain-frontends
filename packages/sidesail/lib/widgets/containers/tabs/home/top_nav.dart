@@ -4,12 +4,10 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
-import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/widgets/containers/chain_overview_card.dart';
 import 'package:stacked/stacked.dart';
 
 class TopNav extends StatefulWidget {
@@ -48,18 +46,6 @@ class _TopNavState extends State<TopNav> {
               child: SailRow(
                 spacing: SailStyleValues.padding20,
                 children: [
-                  ChainOverviewCard(
-                    chain: viewModel.chain,
-                    confirmedBalance: viewModel.balance,
-                    unconfirmedBalance: viewModel.pendingBalance,
-                    highlighted: tabsRouter.activeIndex == 0,
-                    currentChain: true,
-                    onPressed: RuntimeArgs.swappableChains
-                        ? () {
-                            tabsRouter.setActiveIndex(0);
-                          }
-                        : null,
-                  ),
                   Expanded(child: Container()),
                   NavContainer(
                     title: 'Parent Chain',
@@ -214,9 +200,8 @@ class _TopNavState extends State<TopNav> {
     switch (chain.type) {
       case SidechainType.testChain:
         trailing = [
-          // console
           NavEntry(
-            title: '',
+            title: 'Console',
             selected: tabsRouter.activeIndex == Tabs.TestchainConsole.index,
             onPressed: () {
               tabsRouter.setActiveIndex(Tabs.TestchainConsole.index);
@@ -231,9 +216,8 @@ class _TopNavState extends State<TopNav> {
 
       case SidechainType.zcash:
         trailing = [
-          // console
           NavEntry(
-            title: '',
+            title: 'Console',
             selected: tabsRouter.activeIndex == Tabs.ZCashConsole.index,
             onPressed: () {
               tabsRouter.setActiveIndex(Tabs.ZCashConsole.index);
@@ -246,9 +230,8 @@ class _TopNavState extends State<TopNav> {
 
     return [
       ...trailing,
-      // all chains have settings
       NavEntry(
-        title: '',
+        title: 'Settings',
         selected: tabsRouter.activeIndex == Tabs.SettingsHome.index,
         onPressed: () {
           // default to second to last route (node settings)
