@@ -97,6 +97,8 @@ if ! test -f $bin_dir/$drivechain; then
     drivechain_file=L1-Mainchain-latest-x86_64-$version_postfix.zip
 
     curl --fail -O $RELEASES/$drivechain_file
+
+    echo unpacking: $unpack_cmd $drivechain_file
     $unpack_cmd $drivechain_file
 
     for file in $drivechain $drivechain_cli; do 

@@ -46,6 +46,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         chain: [testchain, ethereum, zcash]
+        exclude: 
+          - os: windows-latest
+            chain: zcash
 
     name: Build binaries
     runs-on: ${{ matrix.os }}
