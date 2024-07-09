@@ -9,7 +9,6 @@ import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -24,7 +23,7 @@ class ZCashBillPage extends StatelessWidget {
       viewModelBuilder: () => ZcashBillTabViewModel(),
       builder: ((context, viewModel, child) {
         return SailPage(
-          widgetTitle: SailText.primary15('Cast Dates'),
+          widgetTitle: SailText.primary15('Bill Amounts'),
           scrollable: true,
           body: Padding(
             padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
@@ -35,23 +34,76 @@ class ZCashBillPage extends StatelessWidget {
                   spacing: SailStyleValues.padding30,
                   children: [
                     DashboardGroup(
-                      title: 'Cast Dates',
+                      title: 'Bill Amounts (in sats)',
                       children: [
-                        SailColumn(
-                          spacing: 0,
-                          withDivider: true,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Table(
+                          border: TableBorder.all(color: Colors.black, width: 1),
                           children: [
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: viewModel.pendingBills.length,
-                              itemBuilder: (context, index) => PendingCastView(
-                                key: ValueKey<int>(viewModel.pendingBills[index].powerOf),
-                                pending: viewModel.pendingBills[index],
-                                chain: viewModel.chain,
-                              ),
+                            const TableRow(
+                              children: [
+                                TableCell(child: Center(child: Text('Sunday'))),
+                                TableCell(child: Center(child: Text('Monday'))),
+                                TableCell(child: Center(child: Text('Tuesday'))),
+                                TableCell(child: Center(child: Text('Wednesday'))),
+                                TableCell(child: Center(child: Text('Thursday'))),
+                                TableCell(child: Center(child: Text('Friday'))),
+                                TableCell(child: Center(child: Text('Saturday'))),
+                              ],
                             ),
+                            _buildTableRow([
+                              '1',
+                              '2',
+                              '4',
+                              '8',
+                              '16',
+                              '32',
+                              '64',
+                            ]),
+                            _buildTableRow([
+                              '128',
+                              '256',
+                              '512',
+                              '1 024',
+                              '2 048',
+                              '4 096',
+                              '8 192',
+                            ]),
+                            _buildTableRow([
+                              '16 384',
+                              '32 768',
+                              '65 536',
+                              '31 072',
+                              '262 144',
+                              '524 288',
+                              '1 048 576',
+                            ]),
+                            _buildTableRow([
+                              '2 097 152',
+                              '4 194 304',
+                              '8 388 608',
+                              '16 777 216',
+                              '33 554 432',
+                              '67 108 864',
+                              '1.34 217 728',
+                            ]),
+                            _buildTableRow([
+                              '2.68 435 456',
+                              '5.36 870 912',
+                              '10.73 718 240',
+                              '21.47 436 480',
+                              '42.94 972 960',
+                              '85.89 945 920',
+                              '171.79 891 840',
+                            ]),
+                            _buildTableRow([
+                              '343.58 983 680',
+                              '687.17 967 360',
+                              '1 374.35 934 720',
+                              '2 748.71 869 440',
+                              '5 497.43 738 880',
+                              '10 994.87 477 760',
+                              '21 989.74 955 520',
+                            ]),
                           ],
                         ),
                       ],
@@ -63,6 +115,21 @@ class ZCashBillPage extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+
+  TableRow _buildTableRow(List<String> cells) {
+    return TableRow(
+      children: cells
+          .map(
+            (cell) => TableCell(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(cell, textAlign: TextAlign.right),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }

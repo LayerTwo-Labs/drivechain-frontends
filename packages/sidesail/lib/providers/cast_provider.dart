@@ -9,7 +9,7 @@ import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
 const lowestCastValueSats = 1;
-const maxCastFactor = 50;
+const maxCastFactor = 42;
 
 class PendingCastBill {
   int powerOf;
@@ -25,10 +25,43 @@ class PendingCastBill {
     required this.powerOf,
     required this.executeAction,
   }) {
-    // Lowest one (0.00000001) will be done every second,
-    // highest one every minute
-    executeIn = Duration(seconds: (powerOf + 1) * 10);
-    executeTime = DateTime.now().add(executeIn);
+    DateTime now = DateTime.now().toUtc();
+    executeTime = DateTime.utc(now.year, now.month, now.day);
+
+    int weekday;
+
+    switch (powerOf % 7) {
+      case 1:
+        weekday = DateTime.sunday;
+        break;
+      case 2:
+        weekday = DateTime.monday;
+        break;
+      case 3:
+        weekday = DateTime.tuesday;
+        break;
+      case 4:
+        weekday = DateTime.wednesday;
+        break;
+      case 5:
+        weekday = DateTime.thursday;
+        break;
+      case 6:
+        weekday = DateTime.friday;
+        break;
+      case 0:
+        weekday = DateTime.saturday;
+        break;
+      default:
+        throw Exception('Invalid powerOf value');
+    }
+
+    while (executeTime.weekday != weekday) {
+      executeTime = executeTime.add(const Duration(days: 1));
+    }
+
+    final executeIn = DateTime.now().durationUntil(executeTime);
+
     Timer(executeIn, executeAction);
   }
 
@@ -173,5 +206,11 @@ class CastProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+}
+
+extension DateTimeExtensions on DateTime {
+  Duration durationUntil(DateTime futureTime) {
+    return futureTime.difference(this);
   }
 }
