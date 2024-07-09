@@ -178,6 +178,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    bool italic = false,
     Color? customColor,
   }) {
     return Builder(
@@ -188,6 +189,7 @@ class SailText {
           style: SailStyleValues.twelve.copyWith(
             color: customColor ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontStyle: italic ? FontStyle.italic : FontStyle.normal,
           ),
           textAlign: textAlign,
         );
@@ -199,6 +201,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    bool italic = false,
     Color? customColor,
   }) {
     return Builder(
@@ -209,6 +212,7 @@ class SailText {
           style: SailStyleValues.twelve.copyWith(
             color: customColor ?? theme.colors.textSecondary,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontStyle: italic ? FontStyle.italic : FontStyle.normal,
           ),
           textAlign: textAlign,
         );

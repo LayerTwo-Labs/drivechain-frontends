@@ -147,16 +147,8 @@ class _CoreTransactionViewState extends State<CoreTransactionView> {
             },
             child: SingleValueContainer(
               width: expanded ? 95 : 70,
-              icon: widget.tx.confirmations >= 1
-                  ? Tooltip(
-                      message: '${widget.tx.confirmations} confirmations',
-                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-                    )
-                  : Tooltip(
-                      message: 'Unconfirmed',
-                      child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-                    ),
               copyable: false,
+              italic: widget.tx.confirmations <= 0,
               label: widget.tx.category,
               value: extractTXTitle(widget.tx),
               trailingText: DateFormat('dd MMM HH:mm:ss').format(widget.tx.time),

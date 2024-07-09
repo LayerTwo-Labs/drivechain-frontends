@@ -71,7 +71,6 @@ class ChainOverviewCard extends StatelessWidget {
                       child: SailRow(
                         spacing: SailStyleValues.padding08,
                         children: [
-                          SailSVG.icon(SailSVGAsset.iconSuccess),
                           SailText.secondary12('${formatBitcoin(confirmedBalance)} ${chain.ticker}'),
                         ],
                       ),
@@ -82,8 +81,7 @@ class ChainOverviewCard extends StatelessWidget {
                       child: SailRow(
                         spacing: SailStyleValues.padding08,
                         children: [
-                          SailSVG.icon(SailSVGAsset.iconPending),
-                          SailText.secondary12('${formatBitcoin(unconfirmedBalance)} ${chain.ticker}'),
+                          SailText.secondary12('${formatBitcoin(unconfirmedBalance)} ${chain.ticker}', italic: true),
                         ],
                       ),
                     ),
