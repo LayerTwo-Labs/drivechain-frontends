@@ -80,14 +80,6 @@ class ZCashMeltCast extends StatelessWidget {
                   viewModel.cast(context);
                 },
               ),
-              ActionTile(
-                title: 'Do everything for me',
-                category: Category.sidechain,
-                icon: Icons.work,
-                onTap: () {
-                  viewModel.cast(context);
-                },
-              ),
               SailRow(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
