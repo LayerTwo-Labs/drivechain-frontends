@@ -137,8 +137,8 @@ class ZCashProvider extends ChangeNotifier {
   // the user wants all utxos shielded by
   final List<Timer> _timers = [];
 
-  Future<List<double>> melt(List<UnshieldedUTXO> utxos, double completedInMinutes) async {
-    final List<double> meltsWillHappenAt = [];
+  Future<List<int>> melt(List<UnshieldedUTXO> utxos, double completedInMinutes) async {
+    final List<int> meltsWillHappenAt = [];
 
     for (final utxo in utxos) {
       final pending = PendingShield(
@@ -155,6 +155,7 @@ class ZCashProvider extends ChangeNotifier {
 
       utxosToMelt.add(pending);
       _timers.add(pending.timer);
+      meltsWillHappenAt.add(pending.executeIn.inSeconds);
     }
 
     meltsWillHappenAt.sort((a, b) => a.compareTo(b));
