@@ -22,7 +22,7 @@ dependencies:
       ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
   flutter_highlighter: ^0.1.1
   logger: ^2.3.0
-  dio: ^5.4.3+1
+  dio: ^5.5.0+1
   auto_route: ^8.2.0
   get_it: ^7.7.0
   collection: ^1.18.0
