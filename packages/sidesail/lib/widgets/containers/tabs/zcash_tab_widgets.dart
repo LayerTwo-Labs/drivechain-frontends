@@ -1001,11 +1001,11 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+        vertical: SailStyleValues.padding05,
+        horizontal: SailStyleValues.padding05,
       ),
       child: SailColumn(
-        spacing: SailStyleValues.padding08,
+        spacing: 0,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailScaleButton(
