@@ -34,7 +34,7 @@ class SidechainSendPage extends StatelessWidget {
                   title: 'Actions',
                   children: [
                     ActionTile(
-                      title: 'Send ${viewModel.chain.ticker}',
+                      title: 'Send',
                       category: Category.sidechain,
                       icon: Icons.remove,
                       onTap: () {
@@ -42,7 +42,7 @@ class SidechainSendPage extends StatelessWidget {
                       },
                     ),
                     ActionTile(
-                      title: 'Receive ${viewModel.chain.ticker}',
+                      title: 'Receive',
                       category: Category.sidechain,
                       icon: Icons.add,
                       onTap: () {
