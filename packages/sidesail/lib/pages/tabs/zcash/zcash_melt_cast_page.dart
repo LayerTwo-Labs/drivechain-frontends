@@ -77,7 +77,7 @@ class ZCashMeltCast extends StatelessWidget {
                 category: Category.sidechain,
                 icon: Icons.question_mark,
                 onTap: () {
-                  viewModel.cast(context);
+                  viewModel.meltAndCastHelp(context);
                 },
               ),
               SailRow(
@@ -321,6 +321,15 @@ class ZCashMeltCastViewModel extends BaseViewModel {
       context: context,
       builder: (BuildContext context) {
         return const CastHelp();
+      },
+    );
+  }
+
+  Future<void> meltAndCastHelp(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const MeltAndCastHelp();
       },
     );
   }
