@@ -8,7 +8,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/components/dashboard_group.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
@@ -100,29 +99,6 @@ class ZCashTransferTabPage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          DashboardGroup(
-                            title: 'Transparent transactions',
-                            widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
-                            children: [
-                              SailColumn(
-                                spacing: 0,
-                                withDivider: true,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: viewModel.transactions.length,
-                                    itemBuilder: (context, index) => CoreTransactionView(
-                                      key: ValueKey<String>(viewModel.transactions[index].txid),
-                                      tx: viewModel.transactions[index],
-                                      ticker: viewModel.chain.ticker,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
@@ -201,8 +177,6 @@ class ZCashTransferTabViewModel extends BaseViewModel {
   List<UnshieldedUTXO> get transparentUTXOs =>
       _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zcashFee).toList();
   List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
-  List<CoreTransaction> get transactions => _zcashProvider.transparentTransactions;
-  Sidechain get chain => sidechain.rpc.chain;
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
