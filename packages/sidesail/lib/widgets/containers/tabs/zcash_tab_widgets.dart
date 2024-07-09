@@ -501,10 +501,9 @@ class MeltAction extends StatelessWidget {
       viewModelBuilder: () => MeltActionViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Melt all UTXOs',
+          'Melt UTXOs',
           endActionButton: SailButton.primary(
             'Execute melt',
-            disabled: viewModel.meltInMinutesController.text.isEmpty,
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
@@ -512,13 +511,6 @@ class MeltAction extends StatelessWidget {
             },
           ),
           children: [
-            LargeEmbeddedInput(
-              controller: viewModel.meltInMinutesController,
-              hintText: 'How many minutes should the melt take?',
-              suffixText: 'minutes',
-              numberInput: true,
-              autofocus: true,
-            ),
             const StaticActionField(
               label: 'Shield to',
               value: 'Your Z-address',
@@ -567,11 +559,9 @@ class MeltActionViewModel extends BaseViewModel {
       _zcashProvider.unshieldedUTXOs.map((entry) => entry.amount).fold(0.0, (value, element) => value + element) -
       meltFee;
   double get meltFee => (_zcashProvider.sideFee * meltableUTXOs.length);
-  TextEditingController meltInMinutesController = TextEditingController();
 
   MeltActionViewModel() {
     bitcoinAmountController.addListener(notifyListeners);
-    meltInMinutesController.addListener(notifyListeners);
   }
 
   void melt(BuildContext context) async {
@@ -595,7 +585,7 @@ class MeltActionViewModel extends BaseViewModel {
     try {
       final willMeltAt = await _zcashProvider.melt(
         meltableUTXOs,
-        double.tryParse(meltInMinutesController.text) ?? 1,
+        0.10,
       );
 
       // refresh balance, but don't await, so dialog is showed instantly
@@ -612,8 +602,7 @@ class MeltActionViewModel extends BaseViewModel {
         action: 'Initiated melt',
         title:
             'You will shield ${meltableUTXOs.length} coins for a total of ${formatBitcoin(totalBitcoinAmount)} $ticker to your Z-address',
-        subtitle:
-            'Will melt in ${willMeltAt.map((e) => e.toStringAsFixed(e.roundToDouble() == e ? 0 : 2)).join(', ')} minutes.\nDont close the application until ${meltInMinutesController.text} minute(s) have passed',
+        subtitle: 'Will complete melt in ${willMeltAt.map((e) => e).join(', ')} seconds.',
       );
       // also pop the info modal
       await _router.maybePop();
@@ -635,7 +624,6 @@ class MeltActionViewModel extends BaseViewModel {
   void dispose() {
     super.dispose();
     bitcoinAmountController.removeListener(notifyListeners);
-    meltInMinutesController.removeListener(notifyListeners);
   }
 }
 
@@ -770,7 +758,7 @@ class CastAction extends StatelessWidget {
       viewModelBuilder: () => CastActionViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Cast all UTXOs',
+          'Cast UTXOs',
           endActionButton: SailButton.primary(
             'Execute cast',
             loading: viewModel.isBusy,
@@ -892,7 +880,7 @@ class CastActionViewModel extends BaseViewModel {
 
       await successDialog(
         context: context,
-        action: 'Cast all UTXOs',
+        action: 'Cast UTXOs',
         title:
             'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${formatBitcoin(totalBitcoinAmount)} $ticker to your Z-address',
         subtitle:
@@ -999,10 +987,14 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
 
   bool expanded = false;
   late Map<String, dynamic> decodedUTXO;
+  Color get utxoColor => getCastColor(widget.utxo.amount);
   @override
   void initState() {
     super.initState();
-    decodedUTXO = jsonDecode(widget.utxo.raw);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      decodedUTXO = jsonDecode(widget.utxo.raw);
+    });
   }
 
   @override
@@ -1031,15 +1023,8 @@ class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
                       size: ButtonSize.small,
                       disabled: widget.utxo.amount <= zcashFee,
                     ),
-              icon: widget.utxo.confirmations >= 1
-                  ? Tooltip(
-                      message: '${widget.utxo.confirmations} confirmations',
-                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-                    )
-                  : Tooltip(
-                      message: 'Unconfirmed',
-                      child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-                    ),
+              italic: widget.utxo.confirmations <= 0,
+              color: utxoColor,
               copyable: false,
               label: '${formatBitcoin(widget.utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
               value: widget.utxo.address,
@@ -1078,6 +1063,7 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
 
   bool expanded = false;
   late Map<String, dynamic> decodedUTXO;
+  Color get utxoColor => getCastColor(widget.utxo.amount);
   @override
   void initState() {
     super.initState();
@@ -1110,15 +1096,8 @@ class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
                       size: ButtonSize.small,
                       disabled: widget.utxo.amount <= zcashFee,
                     ),
-              icon: widget.utxo.confirmations >= 1
-                  ? Tooltip(
-                      message: '${widget.utxo.confirmations} confirmations',
-                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-                    )
-                  : Tooltip(
-                      message: 'Unconfirmed',
-                      child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-                    ),
+              italic: widget.utxo.confirmations <= 0,
+              color: utxoColor,
               copyable: false,
               label: '${formatBitcoin(widget.utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
               value: widget.utxo.txid,
@@ -1411,5 +1390,29 @@ class OperationHelp extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+bool isCastAmount(double amount) {
+  if (amount > 21990.2325) {
+    return false;
+  }
+
+  final satAmount = (amount * 100000000).toInt();
+  if (satAmount <= 0) return false;
+  return (satAmount & (satAmount - 1)) == 0;
+}
+
+Color getCastColor(double amount) {
+  final isCasted = isCastAmount(amount);
+
+  if (isCasted) {
+    return SailColorScheme.green;
+  } else {
+    const double maxAmount = 21000.0;
+    const double minOpacity = 0.7;
+    double opacity = (amount / maxAmount).clamp(0.0, 1.0);
+    opacity = opacity < minOpacity ? minOpacity : opacity;
+    return SailColorScheme.red.withOpacity(opacity);
   }
 }

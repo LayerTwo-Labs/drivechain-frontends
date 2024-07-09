@@ -14,7 +14,7 @@ abstract class Sidechain {
   int get rpcPort;
 
   String get ticker {
-    return 'SC$slot';
+    return '';
   }
 
   String get binary;
