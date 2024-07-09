@@ -141,15 +141,7 @@ class _UTXOViewState extends State<UTXOView> {
             },
             child: SingleValueContainer(
               width: expanded ? 95 : 70,
-              icon: widget.utxo.confirmations >= 1
-                  ? Tooltip(
-                      message: '${widget.utxo.confirmations} confirmations',
-                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-                    )
-                  : Tooltip(
-                      message: 'Unconfirmed',
-                      child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-                    ),
+              italic: widget.utxo.confirmations <= 0,
               copyable: false,
               value: extractTXTitle(widget.utxo),
               trailingText: formattedDate,
