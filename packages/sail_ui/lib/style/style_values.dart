@@ -5,13 +5,13 @@ abstract class SailStyleValues {
   static BorderRadius borderRadiusRegular = BorderRadius.circular(21);
   static BorderRadius borderRadiusButton = BorderRadius.circular(4);
 
-  static const double padding05 = 2.5;
+  static const double padding05 = 3;
   static const double padding08 = 4;
   static const double padding10 = 5;
   static const double padding12 = 6;
-  static const double padding15 = 7.5;
+  static const double padding15 = 8;
   static const double padding20 = 10;
-  static const double padding25 = 12.5;
+  static const double padding25 = 13;
   static const double padding30 = 15;
   static const double padding40 = 20;
   static const double padding50 = 25;
