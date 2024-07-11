@@ -37,6 +37,8 @@ enum SailSVGAsset {
 
   iconLightMode,
   iconDarkMode,
+
+  meltCastDiagram,
 }
 
 /// If you don't want to overwrite the color of the svg, put it in here!
@@ -151,6 +153,9 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_light_mode.svg';
       case SailSVGAsset.iconDarkMode:
         return 'assets/svgs/icon_dark_mode.svg';
+
+      case SailSVGAsset.meltCastDiagram:
+        return 'assets/pngs/meltcastdiagram.png';
     }
   }
 }
