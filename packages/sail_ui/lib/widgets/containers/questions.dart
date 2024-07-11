@@ -39,7 +39,6 @@ class QuestionContainer extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 0,
-                        withDivider: true,
                         trailingSpacing: true,
                         children: [
                           ActionHeaderChip(title: category),

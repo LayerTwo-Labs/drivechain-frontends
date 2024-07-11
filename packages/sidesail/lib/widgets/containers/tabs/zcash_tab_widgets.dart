@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/core/sail_padding.dart';
 import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
@@ -493,7 +494,12 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
 }
 
 class MeltAction extends StatelessWidget {
-  const MeltAction({super.key});
+  final bool doEverythingMode;
+
+  const MeltAction({
+    super.key,
+    required this.doEverythingMode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -501,22 +507,30 @@ class MeltAction extends StatelessWidget {
       viewModelBuilder: () => MeltActionViewModel(),
       builder: ((context, viewModel, child) {
         return DashboardActionModal(
-          'Melt UTXOs',
+          doEverythingMode ? 'Do everything for me' : 'Melt UTXOs',
           endActionButton: SailButton.primary(
-            'Execute melt',
+            'Execute melt, then cast',
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.melt(context);
+              viewModel.melt(
+                context,
+                castAfterCompletion: doEverythingMode,
+              );
             },
           ),
           children: [
+            const SailPadding(
+              child: QuestionText(
+                '"Do everything for me" will first melt all your coins, then cast them. The entire process can take up to 7 days.',
+              ),
+            ),
             const StaticActionField(
-              label: 'Shield to',
+              label: 'Melt to',
               value: 'Your Z-address',
             ),
             StaticActionField(
-              label: 'Shield from',
+              label: 'Melt from',
               value:
                   // extract address, then join on a newline
                   viewModel.meltableUTXOs.map((utxo) => utxo.address).join('\n'),
@@ -547,6 +561,7 @@ class MeltActionViewModel extends BaseViewModel {
   AppRouter get _router => GetIt.I.get<AppRouter>();
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
   ZCashProvider get _zcashProvider => GetIt.I.get<ZCashProvider>();
+  CastProvider get _castProvider => GetIt.I.get<CastProvider>();
 
   final bitcoinAmountController = TextEditingController();
 
@@ -564,13 +579,13 @@ class MeltActionViewModel extends BaseViewModel {
     bitcoinAmountController.addListener(notifyListeners);
   }
 
-  void melt(BuildContext context) async {
+  void melt(BuildContext context, {bool castAfterCompletion = false}) async {
     setBusy(true);
-    _initiateMelt(context);
+    _initiateMelt(context, castAfterCompletion: castAfterCompletion);
     setBusy(false);
   }
 
-  void _initiateMelt(BuildContext context) async {
+  void _initiateMelt(BuildContext context, {bool castAfterCompletion = false}) async {
     // Because the function is async, the view might disappear/unmount
     // by the time it's used. The linter doesn't like that, and wants
     // you to check whether the view is mounted before using it
@@ -606,6 +621,9 @@ class MeltActionViewModel extends BaseViewModel {
       );
       // also pop the info modal
       await _router.maybePop();
+      if (castAfterCompletion) {
+        _castProvider.castWhenMeltCompleted(meltAmount);
+      }
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -1404,6 +1422,7 @@ class MeltAndCastHelp extends StatelessWidget {
         const QuestionText(
           'On this page, you can "melt" and "cast" your UTXOs. The diagram below explains the process.',
         ),
+        const SailSpacing(SailStyleValues.padding20),
         Image.asset(
           SailSVGAsset.meltCastDiagram.toAssetPath(),
           package: 'sail_ui',

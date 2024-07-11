@@ -29,9 +29,15 @@ abstract class RPCConnection extends ChangeNotifier {
   Future<int> getBlockCount();
 
   bool initializingBinary = false;
+  bool _isTesting = false;
 
   Future<(bool, String?)> testConnection() async {
     try {
+      if (_isTesting) {
+        return (connected, connectionError);
+      }
+      _isTesting = true;
+
       final newBlockCount = await getBlockCount();
       connectionError = null;
       connected = true;
@@ -81,6 +87,8 @@ abstract class RPCConnection extends ChangeNotifier {
         connectionError = newError;
       }
       connected = false;
+    } finally {
+      _isTesting = false;
     }
 
     return (connected, connectionError);

@@ -80,6 +80,14 @@ class ZCashMeltCast extends StatelessWidget {
                   viewModel.meltAndCastHelp(context);
                 },
               ),
+              ActionTile(
+                title: 'Do everything for me',
+                category: Category.sidechain,
+                icon: Icons.work,
+                onTap: () {
+                  viewModel.doEverything(context);
+                },
+              ),
               SailRow(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,7 +283,9 @@ class ZCashMeltCastViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const MeltAction();
+        return const MeltAction(
+          doEverythingMode: false,
+        );
       },
     );
   }
@@ -330,6 +340,17 @@ class ZCashMeltCastViewModel extends BaseViewModel {
       context: context,
       builder: (BuildContext context) {
         return const MeltAndCastHelp();
+      },
+    );
+  }
+
+  Future<void> doEverything(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const MeltAction(
+          doEverythingMode: true,
+        );
       },
     );
   }

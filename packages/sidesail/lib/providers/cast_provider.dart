@@ -99,6 +99,8 @@ class CastProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   double get castFee => _zcashProvider.sideFee * _rpc.numUTXOsPerCast;
 
+  double autoMeltUTXOsOfSize = 0.0;
+
   List<PendingCastBill> futureCasts = List.filled(
     maxCastFactor + 1,
     PendingCastBill(
@@ -119,6 +121,34 @@ class CastProvider extends ChangeNotifier {
       );
 
       futureCasts[i] = newBundle;
+    }
+
+    _zcashProvider.addListener(_checkAutoMelt);
+  }
+
+  void _checkAutoMelt() {
+    final privateUTXOs = _zcashProvider.privateTransactions;
+
+    for (final utxo in privateUTXOs) {
+      if (utxo.amount == 0) {
+        continue;
+      }
+
+      if (utxo.confirmations >= 1 && utxo.amount == autoMeltUTXOsOfSize) {
+        // the user is in auto mode, and their melted utxos finally
+        // got confirmed, we should cast it!
+
+        final bills = findBillsForAmount(utxo);
+        if (bills == null) {
+          // too small or iconsequential to be casted
+          autoMeltUTXOsOfSize = 0.0;
+          continue;
+        }
+
+        addPendingUTXO(bills, utxo: utxo);
+        // reset, so newer utxos are not casted
+        autoMeltUTXOsOfSize = 0.0;
+      }
     }
   }
 
@@ -144,6 +174,10 @@ class CastProvider extends ChangeNotifier {
     } catch (error) {
       log.e('could not cast ${error.toString()}');
     }
+  }
+
+  void castWhenMeltCompleted(double meltAmount) {
+    autoMeltUTXOsOfSize = meltAmount;
   }
 
   List<PendingDeshield>? findBillsForAmount(ShieldedUTXO utxo) {
