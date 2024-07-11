@@ -29,3 +29,4 @@ dev_dependencies:
 flutter:
     assets:
         - assets/svgs/
+        - assets/pngs/

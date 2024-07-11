@@ -136,7 +136,9 @@ class ZCashShieldTabViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const MeltAction();
+        return const MeltAction(
+          doEverythingMode: false,
+        );
       },
     );
   }
