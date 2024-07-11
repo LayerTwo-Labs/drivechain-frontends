@@ -115,7 +115,7 @@ class SailButton extends StatelessWidget {
           loading: loading,
           padding: const EdgeInsets.symmetric(
             vertical: SailStyleValues.padding08,
-            horizontal: SailStyleValues.padding15,
+            horizontal: SailStyleValues.padding20,
           ),
           child: child,
         );
