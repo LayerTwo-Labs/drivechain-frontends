@@ -1398,50 +1398,58 @@ class MeltAndCastHelp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const QuestionContainer(
+    return QuestionContainer(
       category: 'What\'s going on?',
       children: [
-        QuestionText(
-          'On this page, you can "melt" and "cast" your UTXOs. Read on for further explanation on what that is.',
+        const QuestionText(
+          'On this page, you can "melt" and "cast" your UTXOs. The diagram below explains the process.',
         ),
-        QuestionTitle('What is casting?'),
-        QuestionText('Casting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.'),
-        QuestionText(
+        Image.asset(
+          SailSVGAsset.meltCastDiagram.toAssetPath(),
+          package: 'sail_ui',
+          width: MediaQuery.of(context).size.width,
+          fit: BoxFit.contain,
+        ),
+        const QuestionTitle('What is casting?'),
+        const QuestionText(
+          'Casting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.',
+        ),
+        const QuestionText(
           'Casting lets you deshield your coins in predefined amounts, at predefined times. The amounts are the same as everyone else that uses zSide, making it impossible to match your inputs&outputs when moving coins from shielded to non-shielded.',
         ),
-        QuestionText(
+        const QuestionText(
           'The amounts are powers of two, starting at 1, e.g: 0.00000001 BTC, 0.00000002 BTC, 0.00000004 BTC, 0.00000008 BTC etc.',
         ),
-        QuestionText(
+        const QuestionText(
           'For example, 0.75 BTC will be withdrawn in 4 UTXOs. 1x0.67108864 BTC, 1x0.04194304 BTC, 1x0.02097152 BTC and 1x0.01048576 BTC. That sums to 0.74448896 BTC, which is 99.26% of 0.75 BTC.',
         ),
-        QuestionText(
+        const QuestionText(
           'The residual 0.00551104 BTC will stay un-withdrawn, in your z-address on the sidechain, to be withdrawn later.',
         ),
-        QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
-        QuestionTitle('What is melting?'),
-        QuestionText(
+        const QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
+        const QuestionTitle('What is melting?'),
+        const QuestionText(
           'Melting shields your transparent UTXOs, but does it in a way to preserve your privacy.',
         ),
-        QuestionText(
+        const QuestionText(
           'It does this by making sure there is no change when you shield coins to your z-address.',
         ),
-        QuestionText(
+        const QuestionText(
           'Just like cast, melting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.',
         ),
-        QuestionText(
+        const QuestionText(
           'You can melt per-UTXO, or all UTXOs at once. Both strategies makes sure to spend the full amount of the UTXO, leaving you with no change, or dust.',
         ),
-        QuestionText(
+        const QuestionText(
           'Together with cast, it\'s a great way to anonymize your coins.',
         ),
-        QuestionText(
+        const QuestionText(
           'When melting all your coins, you set the max time that you want the melt to take. The application automatically selects a timeout per UTXO, and makes sure to shield at that specific time. This furthers your privacy by not pegging you to a specific timezone.',
         ),
-        QuestionText(
+        const QuestionText(
           'Because this version uses test money, the melting frequency is much faster than in a real-world scenario. Here, it takes minutes, while with real money it would take days.',
         ),
-        QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
+        const QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
       ],
     );
   }
