@@ -15,7 +15,7 @@ dependencies:
     flutter_platform_alert: ^0.5.1
     intl: ^0.19.0
     crypto: ^3.0.3
-    logger: ^2.3.0
+    logger: ^2.4.0
     shared_preferences: ^2.2.3
     auto_route: ^8.2.0
     get_it: ^7.7.0
