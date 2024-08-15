@@ -1,4 +1,4 @@
-module github.com/LayerTwo-Labs/sidesail/drivechain-frontend
+module github.com/LayerTwo-Labs/sidesail/drivechain-server
 
 go 1.22.4
 

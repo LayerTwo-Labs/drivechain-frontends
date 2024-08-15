@@ -1,3 +1,19 @@
+Server application for providing APIs to a Drivechain frontend.
+
+Dependencies:
+
+1.  [`just`](https://just.systems/man/en/chapter_4.html?highlight=brew#packages)
+1.  [Go](https://go.dev/doc/install)
+1.  [Rust via `rustup`](https://rustup.rs/)
+
+Building and running:
+
+```bash
+$ just install-bdk-cli
+$ just build
+$ ./drivechain-server
+```
+
 # Architecture
 
 ```mermaid
