@@ -41,7 +41,10 @@ func main() {
 	r.HandleFunc("/listclaims", faucet.listClaims).Methods("GET")
 
 	http.Handle("/", corsMiddleware(r))
-	http.ListenAndServe(":8080", nil)
+
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("unable to serve HTTP: %s", err)
+	}
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -91,7 +94,11 @@ func NewFaucet(sender *drivechaind.Client) *Faucet {
 		totalDispensed: 0,
 	}
 
-	go faucet.resetHandler()
+	go func() {
+		if err := faucet.resetHandler(); err != nil {
+			log.Printf("unable to reset faucet handler: %s", err)
+		}
+	}()
 
 	return faucet
 }
@@ -115,7 +122,7 @@ func (f *Faucet) resetHandler() error {
 		case <-connectionTicker.C:
 			height, err := f.sender.Ping()
 			if err != nil {
-				fmt.Errorf("could not ping sender: %w", err)
+				return fmt.Errorf("could not ping sender: %w", err)
 			}
 			log.Println("client ping: still connected at height", height)
 		}
@@ -217,7 +224,6 @@ func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
 		f.totalDispensed -= CoinsPerRequest
 
 		err := fmt.Sprintf("could not dispense coins: %s", err)
-		fmt.Println(err)
 
 		writeError(w, err, http.StatusBadRequest)
 		return
@@ -229,7 +235,7 @@ func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
 		"txid": txid.String(),
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 func (f *Faucet) listClaims(w http.ResponseWriter, r *http.Request) {
