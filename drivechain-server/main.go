@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/drivechain-frontend/bdk"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
 	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"

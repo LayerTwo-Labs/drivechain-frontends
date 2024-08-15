@@ -1,0 +1,11 @@
+build:
+    go build -o drivechain-server .
+
+lint: 
+    golangci-lint run .
+
+install-bdk-cli:
+    cargo install \
+        --git https://github.com/bitcoindevkit/bdk-cli \
+        --no-default-features \
+        --features=key-value-db,compiler,electrum  
