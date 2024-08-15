@@ -2,4 +2,4 @@ build:
     go build -o faucet-backend .
 
 lint: 
-    golangci-lint run .
+    golangci-lint run ./...
