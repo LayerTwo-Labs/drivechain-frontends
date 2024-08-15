@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcjson"
@@ -36,10 +37,10 @@ func NewClient(host, user, password string) (*Client, error) {
 	// test connection by getting the block count
 	count, err := client.GetBlockCount()
 	if err != nil {
-		fmt.Errorf("get block count: %v", err)
+		return nil, fmt.Errorf("get block count: %v", err)
 	}
 
-	fmt.Printf("successfully connected, at height: %d\n", count)
+	log.Printf("successfully connected, at height: %d", count)
 
 	return &Client{
 		client: client,
@@ -84,12 +85,9 @@ func (c *Client) SendCoins(destination string, amount btcutil.Amount, transferTy
 
 		var ress []byte
 		if err := res.UnmarshalJSON(ress); err != nil {
-			return nil, fmt.Errorf("unmarshel sidechaindeposit: %w", err)
+			return nil, fmt.Errorf("unmarshal sidechaindeposit: %w", err)
 		}
 
-		if err != nil {
-		}
-		fmt.Println("createsidechaindeposit:", string(ress))
 		return chainhash.NewHashFromStr(string(ress))
 	}
 

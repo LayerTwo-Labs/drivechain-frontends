@@ -2,7 +2,7 @@ build:
     go build -o drivechain-server .
 
 lint: 
-    golangci-lint run .
+    golangci-lint run ./...
 
 install-bdk-cli:
     cargo install \
