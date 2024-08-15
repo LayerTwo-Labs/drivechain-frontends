@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package drivechain.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service DrivechainService {
+  rpc ListTransactions(google.protobuf.Empty) returns (ListTransactionsResponse);
+}
+
+message ListTransactionsResponse {
+  repeated Transaction transactions = 1;
+}
+
+message Confirmation {
+  uint32 height = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+message Transaction {
+  string txid = 1;
+
+  uint64 fee_satoshi = 2;
+  uint64 received_satoshi = 3;
+  uint64 sent_satoshi = 4;
+
+  Confirmation confirmation_time = 5;
+}

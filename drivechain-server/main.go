@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -11,10 +12,13 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
+	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/server"
 	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 func main() {
@@ -94,34 +98,39 @@ func realMain(ctx context.Context) error {
 		}
 	}()
 
-	created, err := wallet.CreateTransaction(ctx, map[string]btcutil.Amount{
-		"tb1qacfxjrngh2s2qavh0s8q9w272ze77daq4a6nef": 1000,
-	}, 20)
-	if err != nil {
-		return err
+	mux := http.NewServeMux()
+	path, handler := rpc.NewDrivechainServiceHandler(server.New(&wallet))
+
+	mux.Handle(path, handler)
+
+	const address = "localhost:8080"
+	zerolog.Ctx(ctx).Info().Msgf("server: listening on %s", address)
+
+	httpServer := http.Server{
+		Addr: address,
+		// Use h2c so we can serve HTTP/2 without TLS.
+		Handler: h2c.NewHandler(mux, &http2.Server{}),
 	}
 
-	signed, err := wallet.SignTransaction(ctx, created)
-	if err != nil {
-		return err
-	}
+	errs := make(chan error)
+	go func() {
+		errs <- httpServer.ListenAndServe()
+	}()
+	go func() {
+		<-ctx.Done()
 
-	txid, err := wallet.BroadcastTransaction(ctx, signed)
-	if err != nil {
-		return err
-	}
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second*1)
+		defer cancel()
 
-	zerolog.Ctx(ctx).Info().Msgf("sent transaction: %s", txid)
+		if err := httpServer.Shutdown(ctx); err != nil {
+			errs <- fmt.Errorf("shutdown HTTP server: %w", err)
+			return
+		}
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
+		errs <- nil
+	}()
 
-	case <-time.After(time.Hour):
-
-	}
-
-	return nil
+	return <-errs
 }
 
 func startCoreProxy(ctx context.Context) (*coreproxy.Bitcoind, error) {

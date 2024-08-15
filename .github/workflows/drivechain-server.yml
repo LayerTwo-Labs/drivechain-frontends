@@ -9,6 +9,18 @@ defaults:
     working-directory: drivechain-server
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-setup-action@v1.36.0
+      - uses: bufbuild/buf-lint-action@v1.1.1
+        with:
+          input: drivechain-server
+
+      - name: verify Proto files are formatted correctly
+        run: buf format --exit-code proto
+
   go-lint:
     name: go-lint
     runs-on: ubuntu-latest
