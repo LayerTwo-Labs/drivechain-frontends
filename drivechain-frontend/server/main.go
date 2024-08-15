@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/drivechain-frontend/bdk"
@@ -78,6 +79,25 @@ func realMain(ctx context.Context) error {
 			initialBalance = balance
 		}
 	}()
+
+	created, err := wallet.CreateTransaction(ctx, map[string]btcutil.Amount{
+		"tb1qacfxjrngh2s2qavh0s8q9w272ze77daq4a6nef": 1000,
+	}, 20)
+	if err != nil {
+		return err
+	}
+
+	signed, err := wallet.SignTransaction(ctx, created)
+	if err != nil {
+		return err
+	}
+
+	txid, err := wallet.BroadcastTransaction(ctx, signed)
+	if err != nil {
+		return err
+	}
+
+	zerolog.Ctx(ctx).Info().Msgf("sent transaction: %s", txid)
 
 	select {
 	case <-ctx.Done():
