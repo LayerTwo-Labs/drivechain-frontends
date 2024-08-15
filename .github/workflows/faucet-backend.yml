@@ -1,0 +1,39 @@
+name: Faucet backend
+
+on:
+  pull_request:
+    branches: [master]
+
+defaults:
+  run:
+    working-directory: faucet-backend
+
+jobs:
+  go-lint:
+    name: go-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: faucet-backend
+          version: latest
+
+  go-build:
+    name: go-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: extractions/setup-just@v1
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - run: just build
