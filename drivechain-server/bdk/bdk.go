@@ -172,6 +172,20 @@ func (w *Wallet) BroadcastTransaction(ctx context.Context, psbt string) (string,
 	return gjson.GetBytes(res, "txid").String(), nil
 }
 
+func (w *Wallet) ListTransactions(ctx context.Context) ([]Transaction, error) {
+	res, err := w.exec(ctx, "--verbose", "list_transactions")
+	if err != nil {
+		return nil, err
+	}
+
+	var txs []Transaction
+	if err := json.Unmarshal(res, &txs); err != nil {
+		return nil, err
+	}
+
+	return txs, nil
+}
+
 type transactionDetails struct {
 	TXID string `json:"txid"`
 }
@@ -180,4 +194,15 @@ type transactionResult struct {
 	IsFinalized bool                `json:"is_finalized"`
 	Details     *transactionDetails `json:"details"` // present in create_tx, not sign?
 	PSBT        string              `json:"psbt"`
+}
+
+type Transaction struct {
+	ConfirmationTime *struct {
+		Height    int `json:"height"`
+		Timestamp int `json:"timestamp"`
+	} `json:"confirmation_time"`
+	Fee      btcutil.Amount `json:"fee"`
+	Received btcutil.Amount `json:"received"`
+	Sent     btcutil.Amount `json:"sent"`
+	TXID     string         `json:"txid"`
 }
