@@ -35,10 +35,12 @@ Blockstream at `electrum.blockstream.info:60002`. Code for this is in
 
 Further validations that need to happen before we're confident that this works:
 
+1. ~~Verify we're able to send. This shouldn't be too hard, just haven't gotten
+   around to it.~~
 1. Verify we're able to connect to our own signet network (this needs to be
    created!). Will `bdk-cli` crash if the signet network has other parameters?
-1. Verify we're able to modify `btc-buf` to run in-memory. Should be easy
-   enough. If not, we'll just use `rpcclient` from `btcd`.
+1. ~~Verify we're able to modify `btc-buf` to run in-memory. Should be easy
+   enough. If not, we'll just use `rpcclient` from `btcd`.~~
 
 # Dependencies:
 
