@@ -24,7 +24,7 @@ graph TD;
     B -.->|Shells out to| E[bdk-cli];
 ```
 
-- All wallet functionality is handled by `btc-cli`
+- All wallet functionality is handled by `bdk-cli`
 - Bitcoin Core is strictly used for reading chain data. Wallet is entirely
   untouched
 
