@@ -35,17 +35,8 @@ class PegOutAction extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => PegOutViewModel(staticAddress: staticAddress),
       builder: ((context, viewModel, child) {
-        return DashboardActionModal(
-          'Withdraw to parent chain',
-          endActionButton: SailButton.primary(
-            'Execute withdraw',
-            disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
-            loading: viewModel.isBusy,
-            size: ButtonSize.regular,
-            onPressed: () async {
-              viewModel.executePegOut(context);
-            },
-          ),
+        return SailColumn(
+          spacing: 0,
           children: [
             LargeEmbeddedInput(
               controller: viewModel.bitcoinAddressController,
@@ -70,6 +61,16 @@ class PegOutAction extends StatelessWidget {
             StaticActionField(
               label: 'Total amount',
               value: '${viewModel.totalBitcoinAmount} BTC',
+            ),
+            SailButton.primary(
+              'Execute withdraw',
+              disabled:
+                  viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
+              loading: viewModel.isBusy,
+              size: ButtonSize.regular,
+              onPressed: () async {
+                viewModel.executePegOut(context);
+              },
             ),
           ],
         );
@@ -208,8 +209,6 @@ class PegOutViewModel extends BaseViewModel {
         title: 'Submitted withdraw successfully',
         subtitle: 'TXID: $withdrawalTxid',
       );
-      // also pop the info modal
-      await _router.maybePop();
     } catch (error) {
       log.e('could not execute withdraw: $error', error: error);
 
@@ -235,21 +234,21 @@ class PegInAction extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => PegInViewModel(),
       builder: ((context, viewModel, child) {
-        return DashboardActionModal(
-          'Deposit from parent chain',
-          endActionButton: SailButton.primary(
-            'Generate new address',
-            loading: viewModel.isBusy,
-            size: ButtonSize.regular,
-            onPressed: () async {
-              await viewModel.generatePegInAddress();
-            },
-          ),
+        return SailColumn(
+          spacing: SailStyleValues.padding10,
           children: [
             StaticActionField(
               label: 'Address',
               value: viewModel.pegInAddress ?? '',
               copyable: true,
+            ),
+            SailButton.primary(
+              'Generate new address',
+              loading: viewModel.isBusy,
+              size: ButtonSize.regular,
+              onPressed: () async {
+                await viewModel.generatePegInAddress();
+              },
             ),
           ],
         );

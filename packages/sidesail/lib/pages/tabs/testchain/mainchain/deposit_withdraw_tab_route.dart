@@ -36,25 +36,20 @@ class DepositWithdrawTabPage extends StatelessWidget {
                     spacing: SailStyleValues.padding30,
                     children: [
                       DashboardGroup(
-                        title: 'Actions',
+                        title: 'Deposit from parent chain',
                         widgetEnd: HelpButton(onPressed: () => viewModel.castHelp(context)),
                         children: [
-                          ActionTile(
-                            title: 'Deposit from parent chain',
-                            category: Category.mainchain,
-                            icon: Icons.add,
-                            onTap: () {
-                              viewModel.pegIn(context);
-                            },
-                          ),
-                          ActionTile(
-                            title: 'Withdraw to parent chain',
-                            category: Category.mainchain,
-                            icon: Icons.remove,
-                            onTap: () {
-                              viewModel.pegOut(context);
-                            },
-                          ),
+                          if (viewModel._sidechain.rpc.chain.type == SidechainType.ethereum)
+                            const PegInEthAction()
+                          else
+                            const PegInAction(),
+                        ],
+                      ),
+                      DashboardGroup(
+                        title: 'Withdraw to parent chain',
+                        widgetEnd: HelpButton(onPressed: () => viewModel.castHelp(context)),
+                        children: [
+                          const PegOutAction(),
                           if (viewModel.localNetwork)
                             ActionTile(
                               title: 'Connect sidechain with parent chain',

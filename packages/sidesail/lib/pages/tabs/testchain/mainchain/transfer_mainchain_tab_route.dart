@@ -300,8 +300,6 @@ class SendViewModel extends BaseViewModel {
         title: 'You sent $amount BTC to $address',
         subtitle: 'TXID: $sendTXID',
       );
-      // also pop the info modal
-      await _router.maybePop();
     } catch (error) {
       if (!context.mounted) {
         return;
