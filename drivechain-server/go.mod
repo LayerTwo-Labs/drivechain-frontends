@@ -4,15 +4,17 @@ go 1.22.4
 
 // This must be synced by what's in https://github.com/barebitcoin/btc-buf/blob/master/go.mod
 // Obvs not ideal! Better to establish a full on fork?
-replace github.com/btcsuite/btcd => github.com/barebitcoin/btcd v0.23.5-0.20240801062541-540ec1572b9c
+replace github.com/btcsuite/btcd => github.com/barebitcoin/btcd v0.23.5-0.20240817180753-3e09d68ba0dd
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240801112221-edee829f64ff
+	github.com/barebitcoin/btc-buf v0.0.0-20240817181009-ae466e0169f7
 	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/rs/zerolog v1.33.0
 	github.com/samber/lo v1.47.0
 	github.com/tidwall/gjson v1.17.3
+	golang.org/x/net v0.23.0
+	google.golang.org/protobuf v1.34.1
 )
 
 require (
@@ -34,8 +36,6 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
-	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
-	google.golang.org/protobuf v1.34.1 // indirect
 )

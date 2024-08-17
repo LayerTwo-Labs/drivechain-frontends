@@ -99,7 +99,7 @@ func realMain(ctx context.Context) error {
 	}()
 
 	mux := http.NewServeMux()
-	path, handler := rpc.NewDrivechainServiceHandler(server.New(&wallet))
+	path, handler := rpc.NewDrivechainServiceHandler(server.New(&wallet, proxy))
 
 	mux.Handle(path, handler)
 

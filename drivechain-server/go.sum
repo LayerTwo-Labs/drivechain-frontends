@@ -5,10 +5,10 @@ connectrpc.com/grpchealth v1.3.0/go.mod h1:3vpqmX25/ir0gVgW6RdnCPPZRcR6HvqtXX5RN
 connectrpc.com/grpcreflect v1.2.0 h1:Q6og1S7HinmtbEuBvARLNwYmTbhEGRpHDhqrPNlmK+U=
 connectrpc.com/grpcreflect v1.2.0/go.mod h1:nwSOKmE8nU5u/CidgHtPYk1PFI3U9ignz7iDMxOYkSY=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
-github.com/barebitcoin/btc-buf v0.0.0-20240801112221-edee829f64ff h1:kf7cX601s//IPbJAId0up4p2fVwbjYFHyAM20lF1JgU=
-github.com/barebitcoin/btc-buf v0.0.0-20240801112221-edee829f64ff/go.mod h1:5SEFNOkwGwKByEuaton6oJwJ3fNpJle9kiI6RJuS6Jg=
-github.com/barebitcoin/btcd v0.23.5-0.20240801062541-540ec1572b9c h1:iy8YRWso+FHqsJufUINYkwxDE0jCjbFmoCLF+xAIdyk=
-github.com/barebitcoin/btcd v0.23.5-0.20240801062541-540ec1572b9c/go.mod h1:KOxHr/Iw2H6MSwkBcgpbVk1+bTNVqSswDmQubAo6Www=
+github.com/barebitcoin/btc-buf v0.0.0-20240817181009-ae466e0169f7 h1:xw8dGWiKLPUCQ6UKywXl4sLjoiD7s1A04lsTAK4x2Do=
+github.com/barebitcoin/btc-buf v0.0.0-20240817181009-ae466e0169f7/go.mod h1:Jjk496ST0ZrZr2LnFIeWMM5VxRPAcpl3BVc9XG0iGxs=
+github.com/barebitcoin/btcd v0.23.5-0.20240817180753-3e09d68ba0dd h1:K2VBXza+/Tw+vSN1H5k5d8sI3+bH8pqWe+t7CiE1TRA=
+github.com/barebitcoin/btcd v0.23.5-0.20240817180753-3e09d68ba0dd/go.mod h1:KOxHr/Iw2H6MSwkBcgpbVk1+bTNVqSswDmQubAo6Www=
 github.com/btcsuite/btcd/btcec/v2 v2.1.3/go.mod h1:ctjw4H1kknNJmRN4iP1R7bTQ+v3GJkZBd6mui8ZsAZE=
 github.com/btcsuite/btcd/btcec/v2 v2.3.2 h1:5n0X6hX0Zk+6omWcihdYvdAlGf2DfasC0GMf7DClJ3U=
 github.com/btcsuite/btcd/btcec/v2 v2.3.2/go.mod h1:zYzJ8etWJQIv1Ogk7OzpWjowwOdXY1W/17j2MW85J04=
