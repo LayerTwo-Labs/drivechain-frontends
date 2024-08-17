@@ -380,8 +380,6 @@ class PegInEthViewModel extends BaseViewModel {
         title: 'Deposited from parent-chain successfully',
         subtitle: '',
       );
-      // also pop the info modal
-      await _router.maybePop();
     } catch (error) {
       log.e('could not execute withdraw: $error', error: error);
 
