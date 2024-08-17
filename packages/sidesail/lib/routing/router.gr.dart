@@ -9,121 +9,6 @@
 
 part of 'router.dart';
 
-abstract class _$AppRouter extends RootStackRouter {
-  // ignore: unused_element
-  _$AppRouter({super.navigatorKey});
-
-  @override
-  final Map<String, PageFactory> pagesMap = {
-    BlindMergedMiningTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const BlindMergedMiningTabPage(),
-      );
-    },
-    DepositWithdrawTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const DepositWithdrawTabPage(),
-      );
-    },
-    EthereumRPCTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const EthereumRPCTabPage(),
-      );
-    },
-    HomeRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const HomePage(),
-      );
-    },
-    SailTestRoute.name: (routeData) {
-      final args = routeData.argsAs<SailTestRouteArgs>();
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: SailTestPage(
-          key: args.key,
-          child: args.child,
-        ),
-      );
-    },
-    SettingsTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const SettingsTabPage(),
-      );
-    },
-    SidechainExplorerTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const SidechainExplorerTabPage(),
-      );
-    },
-    SidechainSendRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const SidechainSendPage(),
-      );
-    },
-    TestchainRPCTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const TestchainRPCTabPage(),
-      );
-    },
-    TransferMainchainTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const TransferMainchainTabPage(),
-      );
-    },
-    WithdrawalExplorerTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const WithdrawalExplorerTabPage(),
-      );
-    },
-    ZCashBillRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const ZCashBillPage(),
-      );
-    },
-    ZCashMeltCastTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const ZCashMeltCastTabPage(),
-      );
-    },
-    ZCashOperationStatusesTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const ZCashOperationStatusesTabPage(),
-      );
-    },
-    ZCashRPCTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const ZCashRPCTabPage(),
-      );
-    },
-    ZCashShieldDeshieldTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const ZCashShieldDeshieldTabPage(),
-      );
-    },
-    ZCashTransferTabRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const ZCashTransferTabPage(),
-      );
-    },
-  };
-}
-
 /// generated route for
 /// [BlindMergedMiningTabPage]
 class BlindMergedMiningTabRoute extends PageRouteInfo<void> {
@@ -135,7 +20,12 @@ class BlindMergedMiningTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'BlindMergedMiningTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BlindMergedMiningTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -149,7 +39,12 @@ class DepositWithdrawTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'DepositWithdrawTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const DepositWithdrawTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -163,7 +58,12 @@ class EthereumRPCTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'EthereumRPCTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const EthereumRPCTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -177,7 +77,12 @@ class HomeRoute extends PageRouteInfo<void> {
 
   static const String name = 'HomeRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const HomePage();
+    },
+  );
 }
 
 /// generated route for
@@ -198,7 +103,16 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
 
   static const String name = 'SailTestRoute';
 
-  static const PageInfo<SailTestRouteArgs> page = PageInfo<SailTestRouteArgs>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<SailTestRouteArgs>();
+      return SailTestPage(
+        key: args.key,
+        child: args.child,
+      );
+    },
+  );
 }
 
 class SailTestRouteArgs {
@@ -228,7 +142,12 @@ class SettingsTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'SettingsTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const SettingsTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -242,7 +161,12 @@ class SidechainExplorerTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'SidechainExplorerTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const SidechainExplorerTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -256,7 +180,12 @@ class SidechainSendRoute extends PageRouteInfo<void> {
 
   static const String name = 'SidechainSendRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const SidechainSendPage();
+    },
+  );
 }
 
 /// generated route for
@@ -270,7 +199,12 @@ class TestchainRPCTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'TestchainRPCTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const TestchainRPCTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -284,7 +218,12 @@ class TransferMainchainTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'TransferMainchainTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const TransferMainchainTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -298,7 +237,12 @@ class WithdrawalExplorerTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'WithdrawalExplorerTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const WithdrawalExplorerTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -312,7 +256,12 @@ class ZCashBillRoute extends PageRouteInfo<void> {
 
   static const String name = 'ZCashBillRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ZCashBillPage();
+    },
+  );
 }
 
 /// generated route for
@@ -326,7 +275,12 @@ class ZCashMeltCastTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'ZCashMeltCastTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ZCashMeltCastTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -340,7 +294,12 @@ class ZCashOperationStatusesTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'ZCashOperationStatusesTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ZCashOperationStatusesTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -354,7 +313,12 @@ class ZCashRPCTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'ZCashRPCTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ZCashRPCTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -368,7 +332,12 @@ class ZCashShieldDeshieldTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'ZCashShieldDeshieldTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ZCashShieldDeshieldTabPage();
+    },
+  );
 }
 
 /// generated route for
@@ -382,5 +351,10 @@ class ZCashTransferTabRoute extends PageRouteInfo<void> {
 
   static const String name = 'ZCashTransferTabRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ZCashTransferTabPage();
+    },
+  );
 }
