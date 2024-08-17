@@ -37,17 +37,24 @@ const (
 	// DrivechainServiceListTransactionsProcedure is the fully-qualified name of the DrivechainService's
 	// ListTransactions RPC.
 	DrivechainServiceListTransactionsProcedure = "/drivechain.v1.DrivechainService/ListTransactions"
+	// DrivechainServiceListUnconfirmedTransactionsProcedure is the fully-qualified name of the
+	// DrivechainService's ListUnconfirmedTransactions RPC.
+	DrivechainServiceListUnconfirmedTransactionsProcedure = "/drivechain.v1.DrivechainService/ListUnconfirmedTransactions"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	drivechainServiceServiceDescriptor                = v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService")
-	drivechainServiceListTransactionsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListTransactions")
+	drivechainServiceServiceDescriptor                           = v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService")
+	drivechainServiceListTransactionsMethodDescriptor            = drivechainServiceServiceDescriptor.Methods().ByName("ListTransactions")
+	drivechainServiceListUnconfirmedTransactionsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListUnconfirmedTransactions")
 )
 
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
 type DrivechainServiceClient interface {
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
+	// The "latest transactions" list in the first tab of Drivechain-QT is actually
+	// a list of unconfirmed transactions!
+	ListUnconfirmedTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
 }
 
 // NewDrivechainServiceClient constructs a client for the drivechain.v1.DrivechainService service.
@@ -66,12 +73,19 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(drivechainServiceListTransactionsMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		listUnconfirmedTransactions: connect.NewClient[emptypb.Empty, v1.ListUnconfirmedTransactionsResponse](
+			httpClient,
+			baseURL+DrivechainServiceListUnconfirmedTransactionsProcedure,
+			connect.WithSchema(drivechainServiceListUnconfirmedTransactionsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // drivechainServiceClient implements DrivechainServiceClient.
 type drivechainServiceClient struct {
-	listTransactions *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
+	listTransactions            *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
+	listUnconfirmedTransactions *connect.Client[emptypb.Empty, v1.ListUnconfirmedTransactionsResponse]
 }
 
 // ListTransactions calls drivechain.v1.DrivechainService.ListTransactions.
@@ -79,9 +93,17 @@ func (c *drivechainServiceClient) ListTransactions(ctx context.Context, req *con
 	return c.listTransactions.CallUnary(ctx, req)
 }
 
+// ListUnconfirmedTransactions calls drivechain.v1.DrivechainService.ListUnconfirmedTransactions.
+func (c *drivechainServiceClient) ListUnconfirmedTransactions(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error) {
+	return c.listUnconfirmedTransactions.CallUnary(ctx, req)
+}
+
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
+	// The "latest transactions" list in the first tab of Drivechain-QT is actually
+	// a list of unconfirmed transactions!
+	ListUnconfirmedTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
 }
 
 // NewDrivechainServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -96,10 +118,18 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 		connect.WithSchema(drivechainServiceListTransactionsMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	drivechainServiceListUnconfirmedTransactionsHandler := connect.NewUnaryHandler(
+		DrivechainServiceListUnconfirmedTransactionsProcedure,
+		svc.ListUnconfirmedTransactions,
+		connect.WithSchema(drivechainServiceListUnconfirmedTransactionsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DrivechainServiceListTransactionsProcedure:
 			drivechainServiceListTransactionsHandler.ServeHTTP(w, r)
+		case DrivechainServiceListUnconfirmedTransactionsProcedure:
+			drivechainServiceListUnconfirmedTransactionsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -111,4 +141,8 @@ type UnimplementedDrivechainServiceHandler struct{}
 
 func (UnimplementedDrivechainServiceHandler) ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListTransactions is not implemented"))
+}
+
+func (UnimplementedDrivechainServiceHandler) ListUnconfirmedTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListUnconfirmedTransactions is not implemented"))
 }
