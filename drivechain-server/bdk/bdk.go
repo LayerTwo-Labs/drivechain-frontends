@@ -87,13 +87,24 @@ func (w *Wallet) Sync(ctx context.Context) error {
 	return err
 }
 
-func (w *Wallet) GetNewAddress(ctx context.Context) (string, error) {
-	res, err := w.exec(ctx, "get_new_address")
+// GetNewAddress returns a new unused address from the wallet, as well as
+// the index of this address in the wallet descriptor.
+func (w *Wallet) GetNewAddress(ctx context.Context) (string, uint, error) {
+	// Must include the verbose flag to get the index.
+	res, err := w.exec(ctx, "--verbose", "get_new_address")
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return gjson.GetBytes(res, "address").String(), nil
+	var parsed struct {
+		Address string `json:"address"`
+		Index   uint   `json:"index"`
+	}
+
+	if err := json.Unmarshal(res, &parsed); err != nil {
+		return "", 0, err
+	}
+	return parsed.Address, parsed.Index, nil
 }
 
 type Balance struct {
