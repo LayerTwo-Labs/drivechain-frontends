@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/btcutil"
@@ -17,6 +18,9 @@ import (
 )
 
 type Wallet struct {
+	// Ensures only a single access to BDK can happen at the same time
+	mu sync.Mutex
+
 	Descriptor string
 	Network    string
 	Datadir    string
@@ -24,6 +28,9 @@ type Wallet struct {
 }
 
 func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	start := time.Now()
 
 	fullArgs := slices.Concat([]string{
