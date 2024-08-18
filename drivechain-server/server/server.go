@@ -3,6 +3,7 @@ package server
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -13,6 +14,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -28,6 +30,82 @@ func New(wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind) *Server {
 type Server struct {
 	wallet   *bdk.Wallet
 	bitcoind *coreproxy.Bitcoind
+}
+
+// SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
+	if len(c.Msg.Destinations) == 0 {
+		err := errors.New("must provide at least one destination")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if c.Msg.SatoshiPerVbyte < 0 {
+		err := errors.New("fee rate cannot be negative")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	log := zerolog.Ctx(ctx)
+
+	if c.Msg.SatoshiPerVbyte == 0 {
+		log.Debug().Msgf("send tx: received no fee rate, querying bitcoin core")
+
+		estimate, err := s.bitcoind.EstimateSmartFee(ctx, connect.NewRequest(&corepb.EstimateSmartFeeRequest{
+			ConfTarget:   2,
+			EstimateMode: corepb.EstimateSmartFeeRequest_ESTIMATE_MODE_ECONOMICAL,
+		}))
+		if err != nil {
+			return nil, err
+		}
+
+		btcPerKb, err := btcutil.NewAmount(estimate.Msg.FeeRate)
+		if err != nil {
+			return nil, err
+		}
+
+		btcPerByte := btcPerKb / 1000
+		c.Msg.SatoshiPerVbyte = btcPerByte.ToUnit(btcutil.AmountSatoshi)
+
+		log.Info().Msgf("send tx: determined fee rate: %f", c.Msg.SatoshiPerVbyte)
+	}
+
+	destinations := make(map[string]btcutil.Amount)
+	for address, amount := range c.Msg.Destinations {
+		const dustLimit = 546
+		if amount < dustLimit {
+			err := fmt.Errorf(
+				"amount to %s is below dust limit (%s): %s",
+				address, btcutil.Amount(dustLimit), btcutil.Amount(amount),
+			)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		destinations[address] = btcutil.Amount(amount)
+	}
+
+	created, err := s.wallet.CreateTransaction(ctx, destinations, c.Msg.SatoshiPerVbyte)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info().Msg("send tx: created transaction")
+
+	signed, err := s.wallet.SignTransaction(ctx, created)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info().Msg("send tx: signed transaction")
+
+	txid, err := s.wallet.BroadcastTransaction(ctx, signed)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info().Msgf("send tx: broadcast transaction: %s", txid)
+
+	return connect.NewResponse(&pb.SendTransactionResponse{
+		Txid: txid,
+	}), nil
+
 }
 
 // ListRecentBlocks implements drivechainv1connect.DrivechainServiceHandler.

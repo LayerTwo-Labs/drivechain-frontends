@@ -6,6 +6,8 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service DrivechainService {
+  rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
+
   rpc GetBalance(google.protobuf.Empty) returns (GetBalanceResponse);
 
   // Problem: deriving nilly willy here is potentially problematic. There's no way of listing
@@ -24,6 +26,19 @@ service DrivechainService {
 message GetNewAddressResponse {
   string address = 1;
   uint32 index = 2;
+}
+
+message SendTransactionRequest {
+  // Address -> satoshi amount
+  map<string, uint64> destinations = 1;
+
+  // Fee rate, measured in satoshis/virtual byte. If set to zero,
+  // a reasonable rate is used by asking Core for an estimate.
+  double satoshi_per_vbyte = 2;
+}
+
+message SendTransactionResponse {
+  string txid = 1;
 }
 
 message GetBalanceResponse {
