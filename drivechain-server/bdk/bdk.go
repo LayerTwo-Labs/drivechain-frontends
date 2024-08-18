@@ -109,7 +109,7 @@ func (w *Wallet) GetBalance(ctx context.Context) (Balance, error) {
 		return Balance{}, err
 	}
 
-	return Balance{}, err
+	return parsed.Satoshi, err
 }
 
 // CreateTransaction creates a new transaction (but does not do any signing!).

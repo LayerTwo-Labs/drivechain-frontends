@@ -6,10 +6,18 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service DrivechainService {
+  rpc GetBalance(google.protobuf.Empty) returns (GetBalanceResponse);
+
   rpc ListTransactions(google.protobuf.Empty) returns (ListTransactionsResponse);
   // The "latest transactions" list in the first tab of Drivechain-QT is actually
   // a list of unconfirmed transactions!
   rpc ListUnconfirmedTransactions(google.protobuf.Empty) returns (ListUnconfirmedTransactionsResponse);
+}
+
+message GetBalanceResponse {
+  uint64 confirmed_satoshi = 1;
+
+  uint64 pending_satoshi = 2;
 }
 
 message ListTransactionsResponse {
@@ -30,7 +38,6 @@ message Transaction {
 
   Confirmation confirmation_time = 5;
 }
-
 
 message ListUnconfirmedTransactionsResponse {
   repeated UnconfirmedTransaction unconfirmed_transactions = 1;
