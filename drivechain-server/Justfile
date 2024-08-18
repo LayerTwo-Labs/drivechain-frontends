@@ -4,6 +4,9 @@ build:
 lint: 
     golangci-lint run ./...
 
+gen: 
+    buf generate
+
 install-bdk-cli:
     cargo install \
         --git https://github.com/bitcoindevkit/bdk-cli \
