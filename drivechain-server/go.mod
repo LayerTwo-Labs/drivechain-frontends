@@ -8,10 +8,11 @@ replace github.com/btcsuite/btcd => github.com/barebitcoin/btcd v0.23.5-0.202408
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240817181009-ae466e0169f7
+	github.com/barebitcoin/btc-buf v0.0.0-20240818094747-54d67edf29ad
 	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/rs/zerolog v1.33.0
 	github.com/samber/lo v1.47.0
+	github.com/sourcegraph/conc v0.3.0
 	github.com/tidwall/gjson v1.17.3
 	golang.org/x/net v0.23.0
 	google.golang.org/protobuf v1.34.1
@@ -34,6 +35,8 @@ require (
 	github.com/oklog/ulid/v2 v2.1.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
 	golang.org/x/sys v0.18.0 // indirect

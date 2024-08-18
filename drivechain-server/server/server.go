@@ -1,7 +1,10 @@
 package server
 
 import (
+	"cmp"
 	"context"
+	"fmt"
+	"slices"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
@@ -11,6 +14,7 @@ import (
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/samber/lo"
+	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -24,6 +28,60 @@ func New(wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind) *Server {
 type Server struct {
 	wallet   *bdk.Wallet
 	bitcoind *coreproxy.Bitcoind
+}
+
+// ListRecentBlocks implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListRecentBlocksResponse], error) {
+	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return nil, err
+	}
+
+	p := pool.NewWithResults[*pb.ListRecentBlocksResponse_RecentBlock]().
+		WithContext(ctx).
+		WithCancelOnError().
+		WithFirstError()
+
+	const numBlocks = 10
+	for i := range numBlocks {
+		p.Go(func(ctx context.Context) (*pb.ListRecentBlocksResponse_RecentBlock, error) {
+
+			height := info.Msg.Blocks - uint32(i)
+			hash, err := s.bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+				Height: height,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("get block hash %d: %w", height, err)
+			}
+
+			block, err := s.bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+				Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+				Hash:      hash.Msg.Hash,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("get block %s: %w", hash.Msg.Hash, err)
+			}
+
+			return &pb.ListRecentBlocksResponse_RecentBlock{
+				BlockTime:   block.Msg.Time,
+				BlockHeight: block.Msg.Height,
+				Hash:        block.Msg.Hash,
+			}, nil
+		})
+	}
+
+	blocks, err := p.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	slices.SortFunc(blocks, func(a, b *pb.ListRecentBlocksResponse_RecentBlock) int {
+		return -cmp.Compare(a.BlockHeight, b.BlockHeight)
+	})
+
+	return connect.NewResponse(&pb.ListRecentBlocksResponse{
+		RecentBlocks: blocks,
+	}), nil
 }
 
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
