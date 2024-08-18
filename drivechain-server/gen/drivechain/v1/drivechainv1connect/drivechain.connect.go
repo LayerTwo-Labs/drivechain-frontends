@@ -34,6 +34,9 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// DrivechainServiceGetBalanceProcedure is the fully-qualified name of the DrivechainService's
+	// GetBalance RPC.
+	DrivechainServiceGetBalanceProcedure = "/drivechain.v1.DrivechainService/GetBalance"
 	// DrivechainServiceListTransactionsProcedure is the fully-qualified name of the DrivechainService's
 	// ListTransactions RPC.
 	DrivechainServiceListTransactionsProcedure = "/drivechain.v1.DrivechainService/ListTransactions"
@@ -45,12 +48,14 @@ const (
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
 	drivechainServiceServiceDescriptor                           = v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService")
+	drivechainServiceGetBalanceMethodDescriptor                  = drivechainServiceServiceDescriptor.Methods().ByName("GetBalance")
 	drivechainServiceListTransactionsMethodDescriptor            = drivechainServiceServiceDescriptor.Methods().ByName("ListTransactions")
 	drivechainServiceListUnconfirmedTransactionsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListUnconfirmedTransactions")
 )
 
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
 type DrivechainServiceClient interface {
+	GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error)
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
 	// a list of unconfirmed transactions!
@@ -67,6 +72,12 @@ type DrivechainServiceClient interface {
 func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DrivechainServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &drivechainServiceClient{
+		getBalance: connect.NewClient[emptypb.Empty, v1.GetBalanceResponse](
+			httpClient,
+			baseURL+DrivechainServiceGetBalanceProcedure,
+			connect.WithSchema(drivechainServiceGetBalanceMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 		listTransactions: connect.NewClient[emptypb.Empty, v1.ListTransactionsResponse](
 			httpClient,
 			baseURL+DrivechainServiceListTransactionsProcedure,
@@ -84,8 +95,14 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 
 // drivechainServiceClient implements DrivechainServiceClient.
 type drivechainServiceClient struct {
+	getBalance                  *connect.Client[emptypb.Empty, v1.GetBalanceResponse]
 	listTransactions            *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
 	listUnconfirmedTransactions *connect.Client[emptypb.Empty, v1.ListUnconfirmedTransactionsResponse]
+}
+
+// GetBalance calls drivechain.v1.DrivechainService.GetBalance.
+func (c *drivechainServiceClient) GetBalance(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error) {
+	return c.getBalance.CallUnary(ctx, req)
 }
 
 // ListTransactions calls drivechain.v1.DrivechainService.ListTransactions.
@@ -100,6 +117,7 @@ func (c *drivechainServiceClient) ListUnconfirmedTransactions(ctx context.Contex
 
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
+	GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error)
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
 	// a list of unconfirmed transactions!
@@ -112,6 +130,12 @@ type DrivechainServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	drivechainServiceGetBalanceHandler := connect.NewUnaryHandler(
+		DrivechainServiceGetBalanceProcedure,
+		svc.GetBalance,
+		connect.WithSchema(drivechainServiceGetBalanceMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	drivechainServiceListTransactionsHandler := connect.NewUnaryHandler(
 		DrivechainServiceListTransactionsProcedure,
 		svc.ListTransactions,
@@ -126,6 +150,8 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 	)
 	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case DrivechainServiceGetBalanceProcedure:
+			drivechainServiceGetBalanceHandler.ServeHTTP(w, r)
 		case DrivechainServiceListTransactionsProcedure:
 			drivechainServiceListTransactionsHandler.ServeHTTP(w, r)
 		case DrivechainServiceListUnconfirmedTransactionsProcedure:
@@ -138,6 +164,10 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 
 // UnimplementedDrivechainServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDrivechainServiceHandler struct{}
+
+func (UnimplementedDrivechainServiceHandler) GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.GetBalance is not implemented"))
+}
 
 func (UnimplementedDrivechainServiceHandler) ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListTransactions is not implemented"))

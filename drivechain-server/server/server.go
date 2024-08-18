@@ -26,6 +26,19 @@ type Server struct {
 	bitcoind *coreproxy.Bitcoind
 }
 
+// GetBalance implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBalanceResponse], error) {
+	res, err := s.wallet.GetBalance(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&pb.GetBalanceResponse{
+		ConfirmedSatoshi: uint64(res.Confirmed),
+		PendingSatoshi:   uint64(res.Immature) + uint64(res.TrustedPending) + uint64(res.UntrustedPending),
+	}), nil
+}
+
 // ListUnconfirmedTransactions implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListUnconfirmedTransactions(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListUnconfirmedTransactionsResponse], error) {
 	res, err := s.bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
