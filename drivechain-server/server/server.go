@@ -26,6 +26,19 @@ type Server struct {
 	bitcoind *coreproxy.Bitcoind
 }
 
+// GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNewAddressResponse], error) {
+	address, index, err := s.wallet.GetNewAddress(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&pb.GetNewAddressResponse{
+		Address: address,
+		Index:   uint32(index),
+	}), nil
+}
+
 // GetBalance implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBalanceResponse], error) {
 	res, err := s.wallet.GetBalance(ctx)

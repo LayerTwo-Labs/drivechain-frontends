@@ -8,10 +8,19 @@ import "google/protobuf/timestamp.proto";
 service DrivechainService {
   rpc GetBalance(google.protobuf.Empty) returns (GetBalanceResponse);
 
+  // Problem: deriving nilly willy here is potentially problematic. There's no way of listing
+  // out unused addresses, so we risk crossing the sync gap.
+  rpc GetNewAddress(google.protobuf.Empty) returns (GetNewAddressResponse);
+
   rpc ListTransactions(google.protobuf.Empty) returns (ListTransactionsResponse);
   // The "latest transactions" list in the first tab of Drivechain-QT is actually
   // a list of unconfirmed transactions!
   rpc ListUnconfirmedTransactions(google.protobuf.Empty) returns (ListUnconfirmedTransactionsResponse);
+}
+
+message GetNewAddressResponse {
+  string address = 1;
+  uint32 index = 2;
 }
 
 message GetBalanceResponse {

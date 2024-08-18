@@ -37,6 +37,9 @@ const (
 	// DrivechainServiceGetBalanceProcedure is the fully-qualified name of the DrivechainService's
 	// GetBalance RPC.
 	DrivechainServiceGetBalanceProcedure = "/drivechain.v1.DrivechainService/GetBalance"
+	// DrivechainServiceGetNewAddressProcedure is the fully-qualified name of the DrivechainService's
+	// GetNewAddress RPC.
+	DrivechainServiceGetNewAddressProcedure = "/drivechain.v1.DrivechainService/GetNewAddress"
 	// DrivechainServiceListTransactionsProcedure is the fully-qualified name of the DrivechainService's
 	// ListTransactions RPC.
 	DrivechainServiceListTransactionsProcedure = "/drivechain.v1.DrivechainService/ListTransactions"
@@ -49,6 +52,7 @@ const (
 var (
 	drivechainServiceServiceDescriptor                           = v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService")
 	drivechainServiceGetBalanceMethodDescriptor                  = drivechainServiceServiceDescriptor.Methods().ByName("GetBalance")
+	drivechainServiceGetNewAddressMethodDescriptor               = drivechainServiceServiceDescriptor.Methods().ByName("GetNewAddress")
 	drivechainServiceListTransactionsMethodDescriptor            = drivechainServiceServiceDescriptor.Methods().ByName("ListTransactions")
 	drivechainServiceListUnconfirmedTransactionsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListUnconfirmedTransactions")
 )
@@ -56,6 +60,9 @@ var (
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
 type DrivechainServiceClient interface {
 	GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error)
+	// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
+	// out unused addresses, so we risk crossing the sync gap.
+	GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error)
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
 	// a list of unconfirmed transactions!
@@ -78,6 +85,12 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(drivechainServiceGetBalanceMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		getNewAddress: connect.NewClient[emptypb.Empty, v1.GetNewAddressResponse](
+			httpClient,
+			baseURL+DrivechainServiceGetNewAddressProcedure,
+			connect.WithSchema(drivechainServiceGetNewAddressMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 		listTransactions: connect.NewClient[emptypb.Empty, v1.ListTransactionsResponse](
 			httpClient,
 			baseURL+DrivechainServiceListTransactionsProcedure,
@@ -96,6 +109,7 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 // drivechainServiceClient implements DrivechainServiceClient.
 type drivechainServiceClient struct {
 	getBalance                  *connect.Client[emptypb.Empty, v1.GetBalanceResponse]
+	getNewAddress               *connect.Client[emptypb.Empty, v1.GetNewAddressResponse]
 	listTransactions            *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
 	listUnconfirmedTransactions *connect.Client[emptypb.Empty, v1.ListUnconfirmedTransactionsResponse]
 }
@@ -103,6 +117,11 @@ type drivechainServiceClient struct {
 // GetBalance calls drivechain.v1.DrivechainService.GetBalance.
 func (c *drivechainServiceClient) GetBalance(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error) {
 	return c.getBalance.CallUnary(ctx, req)
+}
+
+// GetNewAddress calls drivechain.v1.DrivechainService.GetNewAddress.
+func (c *drivechainServiceClient) GetNewAddress(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error) {
+	return c.getNewAddress.CallUnary(ctx, req)
 }
 
 // ListTransactions calls drivechain.v1.DrivechainService.ListTransactions.
@@ -118,6 +137,9 @@ func (c *drivechainServiceClient) ListUnconfirmedTransactions(ctx context.Contex
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
 	GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error)
+	// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
+	// out unused addresses, so we risk crossing the sync gap.
+	GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error)
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
 	// a list of unconfirmed transactions!
@@ -136,6 +158,12 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 		connect.WithSchema(drivechainServiceGetBalanceMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	drivechainServiceGetNewAddressHandler := connect.NewUnaryHandler(
+		DrivechainServiceGetNewAddressProcedure,
+		svc.GetNewAddress,
+		connect.WithSchema(drivechainServiceGetNewAddressMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	drivechainServiceListTransactionsHandler := connect.NewUnaryHandler(
 		DrivechainServiceListTransactionsProcedure,
 		svc.ListTransactions,
@@ -152,6 +180,8 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 		switch r.URL.Path {
 		case DrivechainServiceGetBalanceProcedure:
 			drivechainServiceGetBalanceHandler.ServeHTTP(w, r)
+		case DrivechainServiceGetNewAddressProcedure:
+			drivechainServiceGetNewAddressHandler.ServeHTTP(w, r)
 		case DrivechainServiceListTransactionsProcedure:
 			drivechainServiceListTransactionsHandler.ServeHTTP(w, r)
 		case DrivechainServiceListUnconfirmedTransactionsProcedure:
@@ -167,6 +197,10 @@ type UnimplementedDrivechainServiceHandler struct{}
 
 func (UnimplementedDrivechainServiceHandler) GetBalance(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBalanceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.GetBalance is not implemented"))
+}
+
+func (UnimplementedDrivechainServiceHandler) GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.GetNewAddress is not implemented"))
 }
 
 func (UnimplementedDrivechainServiceHandler) ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error) {
