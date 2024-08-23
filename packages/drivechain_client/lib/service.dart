@@ -49,8 +49,8 @@ class DrivechainService extends InheritedWidget {
 
 class DrivechainChannel extends ClientChannel {
   DrivechainChannel()
-      : super('localhost',
-            port: 8080,
+      : super(String.fromEnvironment('DRIVECHAIN_URL').split(':').first,
+            port: int.parse(String.fromEnvironment('DRIVECHAIN_URL').split(':').last),
             options: const ChannelOptions(
               credentials: ChannelCredentials.insecure(),
             ));
