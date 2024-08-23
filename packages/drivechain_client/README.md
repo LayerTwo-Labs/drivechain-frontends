@@ -1,16 +1,18 @@
 # drivechain_client
 
-A new Flutter project.
+This package contains a frontend for interacting with a Drivechain-enabled layer 1 bitcoin network.
 
-## Getting Started
+## Local development
 
-This project is a starting point for a Flutter application.
+To get the app(s) up and running, make sure you have the following dependencies:
 
-A few resources to get you started if this is your first Flutter project:
+* The [Flutter SDK](https://flutter.dev)
+* An instance of [drivechain-server](../../drivechain-server) running
+* The `DRIVECHAIN_SERVER_URL` environment variable pointing to the above instance
+* A BIP 300/301 enabled node running
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Running the app is as simple as the following command:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter run --dart-define DRIVECHAIN_SERVER_URL=$DRIVECHAIN_SERVER_URL
+```
