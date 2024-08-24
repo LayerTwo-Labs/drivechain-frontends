@@ -6,8 +6,6 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:grpc/grpc.dart';
 
-import 'gen/google/protobuf/empty.pb.dart';
-
 class DrivechainService extends InheritedWidget {
   late final ClientChannel _channel;
   late final DrivechainServiceClient _client;
@@ -49,9 +47,12 @@ class DrivechainService extends InheritedWidget {
 
 class DrivechainChannel extends ClientChannel {
   DrivechainChannel()
-      : super(String.fromEnvironment('DRIVECHAIN_URL').split(':').first,
-            port: int.parse(String.fromEnvironment('DRIVECHAIN_URL').split(':').last),
-            options: const ChannelOptions(
-              credentials: ChannelCredentials.insecure(),
-            ));
+      : super(
+          const String.fromEnvironment('DRIVECHAIN_URL', defaultValue: "http://localhost:8080").split(':').first,
+          port: int.parse(
+              const String.fromEnvironment('DRIVECHAIN_URL', defaultValue: "http://localhost:8080").split(':').last),
+          options: const ChannelOptions(
+            credentials: ChannelCredentials.insecure(),
+          ),
+        );
 }
