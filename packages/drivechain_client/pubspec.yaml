@@ -14,7 +14,6 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   grpc: ^4.0.0
-  crayola: ^2.2.3
   sail_ui:
     path: ../sail_ui
   logger: ^2.4.0

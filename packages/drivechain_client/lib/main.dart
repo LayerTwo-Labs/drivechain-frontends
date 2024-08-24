@@ -19,7 +19,8 @@ void main() {
             title: "Drivechain",
             theme: ThemeData(
               textTheme: GoogleFonts.interTextTheme(),
-              colorScheme: ColorScheme.fromSwatch().copyWith(secondary: const Color(0xffFF8000)),
+              colorScheme: ColorScheme.fromSwatch()
+                  .copyWith(secondary: const Color(0xffFF8000)),
             ),
           );
         },
