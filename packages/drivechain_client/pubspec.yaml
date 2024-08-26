@@ -20,6 +20,8 @@ dependencies:
   google_fonts: ^6.2.1
   auto_route: ^9.2.2
   fixnum: ^1.1.0
+  shared_preferences: ^2.3.2
+  get_it: ^7.7.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
