@@ -1,5 +1,10 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:drivechain_client/pages/home_page.dart';
+import 'package:drivechain_client/pages/overview_page.dart';
+import 'package:drivechain_client/pages/receive_page.dart';
+import 'package:drivechain_client/pages/root_page.dart';
+import 'package:drivechain_client/pages/send_page.dart';
+import 'package:drivechain_client/pages/sidechains_page.dart';
+import 'package:drivechain_client/pages/transactions_page.dart';
 
 part "router.gr.dart";
 
@@ -24,8 +29,35 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(
-          page: HomeRoute.page,
+          path: "/",
+          page: RootRoute.page,
           initial: true,
+          children: [
+            RedirectRoute(
+              path: "",
+              redirectTo: 'overview',
+            ),
+            AutoRoute(
+              path: "overview",
+              page: OverviewRoute.page,
+            ),
+            AutoRoute(
+              path: "send",
+              page: SendRoute.page,
+            ),
+            AutoRoute(
+              path: "receive",
+              page: ReceiveRoute.page,
+            ),
+            AutoRoute(
+              path: "transactions",
+              page: TransactionsRoute.page,
+            ),
+            AutoRoute(
+              path: "sidechains",
+              page: SidechainsRoute.page,
+            ),
+          ],
         ),
       ];
 }
