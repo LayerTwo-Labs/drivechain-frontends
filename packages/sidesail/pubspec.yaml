@@ -23,7 +23,7 @@ dependencies:
   flutter_highlighter: ^0.1.1
   logger: ^2.4.0
   dio: ^5.6.0
-  auto_route: ^9.2.1+1
+  auto_route: ^9.2.2
   get_it: ^7.7.0
   collection: ^1.18.0
   stacked: ^3.4.3
