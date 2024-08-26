@@ -1,3 +1,4 @@
+import 'package:drivechain_client/env.dart';
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart';
 import 'package:fixnum/fixnum.dart';
@@ -8,7 +9,15 @@ class DrivechainService extends InheritedWidget {
   late final DrivechainServiceClient _client;
 
   DrivechainService({required super.child, super.key}) {
-    _client = DrivechainServiceClient(DrivechainChannel());
+    final channel = ClientChannel(
+      env(Environment.drivechainHost),
+      port: env(Environment.drivechainPort),
+      options: const ChannelOptions(
+        credentials: ChannelCredentials.insecure(),
+      ),
+    );
+
+    _client = DrivechainServiceClient(channel);
   }
 
   Future<String> sendTransaction(Map<String, int> destinations, [double? satoshiPerVbyte]) async {
@@ -16,7 +25,7 @@ class DrivechainService extends InheritedWidget {
       destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
       satoshiPerVbyte: satoshiPerVbyte,
     );
-    
+
     final response = await _client.sendTransaction(request);
     return response.txid;
   }
@@ -47,24 +56,10 @@ class DrivechainService extends InheritedWidget {
     return response.recentBlocks;
   }
 
-  
-
   @override
   bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
 
   static DrivechainService of(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<DrivechainService>()!;
   }
-}
-
-class DrivechainChannel extends ClientChannel {
-  DrivechainChannel()
-      : super(
-          const String.fromEnvironment('DRIVECHAIN_URL', defaultValue: "http://localhost:8080").split(':').first,
-          port: int.parse(
-              const String.fromEnvironment('DRIVECHAIN_URL', defaultValue: "http://localhost:8080").split(':').last),
-          options: const ChannelOptions(
-            credentials: ChannelCredentials.insecure(),
-          ),
-        );
 }
