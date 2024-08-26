@@ -10,6 +10,7 @@ require (
 	connectrpc.com/connect v1.16.2
 	github.com/barebitcoin/btc-buf v0.0.0-20240818094747-54d67edf29ad
 	github.com/btcsuite/btcd/btcutil v1.1.5
+	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.33.0
 	github.com/samber/lo v1.47.0
 	github.com/sourcegraph/conc v0.3.0
@@ -39,6 +40,6 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 )
