@@ -11,7 +11,14 @@ Building and running:
 ```bash
 $ just install-bdk-cli
 $ just build
-$ ./drivechain-server
+
+# By default this connects to a public Electrum server and a Bitcoin Core node
+# over RPC at localhost:18332 (testnet3)
+
+# If you're on macOS, you'll need to send in the following cookie path, wrapped
+# in quotes:
+#   "/$HOME/Library/Application Support/Bitcoin/testnet3/.cookie"
+$ ./drivechain-server --bitcoincore.cookie $HOME/.bitcoin/testnet3/.cookie
 ```
 
 # Architecture
@@ -20,6 +27,7 @@ $ ./drivechain-server
 graph TD;
     A[Flutter-based Frontend] -->|Connect/gRPC| B[Go Server];
     B -->|Unspecified Protocol| C[CUSF Enforcer];
+    C -->|`invalidateblock` RPC|D;
     B -->|Connect/gRPC via btc-buf proxy, \nZMQ via either raw conn or btc-buf| D[Bitcoin Core Node];
     B -.->|Shells out to| E[bdk-cli];
 ```
