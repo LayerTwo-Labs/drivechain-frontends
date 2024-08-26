@@ -1,3 +1,4 @@
+import 'package:drivechain_client/env.dart';
 import 'package:drivechain_client/routing/router.dart';
 import 'package:drivechain_client/service.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
  main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  Environment.validateAtRuntime();
   
   final log = Logger();
   final router = AppRouter();
