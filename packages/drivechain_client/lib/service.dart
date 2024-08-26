@@ -20,7 +20,10 @@ class DrivechainService extends InheritedWidget {
     _client = DrivechainServiceClient(channel);
   }
 
-  Future<String> sendTransaction(Map<String, int> destinations, [double? satoshiPerVbyte]) async {
+  Future<String> sendTransaction(
+    Map<String, int> destinations, [
+    double? satoshiPerVbyte,
+  ]) async {
     final request = SendTransactionRequest(
       destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
       satoshiPerVbyte: satoshiPerVbyte,

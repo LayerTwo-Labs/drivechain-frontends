@@ -8,7 +8,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
- main() async {
+main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   Environment.validateAtRuntime();
@@ -37,8 +37,9 @@ import 'package:shared_preferences/shared_preferences.dart';
             title: "Drivechain",
             theme: ThemeData(
               textTheme: GoogleFonts.interTextTheme(),
-              colorScheme: ColorScheme.fromSwatch()
-                  .copyWith(secondary: const Color(0xffFF8000)),
+              colorScheme: ColorScheme.fromSwatch().copyWith(
+                secondary: const Color(0xffFF8000),
+              ),
             ),
           );
         },
