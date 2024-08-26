@@ -16,7 +16,9 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/server"
 	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
+	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -34,12 +36,25 @@ func main() {
 	if err := realMain(ctx); err != nil {
 		cancel()
 
-		zerolog.Ctx(ctx).Fatal().Err(err).Msgf("main: got error")
+		// Error has been printed to the console!
+		if _, ok := lo.ErrorsAs[*flags.Error](err); ok {
+			os.Exit(1)
+		}
+
+		zerolog.Ctx(ctx).
+			Fatal().
+			Err(err).
+			Msgf("main: got error: %T", err)
 	}
 }
 
 func realMain(ctx context.Context) error {
-	proxy, err := startCoreProxy(ctx)
+	conf, err := readConfig()
+	if err != nil {
+		return err
+	}
+
+	proxy, err := startCoreProxy(ctx, conf)
 	if err != nil {
 		return err
 	}
@@ -60,11 +75,16 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
+	electrumProtocol := "ssl"
+	if conf.ElectrumNoSSL {
+		electrumProtocol = "tcp"
+	}
+
 	wallet := bdk.Wallet{
 		Datadir:    filepath.Join(pwd, ".data"),
 		Descriptor: fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", priv),
 		Network:    "testnet",
-		Electrum:   "ssl://electrum.blockstream.info:60002",
+		Electrum:   fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost),
 	}
 
 	initialBalance, err := wallet.GetBalance(ctx)
@@ -133,8 +153,11 @@ func realMain(ctx context.Context) error {
 	return <-errs
 }
 
-func startCoreProxy(ctx context.Context) (*coreproxy.Bitcoind, error) {
-	core, err := coreproxy.NewBitcoind(ctx, "localhost:18332", "__cookie__", "03b6af00caa0d2667e81e56dd5d4f14fe12b6b6f6c0c86e81bf251aa0d69beb0")
+func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, error) {
+	core, err := coreproxy.NewBitcoind(
+		ctx, conf.BitcoinCoreHost,
+		conf.BitcoinCoreRpcUser, conf.BitcoinCoreRpcPassword,
+	)
 	if err != nil {
 		return nil, err
 	}
