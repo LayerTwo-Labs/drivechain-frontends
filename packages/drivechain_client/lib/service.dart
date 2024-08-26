@@ -1,41 +1,53 @@
-import 'dart:math';
-
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
-import 'package:drivechain_client/gen/google/protobuf/timestamp.pb.dart';
+import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:grpc/grpc.dart';
 
 class DrivechainService extends InheritedWidget {
-  late final ClientChannel _channel;
   late final DrivechainServiceClient _client;
 
   DrivechainService({required super.child, super.key}) {
     _client = DrivechainServiceClient(DrivechainChannel());
   }
 
+  Future<String> sendTransaction(Map<String, int> destinations, [double? satoshiPerVbyte]) async {
+    final request = SendTransactionRequest(
+      destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
+      satoshiPerVbyte: satoshiPerVbyte,
+    );
+    
+    final response = await _client.sendTransaction(request);
+    return response.txid;
+  }
+
+  /// Returns a tuple of the confirmed and pending balance in satoshi
+  Future<(Int64, Int64)> getBalance() async {
+    final response = await _client.getBalance(Empty());
+    return (response.confirmedSatoshi, response.pendingSatoshi);
+  }
+
+  Future<String> getNewAddress() async {
+    final response = await _client.getNewAddress(Empty());
+    return response.address;
+  }
+
   Future<List<Transaction>> listTransactions() async {
-    /*final response = await _client.listTransactions(Empty());
-    return response.transactions;*/
-
-    // Mock transactions for now
-    return _generateMockTransactions(200);
+    final response = await _client.listTransactions(Empty());
+    return response.transactions;
   }
 
-  List<Transaction> _generateMockTransactions(int n) {
-    return List.generate(n, (index) {
-      return Transaction(
-        txid: index.toString(),
-        feeSatoshi: Int64(Random().nextInt(1000)),
-        receivedSatoshi: Int64(Random().nextInt(100000)),
-        sentSatoshi: Int64(Random().nextInt(100000)),
-        confirmationTime: Confirmation(
-          height: index,
-          timestamp: Timestamp(seconds: Int64(Random().nextInt(1000000000)), nanos: 0),
-        ),
-      );
-    });
+  Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {
+    final response = await _client.listUnconfirmedTransactions(Empty());
+    return response.unconfirmedTransactions;
   }
+
+  Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
+    final response = await _client.listRecentBlocks(Empty());
+    return response.recentBlocks;
+  }
+
+  
 
   @override
   bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
