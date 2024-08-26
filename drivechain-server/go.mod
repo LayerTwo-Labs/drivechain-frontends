@@ -1,6 +1,8 @@
 module github.com/LayerTwo-Labs/sidesail/drivechain-server
 
-go 1.22.4
+go 1.23
+
+toolchain go1.23.0
 
 // This must be synced by what's in https://github.com/barebitcoin/btc-buf/blob/master/go.mod
 // Obvs not ideal! Better to establish a full on fork?
@@ -8,7 +10,7 @@ replace github.com/btcsuite/btcd => github.com/barebitcoin/btcd v0.23.5-0.202408
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240818094747-54d67edf29ad
+	github.com/barebitcoin/btc-buf v0.0.0-20240826092824-26027bf9c3c0
 	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.33.0
