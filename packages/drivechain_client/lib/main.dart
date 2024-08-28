@@ -12,7 +12,7 @@ main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   Environment.validateAtRuntime();
-  
+
   final log = Logger();
   final router = AppRouter();
   final prefs = await SharedPreferences.getInstance();
@@ -36,10 +36,12 @@ main() async {
             routeInformationParser: router.defaultRouteParser(),
             title: "Drivechain",
             theme: ThemeData(
-              textTheme: GoogleFonts.interTextTheme(),
+              fontFamily: "Inter",
+              textTheme: GoogleFonts.interTightTextTheme(),
               colorScheme: ColorScheme.fromSwatch().copyWith(
                 secondary: const Color(0xffFF8000),
               ),
+              scaffoldBackgroundColor: const Color.fromARGB(255, 240, 240, 240),
             ),
           );
         },

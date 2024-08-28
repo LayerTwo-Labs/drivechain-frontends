@@ -34,9 +34,9 @@ class DrivechainService extends InheritedWidget {
   }
 
   /// Returns a tuple of the confirmed and pending balance in satoshi
-  Future<(Int64, Int64)> getBalance() async {
+  Future<GetBalanceResponse> getBalance() async {
     final response = await _client.getBalance(Empty());
-    return (response.confirmedSatoshi, response.pendingSatoshi);
+    return response;
   }
 
   Future<String> getNewAddress() async {
