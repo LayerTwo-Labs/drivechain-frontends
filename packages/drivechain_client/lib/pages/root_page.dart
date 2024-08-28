@@ -75,7 +75,8 @@ class RootPage extends StatelessWidget {
                             ..moveTo(size.width, size.height)
                             ..lineTo(size.width, 0),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 4.0),
                             child: QtTab(
                               icon: const Icon(Icons.link),
                               label: 'Sidechains',
@@ -93,7 +94,7 @@ class RootPage extends StatelessWidget {
           ),
           body: Column(
             children: [
-               const Divider(
+              const Divider(
                 height: 1,
                 thickness: 1,
                 color: Colors.grey,
