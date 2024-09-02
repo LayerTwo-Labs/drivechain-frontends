@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/service.dart';
+import 'package:drivechain_client/util/currencies.dart';
 import 'package:flutter/material.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -79,65 +80,71 @@ class BalancesView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16.0),
-                  RichText(
-                    text: TextSpan(
-                      style: SailStyleValues.thirteen.copyWith(
-                        color: theme.colors.text,
-                      ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 150),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const TextSpan(
-                          text: 'Available: ',
-                        ),
-                        TextSpan(
-                          text: '${snapshot.data!.confirmedSatoshi} sat',
+                        SailText.primary13('Available: '),
+                        RichText(
+                            text: TextSpan(
+                          text: Money.fromNumWithCurrency(
+                            snapshot.data!.confirmedSatoshi.toDouble(),
+                            satoshi,
+                          ).toString(),
                           style: SailStyleValues.thirteen.copyWith(
                             color: theme.colors.text,
                             fontWeight: FontWeight.bold,
                           ),
-                        ),
+                        )),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16.0),
-                  RichText(
-                    text: TextSpan(
-                      style: SailStyleValues.thirteen.copyWith(
-                        color: theme.colors.text,
-                      ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 150),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const TextSpan(
-                          text: 'Pending: ',
-                        ),
-                        TextSpan(
-                          text: '${snapshot.data!.pendingSatoshi} sat',
+                        SailText.primary13('Pending: '),
+                        RichText(
+                            text: TextSpan(
+                          text: Money.fromNumWithCurrency(
+                            snapshot.data!.pendingSatoshi.toDouble(),
+                            satoshi,
+                          ).toString(),
                           style: SailStyleValues.thirteen.copyWith(
                             color: theme.colors.text,
                             fontWeight: FontWeight.bold,
                           ),
-                        ),
+                        )),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24.0),
                   const QtSeparator(width: 150),
                   const SizedBox(height: 24.0),
-                  RichText(
-                    text: TextSpan(
-                      style: SailStyleValues.thirteen.copyWith(
-                        color: theme.colors.text,
-                      ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 150),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const TextSpan(
-                          text: 'Total: ',
-                        ),
-                        TextSpan(
-                          text:
-                              '${snapshot.data!.pendingSatoshi + snapshot.data!.confirmedSatoshi} sat',
+                        SailText.primary13('Total: '),
+                        RichText(
+                            text: TextSpan(
+                          text: Money.fromNumWithCurrency(
+                            snapshot.data!.pendingSatoshi.toDouble() +
+                                snapshot.data!.confirmedSatoshi.toDouble(),
+                            satoshi,
+                          ).toString(),
                           style: SailStyleValues.thirteen.copyWith(
                             color: theme.colors.text,
                             fontWeight: FontWeight.bold,
                           ),
-                        ),
+                        )),
                       ],
                     ),
                   ),
