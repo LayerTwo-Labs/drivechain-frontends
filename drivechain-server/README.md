@@ -12,16 +12,16 @@ Building and running:
 $ just install-bdk-cli
 $ just build
 
-# This assumes you're running drivechain-qt, with the 
-# default Drivechain Launcher settings. 
-# 
+# This assumes you're running drivechain-qt, with the
+# default Drivechain Launcher settings.
+#
 # We're connecting to a public Electrum server, running
-# /without/ SSL. 
+# /without/ SSL.
 #
 # The same Electrum server also powers the mempool instance
 # at https://drivechain.ngu-tek.no.
 $ ./drivechain-server \
-  --electrum.host=drivechain.ngu-tek.no:50001 \
+  --electrum.host=drivechain.live:50001 \
   --electrum.no-ssl \
   --bitcoincore.rpcuser=user \
   --bitcoincore.rpcpassword=password \
