@@ -83,6 +83,9 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 }
 
 func (w *Wallet) Sync(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
 	_, err := w.exec(ctx, "sync")
 	return err
 }
