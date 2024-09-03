@@ -12,13 +12,20 @@ Building and running:
 $ just install-bdk-cli
 $ just build
 
-# By default this connects to a public Electrum server and a Bitcoin Core node
-# over RPC at localhost:18332 (testnet3)
-
-# If you're on macOS, you'll need to send in the following cookie path, wrapped
-# in quotes:
-#   "/$HOME/Library/Application Support/Bitcoin/testnet3/.cookie"
-$ ./drivechain-server --bitcoincore.cookie $HOME/.bitcoin/testnet3/.cookie
+# This assumes you're running drivechain-qt, with the 
+# default Drivechain Launcher settings. 
+# 
+# We're connecting to a public Electrum server, running
+# /without/ SSL. 
+#
+# The same Electrum server also powers the mempool instance
+# at https://drivechain.ngu-tek.no.
+$ ./drivechain-server \
+  --electrum.host=drivechain.ngu-tek.no:50001 \
+  --electrum.no-ssl \
+  --bitcoincore.rpcuser=user \
+  --bitcoincore.rpcpassword=password \
+  --bitcoincore.host=localhost:8332
 ```
 
 # Architecture
