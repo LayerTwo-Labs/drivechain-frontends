@@ -83,9 +83,16 @@ func realMain(ctx context.Context) error {
 	wallet := bdk.Wallet{
 		Datadir:    filepath.Join(pwd, ".data"),
 		Descriptor: fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", priv),
-		Network:    "testnet",
-		Electrum:   fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost),
+
+		// This is all wonky stuff. We're on some kind of botched regtest...
+		// However, the address format is mainnet - and that's the only thing
+		// that matters.
+		Network:  "mainnet",
+		Electrum: fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost),
 	}
+
+	zerolog.Ctx(ctx).Debug().
+		Msgf("initiating electrum connection at %s", wallet.Electrum)
 
 	initialBalance, err := wallet.GetBalance(ctx)
 	if err != nil {
