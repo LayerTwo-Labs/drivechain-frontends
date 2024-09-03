@@ -22,8 +22,12 @@ import (
 
 func main() {
 	var opts Options
-	_, err := flags.Parse(&opts)
-	if err != nil {
+	_, err := flags.NewParser(&opts, flags.Default).Parse()
+	switch {
+	case flags.WroteHelp(err): // already printed!
+		return
+
+	case err != nil:
 		log.Fatalf("could not parse flags: %s", err)
 	}
 
