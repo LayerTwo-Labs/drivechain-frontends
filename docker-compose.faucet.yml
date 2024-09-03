@@ -1,0 +1,25 @@
+name: drivechain-faucet
+
+services: 
+  backend: 
+    # 8080 is already taken by the mempool frontend
+    ports: [8081:8080]
+    networks: [drivechain]
+
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/listclaims"]
+
+    image: faucet-backend
+    restart: unless-stopped
+    build:
+      context: ./faucet-backend
+      platforms: [linux/amd64]
+
+    command: 
+      - faucet-backend
+      - --host=mainchain:8332
+
+networks:
+  drivechain:
+    name: drivechain-network          
+    external: true
