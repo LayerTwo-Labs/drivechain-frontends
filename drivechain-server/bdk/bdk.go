@@ -1,6 +1,7 @@
 package bdk
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -27,7 +28,18 @@ type Wallet struct {
 	Electrum   string
 }
 
+var validNetworks = []string{
+	"bitcoin", // mainnet
+	"testnet",
+	"signet",
+	"regtest",
+}
+
 func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
+	if !slices.Contains(validNetworks, w.Network) {
+		return nil, fmt.Errorf("invalid network: %q", w.Network)
+	}
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -57,18 +69,31 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 	if err != nil {
 		errorMessage := err.Error()
 		if exitErr, ok := lo.ErrorsAs[*exec.ExitError](err); ok {
-			errorMessage = string(exitErr.Stderr)
+			errorMessage = string(res)
+			if len(exitErr.Stderr) != 0 {
+				errorMessage = string(exitErr.Stderr)
+			}
 		}
+
+		zerolog.Ctx(ctx).Err(err).Msgf("exec: %q errored",
+			strings.Join(slices.Concat([]string{"bdk-cli"}, fullArgs), " "),
+		)
 
 		return nil, fmt.Errorf("exec: bdk-cli wallet %q: %s",
 			command, errorMessage,
 		)
 	}
 
+	compacted := bytes.NewBuffer(nil)
+	if err := json.Compact(compacted, res); err != nil {
+		// Revert back to non-compacted
+		compacted = bytes.NewBuffer(res)
+	}
+
 	zerolog.Ctx(ctx).Trace().
 		Stringer("duration", time.Since(start)).
 		Msgf("bdk-cli wallet %s: %s",
-			command, string(res),
+			command, compacted.String(),
 		)
 
 	// https://github.com/bitcoindevkit/bdk-cli/issues/170
