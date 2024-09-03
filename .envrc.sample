@@ -1,0 +1,6 @@
+export DOCKER_CONTEXT=?
+export COMPOSE_FILE=docker-compose.faucet.yml
+
+export CLOUDSDK_COMPUTE_ZONE=?
+export CLOUDSDK_CORE_PROJECT=?
+
