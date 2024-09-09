@@ -10,6 +10,7 @@ import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sail_ui/widgets/inputs/checkbox.dart';
 import 'package:sail_ui/widgets/inputs/dropdown_menu.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 @RoutePage()
 class SendPage extends StatelessWidget {
@@ -230,12 +231,22 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
             ),
             const SizedBox(width: 4.0),
             QtIconButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: SailText.primary12('Not implemented'),
-                  ),
-                );
+              onPressed: () async {
+                if (SystemClipboard.instance != null) {
+                  SystemClipboard.instance?.read().then((reader) async {
+                    if (reader.canProvide(Formats.plainText)) {
+                    final text = await reader.readValue(Formats.plainText);
+                    _addressController.text = text ?? _addressController.text;
+                  }
+                });
+                }
+                else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: SailText.primary12('Clipboard not available'),
+                    ),
+                  );
+                }
               },
               icon: const Icon(
                 Icons.content_paste_rounded,
