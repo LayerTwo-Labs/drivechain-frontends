@@ -223,7 +223,10 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
                   ),
                 );
               },
-              icon: const Icon(Icons.contacts_outlined),
+              icon: const Icon(
+                Icons.contacts_outlined,
+                size: 20.0,
+              ),
             ),
             const SizedBox(width: 4.0),
             QtIconButton(
@@ -234,14 +237,20 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
                   ),
                 );
               },
-              icon: const Icon(Icons.content_paste_rounded),
+              icon: const Icon(
+                Icons.content_paste_rounded,
+                size: 20.0,
+              ),
             ),
             const SizedBox(width: 4.0),
             QtIconButton(
               onPressed: () {
                 _addressController.clear();
               },
-              icon: const Icon(Icons.cancel_outlined),
+              icon: const Icon(
+                Icons.cancel_outlined,
+                size: 20.0,
+              ),
             ),
           ],
         ),
