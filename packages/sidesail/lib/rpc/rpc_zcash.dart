@@ -171,7 +171,7 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   Future<double> _balanceForAccount(int account, int confirmations) async {
-    final saplingBalance = await _client.call().call('z_getbalanceforaccount', [account, confirmations]).then(
+    final saplingBalance = await _client().call('z_getbalanceforaccount', [account, confirmations]).then(
       (res) {
         final pools = res['pools'];
         num zBalanceSat = 0;
@@ -200,7 +200,7 @@ class ZcashRPCLive extends ZCashRPC {
     // z_listaddresses.
     final addresses = await _client().call('z_listaddresses') as List<dynamic>;
     for (final address in addresses) {
-      final addressBalance = await _client.call().call('z_getbalance', [address, confirmations]);
+      final addressBalance = await _client().call('z_getbalance', [address, confirmations]);
       balance += addressBalance;
     }
 

@@ -26,7 +26,7 @@ class PendingCastBill {
     required this.executeAction,
   }) {
     DateTime now = DateTime.now().toUtc();
-    executeTime = DateTime.utc(now.year, now.month, now.day);
+    executeTime = DateTime.utc(now.year, now.month, now.day + 1);
 
     int weekday;
 
@@ -113,7 +113,7 @@ class CastProvider extends ChangeNotifier {
     for (int i = 1; i <= maxCastFactor; i++) {
       final newBundle = PendingCastBill(
         powerOf: i,
-        executeAction: () => _executeCast(i),
+        executeAction: () => _executeCast(i, 0),
       );
 
       log.d(
@@ -152,7 +152,9 @@ class CastProvider extends ChangeNotifier {
     }
   }
 
-  void _executeCast(int powerOf) async {
+  void _executeCast(int powerOf, int iteration) async {
+    print('execute cast $iteration');
+
     try {
       final bundle = futureCasts.elementAt(powerOf);
       log.t('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
@@ -164,13 +166,13 @@ class CastProvider extends ChangeNotifier {
 
       final newBill = PendingCastBill(
         powerOf: bundle.powerOf,
-        executeAction: () => _executeCast(powerOf),
+        executeAction: () => _executeCast(powerOf, iteration + 1),
       );
       futureCasts[bundle.powerOf] = newBill;
-      log.t('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
+      print('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
+      await Future.delayed(const Duration(seconds: 1), () {});
 
       await _zcashProvider.fetch();
-      notifyListeners();
     } catch (error) {
       log.e('could not cast ${error.toString()}');
     }
