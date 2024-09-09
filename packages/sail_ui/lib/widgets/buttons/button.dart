@@ -188,33 +188,30 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final disabled = widget.disabled || widget.onPressed == null;
+    final disabled = widget.loading || widget.disabled || widget.onPressed == null;
 
-    return Opacity(
-      opacity: disabled ? 0.6 : 1,
-      child: SailScaleButton(
-        onPressed: widget.onPressed,
-        disabled: disabled,
-        child: MaterialButton(
-          disabledColor: widget.backgroundColor,
-          color: widget.backgroundColor,
-          enableFeedback: !widget.disabled,
-          textColor: theme.colors.text,
-          splashColor: Colors.transparent,
-          hoverColor: widget.backgroundColor.withOpacity(0.9),
-          padding: widget.padding,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: SailStyleValues.borderRadiusButton,
-          ),
-          onPressed: widget.disabled ? null : widget.onPressed,
-          child: Stack(
-            children: [
-              Opacity(opacity: widget.loading ? 0 : 1, child: widget.child),
-              if (widget.loading) LoadingIndicator.insideButton(),
-            ],
-          ),
-        ),
+    return MaterialButton(
+      onPressed: widget.onPressed,
+      disabledColor: widget.backgroundColor,
+      color: widget.backgroundColor,
+      enableFeedback: !widget.disabled,
+      textColor: theme.colors.text,
+      splashColor: Colors.transparent,
+      hoverColor: widget.backgroundColor.withOpacity(0.6),
+      padding: widget.padding,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: SailStyleValues.borderRadiusButton,
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Opacity(opacity: widget.loading ? 0 : 1, child: widget.child),
+          if (widget.loading)
+            Center(
+              child: LoadingIndicator.insideButton(),
+            ),
+        ],
       ),
     );
   }
