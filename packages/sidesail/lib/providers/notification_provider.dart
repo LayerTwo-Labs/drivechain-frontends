@@ -33,7 +33,7 @@ class NotificationProvider extends ChangeNotifier {
     notifyListeners();
 
     // Automatically dismiss the notification after a set duration
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(seconds: 5), () {
       notifications.remove(notification);
       notifyListeners();
     });
