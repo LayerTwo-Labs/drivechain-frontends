@@ -83,7 +83,6 @@ class PegOutViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
 
@@ -320,7 +319,6 @@ class PegInEthAction extends StatelessWidget {
 
 class PegInEthViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
   EthereumRPC get _ethRPC => GetIt.I.get<EthereumRPC>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   final log = Logger(level: Level.debug);
@@ -391,7 +389,7 @@ class PegInEthViewModel extends BaseViewModel {
         context: context,
         action: 'Deposit from parent chain',
         title: 'Could not deposit from parent-chain',
-        subtitle: error.toString(),
+        subtitle: '$error. Check you have enough balance in your parent-chain wallet.',
       );
     }
   }
