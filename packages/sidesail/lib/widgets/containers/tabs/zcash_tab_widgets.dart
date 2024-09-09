@@ -714,12 +714,6 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
   MeltSingleUTXOActionViewModel({required this.utxo});
 
   void melt(BuildContext context, UnshieldedUTXO utxo) async {
-    setBusy(true);
-    _executeMelt(context, utxo);
-    setBusy(false);
-  }
-
-  void _executeMelt(BuildContext context, UnshieldedUTXO utxo) async {
     if (!context.mounted) {
       return;
     }
@@ -729,6 +723,8 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
     );
 
     try {
+      setBusy(true);
+
       final shieldID = await _rpc.shield(
         utxo,
         castAmount,
@@ -763,6 +759,8 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
         title: 'Could not cast coins',
         subtitle: error.toString(),
       );
+    } finally {
+      setBusy(false);
     }
   }
 }
@@ -1429,23 +1427,7 @@ class MeltAndCastHelp extends StatelessWidget {
           width: MediaQuery.of(context).size.width,
           fit: BoxFit.contain,
         ),
-        const QuestionTitle('What is casting?'),
-        const QuestionText(
-          'Casting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.',
-        ),
-        const QuestionText(
-          'Casting lets you deshield your coins in predefined amounts, at predefined times. The amounts are the same as everyone else that uses zSide, making it impossible to match your inputs&outputs when moving coins from shielded to non-shielded.',
-        ),
-        const QuestionText(
-          'The amounts are powers of two, starting at 1, e.g: 0.00000001 BTC, 0.00000002 BTC, 0.00000004 BTC, 0.00000008 BTC etc.',
-        ),
-        const QuestionText(
-          'For example, 0.75 BTC will be withdrawn in 4 UTXOs. 1x0.67108864 BTC, 1x0.04194304 BTC, 1x0.02097152 BTC and 1x0.01048576 BTC. That sums to 0.74448896 BTC, which is 99.26% of 0.75 BTC.',
-        ),
-        const QuestionText(
-          'The residual 0.00551104 BTC will stay un-withdrawn, in your z-address on the sidechain, to be withdrawn later.',
-        ),
-        const QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
+        const SailSpacing(SailStyleValues.padding20),
         const QuestionTitle('What is melting?'),
         const QuestionText(
           'Melting shields your transparent UTXOs, but does it in a way to preserve your privacy.',
@@ -1467,6 +1449,24 @@ class MeltAndCastHelp extends StatelessWidget {
         ),
         const QuestionText(
           'Because this version uses test money, the melting frequency is much faster than in a real-world scenario. Here, it takes minutes, while with real money it would take days.',
+        ),
+        const QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
+        const SailSpacing(SailStyleValues.padding20),
+        const QuestionTitle('What is casting?'),
+        const QuestionText(
+          'Casting gives you ultra-secure ultra-user-friendly “click button”-level coin anonymization.',
+        ),
+        const QuestionText(
+          'Casting lets you deshield your coins in predefined amounts, at predefined times. The amounts are the same as everyone else that uses zSide, making it impossible to match your inputs&outputs when moving coins from shielded to non-shielded.',
+        ),
+        const QuestionText(
+          'The amounts are powers of two, starting at 1, e.g: 0.00000001 BTC, 0.00000002 BTC, 0.00000004 BTC, 0.00000008 BTC etc.',
+        ),
+        const QuestionText(
+          'For example, 0.75 BTC will be withdrawn in 4 UTXOs. 1x0.67108864 BTC, 1x0.04194304 BTC, 1x0.02097152 BTC and 1x0.01048576 BTC. That sums to 0.74448896 BTC, which is 99.26% of 0.75 BTC.',
+        ),
+        const QuestionText(
+          'The residual 0.00551104 BTC will stay un-withdrawn, in your z-address on the sidechain, to be withdrawn later.',
         ),
         const QuestionText('Read more here: https://www.truthcoin.info/blog/zside-meltcast/'),
       ],
