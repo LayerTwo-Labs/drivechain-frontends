@@ -60,7 +60,7 @@ class _SailCheckboxState extends State<SailCheckbox> {
         ),
         child: Icon(
           Icons.check,
-          size: widget.size,
+          size: widget.size - 2,
           color: Theme.of(context).cardColor,
         ),
       );
@@ -74,7 +74,10 @@ class _SailCheckboxState extends State<SailCheckbox> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
           color: color,
-          border: Border.all(color: Theme.of(context).dividerColor, width: 1.0),
+          border: Border.all(
+            color: Colors.grey,
+            width: 0.5,
+          ),
           boxShadow: sailBoxShadow(context),
         ),
       );

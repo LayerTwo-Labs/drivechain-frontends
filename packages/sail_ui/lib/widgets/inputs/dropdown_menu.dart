@@ -23,13 +23,12 @@ class SailDropdownButton<T> extends StatefulWidget {
   final Widget? icon;
   final double? width;
   final bool large;
-  
+
   @override
   State<StatefulWidget> createState() => _SailDropdownButtonState<T>();
 }
 
-class _SailDropdownButtonState<T>
-    extends State<SailDropdownButton<T>> {
+class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
   @override
   Widget build(BuildContext context) {
     var isWindows = Theme.of(context).platform == TargetPlatform.windows;
@@ -46,8 +45,7 @@ class _SailDropdownButtonState<T>
         )
         .toList();
 
-    var currentIndex =
-        widget.items.indexWhere((element) => element.value == widget.value);
+    var currentIndex = widget.items.indexWhere((element) => element.value == widget.value);
     Widget currentItem = widget.items[currentIndex];
 
     var offsetY = 0.0;
@@ -67,7 +65,7 @@ class _SailDropdownButtonState<T>
       child: _Button(
         padding: EdgeInsets.only(
           left: 8,
-          right: widget.icon == null ? 8 : 4,          
+          right: widget.icon == null ? 8 : 4,
         ),
         onPressed: () {
           var bounds = getGlobalBoundsForContext(context);
@@ -159,16 +157,19 @@ class _Button extends StatelessWidget {
       height: large ? 32 : 24,
       child: MaterialButton(
         // textTheme: textTheme,
-        color: important
-            ? theme.colorScheme.primary
-            : theme.buttonTheme.colorScheme!.surface,
+        color: important ? theme.colorScheme.primary : theme.buttonTheme.colorScheme!.surface,
         hoverColor: Theme.of(context).hoverColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 6)),
-          side: BorderSide(color: Theme.of(context).dividerColor, width: 1),
+          borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 4)),
+          side: const BorderSide(
+            color: Colors.grey,
+            width: 0.5,
+          ),
         ),
         onPressed: enabled ? onPressed : null,
-        elevation: 2,
+        elevation: 0,
+        hoverElevation: 0,
+        focusElevation: 0,
         minWidth: 32,
         padding: EdgeInsets.zero,
         child: Container(

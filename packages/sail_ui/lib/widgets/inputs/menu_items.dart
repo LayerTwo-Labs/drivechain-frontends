@@ -19,8 +19,7 @@ class SailMenu extends StatelessWidget {
   final List<SailMenuEntity> items;
   final double? width;
 
-  double get height =>
-      items.fold(_menuPadding.vertical * 2, (prev, e) => prev + e.height);
+  double get height => items.fold(_menuPadding.vertical * 2, (prev, e) => prev + e.height);
 
   @override
   Widget build(BuildContext context) {
@@ -28,16 +27,20 @@ class SailMenu extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-          color: Theme.of(context).popupMenuTheme.color,
-          borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 4)),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 16,
-              offset: Offset(0, 4),
-            ),
-          ],
-          border: Border.all(color: Theme.of(context).dividerColor),),
+        color: Theme.of(context).popupMenuTheme.color,
+        borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 4)),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey,
+          width: 0.5,
+        ),
+      ),
       padding: isWindows ? _menuPaddingWindows : _menuPadding,
       child: IntrinsicWidth(
         child: Column(
@@ -95,9 +98,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
     TextStyle textStyle;
     if (enabled) {
       textStyle = SailStyleValues.eleven.copyWith(
-            color: (_hover || (_selected && _flashing)) && !isWindows
-                ? Colors.white
-                : SailTheme.of(context).colors.text,
+        color: (_hover || (_selected && _flashing)) && !isWindows ? Colors.white : SailTheme.of(context).colors.text,
       );
     } else {
       textStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
@@ -105,9 +106,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
           );
     }
 
-    var highlightColor = isWindows
-        ? Theme.of(context).highlightColor
-        : Theme.of(context).primaryColor;
+    var highlightColor = isWindows ? Theme.of(context).highlightColor : Theme.of(context).primaryColor;
 
     return MouseRegion(
       onEnter: (_) {
@@ -134,8 +133,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
           width: menuWidth,
           height: widget.height,
           decoration: BoxDecoration(
-            borderRadius:
-                isWindows ? null : const BorderRadius.all(Radius.circular(4.0)),
+            borderRadius: isWindows ? null : const BorderRadius.all(Radius.circular(4.0)),
             color: _hover || (_selected && _flashing) ? highlightColor : null,
           ),
           child: DefaultTextStyle(
@@ -189,8 +187,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
   }
 }
 
-class SailMenuItemDivider extends StatelessWidget
-    implements SailMenuEntity {
+class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
   const SailMenuItemDivider({super.key});
 
   @override
