@@ -546,10 +546,16 @@ class QtButton extends StatelessWidget {
         hoverColor: Theme.of(context).hoverColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 6)),
-          side: BorderSide(color: Theme.of(context).dividerColor, width: 1),
+          side: const BorderSide(
+            color: Colors.grey,
+            width: 0.5,
+          ),
         ),
         onPressed: enabled ? onPressed : null,
-        elevation: 1,
+        elevation: 0,
+        hoverElevation: 0,
+        focusElevation: 0,
+
         minWidth: 32,
         padding: EdgeInsets.zero,
         child: Container(

@@ -56,7 +56,7 @@ void main() async {
                 isDense: true,
                 outlineBorder: const BorderSide(
                   color: Colors.grey,
-                  width: 1.0,
+                  width: 0.5,
                 ),
                 hintStyle: const TextStyle(
                   color: Colors.grey,
@@ -70,7 +70,7 @@ void main() async {
                   borderRadius: BorderRadius.circular(4.0),
                   borderSide: const BorderSide(
                     color: Colors.grey,
-                    width: 1.0,
+                    width: 0.5,
                   ),
                 ),
                 border: OutlineInputBorder(
