@@ -153,8 +153,6 @@ class CastProvider extends ChangeNotifier {
   }
 
   void _executeCast(int powerOf, int iteration) async {
-    print('execute cast $iteration');
-
     try {
       final bundle = futureCasts.elementAt(powerOf);
       log.t('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
@@ -169,7 +167,6 @@ class CastProvider extends ChangeNotifier {
         executeAction: () => _executeCast(powerOf, iteration + 1),
       );
       futureCasts[bundle.powerOf] = newBill;
-      print('recreated next bundle to be executed at ${newBill.executeTime} arraySize=${futureCasts.length}');
       await Future.delayed(const Duration(seconds: 1), () {});
 
       await _zcashProvider.fetch();

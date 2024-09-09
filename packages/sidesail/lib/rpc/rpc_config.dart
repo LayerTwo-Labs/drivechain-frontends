@@ -123,7 +123,6 @@ String? _configValue(List<String> config, String key) {
   return line?.split('=').lastOrNull;
 }
 
-// TODO: this might need permissions configuration for Windows and Linux?
 String mainchainDatadir() {
   final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']; // windows!
   if (home == null) {

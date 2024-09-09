@@ -196,7 +196,6 @@ class SendViewModel extends BaseViewModel {
 
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
-  AppRouter get _router => GetIt.I.get<AppRouter>();
   MainchainRPC get _rpc => GetIt.I.get<MainchainRPC>();
 
   final addressController = TextEditingController();
