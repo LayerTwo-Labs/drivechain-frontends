@@ -42,10 +42,10 @@ class SingleValueContainer extends StatelessWidget {
           if (width != null)
             SizedBox(
               width: width,
-              child: SailText.secondary12(label!, italic: italic, customColor: color),
+              child: SailText.primary12(label!, italic: italic, color: color),
             )
           else
-            SailText.secondary12(label!, italic: italic, customColor: color),
+            SailText.primary12(label!, italic: italic, color: color),
         Expanded(
           child: SailScaleButton(
             onPressed: copyable

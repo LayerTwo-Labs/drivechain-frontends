@@ -5,7 +5,7 @@ abstract class SailStyleValues {
   static BorderRadius borderRadiusRegular = BorderRadius.circular(21);
   static BorderRadius borderRadiusButton = BorderRadius.circular(4);
 
-  static const double padding05 = 3;
+  static const double padding05 = 5;
   static const double padding08 = 4;
   static const double padding10 = 5;
   static const double padding12 = 6;

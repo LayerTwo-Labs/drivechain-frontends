@@ -219,7 +219,7 @@ class _FaucetPageState extends State<FaucetPage> {
                                   viewModel.addressController.text == "",
                               loading: viewModel.isBusy,
                             ),
-                            SailText.background13(viewModel.dispenseErr ?? '', customColor: SailColorScheme.red),
+                            SailText.primary13(viewModel.dispenseErr ?? '', color: SailColorScheme.red),
                           ])),
                   DashboardGroup(
                     title: 'Latest Transactions',

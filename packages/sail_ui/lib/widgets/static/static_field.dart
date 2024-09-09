@@ -85,7 +85,7 @@ class StaticActionInfo extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SailText.background12(text, customColor: theme.colors.info),
+          SailText.primary12(text, color: theme.colors.info),
           Expanded(child: Container()),
         ],
       ),
