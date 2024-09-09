@@ -134,7 +134,7 @@ class RPCWidgetState extends State<RPCWidget> {
                     return SailTextField(
                       controller: textEditingController,
                       label: 'RPC command',
-                      prefixWidget: SailText.secondary12('> ', customColor: getCaretColor(results.firstOrNull)),
+                      prefixWidget: SailText.secondary12('> ', color: getCaretColor(results.firstOrNull)),
                       hintText: 'Enter rpc command here',
                       focusNode: focusNode,
                       onSubmitted: _handleSubmit,
@@ -249,7 +249,7 @@ class ConsoleResponse extends StatelessWidget {
           child: SailColumn(
             spacing: 0,
             children: [
-              SailText.primary12('> $cmd', customColor: SailColorScheme.blue),
+              SailText.primary12('> $cmd', color: SailColorScheme.blue),
               SailScaleButton(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: response));

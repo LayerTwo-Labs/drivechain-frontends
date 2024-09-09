@@ -145,7 +145,7 @@ class SettingsTabPage extends StatelessWidget {
                                 if (settingsViewModel.font != settingsViewModel.fontOnLoad)
                                   SailText.primary12(
                                     'Must restart app to apply font changes',
-                                    customColor: theme.colors.yellow,
+                                    color: theme.colors.yellow,
                                   ),
                               ],
                             ),

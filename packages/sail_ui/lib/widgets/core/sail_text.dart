@@ -40,6 +40,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -47,7 +48,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.twentyFour.copyWith(
-            color: theme.colors.text,
+            color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
           textAlign: textAlign,
@@ -60,6 +61,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -67,7 +69,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.twentyTwo.copyWith(
-            color: theme.colors.text,
+            color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
           textAlign: textAlign,
@@ -80,6 +82,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -87,7 +90,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.twenty.copyWith(
-            color: theme.colors.text,
+            color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
           textAlign: textAlign,
@@ -100,6 +103,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -107,7 +111,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.fifteen.copyWith(
-            color: theme.colors.text,
+            color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
           textAlign: textAlign,
@@ -120,6 +124,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -127,7 +132,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.thirteen.copyWith(
-            color: theme.colors.text,
+            color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
           textAlign: textAlign,
@@ -140,6 +145,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -147,7 +153,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.thirteen.copyWith(
-            color: theme.colors.textSecondary,
+            color: color ?? theme.colors.textSecondary,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
         );
@@ -159,6 +165,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -166,7 +173,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.fifteen.copyWith(
-            color: theme.colors.textSecondary,
+            color: color ?? theme.colors.textSecondary,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
         );
@@ -179,7 +186,7 @@ class SailText {
     TextAlign? textAlign,
     bool bold = false,
     bool italic = false,
-    Color? customColor,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -187,7 +194,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.twelve.copyWith(
-            color: customColor ?? theme.colors.text,
+            color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
           ),
@@ -202,7 +209,7 @@ class SailText {
     TextAlign? textAlign,
     bool bold = false,
     bool italic = false,
-    Color? customColor,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -210,7 +217,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.twelve.copyWith(
-            color: customColor ?? theme.colors.textSecondary,
+            color: color ?? theme.colors.textSecondary,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
           ),
@@ -224,7 +231,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
-    Color? customColor,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -232,7 +239,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.twelve.copyWith(
-            color: customColor ?? theme.colors.background,
+            color: color ?? theme.colors.background,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
           textAlign: textAlign,
@@ -245,7 +252,7 @@ class SailText {
     String label, {
     TextAlign? textAlign,
     bool bold = false,
-    Color? customColor,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -253,7 +260,7 @@ class SailText {
         return _Text(
           label: label,
           style: SailStyleValues.thirteen.copyWith(
-            color: customColor ?? theme.colors.background,
+            color: color ?? theme.colors.background,
             fontWeight: bold ? SailStyleValues.mediumWeight : null,
           ),
           textAlign: textAlign,

@@ -11,7 +11,6 @@ class LoadingIndicator extends StatelessWidget {
     return Builder(
       builder: (context) {
         return Container(
-          color: Colors.black12,
           width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.height,
           child: const Stack(

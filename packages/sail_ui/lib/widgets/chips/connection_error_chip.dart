@@ -40,7 +40,7 @@ class ConnectionErrorChip extends StatelessWidget {
                 ),
                 SailText.primary12(
                   'Not connected to $chain',
-                  customColor: Colors.white,
+                  color: Colors.white,
                 ),
               ],
             ),

@@ -50,7 +50,7 @@ class ChainOverviewCard extends StatelessWidget {
                         color: chain.color,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: SailText.primary12(chain.ticker, customColor: theme.colors.background),
+                      child: SailText.primary12(chain.ticker, color: theme.colors.background),
                     ),
                     SailRow(
                       spacing: SailStyleValues.padding05,
