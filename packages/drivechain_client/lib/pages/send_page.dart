@@ -239,11 +239,7 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
             const SizedBox(width: 4.0),
             QtIconButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: SailText.primary12('Not implemented'),
-                  ),
-                );
+                _addressController.clear();
               },
               icon: const Icon(Icons.cancel_outlined),
             ),
