@@ -111,16 +111,16 @@ class CastProvider extends ChangeNotifier {
 
   CastProvider() {
     for (int i = 1; i <= maxCastFactor; i++) {
-      final newBundle = PendingCastBill(
+      final newBill = PendingCastBill(
         powerOf: i,
         executeAction: () => _executeCast(i, 0),
       );
 
       log.d(
-        'created new bundle executeTime=${newBundle.executeTime} powerOf=${newBundle.powerOf} amountSats=${newBundle.castAmount}',
+        'created new bill executeTime=${newBill.executeTime} powerOf=${newBill.powerOf} amountSats=${newBill.castAmount}',
       );
 
-      futureCasts[i] = newBundle;
+      futureCasts[i] = newBill;
     }
 
     _zcashProvider.addListener(_checkAutoMelt);
@@ -154,20 +154,19 @@ class CastProvider extends ChangeNotifier {
 
   void _executeCast(int powerOf, int iteration) async {
     try {
-      final bundle = futureCasts.elementAt(powerOf);
-      log.t('executing powerOf=${bundle.powerOf} with amount=${bundle.castAmount}');
+      final bill = futureCasts.elementAt(powerOf);
+      log.t('executing powerOf=${bill.powerOf} with amount=${bill.castAmount}');
 
-      for (final pending in bundle.pendingShields) {
+      for (final pending in bill.pendingShields) {
         final opid = await _rpc.deshield(pending.fromUTXO, pending.amount);
         log.i('casted utxo=${pending.fromUTXO.amount} pow=$powerOf opid=$opid');
       }
 
       final newBill = PendingCastBill(
-        powerOf: bundle.powerOf,
+        powerOf: bill.powerOf,
         executeAction: () => _executeCast(powerOf, iteration + 1),
       );
-      futureCasts[bundle.powerOf] = newBill;
-      await Future.delayed(const Duration(seconds: 1), () {});
+      futureCasts[bill.powerOf] = newBill;
 
       await _zcashProvider.fetch();
     } catch (error) {
@@ -200,7 +199,7 @@ class CastProvider extends ChangeNotifier {
       );
 
       log.d(
-        'found fitting bundle billAmount=$billAmount powerOf=$powerOf',
+        'found fitting bill amount=$billAmount powerOf=$powerOf',
       );
 
       pendingShields.add(pending);
@@ -224,18 +223,18 @@ class CastProvider extends ChangeNotifier {
     required ShieldedUTXO utxo,
   }) {
     for (final newPending in newPendingBills) {
-      // extract current bundles
-      final bundle = futureCasts[newPending.pow];
+      // extract current bills
+      final bill = futureCasts[newPending.pow];
 
-      // create new bundle
-      final shield = PendingDeshield(
+      // create new pending deshield
+      final deshield = PendingDeshield(
         fromUTXO: utxo,
         pow: newPending.pow,
       );
-      bundle.addPendingShield(shield);
+      bill.addPendingShield(deshield);
 
       // add existing+new bundle to future casts
-      futureCasts[newPending.pow] = bundle;
+      futureCasts[newPending.pow] = bill;
     }
 
     notifyListeners();
