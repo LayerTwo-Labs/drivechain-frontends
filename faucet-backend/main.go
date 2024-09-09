@@ -98,16 +98,12 @@ func NewFaucet(sender *drivechaind.Client) *Faucet {
 		totalDispensed: 0,
 	}
 
-	go func() {
-		if err := faucet.resetHandler(); err != nil {
-			log.Printf("unable to reset faucet handler: %s", err)
-		}
-	}()
+	go faucet.resetHandler()
 
 	return faucet
 }
 
-func (f *Faucet) resetHandler() error {
+func (f *Faucet) resetHandler() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
@@ -126,9 +122,10 @@ func (f *Faucet) resetHandler() error {
 		case <-connectionTicker.C:
 			height, err := f.sender.Ping()
 			if err != nil {
-				return fmt.Errorf("could not ping sender: %w", err)
+				log.Println("could not ping sender: %w", err)
+			} else {
+				log.Println("client ping: still connected at height", height)
 			}
-			log.Println("client ping: still connected at height", height)
 		}
 	}
 }
