@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class SailNotification extends StatelessWidget {
   final String title;
@@ -30,7 +31,7 @@ class SailNotification extends StatelessWidget {
       child: SailScaleButton(
         onPressed: onPressed,
         child: Card(
-          color: theme.colors.actionHeader.withOpacity(0.8),
+          color: theme.colors.text,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -46,26 +47,17 @@ class SailNotification extends StatelessWidget {
                         children: [
                           SailSVG.fromAsset(SailSVGAsset.iconInfo, color: findColorForType(dialogType)),
                           const SizedBox(width: 8),
-                          Text(
-                            title,
-                            style: const TextStyle(color: Colors.white),
-                            softWrap: true,
-                          ),
+                          SailText.primary13(title, color: theme.colors.background),
                         ],
                       ),
-                      Text(
-                        content,
-                        style: TextStyle(color: Colors.white.withOpacity(0.6)),
-                        softWrap: true,
-                        overflow: TextOverflow.visible,
-                      ),
+                      SailText.primary12(content, color: theme.colors.background),
                     ],
                   ),
                 ),
                 SailScaleButton(
-                  child: const Icon(
+                  child: Icon(
                     Icons.close,
-                    color: Colors.white,
+                    color: theme.colors.background,
                     size: 14,
                   ),
                   onPressed: () {
