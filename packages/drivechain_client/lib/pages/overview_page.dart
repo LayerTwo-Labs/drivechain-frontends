@@ -173,7 +173,7 @@ class BalancesView extends StatelessWidget {
             ],
           );
         }
-        return const LoadingIndicator(); // TODO: Skeleton loading?
+        return const CircularProgressIndicator.adaptive(); // TODO: Skeleton loading?
       },
     );
   }
@@ -235,8 +235,8 @@ class BitcoinPrice extends StatelessWidget {
         SailScaleButton(
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Not implemented'),
+               SnackBar(
+                content: SailText.primary12('Not implemented'),
               ),
             );
           },
