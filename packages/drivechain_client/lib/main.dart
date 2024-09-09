@@ -36,16 +36,57 @@ void main() async {
             routeInformationParser: router.defaultRouteParser(),
             title: 'Drivechain',
             theme: ThemeData(
+              visualDensity: VisualDensity.compact,
               fontFamily: 'Inter',
-              textTheme: GoogleFonts.interTightTextTheme(),
+              textTheme: GoogleFonts.interTightTextTheme(
+                GoogleFonts.sourceCodeProTextTheme(),
+              ),
               colorScheme: ColorScheme.fromSwatch().copyWith(
                 secondary: const Color(0xffFF8000),
               ),
+              snackBarTheme:  SnackBarThemeData(
+                backgroundColor: const Color.fromARGB(255, 230, 230, 230),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+              ),
+              indicatorColor: const Color(0xffFF8000),
               scaffoldBackgroundColor: const Color.fromARGB(255, 240, 240, 240),
+              inputDecorationTheme: InputDecorationTheme(
+                isDense: true,
+                outlineBorder: const BorderSide(
+                  color: Colors.grey,
+                  width: 1.0,
+                ),
+                hintStyle: const TextStyle(
+                  color: Colors.grey,
+                ),
+                focusColor: Colors.white,
+                fillColor: Colors.white,                
+                filled: true,
+                hoverColor: Colors.white,
+                contentPadding: const EdgeInsets.all(6.0),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4.0),
+                  borderSide: const BorderSide(
+                    color: Colors.grey,
+                    width: 1.0,
+                  ),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+              ),
+              popupMenuTheme: PopupMenuThemeData(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(2.0),
+                ),
+                color: Colors.white,
+              ),
             ),
           );
         },
-        accentColor: const Color(0xff000000),
+        accentColor: const Color.fromARGB(255, 240, 240, 240),
         log: log,
       ),
     ),
