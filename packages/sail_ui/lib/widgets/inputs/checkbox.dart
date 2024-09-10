@@ -1,10 +1,7 @@
-import 'dart:io';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/style/shadows.dart';
-import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/theme/theme.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class SailCheckbox extends StatefulWidget {
   final bool value;
@@ -40,10 +37,10 @@ class _SailCheckboxState extends State<SailCheckbox> {
       Color color;
 
       if (enabled) {
-        final color = SailTheme.of(context).colors.primary;
+        color = SailTheme.of(context).colors.primary;
         if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
       } else {
-        color = Theme.of(context).disabledColor;
+        color = SailTheme.of(context).colors.backgroundSecondary;
       }
 
       visual = Container(
@@ -57,11 +54,11 @@ class _SailCheckboxState extends State<SailCheckbox> {
         child: Icon(
           Icons.check,
           size: widget.size - 2,
-          color: Theme.of(context).cardColor,
+          color: SailTheme.of(context).colors.iconHighlighted,
         ),
       );
     } else {
-      var color = Theme.of(context).cardColor;
+      var color = SailTheme.of(context).colors.backgroundSecondary;
       if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
 
       visual = Container(
@@ -80,21 +77,17 @@ class _SailCheckboxState extends State<SailCheckbox> {
     }
 
     if (widget.label != null) {
-      var textStyle = SailStyleValues.twelve;
-      if (!enabled) {
-        textStyle = textStyle.copyWith(
-          color: SailTheme.of(context).colors.textSecondary,
-        );
-      }
-
       visual = Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           visual,
           Padding(
             padding: const EdgeInsets.only(left: 8.0),
-            child: Text(
+            child: SailText.primary12(
               widget.label!,
-              style: textStyle,
+              color: enabled
+                  ? SailTheme.of(context).colors.text
+                  : SailTheme.of(context).colors.textSecondary,
             ),
           ),
         ],
