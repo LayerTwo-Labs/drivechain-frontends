@@ -49,7 +49,7 @@ class SailText {
           label: label,
           style: SailStyleValues.twentyFour.copyWith(
             color: color ?? theme.colors.text,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
           textAlign: textAlign,
         );
@@ -70,7 +70,7 @@ class SailText {
           label: label,
           style: SailStyleValues.twentyTwo.copyWith(
             color: color ?? theme.colors.text,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
           textAlign: textAlign,
         );
@@ -91,7 +91,7 @@ class SailText {
           label: label,
           style: SailStyleValues.twenty.copyWith(
             color: color ?? theme.colors.text,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
           textAlign: textAlign,
         );
@@ -112,7 +112,7 @@ class SailText {
           label: label,
           style: SailStyleValues.fifteen.copyWith(
             color: color ?? theme.colors.text,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
           textAlign: textAlign,
         );
@@ -133,7 +133,7 @@ class SailText {
           label: label,
           style: SailStyleValues.thirteen.copyWith(
             color: color ?? theme.colors.text,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
           textAlign: textAlign,
         );
@@ -154,7 +154,7 @@ class SailText {
           label: label,
           style: SailStyleValues.thirteen.copyWith(
             color: color ?? theme.colors.textSecondary,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
         );
       },
@@ -174,7 +174,7 @@ class SailText {
           label: label,
           style: SailStyleValues.fifteen.copyWith(
             color: color ?? theme.colors.textSecondary,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
         );
       },
@@ -195,7 +195,7 @@ class SailText {
           label: label,
           style: SailStyleValues.twelve.copyWith(
             color: color ?? theme.colors.text,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
           ),
           textAlign: textAlign,
@@ -218,7 +218,7 @@ class SailText {
           label: label,
           style: SailStyleValues.twelve.copyWith(
             color: color ?? theme.colors.textSecondary,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
           ),
           textAlign: textAlign,
@@ -240,7 +240,7 @@ class SailText {
           label: label,
           style: SailStyleValues.twelve.copyWith(
             color: color ?? theme.colors.background,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
           textAlign: textAlign,
         );
@@ -261,7 +261,7 @@ class SailText {
           label: label,
           style: SailStyleValues.thirteen.copyWith(
             color: color ?? theme.colors.background,
-            fontWeight: bold ? SailStyleValues.mediumWeight : null,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
           ),
           textAlign: textAlign,
         );

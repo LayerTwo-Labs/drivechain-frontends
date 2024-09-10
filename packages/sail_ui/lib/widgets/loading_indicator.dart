@@ -10,7 +10,7 @@ class LoadingIndicator extends StatelessWidget {
   static Widget overlay() {
     return Builder(
       builder: (context) {
-        return Container(
+        return SizedBox(
           width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.height,
           child: const Stack(
