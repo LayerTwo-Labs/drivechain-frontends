@@ -22,7 +22,7 @@ abstract class SailStyleValues {
   // ---------- FONTS ----------
   static const lightWeight = FontWeight.w300;
   static const regularWeight = FontWeight.w400;
-  static const boldWeight = FontWeight.w500;
+  static const mediumWeight = FontWeight.w500;
 
   static const TextStyle twentyFour = TextStyle(
     fontSize: 24,
