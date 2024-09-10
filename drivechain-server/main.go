@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"time"
 
@@ -94,37 +93,6 @@ func realMain(ctx context.Context) error {
 
 	zerolog.Ctx(ctx).Debug().
 		Msgf("initiating electrum connection at %s", wallet.Electrum)
-
-	initialBalance, err := wallet.GetBalance(ctx)
-	if err != nil {
-		return err
-	}
-
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-	go func() {
-		for range ticker.C {
-			if err := wallet.Sync(ctx); err != nil {
-				zerolog.Ctx(ctx).Err(err).Msgf("unable to sync")
-				continue
-			}
-
-			balance, err := wallet.GetBalance(ctx)
-			if err != nil {
-				zerolog.Ctx(ctx).Err(err).Msgf("unable to get balance")
-				continue
-			}
-
-			if reflect.DeepEqual(balance, initialBalance) {
-				continue
-			}
-
-			zerolog.Ctx(ctx).Info().
-				Msgf("balance changed: %+v -> %+v", initialBalance, balance)
-
-			initialBalance = balance
-		}
-	}()
 
 	mux := http.NewServeMux()
 	path, handler := rpc.NewDrivechainServiceHandler(server.New(&wallet, proxy))

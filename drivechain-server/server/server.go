@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync/atomic"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
@@ -24,12 +26,45 @@ import (
 var _ rpc.DrivechainServiceHandler = new(Server)
 
 func New(wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind) *Server {
-	return &Server{wallet, bitcoind}
+	s := &Server{wallet: wallet, bitcoind: bitcoind}
+	go s.balanceUpdateLoop(context.Background())
+	return s
 }
 
 type Server struct {
 	wallet   *bdk.Wallet
 	bitcoind *coreproxy.Bitcoind
+	balance  atomic.Value
+}
+
+func (s *Server) balanceUpdateLoop(ctx context.Context) {
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := s.updateBalance(ctx); err != nil {
+				zerolog.Ctx(ctx).Err(err).Msg("failed to update balance")
+			}
+		}
+	}
+}
+
+func (s *Server) updateBalance(ctx context.Context) error {
+	if err := s.wallet.Sync(ctx); err != nil {
+		return fmt.Errorf("unable to sync: %w", err)
+	}
+
+	balance, err := s.wallet.GetBalance(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to get balance: %w", err)
+	}
+
+	s.balance.Store(balance)
+	return nil
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
@@ -177,14 +212,20 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.E
 
 // GetBalance implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBalanceResponse], error) {
-	res, err := s.wallet.GetBalance(ctx)
-	if err != nil {
-		return nil, err
+	balanceValue := s.balance.Load()
+	if balanceValue == nil {
+		// If balance hasn't been fetched yet, do it now
+		if err := s.updateBalance(ctx); err != nil {
+			return nil, err
+		}
+		balanceValue = s.balance.Load()
 	}
 
+	balance := balanceValue.(bdk.Balance)
+
 	return connect.NewResponse(&pb.GetBalanceResponse{
-		ConfirmedSatoshi: uint64(res.Confirmed),
-		PendingSatoshi:   uint64(res.Immature) + uint64(res.TrustedPending) + uint64(res.UntrustedPending),
+		ConfirmedSatoshi: uint64(balance.Confirmed),
+		PendingSatoshi:   uint64(balance.Immature) + uint64(balance.TrustedPending) + uint64(balance.UntrustedPending),
 	}), nil
 }
 
