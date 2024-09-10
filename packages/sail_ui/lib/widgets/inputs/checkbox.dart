@@ -54,7 +54,7 @@ class _SailCheckboxState extends State<SailCheckbox> {
         child: Icon(
           Icons.check,
           size: widget.size - 2,
-          color: SailTheme.of(context).colors.iconHighlighted,
+          color: SailTheme.of(context).colors.background,
         ),
       );
     } else {
@@ -68,7 +68,7 @@ class _SailCheckboxState extends State<SailCheckbox> {
           borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
           color: color,
           border: Border.all(
-            color: Colors.grey,
+            color: SailTheme.of(context).colors.formFieldBorder,
             width: 0.5,
           ),
           boxShadow: sailBoxShadow(context),
