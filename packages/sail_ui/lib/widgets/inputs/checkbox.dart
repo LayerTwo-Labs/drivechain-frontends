@@ -40,11 +40,7 @@ class _SailCheckboxState extends State<SailCheckbox> {
       Color color;
 
       if (enabled) {
-        if (Platform.isMacOS) {
-          color = CupertinoColors.activeBlue;
-        } else {
-          color = Theme.of(context).indicatorColor;
-        }
+        final color = SailTheme.of(context).colors.primary;
         if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
       } else {
         color = Theme.of(context).disabledColor;
