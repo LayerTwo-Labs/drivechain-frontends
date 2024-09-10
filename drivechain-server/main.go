@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"time"
 
 	"connectrpc.com/connect"
@@ -70,18 +71,18 @@ func realMain(ctx context.Context) error {
 	// $ bdk-cli key generate | jq -r .xprv
 	priv := "xprv9s21ZrQH143K4KPGEHUNPYep8dztoaJm1MUhMAx5mjh4Y8iGVNe32VwReJZ3rR1btgB82rbrLyRnpmeVWqshbNVumSdJY9FBBXeu3wN8z6T"
 
-	pwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
 	electrumProtocol := "ssl"
 	if conf.ElectrumNoSSL {
 		electrumProtocol = "tcp"
 	}
 
+	datadir, err := getDataDir()
+	if err != nil {
+		return err
+	}
+
 	wallet := bdk.Wallet{
-		Datadir:    filepath.Join(pwd, ".data"),
+		Datadir:    datadir,
 		Descriptor: fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", priv),
 
 		// This is all wonky stuff. We're on some kind of botched regtest...
@@ -170,4 +171,44 @@ func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, erro
 	}
 
 	return core, nil
+}
+
+func getDataDir() (string, error) {
+	const appName = "bdk-cli"
+	var dir string
+
+	switch runtime.GOOS {
+	case "linux":
+		if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+			dir = filepath.Join(xdgDataHome, appName)
+		} else {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
+			dir = filepath.Join(home, ".local", "share", appName)
+		}
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		dir = filepath.Join(home, "Library", "Application Support", appName)
+	case "windows":
+		appData, ok := os.LookupEnv("APPDATA")
+		if !ok {
+			return "", os.ErrNotExist
+		}
+		dir = filepath.Join(appData, appName)
+	default:
+		return "", os.ErrNotExist
+	}
+
+	// Ensure the directory exists
+	err := os.MkdirAll(dir, 0755)
+	if err != nil && !os.IsExist(err) {
+		return "", err
+	}
+
+	return dir, nil
 }
