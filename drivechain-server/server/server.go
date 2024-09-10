@@ -64,7 +64,7 @@ func (s *Server) updateBalance(ctx context.Context) error {
 		return fmt.Errorf("unable to get balance: %w", err)
 	}
 
-	prevBalance, _ := s.balance.Load().(btcutil.Amount)
+	prevBalance, _ := s.balance.Load().(bdk.Balance)
 	if reflect.DeepEqual(balance, prevBalance) {
 		return nil
 	}
