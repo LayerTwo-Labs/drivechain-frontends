@@ -194,7 +194,7 @@ class SailText {
           label: label,
           style: SailStyleValues.twelve.copyWith(
             color: color ?? theme.colors.text,
-            fontWeight: bold ? SailStyleValues.boldWeight : null,
+            fontWeight: bold ? SailStyleValues.mediumWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
           ),
           textAlign: textAlign,
