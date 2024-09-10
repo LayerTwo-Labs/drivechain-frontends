@@ -1,1 +1,3 @@
 drivechain-server
+/bdk/bin/
+/bdk/.crates*
