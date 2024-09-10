@@ -45,7 +45,6 @@ main() async {
             ),
           );
         },
-        initMethod: (_) => Future.value(),
         accentColor: const Color(0xff000000),
         log: log,
       ),

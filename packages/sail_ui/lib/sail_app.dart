@@ -12,17 +12,17 @@ import 'package:sail_ui/theme/theme_data.dart';
 class SailApp extends StatefulWidget {
   // This key is used to programmatically trigger a rebuild of the widget.
   static GlobalKey<SailAppState> sailAppKey = GlobalKey();
-  final Future<void> Function(BuildContext context) initMethod;
+  final Future<void> Function(BuildContext context)? initMethod;
   final Color accentColor;
   final Logger log;
 
-  final Widget Function(BuildContext context) builder;
+  final WidgetBuilder builder;
 
   SailApp({
     required this.builder,
-    required this.initMethod,
     required this.accentColor,
     required this.log,
+    this.initMethod,
   }) : super(key: sailAppKey);
 
   @override
@@ -49,7 +49,7 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
-    widget.initMethod(context);
+    widget.initMethod?.call(context);
   }
 
   Future<void> loadTheme([SailThemeValues? themeToLoad]) async {
