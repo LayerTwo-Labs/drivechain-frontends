@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"sync/atomic"
 	"time"
@@ -62,6 +63,14 @@ func (s *Server) updateBalance(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("unable to get balance: %w", err)
 	}
+
+	prevBalance, _ := s.balance.Load().(btcutil.Amount)
+	if reflect.DeepEqual(balance, prevBalance) {
+		return nil
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Msgf("balance changed: %+v -> %+v", prevBalance, balance)
 
 	s.balance.Store(balance)
 	return nil
