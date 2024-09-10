@@ -3,10 +3,13 @@ package bdk
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -17,6 +20,9 @@ import (
 	"github.com/samber/lo"
 	"github.com/tidwall/gjson"
 )
+
+//go:embed bin/bdk-cli
+var bdkCliBinary embed.FS
 
 type Wallet struct {
 	// Ensures only a single access to BDK can happen at the same time
@@ -33,6 +39,25 @@ var validNetworks = []string{
 	"testnet",
 	"signet",
 	"regtest",
+}
+
+func getBdkCliPath() (string, error) {
+	tempDir, err := os.MkdirTemp("", "bdk-cli")
+	if err != nil {
+		return "", err
+	}
+
+	bdkCliBytes, err := bdkCliBinary.ReadFile("bin/bdk-cli")
+	if err != nil {
+		return "", err
+	}
+
+	bdkCliPath := filepath.Join(tempDir, "bdk-cli")
+	if err := os.WriteFile(bdkCliPath, bdkCliBytes, 0755); err != nil {
+		return "", err
+	}
+
+	return bdkCliPath, nil
 }
 
 func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
@@ -62,9 +87,14 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 		return nil, errors.New("bdk: exec: empty command")
 	}
 
-	cmd := exec.CommandContext(ctx, "bdk-cli", fullArgs...)
+	bdkCliPath, err := getBdkCliPath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bdk-cli path: %w", err)
+	}
+	defer os.RemoveAll(filepath.Dir(bdkCliPath))
 
-	// TODO: check for bdk-cli bin existence
+	cmd := exec.CommandContext(ctx, bdkCliPath, fullArgs...)
+
 	res, err := cmd.CombinedOutput()
 	if err != nil {
 		errorMessage := err.Error()
@@ -76,7 +106,7 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 		}
 
 		zerolog.Ctx(ctx).Err(err).Msgf("exec: %q errored",
-			strings.Join(slices.Concat([]string{"bdk-cli"}, fullArgs), " "),
+			strings.Join(slices.Concat([]string{bdkCliPath}, fullArgs), " "),
 		)
 
 		return nil, fmt.Errorf("exec: bdk-cli wallet %q: %s",
