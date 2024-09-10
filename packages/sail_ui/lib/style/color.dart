@@ -5,6 +5,7 @@ class SailColor {
   final Color background;
   final Color backgroundSecondary;
   final Color backgroundActionModal;
+  final Color popoverBackground;
 
   final Color formField;
   final Color formFieldBorder;
@@ -29,6 +30,7 @@ class SailColor {
     required this.background,
     required this.backgroundSecondary,
     required this.backgroundActionModal,
+    required this.popoverBackground,
     required this.formField,
     required this.formFieldBorder,
     required this.divider,
@@ -70,6 +72,7 @@ class SailColor {
       yellow: SailColorScheme.yellow,
       actionHeader: SailColorScheme.whiteDark,
       chip: SailColorScheme.greyMiddle.withOpacity(0.21),
+      popoverBackground: SailColorScheme.white,
     );
   }
   factory SailColor.darkTheme(Color primary) {
@@ -94,6 +97,7 @@ class SailColor {
       info: SailColorScheme.blue,
       yellow: SailColorScheme.yellow,
       chip: SailColorScheme.darkChip,
+      popoverBackground: SailColorScheme.darkBackground,
     );
   }
 }
