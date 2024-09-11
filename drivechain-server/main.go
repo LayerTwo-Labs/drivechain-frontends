@@ -95,7 +95,8 @@ func realMain(ctx context.Context) error {
 		Msgf("initiating electrum connection at %s", wallet.Electrum)
 
 	mux := http.NewServeMux()
-	path, handler := rpc.NewDrivechainServiceHandler(server.New(&wallet, proxy))
+	srv := server.New(&wallet, proxy)
+	path, handler := rpc.NewDrivechainServiceHandler(srv)
 
 	mux.Handle(path, handler)
 
@@ -109,6 +110,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	errs := make(chan error)
+	go srv.StartBalanceUpdateLoop(ctx)
 	go func() {
 		errs <- httpServer.ListenAndServe()
 	}()
