@@ -5,11 +5,11 @@ Dependencies:
 1.  [`just`](https://just.systems/man/en/chapter_4.html?highlight=brew#packages)
 1.  [Go](https://go.dev/doc/install)
 1.  [Rust via `rustup`](https://rustup.rs/)
+1.  [`buf`](https://buf.build/docs/installation)
 
 Building and running:
 
 ```bash
-$ just install-bdk-cli
 $ just build
 
 # This assumes you're running drivechain-qt, with the
@@ -72,14 +72,6 @@ Further validations that need to happen before we're confident that this works:
    created!). Will `bdk-cli` crash if the signet network has other parameters?
 1. ~~Verify we're able to modify `btc-buf` to run in-memory. Should be easy
    enough. If not, we'll just use `rpcclient` from `btcd`.~~
-
-# Dependencies:
-
-1. `bdk-cli`.
-   ```bash
-   # note: key-value-db is required for Windows
-   $ cargo install --git https://github.com/bitcoindevkit/bdk-cli --no-default-features --features=key-value-db,compiler,electrum
-   ```
 
 # Other alternatives considered
 
