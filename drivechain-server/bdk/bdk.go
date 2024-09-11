@@ -21,7 +21,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-//go:embed bin/bdk-cli
+//go:embed bin/*
 var bdkCliBinary embed.FS
 
 type Wallet struct {
