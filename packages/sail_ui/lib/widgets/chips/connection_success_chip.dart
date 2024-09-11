@@ -27,8 +27,10 @@ class ConnectionStatusChip extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: theme.colors.formFieldBorder, width: 0.5),
-        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        border: Border(
+          right: BorderSide(color: theme.colors.formFieldBorder, width: 0.5),
+          left: BorderSide(color: theme.colors.formFieldBorder, width: 0.5),
+        ),
       ),
       child: SailScaleButton(
         onPressed: onPressed,
