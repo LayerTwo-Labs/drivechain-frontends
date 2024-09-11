@@ -86,7 +86,7 @@ class UTXO {
       };
 }
 
-class UTXOView extends StatefulWidget {
+class UTXOView extends StatelessWidget {
   final UTXO utxo;
   final bool externalDirection;
 
@@ -96,25 +96,14 @@ class UTXOView extends StatefulWidget {
     this.externalDirection = false,
   });
 
-  @override
-  State<UTXOView> createState() => _UTXOViewState();
-}
-
-class _UTXOViewState extends State<UTXOView> {
-  bool expanded = false;
-  late Map<String, dynamic> decodedTx;
-  @override
-  void initState() {
-    super.initState();
-    decodedTx = jsonDecode(widget.utxo.raw);
-  }
+  Map<String, dynamic> get decodedUTXO => jsonDecode(utxo.raw);
 
   String get formattedDate {
-    if (widget.utxo.time == null) {
+    if (utxo.time == null) {
       return '';
     }
 
-    final date = DateTime.fromMillisecondsSinceEpoch(widget.utxo.time! * 1000);
+    final date = DateTime.fromMillisecondsSinceEpoch(utxo.time! * 1000);
     String locale = WidgetsBinding.instance.platformDispatcher.locale.toString();
     var formatter = DateFormat.yMMMMd(locale).add_Hm();
     String formattedDate = formatter.format(date);
@@ -124,35 +113,17 @@ class _UTXOViewState extends State<UTXOView> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        width: 95,
+        italic: utxo.confirmations <= 0,
+        copyable: false,
+        value: extractTXTitle(utxo),
+        trailingText: formattedDate,
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              width: expanded ? 95 : 70,
-              italic: widget.utxo.confirmations <= 0,
-              copyable: false,
-              value: extractTXTitle(widget.utxo),
-              trailingText: formattedDate,
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: decodedTx,
-              width: 95,
-            ),
-        ],
+      expandedEntry: ExpandedTXView(
+        decodedTX: decodedUTXO,
+        width: 95,
       ),
     );
   }
@@ -165,9 +136,9 @@ class _UTXOViewState extends State<UTXOView> {
     }
 
     if (tx.amount.isNegative || tx.amount == 0) {
-      return '$title ${widget.externalDirection ? 'from' : 'to'} ${tx.address}';
+      return '$title ${externalDirection ? 'from' : 'to'} ${tx.address}';
     }
 
-    return '${widget.externalDirection ? "" : "+"} $title ${widget.externalDirection ? 'to' : 'from'} ${tx.address}';
+    return '${externalDirection ? "" : "+"} $title ${externalDirection ? 'to' : 'from'} ${tx.address}';
   }
 }

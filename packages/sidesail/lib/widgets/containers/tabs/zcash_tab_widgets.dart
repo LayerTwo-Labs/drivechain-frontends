@@ -919,70 +919,44 @@ class CastActionViewModel extends BaseViewModel {
   }
 }
 
-class OperationView extends StatefulWidget {
+class OperationView extends StatelessWidget {
   final OperationStatus tx;
 
-  const OperationView({super.key, required this.tx});
+  const OperationView({
+    super.key,
+    required this.tx,
+  });
 
-  @override
-  State<OperationView> createState() => _OperationViewState();
-}
-
-class _OperationViewState extends State<OperationView> {
-  bool expanded = false;
-  late Map<String, dynamic> decodedTX;
-  @override
-  void initState() {
-    super.initState();
-    decodedTX = jsonDecode(widget.tx.raw);
-  }
+  Map<String, dynamic> get decodedTX => jsonDecode(tx.raw);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        width: 115,
+        icon: tx.status == 'success'
+            ? Tooltip(
+                message: 'Success',
+                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
+              )
+            : Tooltip(
+                message: 'Failed',
+                child: SailSVG.icon(SailSVGAsset.iconFailed, width: 13),
+              ),
+        copyable: false,
+        label: tx.method,
+        value: tx.id,
+        trailingText: DateFormat('dd MMM HH:mm:ss').format(tx.creationTime),
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              width: 115,
-              icon: widget.tx.status == 'success'
-                  ? Tooltip(
-                      message: 'Success',
-                      child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-                    )
-                  : Tooltip(
-                      message: 'Failed',
-                      child: SailSVG.icon(SailSVGAsset.iconFailed, width: 13),
-                    ),
-              copyable: false,
-              label: widget.tx.method,
-              value: widget.tx.id,
-              trailingText: DateFormat('dd MMM HH:mm:ss').format(widget.tx.creationTime),
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: decodedTX,
-              width: 115,
-            ),
-        ],
+      expandedEntry: ExpandedTXView(
+        decodedTX: decodedTX,
+        width: 115,
       ),
     );
   }
 }
 
-class UnshieldedUTXOView extends StatefulWidget {
+class UnshieldedUTXOView extends StatelessWidget {
   final UnshieldedUTXO utxo;
   final VoidCallback? shieldAction;
   final bool meltMode;
@@ -994,71 +968,47 @@ class UnshieldedUTXOView extends StatefulWidget {
     required this.meltMode,
   });
 
-  @override
-  State<UnshieldedUTXOView> createState() => _UnshieldedUTXOViewState();
-}
-
-class _UnshieldedUTXOViewState extends State<UnshieldedUTXOView> {
   SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
 
-  bool expanded = false;
-  late Map<String, dynamic> decodedUTXO;
-  Color get utxoColor => getCastColor(widget.utxo.amount);
-  @override
-  void initState() {
-    super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      decodedUTXO = jsonDecode(widget.utxo.raw);
-    });
-  }
+  Map<String, dynamic> get decodedUTXO => jsonDecode(utxo.raw);
+  Color? get utxoColor => getCastColor(utxo.amount);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding05,
-        horizontal: SailStyleValues.padding05,
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        prefixAction: shieldAction == null
+            ? null
+            : SailButton.secondary(
+                meltMode ? 'Melt' : 'Shield',
+                onPressed: shieldAction!,
+                size: ButtonSize.small,
+                disabled: utxo.amount <= zcashFee,
+              ),
+        icon: utxo.confirmations >= 1
+            ? Tooltip(
+                message: '${utxo.confirmations} confirmations',
+                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
+              )
+            : Tooltip(
+                message: 'Unconfirmed',
+                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+              ),
+        color: utxoColor,
+        copyable: false,
+        label: '${formatBitcoin(utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
+        labelTooltip: isCastAmount(utxo.amount) ? 'Casted, safe UTXO' : 'Not casted, unsafe UTXO',
+        value: utxo.address,
       ),
-      child: SailColumn(
-        spacing: 0,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              prefixAction: widget.shieldAction == null
-                  ? null
-                  : SailButton.secondary(
-                      widget.meltMode ? 'Melt' : 'Shield',
-                      onPressed: widget.shieldAction!,
-                      size: ButtonSize.small,
-                      disabled: widget.utxo.amount <= zcashFee,
-                    ),
-              italic: widget.utxo.confirmations <= 0,
-              color: utxoColor,
-              copyable: false,
-              label: '${formatBitcoin(widget.utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
-              value: widget.utxo.address,
-              trailingText: '',
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: decodedUTXO,
-              width: 115,
-            ),
-        ],
+      expandedEntry: ExpandedTXView(
+        decodedTX: decodedUTXO,
+        width: 115,
       ),
     );
   }
 }
 
-class ShieldedUTXOView extends StatefulWidget {
+class ShieldedUTXOView extends StatelessWidget {
   final ShieldedUTXO utxo;
   final VoidCallback? deshieldAction;
   final bool castMode;
@@ -1070,62 +1020,42 @@ class ShieldedUTXOView extends StatefulWidget {
     required this.castMode,
   });
 
-  @override
-  State<ShieldedUTXOView> createState() => _ShieldedUTXOViewState();
-}
-
-class _ShieldedUTXOViewState extends State<ShieldedUTXOView> {
   SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
 
-  bool expanded = false;
-  late Map<String, dynamic> decodedUTXO;
-  Color get utxoColor => getCastColor(widget.utxo.amount);
-  @override
-  void initState() {
-    super.initState();
-    decodedUTXO = jsonDecode(widget.utxo.raw);
-  }
+  Map<String, dynamic> get decodedUTXO => jsonDecode(utxo.raw);
+  Color? get utxoColor => getCastColor(utxo.amount);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        prefixAction: deshieldAction == null
+            ? null
+            : SailButton.secondary(
+                castMode ? 'Cast' : 'Deshield',
+                onPressed: deshieldAction!,
+                size: ButtonSize.small,
+                disabled: utxo.amount <= zcashFee,
+              ),
+        icon: utxo.confirmations >= 1
+            ? Tooltip(
+                message: '${utxo.confirmations} confirmations',
+                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
+              )
+            : Tooltip(
+                message: 'Unconfirmed',
+                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+              ),
+        color: utxoColor,
+        copyable: false,
+        label: '${formatBitcoin(utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
+        labelTooltip: isCastAmount(utxo.amount) ? 'Melted, safe UTXO' : 'Not melted, unsafe amount',
+        value: utxo.txid,
+        trailingText: '',
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              prefixAction: widget.deshieldAction == null
-                  ? null
-                  : SailButton.secondary(
-                      widget.castMode ? 'Cast' : 'Deshield',
-                      onPressed: widget.deshieldAction!,
-                      size: ButtonSize.small,
-                      disabled: widget.utxo.amount <= zcashFee,
-                    ),
-              italic: widget.utxo.confirmations <= 0,
-              color: utxoColor,
-              copyable: false,
-              label: '${formatBitcoin(widget.utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
-              value: widget.utxo.txid,
-              trailingText: '',
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: decodedUTXO,
-              width: 115,
-            ),
-        ],
+      expandedEntry: ExpandedTXView(
+        decodedTX: decodedUTXO,
+        width: 115,
       ),
     );
   }
@@ -1147,7 +1077,6 @@ class PendingCastView extends StatefulWidget {
 
 class _PendingCastViewState extends State<PendingCastView> {
   int executeInSeconds = 0;
-  bool expanded = false;
   late Map<String, dynamic> expandInfo;
 
   // for counting down until execution
@@ -1178,40 +1107,21 @@ class _PendingCastViewState extends State<PendingCastView> {
   Widget build(BuildContext context) {
     String countdownText = _timeLeft.isNegative ? 'Executing...' : 'Executing in ${_timeLeft.inSeconds} seconds';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        icon: Tooltip(
+          message: 'Waiting for timer to expire',
+          child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+        ),
+        copyable: false,
+        label: '${formatBitcoin(widget.pending.castAmount)} ${widget.chain.ticker}',
+        value:
+            widget.pending.pendingShields.isNotEmpty ? 'Will deshield ${widget.pending.pendingShields.length} txs' : '',
+        trailingText: countdownText,
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              icon: Tooltip(
-                message: 'Waiting for timer to expire',
-                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-              ),
-              copyable: false,
-              label: '${formatBitcoin(widget.pending.castAmount)} ${widget.chain.ticker}',
-              value: widget.pending.pendingShields.isNotEmpty
-                  ? 'Will deshield ${widget.pending.pendingShields.length} txs'
-                  : '',
-              trailingText: countdownText,
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: expandInfo,
-              width: 105,
-            ),
-        ],
+      expandedEntry: ExpandedTXView(
+        decodedTX: expandInfo,
+        width: 105,
       ),
     );
   }
@@ -1249,7 +1159,6 @@ class _PendingMeltViewState extends State<PendingMeltView> {
   SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
 
   int executeInSeconds = 0;
-  bool expanded = false;
   late Map<String, dynamic> decodedTX;
 
   // for counting down until execution
@@ -1280,40 +1189,22 @@ class _PendingMeltViewState extends State<PendingMeltView> {
   Widget build(BuildContext context) {
     String countdownText = _timeLeft.inSeconds <= 0 ? 'Executing...' : 'Executing in ${_timeLeft.inSeconds} seconds';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        width: 105,
+        icon: Tooltip(
+          message: 'Waiting for timer to expire',
+          child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+        ),
+        copyable: false,
+        label: '${formatBitcoin(widget.tx.utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
+        value:
+            'Will melt ${widget.tx.utxo.amount} ${_sidechainContainer.rpc.chain.ticker} from ${widget.tx.utxo.address}',
+        trailingText: countdownText,
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              width: 105,
-              icon: Tooltip(
-                message: 'Waiting for timer to expire',
-                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-              ),
-              copyable: false,
-              label: '${formatBitcoin(widget.tx.utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
-              value:
-                  'Will melt ${widget.tx.utxo.amount} ${_sidechainContainer.rpc.chain.ticker} from ${widget.tx.utxo.address}',
-              trailingText: countdownText,
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: decodedTX,
-              width: 105,
-            ),
-        ],
+      expandedEntry: ExpandedTXView(
+        decodedTX: decodedTX,
+        width: 105,
       ),
     );
   }
@@ -1481,19 +1372,17 @@ bool isCastAmount(double amount) {
 
   final satAmount = (amount * 100000000).toInt();
   if (satAmount <= 0) return false;
+
+  // This checks if satAmount is a power of 2.
+  // It does this by using a bitwise operation:
+  // If satAmount is a power of 2, it will have only one '1' bit.
+  // Subtracting 1 from it will flip all lower bits to '1'.
+  // The bitwise AND of these two numbers will be 0 only for powers of 2.
   return (satAmount & (satAmount - 1)) == 0;
 }
 
-Color getCastColor(double amount) {
+Color? getCastColor(double amount) {
   final isCasted = isCastAmount(amount);
 
-  if (isCasted) {
-    return SailColorScheme.green;
-  } else {
-    const double maxAmount = 21000.0;
-    const double minOpacity = 0.7;
-    double opacity = (amount / maxAmount).clamp(0.0, 1.0);
-    opacity = opacity < minOpacity ? minOpacity : opacity;
-    return SailColorScheme.red.withOpacity(opacity);
-  }
+  return isCasted ? SailColorScheme.green : null;
 }

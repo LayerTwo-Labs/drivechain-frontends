@@ -105,7 +105,7 @@ class CoreTransaction {
       };
 }
 
-class CoreTransactionView extends StatefulWidget {
+class CoreTransactionView extends StatelessWidget {
   final CoreTransaction tx;
   final String ticker;
 
@@ -115,57 +115,36 @@ class CoreTransactionView extends StatefulWidget {
     required this.ticker,
   });
 
-  @override
-  State<CoreTransactionView> createState() => _CoreTransactionViewState();
-}
-
-class _CoreTransactionViewState extends State<CoreTransactionView> {
-  bool expanded = false;
-  late Map<String, dynamic> decodedTx;
-  @override
-  void initState() {
-    super.initState();
-    decodedTx = jsonDecode(widget.tx.raw);
-  }
+  Map<String, dynamic> get decodedTx => jsonDecode(tx.raw);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        width: 95,
+        copyable: false,
+        icon: tx.confirmations >= 1
+            ? Tooltip(
+                message: '${tx.confirmations} confirmations',
+                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
+              )
+            : Tooltip(
+                message: 'Unconfirmed',
+                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+              ),
+        label: tx.category,
+        value: extractTXTitle(tx),
+        trailingText: DateFormat('dd MMM HH:mm:ss').format(tx.time),
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              width: expanded ? 95 : 70,
-              copyable: false,
-              italic: widget.tx.confirmations <= 0,
-              label: widget.tx.category,
-              value: extractTXTitle(widget.tx),
-              trailingText: DateFormat('dd MMM HH:mm:ss').format(widget.tx.time),
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: decodedTx,
-              width: 95,
-            ),
-        ],
+      expandedEntry: ExpandedTXView(
+        decodedTX: decodedTx,
+        width: 95,
       ),
     );
   }
 
   String extractTXTitle(CoreTransaction tx) {
-    String title = '${formatBitcoin(tx.amount)} ${widget.ticker}';
+    String title = '${formatBitcoin(tx.amount)} $ticker';
 
     if (tx.address.isEmpty) {
       return '$title in ${tx.txid}';

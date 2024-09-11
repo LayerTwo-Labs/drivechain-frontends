@@ -751,7 +751,7 @@ class WithdrawalBundleViewViewModel extends BaseViewModel {
   }
 }
 
-class UnbundledWithdrawalView extends StatefulWidget {
+class UnbundledWithdrawalView extends StatelessWidget {
   const UnbundledWithdrawalView({
     super.key,
     required this.withdrawal,
@@ -760,49 +760,23 @@ class UnbundledWithdrawalView extends StatefulWidget {
   final Withdrawal withdrawal;
 
   @override
-  State<UnbundledWithdrawalView> createState() => _UnbundledWithdrawalViewState();
-}
-
-class _UnbundledWithdrawalViewState extends State<UnbundledWithdrawalView> {
-  bool expanded = false;
-
-  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
-      ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              width: expanded ? bundleViewWidth : 0,
-              icon: Tooltip(
-                message: 'Pending',
-                child: SailSVG.icon(
-                  SailSVGAsset.iconPendingHalf,
-                  width: 13,
-                ),
-              ),
-              copyable: false,
-              label: '',
-              value:
-                  '${formatBitcoin(satoshiToBTC(widget.withdrawal.amountSatoshi))} BTC to ${widget.withdrawal.address}',
-            ),
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        width: bundleViewWidth,
+        icon: Tooltip(
+          message: 'Pending',
+          child: SailSVG.icon(
+            SailSVGAsset.iconPendingHalf,
+            width: 13,
           ),
-          if (expanded)
-            ExpandedUnbundledWithdrawalView(
-              withdrawal: widget.withdrawal,
-            ),
-        ],
+        ),
+        copyable: false,
+        label: '',
+        value: '${formatBitcoin(satoshiToBTC(withdrawal.amountSatoshi))} BTC to ${withdrawal.address}',
+      ),
+      expandedEntry: ExpandedUnbundledWithdrawalView(
+        withdrawal: withdrawal,
       ),
     );
   }
@@ -810,7 +784,7 @@ class _UnbundledWithdrawalViewState extends State<UnbundledWithdrawalView> {
 
 const int bundleVotesRequired = 13150; // higher on mainnet. take into consideration, somehow
 
-class BundleView extends StatefulWidget {
+class BundleView extends StatelessWidget {
   final WithdrawalBundle bundle;
 
   (String, SailSVGAsset) statusAndIcon() {
@@ -838,53 +812,24 @@ class BundleView extends StatefulWidget {
     required this.bundle,
   });
 
-  @override
-  State<BundleView> createState() => _BundleViewState();
-}
-
-class _BundleViewState extends State<BundleView> {
   String get ticker => GetIt.I.get<SidechainContainer>().rpc.chain.ticker;
-  bool expanded = false;
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final (tooltipMessage, icon) = widget.statusAndIcon();
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+    final (tooltipMessage, icon) = statusAndIcon();
+
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        width: bundleViewWidth,
+        icon: Tooltip(
+          message: tooltipMessage,
+          child: SailSVG.icon(icon, width: 13),
+        ),
+        copyable: false,
+        label: bundle.status == BundleStatus.failed ? 'Failed' : '$votes/$bundleVotesRequired ACKs',
+        value: 'Withdraw ${formatBitcoin(bundle.totalBitcoin)} BTC in ${bundle.withdrawals.length} transactions',
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              width: bundleViewWidth,
-              icon: Tooltip(
-                message: tooltipMessage,
-                child: SailSVG.icon(icon, width: 13),
-              ),
-              copyable: false,
-              label:
-                  widget.bundle.status == BundleStatus.failed ? 'Failed' : '${widget.votes}/$bundleVotesRequired ACKs',
-              value:
-                  'Withdraw ${formatBitcoin(widget.bundle.totalBitcoin)} BTC in ${widget.bundle.withdrawals.length} transactions',
-            ),
-          ),
-          if (expanded) ExpandedBundleView(timesOutIn: widget.timesOutIn, bundle: widget.bundle),
-        ],
-      ),
+      expandedEntry: ExpandedBundleView(timesOutIn: timesOutIn, bundle: bundle),
     );
   }
 

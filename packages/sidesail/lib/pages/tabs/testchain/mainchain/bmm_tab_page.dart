@@ -233,7 +233,7 @@ List<T> removeNulls<T>(List<T?> xs) {
   return xs.where((element) => element != null).cast<T>().toList();
 }
 
-class BMMAttemptView extends StatefulWidget {
+class BMMAttemptView extends StatelessWidget {
   final BmmAttempt bmmAttempt;
   final VoidCallback onPressed;
 
@@ -243,57 +243,28 @@ class BMMAttemptView extends StatefulWidget {
     required this.onPressed,
   });
 
-  @override
-  State<BMMAttemptView> createState() => _BMMAttemptViewState();
-}
-
-class _BMMAttemptViewState extends State<BMMAttemptView> {
   String get ticker => GetIt.I.get<SidechainContainer>().rpc.chain.ticker;
 
-  bool expanded = false;
-  late Map<String, dynamic> decodedAttempt;
-  @override
-  void initState() {
-    super.initState();
-    decodedAttempt = jsonDecode(widget.bmmAttempt.result.raw);
-  }
+  Map<String, dynamic> get decodedAttempt => jsonDecode(bmmAttempt.result.raw);
 
   @override
   Widget build(BuildContext context) {
-    final (status, icon) = widget.bmmAttempt.status();
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
-        horizontal: SailStyleValues.padding10,
+    final (status, icon) = bmmAttempt.status();
+
+    return ExpandableListEntry(
+      entry: SingleValueContainer(
+        width: 180,
+        icon: Tooltip(
+          message: status,
+          child: SailSVG.icon(icon, width: 13),
+        ),
+        copyable: false,
+        label: status,
+        value: extractTXTitle(bmmAttempt),
       ),
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailScaleButton(
-            onPressed: () {
-              widget.onPressed();
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-            child: SingleValueContainer(
-              width: expanded ? 180 : 70,
-              icon: Tooltip(
-                message: status,
-                child: SailSVG.icon(icon, width: 13),
-              ),
-              copyable: false,
-              label: status,
-              value: extractTXTitle(widget.bmmAttempt),
-            ),
-          ),
-          if (expanded)
-            ExpandedTXView(
-              decodedTX: decodedAttempt,
-              width: 180,
-            ),
-        ],
+      expandedEntry: ExpandedTXView(
+        decodedTX: decodedAttempt,
+        width: 180,
       ),
     );
   }
