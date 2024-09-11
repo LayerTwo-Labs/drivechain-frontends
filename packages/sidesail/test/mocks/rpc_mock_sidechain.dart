@@ -38,7 +38,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<String> generateDepositAddress() async {
+  Future<String> getDepositAddress() async {
     return formatDepositAddress('3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi', 0);
   }
 
@@ -58,11 +58,6 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<String> generateZAddress() async {
-    return 'taddress';
-  }
-
-  @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
     return 'deadbeefdeadbeefdeadbeef';
   }
@@ -70,5 +65,10 @@ class MockSidechainRPC extends SidechainRPC {
   @override
   Future<void> stopNode() async {
     return;
+  }
+
+  @override
+  Future<String> getSideAddress() async {
+    return 'taddress';
   }
 }

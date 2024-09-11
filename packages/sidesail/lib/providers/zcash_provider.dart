@@ -46,7 +46,7 @@ class ZCashProvider extends ChangeNotifier {
       }
       _isFetching = true;
 
-      var newZcashAddress = await rpc.generateZAddress();
+      var newZcashAddress = await rpc.getPrivateAddress();
       var newOperations = await rpc.listOperations();
       var newShieldedUTXOs = (await rpc.listShieldedCoins()).reversed.toList();
       var newUnshieldedUTXOs = (await rpc.listUnshieldedCoins()).reversed.toList();

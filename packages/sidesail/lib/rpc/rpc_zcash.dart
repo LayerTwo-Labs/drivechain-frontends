@@ -142,7 +142,7 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<(String, String)> deshield(ShieldedUTXO utxo, double amount);
 
   Future<String> sendTransparent(String address, double amount, bool subtractFeeFromAmount);
-  Future<String> getTransparentAddress();
+  Future<String> getPrivateAddress();
 
   // how many UTXOs each cast will be split into when deshielding them
   double numUTXOsPerCast = 4;
@@ -252,10 +252,10 @@ class ZcashRPCLive extends ZCashRPC {
 
     var from = utxo.address;
     if (from == '') {
-      from = await generateZAddress();
+      from = await getPrivateAddress();
     }
 
-    final regularAddress = await getTransparentAddress();
+    final regularAddress = await getSideAddress();
     final operationID = await _client().call('z_sendmany', [
       from,
       [
@@ -345,7 +345,7 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> generateDepositAddress() async {
+  Future<String> getDepositAddress() async {
     final address = await _client().call('getnewaddress');
     return formatDepositAddress(address, chain.slot);
   }
@@ -369,7 +369,7 @@ class ZcashRPCLive extends ZCashRPC {
       throw Exception('must shield full amount for coinbase outputs');
     }
 
-    final zAddress = await generateZAddress();
+    final zAddress = await getPrivateAddress();
     final operationID = await _client().call('z_sendmany', [
       utxo.address,
       [
@@ -395,7 +395,7 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> generateZAddress() async {
+  Future<String> getPrivateAddress() async {
     final addresses = await _client().call('z_listaddresses') as List<dynamic>;
     if (addresses.isEmpty) {
       return _getNewShieldedAddress();
@@ -430,7 +430,7 @@ class ZcashRPCLive extends ZCashRPC {
     amount = cleanAmount(amount);
     fee = cleanAmount(fee);
 
-    final zAddress = await generateZAddress();
+    final zAddress = await getPrivateAddress();
     final txid = await _client().call('z_sendmany', [
       zAddress,
       [
@@ -465,7 +465,7 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<String> getTransparentAddress() async {
+  Future<String> getSideAddress() async {
     return await _client().call('getnewaddress');
   }
 

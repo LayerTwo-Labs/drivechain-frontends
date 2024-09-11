@@ -273,7 +273,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
   }
 
   void init() async {
-    deshieldAddress = await _rpc.getTransparentAddress();
+    deshieldAddress = await _rpc.getSideAddress();
     notifyListeners();
   }
 
@@ -418,10 +418,10 @@ class CastSingleUTXOActionViewModel extends BaseViewModel {
   }
 
   void init() async {
-    castAddresses.add(await _rpc.getTransparentAddress());
-    castAddresses.add(await _rpc.getTransparentAddress());
-    castAddresses.add(await _rpc.getTransparentAddress());
-    castAddresses.add(await _rpc.getTransparentAddress());
+    castAddresses.add(await _rpc.getSideAddress());
+    castAddresses.add(await _rpc.getSideAddress());
+    castAddresses.add(await _rpc.getSideAddress());
+    castAddresses.add(await _rpc.getSideAddress());
 
     notifyListeners();
   }
