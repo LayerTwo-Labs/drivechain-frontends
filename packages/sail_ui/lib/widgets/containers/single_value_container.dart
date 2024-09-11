@@ -6,6 +6,7 @@ import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class SingleValueContainer extends StatelessWidget {
   final String? label;
+  final String? labelTooltip;
   final dynamic value;
   final double? width;
   final String? trailingText;
@@ -20,6 +21,7 @@ class SingleValueContainer extends StatelessWidget {
     required this.value,
     this.width,
     this.label,
+    this.labelTooltip,
     this.trailingText,
     this.icon,
     this.prefixAction,
@@ -39,13 +41,15 @@ class SingleValueContainer extends StatelessWidget {
         if (prefixAction != null) const SailSpacing(SailStyleValues.padding05),
         if (icon != null) icon!,
         if (label != null)
-          if (width != null)
-            SizedBox(
-              width: width,
-              child: SailText.primary12(label!, italic: italic, color: color),
-            )
-          else
-            SailText.primary12(label!, italic: italic, color: color),
+          Tooltip(
+            message: labelTooltip ?? '',
+            child: width != null
+                ? SizedBox(
+                    width: width,
+                    child: SailText.primary12(label!, italic: italic, color: color),
+                  )
+                : SailText.primary12(label!, italic: italic, color: color),
+          ),
         Expanded(
           child: SailScaleButton(
             onPressed: copyable
