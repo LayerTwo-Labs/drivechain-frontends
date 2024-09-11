@@ -63,25 +63,26 @@ class ChainOverviewCard extends StatelessWidget {
                 ),
               if (!currentChain) SailText.secondary12('Open ${chain.name}'),
               if (currentChain)
-                Row(
+                SailRow(
+                  spacing: SailStyleValues.padding08,
                   children: [
-                    const SailSpacing(SailStyleValues.padding08),
                     Tooltip(
                       message: 'Confirmed balance',
                       child: SailRow(
                         spacing: SailStyleValues.padding08,
                         children: [
+                          SailSVG.icon(SailSVGAsset.iconSuccess),
                           SailText.secondary12('${formatBitcoin(confirmedBalance)} ${chain.ticker}'),
                         ],
                       ),
                     ),
-                    const SailSpacing(SailStyleValues.padding08),
                     Tooltip(
                       message: 'Unconfirmed balance',
                       child: SailRow(
                         spacing: SailStyleValues.padding08,
                         children: [
-                          SailText.secondary12('${formatBitcoin(unconfirmedBalance)} ${chain.ticker}', italic: true),
+                          SailSVG.icon(SailSVGAsset.iconPending),
+                          SailText.secondary12('${formatBitcoin(unconfirmedBalance)} ${chain.ticker}'),
                         ],
                       ),
                     ),
