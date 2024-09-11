@@ -24,6 +24,11 @@ import (
 //go:embed bin/*
 var bdkCliBinary embed.FS
 
+var (
+	bdkCliPath     string
+	bdkCliPathOnce sync.Once
+)
+
 type Wallet struct {
 	// Ensures only a single access to BDK can happen at the same time
 	mu sync.Mutex
@@ -42,18 +47,25 @@ var validNetworks = []string{
 }
 
 func getBdkCliPath() (string, error) {
-	tempDir, err := os.MkdirTemp("", "bdk-cli")
-	if err != nil {
-		return "", err
-	}
+	var err error
+	bdkCliPathOnce.Do(func() {
+		var tempDir string
+		tempDir, err = os.MkdirTemp("", "bdk-cli")
+		if err != nil {
+			return
+		}
 
-	bdkCliBytes, err := bdkCliBinary.ReadFile("bin/bdk-cli")
-	if err != nil {
-		return "", err
-	}
+		var bdkCliBytes []byte
+		bdkCliBytes, err = bdkCliBinary.ReadFile("bin/bdk-cli")
+		if err != nil {
+			return
+		}
 
-	bdkCliPath := filepath.Join(tempDir, "bdk-cli")
-	if err := os.WriteFile(bdkCliPath, bdkCliBytes, 0755); err != nil {
+		bdkCliPath = filepath.Join(tempDir, "bdk-cli")
+		err = os.WriteFile(bdkCliPath, bdkCliBytes, 0755)
+	})
+
+	if err != nil {
 		return "", err
 	}
 
@@ -91,7 +103,6 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bdk-cli path: %w", err)
 	}
-	defer os.RemoveAll(filepath.Dir(bdkCliPath))
 
 	cmd := exec.CommandContext(ctx, bdkCliPath, fullArgs...)
 
