@@ -227,23 +227,26 @@ class ReceiveAction extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ReceiveViewModel(customReceiveAction: customReceiveAction),
       builder: ((context, viewModel, child) {
-        return DashboardActionModal(
-          customTitle ?? 'Receive on sidechain',
-          endActionButton: SailButton.primary(
-            'Generate new address',
-            loading: viewModel.isBusy,
-            size: ButtonSize.regular,
-            onPressed: () async {
-              await viewModel.generateSidechainAddress();
-            },
-          ),
-          children: [
-            StaticActionField(
-              label: 'Address',
-              value: viewModel.sidechainAddress ?? '',
-              copyable: true,
+        return Padding(
+          padding: const EdgeInsets.only(left: SailStyleValues.padding05),
+          child: DashboardActionModal(
+            customTitle ?? 'Receive on sidechain',
+            endActionButton: SailButton.primary(
+              'Generate new address',
+              loading: viewModel.isBusy,
+              size: ButtonSize.regular,
+              onPressed: () async {
+                await viewModel.generateSidechainAddress();
+              },
             ),
-          ],
+            children: [
+              StaticActionField(
+                label: 'Address',
+                value: viewModel.sidechainAddress ?? '',
+                copyable: true,
+              ),
+            ],
+          ),
         );
       }),
     );
