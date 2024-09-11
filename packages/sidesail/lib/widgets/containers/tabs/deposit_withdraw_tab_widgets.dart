@@ -274,7 +274,7 @@ class PegInViewModel extends BaseViewModel {
 
   Future<void> generatePegInAddress() async {
     setBusy(true);
-    pegInAddress = await _sidechain.rpc.generateDepositAddress();
+    pegInAddress = await _sidechain.rpc.getDepositAddress();
     setBusy(false);
     notifyListeners();
   }
@@ -344,7 +344,7 @@ class PegInEthViewModel extends BaseViewModel {
   }
 
   Future<void> generatePegInAddress() async {
-    pegInAddress = await _ethRPC.generateDepositAddress();
+    pegInAddress = await _ethRPC.getDepositAddress();
     sidechainFee = await _ethRPC.sideEstimateFee();
     notifyListeners();
   }
@@ -512,7 +512,7 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
     final confirmedBalance = balance.$1;
 
     // step 2, get sidechain deposit address
-    final depositAddress = await _sidechainContainer.rpc.generateDepositAddress();
+    final depositAddress = await _sidechainContainer.rpc.getDepositAddress();
 
     // step 3, query createsidechaindeposit with the current chain params
     final _ = await _mainchain.createSidechainDeposit(

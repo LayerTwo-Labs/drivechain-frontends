@@ -253,7 +253,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<String> generateDepositAddress() async {
+  Future<String> getDepositAddress() async {
     return formatDepositAddress('3CUZ683astRsmACdRKyx7eFb1y9yvMRzGi', chain.slot);
   }
 
@@ -273,7 +273,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<String> generateZAddress() async {
+  Future<String> getPrivateAddress() async {
     return 'regtestsapling13gh808131h6x3fd9legOargk0q03ugkkjrhptermv7gnz62kc7u20cp5rtxmize219crk5veq6q';
   }
 
@@ -288,7 +288,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<String> getTransparentAddress() async {
+  Future<String> getSideAddress() async {
     return 'tmBd8jBt7FGDjN8KL9Wh4s925R6EopAGacu';
   }
 

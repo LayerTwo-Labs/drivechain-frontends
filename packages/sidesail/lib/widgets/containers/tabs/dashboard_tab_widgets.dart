@@ -215,17 +215,22 @@ class SendOnSidechainViewModel extends BaseViewModel {
 class ReceiveAction extends StatelessWidget {
   final Future<String> Function()? customReceiveAction;
   final String? customTitle;
+  final String? initialAddress;
 
   const ReceiveAction({
     super.key,
     this.customReceiveAction,
     this.customTitle,
+    this.initialAddress,
   });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ReceiveViewModel(customReceiveAction: customReceiveAction),
+      viewModelBuilder: () => ReceiveViewModel(
+        initialAddress: initialAddress,
+        customReceiveAction: customReceiveAction,
+      ),
       builder: ((context, viewModel, child) {
         return Padding(
           padding: const EdgeInsets.only(left: SailStyleValues.padding05),
@@ -242,7 +247,7 @@ class ReceiveAction extends StatelessWidget {
             children: [
               StaticActionField(
                 label: 'Address',
-                value: viewModel.sidechainAddress ?? '',
+                value: viewModel.address,
                 copyable: true,
               ),
             ],
@@ -259,9 +264,18 @@ class ReceiveViewModel extends BaseViewModel {
 
   String? sidechainAddress;
   final Future<String> Function()? customReceiveAction;
+  final String? initialAddress;
+  String get address => sidechainAddress ?? initialAddress ?? '';
 
-  ReceiveViewModel({this.customReceiveAction}) {
-    generateSidechainAddress();
+  ReceiveViewModel({
+    this.customReceiveAction,
+    this.initialAddress,
+  }) {
+    if (initialAddress == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await generateSidechainAddress();
+      });
+    }
   }
 
   Future<void> generateSidechainAddress() async {
@@ -274,6 +288,6 @@ class ReceiveViewModel extends BaseViewModel {
       return await customReceiveAction!();
     }
 
-    return await _rpc.rpc.generateZAddress();
+    return await _rpc.rpc.getSideAddress();
   }
 }

@@ -207,10 +207,16 @@ class ZCashTransferTabViewModel extends BaseViewModel {
   }
 
   void receivePrivate(BuildContext context) async {
+    final provider = GetIt.I.get<ZCashProvider>();
+
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        return const ReceiveAction();
+        return ReceiveAction(
+          customTitle: 'Receive private coins',
+          customReceiveAction: () => provider.rpc.getPrivateAddress(),
+          initialAddress: provider.zcashAddress,
+        );
       },
     );
   }
@@ -241,7 +247,7 @@ class ZCashTransferTabViewModel extends BaseViewModel {
       builder: (BuildContext context) {
         return ReceiveAction(
           customReceiveAction: () async {
-            return await _zcashProvider.rpc.getTransparentAddress();
+            return await _zcashProvider.rpc.getSideAddress();
           },
         );
       },

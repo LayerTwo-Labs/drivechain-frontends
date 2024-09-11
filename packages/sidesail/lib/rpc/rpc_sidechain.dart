@@ -27,14 +27,14 @@ abstract class SidechainRPC extends RPCConnection {
     double sidechainFee,
     double mainchainFee,
   );
-  Future<String> generateDepositAddress();
+  Future<String> getDepositAddress();
 
   Future<String> sideSend(
     String address,
     double amount,
     bool subtractFeeFromAmount,
   );
-  Future<String> generateZAddress();
+  Future<String> getSideAddress();
   Future<double> sideEstimateFee();
 
   Sidechain chain;

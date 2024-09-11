@@ -126,7 +126,7 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<String> generateDepositAddress() async {
+  Future<String> getDepositAddress() async {
     if (account == null) {
       return '';
     }
@@ -161,12 +161,6 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<String> generateZAddress() {
-    // TODO: implement sideGenerateAddress
-    throw UnimplementedError();
-  }
-
-  @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
     // TODO: implement sideSend
     throw UnimplementedError();
@@ -175,6 +169,12 @@ class EthereumRPCLive extends EthereumRPC {
   @override
   Future<void> stopNode() async {
     return;
+  }
+
+  @override
+  Future<String> getSideAddress() {
+    // TODO: implement getSideAddress
+    throw UnimplementedError();
   }
 }
 

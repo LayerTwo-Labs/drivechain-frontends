@@ -97,13 +97,13 @@ class TestchainRPCLive extends TestchainRPC {
   }
 
   @override
-  Future<String> generateDepositAddress() async {
+  Future<String> getDepositAddress() async {
     var address = await _client().call('getnewaddress', ['Sidechain Peg In', 'legacy']);
     return formatDepositAddress(address, chain.slot);
   }
 
   @override
-  Future<String> generateZAddress() async {
+  Future<String> getSideAddress() async {
     var address = await _client().call('getnewaddress', ['Sidechain Deposit']);
     return address as String;
   }
