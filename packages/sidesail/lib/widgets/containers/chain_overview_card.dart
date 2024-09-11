@@ -11,6 +11,7 @@ class ChainOverviewCard extends StatelessWidget {
   final double unconfirmedBalance;
   final bool highlighted;
   final bool currentChain;
+  final bool inBottomNav;
   final VoidCallback? onPressed;
 
   const ChainOverviewCard({
@@ -20,6 +21,7 @@ class ChainOverviewCard extends StatelessWidget {
     required this.unconfirmedBalance,
     required this.highlighted,
     required this.currentChain,
+    required this.inBottomNav,
     required this.onPressed,
   });
 
@@ -32,15 +34,21 @@ class ChainOverviewCard extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 200),
         child: SailBorder(
+          border: inBottomNav
+              ? Border(
+                  right: BorderSide(color: theme.colors.formFieldBorder, width: 0.5),
+                )
+              : null,
+          borderRadius: inBottomNav ? BorderRadius.zero : null,
           padding: const EdgeInsets.symmetric(
-            horizontal: SailStyleValues.padding12,
-            vertical: SailStyleValues.padding08,
+            horizontal: SailStyleValues.padding05,
+            vertical: SailStyleValues.padding05,
           ),
           backgroundColor: highlighted ? theme.colors.actionHeader : null,
           child: SailColumn(
             spacing: 0,
             children: [
-              if (onPressed != null)
+              if (onPressed != null && !inBottomNav)
                 SailRow(
                   spacing: SailStyleValues.padding08,
                   children: [
@@ -56,11 +64,12 @@ class ChainOverviewCard extends StatelessWidget {
                       spacing: SailStyleValues.padding05,
                       children: [
                         SailText.primary12(chain.name),
-                        if (onPressed != null) SailSVG.icon(SailSVGAsset.iconArrow, width: 5.5),
+                        if (onPressed != null) SailSVG.icon(SailSVGAsset.iconArrow, height: 8),
                       ],
                     ),
                   ],
                 ),
+              if (!inBottomNav) const SailSpacing(SailStyleValues.padding10),
               if (!currentChain) SailText.secondary12('Open ${chain.name}'),
               if (currentChain)
                 SailRow(

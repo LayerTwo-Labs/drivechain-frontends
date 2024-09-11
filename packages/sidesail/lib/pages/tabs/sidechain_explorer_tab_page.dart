@@ -41,6 +41,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.testChain,
                           onPressed: () => viewModel.setSidechain(TestSidechain(), app),
+                          inBottomNav: false,
                         ),
                         ChainOverviewCard(
                           chain: EthereumSidechain(),
@@ -49,6 +50,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.ethereum,
                           onPressed: () => viewModel.setSidechain(EthereumSidechain(), app),
+                          inBottomNav: false,
                         ),
                         ChainOverviewCard(
                           chain: ZCashSidechain(),
@@ -57,6 +59,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           highlighted: false,
                           currentChain: viewModel.chain.type == SidechainType.zcash,
                           onPressed: () => viewModel.setSidechain(ZCashSidechain(), app),
+                          inBottomNav: false,
                         ),
                       ],
                     ),

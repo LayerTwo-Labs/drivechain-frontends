@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/sidechains.dart';
@@ -30,6 +31,7 @@ class _BottomNavState extends State<BottomNav> {
   @override
   Widget build(BuildContext context) {
     final tabsRouter = AutoTabsRouter.of(context);
+    final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => BottomNavViewModel(navigateToSettings: widget.navigateToSettings),
@@ -47,25 +49,36 @@ class _BottomNavState extends State<BottomNav> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Row(
-              children: [
-                ChainOverviewCard(
-                  chain: viewModel.chain,
-                  confirmedBalance: viewModel.balance,
-                  unconfirmedBalance: viewModel.pendingBalance,
-                  highlighted: tabsRouter.activeIndex == 0,
-                  currentChain: true,
-                  onPressed: RuntimeArgs.swappableChains
-                      ? () {
-                          tabsRouter.setActiveIndex(0);
-                        }
-                      : null,
+            Container(
+              color: theme.colors.background,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: theme.colors.formFieldBorder, width: 0.5),
+                  ),
                 ),
-                Expanded(child: Container()),
-                _NodeConnectionStatus(
-                  onChipPressed: () => viewModel.displayConnectionStatusDialog(context),
+                child: Row(
+                  children: [
+                    ChainOverviewCard(
+                      chain: viewModel.chain,
+                      confirmedBalance: viewModel.balance,
+                      unconfirmedBalance: viewModel.pendingBalance,
+                      highlighted: tabsRouter.activeIndex == 0,
+                      currentChain: true,
+                      onPressed: RuntimeArgs.swappableChains
+                          ? () {
+                              tabsRouter.setActiveIndex(0);
+                            }
+                          : null,
+                      inBottomNav: true,
+                    ),
+                    Expanded(child: Container()),
+                    _NodeConnectionStatus(
+                      onChipPressed: () => viewModel.displayConnectionStatusDialog(context),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         );
@@ -212,7 +225,7 @@ class _NodeConnectionStatus extends ViewModelWidget<BottomNavViewModel> {
   @override
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
     return SailRow(
-      spacing: SailStyleValues.padding08,
+      spacing: 0,
       children: [
         if (viewModel.sidechainConnected || viewModel.sidechainInitializing || viewModel.inIBD)
           ConnectionStatusChip(
