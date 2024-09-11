@@ -28,7 +28,6 @@ var _ rpc.DrivechainServiceHandler = new(Server)
 
 func New(wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind) *Server {
 	s := &Server{wallet: wallet, bitcoind: bitcoind}
-	go s.balanceUpdateLoop(context.Background())
 	return s
 }
 
@@ -38,7 +37,7 @@ type Server struct {
 	balance  atomic.Value
 }
 
-func (s *Server) balanceUpdateLoop(ctx context.Context) {
+func (s *Server) StartBalanceUpdateLoop(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
