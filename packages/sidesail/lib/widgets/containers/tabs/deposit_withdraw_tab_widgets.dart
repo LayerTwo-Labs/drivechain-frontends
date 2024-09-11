@@ -32,49 +32,52 @@ class PegOutAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => PegOutViewModel(staticAddress: staticAddress),
-      builder: ((context, viewModel, child) {
-        return SailColumn(
-          spacing: 0,
-          children: [
-            LargeEmbeddedInput(
-              controller: viewModel.bitcoinAddressController,
-              hintText: 'Enter a parent chain bitcoin-address',
-              autofocus: true,
-              disabled: staticAddress != null,
-            ),
-            LargeEmbeddedInput(
-              controller: viewModel.bitcoinAmountController,
-              hintText: 'Enter a BTC-amount',
-              suffixText: 'BTC',
-              bitcoinInput: true,
-            ),
-            StaticActionField(
-              label: 'Parent chain fee',
-              value: '${formatBitcoin((viewModel.mainchainFee ?? 0))} BTC',
-            ),
-            StaticActionField(
-              label: '${viewModel.sidechain.rpc.chain.name} fee',
-              value: '${formatBitcoin((viewModel.sidechainFee ?? 0))} ${viewModel.sidechain.rpc.chain.ticker}',
-            ),
-            StaticActionField(
-              label: 'Total amount',
-              value: '${viewModel.totalBitcoinAmount} BTC',
-            ),
-            SailButton.primary(
-              'Execute withdraw',
-              disabled:
-                  viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
-              loading: viewModel.isBusy,
-              size: ButtonSize.regular,
-              onPressed: () async {
-                viewModel.executePegOut(context);
-              },
-            ),
-          ],
-        );
-      }),
+    return Padding(
+      padding: const EdgeInsets.only(left: SailStyleValues.padding05),
+      child: ViewModelBuilder.reactive(
+        viewModelBuilder: () => PegOutViewModel(staticAddress: staticAddress),
+        builder: ((context, viewModel, child) {
+          return SailColumn(
+            spacing: 0,
+            children: [
+              LargeEmbeddedInput(
+                controller: viewModel.bitcoinAddressController,
+                hintText: 'Enter a parent chain bitcoin-address',
+                autofocus: true,
+                disabled: staticAddress != null,
+              ),
+              LargeEmbeddedInput(
+                controller: viewModel.bitcoinAmountController,
+                hintText: 'Enter a BTC-amount',
+                suffixText: 'BTC',
+                bitcoinInput: true,
+              ),
+              StaticActionField(
+                label: 'Parent chain fee',
+                value: '${formatBitcoin((viewModel.mainchainFee ?? 0))} BTC',
+              ),
+              StaticActionField(
+                label: '${viewModel.sidechain.rpc.chain.name} fee',
+                value: '${formatBitcoin((viewModel.sidechainFee ?? 0))} ${viewModel.sidechain.rpc.chain.ticker}',
+              ),
+              StaticActionField(
+                label: 'Total amount',
+                value: '${viewModel.totalBitcoinAmount} BTC',
+              ),
+              SailButton.primary(
+                'Execute withdraw',
+                disabled:
+                    viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
+                loading: viewModel.isBusy,
+                size: ButtonSize.regular,
+                onPressed: () async {
+                  viewModel.executePegOut(context);
+                },
+              ),
+            ],
+          );
+        }),
+      ),
     );
   }
 }
@@ -230,28 +233,31 @@ class PegInAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => PegInViewModel(),
-      builder: ((context, viewModel, child) {
-        return SailColumn(
-          spacing: SailStyleValues.padding10,
-          children: [
-            StaticActionField(
-              label: 'Address',
-              value: viewModel.pegInAddress ?? '',
-              copyable: true,
-            ),
-            SailButton.primary(
-              'Generate new address',
-              loading: viewModel.isBusy,
-              size: ButtonSize.regular,
-              onPressed: () async {
-                await viewModel.generatePegInAddress();
-              },
-            ),
-          ],
-        );
-      }),
+    return Padding(
+      padding: const EdgeInsets.only(left: SailStyleValues.padding05),
+      child: ViewModelBuilder.reactive(
+        viewModelBuilder: () => PegInViewModel(),
+        builder: ((context, viewModel, child) {
+          return SailColumn(
+            spacing: SailStyleValues.padding10,
+            children: [
+              StaticActionField(
+                label: 'Address',
+                value: viewModel.pegInAddress ?? '',
+                copyable: true,
+              ),
+              SailButton.primary(
+                'Generate new address',
+                loading: viewModel.isBusy,
+                size: ButtonSize.regular,
+                onPressed: () async {
+                  await viewModel.generatePegInAddress();
+                },
+              ),
+            ],
+          );
+        }),
+      ),
     );
   }
 }
@@ -267,7 +273,9 @@ class PegInViewModel extends BaseViewModel {
   }
 
   Future<void> generatePegInAddress() async {
+    setBusy(true);
     pegInAddress = await _sidechain.rpc.generateDepositAddress();
+    setBusy(false);
     notifyListeners();
   }
 }
