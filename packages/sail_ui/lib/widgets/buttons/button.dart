@@ -191,7 +191,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
     final disabled = widget.loading || widget.disabled || widget.onPressed == null;
 
     return MaterialButton(
-      onPressed: widget.onPressed,
+      onPressed: disabled ? null : widget.onPressed,
       disabledColor: widget.backgroundColor,
       color: widget.backgroundColor,
       enableFeedback: !widget.disabled,
@@ -207,10 +207,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
         alignment: Alignment.center,
         children: [
           Opacity(opacity: widget.loading ? 0 : 1, child: widget.child),
-          if (widget.loading)
-            Center(
-              child: LoadingIndicator.insideButton(),
-            ),
+          if (widget.loading) LoadingIndicator.insideButton(),
         ],
       ),
     );
