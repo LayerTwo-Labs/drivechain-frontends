@@ -13,12 +13,6 @@ lint:
 gen:
     buf generate
 
-install-bdk-cli:
-    cargo install \
-        --git https://github.com/bitcoindevkit/bdk-cli \
-        --no-default-features \
-        --features=key-value-db,compiler,electrum
-
 build-bdk-cli:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -35,7 +29,7 @@ build-bdk-cli:
         --root ./bdk \
         --no-default-features \
         --features=key-value-db,compiler,electrum
-        echo "bdk-cli has been built to ./bin/bdk-cli."
+        echo "bdk-cli has been built to ./bdk/bin/bdk-cli"
     else
-        echo "bdk-cli already exists. Skipping build."
+        echo "bdk-cli already exists, skipping build"
     fi
