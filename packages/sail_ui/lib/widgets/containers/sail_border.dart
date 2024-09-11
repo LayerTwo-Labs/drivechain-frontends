@@ -4,6 +4,8 @@ import 'package:sail_ui/theme/theme.dart';
 class SailBorder extends StatelessWidget {
   final Widget child;
   final Color? backgroundColor;
+  final BoxBorder? border;
+  final BorderRadius? borderRadius;
   final EdgeInsets? padding;
 
   const SailBorder({
@@ -11,6 +13,8 @@ class SailBorder extends StatelessWidget {
     required this.child,
     this.backgroundColor,
     this.padding,
+    this.border,
+    this.borderRadius,
   });
 
   @override
@@ -19,8 +23,8 @@ class SailBorder extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: theme.colors.formFieldBorder, width: 1),
-        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        border: border ?? Border.all(color: theme.colors.formFieldBorder, width: 1),
+        borderRadius: borderRadius ?? const BorderRadius.all(Radius.circular(4)),
       ),
       child: Container(
         color: backgroundColor,
