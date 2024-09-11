@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -93,7 +94,7 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
   late double maxAmount;
 
   ShieldUTXOActionViewModel(UnshieldedUTXO utxo) {
-    maxAmount = utxo.amount - shieldFee;
+    maxAmount = max(0, utxo.amount - shieldFee);
     bitcoinAmountController.addListener(_withMaxAmount);
 
     if (utxo.generated) {
@@ -253,7 +254,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
   late double maxAmount;
 
   DeshieldUTXOActionViewModel(ShieldedUTXO utxo) {
-    maxAmount = utxo.amount - deshieldFee;
+    maxAmount = max(0, utxo.amount - deshieldFee);
     bitcoinAmountController.addListener(_withMaxAmount);
 
     init();
