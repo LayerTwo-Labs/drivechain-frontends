@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,15 +13,16 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/faucet/drivechaind"
-	"github.com/btcsuite/btcd/btcjson"
+	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/gorilla/mux"
 	"github.com/jessevdk/go-flags"
 	"github.com/samber/lo"
 )
 
 func main() {
+	ctx := context.Background()
+
 	var opts Options
 	_, err := flags.NewParser(&opts, flags.Default).Parse()
 	switch {
@@ -31,14 +33,13 @@ func main() {
 		log.Fatalf("could not parse flags: %s", err)
 	}
 
-	sender, err := drivechaind.NewClient(opts.RPCHost, opts.RPCUser, opts.RPCPassword)
+	sender, err := drivechaind.NewClient(ctx, opts.RPCHost, opts.RPCUser, opts.RPCPassword)
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not create client: %w", err))
 		return
 	}
-	defer sender.Disconnect()
 
-	faucet := NewFaucet(sender)
+	faucet := NewFaucet(ctx, sender)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/claim", faucet.dispenseCoins).Methods("POST")
@@ -90,7 +91,7 @@ const (
 	MaxCoinsPer5Min = 100
 )
 
-func NewFaucet(sender *drivechaind.Client) *Faucet {
+func NewFaucet(ctx context.Context, sender *drivechaind.Client) *Faucet {
 
 	faucet := &Faucet{
 		sender:         sender,
@@ -98,12 +99,12 @@ func NewFaucet(sender *drivechaind.Client) *Faucet {
 		totalDispensed: 0,
 	}
 
-	go faucet.resetHandler()
+	go faucet.resetHandler(ctx)
 
 	return faucet
 }
 
-func (f *Faucet) resetHandler() {
+func (f *Faucet) resetHandler(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
@@ -120,7 +121,7 @@ func (f *Faucet) resetHandler() {
 			f.mu.Unlock()
 			log.Println("faucet reset: cleared total dispensed coins and address list.")
 		case <-connectionTicker.C:
-			height, err := f.sender.Ping()
+			height, err := f.sender.Ping(ctx)
 			if err != nil {
 				log.Println("could not ping sender: %w", err)
 			} else {
@@ -135,50 +136,34 @@ type DispenseRequest struct {
 	Amount      string `json:"amount"`
 }
 
-func (f *Faucet) validateDispenseArgs(req DispenseRequest) (btcutil.Amount, drivechaind.TransferType, error, int) {
+func (f *Faucet) validateDispenseArgs(req DispenseRequest) (btcutil.Amount, error, int) {
 	if req.Destination == "" {
-		return 0, "", fmt.Errorf("'destination' must be set"), http.StatusBadRequest
+		return 0, fmt.Errorf("'destination' must be set"), http.StatusBadRequest
 	}
 
 	amountFloat, err := strconv.ParseFloat(req.Amount, 64)
 	if err != nil {
-		return 0, "", fmt.Errorf("%s is not a valid number", req.Amount), http.StatusBadRequest
+		return 0, fmt.Errorf("%s is not a valid number", req.Amount), http.StatusBadRequest
 	}
 
 	if amountFloat > 1 || amountFloat == 0 {
-		return 0, "", fmt.Errorf("amount must be less than 1, and greater than zero"), http.StatusBadRequest
+		return 0, fmt.Errorf("amount must be less than 1, and greater than zero"), http.StatusBadRequest
 	}
 
 	amount, err := btcutil.NewAmount(amountFloat)
 	if err != nil {
-		return 0, "", fmt.Errorf("%.8f is not a valid bitcoin amount, expected format like 0.12345678", amountFloat), http.StatusBadRequest
+		return 0, fmt.Errorf("%.8f is not a valid bitcoin amount, expected format like 0.12345678", amountFloat), http.StatusBadRequest
 	}
 
 	if f.totalDispensed >= MaxCoinsPer5Min {
-		return 0, "", fmt.Errorf("faucet limit reached, try again later"), http.StatusTooManyRequests
+		return 0, fmt.Errorf("faucet limit reached, try again later"), http.StatusTooManyRequests
 	}
 
 	if f.dispensed[req.Destination] {
-		return 0, "", fmt.Errorf("address have already received coins"), http.StatusForbidden
+		return 0, fmt.Errorf("address have already received coins"), http.StatusForbidden
 	}
 
-	var transferType drivechaind.TransferType
-	// first check whether a mainchain address
-	_, mainchainErr := btcutil.DecodeAddress(req.Destination, &chaincfg.MainNetParams)
-	// then check whether its a sidechain deposit address
-	sidechainErr := drivechaind.CheckValidDepositAddress(req.Destination)
-	switch {
-	case mainchainErr == nil:
-		transferType = drivechaind.Mainchain
-
-	case sidechainErr == nil:
-		transferType = drivechaind.Sidechain
-
-	default:
-		return 0, "", fmt.Errorf("%s is not a valid bitcoin address nor sidechain address", req.Destination), http.StatusBadRequest
-	}
-
-	return amount, transferType, nil, 0
+	return amount, nil, 0
 }
 
 func getIPFromRequest(r *http.Request) string {
@@ -201,7 +186,7 @@ func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	amount, transferType, err, status := f.validateDispenseArgs(req)
+	amount, err, status := f.validateDispenseArgs(req)
 	if err != nil {
 		writeError(w, err.Error(), status)
 		return
@@ -217,7 +202,7 @@ func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
 	f.dispensed[ip] = true
 	f.totalDispensed += CoinsPerRequest
 
-	txid, err := f.sender.SendCoins(req.Destination, amount, transferType)
+	txid, err := f.sender.SendCoins(r.Context(), req.Destination, amount)
 	if err != nil {
 		// undo the dispensation
 		f.dispensed[req.Destination] = false
@@ -241,7 +226,7 @@ func (f *Faucet) dispenseCoins(w http.ResponseWriter, r *http.Request) {
 
 func (f *Faucet) listClaims(w http.ResponseWriter, r *http.Request) {
 
-	txs, err := f.sender.ListTransactions()
+	txs, err := f.sender.ListTransactions(r.Context())
 	if err != nil {
 		err := fmt.Sprintf("could not list transactions: %s", err)
 		fmt.Println(err)
@@ -250,18 +235,15 @@ func (f *Faucet) listClaims(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	onlyWithdrawals := lo.Filter(txs, func(tx btcjson.ListTransactionsResult, index int) bool {
+	onlyWithdrawals := lo.Filter(txs, func(tx *pb.GetTransactionResponse, index int) bool {
 		// we only want to show withdrawals going from our wallet
 		return tx.Amount <= 0
 	})
 
-	withPositiveAmounts := lo.Map(onlyWithdrawals, func(tx btcjson.ListTransactionsResult, index int) btcjson.ListTransactionsResult {
+	withPositiveAmounts := lo.Map(onlyWithdrawals, func(tx *pb.GetTransactionResponse, index int) *pb.GetTransactionResponse {
 		// and the amounts makes most sense when positive
 		tx.Amount = math.Abs(tx.Amount)
-		if tx.Fee != nil {
-			fee := math.Abs(*tx.Fee)
-			tx.Fee = &fee
-		}
+		tx.Fee = math.Abs(tx.Fee)
 		return tx
 	})
 
