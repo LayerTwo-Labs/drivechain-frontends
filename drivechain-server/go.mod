@@ -10,7 +10,7 @@ replace github.com/btcsuite/btcd => github.com/barebitcoin/btcd v0.23.5-0.202409
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240903080848-e87112b470f4
+	github.com/barebitcoin/btc-buf v0.0.0-20240912173153-27fd65c49162
 	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.33.0
