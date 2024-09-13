@@ -5,9 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/widgets/core/sail_snackbar.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class RPCWidget extends StatefulWidget {

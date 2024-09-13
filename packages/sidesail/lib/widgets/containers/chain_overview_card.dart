@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:sidesail/config/sidechains.dart';
 
 class ChainOverviewCard extends StatelessWidget {

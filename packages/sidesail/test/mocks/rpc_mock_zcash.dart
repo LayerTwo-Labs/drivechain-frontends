@@ -1,4 +1,3 @@
-import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';

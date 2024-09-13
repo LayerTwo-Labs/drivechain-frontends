@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:http/http.dart' as http;
-import 'package:sail_ui/bitcoin.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 /// RPC connection to the mainchain node.
 abstract class API {

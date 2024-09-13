@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:sail_ui/style/style.dart';
-import 'package:sail_ui/theme/theme.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 enum SailSVGAsset {
   iconTabPeg,

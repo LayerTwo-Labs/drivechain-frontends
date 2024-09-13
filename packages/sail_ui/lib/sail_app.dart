@@ -3,11 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/settings/client_settings.dart';
-import 'package:sail_ui/settings/theme_settings.dart';
-import 'package:sail_ui/style/color_scheme.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/theme/theme_data.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class SailApp extends StatefulWidget {
   // This key is used to programmatically trigger a rebuild of the widget.

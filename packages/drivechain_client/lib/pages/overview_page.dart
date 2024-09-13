@@ -4,9 +4,7 @@ import 'package:drivechain_client/util/currencies.dart';
 import 'package:flutter/material.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sail_ui/widgets/loading_indicator.dart';
+
 
 @RoutePage()
 class OverviewPage extends StatelessWidget {

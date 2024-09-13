@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sail_ui/widgets/loading_indicator.dart';
 
 enum ButtonSize { small, regular, large }
 

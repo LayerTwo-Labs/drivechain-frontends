@@ -1,5 +1,5 @@
 import 'package:logger/logger.dart';
-import 'package:sail_ui/settings/secure_store.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class ClientSettings {
   final KeyValueStore store;
