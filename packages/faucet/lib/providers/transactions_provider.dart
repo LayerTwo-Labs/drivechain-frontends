@@ -1,15 +1,15 @@
 import 'dart:async';
 
+import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/sail_ui.dart';
 
 import '../../api/api.dart';
 
 class TransactionsProvider extends ChangeNotifier {
   API get api => GetIt.I.get<API>();
 
-  List<UTXO> claims = [];
+  List<GetTransactionResponse> claims = [];
   bool initialized = false;
 
   bool _isFetching = false;
@@ -41,7 +41,7 @@ class TransactionsProvider extends ChangeNotifier {
   }
 
   bool _dataHasChanged(
-    List<UTXO> newClaims,
+    List<GetTransactionResponse> newClaims,
     bool newInitialized,
   ) {
     if (newInitialized != initialized) {
