@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sail_ui/style/style.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/widgets/core/sail_padding.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sail_ui/sail_ui.dart';
+
 
 void showSnackBar(
   BuildContext context,

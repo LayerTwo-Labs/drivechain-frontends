@@ -7,12 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/theme/theme_data.dart';
-import 'package:sail_ui/widgets/components/dashboard_group.dart';
-import 'package:sail_ui/widgets/core/sail_padding.dart';
-import 'package:sail_ui/widgets/core/sail_snackbar.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
 import 'package:stacked/stacked.dart';
 
 class FaucetViewModel extends BaseViewModel {

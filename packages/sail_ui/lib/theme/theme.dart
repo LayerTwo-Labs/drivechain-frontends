@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme_data.dart';
 
 enum BThemeType {
   light,

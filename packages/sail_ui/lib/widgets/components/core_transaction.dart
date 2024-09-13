@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class CoreTransaction {

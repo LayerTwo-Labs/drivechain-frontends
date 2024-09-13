@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sail_ui/theme/theme.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class SailScaffold extends StatelessWidget {
   final Widget body;

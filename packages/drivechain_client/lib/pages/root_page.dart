@@ -3,7 +3,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:drivechain_client/routing/router.dart';
 import 'package:drivechain_client/util/color.dart';
 import 'package:flutter/material.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
 class RootPage extends StatelessWidget {

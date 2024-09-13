@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
 
 class LoadingIndicator extends StatelessWidget {
   final double strokeWidth;
