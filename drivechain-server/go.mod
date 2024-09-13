@@ -4,14 +4,10 @@ go 1.23
 
 toolchain go1.23.0
 
-// This must be synced by what's in https://github.com/barebitcoin/btc-buf/blob/master/go.mod
-// Obvs not ideal! Better to establish a full on fork?
-replace github.com/btcsuite/btcd => github.com/barebitcoin/btcd v0.23.5-0.20240903080731-67889aa038bd
-
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240912173153-27fd65c49162
-	github.com/btcsuite/btcd/btcutil v1.1.5
+	github.com/barebitcoin/btc-buf v0.0.0-20240913082209-0d9228af2d40
+	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.33.0
 	github.com/samber/lo v1.47.0
@@ -24,7 +20,8 @@ require (
 require (
 	connectrpc.com/grpchealth v1.3.0 // indirect
 	connectrpc.com/grpcreflect v1.2.0 // indirect
-	github.com/btcsuite/btcd v0.23.5-0.20231215221805-96c9fd8078fd // indirect
+	github.com/barebitcoin/btcd/rpcclient v0.0.0-20240913081458-4dd5591f22b8 // indirect
+	github.com/btcsuite/btcd v0.24.2 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
