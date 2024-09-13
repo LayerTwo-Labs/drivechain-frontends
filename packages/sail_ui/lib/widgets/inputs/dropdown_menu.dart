@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/inputs/menu.dart';
-import 'package:sail_ui/widgets/inputs/menu_items.dart';
 
 class SailDropdownButton<T> extends StatefulWidget {
   const SailDropdownButton({
@@ -31,8 +29,6 @@ class SailDropdownButton<T> extends StatefulWidget {
 class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
   @override
   Widget build(BuildContext context) {
-    var isWindows = Theme.of(context).platform == TargetPlatform.windows;
-
     var items = widget.items
         .map(
           (e) => SailMenuItem(
@@ -63,6 +59,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       width: widget.width,
       height: widget.large ? 32 : 24,
       child: _Button(
+        large: widget.large,
         padding: EdgeInsets.only(
           left: 8,
           right: widget.icon == null ? 8 : 4,
@@ -72,7 +69,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
           showSailMenu(
             context: context,
             preferredAnchorPoint: Offset(
-              bounds.left - (isWindows ? 1 : 9),
+              bounds.left - (context.isWindows ? 1 : 9),
               bounds.top - offsetY - 3,
             ),
             menu: SailMenu(
@@ -122,8 +119,6 @@ class _Button extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
   final bool large;
-  final bool important;
-  final bool enabled;
 
   const _Button({
     required this.onPressed,
@@ -132,41 +127,34 @@ class _Button extends StatelessWidget {
       horizontal: 12,
       vertical: 0,
     ),
-    this.large = false,
-    this.important = false,
-    this.enabled = true,
+    required this.large,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isWindows = theme.platform == TargetPlatform.windows;
+
 
     Color textColor;
-    if (enabled && onPressed != null) {
-      if (important) {
-        textColor = theme.buttonTheme.colorScheme!.onPrimary;
-      } else {
-        textColor = theme.buttonTheme.colorScheme!.onSurface;
-      }
+    final sailTheme = context.sailTheme;
+    if (onPressed != null) {
+      textColor = sailTheme.colors.text;
     } else {
-      textColor = theme.disabledColor;
+      textColor = sailTheme.colors.textTertiary;
     }
 
     return SizedBox(
       height: large ? 32 : 24,
       child: MaterialButton(
         // textTheme: textTheme,
-        color: important ? theme.colorScheme.primary : theme.buttonTheme.colorScheme!.surface,
-        hoverColor: Theme.of(context).hoverColor,
+        color: sailTheme.colors.background,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 4)),
-          side: const BorderSide(
-            color: Colors.grey,
+          borderRadius: BorderRadius.all(Radius.circular(context.isWindows ? 3 : 4)),
+          side: BorderSide(
+            color: sailTheme.colors.divider,
             width: 0.5,
           ),
         ),
-        onPressed: enabled ? onPressed : null,
+        onPressed: onPressed,
         elevation: 0,
         hoverElevation: 0,
         focusElevation: 0,

@@ -6,10 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
-import 'package:sail_ui/widgets/inputs/checkbox.dart';
-import 'package:sail_ui/widgets/inputs/dropdown_menu.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
 @RoutePage()
@@ -363,22 +359,22 @@ class UnitDropdown extends StatelessWidget {
       ),
       child: SailDropdownButton(
         width: 128.0,
-        items: const [
+        items:  [
           SailDropdownItem(
             value: 'BTC',
-            child: Text('BTC'),
+            child: SailText.primary12('BTC'),
           ),
           SailDropdownItem(
             value: 'mBTC',
-            child: Text('mBTC'),
+            child: SailText.primary12('mBTC'),
           ),
           SailDropdownItem(
             value: 'µBTC',
-            child: Text('µBTC (bits)'),
+            child: SailText.primary12('µBTC (bits)'),
           ),
           SailDropdownItem(
             value: 'sats',
-            child: Text('sats'),
+            child: SailText.primary12('sats'),
           ),
         ],
         onChanged: onChanged,
