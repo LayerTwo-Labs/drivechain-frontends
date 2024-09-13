@@ -19,6 +19,13 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/tidwall/gjson"
+
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"io"
+
+	"golang.org/x/crypto/scrypt"
 )
 
 //go:embed bin/*
@@ -292,4 +299,164 @@ type Transaction struct {
 	Received btcutil.Amount `json:"received"`
 	Sent     btcutil.Amount `json:"sent"`
 	TXID     string         `json:"txid"`
+}
+
+// NewWallet either creates a new wallet or loads an existing one
+func NewWallet(datadir, network, electrum, passphrase string) (*Wallet, error) {
+	keyFile := filepath.Join(datadir, "wallet.key")
+	var xprv string
+
+	if _, err := os.Stat(keyFile); err == nil {
+		xprv, err = loadExistingWallet(keyFile, passphrase)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load existing wallet: %w", err)
+		}
+	} else {
+		xprv, err = createNewWallet(keyFile, passphrase)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create new wallet: %w", err)
+		}
+	}
+
+	return &Wallet{
+		Descriptor: fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", xprv),
+		Network:    network,
+		Datadir:    datadir,
+		Electrum:   electrum,
+	}, nil
+}
+
+func loadExistingWallet(keyFile, passphrase string) (string, error) {
+	encryptedMnemonic, err := os.ReadFile(keyFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to read existing key file: %w", err)
+	}
+
+	mnemonic, err := decryptKey(encryptedMnemonic, passphrase)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt mnemonic: %w", err)
+	}
+
+	bdkCliPath, err := getBdkCliPath()
+	if err != nil {
+		return "", fmt.Errorf("failed to get bdk-cli path: %w", err)
+	}
+
+	res, err := exec.Command(bdkCliPath, "key", "restore", "--mnemonic", mnemonic).Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to restore key: %w", err)
+	}
+
+	xprv := gjson.GetBytes(res, "xprv").String()
+	if xprv == "" {
+		return "", fmt.Errorf("failed to parse xprv from bdk-cli output")
+	}
+
+	return xprv, nil
+}
+
+func createNewWallet(keyFile, passphrase string) (string, error) {
+	bdkCliPath, err := getBdkCliPath()
+	if err != nil {
+		return "", fmt.Errorf("failed to get bdk-cli path: %w", err)
+	}
+
+	res, err := exec.Command(bdkCliPath, "key", "generate").Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate new key: %w", err)
+	}
+
+	mnemonic := gjson.GetBytes(res, "mnemonic").String()
+	if mnemonic == "" {
+		return "", fmt.Errorf("failed to parse mnemonic from bdk-cli output")
+	}
+
+	xprv := gjson.GetBytes(res, "xprv").String()
+	if xprv == "" {
+		return "", fmt.Errorf("failed to parse xprv from bdk-cli output")
+	}
+
+	var dataToSave []byte
+	if passphrase != "" {
+		encryptedMnemonic, err := encryptKey(mnemonic, passphrase)
+		if err != nil {
+			return "", fmt.Errorf("failed to encrypt mnemonic: %w", err)
+		}
+		dataToSave = encryptedMnemonic
+	} else {
+		dataToSave = []byte(mnemonic)
+	}
+
+	err = os.WriteFile(keyFile, dataToSave, 0600)
+	if err != nil {
+		return "", fmt.Errorf("failed to save mnemonic to file: %w", err)
+	}
+
+	return xprv, nil
+}
+
+func encryptKey(key, passphrase string) ([]byte, error) {
+	if passphrase == "" {
+		return []byte(key), nil
+	}
+
+	salt := make([]byte, 8)
+	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
+		return nil, err
+	}
+
+	key32, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := aes.NewCipher(key32)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	ciphertext := gcm.Seal(nil, nonce, []byte(key), nil)
+	return append(append(salt, nonce...), ciphertext...), nil
+}
+
+func decryptKey(data []byte, passphrase string) (string, error) {
+	if passphrase == "" {
+		return string(data), nil
+	}
+
+	salt := data[:8]
+	nonce := data[8:20]
+	ciphertext := data[20:]
+
+	key32, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
+	if err != nil {
+		return "", err
+	}
+
+	block, err := aes.NewCipher(key32)
+	if err != nil {
+		return "", err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(plaintext), nil
 }
