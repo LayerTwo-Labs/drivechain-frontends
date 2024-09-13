@@ -7,15 +7,6 @@ import 'package:grpc/grpc.dart';
 
 class DrivechainService extends InheritedWidget {
   late final DrivechainServiceClient _client;
-  
-  // Response cache
-  final Map<String, GetBalanceResponse> _balanceCache = {};
-  final Map<String, List<Transaction>> _transactionsCache = {};
-  final Map<String, List<UnconfirmedTransaction>> _unconfirmedTransactionsCache = {};
-  final Map<String, List<ListRecentBlocksResponse_RecentBlock>> _recentBlocksCache = {};
-
-  // Cache timestamps
-  final Map<String, DateTime> _cacheTimestamps = {};
 
   DrivechainService({required super.child, super.key}) {
     final channel = ClientChannel(
@@ -42,19 +33,8 @@ class DrivechainService extends InheritedWidget {
     return response.txid;
   }
 
-  /// Returns a tuple of the confirmed and pending balance in satoshi
   Future<GetBalanceResponse> getBalance() async {
-    const cacheKey = 'balance';
-    if (_balanceCache.containsKey(cacheKey) &&
-        _cacheTimestamps[cacheKey] != null &&
-        DateTime.now().difference(_cacheTimestamps[cacheKey]!) < const Duration(minutes: 1)) {
-      return _balanceCache[cacheKey]!;
-    }
-
-    final response = await _client.getBalance(Empty());
-    _balanceCache[cacheKey] = response;
-    _cacheTimestamps[cacheKey] = DateTime.now();
-    return response;
+    return await _client.getBalance(Empty());
   }
 
   Future<String> getNewAddress() async {
@@ -63,44 +43,17 @@ class DrivechainService extends InheritedWidget {
   }
 
   Future<List<Transaction>> listTransactions() async {
-    const cacheKey = 'transactions';
-    if (_transactionsCache.containsKey(cacheKey) &&
-        _cacheTimestamps[cacheKey] != null &&
-        DateTime.now().difference(_cacheTimestamps[cacheKey]!) < const Duration(minutes: 1)) {
-      return _transactionsCache[cacheKey]!;
-    }
-
     final response = await _client.listTransactions(Empty());
-    _transactionsCache[cacheKey] = response.transactions;
-    _cacheTimestamps[cacheKey] = DateTime.now();
     return response.transactions;
   }
 
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {
-    const cacheKey = 'unconfirmedTransactions';
-    if (_unconfirmedTransactionsCache.containsKey(cacheKey) &&
-        _cacheTimestamps[cacheKey] != null &&
-        DateTime.now().difference(_cacheTimestamps[cacheKey]!) < const Duration(minutes: 1)) {
-      return _unconfirmedTransactionsCache[cacheKey]!;
-    }
-
     final response = await _client.listUnconfirmedTransactions(Empty());
-    _unconfirmedTransactionsCache[cacheKey] = response.unconfirmedTransactions;
-    _cacheTimestamps[cacheKey] = DateTime.now();
     return response.unconfirmedTransactions;
   }
 
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
-    const cacheKey = 'recentBlocks';
-    if (_recentBlocksCache.containsKey(cacheKey) &&
-        _cacheTimestamps[cacheKey] != null &&
-        DateTime.now().difference(_cacheTimestamps[cacheKey]!) < const Duration(minutes: 1)) {
-      return _recentBlocksCache[cacheKey]!;
-    }
-
     final response = await _client.listRecentBlocks(Empty());
-    _recentBlocksCache[cacheKey] = response.recentBlocks;
-    _cacheTimestamps[cacheKey] = DateTime.now();
     return response.recentBlocks;
   }
 
