@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sail_ui/style/shadows.dart';
-import 'package:sail_ui/theme/theme.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class SailCheckbox extends StatefulWidget {
   final bool value;
@@ -37,10 +35,10 @@ class _SailCheckboxState extends State<SailCheckbox> {
       Color color;
 
       if (enabled) {
-        color = SailTheme.of(context).colors.primary;
+        color = context.sailTheme.colors.primary;
         if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
       } else {
-        color = SailTheme.of(context).colors.backgroundSecondary;
+        color = context.sailTheme.colors.backgroundSecondary;
       }
 
       visual = Container(
@@ -54,11 +52,11 @@ class _SailCheckboxState extends State<SailCheckbox> {
         child: Icon(
           Icons.check,
           size: widget.size - 2,
-          color: SailTheme.of(context).colors.background,
+          color: context.sailTheme.colors.background,
         ),
       );
     } else {
-      var color = SailTheme.of(context).colors.backgroundSecondary;
+      var color = context.sailTheme.colors.backgroundSecondary;
       if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
 
       visual = Container(
@@ -68,7 +66,7 @@ class _SailCheckboxState extends State<SailCheckbox> {
           borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
           color: color,
           border: Border.all(
-            color: SailTheme.of(context).colors.formFieldBorder,
+            color: context.sailTheme.colors.formFieldBorder,
             width: 0.5,
           ),
           boxShadow: sailBoxShadow(context),
@@ -86,8 +84,8 @@ class _SailCheckboxState extends State<SailCheckbox> {
             child: SailText.primary12(
               widget.label!,
               color: enabled
-                  ? SailTheme.of(context).colors.text
-                  : SailTheme.of(context).colors.textSecondary,
+                    ? context.sailTheme.colors.text
+                    : context.sailTheme.colors.textSecondary,
             ),
           ),
         ],

@@ -1,8 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:sail_ui/style/style.dart';
-import 'package:sail_ui/theme/theme.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 const _menuItemHeight = 24.0;
 const _menuDividerHeight = 10.0;
@@ -101,12 +100,12 @@ class _SailMenuItemState extends State<SailMenuItem> {
         color: (_hover || (_selected && _flashing)) && !isWindows ? Colors.white : SailTheme.of(context).colors.text,
       );
     } else {
-      textStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            color: Theme.of(context).disabledColor,
-          );
+      textStyle = SailStyleValues.eleven.copyWith(
+        color: SailTheme.of(context).colors.textTertiary,
+      );
     }
 
-    var highlightColor = isWindows ? Theme.of(context).highlightColor : Theme.of(context).primaryColor;
+    var highlightColor = isWindows ? SailTheme.of(context).colors.text : SailTheme.of(context).colors.primary;
 
     return MouseRegion(
       onEnter: (_) {
@@ -195,15 +194,14 @@ class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
 
   @override
   Widget build(BuildContext context) {
-    var isWindows = Theme.of(context).platform == TargetPlatform.windows;
 
     return Container(
       height: _menuDividerHeight,
-      padding: EdgeInsets.symmetric(horizontal: isWindows ? 8 : 16),
+      padding: EdgeInsets.symmetric(horizontal: context.isWindows ? 8 : 16),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Container(
-          color: Theme.of(context).dividerColor,
+          color: SailTheme.of(context).colors.divider,
           height: 1.0,
         ),
       ),
