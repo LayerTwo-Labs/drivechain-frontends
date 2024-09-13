@@ -1,3 +1,7 @@
+bdk-cli-features := "--no-default-features --features=key-value-db,compiler,electrum"
+bdk-cli-git := "https://github.com/bitcoindevkit/bdk-cli.git"
+bdk-cli-version := "v0.27.1"
+
 build-go:
     go build -o drivechain-server .
 
@@ -13,6 +17,12 @@ lint:
 gen:
     buf generate
 
+install-bdk-cli:
+    cargo install \
+        --git {{bdk-cli-git}} \
+        --tag {{bdk-cli-version}} \
+        {{bdk-cli-features}}
+
 build-bdk-cli:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -24,12 +34,11 @@ build-bdk-cli:
             exit 1
         fi
         cargo install \
-        --git https://github.com/bitcoindevkit/bdk-cli.git \
-        --tag v0.27.1 \
+        --git {{bdk-cli-git}} \
+        --tag {{bdk-cli-version}} \
         --root ./bdk \
-        --no-default-features \
-        --features=key-value-db,compiler,electrum
-        echo "bdk-cli has been built to ./bdk/bin/bdk-cli"
+        {{bdk-cli-features}}
+        echo "bdk-cli has been built to ./bin/bdk-cli."
     else
         echo "bdk-cli already exists, skipping build"
     fi
