@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:http/http.dart' as http;
 import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/sail_ui.dart';
 
 /// RPC connection to the mainchain node.
 abstract class API {
@@ -11,7 +11,7 @@ abstract class API {
 
   API({required this.apiURL});
 
-  Future<List<UTXO>> listClaims();
+  Future<List<GetTransactionResponse>> listClaims();
   Future<String> claim(String address, double amount);
 }
 
@@ -19,14 +19,16 @@ class APILive extends API {
   APILive({required super.apiURL});
 
   @override
-  Future<List<UTXO>> listClaims() async {
+  Future<List<GetTransactionResponse>> listClaims() async {
     final url = Uri.parse("$apiURL/listclaims");
     final res = await http.get(url);
 
     if (res.statusCode == 200) {
       final List<dynamic> claimsJSON = jsonDecode(res.body);
 
-      List<UTXO> transactions = claimsJSON.map((jsonItem) => UTXO.fromMap(jsonItem)).toList();
+      List<GetTransactionResponse> transactions =
+          claimsJSON.map((jsonItem) => GetTransactionResponse.fromJson(jsonItem)).toList();
+
       return transactions;
     } else {
       throw Exception('could not list claims');

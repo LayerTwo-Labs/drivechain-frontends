@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:faucet/api/api.dart';
+import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:faucet/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +26,7 @@ class FaucetViewModel extends BaseViewModel {
   bool hideDeposits = true;
   SailThemeValues theme = SailThemeValues.light;
 
-  List<UTXO> get utxos => _transactionsProvider.claims;
+  List<GetTransactionResponse> get utxos => _transactionsProvider.claims;
 
   FaucetViewModel() {
     _init();
@@ -236,7 +239,7 @@ class _FaucetPageState extends State<FaucetPage> {
                             itemCount: viewModel.utxos.length,
                             itemBuilder: (context, index) => UTXOView(
                               key: ValueKey<String>(viewModel.utxos[index].txid),
-                              utxo: viewModel.utxos[index],
+                              utxo: transactionResponseToUTXO(viewModel.utxos[index]),
                               externalDirection: true,
                             ),
                           ),
@@ -250,4 +253,25 @@ class _FaucetPageState extends State<FaucetPage> {
           );
         }));
   }
+}
+
+UTXO transactionResponseToUTXO(GetTransactionResponse response) {
+  // Extract details, assuming first detail is the relevant one.
+  var detail = response.details.isNotEmpty ? response.details[0] : null;
+
+  return UTXO(
+    txid: response.txid,
+    vout: detail?.vout ?? 0,
+    address: detail?.address ?? '',
+    account: '', // Not available in GetTransactionResponse, set empty
+    redeemScript: '', // Not available in GetTransactionResponse, set empty
+    scriptPubKey: '', // Not available in GetTransactionResponse, set empty
+    amount: response.amount,
+    confirmations: response.confirmations,
+    spendable: false,
+    solvable: false,
+    safe: true, // Default to true, or adjust based on other data
+    time: response.time.seconds.toInt(),
+    raw: jsonEncode(response.toProto3Json()), // Convert to raw JSON
+  );
 }
