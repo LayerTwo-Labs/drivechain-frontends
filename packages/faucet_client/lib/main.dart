@@ -1,6 +1,6 @@
-import 'package:faucet/api/api.dart';
-import 'package:faucet/app.dart';
-import 'package:faucet/providers/transactions_provider.dart';
+import 'package:faucet_client/api/api.dart';
+import 'package:faucet_client/app.dart';
+import 'package:faucet_client/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
