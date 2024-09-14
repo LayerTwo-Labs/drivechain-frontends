@@ -63,4 +63,10 @@ class TransactionsProvider extends ChangeNotifier {
       await fetch();
     });
   }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _connectionTimer?.cancel();
+  }
 }
