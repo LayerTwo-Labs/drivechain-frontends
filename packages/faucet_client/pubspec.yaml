@@ -1,4 +1,4 @@
-name: faucet
+name: faucet_client
 description: "a drivechain faucet"
 publish_to: 'none'
 

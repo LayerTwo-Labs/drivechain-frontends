@@ -24,12 +24,9 @@ class APILive extends API {
     final res = await http.get(url);
 
     if (res.statusCode == 200) {
-      final List<dynamic> claimsJSON = jsonDecode(res.body);
+      final ListTransactionsResponse transactions = ListTransactionsResponse.fromJson(res.body);
 
-      List<GetTransactionResponse> transactions =
-          claimsJSON.map((jsonItem) => GetTransactionResponse.fromJson(jsonItem)).toList();
-
-      return transactions;
+      return transactions.transactions;
     } else {
       throw Exception('could not list claims');
     }

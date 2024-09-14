@@ -4,7 +4,7 @@ cd packages/sidesail
 flutter pub get
 cd ../../
 
-cd packages/faucet
+cd packages/faucet_client
 flutter pub get
 cd ../../
 
