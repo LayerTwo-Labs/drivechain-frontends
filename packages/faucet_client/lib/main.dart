@@ -30,7 +30,7 @@ Future<void> start() async {
         ),
         debugShowCheckedModeBanner: false,
         home: const FaucetPage(title: 'Drivechain Faucet'),
-      ),      
+      ),
       accentColor: SailColorScheme.orange,
       log: log,
     ),
