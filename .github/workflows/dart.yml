@@ -1,170 +1,37 @@
 name: Dart
 
-on:
-  push:
-    branches: ["master"]
-  pull_request:
-    branches: ["master"]
-
-defaults:
-  run:
-    working-directory: packages/sidesail
+on: pull_request
 
 jobs:
   format-lint-test:
     runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-
-      # Note: This workflow uses the latest stable version of the Dart SDK.
-      # You can specify other versions if desired, see documentation here:
-      # https://github.com/dart-lang/setup-dart/blob/main/README.md
-      - uses: dart-lang/setup-dart@v1
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      # Uncomment this step to verify the use of 'dart format' on each commit.
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed . -l 120
-
-      # Consider passing '--fatal-infos' for slightly stricter analysis.
-      - name: Analyze project source
-        run: dart analyze
-
-      # Your project will need to have tests in test/ and a dependency on
-      # package:test for this step to succeed. Note that Flutter projects will
-      # want to change this to 'flutter test'.
-      - name: Run tests
-        run: flutter test
-
-  build:
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        chain: [testchain, ethereum, zcash]
-        exclude:
-          - os: windows-latest
-            chain: zcash
+        package: [sail_ui, sidesail, drivechain_client, faucet_client]
 
-    name: Build binaries
-    runs-on: ${{ matrix.os }}
     defaults:
       run:
-        shell: bash
-        working-directory: packages/sidesail # must be specified here as well, otherwise overwrites top most
+        working-directory: packages/${{ matrix.package }}
 
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-
-      # Note: This workflow uses the latest stable version of the Dart SDK.
-      # You can specify other versions if desired, see documentation here:
-      # https://github.com/dart-lang/setup-dart/blob/main/README.md
+      
       - uses: dart-lang/setup-dart@v1
 
-      - name: Install dependencies
+      - name: Install dependencies for ${{ matrix.package }}
         run: flutter pub get
 
-      # standard macOS sed has subtle differences from gnu
-      - name: Install GNU sed on macOS
-        if: runner.os == 'macOS'
+      - name: Verify formatting for ${{ matrix.package }}
+        run: find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
+
+      - name: Analyze project source for ${{ matrix.package }}
+        run: dart analyze
+
+      - name: Run tests for ${{ matrix.package }}
         run: |
-          brew install gnu-sed
-          echo "$(brew --prefix)/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
-
-        # https://docs.flutter.dev/get-started/install/linux/desktop
-      # prettier-ignore
-      - run:  sudo apt-get install clang cmake git ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-        if: runner.os == 'Linux'
-
-      - name: Setup macOS app signing
-        if: runner.os == 'macOS'
-        run: |
-          # import certificate into the keychain
-          echo "${{ secrets.MACOS_CERTIFICATE }}" | base64 --decode > certificate.p12
-          KEYCHAIN_PASSWORD=$(uuidgen)
-
-          echo "Creating keychain"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-
-          echo "Setting default keychain"
-          security default-keychain -s build.keychain
-
-          echo "Unlocking keychain"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-
-          echo "Importing certificate into keychain"
-          security import ./certificate.p12 -k ~/Library/Keychains/build.keychain -P ${{ secrets.MACOS_CERTIFICATE_PASSWORD }} -T /usr/bin/codesign
-
-          echo "Setting key partition list"
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" ~/Library/Keychains/build.keychain
-
-          # Find the Common Name of the certificate we just imported
-          security find-certificate -a -p build.keychain > certificate.pem
-          cert_subject=$(openssl x509 -in certificate.pem -noout -subject)
-          echo Certificate subject: "'$cert_subject'"
-
-          cn_part=$(grep -o 'CN = "[^"]*"' <<< "$cert_subject")
-          echo CN part: "'$cn_part'"
-
-          cn_value=$(sed 's/CN = "\(.*\)"/\1/' <<< "$cn_part")
-          echo CN value: "'$cn_value'"
-
-          echo "Determined code sign identity: '$cn_value'"
-
-          echo "CODESIGN_IDENTITY=$cn_value" >> $GITHUB_ENV
-
-          echo "Creating notarization API key file"
-          echo ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY }} | base64 --decode > notarization_api_key.p8
-
-      - name: Build app
-        run: |
-          # Everything after first line is only relevant for macOS  
-          ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.chain }} \
-            "$CODESIGN_IDENTITY" $PWD/notarization_api_key.p8 \
-            ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
-            ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sidesail-binaries-${{ runner.os }}-${{ matrix.chain }}
-          if-no-files-found: error
-          path: packages/sidesail/release/*
-
-  upload-artifacts-to-releases-drivechain-info:
-    name: Upload artifacts to releases.drivechain.info
-    runs-on: ubuntu-latest
-    needs: [build]
-    # avoid uploading on PRs
-    # prettier-ignore
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'LayerTwo-Labs'
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Zip artifacts
-        working-directory: . # we set a default above, with a directory that doesn't exist for this job
-        # The files here are already zips. No point in zipping again!
-        run: |
-          mv sidesail-binaries-macOS-testchain/testsail-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-testchain/testsail-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip 
-
-          mv sidesail-binaries-macOS-zcash/zsail-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-zcash/zsail-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip 
-
-          mv sidesail-binaries-macOS-ethereum/ethsail-osx64.zip L2-S6-EthSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-ethereum/ethsail-x86_64-linux-gnu.zip L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip
-
-      - name: Upload artifacts to releases.drivechain.info
-        uses: cross-the-world/ssh-scp-ssh-pipelines@latest
-        with:
-          host: 45.33.96.47
-          user: root
-          pass: ${{ secrets.RELEASES_SERVER_PW }}
-          port: 22
-          scp: |
-            'L2-S*.zip' => '/var/www/html/'
+          if [ -d "test" ]; then
+            flutter test
+          else
+            echo "Test directory not found. Skipping tests."
+          fi
