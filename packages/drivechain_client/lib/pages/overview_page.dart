@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-
 @RoutePage()
 class OverviewPage extends StatelessWidget {
   const OverviewPage({super.key});
@@ -134,8 +133,7 @@ class BalancesView extends StatelessWidget {
                         RichText(
                             text: TextSpan(
                           text: Money.fromNumWithCurrency(
-                            snapshot.data!.pendingSatoshi.toDouble() +
-                                snapshot.data!.confirmedSatoshi.toDouble(),
+                            snapshot.data!.pendingSatoshi.toDouble() + snapshot.data!.confirmedSatoshi.toDouble(),
                             satoshi,
                           ).toString(),
                           style: SailStyleValues.thirteen.copyWith(
@@ -155,22 +153,18 @@ class BalancesView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     BitcoinPrice(
-                      money: Money.fromNumWithCurrency(
-                          50000, CommonCurrencies().usd),
+                      money: Money.fromNumWithCurrency(50000, CommonCurrencies().usd),
                     ),
                     const SizedBox(height: 16.0),
                     // Sum of all balances converted to USD at current BTC price
                     RichText(
                       text: TextSpan(
                         text: Money.fromNumWithCurrency(
-                          (((snapshot.data!.confirmedSatoshi.toInt() +
-                                      snapshot.data!.pendingSatoshi.toInt()) *
-                                  50000) *
+                          (((snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt()) * 50000) *
                               0.00000001), // TODO: Get current BTC price
                           CommonCurrencies().usd,
                         ).format('S###,###.##'),
-                        style: SailStyleValues.thirteen
-                            .copyWith(color: theme.colors.text),
+                        style: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
                       ),
                     ),
                   ],
