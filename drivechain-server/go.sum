@@ -5,6 +5,7 @@ connectrpc.com/grpchealth v1.3.0/go.mod h1:3vpqmX25/ir0gVgW6RdnCPPZRcR6HvqtXX5RN
 connectrpc.com/grpcreflect v1.2.0 h1:Q6og1S7HinmtbEuBvARLNwYmTbhEGRpHDhqrPNlmK+U=
 connectrpc.com/grpcreflect v1.2.0/go.mod h1:nwSOKmE8nU5u/CidgHtPYk1PFI3U9ignz7iDMxOYkSY=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
+github.com/barebitcoin/btc-buf v0.0.0-20240913083231-fb796be03800 h1:6C57oWLhVqLB9Cst299YId0JJrgZLe3L8MuSrUMp8oY=
 github.com/barebitcoin/btc-buf v0.0.0-20240913083231-fb796be03800/go.mod h1:gdN1cB6ndppRCT2EsT1xOOJMMqA7T8iJ3IRJuLfhxaI=
 github.com/barebitcoin/btcd/rpcclient v0.0.0-20240913081458-4dd5591f22b8 h1:L0rObrQHuLWM1g85rMxXSIynaWrT/gytGcw1JT+rqPo=
 github.com/barebitcoin/btcd/rpcclient v0.0.0-20240913081458-4dd5591f22b8/go.mod h1:40gHHP6p9jQNolMHF7tbzSyW/EpEy04tvcSATgikQGE=
