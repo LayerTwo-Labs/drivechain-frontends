@@ -1,12 +1,10 @@
 module github.com/LayerTwo-Labs/sidesail/faucet
 
-go 1.23.0
-
-replace github.com/btcsuite/btcd => github.com/barebitcoin/btcd v0.23.5-0.20240903080731-67889aa038bd
+go 1.23
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240912173153-27fd65c49162
+	github.com/barebitcoin/btc-buf v0.0.0-20240913083231-fb796be03800
 	github.com/btcsuite/btcd v0.24.2
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
@@ -18,6 +16,7 @@ require (
 require (
 	connectrpc.com/grpchealth v1.3.0 // indirect
 	connectrpc.com/grpcreflect v1.2.0 // indirect
+	github.com/barebitcoin/btcd/rpcclient v0.0.0-20240913081458-4dd5591f22b8 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
 	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd // indirect
