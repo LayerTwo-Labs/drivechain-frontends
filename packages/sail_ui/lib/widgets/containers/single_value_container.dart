@@ -11,7 +11,6 @@ class SingleValueContainer extends StatelessWidget {
   final Widget? icon;
   final Widget? prefixAction;
   final bool copyable;
-  final bool italic;
   final Color? color;
 
   const SingleValueContainer({
@@ -23,7 +22,6 @@ class SingleValueContainer extends StatelessWidget {
     this.trailingText,
     this.icon,
     this.prefixAction,
-    this.italic = false,
     this.copyable = true,
     this.color,
   });
@@ -44,9 +42,9 @@ class SingleValueContainer extends StatelessWidget {
             child: width != null
                 ? SizedBox(
                     width: width,
-                    child: SailText.primary12(label!, italic: italic, color: color),
+                    child: SailText.primary12(label!, color: color),
                   )
-                : SailText.primary12(label!, italic: italic, color: color),
+                : SailText.primary12(label!, color: color),
           ),
         Expanded(
           child: SailScaleButton(
