@@ -2,8 +2,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/service.dart';
 import 'package:drivechain_client/util/currencies.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -142,7 +140,6 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
   late TextEditingController _labelController;
   late TextEditingController _amountController;
   late bool _subtractFee;
-  late bool _useBalance;
 
   @override
   void initState() {
@@ -153,7 +150,6 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
     _labelController = TextEditingController(text: '');
     _amountController = TextEditingController(text: '0.00');
     _subtractFee = false;
-    _useBalance = false;
   }
 
   void _onUnitChanged(String value) {
@@ -401,9 +397,6 @@ class NumericField extends StatefulWidget {
 class _NumericFieldState extends State<NumericField> {
   late TextEditingController _controller = TextEditingController(text: '0.00');
   late FocusNode _focusNode;
-  late ValueNotifier<String> _value;
-  late ValueNotifier<bool> _isEditing;
-  late ValueNotifier<String> _error;
 
   @override
   void initState() {
@@ -411,9 +404,6 @@ class _NumericFieldState extends State<NumericField> {
 
     _controller = widget.controller ?? TextEditingController(text: '0.00');
     _focusNode = widget.focusNode ?? FocusNode();
-    _value = ValueNotifier(widget.controller?.text ?? '0.00');
-    _isEditing = ValueNotifier(false);
-    _error = ValueNotifier(widget.error ?? '');
   }
 
   @override
