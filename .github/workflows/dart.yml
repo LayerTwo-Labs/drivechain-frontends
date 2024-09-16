@@ -28,6 +28,15 @@ jobs:
       - name: Analyze project source for ${{ matrix.package }}
         run: dart analyze
 
+      - name: Look for fixable lint issues for ${{ matrix.package }}
+        run: |
+          FIXES=$(dart fix --dry-run)
+          if [[ "$FIXES" != *"Nothing to fix!"* ]]; then
+            echo "Fixable issues found. Run 'dart fix --apply' locally and commit changes."
+            echo "$FIXES"
+            exit 1
+          fi
+
       - name: Run tests for ${{ matrix.package }}
         run: |
           if [ -d "test" ]; then
