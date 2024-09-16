@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,11 +12,9 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/faucet/drivechaind"
-	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/gorilla/mux"
 	"github.com/jessevdk/go-flags"
-	"github.com/samber/lo"
 )
 
 func main() {
@@ -235,15 +232,8 @@ func (f *Faucet) listClaims(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	withPositiveAmounts := lo.Map(txs, func(tx *pb.GetTransactionResponse, index int) *pb.GetTransactionResponse {
-		// the amounts makes most sense when positive
-		tx.Amount = math.Abs(tx.Amount)
-		tx.Fee = math.Abs(tx.Fee)
-		return tx
-	})
-
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(withPositiveAmounts); err != nil {
+	if err := json.NewEncoder(w).Encode(txs); err != nil {
 		err := fmt.Sprintf("could not encode claims: %s", err)
 		fmt.Println(err)
 

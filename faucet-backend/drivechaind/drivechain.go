@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -100,11 +101,18 @@ func (c *Client) ListTransactions(ctx context.Context) ([]*bitcoindv1alpha.GetTr
 		return nil, err
 	}
 
-	return lo.Filter(txs.Msg.Transactions, func(tx *bitcoindv1alpha.GetTransactionResponse, index int) bool {
+	transactions := lo.Filter(txs.Msg.Transactions, func(tx *bitcoindv1alpha.GetTransactionResponse, index int) bool {
 		// we only want to show withdrawals going from our wallet
-		return tx.Amount <= 0 &&
+		return tx.Amount < 0 &&
 			// and avoid txs with negative confirmations
 			tx.Confirmations >= 0
+	})
+
+	return lo.Map(transactions, func(tx *bitcoindv1alpha.GetTransactionResponse, index int) *bitcoindv1alpha.GetTransactionResponse {
+		// for the user, the amounts makes most sense when positive
+		tx.Amount = math.Abs(tx.Amount)
+		tx.Fee = math.Abs(tx.Fee)
+		return tx
 	}), nil
 }
 
