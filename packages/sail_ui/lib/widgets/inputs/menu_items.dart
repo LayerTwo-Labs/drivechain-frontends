@@ -22,12 +22,10 @@ class SailMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var isWindows = Theme.of(context).platform == TargetPlatform.windows;
-
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).popupMenuTheme.color,
-        borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 4)),
+        color: SailTheme.of(context).colors.popoverBackground,
+        borderRadius: BorderRadius.all(Radius.circular(context.isWindows ? 3 : 4)),
         boxShadow: const [
           BoxShadow(
             color: Colors.black26,
@@ -40,7 +38,7 @@ class SailMenu extends StatelessWidget {
           width: 0.5,
         ),
       ),
-      padding: isWindows ? _menuPaddingWindows : _menuPadding,
+      padding: context.isWindows ? _menuPaddingWindows : _menuPadding,
       child: IntrinsicWidth(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -73,7 +71,7 @@ class SailMenuItem extends StatefulWidget implements SailMenuEntity {
   final double height;
 
   @override
-  _SailMenuItemState createState() => _SailMenuItemState();
+  State<SailMenuItem> createState() => _SailMenuItemState();
 }
 
 class _SailMenuItemState extends State<SailMenuItem> {
@@ -87,8 +85,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
   @override
   Widget build(BuildContext context) {
     bool enabled = widget.onSelected != null;
-    var isWindows = Theme.of(context).platform == TargetPlatform.windows;
-    var menuPadding = isWindows ? _menuPaddingWindows : _menuPadding;
+    var menuPadding = context.isWindows ? _menuPaddingWindows : _menuPadding;
 
     var menu = context.findAncestorWidgetOfExactType<SailMenu>();
     var menuWidth = menu?.width;
@@ -97,7 +94,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
     TextStyle textStyle;
     if (enabled) {
       textStyle = SailStyleValues.eleven.copyWith(
-        color: (_hover || (_selected && _flashing)) && !isWindows ? Colors.white : SailTheme.of(context).colors.text,
+        color: (_hover || (_selected && _flashing)) && !context.isWindows ? Colors.white : SailTheme.of(context).colors.text,
       );
     } else {
       textStyle = SailStyleValues.eleven.copyWith(
@@ -105,7 +102,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
       );
     }
 
-    var highlightColor = isWindows ? SailTheme.of(context).colors.text : SailTheme.of(context).colors.primary;
+    var highlightColor = context.isWindows ? SailTheme.of(context).colors.text : SailTheme.of(context).colors.primary;
 
     return MouseRegion(
       onEnter: (_) {
@@ -124,15 +121,15 @@ class _SailMenuItemState extends State<SailMenuItem> {
         behavior: HitTestBehavior.opaque,
         onTap: () {
           if (enabled && !_selected) {
-            _handleSelection(isWindows);
+            _handleSelection(context.isWindows);
           }
         },
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: isWindows ? 12 : 16),
+          padding: EdgeInsets.symmetric(horizontal: context.isWindows ? 12 : 16),
           width: menuWidth,
           height: widget.height,
           decoration: BoxDecoration(
-            borderRadius: isWindows ? null : const BorderRadius.all(Radius.circular(4.0)),
+            borderRadius: context.isWindows ? null : const BorderRadius.all(Radius.circular(4.0)),
             color: _hover || (_selected && _flashing) ? highlightColor : null,
           ),
           child: DefaultTextStyle(

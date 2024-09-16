@@ -20,6 +20,7 @@ class SailTextField extends StatelessWidget {
   final BoxConstraints? prefixIconConstraints;
   final TextFieldSize size;
   final void Function(String)? onSubmitted;
+  final bool dense;
 
   const SailTextField({
     super.key,
@@ -36,18 +37,19 @@ class SailTextField extends StatelessWidget {
     this.size = TextFieldSize.regular,
     this.focusNode,
     this.onSubmitted,
+    this.dense = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final padding = size != TextFieldSize.regular
-        ? const EdgeInsets.all(
-            SailStyleValues.padding15,
+        ? EdgeInsets.all(
+            dense ? SailStyleValues.padding08 : SailStyleValues.padding15,
           )
-        : const EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding10,
-            horizontal: SailStyleValues.padding15,
+        : EdgeInsets.symmetric(
+            vertical: dense ? SailStyleValues.padding05 : SailStyleValues.padding10,
+            horizontal: dense ? SailStyleValues.padding10 : SailStyleValues.padding15,
           );
     final textSize = size == TextFieldSize.regular ? 15.0 : 12.0;
 
@@ -63,6 +65,7 @@ class SailTextField extends StatelessWidget {
           ),
         TextField(
           cursorColor: theme.colors.primary,
+          cursorHeight: textSize,
           controller: controller,
           focusNode: focusNode,
           onSubmitted: onSubmitted,
