@@ -63,11 +63,9 @@ func (c *Client) SendCoins(ctx context.Context, destination string, amount btcut
 			return nil, fmt.Errorf("could not decode address: %w", err)
 		}
 
-		tx, err := c.client.Send(ctx, connect.NewRequest(&bitcoindv1alpha.SendRequest{
-			Destinations: map[string]float64{
-				destination: amount.ToBTC(),
-			},
-			ConfTarget: 1,
+		tx, err := c.client.SendToAddress(ctx, connect.NewRequest(&bitcoindv1alpha.SendToAddressRequest{
+			Address: destination,
+			Amount:  amount.ToBTC(),
 		}))
 		if err != nil {
 			return nil, fmt.Errorf("could not send to address: %w", err)
