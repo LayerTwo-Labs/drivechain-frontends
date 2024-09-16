@@ -235,13 +235,8 @@ func (f *Faucet) listClaims(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	onlyWithdrawals := lo.Filter(txs, func(tx *pb.GetTransactionResponse, index int) bool {
-		// we only want to show withdrawals going from our wallet
-		return tx.Amount <= 0
-	})
-
-	withPositiveAmounts := lo.Map(onlyWithdrawals, func(tx *pb.GetTransactionResponse, index int) *pb.GetTransactionResponse {
-		// and the amounts makes most sense when positive
+	withPositiveAmounts := lo.Map(txs, func(tx *pb.GetTransactionResponse, index int) *pb.GetTransactionResponse {
+		// the amounts makes most sense when positive
 		tx.Amount = math.Abs(tx.Amount)
 		tx.Fee = math.Abs(tx.Fee)
 		return tx
