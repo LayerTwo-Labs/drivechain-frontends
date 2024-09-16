@@ -15,7 +15,7 @@ import 'dart:core' as $core;
 import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'bitcoin.pb.dart' as $0;
+import 'package:faucet_client/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' as $0;
 
 export 'bitcoin.pb.dart';
 
@@ -24,81 +24,81 @@ class BitcoinServiceClient extends $grpc.Client {
   static final _$getBlockchainInfo = $grpc.ClientMethod<$0.GetBlockchainInfoRequest, $0.GetBlockchainInfoResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetBlockchainInfo',
       ($0.GetBlockchainInfoRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetBlockchainInfoResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetBlockchainInfoResponse.fromBuffer(value),);
   static final _$getTransaction = $grpc.ClientMethod<$0.GetTransactionRequest, $0.GetTransactionResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetTransaction',
       ($0.GetTransactionRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetTransactionResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetTransactionResponse.fromBuffer(value),);
   static final _$listSinceBlock = $grpc.ClientMethod<$0.ListSinceBlockRequest, $0.ListSinceBlockResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/ListSinceBlock',
       ($0.ListSinceBlockRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListSinceBlockResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.ListSinceBlockResponse.fromBuffer(value),);
   static final _$getNewAddress = $grpc.ClientMethod<$0.GetNewAddressRequest, $0.GetNewAddressResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetNewAddress',
       ($0.GetNewAddressRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetNewAddressResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetNewAddressResponse.fromBuffer(value),);
   static final _$getWalletInfo = $grpc.ClientMethod<$0.GetWalletInfoRequest, $0.GetWalletInfoResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetWalletInfo',
       ($0.GetWalletInfoRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetWalletInfoResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetWalletInfoResponse.fromBuffer(value),);
   static final _$getBalances = $grpc.ClientMethod<$0.GetBalancesRequest, $0.GetBalancesResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetBalances',
       ($0.GetBalancesRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetBalancesResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetBalancesResponse.fromBuffer(value),);
   static final _$send = $grpc.ClientMethod<$0.SendRequest, $0.SendResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/Send',
       ($0.SendRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.SendResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.SendResponse.fromBuffer(value),);
   static final _$sendToAddress = $grpc.ClientMethod<$0.SendToAddressRequest, $0.SendToAddressResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/SendToAddress',
       ($0.SendToAddressRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.SendToAddressResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.SendToAddressResponse.fromBuffer(value),);
   static final _$bumpFee = $grpc.ClientMethod<$0.BumpFeeRequest, $0.BumpFeeResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/BumpFee',
       ($0.BumpFeeRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.BumpFeeResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.BumpFeeResponse.fromBuffer(value),);
   static final _$estimateSmartFee = $grpc.ClientMethod<$0.EstimateSmartFeeRequest, $0.EstimateSmartFeeResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/EstimateSmartFee',
       ($0.EstimateSmartFeeRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.EstimateSmartFeeResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.EstimateSmartFeeResponse.fromBuffer(value),);
   static final _$importDescriptors = $grpc.ClientMethod<$0.ImportDescriptorsRequest, $0.ImportDescriptorsResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/ImportDescriptors',
       ($0.ImportDescriptorsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ImportDescriptorsResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.ImportDescriptorsResponse.fromBuffer(value),);
   static final _$listTransactions = $grpc.ClientMethod<$0.ListTransactionsRequest, $0.ListTransactionsResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/ListTransactions',
       ($0.ListTransactionsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListTransactionsResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.ListTransactionsResponse.fromBuffer(value),);
   static final _$getDescriptorInfo = $grpc.ClientMethod<$0.GetDescriptorInfoRequest, $0.GetDescriptorInfoResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetDescriptorInfo',
       ($0.GetDescriptorInfoRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetDescriptorInfoResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetDescriptorInfoResponse.fromBuffer(value),);
   static final _$getRawMempool = $grpc.ClientMethod<$0.GetRawMempoolRequest, $0.GetRawMempoolResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetRawMempool',
       ($0.GetRawMempoolRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetRawMempoolResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetRawMempoolResponse.fromBuffer(value),);
   static final _$getRawTransaction = $grpc.ClientMethod<$0.GetRawTransactionRequest, $0.GetRawTransactionResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetRawTransaction',
       ($0.GetRawTransactionRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetRawTransactionResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetRawTransactionResponse.fromBuffer(value),);
   static final _$decodeRawTransaction = $grpc.ClientMethod<$0.DecodeRawTransactionRequest, $0.DecodeRawTransactionResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/DecodeRawTransaction',
       ($0.DecodeRawTransactionRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.DecodeRawTransactionResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.DecodeRawTransactionResponse.fromBuffer(value),);
   static final _$getBlock = $grpc.ClientMethod<$0.GetBlockRequest, $0.GetBlockResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetBlock',
       ($0.GetBlockRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetBlockResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetBlockResponse.fromBuffer(value),);
   static final _$getBlockHash = $grpc.ClientMethod<$0.GetBlockHashRequest, $0.GetBlockHashResponse>(
       '/bitcoin.bitcoind.v1alpha.BitcoinService/GetBlockHash',
       ($0.GetBlockHashRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetBlockHashResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetBlockHashResponse.fromBuffer(value),);
 
   BitcoinServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors,})
       : super(channel, options: options,
-        interceptors: interceptors);
+        interceptors: interceptors,);
 
   $grpc.ResponseFuture<$0.GetBlockchainInfoResponse> getBlockchainInfo($0.GetBlockchainInfoRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getBlockchainInfo, request, options: options);
@@ -184,126 +184,126 @@ abstract class BitcoinServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $0.GetBlockchainInfoRequest.fromBuffer(value),
-        ($0.GetBlockchainInfoResponse value) => value.writeToBuffer()));
+        ($0.GetBlockchainInfoResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetTransactionRequest, $0.GetTransactionResponse>(
         'GetTransaction',
         getTransaction_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetTransactionRequest.fromBuffer(value),
-        ($0.GetTransactionResponse value) => value.writeToBuffer()));
+        ($0.GetTransactionResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.ListSinceBlockRequest, $0.ListSinceBlockResponse>(
         'ListSinceBlock',
         listSinceBlock_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.ListSinceBlockRequest.fromBuffer(value),
-        ($0.ListSinceBlockResponse value) => value.writeToBuffer()));
+        ($0.ListSinceBlockResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetNewAddressRequest, $0.GetNewAddressResponse>(
         'GetNewAddress',
         getNewAddress_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetNewAddressRequest.fromBuffer(value),
-        ($0.GetNewAddressResponse value) => value.writeToBuffer()));
+        ($0.GetNewAddressResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetWalletInfoRequest, $0.GetWalletInfoResponse>(
         'GetWalletInfo',
         getWalletInfo_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetWalletInfoRequest.fromBuffer(value),
-        ($0.GetWalletInfoResponse value) => value.writeToBuffer()));
+        ($0.GetWalletInfoResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetBalancesRequest, $0.GetBalancesResponse>(
         'GetBalances',
         getBalances_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetBalancesRequest.fromBuffer(value),
-        ($0.GetBalancesResponse value) => value.writeToBuffer()));
+        ($0.GetBalancesResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.SendRequest, $0.SendResponse>(
         'Send',
         send_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.SendRequest.fromBuffer(value),
-        ($0.SendResponse value) => value.writeToBuffer()));
+        ($0.SendResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.SendToAddressRequest, $0.SendToAddressResponse>(
         'SendToAddress',
         sendToAddress_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.SendToAddressRequest.fromBuffer(value),
-        ($0.SendToAddressResponse value) => value.writeToBuffer()));
+        ($0.SendToAddressResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.BumpFeeRequest, $0.BumpFeeResponse>(
         'BumpFee',
         bumpFee_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.BumpFeeRequest.fromBuffer(value),
-        ($0.BumpFeeResponse value) => value.writeToBuffer()));
+        ($0.BumpFeeResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.EstimateSmartFeeRequest, $0.EstimateSmartFeeResponse>(
         'EstimateSmartFee',
         estimateSmartFee_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.EstimateSmartFeeRequest.fromBuffer(value),
-        ($0.EstimateSmartFeeResponse value) => value.writeToBuffer()));
+        ($0.EstimateSmartFeeResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.ImportDescriptorsRequest, $0.ImportDescriptorsResponse>(
         'ImportDescriptors',
         importDescriptors_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.ImportDescriptorsRequest.fromBuffer(value),
-        ($0.ImportDescriptorsResponse value) => value.writeToBuffer()));
+        ($0.ImportDescriptorsResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.ListTransactionsRequest, $0.ListTransactionsResponse>(
         'ListTransactions',
         listTransactions_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.ListTransactionsRequest.fromBuffer(value),
-        ($0.ListTransactionsResponse value) => value.writeToBuffer()));
+        ($0.ListTransactionsResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetDescriptorInfoRequest, $0.GetDescriptorInfoResponse>(
         'GetDescriptorInfo',
         getDescriptorInfo_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetDescriptorInfoRequest.fromBuffer(value),
-        ($0.GetDescriptorInfoResponse value) => value.writeToBuffer()));
+        ($0.GetDescriptorInfoResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetRawMempoolRequest, $0.GetRawMempoolResponse>(
         'GetRawMempool',
         getRawMempool_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetRawMempoolRequest.fromBuffer(value),
-        ($0.GetRawMempoolResponse value) => value.writeToBuffer()));
+        ($0.GetRawMempoolResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetRawTransactionRequest, $0.GetRawTransactionResponse>(
         'GetRawTransaction',
         getRawTransaction_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetRawTransactionRequest.fromBuffer(value),
-        ($0.GetRawTransactionResponse value) => value.writeToBuffer()));
+        ($0.GetRawTransactionResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.DecodeRawTransactionRequest, $0.DecodeRawTransactionResponse>(
         'DecodeRawTransaction',
         decodeRawTransaction_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.DecodeRawTransactionRequest.fromBuffer(value),
-        ($0.DecodeRawTransactionResponse value) => value.writeToBuffer()));
+        ($0.DecodeRawTransactionResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetBlockRequest, $0.GetBlockResponse>(
         'GetBlock',
         getBlock_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetBlockRequest.fromBuffer(value),
-        ($0.GetBlockResponse value) => value.writeToBuffer()));
+        ($0.GetBlockResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.GetBlockHashRequest, $0.GetBlockHashResponse>(
         'GetBlockHash',
         getBlockHash_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.GetBlockHashRequest.fromBuffer(value),
-        ($0.GetBlockHashResponse value) => value.writeToBuffer()));
+        ($0.GetBlockHashResponse value) => value.writeToBuffer(),),);
   }
 
   $async.Future<$0.GetBlockchainInfoResponse> getBlockchainInfo_Pre($grpc.ServiceCall call, $async.Future<$0.GetBlockchainInfoRequest> request) async {

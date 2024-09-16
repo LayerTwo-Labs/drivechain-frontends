@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:faucet_client/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:faucet_client/gen/google/protobuf/timestamp.pb.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:http/http.dart' as http;
 import 'package:sail_ui/sail_ui.dart';
 
@@ -20,13 +22,10 @@ class APILive extends API {
 
   @override
   Future<List<GetTransactionResponse>> listClaims() async {
-    final url = Uri.parse("$apiURL/listclaims");
+    final url = Uri.parse('$apiURL/listclaims');
     final res = await http.get(url);
-
     if (res.statusCode == 200) {
-      final ListTransactionsResponse transactions = ListTransactionsResponse.fromJson(res.body);
-
-      return transactions.transactions;
+      return parseTransactions(res.body);
     } else {
       throw Exception('could not list claims');
     }
@@ -36,7 +35,7 @@ class APILive extends API {
   Future<String> claim(String address, double amount) async {
     amount = cleanAmount(amount);
 
-    final url = Uri.parse("$apiURL/claim");
+    final url = Uri.parse('$apiURL/claim');
 
     Map<String, dynamic> requestBody = {
       'destination': address.trim(),
@@ -56,4 +55,40 @@ class APILive extends API {
       throw Exception(res.body);
     }
   }
+}
+
+List<GetTransactionResponse> parseTransactions(String jsonTXs) {
+  final List<dynamic> jsonList = json.decode(jsonTXs);
+  final transactions = jsonList.map((item) {
+    return GetTransactionResponse(
+      amount: double.tryParse(item['amount'].toString()) ?? 0,
+      fee: double.tryParse(item['fee'].toString()) ?? 0,
+      confirmations: int.tryParse(item['confirmations'].toString()) ?? 0,
+      blockHash: item['block_hash'],
+      blockIndex: int.tryParse(item['block_index'].toString()) ?? 0,
+      blockTime: Timestamp(seconds: Int64(int.tryParse(item['block_time']?['seconds']?.toString() ?? '0') ?? 0)),
+      txid: item['txid'] ?? '',
+      walletConflicts: item['wallet_conflicts'] ?? [],
+      replacedByTxid: item['replaced_by_txid'] ?? '',
+      replacesTxid: item['replaces_txid'] ?? '',
+      time: Timestamp(seconds: Int64(int.tryParse(item['time']?['seconds']?.toString() ?? '0') ?? 0)),
+      timeReceived: Timestamp(seconds: Int64(int.tryParse(item['time_received']?['seconds']?.toString() ?? '0') ?? 0)),
+      bip125Replaceable: item['bip125_replaceable'] == 2
+          ? GetTransactionResponse_Replaceable.REPLACEABLE_NO
+          : GetTransactionResponse_Replaceable.REPLACEABLE_YES,
+      details: (item['details'] as List<dynamic>?)?.map(
+        (detail) => GetTransactionResponse_Details(
+          involvesWatchOnly: detail['involvesWatchOnly'] ?? false,
+          address: detail['address'] ?? '',
+          category: GetTransactionResponse_Category.valueOf(detail['category']) ??
+              GetTransactionResponse_Category.CATEGORY_UNSPECIFIED,
+          amount: double.tryParse(item['amount'].toString()) ?? 0,
+          vout: detail['vout'] ?? 0,
+        ),
+      ),
+      hex: item['hex'] ?? '',
+    );
+  }).toList();
+
+  return transactions;
 }
