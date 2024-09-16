@@ -20,12 +20,9 @@ import (
 	"github.com/samber/lo"
 	"github.com/tidwall/gjson"
 
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"io"
 
-	"golang.org/x/crypto/scrypt"
+	"filippo.io/age"
 )
 
 //go:embed bin/*
@@ -301,7 +298,10 @@ type Transaction struct {
 	TXID     string         `json:"txid"`
 }
 
-// NewWallet either creates a new wallet or loads an existing one
+// NewWallet either creates a new wallet or loads an existing one. If a
+// passphrase is provided, the mnemonic is encrypted before saving if the
+// wallet is created. If the wallet already exists, the passphrase is used to
+// decrypt the existing mnemonic.
 func NewWallet(datadir, network, electrum, passphrase string) (*Wallet, error) {
 	keyFile := filepath.Join(datadir, "wallet.key")
 	var xprv string
@@ -337,6 +337,7 @@ func loadExistingWallet(keyFile, passphrase string) (string, error) {
 		return "", fmt.Errorf("failed to decrypt mnemonic: %w", err)
 	}
 
+	// Use bdk-cli to restore key from mnemonic
 	bdkCliPath, err := getBdkCliPath()
 	if err != nil {
 		return "", fmt.Errorf("failed to get bdk-cli path: %w", err)
@@ -347,6 +348,7 @@ func loadExistingWallet(keyFile, passphrase string) (string, error) {
 		return "", fmt.Errorf("failed to restore key: %w", err)
 	}
 
+	// Extract xprv from bdk-cli output
 	xprv := gjson.GetBytes(res, "xprv").String()
 	if xprv == "" {
 		return "", fmt.Errorf("failed to parse xprv from bdk-cli output")
@@ -355,17 +357,21 @@ func loadExistingWallet(keyFile, passphrase string) (string, error) {
 	return xprv, nil
 }
 
+// createNewWallet generates a new wallet and saves it to the specified file.
+// If a passphrase is provided, the mnemonic is encrypted before saving.
 func createNewWallet(keyFile, passphrase string) (string, error) {
 	bdkCliPath, err := getBdkCliPath()
 	if err != nil {
 		return "", fmt.Errorf("failed to get bdk-cli path: %w", err)
 	}
 
+	// Use bdk-cli to generate new key
 	res, err := exec.Command(bdkCliPath, "key", "generate").Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate new key: %w", err)
 	}
 
+	// Extract mnemonic and xprv from bdk-cli output
 	mnemonic := gjson.GetBytes(res, "mnemonic").String()
 	if mnemonic == "" {
 		return "", fmt.Errorf("failed to parse mnemonic from bdk-cli output")
@@ -376,6 +382,7 @@ func createNewWallet(keyFile, passphrase string) (string, error) {
 		return "", fmt.Errorf("failed to parse xprv from bdk-cli output")
 	}
 
+	// Encrypt mnemonic if passphrase is provided
 	var dataToSave []byte
 	if passphrase != "" {
 		encryptedMnemonic, err := encryptKey(mnemonic, passphrase)
@@ -387,6 +394,7 @@ func createNewWallet(keyFile, passphrase string) (string, error) {
 		dataToSave = []byte(mnemonic)
 	}
 
+	// Save encrypted or plain mnemonic to file
 	err = os.WriteFile(keyFile, dataToSave, 0600)
 	if err != nil {
 		return "", fmt.Errorf("failed to save mnemonic to file: %w", err)
@@ -395,68 +403,60 @@ func createNewWallet(keyFile, passphrase string) (string, error) {
 	return xprv, nil
 }
 
+// encryptKey encrypts the given key using the age library if a passphrase is
+// provided. If no passphrase is provided, the key is returned as is.
 func encryptKey(key, passphrase string) ([]byte, error) {
 	if passphrase == "" {
 		return []byte(key), nil
 	}
 
-	salt := make([]byte, 8)
-	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
-		return nil, err
-	}
-
-	key32, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
+	recipient, err := age.NewScryptRecipient(passphrase)
 	if err != nil {
 		return nil, err
 	}
 
-	block, err := aes.NewCipher(key32)
+	out := &bytes.Buffer{}
+
+	// Encrypt using age, a zero-config encryption tool
+	w, err := age.Encrypt(out, recipient)
 	if err != nil {
 		return nil, err
 	}
 
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
+	if _, err := w.Write([]byte(key)); err != nil {
 		return nil, err
 	}
 
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+	if err := w.Close(); err != nil {
 		return nil, err
 	}
 
-	ciphertext := gcm.Seal(nil, nonce, []byte(key), nil)
-	return append(append(salt, nonce...), ciphertext...), nil
+	return out.Bytes(), nil
 }
 
+// decryptKey decrypts the given key using the age library if a passphrase is
+// provided. If no passphrase is provided and the key is not encrypted, the key
+// is returned as is.
 func decryptKey(data []byte, passphrase string) (string, error) {
 	if passphrase == "" {
 		return string(data), nil
 	}
 
-	salt := data[:8]
-	nonce := data[8:20]
-	ciphertext := data[20:]
-
-	key32, err := scrypt.Key([]byte(passphrase), salt, 32768, 8, 1, 32)
+	identity, err := age.NewScryptIdentity(passphrase)
 	if err != nil {
 		return "", err
 	}
 
-	block, err := aes.NewCipher(key32)
+	// Decrypt using age, a zero-config encryption tool
+	r, err := age.Decrypt(bytes.NewReader(data), identity)
 	if err != nil {
 		return "", err
 	}
 
-	gcm, err := cipher.NewGCM(block)
+	decrypted, err := io.ReadAll(r)
 	if err != nil {
 		return "", err
 	}
 
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return string(plaintext), nil
+	return string(decrypted), nil
 }
