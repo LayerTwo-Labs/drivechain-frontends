@@ -3,6 +3,9 @@ name: Drivechain server
 on:
   pull_request:
     branches: [master]
+    paths:
+      - 'drivechain-server/**'
+      - '.github/workflows/**'
 
 defaults:
   run:

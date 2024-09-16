@@ -3,6 +3,9 @@ name: Faucet backend
 on:
   pull_request:
     branches: [master]
+    paths:
+      - 'faucet-backend/**'
+      - '.github/workflows/**'
 
 defaults:
   run:
