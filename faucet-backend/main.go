@@ -146,7 +146,7 @@ func (f *Faucet) validateDispenseArgs(req DispenseRequest) (btcutil.Amount, erro
 		return 0, fmt.Errorf("%s is not a valid number", req.Amount), http.StatusBadRequest
 	}
 
-	if amountFloat > 1 || amountFloat == 0 {
+	if amountFloat > 1 || amountFloat <= 0 {
 		return 0, fmt.Errorf("amount must be less than 1, and greater than zero"), http.StatusBadRequest
 	}
 
