@@ -54,42 +54,43 @@ class SendPage extends StatelessWidget {
               const Row(),
               // Balance
               FutureBuilder(
-                  future: DrivechainService.of(context).getBalance(),
-                  builder: (context, snapshot) {
-                    return RichText(
-                      text: TextSpan(
-                        style: SailStyleValues.twelve.copyWith(
-                          color: SailTheme.of(context).colors.text,
-                        ),
-                        text: 'Balance: ',
-                        children: [
-                          /*TextSpan(
+                future: DrivechainService.of(context).getBalance(),
+                builder: (context, snapshot) {
+                  return RichText(
+                    text: TextSpan(
+                      style: SailStyleValues.twelve.copyWith(
+                        color: SailTheme.of(context).colors.text,
+                      ),
+                      text: 'Balance: ',
+                      children: [
+                        /*TextSpan(
                           text: Money.fromNumWithCurrency(1000, satoshi).toString(),
                         ),*/
-                          if (snapshot.hasData)
-                            TextSpan(
-                              text: Money.fromNumWithCurrency(
-                                      snapshot.data!.confirmedSatoshi.toDouble() +
-                                          snapshot.data!.pendingSatoshi.toDouble(),
-                                      satoshi)
-                                  .toString(),
-                            ),
-                          if (snapshot.hasError)
-                            TextSpan(
-                              text: 'Error: ${snapshot.error}',
-                            ),
-                          if (!snapshot.hasData && !snapshot.hasError)
-                            const TextSpan(
-                              text: 'Loading...',
-                            ),
-                        ],
-                      ),
-                    );
-                  }),
+                        if (snapshot.hasData)
+                          TextSpan(
+                            text: Money.fromNumWithCurrency(
+                              snapshot.data!.confirmedSatoshi.toDouble() +
+                                  snapshot.data!.pendingSatoshi.toDouble(),
+                              satoshi,
+                            ).toString(),
+                          ),
+                        if (snapshot.hasError)
+                          TextSpan(
+                            text: 'Error: ${snapshot.error}',
+                          ),
+                        if (!snapshot.hasData && !snapshot.hasError)
+                          const TextSpan(
+                            text: 'Loading...',
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),
-        Container(
+        DecoratedBox(
           decoration: const BoxDecoration(
             border: Border(
               top: BorderSide(
@@ -104,11 +105,12 @@ class SendPage extends StatelessWidget {
               // TODO: Get actual info from the node
               SailText.primary12('195755 blocks'),
               SailText.primary12('1 peer'),
-              SailText.primary12('Last block: 6 days ago')
+              SailText.primary12('Last block: 6 days ago'),
             ]
                 .map(
                   (child) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0, vertical: 2.0,),
                     decoration: const BoxDecoration(
                       border: Border(
                         left: BorderSide(color: Colors.grey),
@@ -147,9 +149,9 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
     super.initState();
 
     _unit = 'BTC';
-    _addressController = TextEditingController(text: "");
-    _labelController = TextEditingController(text: "");
-    _amountController = TextEditingController(text: "0.00");
+    _addressController = TextEditingController(text: '');
+    _labelController = TextEditingController(text: '');
+    _amountController = TextEditingController(text: '0.00');
     _subtractFee = false;
     _useBalance = false;
   }
@@ -174,11 +176,7 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
       });
     }).catchError((error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $error'),
-          ),
-        );
+        showSnackBar(context, 'Error: $error');
       }
     });
   }
@@ -200,25 +198,19 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
             ),
             const SizedBox(width: 16.0),
             Expanded(
-              child: TextField(
+              child: SailTextField(
                 // TODO: Validate address
                 controller: _addressController,
-                style: SailStyleValues.eleven.copyWith(
-                  fontFamily: GoogleFonts.sourceCodePro().fontFamily,
-                ),
-                decoration: const InputDecoration(
-                  hintText: 'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
-                ),
+                hintText:
+                    'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                size: TextFieldSize.small,
+                dense: true,
               ),
             ),
             const SizedBox(width: 4.0),
             QtIconButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: SailText.primary12('Not implemented'),
-                  ),
-                );
+                showSnackBar(context, 'Not implemented');
               },
               icon: const Icon(
                 Icons.contacts_outlined,
@@ -229,19 +221,14 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
             QtIconButton(
               onPressed: () async {
                 if (SystemClipboard.instance != null) {
-                  SystemClipboard.instance?.read().then((reader) async {
+                  await SystemClipboard.instance?.read().then((reader) async {
                     if (reader.canProvide(Formats.plainText)) {
-                    final text = await reader.readValue(Formats.plainText);
-                    _addressController.text = text ?? _addressController.text;
-                  }
-                });
-                }
-                else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: SailText.primary12('Clipboard not available'),
-                    ),
-                  );
+                      final text = await reader.readValue(Formats.plainText);
+                      _addressController.text = text ?? _addressController.text;
+                    }
+                  });
+                } else {
+                  showSnackBar(context, 'Clipboard not available');
                 }
               },
               icon: const Icon(
@@ -275,13 +262,12 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
             ),
             const SizedBox(width: 16.0),
             Expanded(
-              child: TextField(
-                style: SailStyleValues.eleven.copyWith(
-                  fontFamily: GoogleFonts.sourceCodePro().fontFamily,
-                ),
-                decoration: const InputDecoration(
-                  hintText: 'Enter a label for this address to add it to your address book',
-                ),
+              child: SailTextField(
+                controller: _labelController,
+                hintText:
+                    'Enter a label for this address to add it to your address book',
+                size: TextFieldSize.small,
+                dense: true,
               ),
             ),
           ],
@@ -329,7 +315,7 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
                   ),
                   QtButton(
                     onPressed: _onUseAvailableBalance,
-                    child: const Text("Use available balance"),
+                    child: const Text('Use available balance'),
                   ),
                 ],
               ),
@@ -359,7 +345,7 @@ class UnitDropdown extends StatelessWidget {
       ),
       child: SailDropdownButton(
         width: 128.0,
-        items:  [
+        items: [
           SailDropdownItem(
             value: 'BTC',
             child: SailText.primary12('BTC'),
@@ -413,7 +399,7 @@ class NumericField extends StatefulWidget {
 }
 
 class _NumericFieldState extends State<NumericField> {
-  late TextEditingController _controller = TextEditingController(text: "0.00");
+  late TextEditingController _controller = TextEditingController(text: '0.00');
   late FocusNode _focusNode;
   late ValueNotifier<String> _value;
   late ValueNotifier<bool> _isEditing;
@@ -423,42 +409,22 @@ class _NumericFieldState extends State<NumericField> {
   void initState() {
     super.initState();
 
-    _controller = widget.controller ?? TextEditingController(text: "0.00");
+    _controller = widget.controller ?? TextEditingController(text: '0.00');
     _focusNode = widget.focusNode ?? FocusNode();
-    _value = ValueNotifier(widget.controller?.text ?? "0.00");
+    _value = ValueNotifier(widget.controller?.text ?? '0.00');
     _isEditing = ValueNotifier(false);
-    _error = ValueNotifier(widget.error ?? "");
+    _error = ValueNotifier(widget.error ?? '');
   }
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return SailTextField(
       controller: _controller,
+      hintText: 'Amount',
       focusNode: _focusNode,
-      onChanged: (value) {
-        _value.value = value;
-      },
-      onEditingComplete: () {
-        _isEditing.value = false;
-      },
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),
-        TextInputFormatter.withFunction((oldValue, newValue) {
-          final text = newValue.text;
-          return text.isEmpty
-              ? newValue
-              : double.tryParse(text) == null
-                  ? oldValue
-                  : newValue;
-        }),
-      ],
-      keyboardType: TextInputType.number,
-      style: SailStyleValues.eleven.copyWith(
-        fontFamily: GoogleFonts.sourceCodePro().fontFamily,
-      ),
-      decoration: const InputDecoration(
-        hintText: '0.00',
-      ),
+      textFieldType: TextFieldType.bitcoin,
+      size: TextFieldSize.small,
+      dense: true,
     );
   }
 }
@@ -535,13 +501,9 @@ class QtButton extends StatelessWidget {
 
     Color textColor;
     if (enabled && onPressed != null) {
-      if (important) {
-        textColor = theme.buttonTheme.colorScheme!.onPrimary;
-      } else {
-        textColor = theme.buttonTheme.colorScheme!.onSurface;
-      }
+      textColor = SailTheme.of(context).colors.text;
     } else {
-      textColor = theme.disabledColor;
+      textColor = SailTheme.of(context).colors.textTertiary;
     }
 
     return SizedBox(
@@ -549,8 +511,8 @@ class QtButton extends StatelessWidget {
       child: MaterialButton(
         visualDensity: VisualDensity.compact,
         // textTheme: textTheme,
-        color: important ? theme.colorScheme.primary : theme.buttonTheme.colorScheme!.surface,
-        hoverColor: Theme.of(context).hoverColor,
+        color: SailTheme.of(context).colors.background,
+        hoverColor: SailTheme.of(context).colors.primary,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 6)),
           side: const BorderSide(

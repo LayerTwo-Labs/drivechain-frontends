@@ -85,16 +85,17 @@ class BalancesView extends StatelessWidget {
                       children: [
                         SailText.primary13('Available: '),
                         RichText(
-                            text: TextSpan(
-                          text: Money.fromNumWithCurrency(
-                            snapshot.data!.confirmedSatoshi.toDouble(),
-                            satoshi,
-                          ).toString(),
-                          style: SailStyleValues.thirteen.copyWith(
-                            color: theme.colors.text,
-                            fontWeight: FontWeight.bold,
+                          text: TextSpan(
+                            text: Money.fromNumWithCurrency(
+                              snapshot.data!.confirmedSatoshi.toDouble(),
+                              satoshi,
+                            ).toString(),
+                            style: SailStyleValues.thirteen.copyWith(
+                              color: theme.colors.text,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),),
+                        ),
                       ],
                     ),
                   ),
@@ -107,16 +108,17 @@ class BalancesView extends StatelessWidget {
                       children: [
                         SailText.primary13('Pending: '),
                         RichText(
-                            text: TextSpan(
-                          text: Money.fromNumWithCurrency(
-                            snapshot.data!.pendingSatoshi.toDouble(),
-                            satoshi,
-                          ).toString(),
-                          style: SailStyleValues.thirteen.copyWith(
-                            color: theme.colors.text,
-                            fontWeight: FontWeight.bold,
+                          text: TextSpan(
+                            text: Money.fromNumWithCurrency(
+                              snapshot.data!.pendingSatoshi.toDouble(),
+                              satoshi,
+                            ).toString(),
+                            style: SailStyleValues.thirteen.copyWith(
+                              color: theme.colors.text,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),),
+                        ),
                       ],
                     ),
                   ),
@@ -131,16 +133,18 @@ class BalancesView extends StatelessWidget {
                       children: [
                         SailText.primary13('Total: '),
                         RichText(
-                            text: TextSpan(
-                          text: Money.fromNumWithCurrency(
-                            snapshot.data!.pendingSatoshi.toDouble() + snapshot.data!.confirmedSatoshi.toDouble(),
-                            satoshi,
-                          ).toString(),
-                          style: SailStyleValues.thirteen.copyWith(
-                            color: theme.colors.text,
-                            fontWeight: FontWeight.bold,
+                          text: TextSpan(
+                            text: Money.fromNumWithCurrency(
+                              snapshot.data!.pendingSatoshi.toDouble() +
+                                  snapshot.data!.confirmedSatoshi.toDouble(),
+                              satoshi,
+                            ).toString(),
+                            style: SailStyleValues.thirteen.copyWith(
+                              color: theme.colors.text,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),),
+                        ),
                       ],
                     ),
                   ),
@@ -153,18 +157,22 @@ class BalancesView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     BitcoinPrice(
-                      money: Money.fromNumWithCurrency(50000, CommonCurrencies().usd),
+                      money: Money.fromNumWithCurrency(
+                          50000, CommonCurrencies().usd),
                     ),
                     const SizedBox(height: 16.0),
                     // Sum of all balances converted to USD at current BTC price
                     RichText(
                       text: TextSpan(
                         text: Money.fromNumWithCurrency(
-                          (((snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt()) * 50000) *
+                          (((snapshot.data!.confirmedSatoshi.toInt() +
+                                      snapshot.data!.pendingSatoshi.toInt()) *
+                                  50000) *
                               0.00000001), // TODO: Get current BTC price
                           CommonCurrencies().usd,
                         ).format('S###,###.##'),
-                        style: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
+                        style: SailStyleValues.thirteen
+                            .copyWith(color: theme.colors.text),
                       ),
                     ),
                   ],
@@ -173,7 +181,8 @@ class BalancesView extends StatelessWidget {
             ],
           );
         }
-        return const CircularProgressIndicator.adaptive(); // TODO: Skeleton loading?
+        return const CircularProgressIndicator
+            .adaptive(); // TODO: Skeleton loading?
       },
     );
   }
@@ -234,11 +243,7 @@ class BitcoinPrice extends StatelessWidget {
         const SizedBox(width: 8.0),
         SailScaleButton(
           onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(
-                content: SailText.primary12('Not implemented'),
-              ),
-            );
+            showSnackBar(context, 'Not implemented');
           },
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
