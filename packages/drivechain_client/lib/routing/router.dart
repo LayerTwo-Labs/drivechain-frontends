@@ -6,7 +6,7 @@ import 'package:drivechain_client/pages/send_page.dart';
 import 'package:drivechain_client/pages/sidechains_page.dart';
 import 'package:drivechain_client/pages/transactions_page.dart';
 
-part "router.gr.dart";
+part 'router.gr.dart';
 
 /* In this Router, all of the app routes are defined. Router code is auto-generated.
 *  In replaceInRouteName we replace the Page suffix with Route in all generated
@@ -29,32 +29,32 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(
-          path: "/",
+          path: '/',
           page: RootRoute.page,
           initial: true,
           children: [
             RedirectRoute(
-              path: "",
+              path: '',
               redirectTo: 'overview',
             ),
             AutoRoute(
-              path: "overview",
+              path: 'overview',
               page: OverviewRoute.page,
             ),
             AutoRoute(
-              path: "send",
+              path: 'send',
               page: SendRoute.page,
             ),
             AutoRoute(
-              path: "receive",
+              path: 'receive',
               page: ReceiveRoute.page,
             ),
             AutoRoute(
-              path: "transactions",
+              path: 'transactions',
               page: TransactionsRoute.page,
             ),
             AutoRoute(
-              path: "sidechains",
+              path: 'sidechains',
               page: SidechainsRoute.page,
             ),
           ],

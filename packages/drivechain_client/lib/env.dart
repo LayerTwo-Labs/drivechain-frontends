@@ -12,11 +12,11 @@ class Environment {
   // Define the environment variables here
   static const drivechainHost = Variable(
     'DRIVECHAIN_HOST',
-    String.fromEnvironment("DRIVECHAIN_HOST", defaultValue: "localhost"),
+    String.fromEnvironment('DRIVECHAIN_HOST', defaultValue: 'localhost'),
   );
   static const drivechainPort = Variable(
     'DRIVECHAIN_PORT',
-    int.fromEnvironment("DRIVECHAIN_PORT", defaultValue: 8080),
+    int.fromEnvironment('DRIVECHAIN_PORT', defaultValue: 8080),
   );
 
   const Environment._();

@@ -426,7 +426,7 @@ class DepositWithdrawHelp extends StatelessWidget {
           'When we use the word deposit or withdraw in this application, we always refer to moving coins across chains.',
         ),
         const QuestionText(
-          'Only after you have deposited coins to the sidechain, can you start using it\'s special features! There\'s a special rpc called createsidechaindeposit that lets you deposit from your parent chain wallet.',
+          "Only after you have deposited coins to the sidechain, can you start using it's special features! There's a special rpc called createsidechaindeposit that lets you deposit from your parent chain wallet.",
         ),
       ],
     );
@@ -468,7 +468,7 @@ class EasyRegtestDeposit extends StatelessWidget {
                   await errorDialog(
                     context: context,
                     action: 'Deposit coins',
-                    title: 'Could not easy-deposit coins. Try pegging in manually with \'createsidechaindeposit\'',
+                    title: "Could not easy-deposit coins. Try pegging in manually with 'createsidechaindeposit'",
                     subtitle: err.toString(),
                   );
                 }

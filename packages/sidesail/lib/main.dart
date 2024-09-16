@@ -77,7 +77,7 @@ Future<void> initMainchainBinary(
   }
 
   if (!mainchain.conf.isLocalNetwork) {
-    log.w('${sidechain.rpc.chain.name} chain is not active, and we\'re unable to activate it');
+    log.w("${sidechain.rpc.chain.name} chain is not active, and we're unable to activate it");
     return;
   }
 
