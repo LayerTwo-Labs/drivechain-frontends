@@ -13,6 +13,7 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/samber/lo"
 )
 
 type Client struct {
@@ -99,7 +100,12 @@ func (c *Client) ListTransactions(ctx context.Context) ([]*bitcoindv1alpha.GetTr
 		return nil, err
 	}
 
-	return txs.Msg.Transactions, nil
+	return lo.Filter(txs.Msg.Transactions, func(tx *bitcoindv1alpha.GetTransactionResponse, index int) bool {
+		// we only want to show withdrawals going from our wallet
+		return tx.Amount <= 0 &&
+			// and avoid txs with negative confirmations
+			tx.Confirmations >= 0
+	}), nil
 }
 
 func (c *Client) Ping(ctx context.Context) (uint32, error) {
