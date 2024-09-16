@@ -24,14 +24,14 @@ class RootPage extends StatelessWidget {
         return Scaffold(
           appBar: PreferredSize(
             preferredSize: const Size.fromHeight(kToolbarHeight),
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
                     Theme.of(context).scaffoldBackgroundColor,
-                    Theme.of(context).scaffoldBackgroundColor.darken(0.1)
+                    Theme.of(context).scaffoldBackgroundColor.darken(0.1),
                   ],
                 ),
               ),

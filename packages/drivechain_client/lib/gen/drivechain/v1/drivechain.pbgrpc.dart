@@ -15,8 +15,8 @@ import 'dart:core' as $core;
 import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/empty.pb.dart' as $1;
-import 'drivechain.pb.dart' as $0;
+import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart' as $1;
+import 'package:drivechain_client/gen/drivechain/v1/drivechain.pb.dart' as $0;
 
 export 'drivechain.pb.dart';
 
@@ -25,33 +25,33 @@ class DrivechainServiceClient extends $grpc.Client {
   static final _$sendTransaction = $grpc.ClientMethod<$0.SendTransactionRequest, $0.SendTransactionResponse>(
       '/drivechain.v1.DrivechainService/SendTransaction',
       ($0.SendTransactionRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.SendTransactionResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.SendTransactionResponse.fromBuffer(value),);
   static final _$getBalance = $grpc.ClientMethod<$1.Empty, $0.GetBalanceResponse>(
       '/drivechain.v1.DrivechainService/GetBalance',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetBalanceResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetBalanceResponse.fromBuffer(value),);
   static final _$getNewAddress = $grpc.ClientMethod<$1.Empty, $0.GetNewAddressResponse>(
       '/drivechain.v1.DrivechainService/GetNewAddress',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetNewAddressResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.GetNewAddressResponse.fromBuffer(value),);
   static final _$listTransactions = $grpc.ClientMethod<$1.Empty, $0.ListTransactionsResponse>(
       '/drivechain.v1.DrivechainService/ListTransactions',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListTransactionsResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.ListTransactionsResponse.fromBuffer(value),);
   static final _$listUnconfirmedTransactions = $grpc.ClientMethod<$1.Empty, $0.ListUnconfirmedTransactionsResponse>(
       '/drivechain.v1.DrivechainService/ListUnconfirmedTransactions',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListUnconfirmedTransactionsResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.ListUnconfirmedTransactionsResponse.fromBuffer(value),);
   static final _$listRecentBlocks = $grpc.ClientMethod<$1.Empty, $0.ListRecentBlocksResponse>(
       '/drivechain.v1.DrivechainService/ListRecentBlocks',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListRecentBlocksResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $0.ListRecentBlocksResponse.fromBuffer(value),);
 
   DrivechainServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors,})
       : super(channel, options: options,
-        interceptors: interceptors);
+        interceptors: interceptors,);
 
   $grpc.ResponseFuture<$0.SendTransactionResponse> sendTransaction($0.SendTransactionRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$sendTransaction, request, options: options);
@@ -89,42 +89,42 @@ abstract class DrivechainServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $0.SendTransactionRequest.fromBuffer(value),
-        ($0.SendTransactionResponse value) => value.writeToBuffer()));
+        ($0.SendTransactionResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$1.Empty, $0.GetBalanceResponse>(
         'GetBalance',
         getBalance_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($0.GetBalanceResponse value) => value.writeToBuffer()));
+        ($0.GetBalanceResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$1.Empty, $0.GetNewAddressResponse>(
         'GetNewAddress',
         getNewAddress_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($0.GetNewAddressResponse value) => value.writeToBuffer()));
+        ($0.GetNewAddressResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$1.Empty, $0.ListTransactionsResponse>(
         'ListTransactions',
         listTransactions_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($0.ListTransactionsResponse value) => value.writeToBuffer()));
+        ($0.ListTransactionsResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$1.Empty, $0.ListUnconfirmedTransactionsResponse>(
         'ListUnconfirmedTransactions',
         listUnconfirmedTransactions_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($0.ListUnconfirmedTransactionsResponse value) => value.writeToBuffer()));
+        ($0.ListUnconfirmedTransactionsResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$1.Empty, $0.ListRecentBlocksResponse>(
         'ListRecentBlocks',
         listRecentBlocks_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($0.ListRecentBlocksResponse value) => value.writeToBuffer()));
+        ($0.ListRecentBlocksResponse value) => value.writeToBuffer(),),);
   }
 
   $async.Future<$0.SendTransactionResponse> sendTransaction_Pre($grpc.ServiceCall call, $async.Future<$0.SendTransactionRequest> request) async {

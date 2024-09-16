@@ -69,7 +69,7 @@ class BalancesView extends StatelessWidget {
                 children: [
                   RichText(
                     text: TextSpan(
-                      text: "Balances",
+                      text: 'Balances',
                       style: SailStyleValues.thirteen.copyWith(
                         color: theme.colors.text,
                         fontWeight: FontWeight.w800,
@@ -94,7 +94,7 @@ class BalancesView extends StatelessWidget {
                             color: theme.colors.text,
                             fontWeight: FontWeight.bold,
                           ),
-                        )),
+                        ),),
                       ],
                     ),
                   ),
@@ -116,7 +116,7 @@ class BalancesView extends StatelessWidget {
                             color: theme.colors.text,
                             fontWeight: FontWeight.bold,
                           ),
-                        )),
+                        ),),
                       ],
                     ),
                   ),
@@ -140,7 +140,7 @@ class BalancesView extends StatelessWidget {
                             color: theme.colors.text,
                             fontWeight: FontWeight.bold,
                           ),
-                        )),
+                        ),),
                       ],
                     ),
                   ),

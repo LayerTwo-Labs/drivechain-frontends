@@ -110,142 +110,152 @@ class _FaucetPageState extends State<FaucetPage> {
     final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
-        viewModelBuilder: () => FaucetViewModel(),
-        builder: ((context, viewModel, child) {
-          return Scaffold(
+      viewModelBuilder: () => FaucetViewModel(),
+      builder: ((context, viewModel, child) {
+        return Scaffold(
+          backgroundColor: theme.colors.background,
+          appBar: AppBar(
             backgroundColor: theme.colors.background,
-            appBar: AppBar(
-              backgroundColor: theme.colors.background,
-              title: SailText.primary22(widget.title),
-              actions: [
-                SailScaleButton(
-                    onPressed: () {
-                      SailThemeValues nextTheme = viewModel.theme.toggleTheme();
-                      viewModel.setTheme(nextTheme);
-                      app.loadTheme(nextTheme);
-                    },
-                    child: Tooltip(
-                        message: 'Current theme: ${viewModel.theme.toReadable()}',
-                        child: SailPadding(
-                            padding: const EdgeInsets.only(
-                              right: SailStyleValues.padding10,
-                            ),
-                            child: viewModel.themeIcon(app.theme)))),
-              ],
-            ),
-            body: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: SailStyleValues.padding10, vertical: SailStyleValues.padding10),
-                      child: SailColumn(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          spacing: SailStyleValues.padding10,
-                          children: <Widget>[
-                            TextField(
-                              controller: viewModel.addressController,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                  color: theme.colors.text.withOpacity(0.3),
-                                )),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: theme.colors.text.withOpacity(0.6),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderSide:
-                                      BorderSide(color: theme.colors.text.withOpacity(0.9)), // Set focused border color
-                                ),
-                                labelText: 'Enter address',
-                                focusColor: theme.colors.text,
-                              ),
-                              cursorColor: theme.colors.primary,
-                              style: TextStyle(color: theme.colors.text),
-                            ),
-                            TextField(
-                              controller: viewModel.amountController,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                  color: theme.colors.text.withOpacity(0.3),
-                                )),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: theme.colors.text.withOpacity(0.6),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderSide:
-                                      BorderSide(color: theme.colors.text.withOpacity(0.9)), // Set focused border color
-                                ),
-                                labelText: 'Enter amount (max 1 BTC)',
-                                focusColor: theme.colors.text,
-                              ),
-                              cursorColor: theme.colors.primary,
-                              style: TextStyle(
-                                color: theme.colors.text,
-                              ),
-                              inputFormatters: [
-                                CommaReplacerInputFormatter(),
-                                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
-                              ],
-                            ),
-                            SailButton.primary(
-                              viewModel.addressController.text == ""
-                                  ? "Insert address first"
-                                  : viewModel.amountController.text == ""
-                                      ? "Choose amount first"
-                                      : "Dispense Drivechain Coins",
-                              onPressed: () async {
-                                final txid = await viewModel.claim();
-                                if (txid != null) {
-                                  if (!context.mounted) {
-                                    return;
-                                  }
-                                  showSnackBar(context, 'Sent in txid=$txid');
-                                  viewModel._transactionsProvider.fetch();
-                                }
-                              },
-                              size: ButtonSize.large,
-                              disabled: viewModel.isBusy ||
-                                  viewModel.amountController.text == "" ||
-                                  viewModel.addressController.text == "",
-                              loading: viewModel.isBusy,
-                            ),
-                            SailText.primary13(viewModel.dispenseErr ?? '', color: SailColorScheme.red),
-                          ])),
-                  DashboardGroup(
-                    title: 'Latest Transactions',
-                    widgetTrailing: SailText.secondary13(viewModel.utxos.length.toString()),
-                    children: [
-                      SailColumn(
-                        spacing: 0,
-                        withDivider: true,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: viewModel.utxos.length,
-                            itemBuilder: (context, index) => UTXOView(
-                              key: ValueKey<String>(viewModel.utxos[index].txid),
-                              utxo: transactionResponseToUTXO(viewModel.utxos[index]),
-                              externalDirection: true,
+            title: SailText.primary22(widget.title),
+            actions: [
+              SailScaleButton(
+                onPressed: () {
+                  SailThemeValues nextTheme = viewModel.theme.toggleTheme();
+                  viewModel.setTheme(nextTheme);
+                  app.loadTheme(nextTheme);
+                },
+                child: Tooltip(
+                  message: 'Current theme: ${viewModel.theme.toReadable()}',
+                  child: SailPadding(
+                    padding: const EdgeInsets.only(
+                      right: SailStyleValues.padding10,
+                    ),
+                    child: viewModel.themeIcon(app.theme),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          body: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SailStyleValues.padding10,
+                    vertical: SailStyleValues.padding10,
+                  ),
+                  child: SailColumn(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    spacing: SailStyleValues.padding10,
+                    children: <Widget>[
+                      TextField(
+                        controller: viewModel.addressController,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: theme.colors.text.withOpacity(0.3),
                             ),
                           ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: theme.colors.text.withOpacity(0.6),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: theme.colors.text.withOpacity(0.9)), // Set focused border color
+                          ),
+                          labelText: 'Enter address',
+                          focusColor: theme.colors.text,
+                        ),
+                        cursorColor: theme.colors.primary,
+                        style: TextStyle(color: theme.colors.text),
+                      ),
+                      TextField(
+                        controller: viewModel.amountController,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: theme.colors.text.withOpacity(0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: theme.colors.text.withOpacity(0.6),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: theme.colors.text.withOpacity(0.9)), // Set focused border color
+                          ),
+                          labelText: 'Enter amount (max 1 BTC)',
+                          focusColor: theme.colors.text,
+                        ),
+                        cursorColor: theme.colors.primary,
+                        style: TextStyle(
+                          color: theme.colors.text,
+                        ),
+                        inputFormatters: [
+                          CommaReplacerInputFormatter(),
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
                         ],
                       ),
+                      SailButton.primary(
+                        viewModel.addressController.text == ''
+                            ? 'Insert address first'
+                            : viewModel.amountController.text == ''
+                                ? 'Choose amount first'
+                                : 'Dispense Drivechain Coins',
+                        onPressed: () async {
+                          final txid = await viewModel.claim();
+                          if (txid != null) {
+                            if (!context.mounted) {
+                              return;
+                            }
+                            showSnackBar(context, 'Sent in txid=$txid');
+                            viewModel._transactionsProvider.fetch();
+                          }
+                        },
+                        size: ButtonSize.large,
+                        disabled: viewModel.isBusy ||
+                            viewModel.amountController.text == '' ||
+                            viewModel.addressController.text == '',
+                        loading: viewModel.isBusy,
+                      ),
+                      SailText.primary13(viewModel.dispenseErr ?? '', color: SailColorScheme.red),
                     ],
                   ),
-                ],
-              ),
+                ),
+                DashboardGroup(
+                  title: 'Latest Transactions',
+                  widgetTrailing: SailText.secondary13(viewModel.utxos.length.toString()),
+                  children: [
+                    SailColumn(
+                      spacing: 0,
+                      withDivider: true,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: viewModel.utxos.length,
+                          itemBuilder: (context, index) => UTXOView(
+                            key: ValueKey<String>(viewModel.utxos[index].txid),
+                            utxo: transactionResponseToUTXO(viewModel.utxos[index]),
+                            externalDirection: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
-          );
-        }));
+          ),
+        );
+      }),
+    );
   }
 }
 

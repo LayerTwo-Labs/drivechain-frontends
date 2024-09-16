@@ -70,7 +70,7 @@ class ZCashMeltCast extends StatelessWidget {
             spacing: 0,
             children: [
               ActionTile(
-                title: 'What\'s going on?',
+                title: "What's going on?",
                 category: Category.sidechain,
                 icon: Icons.question_mark,
                 onTap: () {

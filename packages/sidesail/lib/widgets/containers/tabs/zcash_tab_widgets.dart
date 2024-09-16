@@ -1265,7 +1265,7 @@ class MeltHelp extends StatelessWidget {
           'You can melt per-UTXO, or all UTXOs at once. Both strategies makes sure to spend the full amount of the UTXO, leaving you with no change, or dust.',
         ),
         QuestionText(
-          'Together with cast, it\'s a great way to anonymize your coins.',
+          "Together with cast, it's a great way to anonymize your coins.",
         ),
         QuestionText(
           'When melting all your coins, you set the max time that you want the melt to take. The application automatically selects a timeout per UTXO, and makes sure to shield at that specific time. This furthers your privacy by not pegging you to a specific timezone.',
@@ -1289,7 +1289,7 @@ class OperationHelp extends StatelessWidget {
       children: [
         QuestionTitle('What are operations?'),
         QuestionText(
-          'Operations are zcash\'s way of keeping track of what happens to zero-knowledge operations, for example when you shield/deshield/melt/cast.',
+          "Operations are zcash's way of keeping track of what happens to zero-knowledge operations, for example when you shield/deshield/melt/cast.",
         ),
         QuestionText(
           'In the table below, you can keep track of whether the z_operation fails or succeeds, and view all parameters to each zero-knowledge operation.',
@@ -1305,7 +1305,7 @@ class MeltAndCastHelp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return QuestionContainer(
-      category: 'What\'s going on?',
+      category: "What's going on?",
       children: [
         const QuestionText(
           'On this page, you can "melt" and "cast" your UTXOs. The diagram below explains the process.',
@@ -1332,7 +1332,7 @@ class MeltAndCastHelp extends StatelessWidget {
           'You can melt per-UTXO, or all UTXOs at once. Both strategies makes sure to spend the full amount of the UTXO, leaving you with no change, or dust.',
         ),
         const QuestionText(
-          'Together with cast, it\'s a great way to anonymize your coins.',
+          "Together with cast, it's a great way to anonymize your coins.",
         ),
         const QuestionText(
           'When melting all your coins, you set the max time that you want the melt to take. The application automatically selects a timeout per UTXO, and makes sure to shield at that specific time. This furthers your privacy by not pegging you to a specific timezone.',

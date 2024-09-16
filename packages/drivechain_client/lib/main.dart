@@ -4,11 +4,11 @@ import 'package:drivechain_client/service.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sail_ui/sail_ui.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   Environment.validateAtRuntime();
@@ -27,16 +27,16 @@ main() async {
     ),
   );
 
-  runApp(
+  return runApp(
     DrivechainService(
       child: SailApp(
         builder: (context) {
           return MaterialApp.router(
             routerDelegate: router.delegate(),
             routeInformationParser: router.defaultRouteParser(),
-            title: "Drivechain",
+            title: 'Drivechain',
             theme: ThemeData(
-              fontFamily: "Inter",
+              fontFamily: 'Inter',
               textTheme: GoogleFonts.interTightTextTheme(),
               colorScheme: ColorScheme.fromSwatch().copyWith(
                 secondary: const Color(0xffFF8000),
