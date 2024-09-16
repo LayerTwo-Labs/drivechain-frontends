@@ -115,7 +115,15 @@ class UTXOView extends StatelessWidget {
     return ExpandableListEntry(
       entry: SingleValueContainer(
         width: 95,
-        italic: utxo.confirmations <= 0,
+        icon: utxo.confirmations >= 1
+            ? Tooltip(
+                message: '${utxo.confirmations} confirmations',
+                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
+              )
+            : Tooltip(
+                message: 'Unconfirmed',
+                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
+              ),
         copyable: false,
         value: extractTXTitle(utxo),
         trailingText: formattedDate,
