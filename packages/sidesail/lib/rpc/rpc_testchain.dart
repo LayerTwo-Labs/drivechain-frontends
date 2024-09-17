@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';

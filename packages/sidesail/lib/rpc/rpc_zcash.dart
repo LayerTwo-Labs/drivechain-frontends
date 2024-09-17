@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
@@ -97,7 +97,7 @@ abstract class ZCashRPC extends SidechainRPC {
   @override
   Future<void> initBinary(
     BuildContext context,
-    String binary,
+    Chain chain,
     List<String> args,
   ) async {
     try {
@@ -124,7 +124,7 @@ abstract class ZCashRPC extends SidechainRPC {
     }
 
     // after all assets are loaded properly, THEN init the zcash-binary
-    await super.initBinary(context, binary, args);
+    await super.initBinary(context, chain, args);
   }
 
   /// There's no account in the wallet out of the box. Calling this

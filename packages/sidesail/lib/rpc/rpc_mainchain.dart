@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
 import 'package:sidesail/rpc/models/blockchain_info.dart';
@@ -31,7 +32,7 @@ abstract class MainchainRPC extends RPCConnection {
   Future<String> createSidechainDeposit(int sidechainSlot, String address, double amount);
   Future<void> waitForIBD();
 
-  final binary = 'drivechaind';
+  final chain = ParentChain();
 
   bool inIBD = true;
 }
@@ -73,7 +74,9 @@ class MainchainRPCLive extends MainchainRPC {
     while (inIBD) {
       try {
         final info = await getBlockchainInfo();
-        inIBD = info.initialBlockDownload;
+        // if block height is 0, the node might have not synced headers yet, and believe
+        // height 1 is the current best height
+        inIBD = info.initialBlockDownload || info.blockHeight <= 1;
       } catch (error) {
         // probably just cant connect, and is in bootup-phase, which is okay
       } finally {

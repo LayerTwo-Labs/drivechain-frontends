@@ -8,6 +8,7 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/providers/process_provider.dart';
 
@@ -102,9 +103,11 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Future<void> initBinary(
     BuildContext context,
-    String binary,
+    Chain chain,
     List<String> args,
   ) async {
+    final binary = chain.binary;
+
     initializingBinary = true;
     notifyListeners();
 
@@ -136,7 +139,7 @@ abstract class RPCConnection extends ChangeNotifier {
         binary,
         args,
         stopNode,
-        binary,
+        chain,
       );
       log.d('init binaries: started $binary with PID $pid');
     } catch (err) {

@@ -6,15 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sidesail/config/chains.dart';
 
 class SailProcess {
   final int pid;
-  final String name;
+  final Chain chain;
   Future<void> Function() cleanup;
 
   SailProcess({
     required this.pid,
-    required this.name,
+    required this.chain,
     required this.cleanup,
   });
 }
@@ -52,7 +53,7 @@ class ProcessProvider extends ChangeNotifier {
     String binary,
     List<String> args,
     Future<void> Function() cleanup,
-    String processName,
+    Chain chain,
   ) async {
     if (Platform.isWindows) {
       binary = '$binary.exe';
@@ -111,7 +112,7 @@ class ProcessProvider extends ChangeNotifier {
     runningProcesses[process.pid] = SailProcess(
       pid: process.pid,
       cleanup: cleanup,
-      name: processName,
+      chain: chain,
     );
 
     // Let output streaming chug in the background

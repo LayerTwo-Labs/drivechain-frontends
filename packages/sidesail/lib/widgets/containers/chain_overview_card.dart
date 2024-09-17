@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 
 class ChainOverviewCard extends StatelessWidget {
-  final Sidechain chain;
+  final Chain chain;
   final double confirmedBalance;
   final double unconfirmedBalance;
   final bool highlighted;

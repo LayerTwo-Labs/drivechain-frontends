@@ -1,9 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
+import 'package:sidesail/pages/tabs/log_page.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
 import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
@@ -60,21 +61,21 @@ class AppRouter extends RootStackRouter {
             ),
             AutoRoute(
               page: SidechainSendRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.testChain,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == ChainType.testChain,
             ),
             AutoRoute(
               page: TestchainRPCTabRoute.page,
             ),
             AutoRoute(
               page: EthereumRPCTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.ethereum,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == ChainType.ethereum,
             ),
             AutoRoute(
               page: ZCashMeltCastTabRoute.page,
             ),
             AutoRoute(
               page: ZCashShieldDeshieldTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == SidechainType.zcash,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == ChainType.zcash,
             ),
             AutoRoute(
               page: ZCashTransferTabRoute.page,
@@ -92,6 +93,9 @@ class AppRouter extends RootStackRouter {
         ),
         AutoRoute(
           page: ZCashBillRoute.page,
+        ),
+        AutoRoute(
+          page: LogRoute.page,
         ),
 
         /// This route is used in tests so that we can pump a widget into a route

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/main.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -37,7 +37,7 @@ class DepositWithdrawTabPage extends StatelessWidget {
                         title: 'Deposit from parent chain',
                         widgetEnd: HelpButton(onPressed: () => viewModel.castHelp(context)),
                         children: [
-                          if (viewModel._sidechain.rpc.chain.type == SidechainType.ethereum)
+                          if (viewModel._sidechain.rpc.chain.type == ChainType.ethereum)
                             const PegInEthAction()
                           else
                             const PegInAction(),
@@ -94,7 +94,7 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
 
   void pegOut(BuildContext context) async {
     String? staticAddress;
-    if (_sidechain.rpc.chain.type == SidechainType.ethereum) {
+    if (_sidechain.rpc.chain.type == ChainType.ethereum) {
       staticAddress = formatDepositAddress('0xc96aaa54e2d44c299564da76e1cd3184a2386b8d', _sidechain.rpc.chain.slot);
     }
 
@@ -109,7 +109,7 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
   }
 
   void pegIn(BuildContext context) async {
-    if (_sidechain.rpc.chain.type == SidechainType.ethereum) {
+    if (_sidechain.rpc.chain.type == ChainType.ethereum) {
       return await showThemedDialog(
         context: context,
         builder: (BuildContext context) {

@@ -4,14 +4,17 @@ class BlockchainInfo {
   // indicates whether the chain is currently downloading the chain
   // for the first time
   final bool initialBlockDownload;
+  final int blockHeight;
 
   BlockchainInfo({
     required this.initialBlockDownload,
+    required this.blockHeight,
   });
 
   factory BlockchainInfo.fromMap(Map<String, dynamic> map) {
     return BlockchainInfo(
       initialBlockDownload: map['initialblockdownload'] ?? '',
+      blockHeight: map['blocks'] ?? 0,
     );
   }
 

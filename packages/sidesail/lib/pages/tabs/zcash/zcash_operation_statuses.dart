@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
@@ -106,7 +106,7 @@ class OperationStatusesiewModel extends BaseViewModel {
 
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
   List<CoreTransaction> get transactions => _zcashProvider.transparentTransactions;
-  Sidechain get chain => sidechain.rpc.chain;
+  Chain get chain => sidechain.rpc.chain;
 
   OperationStatusesiewModel() {
     _zcashProvider.addListener(notifyListeners);
