@@ -132,8 +132,6 @@ class _Button extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-
     Color textColor;
     final sailTheme = context.sailTheme;
     if (onPressed != null) {
@@ -165,7 +163,7 @@ class _Button extends StatelessWidget {
           height: large ? 32 : 24,
           padding: padding,
           child: DefaultTextStyle(
-            style: SailStyleValues.twelve.copyWith(
+            style: TextStyle(
               color: textColor,
             ),
             child: child,
