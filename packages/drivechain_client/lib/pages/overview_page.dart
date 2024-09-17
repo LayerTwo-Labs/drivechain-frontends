@@ -59,7 +59,6 @@ class BalancesView extends StatelessWidget {
         if (snapshot.hasError) {
           return SailText.primary12(snapshot.error.toString());
         } else if (snapshot.hasData) {
-          final theme = SailTheme.of(context);
           return Row(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
