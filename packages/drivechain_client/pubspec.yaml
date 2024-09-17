@@ -12,6 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  stacked: ^3.4.3
+  qr_flutter: ^4.1.0
   cupertino_icons: ^1.0.8
   grpc: ^4.0.1
   sail_ui:
