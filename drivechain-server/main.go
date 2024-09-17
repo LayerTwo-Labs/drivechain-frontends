@@ -79,10 +79,19 @@ func realMain(ctx context.Context) error {
 	// This is all wonky stuff. We're on some kind of botched regtest...
 	// However, the address format is mainnet - and that's the only thing
 	// that matters.
-	// "bitcoin" == mainnet
-	wallet, err := bdk.NewWallet(datadir, "bitcoin", fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost), conf.Passphrase)
+	const network = "bitcoin" // means mainnet!
+	wallet, err := bdk.NewWallet(
+		ctx, datadir, network,
+		fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost),
+		conf.Passphrase,
+	)
 	if err != nil {
 		return err
+	}
+
+	// Verify the wallet is wired together correctly
+	if err := wallet.Sync(ctx); err != nil {
+		return fmt.Errorf("initial wallet sync: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Debug().
