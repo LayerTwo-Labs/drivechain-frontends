@@ -148,7 +148,7 @@ class BottomNavViewModel extends BaseViewModel {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DaemonConnectionCard(
-                    chainName: 'Parent Chain',
+                    chain: ParentChain(),
                     initializing: _mainRPC.initializingBinary,
                     connected: _mainRPC.connected,
                     errorMessage: _mainRPC.connectionError,
@@ -156,7 +156,7 @@ class BottomNavViewModel extends BaseViewModel {
                     infoMessage: null,
                   ),
                   DaemonConnectionCard(
-                    chainName: _sideRPC.rpc.chain.name,
+                    chain: _sideRPC.rpc.chain,
                     initializing: _sideRPC.rpc.initializingBinary,
                     connected: _sideRPC.rpc.connected,
                     errorMessage: _sideRPC.rpc.connectionError,
