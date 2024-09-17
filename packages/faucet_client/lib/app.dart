@@ -76,6 +76,7 @@ class FaucetViewModel extends BaseViewModel {
 
   Future<String?> claim() async {
     try {
+      dispenseErr = null;
       if (isBusy) {
         return null;
       }
@@ -214,7 +215,7 @@ class _FaucetPageState extends State<FaucetPage> {
                               return;
                             }
                             showSnackBar(context, 'Sent in txid=$txid');
-                            viewModel._transactionsProvider.fetch();
+                            await viewModel._transactionsProvider.fetch();
                           }
                         },
                         size: ButtonSize.large,
