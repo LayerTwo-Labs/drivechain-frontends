@@ -2,8 +2,8 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
@@ -53,7 +53,7 @@ Future<void> initDependencies(Sidechain chain) async {
 
   SingleNodeConnectionSettings mainchainConf = _emptyNodeConf;
   try {
-    mainchainConf = await readRPCConfig(mainchainDatadir(), 'drivechain.conf', null);
+    mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'drivechain.conf', ParentChain());
   } catch (error) {
     // do nothing
   }
@@ -92,7 +92,7 @@ Future<void> initDependencies(Sidechain chain) async {
 Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
   SingleNodeConnectionSettings conf = _emptyNodeConf;
   switch (chain.type) {
-    case SidechainType.testChain:
+    case ChainType.testChain:
       try {
         conf = await readRPCConfig(
           TestSidechain().type.datadir(),
@@ -103,7 +103,7 @@ Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
         // do nothing, just don't exit
       }
       break;
-    case SidechainType.ethereum:
+    case ChainType.ethereum:
       try {
         conf = await readRPCConfig(
           EthereumSidechain().type.datadir(),
@@ -114,7 +114,7 @@ Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
         // do nothing, just don't exit
       }
       break;
-    case SidechainType.zcash:
+    case ChainType.zcash:
       try {
         conf = await readRPCConfig(
           ZCashSidechain().type.datadir(),
@@ -126,6 +126,10 @@ Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
       } catch (error) {
         // do nothing, just don't exit
       }
+      break;
+
+    case ChainType.parentchain:
+      // do absolutely nothing, not a sidechain!
       break;
   }
 
@@ -141,7 +145,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
 
   SidechainRPC? sidechain;
 
-  if (chain.type == SidechainType.testChain) {
+  if (chain.type == ChainType.testChain) {
     log.i('starting init testchain RPC');
 
     final testchain = TestchainRPCLive(conf: conf);
@@ -154,7 +158,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
     }
   }
 
-  if (chain.type == SidechainType.ethereum) {
+  if (chain.type == ChainType.ethereum) {
     log.i('starting init ethereum RPC');
 
     final ethChain = EthereumRPCLive(
@@ -169,7 +173,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
     }
   }
 
-  if (chain.type == SidechainType.zcash) {
+  if (chain.type == ChainType.zcash) {
     log.i('starting init zcash RPC');
 
     final zChain = ZcashRPCLive(

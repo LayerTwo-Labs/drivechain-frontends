@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -34,7 +34,7 @@ class SettingsTabPage extends StatelessWidget {
             children: [
               NodeConnectionSettings(
                 name: viewModel.sidechain.rpc.chain.name,
-                sidechain: viewModel.sidechain.rpc.chain,
+                chain: viewModel.sidechain.rpc.chain,
                 connected: viewModel.sidechain.rpc.connected,
                 settings: viewModel.sidechain.rpc.conf,
                 testConnectionValues: viewModel.reconnectSidechain,
@@ -44,6 +44,7 @@ class SettingsTabPage extends StatelessWidget {
               ),
               NodeConnectionSettings(
                 name: 'Parent Chain',
+                chain: ParentChain(),
                 connected: viewModel.mainRPC.connected,
                 settings: viewModel.mainRPC.conf,
                 testConnectionValues: viewModel.reconnectMainchain,
@@ -182,7 +183,7 @@ class SettingsTabPage extends StatelessWidget {
 }
 
 class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
-  final Sidechain? sidechain;
+  final Chain chain;
   final String name;
   final bool connected;
   final SingleNodeConnectionSettings settings;
@@ -200,7 +201,7 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
     required this.connectionError,
     required this.readError,
     required this.loading,
-    this.sidechain,
+    required this.chain,
   });
 
   @override
@@ -238,7 +239,7 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
           hintText: '/the/path/to/your/somethingchain.conf',
           suffixWidget: SailTextButton(
             label: 'Read file',
-            onPressed: () => settings.readAndSetValuesFromFile(sidechain),
+            onPressed: () => settings.readAndSetValuesFromFile(chain),
           ),
         ),
         SailTextField(
@@ -418,14 +419,14 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  void readAndSetValuesFromFile(Sidechain? sidechain) async {
+  void readAndSetValuesFromFile(Chain chain) async {
     try {
       var parts = splitPath(configPathController.text);
       String dataDir = parts.$1;
       String confFile = parts.$2;
       readError = null;
 
-      final config = await readRPCConfig(dataDir, confFile, sidechain);
+      final config = await readRPCConfig(dataDir, confFile, chain);
       configPathController.text = config.fileConfigPath;
       hostController.text = config.host;
       portController.text = config.port.toString();

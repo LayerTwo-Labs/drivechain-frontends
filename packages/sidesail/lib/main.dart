@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
@@ -63,7 +63,7 @@ Future<void> initMainchainBinary(
 ) async {
   await mainchain.initBinary(
     context,
-    mainchain.binary,
+    ParentChain(),
     bitcoinCoreBinaryArgs(mainchain.conf),
   );
   await mainchain.waitForIBD();
@@ -120,14 +120,14 @@ Future<void> initSidechainBinary(
   return sidechain.rpc.initBinary(
     // ignore: use_build_context_synchronously
     context,
-    sidechain.rpc.chain.binary,
+    sidechain.rpc.chain,
     sidechain.rpc.binaryArgs(mainchain.conf),
   );
 }
 
 bool isCurrentChainActive({
   required List<ActiveSidechain> activeChains,
-  required Sidechain currentChain,
+  required Chain currentChain,
 }) {
   final foundMatch = activeChains.firstWhereOrNull((chain) => chain.title == currentChain.name);
   return foundMatch != null;

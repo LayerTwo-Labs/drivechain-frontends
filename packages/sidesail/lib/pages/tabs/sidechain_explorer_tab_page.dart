@@ -4,7 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/dependencies.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
@@ -38,7 +38,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           confirmedBalance: viewModel.balance,
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
-                          currentChain: viewModel.chain.type == SidechainType.testChain,
+                          currentChain: viewModel.chain.type == ChainType.testChain,
                           onPressed: () => viewModel.setSidechain(TestSidechain(), app),
                           inBottomNav: false,
                         ),
@@ -47,7 +47,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           confirmedBalance: viewModel.balance,
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
-                          currentChain: viewModel.chain.type == SidechainType.ethereum,
+                          currentChain: viewModel.chain.type == ChainType.ethereum,
                           onPressed: () => viewModel.setSidechain(EthereumSidechain(), app),
                           inBottomNav: false,
                         ),
@@ -56,7 +56,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           confirmedBalance: viewModel.balance,
                           unconfirmedBalance: viewModel.pendingBalance,
                           highlighted: false,
-                          currentChain: viewModel.chain.type == SidechainType.zcash,
+                          currentChain: viewModel.chain.type == ChainType.zcash,
                           onPressed: () => viewModel.setSidechain(ZCashSidechain(), app),
                           inBottomNav: false,
                         ),
@@ -83,7 +83,7 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
 
-  Sidechain get chain => sidechain.rpc.chain;
+  Chain get chain => sidechain.rpc.chain;
 
   SidechainExplorerTabViewModel() {
     _balanceProvider.addListener(notifyListeners);

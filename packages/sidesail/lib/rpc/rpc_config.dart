@@ -4,8 +4,8 @@ import 'package:collection/collection.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/storage/sail_settings/network_settings.dart';
@@ -35,7 +35,7 @@ class Config {
 Future<SingleNodeConnectionSettings> readRPCConfig(
   String datadir,
   String confFile,
-  Sidechain? sidechain, {
+  Chain chain, {
   // if set, will force this network, irregardless of runtime argument
   String? overrideNetwork,
   bool useCookieAuth = true,
@@ -59,14 +59,13 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
   String? password;
   String? host;
   int? port;
-  final defaultPort = sidechain?.rpcPort ?? _defaultMainchainPorts[network]!;
 
   if (!await conf.exists() && !await cookie.exists()) {
     log.d('missing both conf ($conf) and cookie ($cookie), returning default settings');
     return SingleNodeConnectionSettings(
       '',
       'localhost',
-      defaultPort,
+      chain.rpcPort,
       'user',
       'password',
       network == 'regtest',
@@ -104,7 +103,7 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
   }
 
   host ??= 'localhost';
-  port ??= defaultPort;
+  port ??= chain.rpcPort;
 
 // Make sure to not include password here
   log.i('resolved conf: $username@$host:$port on $network');
@@ -121,36 +120,6 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
 String? _configValue(List<String> config, String key) {
   final line = config.firstWhereOrNull((element) => element.split('=').first == key);
   return line?.split('=').lastOrNull;
-}
-
-String mainchainDatadir() {
-  final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']; // windows!
-  if (home == null) {
-    throw 'unable to determine HOME location';
-  }
-
-  if (Platform.isLinux) {
-    return filePath([
-      home,
-      '.drivechain',
-    ]);
-  } else if (Platform.isMacOS) {
-    return filePath([
-      home,
-      'Library',
-      'Application Support',
-      'Drivechain',
-    ]);
-  } else if (Platform.isWindows) {
-    return filePath([
-      home,
-      'AppData',
-      'Roaming',
-      'Drivechain',
-    ]);
-  } else {
-    throw 'unsupported operating system: ${Platform.operatingSystem}';
-  }
 }
 
 List<String> bitcoinCoreBinaryArgs(
@@ -189,8 +158,3 @@ void addEntryIfNotSet(List<String> args, String key, String value) {
   log.i('$key not present in conf, adding $newEntry');
   args.add(newEntry);
 }
-
-Map<String, int> _defaultMainchainPorts = {
-  'mainnet': 8332,
-  'regtest': 18443,
-};

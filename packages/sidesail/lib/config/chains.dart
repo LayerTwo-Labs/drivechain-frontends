@@ -4,11 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/process_provider.dart';
 
-abstract class Sidechain {
+abstract class Chain {
   String get name;
-  int get slot;
   Color get color;
-  SidechainType get type;
+  ChainType get type;
 
   // TODO: turn this into a function that takes a regtest/signet/whatever param
   int get rpcPort;
@@ -18,6 +17,10 @@ abstract class Sidechain {
   }
 
   String get binary;
+}
+
+abstract class Sidechain extends Chain {
+  int get slot;
 
   static Sidechain? fromString(String input) {
     switch (input.toLowerCase()) {
@@ -47,7 +50,7 @@ class TestSidechain extends Sidechain {
   Color color = SailColorScheme.orange;
 
   @override
-  SidechainType get type => SidechainType.testChain;
+  ChainType get type => ChainType.testChain;
 
   @override
   int get rpcPort => 8272;
@@ -67,7 +70,7 @@ class ZCashSidechain extends Sidechain {
   Color color = SailColorScheme.blue;
 
   @override
-  SidechainType get type => SidechainType.zcash;
+  ChainType get type => ChainType.zcash;
 
   @override
   int get rpcPort => 8232;
@@ -87,7 +90,7 @@ class EthereumSidechain extends Sidechain {
   Color color = SailColorScheme.purple;
 
   @override
-  SidechainType get type => SidechainType.ethereum;
+  ChainType get type => ChainType.ethereum;
 
   @override
   int get rpcPort => 8545;
@@ -96,18 +99,50 @@ class EthereumSidechain extends Sidechain {
   String get binary => 'sidegeth';
 }
 
-enum SidechainType { testChain, ethereum, zcash }
+class ParentChain extends Chain {
+  @override
+  String name = 'Parentchain';
 
-extension SidechainPaths on SidechainType {
+  @override
+  Color color = SailColorScheme.green;
+
+  @override
+  ChainType get type => ChainType.parentchain;
+
+  @override
+  int get rpcPort => 8332;
+
+  @override
+  String get binary => 'drivechaind';
+}
+
+enum ChainType { testChain, ethereum, zcash, parentchain }
+
+extension SidechainPaths on ChainType {
   String confFile() {
     switch (this) {
-      case SidechainType.testChain:
+      case ChainType.testChain:
         return 'testchain.conf';
-      case SidechainType.ethereum:
-        // TODO: make this properly configurable
+      case ChainType.ethereum:
         return 'config.toml';
-      case SidechainType.zcash:
+      case ChainType.zcash:
         return 'zcash.conf';
+      case ChainType.parentchain:
+        return 'drivechain.conf';
+    }
+  }
+
+  String logFile() {
+    switch (this) {
+      case ChainType.testChain:
+        return 'debug.log';
+      case ChainType.ethereum:
+        // TODO: What is this..?
+        return 'ethereum.log';
+      case ChainType.zcash:
+        return 'regtest/debug.log';
+      case ChainType.parentchain:
+        return 'debug.log';
     }
   }
 
@@ -130,35 +165,40 @@ extension SidechainPaths on SidechainType {
 
   String _linuxDirname() {
     switch (this) {
-      case SidechainType.testChain:
+      case ChainType.testChain:
         return 'drivechain_launcher_sidechains/testchain';
-      case SidechainType.ethereum:
-        // TODO: correct?
+      case ChainType.ethereum:
         return '.ethside';
-      case SidechainType.zcash:
+      case ChainType.zcash:
         return '.zcash-drivechain';
+      case ChainType.parentchain:
+        return '.drivechain';
     }
   }
 
   String _macosDirname() {
     switch (this) {
-      case SidechainType.testChain:
+      case ChainType.testChain:
         return 'drivechain_launcher_sidechains/testchain';
-      case SidechainType.ethereum:
+      case ChainType.ethereum:
         return 'EthSide';
-      case SidechainType.zcash:
+      case ChainType.zcash:
         return 'ZcashDrivechain';
+      case ChainType.parentchain:
+        return 'Drivechain';
     }
   }
 
   String _windowsDirname() {
     switch (this) {
-      case SidechainType.testChain:
+      case ChainType.testChain:
         return 'drivechain_launcher_sidechains/testchain';
-      case SidechainType.ethereum:
+      case ChainType.ethereum:
         return 'EthSide';
-      case SidechainType.zcash:
+      case ChainType.zcash:
         return 'ZcashDrivechain';
+      case ChainType.parentchain:
+        return 'Drivechain';
     }
   }
 }

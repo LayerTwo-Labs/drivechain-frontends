@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
@@ -241,7 +241,7 @@ class ZCashMeltCastViewModel extends BaseViewModel {
   SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
   AppRouter get router => GetIt.I.get<AppRouter>();
 
-  Sidechain get chain => _sideRPC.rpc.chain;
+  Chain get chain => _sideRPC.rpc.chain;
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<PendingShield> get pendingMelts =>
       _zcashProvider.utxosToMelt.where((element) => element.executeTime.isAfter(DateTime.now())).toList();

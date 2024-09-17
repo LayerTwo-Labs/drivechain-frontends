@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -57,7 +57,7 @@ class _TopNavState extends State<TopNav> {
                         },
                         icon: SailSVGAsset.iconTabPeg,
                       ),
-                      if (_sidechain.rpc.chain.type == SidechainType.testChain)
+                      if (_sidechain.rpc.chain.type == ChainType.testChain)
                         NavEntry(
                           title: 'Withdrawal Explorer',
                           selected: tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
@@ -66,7 +66,7 @@ class _TopNavState extends State<TopNav> {
                           },
                           icon: SailSVGAsset.iconTabWithdrawalExplorer,
                         ),
-                      if (_sidechain.rpc.chain.type == SidechainType.testChain)
+                      if (_sidechain.rpc.chain.type == ChainType.testChain)
                         NavEntry(
                           title: 'Blind Merged Mining',
                           selected: tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
@@ -128,7 +128,7 @@ class _TopNavState extends State<TopNav> {
     auto_router.TabsRouter tabsRouter,
   ) {
     switch (chain.type) {
-      case SidechainType.testChain:
+      case ChainType.testChain:
         return [
           NavEntry(
             title: 'Send',
@@ -139,7 +139,7 @@ class _TopNavState extends State<TopNav> {
             icon: SailSVGAsset.iconTabSidechainSend,
           ),
         ];
-      case SidechainType.ethereum:
+      case ChainType.ethereum:
         return [
           NavEntry(
             title: 'Console',
@@ -151,7 +151,7 @@ class _TopNavState extends State<TopNav> {
           ),
         ];
 
-      case SidechainType.zcash:
+      case ChainType.zcash:
         return [
           NavEntry(
             title: 'Send',
@@ -186,18 +186,21 @@ class _TopNavState extends State<TopNav> {
             icon: SailSVGAsset.iconTabZCashOperationStatuses,
           ),
         ];
+
+      case ChainType.parentchain:
+        return [];
     }
   }
 
   List<NavEntry> _navForSidechainTrailing(
-    Sidechain chain,
+    Chain chain,
     TopNavViewModel viewModel,
     auto_router.TabsRouter tabsRouter,
   ) {
     List<NavEntry> trailing = [];
 
     switch (chain.type) {
-      case SidechainType.testChain:
+      case ChainType.testChain:
         trailing = [
           NavEntry(
             title: 'Console',
@@ -210,10 +213,10 @@ class _TopNavState extends State<TopNav> {
         ];
         break;
 
-      case SidechainType.ethereum:
+      case ChainType.ethereum:
         break;
 
-      case SidechainType.zcash:
+      case ChainType.zcash:
         trailing = [
           NavEntry(
             title: 'Console',
@@ -224,6 +227,9 @@ class _TopNavState extends State<TopNav> {
             icon: SailSVGAsset.iconTabConsole,
           ),
         ];
+        break;
+
+      case ChainType.parentchain:
         break;
     }
 
@@ -250,7 +256,7 @@ class TopNavViewModel extends BaseViewModel {
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
 
-  Sidechain get chain => _sideRPC.rpc.chain;
+  Chain get chain => _sideRPC.rpc.chain;
 
   TopNavViewModel() {
     _balanceProvider.addListener(notifyListeners);

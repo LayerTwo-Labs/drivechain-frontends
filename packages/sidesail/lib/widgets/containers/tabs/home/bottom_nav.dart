@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/config/sidechains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
@@ -109,7 +109,7 @@ class BottomNavViewModel extends BaseViewModel {
   String? get sidechainError => _sideRPC.rpc.connectionError;
   String? get mainchainError => _mainRPC.connectionError;
 
-  Sidechain get chain => _sideRPC.rpc.chain;
+  Chain get chain => _sideRPC.rpc.chain;
 
   BottomNavViewModel({required this.navigateToSettings}) {
     _sideRPC.addListener(notifyListeners);
@@ -196,7 +196,7 @@ class BottomNavViewModel extends BaseViewModel {
   Future<void> initMainchainBinary(BuildContext context) async {
     return _mainRPC.initBinary(
       context,
-      _mainRPC.binary,
+      _mainRPC.chain,
       bitcoinCoreBinaryArgs(_mainRPC.conf),
     );
   }
@@ -206,7 +206,7 @@ class BottomNavViewModel extends BaseViewModel {
   ) async {
     return _sideRPC.rpc.initBinary(
       context,
-      _sideRPC.rpc.chain.binary,
+      _sideRPC.rpc.chain,
       _sideRPC.rpc.binaryArgs(_mainRPC.conf),
     );
   }

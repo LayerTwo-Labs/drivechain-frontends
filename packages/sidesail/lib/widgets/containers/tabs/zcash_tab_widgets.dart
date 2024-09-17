@@ -1062,7 +1062,7 @@ class ShieldedUTXOView extends StatelessWidget {
 
 class PendingCastView extends StatefulWidget {
   final PendingCastBill pending;
-  final Sidechain chain;
+  final Chain chain;
 
   const PendingCastView({
     super.key,
