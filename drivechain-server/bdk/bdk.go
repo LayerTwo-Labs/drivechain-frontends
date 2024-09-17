@@ -363,7 +363,12 @@ func (w *Wallet) loadExistingWallet(ctx context.Context, keyFile, passphrase str
 	}
 
 	mnemonic, err := decryptKey(encryptedMnemonic, passphrase)
-	if err != nil {
+	switch {
+	// Give a better error message!
+	case errors.As(err, new(*age.NoIdentityMatchError)):
+		return "", errors.New("invalid wallet passphrase")
+
+	case err != nil:
 		return "", fmt.Errorf("failed to decrypt mnemonic: %w", err)
 	}
 
@@ -468,6 +473,20 @@ func encryptKey(key, passphrase string) ([]byte, error) {
 // provided. If no passphrase is provided and the key is not encrypted, the key
 // is returned as is.
 func decryptKey(data []byte, passphrase string) (string, error) {
+	const expectedMnemonicLength = 24
+	maybeMnemonicLength := len(strings.Fields(string(data)))
+
+	// Verify that we're doing stuff that makes sense.
+	switch {
+	// Verify that the key file actually contains an /encrypted/ mnemonic.
+	case passphrase != "" &&
+		maybeMnemonicLength == expectedMnemonicLength:
+		return "", errors.New("decrypt mnemonic: non-empty passphrase: key file contains plaintext")
+
+	case passphrase == "" && maybeMnemonicLength != expectedMnemonicLength:
+		return "", errors.New("decrypt mnemonic: empty passphrase: key file contains ciphertext")
+	}
+
 	if passphrase == "" {
 		return string(data), nil
 	}
