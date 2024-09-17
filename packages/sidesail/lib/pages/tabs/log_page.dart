@@ -37,7 +37,7 @@ class LogPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SailButton.primary(
-                    'Clear log',
+                    'Clear logs',
                     size: ButtonSize.small,
                     onPressed: () => viewModel.clearLog(),
                   ),
