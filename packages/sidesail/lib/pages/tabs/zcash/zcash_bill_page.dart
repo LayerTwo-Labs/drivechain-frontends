@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -17,6 +17,8 @@ class ZCashBillPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZcashBillTabViewModel(),
       builder: ((context, viewModel, child) {
@@ -35,17 +37,17 @@ class ZCashBillPage extends StatelessWidget {
                       title: 'Bill Amounts (in sats)',
                       children: [
                         Table(
-                          border: TableBorder.all(color: Colors.black, width: 1),
+                          border: TableBorder.all(color: theme.colors.text, width: 1),
                           children: [
-                            const TableRow(
+                            TableRow(
                               children: [
-                                TableCell(child: Center(child: Text('Sunday'))),
-                                TableCell(child: Center(child: Text('Monday'))),
-                                TableCell(child: Center(child: Text('Tuesday'))),
-                                TableCell(child: Center(child: Text('Wednesday'))),
-                                TableCell(child: Center(child: Text('Thursday'))),
-                                TableCell(child: Center(child: Text('Friday'))),
-                                TableCell(child: Center(child: Text('Saturday'))),
+                                TableCell(child: Center(child: SailText.primary13('Sunday'))),
+                                TableCell(child: Center(child: SailText.primary13('Monday'))),
+                                TableCell(child: Center(child: SailText.primary13('Tuesday'))),
+                                TableCell(child: Center(child: SailText.primary13('Wednesday'))),
+                                TableCell(child: Center(child: SailText.primary13('Thursday'))),
+                                TableCell(child: Center(child: SailText.primary13('Friday'))),
+                                TableCell(child: Center(child: SailText.primary13('Saturday'))),
                               ],
                             ),
                             _buildTableRow([
@@ -123,7 +125,7 @@ class ZCashBillPage extends StatelessWidget {
             (cell) => TableCell(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Text(cell, textAlign: TextAlign.right),
+                child: SailText.primary12(cell, textAlign: TextAlign.right),
               ),
             ),
           )
@@ -139,7 +141,7 @@ class ZcashBillTabViewModel extends BaseViewModel {
 
   List<PendingCastBill> get pendingBills => _castProvider.futureCasts.toList().sublist(1);
 
-  Sidechain get chain => _sideRPC.rpc.chain;
+  Chain get chain => _sideRPC.rpc.chain;
 
   bool hideDust = true;
 

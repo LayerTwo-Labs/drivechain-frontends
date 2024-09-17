@@ -267,6 +267,29 @@ class SailText {
       },
     );
   }
+
+  static Widget primary10(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    bool italic = false,
+    Color? color,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.ten.copyWith(
+            color: color ?? theme.colors.text,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
+            fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+          ),
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
 }
 
 class Shadow {
