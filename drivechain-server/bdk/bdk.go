@@ -84,21 +84,16 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	start := time.Now()
-
 	fullArgs := slices.Concat([]string{
 		"--datadir", w.Datadir,
 		"--network", w.Network,
-		"wallet",
-		"--descriptor", w.Descriptor,
-		"--server", w.Electrum,
 	},
 		args,
 	)
 
-	command := lo.FirstOrEmpty(lo.Filter(args, func(arg string, idx int) bool {
-		return !strings.HasPrefix(arg, "-")
-	}))
+	command := strings.Join(lo.Filter(args, func(arg string, idx int) bool {
+		return !strings.HasPrefix(arg, "-") || (idx != 0 && !strings.HasPrefix(args[idx-1], "-"))
+	}), " ")
 	if command == "" {
 		return nil, errors.New("bdk: exec: empty command")
 	}
@@ -124,22 +119,10 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 			strings.Join(slices.Concat([]string{bdkCliPath}, fullArgs), " "),
 		)
 
-		return nil, fmt.Errorf("exec: bdk-cli wallet %q: %s",
+		return nil, fmt.Errorf("exec: bdk-cli %q: %s",
 			command, errorMessage,
 		)
 	}
-
-	compacted := bytes.NewBuffer(nil)
-	if err := json.Compact(compacted, res); err != nil {
-		// Revert back to non-compacted
-		compacted = bytes.NewBuffer(res)
-	}
-
-	zerolog.Ctx(ctx).Trace().
-		Stringer("duration", time.Since(start)).
-		Msgf("bdk-cli wallet %s: %s",
-			command, compacted.String(),
-		)
 
 	// https://github.com/bitcoindevkit/bdk-cli/issues/170
 	if !gjson.ValidBytes(res) {
@@ -152,11 +135,46 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 	return res, nil
 }
 
+func (w *Wallet) execWallet(ctx context.Context, args ...string) ([]byte, error) {
+	start := time.Now()
+
+	res, err := w.exec(ctx, slices.Concat(
+		[]string{
+
+			"wallet",
+			"--descriptor", w.Descriptor,
+			"--server", w.Electrum,
+		}, args,
+	)...)
+	if err != nil {
+		return nil, err
+	}
+
+	compacted := bytes.NewBuffer(nil)
+	// Sensitive stuff! Avoid logging the  response
+	if err := json.Compact(compacted, res); err != nil {
+		// Revert back to non-compacted
+		compacted = bytes.NewBuffer(res)
+	}
+
+	command := lo.FirstOrEmpty(lo.Filter(args, func(arg string, idx int) bool {
+		return !strings.HasPrefix(arg, "-")
+	}))
+
+	zerolog.Ctx(ctx).Trace().
+		Stringer("duration", time.Since(start)).
+		Msgf("bdk-cli wallet %s: %s",
+			command, compacted.String(),
+		)
+
+	return res, nil
+}
+
 func (w *Wallet) Sync(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
-	_, err := w.exec(ctx, "sync")
+	_, err := w.execWallet(ctx, "sync")
 	return err
 }
 
@@ -164,7 +182,7 @@ func (w *Wallet) Sync(ctx context.Context) error {
 // the index of this address in the wallet descriptor.
 func (w *Wallet) GetNewAddress(ctx context.Context) (string, uint, error) {
 	// Must include the verbose flag to get the index.
-	res, err := w.exec(ctx, "--verbose", "get_new_address")
+	res, err := w.execWallet(ctx, "--verbose", "get_new_address")
 	if err != nil {
 		return "", 0, err
 	}
@@ -188,7 +206,7 @@ type Balance struct {
 }
 
 func (w *Wallet) GetBalance(ctx context.Context) (Balance, error) {
-	res, err := w.exec(ctx, "get_balance")
+	res, err := w.execWallet(ctx, "get_balance")
 	if err != nil {
 		return Balance{}, err
 	}
@@ -223,7 +241,7 @@ func (w *Wallet) CreateTransaction(
 		args = append(args, "--to", fmt.Sprintf("%s:%d", dest, amount))
 	}
 
-	res, err := w.exec(ctx, args...)
+	res, err := w.execWallet(ctx, args...)
 	if err != nil {
 		return "", err
 	}
@@ -237,7 +255,7 @@ func (w *Wallet) CreateTransaction(
 }
 
 func (w *Wallet) SignTransaction(ctx context.Context, psbt string) (string, error) {
-	res, err := w.exec(ctx, "--verbose", "sign", "--psbt", psbt)
+	res, err := w.execWallet(ctx, "--verbose", "sign", "--psbt", psbt)
 	if err != nil {
 		return "", err
 	}
@@ -255,7 +273,7 @@ func (w *Wallet) SignTransaction(ctx context.Context, psbt string) (string, erro
 }
 
 func (w *Wallet) BroadcastTransaction(ctx context.Context, psbt string) (string, error) {
-	res, err := w.exec(ctx, "--verbose", "broadcast", "--psbt", psbt)
+	res, err := w.execWallet(ctx, "--verbose", "broadcast", "--psbt", psbt)
 	if err != nil {
 		return "", err
 	}
@@ -264,7 +282,7 @@ func (w *Wallet) BroadcastTransaction(ctx context.Context, psbt string) (string,
 }
 
 func (w *Wallet) ListTransactions(ctx context.Context) ([]Transaction, error) {
-	res, err := w.exec(ctx, "--verbose", "list_transactions")
+	res, err := w.execWallet(ctx, "--verbose", "list_transactions")
 	if err != nil {
 		return nil, err
 	}
@@ -302,31 +320,43 @@ type Transaction struct {
 // passphrase is provided, the mnemonic is encrypted before saving if the
 // wallet is created. If the wallet already exists, the passphrase is used to
 // decrypt the existing mnemonic.
-func NewWallet(datadir, network, electrum, passphrase string) (*Wallet, error) {
+func NewWallet(
+	ctx context.Context, datadir,
+	network, electrum, passphrase string,
+) (*Wallet, error) {
 	keyFile := filepath.Join(datadir, "wallet.key")
-	var xprv string
 
+	w := &Wallet{
+		Network:  network,
+		Datadir:  datadir,
+		Electrum: electrum,
+	}
+
+	var xprv string
 	if _, err := os.Stat(keyFile); err == nil {
-		xprv, err = loadExistingWallet(keyFile, passphrase)
+		zerolog.Ctx(ctx).Debug().
+			Msgf("bdk: loading existing wallet from key file: %s", keyFile)
+
+		xprv, err = w.loadExistingWallet(ctx, keyFile, passphrase)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load existing wallet: %w", err)
 		}
 	} else {
-		xprv, err = createNewWallet(keyFile, passphrase)
+		zerolog.Ctx(ctx).Info().
+			Msg("bdk: creating new wallet")
+
+		xprv, err = w.createNewWallet(ctx, keyFile, passphrase)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create new wallet: %w", err)
 		}
 	}
 
-	return &Wallet{
-		Descriptor: fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", xprv),
-		Network:    network,
-		Datadir:    datadir,
-		Electrum:   electrum,
-	}, nil
+	w.Descriptor = fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", xprv)
+
+	return w, nil
 }
 
-func loadExistingWallet(keyFile, passphrase string) (string, error) {
+func (w *Wallet) loadExistingWallet(ctx context.Context, keyFile, passphrase string) (string, error) {
 	encryptedMnemonic, err := os.ReadFile(keyFile)
 	if err != nil {
 		return "", fmt.Errorf("failed to read existing key file: %w", err)
@@ -338,12 +368,9 @@ func loadExistingWallet(keyFile, passphrase string) (string, error) {
 	}
 
 	// Use bdk-cli to restore key from mnemonic
-	bdkCliPath, err := getBdkCliPath()
-	if err != nil {
-		return "", fmt.Errorf("failed to get bdk-cli path: %w", err)
-	}
-
-	res, err := exec.Command(bdkCliPath, "key", "restore", "--mnemonic", mnemonic).Output()
+	// Important: execute the command through w.exec. This ensures the
+	// network parameters gets correctly passed on.
+	res, err := w.exec(ctx, "key", "restore", "--mnemonic", mnemonic)
 	if err != nil {
 		return "", fmt.Errorf("failed to restore key: %w", err)
 	}
@@ -359,14 +386,11 @@ func loadExistingWallet(keyFile, passphrase string) (string, error) {
 
 // createNewWallet generates a new wallet and saves it to the specified file.
 // If a passphrase is provided, the mnemonic is encrypted before saving.
-func createNewWallet(keyFile, passphrase string) (string, error) {
-	bdkCliPath, err := getBdkCliPath()
-	if err != nil {
-		return "", fmt.Errorf("failed to get bdk-cli path: %w", err)
-	}
-
+func (w *Wallet) createNewWallet(ctx context.Context, keyFile, passphrase string) (string, error) {
 	// Use bdk-cli to generate new key
-	res, err := exec.Command(bdkCliPath, "key", "generate").Output()
+	// Important: execute the command through w.exec. This ensures the
+	// network parameters gets correctly passed on.
+	res, err := w.exec(ctx, "key", "generate")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate new key: %w", err)
 	}
@@ -385,12 +409,18 @@ func createNewWallet(keyFile, passphrase string) (string, error) {
 	// Encrypt mnemonic if passphrase is provided
 	var dataToSave []byte
 	if passphrase != "" {
+		zerolog.Ctx(ctx).Debug().
+			Msgf("bdk: encrypting wallet key")
+
 		encryptedMnemonic, err := encryptKey(mnemonic, passphrase)
 		if err != nil {
 			return "", fmt.Errorf("failed to encrypt mnemonic: %w", err)
 		}
 		dataToSave = encryptedMnemonic
 	} else {
+		zerolog.Ctx(ctx).Debug().
+			Msgf("bdk: NOT encrypting wallet key")
+
 		dataToSave = []byte(mnemonic)
 	}
 
