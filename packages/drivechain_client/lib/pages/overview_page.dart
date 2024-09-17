@@ -67,14 +67,9 @@ class BalancesView extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      text: 'Balances',
-                      style: SailStyleValues.thirteen.copyWith(
-                        color: theme.colors.text,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                  SailText.primary13(
+                    'Balances',
+                    bold: true,
                   ),
                   const SizedBox(height: 16.0),
                   ConstrainedBox(
@@ -84,17 +79,12 @@ class BalancesView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         SailText.primary13('Available: '),
-                        RichText(
-                          text: TextSpan(
-                            text: Money.fromNumWithCurrency(
-                              snapshot.data!.confirmedSatoshi.toDouble(),
-                              satoshi,
-                            ).toString(),
-                            style: SailStyleValues.thirteen.copyWith(
-                              color: theme.colors.text,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        SailText.primary13(
+                          Money.fromNumWithCurrency(
+                            snapshot.data!.confirmedSatoshi.toDouble(),
+                            satoshi,
+                          ).toString(),
+                          bold: true,
                         ),
                       ],
                     ),
@@ -107,17 +97,12 @@ class BalancesView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         SailText.primary13('Pending: '),
-                        RichText(
-                          text: TextSpan(
-                            text: Money.fromNumWithCurrency(
-                              snapshot.data!.pendingSatoshi.toDouble(),
-                              satoshi,
-                            ).toString(),
-                            style: SailStyleValues.thirteen.copyWith(
-                              color: theme.colors.text,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        SailText.primary13(
+                          Money.fromNumWithCurrency(
+                            snapshot.data!.pendingSatoshi.toDouble(),
+                            satoshi,
+                          ).toString(),
+                          bold: true,
                         ),
                       ],
                     ),
@@ -132,18 +117,13 @@ class BalancesView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         SailText.primary13('Total: '),
-                        RichText(
-                          text: TextSpan(
-                            text: Money.fromNumWithCurrency(
-                              snapshot.data!.pendingSatoshi.toDouble() +
-                                  snapshot.data!.confirmedSatoshi.toDouble(),
-                              satoshi,
-                            ).toString(),
-                            style: SailStyleValues.thirteen.copyWith(
-                              color: theme.colors.text,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        SailText.primary13(
+                          Money.fromNumWithCurrency(
+                            snapshot.data!.pendingSatoshi.toDouble() +
+                                snapshot.data!.confirmedSatoshi.toDouble(),
+                            satoshi,
+                          ).toString(),
+                          bold: true,
                         ),
                       ],
                     ),
@@ -158,22 +138,20 @@ class BalancesView extends StatelessWidget {
                   children: [
                     BitcoinPrice(
                       money: Money.fromNumWithCurrency(
-                          50000, CommonCurrencies().usd),
+                        50000,
+                        CommonCurrencies().usd,
+                      ),
                     ),
                     const SizedBox(height: 16.0),
                     // Sum of all balances converted to USD at current BTC price
-                    RichText(
-                      text: TextSpan(
-                        text: Money.fromNumWithCurrency(
-                          (((snapshot.data!.confirmedSatoshi.toInt() +
-                                      snapshot.data!.pendingSatoshi.toInt()) *
-                                  50000) *
-                              0.00000001), // TODO: Get current BTC price
-                          CommonCurrencies().usd,
-                        ).format('S###,###.##'),
-                        style: SailStyleValues.thirteen
-                            .copyWith(color: theme.colors.text),
-                      ),
+                    SailText.primary13(
+                      Money.fromNumWithCurrency(
+                        (((snapshot.data!.confirmedSatoshi.toInt() +
+                                    snapshot.data!.pendingSatoshi.toInt()) *
+                                50000) *
+                            0.00000001), // TODO: Get current BTC price
+                        CommonCurrencies().usd,
+                      ).format('S###,###.##'),
                     ),
                   ],
                 ),
@@ -231,14 +209,8 @@ class BitcoinPrice extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        RichText(
-          text: TextSpan(
-            //text: '${NumberFormat.currency(symbol: '\$').format(price)}/BTC',
-            text: '${money.format('S###,###.##')}/BTC',
-            style: SailStyleValues.thirteen.copyWith(
-              color: SailTheme.of(context).colors.text,
-            ),
-          ),
+        SailText.primary13(
+          '${money.format('S###,###.##')}/BTC',
         ),
         const SizedBox(width: 8.0),
         SailScaleButton(

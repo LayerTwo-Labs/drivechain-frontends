@@ -54,35 +54,18 @@ class SendPage extends StatelessWidget {
               FutureBuilder(
                 future: DrivechainService.of(context).getBalance(),
                 builder: (context, snapshot) {
-                  return RichText(
-                    text: TextSpan(
-                      style: SailStyleValues.twelve.copyWith(
-                        color: SailTheme.of(context).colors.text,
-                      ),
-                      text: 'Balance: ',
-                      children: [
-                        /*TextSpan(
-                          text: Money.fromNumWithCurrency(1000, satoshi).toString(),
-                        ),*/
-                        if (snapshot.hasData)
-                          TextSpan(
-                            text: Money.fromNumWithCurrency(
-                              snapshot.data!.confirmedSatoshi.toDouble() +
-                                  snapshot.data!.pendingSatoshi.toDouble(),
-                              satoshi,
-                            ).toString(),
-                          ),
-                        if (snapshot.hasError)
-                          TextSpan(
-                            text: 'Error: ${snapshot.error}',
-                          ),
-                        if (!snapshot.hasData && !snapshot.hasError)
-                          const TextSpan(
-                            text: 'Loading...',
-                          ),
-                      ],
-                    ),
-                  );
+                  if (snapshot.hasData) {
+                    final balance = Money.fromNumWithCurrency(
+                      snapshot.data!.confirmedSatoshi.toDouble() +
+                          snapshot.data!.pendingSatoshi.toDouble(),
+                      satoshi,
+                    ).toString();
+                    return SailText.primary12('Balance: $balance');
+                  } else if (snapshot.hasError) {
+                    return SailText.primary12('Error: ${snapshot.error}');
+                  } else {
+                    return SailText.primary12('Balance: Loading...');
+                  }
                 },
               ),
             ],
@@ -108,7 +91,9 @@ class SendPage extends StatelessWidget {
                 .map(
                   (child) => Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 4.0, vertical: 2.0,),
+                      horizontal: 4.0,
+                      vertical: 2.0,
+                    ),
                     decoration: const BoxDecoration(
                       border: Border(
                         left: BorderSide(color: Colors.grey),

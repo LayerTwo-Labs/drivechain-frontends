@@ -24,7 +24,7 @@ class SailMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: SailTheme.of(context).colors.popoverBackground,
+        color: context.sailTheme.colors.popoverBackground,
         borderRadius: BorderRadius.all(Radius.circular(context.isWindows ? 3 : 4)),
         boxShadow: const [
           BoxShadow(
@@ -91,18 +91,8 @@ class _SailMenuItemState extends State<SailMenuItem> {
     var menuWidth = menu?.width;
     if (menuWidth != null) menuWidth += menuPadding.horizontal * 2;
 
-    TextStyle textStyle;
-    if (enabled) {
-      textStyle = SailStyleValues.eleven.copyWith(
-        color: (_hover || (_selected && _flashing)) && !context.isWindows ? Colors.white : SailTheme.of(context).colors.text,
-      );
-    } else {
-      textStyle = SailStyleValues.eleven.copyWith(
-        color: SailTheme.of(context).colors.textTertiary,
-      );
-    }
-
-    var highlightColor = context.isWindows ? SailTheme.of(context).colors.text : SailTheme.of(context).colors.primary;
+    var highlightColor = context.isWindows ? context.sailTheme.colors.text : context.sailTheme.colors.primary;
+    var textColor = enabled ? context.sailTheme.colors.text : context.sailTheme.colors.textTertiary;
 
     return MouseRegion(
       onEnter: (_) {
@@ -135,11 +125,15 @@ class _SailMenuItemState extends State<SailMenuItem> {
           child: DefaultTextStyle(
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: textStyle,
+            style: TextStyle(
+              color: textColor,
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(child: widget.child),
+                Expanded(
+                  child: widget.child,
+                ),
               ],
             ),
           ),
@@ -191,14 +185,13 @@ class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       height: _menuDividerHeight,
       padding: EdgeInsets.symmetric(horizontal: context.isWindows ? 8 : 16),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Container(
-          color: SailTheme.of(context).colors.divider,
+          color: context.sailTheme.colors.divider,
           height: 1.0,
         ),
       ),
