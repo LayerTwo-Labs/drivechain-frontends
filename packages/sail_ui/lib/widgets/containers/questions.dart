@@ -120,7 +120,7 @@ class QuestionText extends StatelessWidget {
       padding: const EdgeInsets.only(
         top: SailStyleValues.padding08,
       ),
-      child: SailText.secondary13(text),
+      child: SailText.primary13(text),
     );
   }
 }
