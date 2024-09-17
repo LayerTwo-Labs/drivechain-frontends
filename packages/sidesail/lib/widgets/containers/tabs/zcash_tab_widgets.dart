@@ -7,7 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/sidechains.dart';
+import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
@@ -508,7 +508,7 @@ class MeltAction extends StatelessWidget {
         return DashboardActionModal(
           doEverythingMode ? 'Do everything for me' : 'Melt UTXOs',
           endActionButton: SailButton.primary(
-            'Execute melt, then cast',
+            doEverythingMode ? 'Execute melt, then cast' : 'Execute melt',
             loading: viewModel.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
@@ -519,11 +519,12 @@ class MeltAction extends StatelessWidget {
             },
           ),
           children: [
-            const SailPadding(
-              child: QuestionText(
-                '"Do everything for me" will first melt all your coins, then cast them. The entire process can take up to 7 days.',
+            if (doEverythingMode)
+              const SailPadding(
+                child: QuestionText(
+                  '"Do everything for me" will first melt all your coins, then cast them. The entire process can take up to 7 days.',
+                ),
               ),
-            ),
             const StaticActionField(
               label: 'Melt to',
               value: 'Your Z-address',
