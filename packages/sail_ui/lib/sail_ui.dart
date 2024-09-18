@@ -40,6 +40,7 @@ export './widgets/inputs/dropdown_menu.dart';
 export './widgets/inputs/checkbox.dart';
 export './widgets/inputs/menu.dart';
 export './widgets/inputs/menu_items.dart';
+export './widgets/inputs/radio_button.dart';
 export './widgets/nav/nav_components.dart';
 export './widgets/spacing.dart';
 export './widgets/static/static_field.dart';
