@@ -21,7 +21,9 @@ class SailTextField extends StatelessWidget {
   final TextFieldSize size;
   final void Function(String)? onSubmitted;
   final bool readOnly;
-
+  final bool dense;
+  final bool enabled;
+  
   const SailTextField({
     super.key,
     required this.controller,
@@ -38,6 +40,8 @@ class SailTextField extends StatelessWidget {
     this.focusNode,
     this.onSubmitted,
     this.readOnly = false,
+    this.dense = false,
+    this.enabled = true,
   });
 
   @override
@@ -64,6 +68,8 @@ class SailTextField extends StatelessWidget {
             child: SailText.secondary13(label!),
           ),
         TextField(
+          enabled: enabled,
+          mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
           cursorColor: theme.colors.primary,
           cursorHeight: textSize,
           controller: controller,

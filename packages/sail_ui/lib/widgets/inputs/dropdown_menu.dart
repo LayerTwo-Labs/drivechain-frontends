@@ -12,6 +12,7 @@ class SailDropdownButton<T> extends StatefulWidget {
     ),
     this.width,
     this.large = false,
+    this.enabled = true,
     super.key,
   });
 
@@ -21,7 +22,7 @@ class SailDropdownButton<T> extends StatefulWidget {
   final Widget? icon;
   final double? width;
   final bool large;
-
+  final bool enabled;
   @override
   State<StatefulWidget> createState() => _SailDropdownButtonState<T>();
 }
@@ -59,25 +60,28 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       width: widget.width,
       height: widget.large ? 32 : 24,
       child: _Button(
+        enabled: widget.enabled,
         large: widget.large,
         padding: EdgeInsets.only(
           left: 8,
           right: widget.icon == null ? 8 : 4,
         ),
-        onPressed: () {
-          var bounds = getGlobalBoundsForContext(context);
-          showSailMenu(
-            context: context,
-            preferredAnchorPoint: Offset(
-              bounds.left - (context.isWindows ? 1 : 9),
-              bounds.top - offsetY - 3,
-            ),
-            menu: SailMenu(
-              items: items,
-              width: widget.width,
-            ),
-          );
-        },
+        onPressed: widget.enabled
+            ? () {
+                var bounds = getGlobalBoundsForContext(context);
+                showSailMenu(
+                  context: context,
+                  preferredAnchorPoint: Offset(
+                    bounds.left - (context.isWindows ? 1 : 9),
+                    bounds.top - offsetY - 3,
+                  ),
+                  menu: SailMenu(
+                    items: items,
+                    width: widget.width,
+                  ),
+                );
+              }
+            : null,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           mainAxisSize: MainAxisSize.max,
@@ -119,7 +123,7 @@ class _Button extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
   final bool large;
-
+  final bool enabled;
   const _Button({
     required this.onPressed,
     required this.child,
@@ -128,13 +132,14 @@ class _Button extends StatelessWidget {
       vertical: 0,
     ),
     required this.large,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
     Color textColor;
     final sailTheme = context.sailTheme;
-    if (onPressed != null) {
+    if (onPressed != null && enabled) {
       textColor = sailTheme.colors.text;
     } else {
       textColor = sailTheme.colors.textTertiary;
@@ -144,12 +149,13 @@ class _Button extends StatelessWidget {
       height: large ? 32 : 24,
       child: MaterialButton(
         // textTheme: textTheme,
-        color: sailTheme.colors.background,
+        mouseCursor: enabled ? WidgetStateMouseCursor.clickable : SystemMouseCursors.forbidden,
+        color: enabled ? sailTheme.colors.background : sailTheme.colors.disabledBackground,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(context.isWindows ? 3 : 4)),
           side: BorderSide(
-            color: sailTheme.colors.divider,
-            width: 0.5,
+            color: sailTheme.colors.formFieldBorder,
+            width: 1,
           ),
         ),
         onPressed: onPressed,
