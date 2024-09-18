@@ -17,108 +17,115 @@ class SendPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return QtPage(
-      child: ViewModelBuilder<SendPageViewModel>.reactive(
-        viewModelBuilder: () => SendPageViewModel(),
-        onViewModelReady: (model) => model.init(),
-        builder: (context, model, child) {
-          return Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 12.0,
-                    right: 12.0,
-                    top: 12.0,
-                    bottom: 4.0,
-                  ),
-                  child: QtContainer(
-                    child: SendDetailsForm(model: model),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 12.0,
-                    right: 12.0,
-                    top: 12.0,
-                    bottom: 4.0,
-                  ),
-                  child: QtContainer(
-                    child: TransactionFeeForm(model: model),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12.0,
-                  vertical: 16.0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+    return Column(
+      children: [
+        Expanded(
+          child: QtPage(
+            child: ViewModelBuilder<SendPageViewModel>.reactive(
+              viewModelBuilder: () => SendPageViewModel(),
+              onViewModelReady: (model) => model.init(),
+              builder: (context, model, child) {
+                return Column(
+                  mainAxisSize: MainAxisSize.max,
                   children: [
-                    const Row(),
-                    // Balance
-                    FutureBuilder(
-                      future: api.getBalance(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          final balance = Money.fromNumWithCurrency(
-                            snapshot.data!.confirmedSatoshi.toDouble() +
-                                snapshot.data!.pendingSatoshi.toDouble(),
-                            satoshi,
-                          ).toString();
-                          return SailText.primary12('Balance: $balance');
-                        } else if (snapshot.hasError) {
-                          return SailText.primary12('Error: ${snapshot.error}');
-                        } else {
-                          return SailText.primary12('Balance: Loading...');
-                        }
-                      },
+                    Expanded(
+                      child: QtContainer(
+                        child: SendDetailsForm(model: model),
+                      ),
+                    ),
+                    const SizedBox(height: SailStyleValues.padding08),
+                    Expanded(
+                      child: QtContainer(
+                        child: TransactionFeeForm(model: model),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: SailStyleValues.padding08,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              QtButton(
+                                onPressed: model.sendTransaction,
+                                child: SailText.primary12('Send'),
+                              ),
+                              const SizedBox(width: SailStyleValues.padding08),
+                              QtButton(
+                                onPressed: model.clearAll,
+                                child: SailText.primary12('Clear All'),
+                              ),
+                              const SizedBox(width: SailStyleValues.padding08),
+                              QtButton(
+                                onPressed: model.addRecipient,
+                                child: SailText.primary12('Add Recipient'),
+                              ),
+                            ],
+                          ),
+                          // Balance
+                          FutureBuilder(
+                            future: api.getBalance(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                final balance = Money.fromNumWithCurrency(
+                                  snapshot.data!.confirmedSatoshi.toDouble() + snapshot.data!.pendingSatoshi.toDouble(),
+                                  satoshi,
+                                ).toString();
+                                return SailText.primary12('Balance: $balance');
+                              } else if (snapshot.hasError) {
+                                return SailText.primary12('Error: ${snapshot.error}');
+                              } else {
+                                return SailText.primary12('Balance: Loading...');
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                ),
+                );
+              },
+            ),
+          ),
+        ),
+        DecoratedBox(
+          decoration: const BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: Colors.grey,
               ),
-              DecoratedBox(
-                decoration: const BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.grey,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            // Add a left border to every child
+            children: [
+              // TODO: Get actual info from the node
+              SailText.primary12('195755 blocks'),
+              SailText.primary12('1 peer'),
+              SailText.primary12('Last block: 6 days ago'),
+            ]
+                .map(
+                  (child) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4.0,
+                      vertical: 2.0,
                     ),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        left: BorderSide(color: Colors.grey),
+                      ),
+                    ),
+                    child: child,
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  // Add a left border to every child
-                  children: [
-                    // TODO: Get actual info from the node
-                    SailText.primary12('195755 blocks'),
-                    SailText.primary12('1 peer'),
-                    SailText.primary12('Last block: 6 days ago'),
-                  ]
-                      .map(
-                        (child) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4.0,
-                            vertical: 2.0,
-                          ),
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              left: BorderSide(color: Colors.grey),
-                            ),
-                          ),
-                          child: child,
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+                )
+                .toList(),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -149,8 +156,7 @@ class SendDetailsForm extends StatelessWidget {
             Expanded(
               child: SailTextField(
                 controller: model.addressController,
-                hintText:
-                    'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                hintText: 'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
                 size: TextFieldSize.small,
               ),
             ),
@@ -171,8 +177,7 @@ class SendDetailsForm extends StatelessWidget {
                   await SystemClipboard.instance?.read().then((reader) async {
                     if (reader.canProvide(Formats.plainText)) {
                       final text = await reader.readValue(Formats.plainText);
-                      model.addressController.text =
-                          text ?? model.addressController.text;
+                      model.addressController.text = text ?? model.addressController.text;
                     }
                   });
                 } else {
@@ -210,8 +215,7 @@ class SendDetailsForm extends StatelessWidget {
             Expanded(
               child: SailTextField(
                 controller: model.labelController,
-                hintText:
-                    'Enter a label for this address to add it to your address book',
+                hintText: 'Enter a label for this address to add it to your address book',
                 size: TextFieldSize.small,
               ),
             ),
@@ -260,24 +264,10 @@ class SendDetailsForm extends StatelessWidget {
                   ),
                   QtButton(
                     onPressed: model.onUseAvailableBalance,
-                    child: const Text('Use available balance'),
+                    child: SailText.primary12('Use available balance'),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16.0),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            QtButton(
-              onPressed: model.clearAll,
-              child: const Text('Clear All'),
-            ),
-            QtButton(
-              onPressed: model.sendTransaction,
-              child: const Text('Send'),
             ),
           ],
         ),
@@ -296,9 +286,19 @@ class TransactionFeeForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.primary12(
-          'Transaction Fee:',
-          bold: true,
+        Row(
+          children: [
+            SailText.primary12(
+              'Transaction Fee:',
+              bold: true,
+            ),
+            const SizedBox(width: SailStyleValues.padding08),
+            SailText.primary12(
+              'Warning: Fee estimation is currently not possible.',
+              bold: true,
+              color: context.sailTheme.colors.primary,
+            ),
+          ],
         ),
         const SizedBox(height: 16.0),
         Row(
@@ -326,7 +326,7 @@ class TransactionFeeForm extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8.0),
+                    const SizedBox(height: SailStyleValues.padding08),
                     Row(
                       children: [
                         SailText.primary12('Confirmation time target:'),
@@ -338,11 +338,11 @@ class TransactionFeeForm extends StatelessWidget {
                             return SailDropdownItem(
                               value: target,
                               child: SailText.primary12(
-                                  model.getConfirmationTargetLabel(target)),
+                                model.getConfirmationTargetLabel(target),
+                              ),
                             );
                           }).toList(),
-                          onChanged: (value) =>
-                              model.setConfirmationTarget(value),
+                          onChanged: (value) => model.setConfirmationTarget(value),
                           value: model.confirmationTarget,
                         ),
                       ],
@@ -374,30 +374,28 @@ class TransactionFeeForm extends StatelessWidget {
                       Row(
                         children: [
                           SailText.primary12('Per kB:'),
-                          const SizedBox(width: 8.0),
+                          const SizedBox(width: SailStyleValues.padding08),
                           Expanded(
                             flex: 2,
                             child: NumericField(
                               controller: model.customFeeController,
                               hintText: 'Custom fee',
-                              enabled: model.feeType == 'custom' &&
-                                  !model.useMinimumFee,
+                              enabled: model.feeType == 'custom' && !model.useMinimumFee,
                             ),
                           ),
-                          const SizedBox(width: 8.0),
+                          const SizedBox(width: SailStyleValues.padding08),
                           Expanded(
                             flex: 1,
                             child: UnitDropdown(
                               value: model.feeUnit,
                               onChanged: model.onFeeUnitChanged,
-                              enabled: model.feeType == 'custom' &&
-                                  !model.useMinimumFee,
+                              enabled: model.feeType == 'custom' && !model.useMinimumFee,
                             ),
                           ),
                           const SizedBox(width: 16.0),
                         ],
                       ),
-                      const SizedBox(height: 8.0),
+                      const SizedBox(height: SailStyleValues.padding08),
                       Row(
                         children: [
                           Tooltip(
@@ -412,13 +410,9 @@ Drivechain transactions than the
 network can process.''',
                             child: SailCheckbox(
                               value: model.useMinimumFee,
-                              onChanged: model.feeType == 'custom'
-                                  ? model.setUseMinimumFee
-                                  : null,
-                              label:
-                                  'Pay only the require fee of 10.00 bits/kB (read the tooltip)',
-                              enabled: model.feeType == 'custom' &&
-                                  !model.useMinimumFee,
+                              onChanged: model.feeType == 'custom' ? model.setUseMinimumFee : null,
+                              label: 'Pay only the required fee of 10.00 bits/kB (read the tooltip)',
+                              enabled: model.feeType == 'custom' && !model.useMinimumFee,
                             ),
                           ),
                         ],
@@ -548,9 +542,7 @@ class _NumericFieldState extends State<NumericField> {
       size: TextFieldSize.small,
       dense: true,
       enabled: widget.enabled,
-      onSubmitted: widget.onSubmitted != null
-          ? (value) => widget.onSubmitted!(value)
-          : null,
+      onSubmitted: widget.onSubmitted != null ? (value) => widget.onSubmitted!(value) : null,
     );
   }
 }
@@ -631,8 +623,8 @@ class QtButton extends StatelessWidget {
     required this.onPressed,
     required this.child,
     this.padding = const EdgeInsets.symmetric(
-      horizontal: SailStyleValues.padding15,
-      vertical: 0.0,
+      horizontal: SailStyleValues.padding30,
+      vertical: SailStyleValues.padding10,
     ),
     this.large = false,
     this.important = false,
@@ -641,15 +633,29 @@ class QtButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: large ? 32 : 24,
-      child: SailRawButton(
-        disabled: !enabled,
-        loading: false,
-        onPressed: enabled ? onPressed : null,
-        padding: padding,
-        child: child,
+    final color = enabled ? context.sailTheme.colors.background : context.sailTheme.colors.disabledBackground;
+    return RawMaterialButton(
+      mouseCursor: enabled ? WidgetStateMouseCursor.clickable : SystemMouseCursors.forbidden,
+      fillColor: color,
+      elevation: 0.0,
+      focusElevation: 0.0,
+      hoverElevation: 0.0,
+      hoverColor: color,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6.0),
+        side: BorderSide(
+          color: context.sailTheme.colors.formFieldBorder,
+          width: 0.5,
+        ),
       ),
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(
+        minWidth: 24,
+        minHeight: 24,
+      ),
+      onPressed: enabled ? onPressed : null,
+      padding: padding,
+      child: child,
     );
   }
 }
@@ -788,8 +794,10 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   void sendTransaction() {
-    // Implement the logic to send the transaction
-    // This should use the values from all form fields, including the new fee-related fields
-    // You'll need to integrate this with your DrivechainService
+    // TODO: Implement the logic to send the transaction
+  }
+
+  void addRecipient() {
+    // TODO: Implement the logic to add a recipient
   }
 }
