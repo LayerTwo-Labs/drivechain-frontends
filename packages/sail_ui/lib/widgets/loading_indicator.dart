@@ -39,7 +39,7 @@ class LoadingIndicator extends StatelessWidget {
           child: Stack(
             children: [
               Center(
-                child: LoadingIndicator(color: theme.colors.background),
+                child: LoadingIndicator(color: theme.colors.text),
               ),
               const AbsorbPointer(),
             ],

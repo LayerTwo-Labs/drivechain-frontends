@@ -188,14 +188,17 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final disabled = widget.loading || widget.disabled || widget.onPressed == null;
-    final backgroundColor = widget.backgroundColor ?? theme.colors.backgroundSecondary;
+    final backgroundColor = widget.backgroundColor ?? theme.colors.chip;
 
+    // TODO: Actually use this
     Color textColor;
     if (!disabled && widget.onPressed != null) {
       textColor = SailTheme.of(context).colors.textTertiary;
     } else {
       textColor = SailTheme.of(context).colors.text;
     }
+
+    final color = disabled ? backgroundColor : theme.colors.disabledBackground;
 
     return MaterialButton(
       mouseCursor: disabled ? SystemMouseCursors.forbidden : WidgetStateMouseCursor.clickable,
@@ -206,7 +209,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
       enableFeedback: !widget.disabled,
       textColor: textColor,
       splashColor: theme.colors.primary,
-      hoverColor: theme.colors.primary,
+      hoverColor: color,
       padding: widget.padding,
       elevation: 0,
       hoverElevation: 0,
@@ -214,6 +217,10 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
       minWidth: theme.dense ? 24 : 32,
       shape: RoundedRectangleBorder(
         borderRadius: SailStyleValues.borderRadiusButton,
+        side: BorderSide(
+          color: context.sailTheme.colors.formFieldBorder,
+          width: 0.5,
+        ),
       ),
       child: Stack(
         alignment: Alignment.center,
