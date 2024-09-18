@@ -33,24 +33,6 @@ class FaucetViewModel extends BaseViewModel {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
   }
 
-  Widget themeIcon(SailThemeData? currentTheme) {
-    SailSVGAsset icon;
-    if (theme == SailThemeValues.system) {
-      if (currentTheme == null || currentTheme.name == 'light') {
-        // what, default to sun
-        icon = SailSVGAsset.iconLightMode;
-      } else {
-        icon = SailSVGAsset.iconDarkMode;
-      }
-    } else if (theme == SailThemeValues.light) {
-      icon = SailSVGAsset.iconLightMode;
-    } else {
-      icon = SailSVGAsset.iconDarkMode;
-    }
-
-    return SailSVG.fromAsset(icon);
-  }
-
   void _capAmount() {
     const maxAmount = 1;
     String currentInput = amountController.text;
@@ -61,12 +43,6 @@ class FaucetViewModel extends BaseViewModel {
     } else {
       notifyListeners();
     }
-  }
-
-  void setTheme(SailThemeValues newTheme) async {
-    theme = newTheme;
-    await _clientSettings.setValue(ThemeSetting().withValue(theme));
-    notifyListeners();
   }
 
   void setHideDeposits(bool to) {
@@ -107,7 +83,6 @@ class FaucetPage extends StatefulWidget {
 class _FaucetPageState extends State<FaucetPage> {
   @override
   Widget build(BuildContext context) {
-    final app = SailApp.of(context);
     final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
@@ -119,22 +94,7 @@ class _FaucetPageState extends State<FaucetPage> {
             backgroundColor: theme.colors.background,
             title: SailText.primary22(widget.title),
             actions: [
-              SailScaleButton(
-                onPressed: () {
-                  SailThemeValues nextTheme = viewModel.theme.toggleTheme();
-                  viewModel.setTheme(nextTheme);
-                  app.loadTheme(nextTheme);
-                },
-                child: Tooltip(
-                  message: 'Current theme: ${viewModel.theme.toReadable()}',
-                  child: SailPadding(
-                    padding: const EdgeInsets.only(
-                      right: SailStyleValues.padding10,
-                    ),
-                    child: viewModel.themeIcon(app.theme),
-                  ),
-                ),
-              ),
+              ToggleThemeButton(),
             ],
           ),
           body: SingleChildScrollView(

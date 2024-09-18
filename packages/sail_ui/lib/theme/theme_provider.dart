@@ -24,7 +24,7 @@ class SailThemeProvider extends StatefulWidget {
 
 class SailThemeProviderState extends State<SailThemeProvider> {
   SailThemeData theme = SailThemeData(
-    name: 'light',
+    type: SailThemeValues.light,
     dense: false,
     colors: SailColor.lightTheme(SailColorScheme.orange),
   );
