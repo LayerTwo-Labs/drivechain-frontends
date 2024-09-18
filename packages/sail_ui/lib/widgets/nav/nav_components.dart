@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/nav/top_nav.dart';
 
 class NavEntry extends StatefulWidget {
   final String title;
@@ -69,7 +70,7 @@ class _NavEntryState extends State<NavEntry> {
 
 class NavContainer extends StatelessWidget {
   final String title;
-  final List<NavEntry> subs;
+  final List<QtTab> subs;
 
   const NavContainer({
     super.key,
@@ -79,20 +80,25 @@ class NavContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding10,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SailText.secondary12(title),
-        SailRow(
-          spacing: 0,
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final sub in subs) sub,
-          ],
-        ),
-      ],
+    return SailPadding(
+      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding08),
+      child: SailColumn(
+        spacing: 0,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SailSpacing(SailStyleValues.padding08 / 2),
+          SailText.secondary12(title),
+          const SailSpacing(SailStyleValues.padding08),
+          SailRow(
+            spacing: 0,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final sub in subs) sub,
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

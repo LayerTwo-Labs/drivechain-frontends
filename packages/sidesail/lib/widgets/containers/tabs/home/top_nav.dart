@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
@@ -38,75 +39,66 @@ class _TopNavState extends State<TopNav> {
 
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: SailStyleValues.padding15,
-              ),
-              child: SailRow(
-                spacing: SailStyleValues.padding20,
-                children: [
-                  Expanded(child: Container()),
-                  NavContainer(
-                    title: 'Parent Chain',
-                    subs: [
-                      NavEntry(
-                        title: 'Deposit/Withdraw',
-                        selected: tabsRouter.activeIndex == Tabs.ParentChainPeg.index,
-                        onPressed: () {
-                          tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+            SailRow(
+              spacing: 0,
+              children: [
+                NavContainer(
+                  title: 'Parent Chain',
+                  subs: [
+                    QtTab(
+                      label: 'Deposit/Withdraw',
+                      active: tabsRouter.activeIndex == Tabs.ParentChainPeg.index,
+                      onTap: () {
+                        tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+                      },
+                      icon: SailSVG.icon(SailSVGAsset.iconTabPeg),
+                    ),
+                    if (_sidechain.rpc.chain.type == ChainType.testChain)
+                      QtTab(
+                        label: 'Withdrawal Explorer',
+                        active: tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.ParentChainWithdrawalExplorer.index);
                         },
-                        icon: SailSVGAsset.iconTabPeg,
+                        icon: SailSVG.icon(SailSVGAsset.iconTabWithdrawalExplorer),
                       ),
-                      if (_sidechain.rpc.chain.type == ChainType.testChain)
-                        NavEntry(
-                          title: 'Withdrawal Explorer',
-                          selected: tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
-                          onPressed: () {
-                            tabsRouter.setActiveIndex(Tabs.ParentChainWithdrawalExplorer.index);
-                          },
-                          icon: SailSVGAsset.iconTabWithdrawalExplorer,
-                        ),
-                      if (_sidechain.rpc.chain.type == ChainType.testChain)
-                        NavEntry(
-                          title: 'Blind Merged Mining',
-                          selected: tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
-                          onPressed: () {
-                            tabsRouter.setActiveIndex(Tabs.ParentChainBMM.index);
-                          },
-                          icon: SailSVGAsset.iconTabBMM,
-                        ),
-                    ],
-                  ),
-                  Expanded(
-                    child: SizedBox(
-                      height: 60,
-                      child: VerticalDivider(
-                        width: 1,
-                        thickness: 1,
-                        color: theme.colors.icon.withOpacity(0.2),
+                    if (_sidechain.rpc.chain.type == ChainType.testChain)
+                      QtTab(
+                        label: 'Blind Merged Mining',
+                        active: tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.ParentChainBMM.index);
+                        },
+                        icon: SailSVG.icon(SailSVGAsset.iconTabBMM),
                       ),
-                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: 50,
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: theme.colors.icon.withOpacity(0.2),
                   ),
-                  NavContainer(
-                    title: 'Sidechain',
-                    subs: sidechainNav,
+                ),
+                NavContainer(
+                  title: 'Sidechain',
+                  subs: sidechainNav,
+                ),
+                SizedBox(
+                  height: 50,
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: theme.colors.icon.withOpacity(0.2),
                   ),
-                  Expanded(
-                    child: SizedBox(
-                      height: 60,
-                      child: VerticalDivider(
-                        width: 1,
-                        thickness: 1,
-                        color: theme.colors.icon.withOpacity(0.2),
-                      ),
-                    ),
-                  ),
-                  NavContainer(
-                    title: 'General',
-                    subs: trailingSidechainNav,
-                  ),
-                ],
-              ),
+                ),
+                NavContainer(
+                  title: 'General',
+                  subs: trailingSidechainNav,
+                ),
+                Expanded(child: Container()),
+              ],
             ),
             Divider(
               height: 1,
@@ -122,7 +114,7 @@ class _TopNavState extends State<TopNav> {
     );
   }
 
-  List<NavEntry> _navForSidechain(
+  List<QtTab> _navForSidechain(
     Sidechain chain,
     TopNavViewModel viewModel,
     auto_router.TabsRouter tabsRouter,
@@ -130,60 +122,60 @@ class _TopNavState extends State<TopNav> {
     switch (chain.type) {
       case ChainType.testChain:
         return [
-          NavEntry(
-            title: 'Send',
-            selected: tabsRouter.activeIndex == Tabs.SidechainSend.index,
-            onPressed: () {
+          QtTab(
+            label: 'Send',
+            active: tabsRouter.activeIndex == Tabs.SidechainSend.index,
+            onTap: () {
               tabsRouter.setActiveIndex(Tabs.SidechainSend.index);
             },
-            icon: SailSVGAsset.iconTabSidechainSend,
+            icon: SailSVG.icon(SailSVGAsset.iconTabSidechainSend),
           ),
         ];
       case ChainType.ethereum:
         return [
-          NavEntry(
-            title: 'Console',
-            selected: tabsRouter.activeIndex == Tabs.EthereumConsole.index,
-            onPressed: () {
+          QtTab(
+            label: 'Console',
+            active: tabsRouter.activeIndex == Tabs.EthereumConsole.index,
+            onTap: () {
               tabsRouter.setActiveIndex(Tabs.EthereumConsole.index);
             },
-            icon: SailSVGAsset.iconTabConsole,
+            icon: SailSVG.icon(SailSVGAsset.iconTabConsole),
           ),
         ];
 
       case ChainType.zcash:
         return [
-          NavEntry(
-            title: 'Send',
-            selected: tabsRouter.activeIndex == Tabs.ZCashTransfer.index,
-            onPressed: () {
+          QtTab(
+            label: 'Send',
+            active: tabsRouter.activeIndex == Tabs.ZCashTransfer.index,
+            onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashTransfer.index);
             },
-            icon: SailSVGAsset.iconTabSidechainSend,
+            icon: SailSVG.icon(SailSVGAsset.iconTabSidechainSend),
           ),
-          NavEntry(
-            title: 'Shield/Deshield',
-            selected: tabsRouter.activeIndex == Tabs.ZCashShieldDeshield.index,
-            onPressed: () {
+          QtTab(
+            label: 'Shield/Deshield',
+            active: tabsRouter.activeIndex == Tabs.ZCashShieldDeshield.index,
+            onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
             },
-            icon: SailSVGAsset.iconTabZCashShieldDeshield,
+            icon: SailSVG.icon(SailSVGAsset.iconTabZCashShieldDeshield),
           ),
-          NavEntry(
-            title: 'Melt/Cast',
-            selected: tabsRouter.activeIndex == Tabs.ZCashMeltCast.index,
-            onPressed: () {
+          QtTab(
+            label: 'Melt/Cast',
+            active: tabsRouter.activeIndex == Tabs.ZCashMeltCast.index,
+            onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
             },
-            icon: SailSVGAsset.iconTabZCashMeltCast,
+            icon: SailSVG.icon(SailSVGAsset.iconTabZCashMeltCast),
           ),
-          NavEntry(
-            title: 'Operation Statuses',
-            selected: tabsRouter.activeIndex == Tabs.ZCashOperationStatuses.index,
-            onPressed: () {
+          QtTab(
+            label: 'Operation Statuses',
+            active: tabsRouter.activeIndex == Tabs.ZCashOperationStatuses.index,
+            onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashOperationStatuses.index);
             },
-            icon: SailSVGAsset.iconTabZCashOperationStatuses,
+            icon: SailSVG.icon(SailSVGAsset.iconTabZCashOperationStatuses),
           ),
         ];
 
@@ -192,23 +184,23 @@ class _TopNavState extends State<TopNav> {
     }
   }
 
-  List<NavEntry> _navForSidechainTrailing(
+  List<QtTab> _navForSidechainTrailing(
     Chain chain,
     TopNavViewModel viewModel,
     auto_router.TabsRouter tabsRouter,
   ) {
-    List<NavEntry> trailing = [];
+    List<QtTab> trailing = [];
 
     switch (chain.type) {
       case ChainType.testChain:
         trailing = [
-          NavEntry(
-            title: 'Console',
-            selected: tabsRouter.activeIndex == Tabs.TestchainConsole.index,
-            onPressed: () {
+          QtTab(
+            label: 'Console',
+            active: tabsRouter.activeIndex == Tabs.TestchainConsole.index,
+            onTap: () {
               tabsRouter.setActiveIndex(Tabs.TestchainConsole.index);
             },
-            icon: SailSVGAsset.iconTabConsole,
+            icon: SailSVG.icon(SailSVGAsset.iconTabConsole),
           ),
         ];
         break;
@@ -218,13 +210,13 @@ class _TopNavState extends State<TopNav> {
 
       case ChainType.zcash:
         trailing = [
-          NavEntry(
-            title: 'Console',
-            selected: tabsRouter.activeIndex == Tabs.ZCashConsole.index,
-            onPressed: () {
+          QtTab(
+            label: 'Console',
+            active: tabsRouter.activeIndex == Tabs.ZCashConsole.index,
+            onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashConsole.index);
             },
-            icon: SailSVGAsset.iconTabConsole,
+            icon: SailSVG.icon(SailSVGAsset.iconTabConsole),
           ),
         ];
         break;
@@ -235,14 +227,14 @@ class _TopNavState extends State<TopNav> {
 
     return [
       ...trailing,
-      NavEntry(
-        title: 'Settings',
-        selected: tabsRouter.activeIndex == Tabs.SettingsHome.index,
-        onPressed: () {
+      QtTab(
+        label: 'Settings',
+        active: tabsRouter.activeIndex == Tabs.SettingsHome.index,
+        onTap: () {
           // default to second to last route (node settings)
           tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
         },
-        icon: SailSVGAsset.iconTabSettings,
+        icon: SailSVG.icon(SailSVGAsset.iconTabSettings),
       ),
     ];
   }
