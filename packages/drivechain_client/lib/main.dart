@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drivechain_client/address_book.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,10 @@ void main() async {
       host: env(Environment.drivechainHost),
       port: env(Environment.drivechainPort),
     ),
+  );
+
+  GetIt.I.registerLazySingleton<AddressBook>(
+    () => SharedPreferencesAddressBook(prefs),
   );
 
   return runApp(

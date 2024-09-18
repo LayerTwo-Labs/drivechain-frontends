@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/util/currencies.dart';
+import 'package:drivechain_client/widgets/address_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -162,9 +163,7 @@ class SendDetailsForm extends StatelessWidget {
             ),
             const SizedBox(width: 4.0),
             QtIconButton(
-              onPressed: () {
-                showSnackBar(context, 'Not implemented');
-              },
+              onPressed: () => model.onAddressBookPressed(context),
               icon: const Icon(
                 Icons.contacts_outlined,
                 size: 20.0,
@@ -640,6 +639,8 @@ class QtButton extends StatelessWidget {
       elevation: 0.0,
       focusElevation: 0.0,
       hoverElevation: 0.0,
+      highlightElevation: 0.0,
+      splashColor: Colors.transparent,
       hoverColor: color,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(6.0),
@@ -776,6 +777,14 @@ class SendPageViewModel extends BaseViewModel {
         return '7 days (1008 blocks)';
       default:
         return '$target minutes';
+    }
+  }
+
+  Future<void> onAddressBookPressed(BuildContext context) async {
+    final address = await showAddressBookModal(context);
+    if (address != null) {
+      addressController.text = address.address;
+      labelController.text = address.label;
     }
   }
 
