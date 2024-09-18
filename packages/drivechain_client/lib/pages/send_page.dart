@@ -6,8 +6,8 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:super_clipboard/super_clipboard.dart';
 import 'package:stacked/stacked.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 @RoutePage()
 class SendPage extends StatelessWidget {
@@ -165,9 +165,10 @@ class SendDetailsForm extends StatelessWidget {
               onPressed: () {
                 showSnackBar(context, 'Not implemented');
               },
-              icon: const Icon(
+              icon: Icon(
                 Icons.contacts_outlined,
                 size: 20.0,
+                color: context.sailTheme.colors.text,
               ),
             ),
             const SizedBox(width: 4.0),
@@ -184,17 +185,19 @@ class SendDetailsForm extends StatelessWidget {
                   showSnackBar(context, 'Clipboard not available');
                 }
               },
-              icon: const Icon(
+              icon: Icon(
                 Icons.content_paste_rounded,
                 size: 20.0,
+                color: context.sailTheme.colors.text,
               ),
             ),
             const SizedBox(width: 4.0),
             QtIconButton(
               onPressed: () => model.clearAddress(),
-              icon: const Icon(
+              icon: Icon(
                 Icons.cancel_outlined,
                 size: 20.0,
+                color: context.sailTheme.colors.text,
               ),
             ),
           ],
