@@ -188,7 +188,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final disabled = widget.loading || widget.disabled || widget.onPressed == null;
-    final backgroundColor = widget.backgroundColor ?? theme.colors.backgroundSecondary;
+    final backgroundColor = widget.backgroundColor ?? theme.colors.chip;
 
     Color textColor;
     if (!disabled && widget.onPressed != null) {

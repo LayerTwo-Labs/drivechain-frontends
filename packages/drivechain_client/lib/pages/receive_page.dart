@@ -1,7 +1,9 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/pages/send_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -12,6 +14,8 @@ class ReceivePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return QtPage(
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => ReceivePageViewModel(),
@@ -27,7 +31,8 @@ class ReceivePage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: QtContainer(
-                        child: Column(
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding05,
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -50,15 +55,17 @@ class ReceivePage extends StatelessWidget {
                                       if (context.mounted) showSnackBar(context, 'Could not copy address: $error ');
                                     });
                                   },
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.content_paste_rounded,
-                                    size: 20.0,
+                                    size: 15,
+                                    color: theme.colors.text,
                                   ),
                                 ),
                               ],
                             ),
                             QtButton(
                               onPressed: viewModel.generateNewAddress,
+                              loading: viewModel.isBusy,
                               child: SailText.primary12('New'),
                             ),
                           ],
@@ -66,6 +73,8 @@ class ReceivePage extends StatelessWidget {
                       ),
                     ),
                     QrImageView(
+                      eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
+                      dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
                       data: viewModel.addressController.text,
                       version: QrVersions.auto,
                       size: 200.0,
@@ -82,10 +91,12 @@ class ReceivePage extends StatelessWidget {
 }
 
 class ReceivePageViewModel extends BaseViewModel {
-  late TextEditingController addressController;
+  final API api = GetIt.I.get<API>();
+
+  TextEditingController addressController = TextEditingController();
 
   void init() {
-    addressController = TextEditingController(text: '1KwVGQhtYkrbNgHpSUjUpbrfCGu9WXgZhS');
+    generateNewAddress();
   }
 
   @override
@@ -94,8 +105,11 @@ class ReceivePageViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  void generateNewAddress() {
-    addressController.text = 'NewGeneratedAddress';
+  void generateNewAddress() async {
+    setBusy(true);
+    final address = await api.getNewAddress();
+    addressController.text = address;
+    setBusy(false);
     notifyListeners();
   }
 }

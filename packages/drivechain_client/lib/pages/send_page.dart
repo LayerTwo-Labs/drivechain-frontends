@@ -6,8 +6,8 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:super_clipboard/super_clipboard.dart';
 import 'package:stacked/stacked.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 @RoutePage()
 class SendPage extends StatelessWidget {
@@ -617,6 +617,7 @@ class QtButton extends StatelessWidget {
   final bool large;
   final bool important;
   final bool enabled;
+  final bool loading;
 
   const QtButton({
     super.key,
@@ -629,6 +630,7 @@ class QtButton extends StatelessWidget {
     this.large = false,
     this.important = false,
     this.enabled = true,
+    this.loading = false,
   });
 
   @override
