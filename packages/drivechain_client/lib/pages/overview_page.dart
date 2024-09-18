@@ -1,7 +1,8 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:drivechain_client/service.dart';
+import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/util/currencies.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -11,16 +12,16 @@ class OverviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(
+    return Padding(
+      padding: const EdgeInsets.symmetric(
         horizontal: 12.0,
         vertical: 12.0,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ExperimentalBanner(),
-          SizedBox(height: 16.0),
+          const ExperimentalBanner(),
+          const SizedBox(height: 16.0),
           BalancesView(),
         ],
       ),
@@ -49,12 +50,14 @@ class ExperimentalBanner extends StatelessWidget {
 }
 
 class BalancesView extends StatelessWidget {
-  const BalancesView({super.key});
+  final API api = GetIt.I.get<API>();
+
+  BalancesView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: DrivechainService.of(context).getBalance(),
+      future: api.getBalance(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return SailText.primary12(snapshot.error.toString());
@@ -118,8 +121,7 @@ class BalancesView extends StatelessWidget {
                         SailText.primary13('Total: '),
                         SailText.primary13(
                           Money.fromNumWithCurrency(
-                            snapshot.data!.pendingSatoshi.toDouble() +
-                                snapshot.data!.confirmedSatoshi.toDouble(),
+                            snapshot.data!.pendingSatoshi.toDouble() + snapshot.data!.confirmedSatoshi.toDouble(),
                             satoshi,
                           ).toString(),
                           bold: true,
@@ -145,9 +147,7 @@ class BalancesView extends StatelessWidget {
                     // Sum of all balances converted to USD at current BTC price
                     SailText.primary13(
                       Money.fromNumWithCurrency(
-                        (((snapshot.data!.confirmedSatoshi.toInt() +
-                                    snapshot.data!.pendingSatoshi.toInt()) *
-                                50000) *
+                        (((snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt()) * 50000) *
                             0.00000001), // TODO: Get current BTC price
                         CommonCurrencies().usd,
                       ).format('S###,###.##'),
@@ -158,8 +158,7 @@ class BalancesView extends StatelessWidget {
             ],
           );
         }
-        return const CircularProgressIndicator
-            .adaptive(); // TODO: Skeleton loading?
+        return const CircularProgressIndicator.adaptive(); // TODO: Skeleton loading?
       },
     );
   }
