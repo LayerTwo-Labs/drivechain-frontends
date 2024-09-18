@@ -22,6 +22,7 @@ class SailColor {
   final Color success;
   final Color info;
   final Color yellow;
+  final Color disabledBackground;
 
   final Color actionHeader;
   final Color chip;
@@ -48,6 +49,7 @@ class SailColor {
     required this.yellow,
     required this.actionHeader,
     required this.chip,
+    required this.disabledBackground,
   });
 
   factory SailColor.lightTheme(Color primary) {
@@ -73,6 +75,7 @@ class SailColor {
       actionHeader: SailColorScheme.whiteDark,
       chip: SailColorScheme.greyMiddle.withOpacity(0.21),
       popoverBackground: SailColorScheme.white,
+      disabledBackground: SailColorScheme.greyLight.withOpacity(0.1),
     );
   }
   factory SailColor.darkTheme(Color primary) {
@@ -98,6 +101,7 @@ class SailColor {
       yellow: SailColorScheme.yellow,
       chip: SailColorScheme.darkChip,
       popoverBackground: SailColorScheme.darkBackground,
+      disabledBackground: SailColorScheme.whiteDark,
     );
   }
 }
