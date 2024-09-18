@@ -38,7 +38,7 @@ class _SailCheckboxState extends State<SailCheckbox> {
         color = context.sailTheme.colors.primary;
         if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
       } else {
-        color = context.sailTheme.colors.backgroundSecondary;
+        color = context.sailTheme.colors.disabledBackground;
       }
 
       visual = Container(
@@ -83,38 +83,44 @@ class _SailCheckboxState extends State<SailCheckbox> {
             padding: const EdgeInsets.only(left: 8.0),
             child: SailText.primary12(
               widget.label!,
-              color: enabled
-                    ? context.sailTheme.colors.text
-                    : context.sailTheme.colors.textSecondary,
+              color: enabled ? context.sailTheme.colors.text : context.sailTheme.colors.textSecondary,
             ),
           ),
         ],
       );
     }
 
-    if (!enabled) return visual;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        widget.onChanged!(!widget.value);
-      },
-      onTapDown: (_) {
-        setState(() {
-          _pressed = true;
-        });
-      },
-      onTapCancel: () {
-        setState(() {
-          _pressed = false;
-        });
-      },
-      onTapUp: (_) {
-        setState(() {
-          _pressed = false;
-        });
-      },
-      child: visual,
+    return MouseRegion(
+      cursor: enabled ? WidgetStateMouseCursor.clickable : SystemMouseCursors.forbidden,
+      child: Builder(
+        builder: (context) {
+          if (!enabled) {
+            return visual;
+          }
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.onChanged!(!widget.value);
+            },
+            onTapDown: (_) {
+              setState(() {
+                _pressed = true;
+              });
+            },
+            onTapCancel: () {
+              setState(() {
+                _pressed = false;
+              });
+            },
+            onTapUp: (_) {
+              setState(() {
+                _pressed = false;
+              });
+            },
+            child: visual,
+          );
+        },
+      ),
     );
   }
 }
