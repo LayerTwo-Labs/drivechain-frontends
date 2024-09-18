@@ -198,7 +198,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
       textColor = SailTheme.of(context).colors.text;
     }
 
-    final color = disabled ? backgroundColor : theme.colors.disabledBackground;
+    final color = disabled ? backgroundColor : theme.colors.backgroundSecondary;
 
     return MaterialButton(
       mouseCursor: disabled ? SystemMouseCursors.forbidden : WidgetStateMouseCursor.clickable,
