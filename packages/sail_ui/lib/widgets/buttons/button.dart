@@ -87,8 +87,10 @@ class SailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = SailTheme.of(context).colors;
+    final theme = SailTheme.of(context);
+    final colors = theme.colors;
     final backgroundColor = isSecondary ? colors.chip : colors.primary;
+    final divideFactor = theme.dense ? 2 : 1;
 
     switch (size) {
       case ButtonSize.small:
@@ -97,9 +99,9 @@ class SailButton extends StatelessWidget {
           backgroundColor: backgroundColor,
           onPressed: onPressed,
           loading: loading,
-          padding: const EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding05,
-            horizontal: SailStyleValues.padding10,
+          padding: EdgeInsets.symmetric(
+            vertical: SailStyleValues.padding05 / divideFactor,
+            horizontal: SailStyleValues.padding10 / divideFactor,
           ),
           child: child,
         );
@@ -110,9 +112,9 @@ class SailButton extends StatelessWidget {
           backgroundColor: backgroundColor,
           onPressed: onPressed,
           loading: loading,
-          padding: const EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding08,
-            horizontal: SailStyleValues.padding20,
+          padding: EdgeInsets.symmetric(
+            vertical: SailStyleValues.padding08 / divideFactor,
+            horizontal: SailStyleValues.padding20 / divideFactor,
           ),
           child: child,
         );
@@ -123,9 +125,9 @@ class SailButton extends StatelessWidget {
           backgroundColor: backgroundColor,
           onPressed: onPressed,
           loading: loading,
-          padding: const EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding15,
-            horizontal: SailStyleValues.padding15,
+          padding: EdgeInsets.symmetric(
+            vertical: SailStyleValues.padding15 / divideFactor,
+            horizontal: SailStyleValues.padding15 / divideFactor,
           ),
           child: child,
         );
@@ -162,7 +164,7 @@ class SailTextButton extends StatelessWidget {
 class SailRawButton extends StatefulWidget {
   final bool disabled;
   final bool loading;
-  final Color backgroundColor;
+  final Color? backgroundColor;
   final VoidCallback? onPressed;
   final Widget child;
   final EdgeInsets? padding;
@@ -171,9 +173,9 @@ class SailRawButton extends StatefulWidget {
     super.key,
     required this.disabled,
     required this.loading,
-    required this.backgroundColor,
     required this.onPressed,
     required this.child,
+    this.backgroundColor,
     this.padding,
   });
 
@@ -186,17 +188,29 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final disabled = widget.loading || widget.disabled || widget.onPressed == null;
+    final backgroundColor = widget.backgroundColor ?? theme.colors.backgroundSecondary;
+
+    Color textColor;
+    if (!disabled && widget.onPressed != null) {
+      textColor = SailTheme.of(context).colors.textTertiary;
+    } else {
+      textColor = SailTheme.of(context).colors.text;
+    }
 
     return MaterialButton(
+      visualDensity: theme.dense ? VisualDensity.compact : null,
       onPressed: disabled ? null : widget.onPressed,
-      disabledColor: widget.backgroundColor,
-      color: widget.backgroundColor,
+      disabledColor: backgroundColor,
+      color: backgroundColor,
       enableFeedback: !widget.disabled,
-      textColor: theme.colors.text,
-      splashColor: Colors.transparent,
-      hoverColor: widget.backgroundColor.withOpacity(0.6),
+      textColor: textColor,
+      splashColor: theme.colors.primary,
+      hoverColor: theme.colors.primary,
       padding: widget.padding,
       elevation: 0,
+      hoverElevation: 0,
+      focusElevation: 0,
+      minWidth: theme.dense ? 24 : 32,
       shape: RoundedRectangleBorder(
         borderRadius: SailStyleValues.borderRadiusButton,
       ),

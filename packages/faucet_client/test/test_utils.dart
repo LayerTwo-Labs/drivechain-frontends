@@ -25,6 +25,7 @@ extension TestExtension on WidgetTester {
 
     await pumpWidget(
       SailApp(
+        dense: false,
         builder: (context) {
           return MaterialApp(home: SailTestPage(child: child));
         },

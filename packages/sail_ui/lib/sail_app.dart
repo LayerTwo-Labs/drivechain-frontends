@@ -10,6 +10,7 @@ class SailApp extends StatefulWidget {
   static GlobalKey<SailAppState> sailAppKey = GlobalKey();
   final Future<void> Function(BuildContext context)? initMethod;
   final Color accentColor;
+  final bool dense;
   final Logger log;
 
   final WidgetBuilder builder;
@@ -18,6 +19,7 @@ class SailApp extends StatefulWidget {
     required this.builder,
     required this.accentColor,
     required this.log,
+    required this.dense,
     this.initMethod,
   }) : super(key: sailAppKey);
 
@@ -38,10 +40,11 @@ class SailApp extends StatefulWidget {
 class SailAppState extends State<SailApp> with WidgetsBindingObserver {
   ClientSettings get settings => GetIt.I.get<ClientSettings>();
 
-  SailThemeData theme = SailThemeData.darkTheme(SailColorScheme.orange);
+  late SailThemeData theme;
 
   @override
   void initState() {
+    theme = SailThemeData.darkTheme(SailColorScheme.orange, widget.dense);
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadTheme());
@@ -57,18 +60,18 @@ class SailAppState extends State<SailApp> with WidgetsBindingObserver {
           : SailThemeValues.dark;
     }
 
-    theme = _themeDataFromTheme(themeToLoad);
+    theme = _themeDataFromTheme(themeToLoad, widget.dense);
 
     setState(() {});
     await settings.setValue(ThemeSetting(newValue: themeToLoad));
   }
 
-  SailThemeData _themeDataFromTheme(SailThemeValues theme) {
+  SailThemeData _themeDataFromTheme(SailThemeValues theme, bool dense) {
     switch (theme) {
       case SailThemeValues.light:
-        return SailThemeData.lightTheme(widget.accentColor);
+        return SailThemeData.lightTheme(widget.accentColor, dense);
       case SailThemeValues.dark:
-        return SailThemeData.darkTheme(widget.accentColor);
+        return SailThemeData.darkTheme(widget.accentColor, dense);
       default:
         throw Exception('Could not get theme');
     }

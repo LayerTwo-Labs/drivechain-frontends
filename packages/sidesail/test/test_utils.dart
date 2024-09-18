@@ -30,6 +30,7 @@ extension TestExtension on WidgetTester {
 
     await pumpWidget(
       SailApp(
+        dense: false,
         builder: (context) {
           final appRouter = GetIt.I.get<AppRouter>();
 

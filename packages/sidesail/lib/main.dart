@@ -32,6 +32,7 @@ Future<void> start() async {
 
   runApp(
     SailApp(
+      dense: false,
       // the initial route is defined in routing/router.dart
       builder: (context) => MaterialApp.router(
         routerDelegate: router.delegate(),

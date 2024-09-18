@@ -9,7 +9,7 @@ class SailTheme extends StatelessWidget {
   final Widget child;
   final SailThemeData data;
 
-  static final kFallbackTheme = SailThemeData.lightTheme(SailColorScheme.orange);
+  static final kFallbackTheme = SailThemeData.lightTheme(SailColorScheme.orange, true);
 
   const SailTheme({
     super.key,
