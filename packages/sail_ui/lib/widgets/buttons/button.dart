@@ -198,6 +198,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
     }
 
     return MaterialButton(
+      mouseCursor: disabled ? SystemMouseCursors.forbidden : WidgetStateMouseCursor.clickable,
       visualDensity: theme.dense ? VisualDensity.compact : null,
       onPressed: disabled ? null : widget.onPressed,
       disabledColor: backgroundColor,
