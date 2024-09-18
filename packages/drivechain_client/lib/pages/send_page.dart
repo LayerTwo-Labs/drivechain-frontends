@@ -617,6 +617,7 @@ class QtButton extends StatelessWidget {
   final bool large;
   final bool important;
   final bool enabled;
+  final bool loading;
 
   const QtButton({
     super.key,
@@ -629,33 +630,20 @@ class QtButton extends StatelessWidget {
     this.large = false,
     this.important = false,
     this.enabled = true,
+    this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? context.sailTheme.colors.background : context.sailTheme.colors.disabledBackground;
-    return RawMaterialButton(
-      mouseCursor: enabled ? WidgetStateMouseCursor.clickable : SystemMouseCursors.forbidden,
-      fillColor: color,
-      elevation: 0.0,
-      focusElevation: 0.0,
-      hoverElevation: 0.0,
-      hoverColor: color,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(6.0),
-        side: BorderSide(
-          color: context.sailTheme.colors.formFieldBorder,
-          width: 0.5,
-        ),
+    return SizedBox(
+      height: large ? 32 : 24,
+      child: SailRawButton(
+        disabled: !enabled,
+        loading: loading,
+        onPressed: enabled ? onPressed : null,
+        padding: padding,
+        child: child,
       ),
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(
-        minWidth: 24,
-        minHeight: 24,
-      ),
-      onPressed: enabled ? onPressed : null,
-      padding: padding,
-      child: child,
     );
   }
 }
