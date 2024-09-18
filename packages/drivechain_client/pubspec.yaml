@@ -29,7 +29,6 @@ dependencies:
   dotted_border: ^2.1.0
   money2: ^5.2.1
   super_clipboard: ^0.8.21
-  stacked: ^3.4.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
