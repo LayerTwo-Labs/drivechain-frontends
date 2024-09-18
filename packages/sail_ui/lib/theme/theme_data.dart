@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SailThemeData with Diagnosticable {
-  final String name;
+  final SailThemeValues type;
   final SailColor colors;
   final bool dense;
 
   const SailThemeData({
-    required this.name,
+    required this.type,
     required this.colors,
     required this.dense,
   });
 
-  bool isLightMode() => name == 'light';
+  bool isLightMode() => type == SailThemeValues.light;
 
   factory SailThemeData.lightTheme(Color primary, bool dense) {
     return SailThemeData(
-      name: 'light',
+      type: SailThemeValues.light,
       dense: dense,
       colors: SailColor.lightTheme(primary),
     );
@@ -25,7 +25,7 @@ class SailThemeData with Diagnosticable {
 
   factory SailThemeData.darkTheme(Color primary, bool dense) {
     return SailThemeData(
-      name: 'dark',
+      type: SailThemeValues.dark,
       dense: dense,
       colors: SailColor.darkTheme(primary),
     );

@@ -103,6 +103,8 @@ class RootPage extends StatelessWidget {
                           ),
                         ),
                       ),
+                      Expanded(child: Container()),
+                      const ToggleThemeButton(),
                     ],
                   );
                 },

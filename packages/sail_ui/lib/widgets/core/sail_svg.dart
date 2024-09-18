@@ -36,6 +36,7 @@ enum SailSVGAsset {
 
   iconLightMode,
   iconDarkMode,
+  iconLightDarkMode,
 
   meltCastDiagram,
 }
@@ -152,6 +153,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_light_mode.svg';
       case SailSVGAsset.iconDarkMode:
         return 'assets/svgs/icon_dark_mode.svg';
+      case SailSVGAsset.iconLightDarkMode:
+        return 'assets/svgs/icon_light_dark_mode.svg';
 
       case SailSVGAsset.meltCastDiagram:
         return 'assets/pngs/meltcastdiagram.png';
