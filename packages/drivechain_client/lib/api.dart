@@ -1,17 +1,30 @@
-import 'package:drivechain_client/env.dart';
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/widgets.dart';
 import 'package:grpc/grpc.dart';
 
-class DrivechainService extends InheritedWidget {
+/// API to the drivechain server.
+abstract class API {
+  Future<String> sendTransaction(
+    Map<String, int> destinations, [
+    double? satoshiPerVbyte,
+  ]);
+  Future<GetBalanceResponse> getBalance();
+  Future<String> getNewAddress();
+  Future<List<Transaction>> listTransactions();
+  Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions();
+}
+
+class APILive extends API {
   late final DrivechainServiceClient _client;
 
-  DrivechainService({required super.child, super.key}) {
+  APILive({
+    required String host,
+    required int port,
+  }) {
     final channel = ClientChannel(
-      env(Environment.drivechainHost),
-      port: env(Environment.drivechainPort),
+      host,
+      port: port,
       options: const ChannelOptions(
         credentials: ChannelCredentials.insecure(),
       ),
@@ -20,6 +33,7 @@ class DrivechainService extends InheritedWidget {
     _client = DrivechainServiceClient(channel);
   }
 
+  @override
   Future<String> sendTransaction(
     Map<String, int> destinations, [
     double? satoshiPerVbyte,
@@ -33,20 +47,24 @@ class DrivechainService extends InheritedWidget {
     return response.txid;
   }
 
+  @override
   Future<GetBalanceResponse> getBalance() async {
     return await _client.getBalance(Empty());
   }
 
+  @override
   Future<String> getNewAddress() async {
     final response = await _client.getNewAddress(Empty());
     return response.address;
   }
 
+  @override
   Future<List<Transaction>> listTransactions() async {
     final response = await _client.listTransactions(Empty());
     return response.transactions;
   }
 
+  @override
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {
     final response = await _client.listUnconfirmedTransactions(Empty());
     return response.unconfirmedTransactions;
@@ -55,12 +73,5 @@ class DrivechainService extends InheritedWidget {
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
     final response = await _client.listRecentBlocks(Empty());
     return response.recentBlocks;
-  }
-
-  @override
-  bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
-
-  static DrivechainService of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<DrivechainService>()!;
   }
 }

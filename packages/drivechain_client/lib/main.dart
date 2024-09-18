@@ -1,6 +1,6 @@
+import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/env.dart';
 import 'package:drivechain_client/routing/router.dart';
-import 'package:drivechain_client/service.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,27 +27,32 @@ void main() async {
     ),
   );
 
+  GetIt.I.registerLazySingleton<API>(
+    () => APILive(
+      host: env(Environment.drivechainHost),
+      port: env(Environment.drivechainPort),
+    ),
+  );
+
   return runApp(
-    DrivechainService(
-      child: SailApp(
-        builder: (context) {
-          return MaterialApp.router(
-            routerDelegate: router.delegate(),
-            routeInformationParser: router.defaultRouteParser(),
-            title: 'Drivechain',
-            theme: ThemeData(
-              visualDensity: VisualDensity.compact,
-              fontFamily: 'Inter',
-              textTheme: GoogleFonts.interTightTextTheme(
-                GoogleFonts.sourceCodeProTextTheme(),
-              ),
-              scaffoldBackgroundColor: const Color.fromARGB(255, 240, 240, 240),
+    SailApp(
+      builder: (context) {
+        return MaterialApp.router(
+          routerDelegate: router.delegate(),
+          routeInformationParser: router.defaultRouteParser(),
+          title: 'Drivechain',
+          theme: ThemeData(
+            visualDensity: VisualDensity.compact,
+            fontFamily: 'Inter',
+            textTheme: GoogleFonts.interTightTextTheme(
+              GoogleFonts.sourceCodeProTextTheme(),
             ),
-          );
-        },
-        accentColor: const Color.fromARGB(255, 255, 153, 0),
-        log: log,
-      ),
+            scaffoldBackgroundColor: const Color.fromARGB(255, 240, 240, 240),
+          ),
+        );
+      },
+      accentColor: const Color.fromARGB(255, 255, 153, 0),
+      log: log,
     ),
   );
 }

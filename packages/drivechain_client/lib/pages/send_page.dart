@@ -1,13 +1,16 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:drivechain_client/service.dart';
+import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/util/currencies.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
 @RoutePage()
 class SendPage extends StatelessWidget {
+  API get api => GetIt.I.get<API>();
+
   const SendPage({super.key});
 
   @override
@@ -52,12 +55,11 @@ class SendPage extends StatelessWidget {
               const Row(),
               // Balance
               FutureBuilder(
-                future: DrivechainService.of(context).getBalance(),
+                future: api.getBalance(),
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     final balance = Money.fromNumWithCurrency(
-                      snapshot.data!.confirmedSatoshi.toDouble() +
-                          snapshot.data!.pendingSatoshi.toDouble(),
+                      snapshot.data!.confirmedSatoshi.toDouble() + snapshot.data!.pendingSatoshi.toDouble(),
                       satoshi,
                     ).toString();
                     return SailText.primary12('Balance: $balance');
@@ -120,6 +122,8 @@ class SendDetailsForm extends StatefulWidget {
 }
 
 class _SendDetailsFormState extends State<SendDetailsForm> {
+  API get api => GetIt.I.get<API>();
+
   late String _unit;
   late TextEditingController _addressController;
   late TextEditingController _labelController;
@@ -151,7 +155,7 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
 
   Future<void> _onUseAvailableBalance() async {
     // Get the balance from the node
-    await DrivechainService.of(context).getBalance().then((balance) {
+    await api.getBalance().then((balance) {
       setState(() {
         _amountController.text = balance.confirmedSatoshi.toDouble().toString();
       });
@@ -182,8 +186,7 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
               child: SailTextField(
                 // TODO: Validate address
                 controller: _addressController,
-                hintText:
-                    'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                hintText: 'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
                 size: TextFieldSize.small,
                 dense: true,
               ),
@@ -245,8 +248,7 @@ class _SendDetailsFormState extends State<SendDetailsForm> {
             Expanded(
               child: SailTextField(
                 controller: _labelController,
-                hintText:
-                    'Enter a label for this address to add it to your address book',
+                hintText: 'Enter a label for this address to add it to your address book',
                 size: TextFieldSize.small,
                 dense: true,
               ),
