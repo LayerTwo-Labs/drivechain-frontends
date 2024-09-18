@@ -36,6 +36,7 @@ void main() async {
 
   return runApp(
     SailApp(
+      dense: true,
       builder: (context) {
         return MaterialApp.router(
           routerDelegate: router.delegate(),

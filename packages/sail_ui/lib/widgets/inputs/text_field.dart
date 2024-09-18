@@ -20,7 +20,7 @@ class SailTextField extends StatelessWidget {
   final BoxConstraints? prefixIconConstraints;
   final TextFieldSize size;
   final void Function(String)? onSubmitted;
-  final bool dense;
+  final bool readOnly;
 
   const SailTextField({
     super.key,
@@ -34,10 +34,10 @@ class SailTextField extends StatelessWidget {
     this.prefixWidget,
     this.prefixIcon,
     this.prefixIconConstraints,
-    this.size = TextFieldSize.regular,
+    this.size = TextFieldSize.small,
     this.focusNode,
     this.onSubmitted,
-    this.dense = false,
+    this.readOnly = false,
   });
 
   @override
@@ -45,11 +45,11 @@ class SailTextField extends StatelessWidget {
     final theme = SailTheme.of(context);
     final padding = size != TextFieldSize.regular
         ? EdgeInsets.all(
-            dense ? SailStyleValues.padding08 : SailStyleValues.padding15,
+            theme.dense ? SailStyleValues.padding08 : SailStyleValues.padding15,
           )
         : EdgeInsets.symmetric(
-            vertical: dense ? SailStyleValues.padding05 : SailStyleValues.padding10,
-            horizontal: dense ? SailStyleValues.padding10 : SailStyleValues.padding15,
+            vertical: theme.dense ? SailStyleValues.padding05 : SailStyleValues.padding10,
+            horizontal: theme.dense ? SailStyleValues.padding10 : SailStyleValues.padding15,
           );
     final textSize = size == TextFieldSize.regular ? 15.0 : 12.0;
 
@@ -69,6 +69,7 @@ class SailTextField extends StatelessWidget {
           controller: controller,
           focusNode: focusNode,
           onSubmitted: onSubmitted,
+          readOnly: readOnly,
           style: TextStyle(
             color: SailTheme.of(context).colors.text,
             fontSize: textSize,
@@ -110,7 +111,7 @@ class SailTextField extends StatelessWidget {
             fillColor: SailTheme.of(context).colors.background,
             filled: true,
             contentPadding: padding,
-            isDense: true,
+            isDense: theme.dense,
             hintText: hintText,
             hintStyle: TextStyle(
               color: SailTheme.of(context).colors.textTertiary,
