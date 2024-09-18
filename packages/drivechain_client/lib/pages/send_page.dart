@@ -474,46 +474,14 @@ class QtButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isWindows = theme.platform == TargetPlatform.windows;
-
-    Color textColor;
-    if (enabled && onPressed != null) {
-      textColor = SailTheme.of(context).colors.text;
-    } else {
-      textColor = SailTheme.of(context).colors.textTertiary;
-    }
-
     return SizedBox(
       height: large ? 32 : 24,
-      child: MaterialButton(
-        visualDensity: VisualDensity.compact,
-        // textTheme: textTheme,
-        color: SailTheme.of(context).colors.background,
-        hoverColor: SailTheme.of(context).colors.primary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(isWindows ? 3 : 6)),
-          side: const BorderSide(
-            color: Colors.grey,
-            width: 0.5,
-          ),
-        ),
+      child: SailRawButton(
+        disabled: !enabled,
+        loading: false,
         onPressed: enabled ? onPressed : null,
-        elevation: 0,
-        hoverElevation: 0,
-        focusElevation: 0,
-
-        minWidth: 32,
-        padding: EdgeInsets.zero,
-        child: Container(
-          alignment: Alignment.center,
-          height: large ? 32 : 24,
-          padding: padding,
-          child: DefaultTextStyle(
-            style: SailStyleValues.twelve.copyWith(color: textColor),
-            child: child,
-          ),
-        ),
+        padding: padding,
+        child: child,
       ),
     );
   }
