@@ -15,27 +15,17 @@ class SendPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      children: [
-        const Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 12.0,
-              right: 12.0,
-              top: 12.0,
-              bottom: 4.0,
-            ),
+    return QtPage(
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          const Expanded(
             child: QtContainer(
               child: SendDetailsForm(),
             ),
           ),
-        ),
-        Expanded(
-          child: Padding(
+          Padding(
             padding: const EdgeInsets.only(
-              left: 12.0,
-              right: 12.0,
               top: 12.0,
               bottom: 4.0,
             ),
@@ -43,13 +33,7 @@ class SendPage extends StatelessWidget {
               child: Container(),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12.0,
-            vertical: 16.0,
-          ),
-          child: Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               const Row(),
@@ -72,42 +56,43 @@ class SendPage extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: Colors.grey,
+          // TODO: Move this out of the page, and as a wrapper to some nav-widget-thingy
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Colors.grey,
+                ),
               ),
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            // Add a left border to every child
-            children: [
-              // TODO: Get actual info from the node
-              SailText.primary12('195755 blocks'),
-              SailText.primary12('1 peer'),
-              SailText.primary12('Last block: 6 days ago'),
-            ]
-                .map(
-                  (child) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4.0,
-                      vertical: 2.0,
-                    ),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        left: BorderSide(color: Colors.grey),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              // Add a left border to every child
+              children: [
+                // TODO: Get actual info from the node
+                SailText.primary12('195755 blocks'),
+                SailText.primary12('1 peer'),
+                SailText.primary12('Last block: 6 days ago'),
+              ]
+                  .map(
+                    (child) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0,
+                        vertical: 2.0,
                       ),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: Colors.grey),
+                        ),
+                      ),
+                      child: child,
                     ),
-                    child: child,
-                  ),
-                )
-                .toList(),
+                  )
+                  .toList(),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -399,7 +384,25 @@ class _NumericFieldState extends State<NumericField> {
       focusNode: _focusNode,
       textFieldType: TextFieldType.bitcoin,
       size: TextFieldSize.small,
-      dense: true,
+    );
+  }
+}
+
+class QtPage extends StatelessWidget {
+  final Widget child;
+
+  const QtPage({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: SailStyleValues.padding12,
+        right: SailStyleValues.padding12,
+        top: SailStyleValues.padding12,
+        bottom: SailStyleValues.padding05,
+      ),
+      child: child,
     );
   }
 }
@@ -461,7 +464,7 @@ class QtButton extends StatelessWidget {
     required this.onPressed,
     required this.child,
     this.padding = const EdgeInsets.symmetric(
-      horizontal: 12.0,
+      horizontal: SailStyleValues.padding15,
       vertical: 0.0,
     ),
     this.large = false,
