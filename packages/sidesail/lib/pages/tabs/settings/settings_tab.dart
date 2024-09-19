@@ -5,8 +5,9 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/config/chains.dart';
+import 'package:sidesail/config/runtime_args.dart';
+import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -19,7 +20,6 @@ class SettingsTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final app = SailApp.of(context);
     final theme = SailTheme.of(context);
 
     return SailPage(
@@ -59,54 +59,6 @@ class SettingsTabPage extends StatelessWidget {
                     spacing: SailStyleValues.padding10,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SailText.primary20('Theme', bold: true),
-                      Row(
-                        children: [
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: 640,
-                            ),
-                            child: SailColumn(
-                              spacing: SailStyleValues.padding50,
-                              children: [
-                                SailRow(
-                                  spacing: SailStyleValues.padding15,
-                                  children: [
-                                    SailButton.primary(
-                                      'Dark Theme',
-                                      onPressed: () {
-                                        settingsViewModel.setTheme(SailThemeValues.dark);
-                                        app.loadTheme(SailThemeValues.dark);
-                                      },
-                                      size: ButtonSize.regular,
-                                      disabled: settingsViewModel.theme == SailThemeValues.dark,
-                                    ),
-                                    SailButton.primary(
-                                      'Light Theme',
-                                      onPressed: () {
-                                        settingsViewModel.setTheme(SailThemeValues.light);
-                                        app.loadTheme(SailThemeValues.light);
-                                      },
-                                      size: ButtonSize.regular,
-                                      disabled: settingsViewModel.theme == SailThemeValues.light,
-                                    ),
-                                    SailButton.primary(
-                                      'System Theme',
-                                      onPressed: () {
-                                        settingsViewModel.setTheme(SailThemeValues.system);
-                                        app.loadTheme(SailThemeValues.system);
-                                      },
-                                      size: ButtonSize.regular,
-                                      disabled: settingsViewModel.theme == SailThemeValues.system,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(child: Container()),
-                        ],
-                      ),
                       Padding(
                         padding: const EdgeInsets.only(top: SailStyleValues.padding20),
                         child: SailText.primary20('Font', bold: true),
@@ -152,9 +104,12 @@ class SettingsTabPage extends StatelessWidget {
                           Expanded(child: Container()),
                         ],
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding20),
-                        child: SailText.primary20('Log file', bold: true),
+                      const SailSpacing(SailStyleValues.padding20),
+                      SailText.primary20('Log file', bold: true),
+                      SailButton.secondary(
+                        'Open Log File',
+                        onPressed: settingsViewModel.openLogRoute,
+                        size: ButtonSize.regular,
                       ),
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 350),
@@ -168,7 +123,7 @@ class SettingsTabPage extends StatelessWidget {
                           padding: const EdgeInsets.only(right: SailStyleValues.padding10),
                           child: SailSVG.icon(SailSVGAsset.iconCopy),
                         ),
-                        value: '${settingsViewModel.datadir}${Platform.pathSeparator}debug.log',
+                        value: settingsViewModel.logdir,
                       ),
                     ],
                   );
@@ -475,12 +430,13 @@ class SingleNodeConnectionSettings extends ChangeNotifier {
 
 class ThemeSettingsViewModel extends BaseViewModel {
   ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
+  AppRouter get _router => GetIt.I.get<AppRouter>();
 
   ThemeSettingsViewModel() {
     _init();
   }
 
-  String datadir = '';
+  String logdir = '';
   SailThemeValues theme = SailThemeValues.light;
   SailFontValues font = SailFontValues.inter;
   SailFontValues fontOnLoad = SailFontValues.inter;
@@ -495,7 +451,8 @@ class ThemeSettingsViewModel extends BaseViewModel {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
     font = (await _clientSettings.getValue(FontSetting())).value;
     fontOnLoad = font;
-    datadir = await RuntimeArgs.datadir().then((dir) => dir.path);
+    final datadir = await RuntimeArgs.datadir().then((dir) => dir.path);
+    logdir = '$datadir${Platform.pathSeparator}debug.log';
     notifyListeners();
   }
 
@@ -503,5 +460,14 @@ class ThemeSettingsViewModel extends BaseViewModel {
     font = newFont;
     await _clientSettings.setValue(FontSetting().withValue(font));
     notifyListeners();
+  }
+
+  void openLogRoute() {
+    _router.push(
+      LogRoute(
+        name: 'Sidesail',
+        logPath: logdir,
+      ),
+    );
   }
 }
