@@ -90,13 +90,15 @@ class HomeRoute extends PageRouteInfo<void> {
 class LogRoute extends PageRouteInfo<LogRouteArgs> {
   LogRoute({
     Key? key,
-    required Chain chain,
+    required String name,
+    required String logPath,
     List<PageRouteInfo>? children,
   }) : super(
           LogRoute.name,
           args: LogRouteArgs(
             key: key,
-            chain: chain,
+            name: name,
+            logPath: logPath,
           ),
           initialChildren: children,
         );
@@ -109,7 +111,8 @@ class LogRoute extends PageRouteInfo<LogRouteArgs> {
       final args = data.argsAs<LogRouteArgs>();
       return LogPage(
         key: args.key,
-        chain: args.chain,
+        name: args.name,
+        logPath: args.logPath,
       );
     },
   );
@@ -118,16 +121,19 @@ class LogRoute extends PageRouteInfo<LogRouteArgs> {
 class LogRouteArgs {
   const LogRouteArgs({
     this.key,
-    required this.chain,
+    required this.name,
+    required this.logPath,
   });
 
   final Key? key;
 
-  final Chain chain;
+  final String name;
+
+  final String logPath;
 
   @override
   String toString() {
-    return 'LogRouteArgs{key: $key, chain: $chain}';
+    return 'LogRouteArgs{key: $key, name: $name, logPath: $logPath}';
   }
 }
 
