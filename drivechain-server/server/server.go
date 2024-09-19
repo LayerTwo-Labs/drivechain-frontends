@@ -1,298 +1,162 @@
 package server
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
+	"net"
+	"net/http"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/grpcreflect"
+	api_drivechain "github.com/LayerTwo-Labs/sidesail/drivechain-server/api/drivechain"
+	api_wallet "github.com/LayerTwo-Labs/sidesail/drivechain-server/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
-	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
-	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
-	"github.com/btcsuite/btcd/btcutil"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
+	"github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"github.com/sourcegraph/conc/pool"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
-var _ rpc.DrivechainServiceHandler = new(Server)
+// New creates a new Server with interceptors applied.
+func New(ctx context.Context, bitcoind *server.Bitcoind, wallet *bdk.Wallet) (*Server, error) {
+	mux := http.NewServeMux()
+	srv := &Server{mux: mux}
 
-func New(wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind) *Server {
-	s := &Server{wallet: wallet, bitcoind: bitcoind}
-	return s
+	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
+		bitcoind,
+	)))
+	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
+		ctx, wallet,
+	)))
+
+	return srv, nil
 }
 
+// Server exposes a set of Connect APIs over both gRPC and HTTP. Reflection is enabled.
 type Server struct {
-	wallet   *bdk.Wallet
-	bitcoind *coreproxy.Bitcoind
-	balance  atomic.Value
+	// used for creating health and reflect services
+	services []string
+
+	mux    *http.ServeMux
+	server *http.Server
 }
 
-func (s *Server) StartBalanceUpdateLoop(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := s.updateBalance(ctx); err != nil {
-				zerolog.Ctx(ctx).Err(err).Msg("failed to update balance")
-			}
-		}
-	}
+func (s *Server) Handler() http.Handler {
+	// Use h2c, so we can serve HTTP/2 without TLS.
+	return h2c.NewHandler(s.mux, &http2.Server{})
 }
 
-func (s *Server) updateBalance(ctx context.Context) error {
-	if err := s.wallet.Sync(ctx); err != nil {
-		return fmt.Errorf("unable to sync: %w", err)
+func (s *Server) Serve(ctx context.Context, address string) error {
+	log := zerolog.Ctx(ctx)
+
+	services := lo.Map(s.services, func(svc string, index int) string {
+		// Remove trailing and leading slashes
+		return strings.Trim(svc, "/")
+	})
+
+	joinedServices := strings.Join(services, ", ")
+	{
+		log.Debug().
+			Msgf("serve connect: enabling reflection: %s", joinedServices)
+
+		reflector := grpcreflect.NewStaticReflector(s.services...)
+
+		s.mux.Handle(grpcreflect.NewHandlerV1(reflector))
+		s.mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
 	}
 
-	balance, err := s.wallet.GetBalance(ctx)
+	lis, err := net.Listen("tcp", address)
 	if err != nil {
-		return fmt.Errorf("unable to get balance: %w", err)
+		return fmt.Errorf("could not listen: %w", err)
 	}
 
-	prevBalance, _ := s.balance.Load().(bdk.Balance)
-	if reflect.DeepEqual(balance, prevBalance) {
-		return nil
+	defer func() {
+		err := lis.Close()
+		if err == nil {
+			return
+		}
+
+		switch {
+		case errors.Is(err, net.ErrClosed),
+			errors.Is(err, http.ErrServerClosed):
+			return
+		}
+
+		log.Error().Err(err).
+			Msg("could not close listener")
+	}()
+
+	s.server = &http.Server{
+		Handler: s.Handler(),
 	}
-
-	zerolog.Ctx(ctx).Info().
-		Msgf("balance changed: %+v -> %+v", prevBalance, balance)
-
-	s.balance.Store(balance)
-	return nil
+	return s.server.Serve(lis)
 }
 
-// SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
-	if len(c.Msg.Destinations) == 0 {
-		err := errors.New("must provide at least one destination")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	if c.Msg.SatoshiPerVbyte < 0 {
-		err := errors.New("fee rate cannot be negative")
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+// Shutdown tries to gracefully stop the server, forcing a shutdown
+// after a timeout if this isn't possible. It is safe to call on a
+// nil server.
+func (s *Server) Shutdown(ctx context.Context) {
+	if s == nil || s.server == nil {
+		return
 	}
 
 	log := zerolog.Ctx(ctx)
 
-	if c.Msg.SatoshiPerVbyte == 0 {
-		log.Debug().Msgf("send tx: received no fee rate, querying bitcoin core")
+	const timeout = time.Second * 3
 
-		estimate, err := s.bitcoind.EstimateSmartFee(ctx, connect.NewRequest(&corepb.EstimateSmartFeeRequest{
-			ConfTarget:   2,
-			EstimateMode: corepb.EstimateSmartFeeRequest_ESTIMATE_MODE_ECONOMICAL,
-		}))
-		if err != nil {
-			return nil, err
+	// If we have requests that don't complete, or streams that never close, we
+	// risk hanging forever. Therefore, force stop after a timeout. Use int64
+	// instead of bools, so we can load/add with the atomic package.
+	var (
+		stopped, forced int64
+	)
+	time.AfterFunc(timeout, func() {
+		if atomic.LoadInt64(&stopped) != 0 {
+			return
 		}
 
-		btcPerKb, err := btcutil.NewAmount(estimate.Msg.FeeRate)
-		if err != nil {
-			return nil, err
+		log.Printf("server: forcing stop after %s", timeout)
+		atomic.AddInt64(&forced, 1)
+		if err := s.server.Close(); err != nil {
+			log.Err(err).Msg("server: could not force stop HTTP server")
+			return
 		}
-
-		btcPerByte := btcPerKb / 1000
-		c.Msg.SatoshiPerVbyte = btcPerByte.ToUnit(btcutil.AmountSatoshi)
-
-		log.Info().Msgf("send tx: determined fee rate: %f", c.Msg.SatoshiPerVbyte)
-	}
-
-	destinations := make(map[string]btcutil.Amount)
-	for address, amount := range c.Msg.Destinations {
-		const dustLimit = 546
-		if amount < dustLimit {
-			err := fmt.Errorf(
-				"amount to %s is below dust limit (%s): %s",
-				address, btcutil.Amount(dustLimit), btcutil.Amount(amount),
-			)
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		}
-		destinations[address] = btcutil.Amount(amount)
-	}
-
-	created, err := s.wallet.CreateTransaction(ctx, destinations, c.Msg.SatoshiPerVbyte)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info().Msg("send tx: created transaction")
-
-	signed, err := s.wallet.SignTransaction(ctx, created)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info().Msg("send tx: signed transaction")
-
-	txid, err := s.wallet.BroadcastTransaction(ctx, signed)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info().Msgf("send tx: broadcast transaction: %s", txid)
-
-	return connect.NewResponse(&pb.SendTransactionResponse{
-		Txid: txid,
-	}), nil
-
-}
-
-// ListRecentBlocks implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListRecentBlocksResponse], error) {
-	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
-	if err != nil {
-		return nil, err
-	}
-
-	p := pool.NewWithResults[*pb.ListRecentBlocksResponse_RecentBlock]().
-		WithContext(ctx).
-		WithCancelOnError().
-		WithFirstError()
-
-	const numBlocks = 10
-	for i := range numBlocks {
-		p.Go(func(ctx context.Context) (*pb.ListRecentBlocksResponse_RecentBlock, error) {
-
-			height := info.Msg.Blocks - uint32(i)
-			hash, err := s.bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
-				Height: height,
-			}))
-			if err != nil {
-				return nil, fmt.Errorf("get block hash %d: %w", height, err)
-			}
-
-			block, err := s.bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
-				Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
-				Hash:      hash.Msg.Hash,
-			}))
-			if err != nil {
-				return nil, fmt.Errorf("get block %s: %w", hash.Msg.Hash, err)
-			}
-
-			return &pb.ListRecentBlocksResponse_RecentBlock{
-				BlockTime:   block.Msg.Time,
-				BlockHeight: block.Msg.Height,
-				Hash:        block.Msg.Hash,
-			}, nil
-		})
-	}
-
-	blocks, err := p.Wait()
-	if err != nil {
-		return nil, err
-	}
-
-	slices.SortFunc(blocks, func(a, b *pb.ListRecentBlocksResponse_RecentBlock) int {
-		return -cmp.Compare(a.BlockHeight, b.BlockHeight)
 	})
 
-	return connect.NewResponse(&pb.ListRecentBlocksResponse{
-		RecentBlocks: blocks,
-	}), nil
+	log.Print("server: trying graceful stop")
+	if err := s.server.Shutdown(context.Background()); err != nil {
+		log.Err(err).Msg("server: could not gracefully stop HTTP server")
+		return
+	}
+
+	if atomic.LoadInt64(&forced) == 0 {
+		log.Print("server: successful graceful stop")
+	}
+
+	atomic.AddInt64(&stopped, 1)
 }
 
-// GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNewAddressResponse], error) {
-	address, index, err := s.wallet.GetNewAddress(ctx)
-	if err != nil {
-		return nil, err
-	}
+// Register can be user to register a new sub-service to the server.
+// This is _NOT_ a part of the Server API, because it is generic.
+func Register[T any](
+	s *Server,
+	handler func(svc T, opts ...connect.HandlerOption) (string, http.Handler),
+	svc T, opts ...connect.HandlerOption,
+) {
+	service, h := handler(svc,
+		slices.Concat(
+			opts,
+		)...,
+	)
 
-	return connect.NewResponse(&pb.GetNewAddressResponse{
-		Address: address,
-		Index:   uint32(index),
-	}), nil
-}
-
-// GetBalance implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBalanceResponse], error) {
-	balanceValue := s.balance.Load()
-	if balanceValue == nil {
-		// If balance hasn't been fetched yet, do it now
-		if err := s.updateBalance(ctx); err != nil {
-			return nil, err
-		}
-		balanceValue = s.balance.Load()
-	}
-
-	balance := balanceValue.(bdk.Balance)
-
-	return connect.NewResponse(&pb.GetBalanceResponse{
-		ConfirmedSatoshi: uint64(balance.Confirmed),
-		PendingSatoshi:   uint64(balance.Immature) + uint64(balance.TrustedPending) + uint64(balance.UntrustedPending),
-	}), nil
-}
-
-// ListUnconfirmedTransactions implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) ListUnconfirmedTransactions(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListUnconfirmedTransactionsResponse], error) {
-	res, err := s.bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
-		Verbose: true,
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	var out []*pb.UnconfirmedTransaction
-	for txid, tx := range res.Msg.Transactions {
-		fee, err := btcutil.NewAmount(tx.Fees.Base)
-		if err != nil {
-			return nil, err
-		}
-
-		out = append(out, &pb.UnconfirmedTransaction{
-			VirtualSize: tx.VirtualSize,
-			Weight:      tx.Weight,
-			Time:        tx.Time,
-			Txid:        txid,
-			FeeSatoshi:  uint64(fee),
-			// IsBmmRequest:          false,
-			// IsCriticalDataRequest: false,
-		})
-	}
-	return connect.NewResponse(&pb.ListUnconfirmedTransactionsResponse{
-		UnconfirmedTransactions: out,
-	}), nil
-}
-
-// ListTransactions implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListTransactionsResponse], error) {
-	txs, err := s.wallet.ListTransactions(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &pb.ListTransactionsResponse{
-		Transactions: lo.Map(txs, func(tx bdk.Transaction, idx int) *pb.Transaction {
-			var confirmation *pb.Confirmation
-			if tx.ConfirmationTime != nil {
-				confirmation = &pb.Confirmation{
-					Height:    uint32(tx.ConfirmationTime.Height),
-					Timestamp: &timestamppb.Timestamp{Seconds: int64(tx.ConfirmationTime.Timestamp)},
-				}
-			}
-			return &pb.Transaction{
-				Txid:             tx.TXID,
-				FeeSatoshi:       uint64(tx.Fee),
-				ReceivedSatoshi:  uint64(tx.Received),
-				SentSatoshi:      uint64(tx.Sent),
-				ConfirmationTime: confirmation,
-			}
-		}),
-	}
-
-	return connect.NewResponse(res), nil
+	s.services = append(s.services, service)
+	s.mux.Handle(service, h)
 }
