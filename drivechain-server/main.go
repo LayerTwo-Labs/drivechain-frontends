@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -12,15 +11,12 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
-	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/server"
 	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 func main() {
@@ -97,25 +93,17 @@ func realMain(ctx context.Context) error {
 	zerolog.Ctx(ctx).Debug().
 		Msgf("initiating electrum connection at %s", wallet.Electrum)
 
-	mux := http.NewServeMux()
-	srv := server.New(wallet, proxy)
-	path, handler := rpc.NewDrivechainServiceHandler(srv)
-
-	mux.Handle(path, handler)
-
+	srv, err := server.New(ctx, proxy, wallet)
+	if err != nil {
+		return err
+	}
 	const address = "localhost:8080"
+
 	zerolog.Ctx(ctx).Info().Msgf("server: listening on %s", address)
 
-	httpServer := http.Server{
-		Addr: address,
-		// Use h2c so we can serve HTTP/2 without TLS.
-		Handler: h2c.NewHandler(mux, &http2.Server{}),
-	}
-
 	errs := make(chan error)
-	go srv.StartBalanceUpdateLoop(ctx)
 	go func() {
-		errs <- httpServer.ListenAndServe()
+		errs <- srv.Serve(ctx, address)
 	}()
 	go func() {
 		<-ctx.Done()
@@ -123,10 +111,7 @@ func realMain(ctx context.Context) error {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second*1)
 		defer cancel()
 
-		if err := httpServer.Shutdown(ctx); err != nil {
-			errs <- fmt.Errorf("shutdown HTTP server: %w", err)
-			return
-		}
+		srv.Shutdown(ctx)
 
 		errs <- nil
 	}()
