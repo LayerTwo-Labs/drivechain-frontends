@@ -1,5 +1,6 @@
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart';
+import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 
@@ -17,6 +18,7 @@ abstract class API {
 
 class APILive extends API {
   late final DrivechainServiceClient _client;
+  late final WalletServiceClient _walletClient;
 
   APILive({
     required String host,
@@ -31,6 +33,7 @@ class APILive extends API {
     );
 
     _client = DrivechainServiceClient(channel);
+    _walletClient = WalletServiceClient(channel);
   }
 
   @override
@@ -43,24 +46,24 @@ class APILive extends API {
       satoshiPerVbyte: satoshiPerVbyte,
     );
 
-    final response = await _client.sendTransaction(request);
+    final response = await _walletClient.sendTransaction(request);
     return response.txid;
   }
 
   @override
   Future<GetBalanceResponse> getBalance() async {
-    return await _client.getBalance(Empty());
+    return await _walletClient.getBalance(Empty());
   }
 
   @override
   Future<String> getNewAddress() async {
-    final response = await _client.getNewAddress(Empty());
+    final response = await _walletClient.getNewAddress(Empty());
     return response.address;
   }
 
   @override
   Future<List<Transaction>> listTransactions() async {
-    final response = await _client.listTransactions(Empty());
+    final response = await _walletClient.listTransactions(Empty());
     return response.transactions;
   }
 
