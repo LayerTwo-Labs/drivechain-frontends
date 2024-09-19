@@ -270,9 +270,12 @@ class PegInViewModel extends BaseViewModel {
 
   Future<void> generatePegInAddress() async {
     setBusy(true);
-    pegInAddress = await _sidechain.rpc.getDepositAddress();
-    setBusy(false);
-    notifyListeners();
+    try {
+      pegInAddress = await _sidechain.rpc.getDepositAddress();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
   }
 }
 
