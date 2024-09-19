@@ -15,8 +15,8 @@ import 'dart:core' as $core;
 import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/empty.pb.dart' as $0;
-import 'drivechain.pb.dart' as $1;
+import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart' as $0;
+import 'package:drivechain_client/gen/drivechain/v1/drivechain.pb.dart' as $1;
 
 export 'drivechain.pb.dart';
 
@@ -25,17 +25,17 @@ class DrivechainServiceClient extends $grpc.Client {
   static final _$listUnconfirmedTransactions = $grpc.ClientMethod<$0.Empty, $1.ListUnconfirmedTransactionsResponse>(
       '/drivechain.v1.DrivechainService/ListUnconfirmedTransactions',
       ($0.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $1.ListUnconfirmedTransactionsResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $1.ListUnconfirmedTransactionsResponse.fromBuffer(value),);
   static final _$listRecentBlocks = $grpc.ClientMethod<$0.Empty, $1.ListRecentBlocksResponse>(
       '/drivechain.v1.DrivechainService/ListRecentBlocks',
       ($0.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $1.ListRecentBlocksResponse.fromBuffer(value));
+      ($core.List<$core.int> value) => $1.ListRecentBlocksResponse.fromBuffer(value),);
 
   DrivechainServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors,})
       : super(channel, options: options,
-        interceptors: interceptors);
+        interceptors: interceptors,);
 
   $grpc.ResponseFuture<$1.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions($0.Empty request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listUnconfirmedTransactions, request, options: options);
@@ -57,14 +57,14 @@ abstract class DrivechainServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
-        ($1.ListUnconfirmedTransactionsResponse value) => value.writeToBuffer()));
+        ($1.ListUnconfirmedTransactionsResponse value) => value.writeToBuffer(),),);
     $addMethod($grpc.ServiceMethod<$0.Empty, $1.ListRecentBlocksResponse>(
         'ListRecentBlocks',
         listRecentBlocks_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
-        ($1.ListRecentBlocksResponse value) => value.writeToBuffer()));
+        ($1.ListRecentBlocksResponse value) => value.writeToBuffer(),),);
   }
 
   $async.Future<$1.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.Empty> request) async {
