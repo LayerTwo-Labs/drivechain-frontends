@@ -98,6 +98,7 @@ class _TopNavState extends State<TopNav> {
                   subs: trailingSidechainNav,
                 ),
                 Expanded(child: Container()),
+                const ToggleThemeButton(),
               ],
             ),
             Divider(
