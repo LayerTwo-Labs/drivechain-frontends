@@ -101,7 +101,7 @@ class EthereumSidechain extends Sidechain {
 
 class ParentChain extends Chain {
   @override
-  String name = 'Parentchain';
+  String name = 'Parent Chain';
 
   @override
   Color color = SailColorScheme.green;
@@ -132,17 +132,16 @@ extension SidechainPaths on ChainType {
     }
   }
 
-  String logFile() {
+  String logDir() {
     switch (this) {
       case ChainType.testChain:
-        return 'debug.log';
+        return filePath([datadir(), 'debug.log']);
       case ChainType.ethereum:
-        // TODO: What is this..?
-        return 'ethereum.log';
+        return filePath([datadir(), 'ethereum.log']);
       case ChainType.zcash:
-        return 'regtest/debug.log';
+        return filePath([datadir(), 'regtest', 'debug.log']);
       case ChainType.parentchain:
-        return 'debug.log';
+        return filePath([datadir(), 'debug.log']);
     }
   }
 

@@ -30,7 +30,12 @@ class DaemonConnectionCard extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return SailScaleButton(
-      onPressed: () => _router.push(LogRoute(chain: chain)),
+      onPressed: () => _router.push(
+        LogRoute(
+          name: chain.name,
+          logPath: chain.type.logDir(),
+        ),
+      ),
       child: SizedBox(
         width: 250,
         child: SailBorder(

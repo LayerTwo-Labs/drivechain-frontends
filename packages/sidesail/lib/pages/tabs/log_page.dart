@@ -6,24 +6,27 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/chains.dart';
-import 'package:sidesail/providers/process_provider.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class LogPage extends StatelessWidget {
-  final Chain chain;
+  final String name;
+  final String logPath;
 
-  const LogPage({super.key, required this.chain});
+  const LogPage({
+    super.key,
+    required this.name,
+    required this.logPath,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => LogPageViewModel(chain: chain),
+      viewModelBuilder: () => LogPageViewModel(logPath: logPath),
       onViewModelReady: (viewModel) => viewModel.init(),
       builder: (context, viewModel, child) {
         return SailPage(
-          widgetTitle: SailText.primary15('${chain.type.name} logs'),
+          widgetTitle: SailText.primary15('$name logs'),
           body: KeyboardListener(
             focusNode: viewModel.focusNode,
             onKeyEvent: (KeyEvent event) {
@@ -65,7 +68,7 @@ class LogPage extends StatelessWidget {
 }
 
 class LogPageViewModel extends BaseViewModel {
-  final Chain chain;
+  final String logPath;
   final List<String> _logLines = [];
   List<String> get logLines => _logLines;
 
@@ -74,14 +77,15 @@ class LogPageViewModel extends BaseViewModel {
   RandomAccessFile? _raf;
   late FocusNode focusNode;
 
-  LogPageViewModel({required this.chain});
+  LogPageViewModel({
+    required this.logPath,
+  });
 
   Future<void> init() async {
     scrollController = ScrollController();
     focusNode = FocusNode();
 
-    final logFilePath = filePath([chain.type.datadir(), chain.type.logFile()]);
-    _logSubscription = watchLogFile(logFilePath).listen((line) {
+    _logSubscription = watchLogFile(logPath).listen((line) {
       _logLines.add(line);
       _scrollToBottom();
     });
