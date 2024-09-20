@@ -20,7 +20,8 @@ type Config struct {
 	ElectrumHost  string `long:"electrum.host" description:"host:port for connecting to Electrum server" default:"electrum.blockstream.info:60002"`
 	ElectrumNoSSL bool   `long:"electrum.no-ssl" description:"Avoid using SSL for connecting to Electrum"`
 
-	Passphrase string `long:"passphrase" description:"Passphrase for encrypting/decrypting the wallet key"`
+	Passphrase    string `long:"passphrase" description:"Passphrase for encrypting/decrypting the wallet key"`
+	XPrivOverride string `long:"xpriv" description:"Override the wallet stored to disk with a custom xpriv'"`
 }
 
 func readConfig() (Config, error) {
