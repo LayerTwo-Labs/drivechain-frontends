@@ -201,9 +201,10 @@ class _FaucetPageState extends State<FaucetPage> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: viewModel.utxos.length,
-                          itemBuilder: (context, index) => UTXOView(
+                          itemBuilder: (context, index) => CoreTransactionView(
                             key: ValueKey<String>(viewModel.utxos[index].txid),
-                            utxo: transactionResponseToUTXO(viewModel.utxos[index]),
+                            tx: transactionResponseToUTXO(viewModel.utxos[index]),
+                            ticker: 'BTC',
                             externalDirection: true,
                           ),
                         ),
@@ -220,23 +221,35 @@ class _FaucetPageState extends State<FaucetPage> {
   }
 }
 
-UTXO transactionResponseToUTXO(GetTransactionResponse response) {
+CoreTransaction transactionResponseToUTXO(GetTransactionResponse response) {
   // Extract details, assuming first detail is the relevant one.
   var detail = response.details.isNotEmpty ? response.details[0] : null;
 
-  return UTXO(
+  return CoreTransaction(
     txid: response.txid,
     vout: detail?.vout ?? 0,
     address: detail?.address ?? '',
-    account: '', // Not available in GetTransactionResponse, set empty
-    redeemScript: '', // Not available in GetTransactionResponse, set empty
-    scriptPubKey: '', // Not available in GetTransactionResponse, set empty
-    amount: response.amount,
+    category: extractNameFromEnum(
+      detail?.category.name ?? '',
+    ),
+    amount: detail?.amount ?? 0,
+    fee: detail?.fee ?? 0,
     confirmations: response.confirmations,
-    spendable: false,
-    solvable: false,
-    safe: true, // Default to true, or adjust based on other data
-    time: response.time.seconds.toInt(),
+    blockhash: response.blockHash,
+    blockindex: response.blockIndex,
+    blocktime: response.blockTime.seconds.toInt(),
+    time: DateTime.fromMillisecondsSinceEpoch(response.time.seconds.toInt() * 1000),
+    timereceived: DateTime.fromMillisecondsSinceEpoch(response.timeReceived.seconds.toInt() * 1000),
+    bip125Replaceable: extractNameFromEnum(response.bip125Replaceable.name),
     raw: jsonEncode(response.toProto3Json()), // Convert to raw JSON
+
+    label: '', // Not available in GetTransactionResponse
+    abandoned: false, // Not available in GetTransactionResponse
+    comment: '', // Not available in GetTransactionResponse
+    trusted: false, // Not available in GetTransactionResponse
   );
+}
+
+String extractNameFromEnum(String enumName) {
+  return enumName.split('_').last;
 }

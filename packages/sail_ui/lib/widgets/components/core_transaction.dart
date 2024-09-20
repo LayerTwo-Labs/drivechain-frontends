@@ -107,11 +107,13 @@ class CoreTransaction {
 class CoreTransactionView extends StatelessWidget {
   final CoreTransaction tx;
   final String ticker;
+  final bool externalDirection;
 
   const CoreTransactionView({
     super.key,
     required this.tx,
     required this.ticker,
+    this.externalDirection = false,
   });
 
   Map<String, dynamic> get decodedTx => jsonDecode(tx.raw);
@@ -150,9 +152,9 @@ class CoreTransactionView extends StatelessWidget {
     }
 
     if (tx.amount.isNegative || tx.amount == 0) {
-      return '$title to ${tx.address}';
+      return '$title ${externalDirection ? 'from' : 'to'} ${tx.address}';
     }
 
-    return '+$title from ${tx.address}';
+    return '${externalDirection ? "" : "+"} $title ${externalDirection ? 'to' : 'from'} ${tx.address}';
   }
 }
