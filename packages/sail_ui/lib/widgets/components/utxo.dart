@@ -143,9 +143,9 @@ class UTXOView extends StatelessWidget {
     }
 
     if (tx.amount.isNegative || tx.amount == 0) {
-      return '$title ${externalDirection ? 'from' : 'to'} ${tx.address}';
+      return '$title to ${tx.address}';
     }
 
-    return '${externalDirection ? "" : "+"} $title ${externalDirection ? 'to' : 'from'} ${tx.address}';
+    return '+$title from ${tx.address}';
   }
 }
