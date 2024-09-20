@@ -174,7 +174,11 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empt
 		balanceValue = s.balance.Load()
 	}
 
-	balance := balanceValue.(bdk.Balance)
+	balance, ok := balanceValue.(bdk.Balance)
+	if !ok {
+		// If the balance is still nil or not of the expected type, return an error
+		return nil, connect.NewError(connect.CodeInternal, errors.New("balance not available"))
+	}
 
 	return connect.NewResponse(&pb.GetBalanceResponse{
 		ConfirmedSatoshi: uint64(balance.Confirmed),
