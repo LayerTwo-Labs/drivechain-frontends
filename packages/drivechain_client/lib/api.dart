@@ -12,7 +12,7 @@ abstract class API {
   ]);
   Future<GetBalanceResponse> getBalance();
   Future<String> getNewAddress();
-  Future<List<Transaction>> listTransactions();
+  Future<List<Transaction>> listWalletTransactions();
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions();
 }
 
@@ -62,7 +62,7 @@ class APILive extends API {
   }
 
   @override
-  Future<List<Transaction>> listTransactions() async {
+  Future<List<Transaction>> listWalletTransactions() async {
     final response = await _walletClient.listTransactions(Empty());
     return response.transactions;
   }

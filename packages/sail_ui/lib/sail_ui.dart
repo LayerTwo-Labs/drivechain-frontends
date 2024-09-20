@@ -2,6 +2,7 @@ library sail_ui;
 
 export './bitcoin.dart';
 export './extensions/build_context.dart';
+export './extensions/formatting.dart';
 export './logger.dart';
 export './sail_app.dart';
 export './settings/client_settings.dart';

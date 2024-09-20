@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/env.dart';
+import 'package:drivechain_client/providers/transactions_provider.dart';
 import 'package:drivechain_client/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -33,6 +36,12 @@ void main() async {
       port: env(Environment.drivechainPort),
     ),
   );
+
+  final txProvider = TransactionProvider();
+  GetIt.I.registerLazySingleton<TransactionProvider>(
+    () => txProvider,
+  );
+  unawaited(txProvider.fetch());
 
   return runApp(
     SailApp(
