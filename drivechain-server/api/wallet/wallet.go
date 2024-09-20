@@ -62,15 +62,16 @@ func (s *Server) updateBalance(ctx context.Context) error {
 		return fmt.Errorf("unable to get balance: %w", err)
 	}
 
-	prevBalance, _ := s.balance.Load().(bdk.Balance)
-	if reflect.DeepEqual(balance, prevBalance) {
+	prevBalance, ok := s.balance.Load().(bdk.Balance)
+	if ok && reflect.DeepEqual(balance, prevBalance) {
 		return nil
 	}
+	s.balance.Store(*balance)
 
 	zerolog.Ctx(ctx).Info().
 		Msgf("balance changed: %+v -> %+v", prevBalance, balance)
 
-	s.balance.Store(balance)
+	s.balance.Store(*balance)
 	return nil
 }
 
@@ -175,7 +176,7 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empt
 	}
 
 	balance, ok := balanceValue.(bdk.Balance)
-	if !ok {
+	if !ok && balance != (bdk.Balance{}) {
 		// If the balance is still nil or not of the expected type, return an error
 		return nil, connect.NewError(connect.CodeInternal, errors.New("balance not available"))
 	}

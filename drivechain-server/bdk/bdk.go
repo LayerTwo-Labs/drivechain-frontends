@@ -205,20 +205,20 @@ type Balance struct {
 	UntrustedPending btcutil.Amount `json:"untrusted_pending"`
 }
 
-func (w *Wallet) GetBalance(ctx context.Context) (Balance, error) {
+func (w *Wallet) GetBalance(ctx context.Context) (*Balance, error) {
 	res, err := w.execWallet(ctx, "get_balance")
 	if err != nil {
-		return Balance{}, err
+		return nil, err
 	}
 
 	var parsed struct {
 		Satoshi Balance `json:"satoshi"`
 	}
 	if err := json.Unmarshal(res, &parsed); err != nil {
-		return Balance{}, err
+		return nil, err
 	}
 
-	return parsed.Satoshi, err
+	return &parsed.Satoshi, err
 }
 
 // CreateTransaction creates a new transaction (but does not do any signing!).
