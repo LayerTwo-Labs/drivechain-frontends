@@ -140,7 +140,6 @@ func (w *Wallet) execWallet(ctx context.Context, args ...string) ([]byte, error)
 
 	res, err := w.exec(ctx, slices.Concat(
 		[]string{
-
 			"wallet",
 			"--descriptor", w.Descriptor,
 			"--server", w.Electrum,
@@ -322,9 +321,8 @@ type Transaction struct {
 // decrypt the existing mnemonic.
 func NewWallet(
 	ctx context.Context, datadir,
-	network, electrum, passphrase string,
+	network, electrum, passphrase string, xprivOverride string,
 ) (*Wallet, error) {
-	keyFile := filepath.Join(datadir, "wallet.key")
 
 	w := &Wallet{
 		Network:  network,
@@ -332,28 +330,43 @@ func NewWallet(
 		Electrum: electrum,
 	}
 
-	var xprv string
+	xpriv, err := w.findXPriv(ctx, passphrase, xprivOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	w.Descriptor = fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", xpriv)
+
+	return w, nil
+}
+
+func (w *Wallet) findXPriv(ctx context.Context, passphrase string, xprivOverride string) (string, error) {
+	if xprivOverride != "" {
+		return xprivOverride, nil
+	}
+
+	keyFile := filepath.Join(w.Datadir, "wallet.key")
+
+	var xpriv string
 	if _, err := os.Stat(keyFile); err == nil {
 		zerolog.Ctx(ctx).Debug().
 			Msgf("bdk: loading existing wallet from key file: %s", keyFile)
 
-		xprv, err = w.loadExistingWallet(ctx, keyFile, passphrase)
+		xpriv, err = w.loadExistingWallet(ctx, keyFile, passphrase)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load existing wallet: %w", err)
+			return "", fmt.Errorf("failed to load existing wallet: %w", err)
 		}
 	} else {
 		zerolog.Ctx(ctx).Info().
 			Msg("bdk: creating new wallet")
 
-		xprv, err = w.createNewWallet(ctx, keyFile, passphrase)
+		xpriv, err = w.createNewWallet(ctx, keyFile, passphrase)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create new wallet: %w", err)
+			return "", fmt.Errorf("failed to create new wallet: %w", err)
 		}
 	}
 
-	w.Descriptor = fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", xprv)
-
-	return w, nil
+	return xpriv, nil
 }
 
 func (w *Wallet) loadExistingWallet(ctx context.Context, keyFile, passphrase string) (string, error) {

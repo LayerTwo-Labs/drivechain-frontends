@@ -79,7 +79,7 @@ func realMain(ctx context.Context) error {
 	wallet, err := bdk.NewWallet(
 		ctx, datadir, network,
 		fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost),
-		conf.Passphrase,
+		conf.Passphrase, conf.XPrivOverride,
 	)
 	if err != nil {
 		return err
