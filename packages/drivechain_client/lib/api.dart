@@ -21,8 +21,10 @@ abstract class WalletAPI {
 }
 
 abstract class DrivechainAPI {
+  Future<List<Peer>> listPeers();
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions();
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks();
+  Future<GetBlockchainInfoResponse> getBlockchainInfo();
 }
 
 class APILive extends API {
@@ -108,5 +110,17 @@ class _DrivechainAPILive implements DrivechainAPI {
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
     final response = await _client.listRecentBlocks(Empty());
     return response.recentBlocks;
+  }
+
+  @override
+  Future<GetBlockchainInfoResponse> getBlockchainInfo() async {
+    final response = await _client.getBlockchainInfo(Empty());
+    return response;
+  }
+
+  @override
+  Future<List<Peer>> listPeers() async {
+    final response = await _client.listPeers(Empty());
+    return response.peers;
   }
 }
