@@ -21,7 +21,7 @@ class ZCashBillPage extends StatelessWidget {
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZcashBillTabViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           widgetTitle: SailText.primary15('Bill Amounts'),
           scrollable: true,

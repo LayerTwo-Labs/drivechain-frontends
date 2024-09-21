@@ -17,7 +17,7 @@ class TestchainRPCTabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => TestchainRPCTabPageViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           scrollable: true,
           title: 'RPC',

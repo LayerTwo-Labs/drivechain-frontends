@@ -26,7 +26,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashShieldCastViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         final tabsRouter = AutoTabsRouter.of(context);
 
         return SailPage(
@@ -63,7 +63,7 @@ class ZCashMeltCast extends StatelessWidget {
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashMeltCastViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return Padding(
           padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
           child: SailColumn(
@@ -74,7 +74,7 @@ class ZCashMeltCast extends StatelessWidget {
                 category: Category.sidechain,
                 icon: Icons.question_mark,
                 onTap: () {
-                  viewModel.meltAndCastHelp(context);
+                  model.meltAndCastHelp(context);
                 },
               ),
               ActionTile(
@@ -82,7 +82,7 @@ class ZCashMeltCast extends StatelessWidget {
                 category: Category.sidechain,
                 icon: Icons.work,
                 onTap: () {
-                  viewModel.doEverything(context);
+                  model.doEverything(context);
                 },
               ),
               SailRow(
@@ -96,19 +96,19 @@ class ZCashMeltCast extends StatelessWidget {
                       children: [
                         DashboardGroup(
                           title: 'Melt',
-                          widgetEnd: HelpButton(onPressed: () => viewModel.meltHelp(context)),
+                          widgetEnd: HelpButton(onPressed: () => model.meltHelp(context)),
                           children: [
                             ActionTile(
                               title: 'Melt',
                               category: Category.sidechain,
                               icon: Icons.shield,
                               onTap: () {
-                                viewModel.melt(context);
+                                model.melt(context);
                               },
                             ),
                           ],
                         ),
-                        if (viewModel.pendingMelts.isNotEmpty)
+                        if (model.pendingMelts.isNotEmpty)
                           DashboardGroup(
                             title: 'Pending melts',
                             children: [
@@ -120,10 +120,10 @@ class ZCashMeltCast extends StatelessWidget {
                                   ListView.builder(
                                     shrinkWrap: true,
                                     physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: viewModel.pendingMelts.length,
+                                    itemCount: model.pendingMelts.length,
                                     itemBuilder: (context, index) => PendingMeltView(
-                                      key: ValueKey<String>(viewModel.pendingMelts[index].utxo.raw),
-                                      tx: viewModel.pendingMelts[index],
+                                      key: ValueKey<String>(model.pendingMelts[index].utxo.raw),
+                                      tx: model.pendingMelts[index],
                                     ),
                                   ),
                                 ],
@@ -147,10 +147,10 @@ class ZCashMeltCast extends StatelessWidget {
                           widgetEnd: SailRow(
                             spacing: SailStyleValues.padding08,
                             children: [
-                              HelpButton(onPressed: () => viewModel.castHelp(context)),
+                              HelpButton(onPressed: () => model.castHelp(context)),
                               SailScaleButton(
                                 child: SailSVG.icon(SailSVGAsset.iconCalendar),
-                                onPressed: () => viewModel.viewBills(),
+                                onPressed: () => model.viewBills(),
                               ),
                             ],
                           ),
@@ -160,12 +160,12 @@ class ZCashMeltCast extends StatelessWidget {
                               category: Category.sidechain,
                               icon: Icons.handyman,
                               onTap: () {
-                                viewModel.cast(context);
+                                model.cast(context);
                               },
                             ),
                           ],
                         ),
-                        if (viewModel.pendingNonEmptyBills.isNotEmpty)
+                        if (model.pendingNonEmptyBills.isNotEmpty)
                           DashboardGroup(
                             title: 'Pending casts',
                             children: [
@@ -177,11 +177,11 @@ class ZCashMeltCast extends StatelessWidget {
                                   ListView.builder(
                                     shrinkWrap: true,
                                     physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: viewModel.pendingNonEmptyBills.length,
+                                    itemCount: model.pendingNonEmptyBills.length,
                                     itemBuilder: (context, index) => PendingCastView(
-                                      key: ValueKey<int>(viewModel.pendingNonEmptyBills[index].powerOf),
-                                      pending: viewModel.pendingNonEmptyBills[index],
-                                      chain: viewModel.chain,
+                                      key: ValueKey<int>(model.pendingNonEmptyBills[index].powerOf),
+                                      pending: model.pendingNonEmptyBills[index],
+                                      chain: model.chain,
                                     ),
                                   ),
                                 ],
@@ -196,11 +196,11 @@ class ZCashMeltCast extends StatelessWidget {
               const SailSpacing(SailStyleValues.padding30),
               DashboardGroup(
                 title: 'UTXOs',
-                widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
+                widgetTrailing: SailText.secondary13(model.unshieldedUTXOs.length.toString()),
                 widgetEnd: SailToggle(
                   label: 'Hide dust UTXOs',
-                  value: viewModel.hideDust,
-                  onChanged: (to) => viewModel.setShowAll(to),
+                  value: model.hideDust,
+                  onChanged: (to) => model.setShowAll(to),
                 ),
                 children: [
                   SailColumn(
@@ -208,17 +208,17 @@ class ZCashMeltCast extends StatelessWidget {
                     withDivider: true,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (final utxo in viewModel.allUTXOs)
+                      for (final utxo in model.allUTXOs)
                         if (utxo is UnshieldedUTXO)
                           UnshieldedUTXOView(
                             utxo: utxo,
-                            shieldAction: () => viewModel.meltSingle(context, utxo),
+                            shieldAction: () => model.meltSingle(context, utxo),
                             meltMode: true,
                           )
                         else
                           ShieldedUTXOView(
                             utxo: utxo,
-                            deshieldAction: () => viewModel.castSingle(context, utxo),
+                            deshieldAction: () => model.castSingle(context, utxo),
                             castMode: true,
                           ),
                     ],

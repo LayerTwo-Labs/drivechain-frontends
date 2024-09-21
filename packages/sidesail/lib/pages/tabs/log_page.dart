@@ -23,15 +23,15 @@ class LogPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => LogPageViewModel(logPath: logPath),
-      onViewModelReady: (viewModel) => viewModel.init(),
-      builder: (context, viewModel, child) {
+      onViewModelReady: (model) => model.init(),
+      builder: (context, model, child) {
         return SailPage(
           widgetTitle: SailText.primary15('$name logs'),
           body: KeyboardListener(
-            focusNode: viewModel.focusNode,
+            focusNode: model.focusNode,
             onKeyEvent: (KeyEvent event) {
               if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
-                viewModel.addLineBreak();
+                model.addLineBreak();
               }
             },
             child: Padding(
@@ -42,18 +42,18 @@ class LogPage extends StatelessWidget {
                   SailButton.primary(
                     'Clear logs',
                     size: ButtonSize.small,
-                    onPressed: () => viewModel.clearLog(),
+                    onPressed: () => model.clearLog(),
                   ),
                   const SailSpacing(16),
                   Expanded(
                     child: ListView.builder(
-                      controller: viewModel.scrollController,
-                      itemCount: viewModel.logLines.length + 1,
+                      controller: model.scrollController,
+                      itemCount: model.logLines.length + 1,
                       itemBuilder: (context, index) {
-                        if (index == viewModel.logLines.length) {
+                        if (index == model.logLines.length) {
                           return const SizedBox(height: 100); // Bottom padding
                         }
-                        return SailText.primary10(viewModel.logLines[index]);
+                        return SailText.primary10(model.logLines[index]);
                       },
                     ),
                   ),

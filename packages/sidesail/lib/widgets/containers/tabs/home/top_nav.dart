@@ -33,9 +33,9 @@ class _TopNavState extends State<TopNav> {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => TopNavViewModel(),
       fireOnViewModelReadyOnce: true,
-      builder: ((context, viewModel, child) {
-        final sidechainNav = _navForSidechain(_sidechain.rpc.chain, viewModel, tabsRouter);
-        final trailingSidechainNav = _navForSidechainTrailing(_sidechain.rpc.chain, viewModel, tabsRouter);
+      builder: ((context, model, child) {
+        final sidechainNav = _navForSidechain(_sidechain.rpc.chain, model, tabsRouter);
+        final trailingSidechainNav = _navForSidechainTrailing(_sidechain.rpc.chain, model, tabsRouter);
 
         return Column(
           children: [

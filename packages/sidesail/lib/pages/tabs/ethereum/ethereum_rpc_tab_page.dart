@@ -18,7 +18,7 @@ class EthereumRPCTabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => EthereumRPCTabPageViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           scrollable: true,
           title: 'RPC',
@@ -26,12 +26,12 @@ class EthereumRPCTabPage extends StatelessWidget {
           widgetTitle: SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              if (viewModel.account == null)
+              if (model.account == null)
                 SailButton.primary(
                   'Create account',
                   onPressed: () async {
                     try {
-                      await viewModel.createAccount();
+                      await model.createAccount();
                     } catch (err) {
                       if (!context.mounted) {
                         return;
@@ -45,12 +45,12 @@ class EthereumRPCTabPage extends StatelessWidget {
                       );
                     }
                   },
-                  loading: viewModel.isBusy,
+                  loading: model.isBusy,
                   size: ButtonSize.small,
                 ),
-              if (viewModel.account == null)
+              if (model.account == null)
                 SailText.secondary12('You need an account to deposit and withdraw sidechain-coins'),
-              if (viewModel.account != null) SailText.secondary13('Your ETH-address: ${viewModel.account!.toString()}'),
+              if (model.account != null) SailText.secondary13('Your ETH-address: ${model.account!.toString()}'),
               Expanded(child: Container()),
             ],
           ),

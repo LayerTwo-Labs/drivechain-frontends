@@ -22,7 +22,7 @@ class DepositWithdrawTabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => DepositWithdrawTabViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           body: SingleChildScrollView(
             child: Padding(
@@ -35,9 +35,9 @@ class DepositWithdrawTabPage extends StatelessWidget {
                     children: [
                       DashboardGroup(
                         title: 'Deposit from parent chain',
-                        widgetEnd: HelpButton(onPressed: () => viewModel.castHelp(context)),
+                        widgetEnd: HelpButton(onPressed: () => model.castHelp(context)),
                         children: [
-                          if (viewModel._sidechain.rpc.chain.type == ChainType.ethereum)
+                          if (model._sidechain.rpc.chain.type == ChainType.ethereum)
                             const PegInEthAction()
                           else
                             const PegInAction(),
@@ -45,16 +45,16 @@ class DepositWithdrawTabPage extends StatelessWidget {
                       ),
                       DashboardGroup(
                         title: 'Withdraw to parent chain',
-                        widgetEnd: HelpButton(onPressed: () => viewModel.castHelp(context)),
+                        widgetEnd: HelpButton(onPressed: () => model.castHelp(context)),
                         children: [
                           const PegOutAction(),
-                          if (viewModel.localNetwork)
+                          if (model.localNetwork)
                             ActionTile(
                               title: 'Connect sidechain with parent chain',
                               category: Category.mainchain,
                               icon: Icons.add,
                               onTap: () {
-                                viewModel.connectAndGenerate(context);
+                                model.connectAndGenerate(context);
                               },
                             ),
                         ],

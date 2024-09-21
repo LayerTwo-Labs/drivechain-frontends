@@ -19,7 +19,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => BlindMergedMiningTabPageViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           scrollable: true,
           widgetTitle: SailRow(
@@ -29,8 +29,8 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                 children: [
                   const SizedBox(width: 10),
                   SailButton.icon(
-                    onPressed: viewModel.running ? null : () => viewModel.toggleRunning(true),
-                    disabled: viewModel.running,
+                    onPressed: model.running ? null : () => model.toggleRunning(true),
+                    disabled: model.running,
                     icon: const Icon(
                       Icons.play_arrow,
                       size: SailStyleValues.iconSizePrimary,
@@ -39,8 +39,8 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   SailButton.icon(
-                    onPressed: !viewModel.running ? null : () => viewModel.toggleRunning(false),
-                    disabled: !viewModel.running,
+                    onPressed: !model.running ? null : () => model.toggleRunning(false),
+                    disabled: !model.running,
                     icon: const Icon(
                       Icons.stop,
                       size: SailStyleValues.iconSizePrimary,
@@ -53,7 +53,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
               SizedBox(
                 width: 250,
                 child: SailTextField.tiny(
-                  controller: viewModel.bidController,
+                  controller: model.bidController,
                   hintText: 'Bid amount',
                   suffix: 'sats',
                   prefix: 'Bid amount: ',
@@ -63,7 +63,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
               SizedBox(
                 width: 250,
                 child: SailTextField.tiny(
-                  controller: viewModel.refreshController,
+                  controller: model.refreshController,
                   hintText: 'Refresh interval',
                   prefix: 'Refresh interval: ',
                   suffix: 'seconds',
@@ -77,7 +77,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                viewModel.bmmAttempts.isEmpty
+                model.bmmAttempts.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(40),
                         child: SailColumn(
@@ -115,7 +115,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                         child: SingleChildScrollView(
                           child: DashboardGroup(
                             title: 'Blind Merged Mining attempts',
-                            widgetTrailing: SailText.secondary13(viewModel.bmmAttempts.length.toString()),
+                            widgetTrailing: SailText.secondary13(model.bmmAttempts.length.toString()),
                             children: [
                               SailColumn(
                                 spacing: 0,
@@ -125,10 +125,10 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                                   ListView.builder(
                                     shrinkWrap: true,
                                     physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: viewModel.bmmAttempts.length,
+                                    itemCount: model.bmmAttempts.length,
                                     itemBuilder: (context, index) => BMMAttemptView(
-                                      key: ValueKey<String>(viewModel.bmmAttempts[index].result.txid),
-                                      bmmAttempt: viewModel.bmmAttempts[index],
+                                      key: ValueKey<String>(model.bmmAttempts[index].result.txid),
+                                      bmmAttempt: model.bmmAttempts[index],
                                       onPressed: () => {},
                                     ),
                                   ),

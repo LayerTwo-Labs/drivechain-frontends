@@ -87,7 +87,7 @@ class _FaucetPageState extends State<FaucetPage> {
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => FaucetViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return Scaffold(
           backgroundColor: theme.colors.background,
           appBar: AppBar(
@@ -111,7 +111,7 @@ class _FaucetPageState extends State<FaucetPage> {
                     spacing: SailStyleValues.padding10,
                     children: <Widget>[
                       TextField(
-                        controller: viewModel.addressController,
+                        controller: model.addressController,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
                             borderSide: BorderSide(
@@ -134,7 +134,7 @@ class _FaucetPageState extends State<FaucetPage> {
                         style: TextStyle(color: theme.colors.text),
                       ),
                       TextField(
-                        controller: viewModel.amountController,
+                        controller: model.amountController,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
                             borderSide: BorderSide(
@@ -163,34 +163,33 @@ class _FaucetPageState extends State<FaucetPage> {
                         ],
                       ),
                       SailButton.primary(
-                        viewModel.addressController.text == ''
+                        model.addressController.text == ''
                             ? 'Insert address first'
-                            : viewModel.amountController.text == ''
+                            : model.amountController.text == ''
                                 ? 'Choose amount first'
                                 : 'Dispense Drivechain Coins',
                         onPressed: () async {
-                          final txid = await viewModel.claim();
+                          final txid = await model.claim();
                           if (txid != null) {
                             if (!context.mounted) {
                               return;
                             }
                             showSnackBar(context, 'Sent in txid=$txid');
-                            await viewModel._transactionsProvider.fetch();
+                            await model._transactionsProvider.fetch();
                           }
                         },
                         size: ButtonSize.large,
-                        disabled: viewModel.isBusy ||
-                            viewModel.amountController.text == '' ||
-                            viewModel.addressController.text == '',
-                        loading: viewModel.isBusy,
+                        disabled:
+                            model.isBusy || model.amountController.text == '' || model.addressController.text == '',
+                        loading: model.isBusy,
                       ),
-                      SailText.primary13(viewModel.dispenseErr ?? '', color: SailColorScheme.red),
+                      SailText.primary13(model.dispenseErr ?? '', color: SailColorScheme.red),
                     ],
                   ),
                 ),
                 DashboardGroup(
                   title: 'Latest Transactions',
-                  widgetTrailing: SailText.secondary13(viewModel.utxos.length.toString()),
+                  widgetTrailing: SailText.secondary13(model.utxos.length.toString()),
                   children: [
                     SailColumn(
                       spacing: 0,
@@ -200,10 +199,10 @@ class _FaucetPageState extends State<FaucetPage> {
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: viewModel.utxos.length,
+                          itemCount: model.utxos.length,
                           itemBuilder: (context, index) => CoreTransactionView(
-                            key: ValueKey<String>(viewModel.utxos[index].txid),
-                            tx: transactionResponseToUTXO(viewModel.utxos[index]),
+                            key: ValueKey<String>(model.utxos[index].txid),
+                            tx: transactionResponseToUTXO(model.utxos[index]),
                             ticker: 'BTC',
                             externalDirection: true,
                           ),

@@ -21,7 +21,7 @@ class SidechainSendPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => SidechainSendViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           scrollable: true,
           body: Padding(
@@ -36,7 +36,7 @@ class SidechainSendPage extends StatelessWidget {
                       category: Category.sidechain,
                       icon: Icons.remove,
                       onTap: () {
-                        viewModel.send(context);
+                        model.send(context);
                       },
                     ),
                     ActionTile(
@@ -44,7 +44,7 @@ class SidechainSendPage extends StatelessWidget {
                       category: Category.sidechain,
                       icon: Icons.add,
                       onTap: () {
-                        viewModel.receive(context);
+                        model.receive(context);
                       },
                     ),
                   ],
@@ -52,14 +52,14 @@ class SidechainSendPage extends StatelessWidget {
                 const SailSpacing(SailStyleValues.padding30),
                 DashboardGroup(
                   title: 'Transactions',
-                  widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
+                  widgetTrailing: SailText.secondary13(model.transactions.length.toString()),
                   children: [
                     SailColumn(
                       spacing: 0,
                       withDivider: true,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (final tx in viewModel.transactions)
+                        for (final tx in model.transactions)
                           CoreTransactionView(
                             tx: tx,
                             ticker: _sidechain.rpc.chain.ticker,

@@ -25,7 +25,7 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashShieldTabViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         final tabsRouter = AutoTabsRouter.of(context);
 
         return SailPage(
@@ -45,11 +45,11 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                     Flexible(
                       child: DashboardGroup(
                         title: 'Transparent UTXOs',
-                        widgetTrailing: SailText.secondary13(viewModel.unshieldedUTXOs.length.toString()),
+                        widgetTrailing: SailText.secondary13(model.unshieldedUTXOs.length.toString()),
                         widgetEnd: SailToggle(
                           label: 'Hide dust UTXOs',
-                          value: viewModel.hideDust,
-                          onChanged: (to) => viewModel.setShowAll(to),
+                          value: model.hideDust,
+                          onChanged: (to) => model.setShowAll(to),
                         ),
                         children: [
                           SailColumn(
@@ -57,10 +57,10 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                             withDivider: true,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              for (final utxo in viewModel.unshieldedUTXOs)
+                              for (final utxo in model.unshieldedUTXOs)
                                 UnshieldedUTXOView(
                                   utxo: utxo,
-                                  shieldAction: () => viewModel.shield(context, utxo),
+                                  shieldAction: () => model.shield(context, utxo),
                                   meltMode: false,
                                 ),
                             ],
@@ -76,17 +76,17 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                     Flexible(
                       child: DashboardGroup(
                         title: 'Private UTXOs',
-                        widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
+                        widgetTrailing: SailText.secondary13(model.shieldedUTXOs.length.toString()),
                         children: [
                           SailColumn(
                             spacing: 0,
                             withDivider: true,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              for (final utxo in viewModel.shieldedUTXOs)
+                              for (final utxo in model.shieldedUTXOs)
                                 ShieldedUTXOView(
                                   utxo: utxo,
-                                  deshieldAction: () => viewModel.deshield(context, utxo),
+                                  deshieldAction: () => model.deshield(context, utxo),
                                   castMode: false,
                                 ),
                             ],

@@ -28,37 +28,37 @@ class SendOnSidechainAction extends StatelessWidget {
         customSendAction: customSendAction,
         maxAmount: maxAmount,
       ),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           'Send on sidechain',
           endActionButton: SailButton.primary(
             'Execute send',
-            disabled: viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
-            loading: viewModel.isBusy,
+            disabled: model.bitcoinAddressController.text.isEmpty || model.bitcoinAmountController.text.isEmpty,
+            loading: model.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.executeSendOnSidechain(context);
+              model.executeSendOnSidechain(context);
             },
           ),
           children: [
             LargeEmbeddedInput(
-              controller: viewModel.bitcoinAddressController,
+              controller: model.bitcoinAddressController,
               hintText: 'Enter a sidechain-address',
               autofocus: true,
             ),
             LargeEmbeddedInput(
-              controller: viewModel.bitcoinAmountController,
-              hintText: 'Enter a ${viewModel.ticker}-amount',
-              suffixText: viewModel.ticker,
+              controller: model.bitcoinAmountController,
+              hintText: 'Enter a ${model.ticker}-amount',
+              suffixText: model.ticker,
               bitcoinInput: true,
             ),
             StaticActionField(
               label: 'Fee',
-              value: (formatBitcoin(viewModel.sidechainExpectedFee ?? 0, symbol: viewModel.ticker)),
+              value: (formatBitcoin(model.sidechainExpectedFee ?? 0, symbol: model.ticker)),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: viewModel.totalBitcoinAmount,
+              value: model.totalBitcoinAmount,
             ),
           ],
         );
@@ -78,9 +78,10 @@ class SendOnSidechainViewModel extends BaseViewModel {
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount =>
-      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)),
-          symbol: ticker,);
+  String get totalBitcoinAmount => formatBitcoin(
+        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)),
+        symbol: ticker,
+      );
   String get ticker => _sidechainContainer.rpc.chain.ticker;
 
   double? sidechainExpectedFee;
@@ -231,23 +232,23 @@ class ReceiveAction extends StatelessWidget {
         initialAddress: initialAddress,
         customReceiveAction: customReceiveAction,
       ),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return Padding(
           padding: const EdgeInsets.only(left: SailStyleValues.padding05),
           child: DashboardActionModal(
             customTitle ?? 'Receive on sidechain',
             endActionButton: SailButton.primary(
               'Generate new address',
-              loading: viewModel.isBusy,
+              loading: model.isBusy,
               size: ButtonSize.regular,
               onPressed: () async {
-                await viewModel.generateSidechainAddress();
+                await model.generateSidechainAddress();
               },
             ),
             children: [
               StaticActionField(
                 label: 'Address',
-                value: viewModel.address,
+                value: model.address,
                 copyable: true,
               ),
             ],

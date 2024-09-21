@@ -34,15 +34,15 @@ class _BottomNavState extends State<BottomNav> {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => BottomNavViewModel(navigateToSettings: widget.navigateToSettings),
       fireOnViewModelReadyOnce: true,
-      onViewModelReady: (viewModel) => {
-        if (!viewModel.mainchainConnected || !viewModel.sidechainConnected)
+      onViewModelReady: (model) => {
+        if (!model.mainchainConnected || !model.sidechainConnected)
           {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              viewModel.displayConnectionStatusDialog(context);
+              model.displayConnectionStatusDialog(context);
             }),
           },
       },
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.end,
@@ -58,9 +58,9 @@ class _BottomNavState extends State<BottomNav> {
                 child: Row(
                   children: [
                     ChainOverviewCard(
-                      chain: viewModel.chain,
-                      confirmedBalance: viewModel.balance,
-                      unconfirmedBalance: viewModel.pendingBalance,
+                      chain: model.chain,
+                      confirmedBalance: model.balance,
+                      unconfirmedBalance: model.pendingBalance,
                       highlighted: tabsRouter.activeIndex == 0,
                       currentChain: true,
                       onPressed: RuntimeArgs.swappableChains
@@ -72,7 +72,7 @@ class _BottomNavState extends State<BottomNav> {
                     ),
                     Expanded(child: Container()),
                     _NodeConnectionStatus(
-                      onChipPressed: () => viewModel.displayConnectionStatusDialog(context),
+                      onChipPressed: () => model.displayConnectionStatusDialog(context),
                     ),
                   ],
                 ),
@@ -134,7 +134,7 @@ class BottomNavViewModel extends BaseViewModel {
       maxWidth: 536,
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => BottomNavViewModel(navigateToSettings: navigateToSettings),
-        builder: ((context, viewModel, child) {
+        builder: ((context, model, child) {
           return SailColumn(
             spacing: SailStyleValues.padding20,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -221,28 +221,28 @@ class _NodeConnectionStatus extends ViewModelWidget<BottomNavViewModel> {
   });
 
   @override
-  Widget build(BuildContext context, BottomNavViewModel viewModel) {
+  Widget build(BuildContext context, BottomNavViewModel model) {
     return SailRow(
       spacing: 0,
       children: [
-        if (viewModel.sidechainConnected || viewModel.sidechainInitializing || viewModel.inIBD)
+        if (model.sidechainConnected || model.sidechainInitializing || model.inIBD)
           ConnectionStatusChip(
             chain: _sidechain.rpc.chain.name,
-            initializing: viewModel.sidechainInitializing,
-            blockHeight: viewModel.sidechainBlockCount,
+            initializing: model.sidechainInitializing,
+            blockHeight: model.sidechainBlockCount,
             onPressed: onChipPressed,
-            infoMessage: viewModel.inIBD ? 'Waiting for IBD' : null,
+            infoMessage: model.inIBD ? 'Waiting for IBD' : null,
           )
         else
           ConnectionErrorChip(
             chain: _sidechain.rpc.chain.name,
             onPressed: onChipPressed,
           ),
-        if (viewModel.mainchainConnected || viewModel.mainchainInitializing)
+        if (model.mainchainConnected || model.mainchainInitializing)
           ConnectionStatusChip(
             chain: 'Parent chain',
-            initializing: viewModel.mainchainInitializing,
-            blockHeight: viewModel.mainchainBlockCount,
+            initializing: model.mainchainInitializing,
+            blockHeight: model.mainchainBlockCount,
             onPressed: onChipPressed,
             infoMessage: null,
           )
