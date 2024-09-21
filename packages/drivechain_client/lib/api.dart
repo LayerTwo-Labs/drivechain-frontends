@@ -6,19 +6,30 @@ import 'package:grpc/grpc.dart';
 
 /// API to the drivechain server.
 abstract class API {
+  WalletAPI get wallet;
+  DrivechainAPI get drivechain;
+}
+
+abstract class WalletAPI {
   Future<String> sendTransaction(
     Map<String, int> destinations, [
     double? satoshiPerVbyte,
   ]);
   Future<GetBalanceResponse> getBalance();
   Future<String> getNewAddress();
-  Future<List<Transaction>> listWalletTransactions();
+  Future<List<Transaction>> listTransactions();
+}
+
+abstract class DrivechainAPI {
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions();
+  Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks();
 }
 
 class APILive extends API {
   late final DrivechainServiceClient _client;
   late final WalletServiceClient _walletClient;
+  late final WalletAPI _wallet;
+  late final DrivechainAPI _drivechain;
 
   APILive({
     required String host,
@@ -34,7 +45,21 @@ class APILive extends API {
 
     _client = DrivechainServiceClient(channel);
     _walletClient = WalletServiceClient(channel);
+    _wallet = _WalletAPILive(_walletClient);
+    _drivechain = _DrivechainAPILive(_client);
   }
+
+  @override
+  WalletAPI get wallet => _wallet;
+
+  @override
+  DrivechainAPI get drivechain => _drivechain;
+}
+
+class _WalletAPILive implements WalletAPI {
+  final WalletServiceClient _client;
+
+  _WalletAPILive(this._client);
 
   @override
   Future<String> sendTransaction(
@@ -46,26 +71,32 @@ class APILive extends API {
       satoshiPerVbyte: satoshiPerVbyte,
     );
 
-    final response = await _walletClient.sendTransaction(request);
+    final response = await _client.sendTransaction(request);
     return response.txid;
   }
 
   @override
   Future<GetBalanceResponse> getBalance() async {
-    return await _walletClient.getBalance(Empty());
+    return await _client.getBalance(Empty());
   }
 
   @override
   Future<String> getNewAddress() async {
-    final response = await _walletClient.getNewAddress(Empty());
+    final response = await _client.getNewAddress(Empty());
     return response.address;
   }
 
   @override
-  Future<List<Transaction>> listWalletTransactions() async {
-    final response = await _walletClient.listTransactions(Empty());
+  Future<List<Transaction>> listTransactions() async {
+    final response = await _client.listTransactions(Empty());
     return response.transactions;
   }
+}
+
+class _DrivechainAPILive implements DrivechainAPI {
+  final DrivechainServiceClient _client;
+
+  _DrivechainAPILive(this._client);
 
   @override
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {
@@ -73,6 +104,7 @@ class APILive extends API {
     return response.unconfirmedTransactions;
   }
 
+  @override
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
     final response = await _client.listRecentBlocks(Empty());
     return response.recentBlocks;
