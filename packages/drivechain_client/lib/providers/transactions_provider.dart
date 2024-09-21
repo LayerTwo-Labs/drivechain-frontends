@@ -15,9 +15,7 @@ class TransactionProvider extends ChangeNotifier {
 
   bool _isFetching = false;
 
-  TransactionProvider() {
-    fetch();
-  }
+  TransactionProvider();
 
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {

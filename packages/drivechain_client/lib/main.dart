@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/env.dart';
+import 'package:drivechain_client/providers/balance_provider.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
 import 'package:drivechain_client/routing/router.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,33 @@ void main() async {
 
   final log = Logger();
   final router = AppRouter();
+  await initDependencies(log);
+
+  return runApp(
+    SailApp(
+      dense: true,
+      builder: (context) {
+        return MaterialApp.router(
+          routerDelegate: router.delegate(),
+          routeInformationParser: router.defaultRouteParser(),
+          title: 'Drivechain',
+          theme: ThemeData(
+            visualDensity: VisualDensity.compact,
+            fontFamily: 'Inter',
+            textTheme: GoogleFonts.interTightTextTheme(
+              GoogleFonts.sourceCodeProTextTheme(),
+            ),
+            scaffoldBackgroundColor: const Color.fromARGB(255, 240, 240, 240),
+          ),
+        );
+      },
+      accentColor: const Color.fromARGB(255, 255, 153, 0),
+      log: log,
+    ),
+  );
+}
+
+Future<void> initDependencies(Logger log) async {
   final prefs = await SharedPreferences.getInstance();
 
   // Needed for sidesail_ui to work
@@ -43,26 +71,9 @@ void main() async {
   );
   unawaited(txProvider.fetch());
 
-  return runApp(
-    SailApp(
-      dense: true,
-      builder: (context) {
-        return MaterialApp.router(
-          routerDelegate: router.delegate(),
-          routeInformationParser: router.defaultRouteParser(),
-          title: 'Drivechain',
-          theme: ThemeData(
-            visualDensity: VisualDensity.compact,
-            fontFamily: 'Inter',
-            textTheme: GoogleFonts.interTightTextTheme(
-              GoogleFonts.sourceCodeProTextTheme(),
-            ),
-            scaffoldBackgroundColor: const Color.fromARGB(255, 240, 240, 240),
-          ),
-        );
-      },
-      accentColor: const Color.fromARGB(255, 255, 153, 0),
-      log: log,
-    ),
+  final balanceProvider = BalanceProvider();
+  GetIt.I.registerLazySingleton<BalanceProvider>(
+    () => balanceProvider,
   );
+  unawaited(balanceProvider.fetch());
 }
