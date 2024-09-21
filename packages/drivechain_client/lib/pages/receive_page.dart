@@ -107,7 +107,7 @@ class ReceivePageViewModel extends BaseViewModel {
 
   void generateNewAddress() async {
     setBusy(true);
-    final address = await api.getNewAddress();
+    final address = await api.wallet.getNewAddress();
     addressController.text = address;
     setBusy(false);
     notifyListeners();

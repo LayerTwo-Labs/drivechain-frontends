@@ -65,7 +65,7 @@ class SendPage extends StatelessWidget {
                           ),
                           // Balance
                           FutureBuilder(
-                            future: api.getBalance(),
+                            future: api.wallet.getBalance(),
                             builder: (context, snapshot) {
                               if (snapshot.hasData) {
                                 final balance = formatBitcoin(
@@ -699,7 +699,7 @@ class SendPageViewModel extends BaseViewModel {
   Future<void> onUseAvailableBalance() async {
     // Get the balance from the node
     try {
-      final balance = await runBusyFuture(api.getBalance());
+      final balance = await runBusyFuture(api.wallet.getBalance());
       amountController.text = balance.confirmedSatoshi.toDouble().toString();
       notifyListeners();
     } catch (error) {

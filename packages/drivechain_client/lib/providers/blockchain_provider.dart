@@ -1,25 +1,19 @@
 import 'dart:async';
 
 import 'package:drivechain_client/api.dart';
-import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
-import 'package:drivechain_client/providers/balance_provider.dart';
+import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
-// because the class extends ChangeNotifier, any subscribers
-// to this class will be notified of changes to new transactions
-class TransactionProvider extends ChangeNotifier {
+class BlockchainProvider extends ChangeNotifier {
   API get api => GetIt.I.get<API>();
-  BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
 
-  List<Transaction> walletTransactions = [];
+  List<UnconfirmedTransaction> walletTransactions = [];
   bool initialized = false;
 
   bool _isFetching = false;
 
-  TransactionProvider() {
-    balanceProvider.addListener(fetch);
-  }
+  BlockchainProvider();
 
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
@@ -29,7 +23,7 @@ class TransactionProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newTXs = await api.wallet.listTransactions();
+      final newTXs = await api.drivechain.listUnconfirmedTransactions();
 
       if (_dataHasChanged(newTXs)) {
         walletTransactions = newTXs;
@@ -41,18 +35,12 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   bool _dataHasChanged(
-    List<Transaction> newTXs,
+    List<UnconfirmedTransaction> newTXs,
   ) {
     if (!listEquals(walletTransactions, newTXs)) {
       return true;
     }
 
     return false;
-  }
-
-  @override
-  void dispose() {
-    balanceProvider.removeListener(fetch);
-    super.dispose();
   }
 }

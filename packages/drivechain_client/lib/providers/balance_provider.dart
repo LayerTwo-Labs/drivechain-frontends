@@ -28,7 +28,7 @@ class BalanceProvider extends ChangeNotifier {
       }
       _isFetching = true;
 
-      final res = await api.getBalance();
+      final res = await api.wallet.getBalance();
 
       if (_dataHasChanged(res.confirmedSatoshi.toInt(), res.pendingSatoshi.toInt())) {
         balance = res.confirmedSatoshi.toInt();
