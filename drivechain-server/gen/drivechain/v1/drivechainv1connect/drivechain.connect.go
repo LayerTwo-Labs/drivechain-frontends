@@ -43,6 +43,9 @@ const (
 	// DrivechainServiceGetBlockchainInfoProcedure is the fully-qualified name of the
 	// DrivechainService's GetBlockchainInfo RPC.
 	DrivechainServiceGetBlockchainInfoProcedure = "/drivechain.v1.DrivechainService/GetBlockchainInfo"
+	// DrivechainServiceListPeersProcedure is the fully-qualified name of the DrivechainService's
+	// ListPeers RPC.
+	DrivechainServiceListPeersProcedure = "/drivechain.v1.DrivechainService/ListPeers"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -51,6 +54,7 @@ var (
 	drivechainServiceListUnconfirmedTransactionsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListUnconfirmedTransactions")
 	drivechainServiceListRecentBlocksMethodDescriptor            = drivechainServiceServiceDescriptor.Methods().ByName("ListRecentBlocks")
 	drivechainServiceGetBlockchainInfoMethodDescriptor           = drivechainServiceServiceDescriptor.Methods().ByName("GetBlockchainInfo")
+	drivechainServiceListPeersMethodDescriptor                   = drivechainServiceServiceDescriptor.Methods().ByName("ListPeers")
 )
 
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
@@ -62,6 +66,8 @@ type DrivechainServiceClient interface {
 	ListRecentBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error)
 	// Get basic blockchain info like height, last block time, peers etc.
 	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
+	// Lists very basic info about all peers
+	ListPeers(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error)
 }
 
 // NewDrivechainServiceClient constructs a client for the drivechain.v1.DrivechainService service.
@@ -92,6 +98,12 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(drivechainServiceGetBlockchainInfoMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		listPeers: connect.NewClient[emptypb.Empty, v1.ListPeersResponse](
+			httpClient,
+			baseURL+DrivechainServiceListPeersProcedure,
+			connect.WithSchema(drivechainServiceListPeersMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -100,6 +112,7 @@ type drivechainServiceClient struct {
 	listUnconfirmedTransactions *connect.Client[emptypb.Empty, v1.ListUnconfirmedTransactionsResponse]
 	listRecentBlocks            *connect.Client[emptypb.Empty, v1.ListRecentBlocksResponse]
 	getBlockchainInfo           *connect.Client[emptypb.Empty, v1.GetBlockchainInfoResponse]
+	listPeers                   *connect.Client[emptypb.Empty, v1.ListPeersResponse]
 }
 
 // ListUnconfirmedTransactions calls drivechain.v1.DrivechainService.ListUnconfirmedTransactions.
@@ -117,6 +130,11 @@ func (c *drivechainServiceClient) GetBlockchainInfo(ctx context.Context, req *co
 	return c.getBlockchainInfo.CallUnary(ctx, req)
 }
 
+// ListPeers calls drivechain.v1.DrivechainService.ListPeers.
+func (c *drivechainServiceClient) ListPeers(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error) {
+	return c.listPeers.CallUnary(ctx, req)
+}
+
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
@@ -126,6 +144,8 @@ type DrivechainServiceHandler interface {
 	ListRecentBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error)
 	// Get basic blockchain info like height, last block time, peers etc.
 	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
+	// Lists very basic info about all peers
+	ListPeers(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error)
 }
 
 // NewDrivechainServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -152,6 +172,12 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 		connect.WithSchema(drivechainServiceGetBlockchainInfoMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	drivechainServiceListPeersHandler := connect.NewUnaryHandler(
+		DrivechainServiceListPeersProcedure,
+		svc.ListPeers,
+		connect.WithSchema(drivechainServiceListPeersMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DrivechainServiceListUnconfirmedTransactionsProcedure:
@@ -160,6 +186,8 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 			drivechainServiceListRecentBlocksHandler.ServeHTTP(w, r)
 		case DrivechainServiceGetBlockchainInfoProcedure:
 			drivechainServiceGetBlockchainInfoHandler.ServeHTTP(w, r)
+		case DrivechainServiceListPeersProcedure:
+			drivechainServiceListPeersHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -179,4 +207,8 @@ func (UnimplementedDrivechainServiceHandler) ListRecentBlocks(context.Context, *
 
 func (UnimplementedDrivechainServiceHandler) GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.GetBlockchainInfo is not implemented"))
+}
+
+func (UnimplementedDrivechainServiceHandler) ListPeers(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListPeers is not implemented"))
 }

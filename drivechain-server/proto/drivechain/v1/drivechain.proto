@@ -15,6 +15,9 @@ service DrivechainService {
 
   // Get basic blockchain info like height, last block time, peers etc.
   rpc GetBlockchainInfo(google.protobuf.Empty) returns (GetBlockchainInfoResponse);
+
+  // Lists very basic info about all peers
+  rpc ListPeers(google.protobuf.Empty) returns (ListPeersResponse);
 }
 
 message ListRecentBlocksResponse {
@@ -55,4 +58,14 @@ message GetBlockchainInfoResponse {
   uint32 headers = 3;
   string best_block_hash = 4;
   bool initial_block_download = 8;
+}
+
+message Peer {
+  int32 id = 1;
+  string addr = 2;
+  int32 synced_blocks = 3;
+}
+
+message ListPeersResponse {
+  repeated Peer peers = 1;
 }

@@ -398,6 +398,128 @@ class GetBlockchainInfoResponse extends $pb.GeneratedMessage {
   void clearInitialBlockDownload() => clearField(8);
 }
 
+class Peer extends $pb.GeneratedMessage {
+  factory Peer({
+    $core.int? id,
+    $core.String? addr,
+    $core.int? syncedBlocks,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (addr != null) {
+      $result.addr = addr;
+    }
+    if (syncedBlocks != null) {
+      $result.syncedBlocks = syncedBlocks;
+    }
+    return $result;
+  }
+  Peer._() : super();
+  factory Peer.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Peer.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Peer', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'id', $pb.PbFieldType.O3)
+    ..aOS(2, _omitFieldNames ? '' : 'addr')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'syncedBlocks', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  Peer clone() => Peer()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  Peer copyWith(void Function(Peer) updates) => super.copyWith((message) => updates(message as Peer)) as Peer;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Peer create() => Peer._();
+  Peer createEmptyInstance() => create();
+  static $pb.PbList<Peer> createRepeated() => $pb.PbList<Peer>();
+  @$core.pragma('dart2js:noInline')
+  static Peer getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Peer>(create);
+  static Peer? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get id => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set id($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get addr => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set addr($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAddr() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddr() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get syncedBlocks => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set syncedBlocks($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSyncedBlocks() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSyncedBlocks() => clearField(3);
+}
+
+class ListPeersResponse extends $pb.GeneratedMessage {
+  factory ListPeersResponse({
+    $core.Iterable<Peer>? peers,
+  }) {
+    final $result = create();
+    if (peers != null) {
+      $result.peers.addAll(peers);
+    }
+    return $result;
+  }
+  ListPeersResponse._() : super();
+  factory ListPeersResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListPeersResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListPeersResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..pc<Peer>(1, _omitFieldNames ? '' : 'peers', $pb.PbFieldType.PM, subBuilder: Peer.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListPeersResponse clone() => ListPeersResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListPeersResponse copyWith(void Function(ListPeersResponse) updates) => super.copyWith((message) => updates(message as ListPeersResponse)) as ListPeersResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListPeersResponse create() => ListPeersResponse._();
+  ListPeersResponse createEmptyInstance() => create();
+  static $pb.PbList<ListPeersResponse> createRepeated() => $pb.PbList<ListPeersResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListPeersResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListPeersResponse>(create);
+  static ListPeersResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<Peer> get peers => $_getList(0);
+}
+
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

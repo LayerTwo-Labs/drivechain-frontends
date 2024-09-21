@@ -34,6 +34,10 @@ class DrivechainServiceClient extends $grpc.Client {
       '/drivechain.v1.DrivechainService/GetBlockchainInfo',
       ($0.Empty value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $1.GetBlockchainInfoResponse.fromBuffer(value),);
+  static final _$listPeers = $grpc.ClientMethod<$0.Empty, $1.ListPeersResponse>(
+      '/drivechain.v1.DrivechainService/ListPeers',
+      ($0.Empty value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $1.ListPeersResponse.fromBuffer(value),);
 
   DrivechainServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -51,6 +55,10 @@ class DrivechainServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$1.GetBlockchainInfoResponse> getBlockchainInfo($0.Empty request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getBlockchainInfo, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$1.ListPeersResponse> listPeers($0.Empty request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$listPeers, request, options: options);
   }
 }
 
@@ -80,6 +88,13 @@ abstract class DrivechainServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($1.GetBlockchainInfoResponse value) => value.writeToBuffer(),),);
+    $addMethod($grpc.ServiceMethod<$0.Empty, $1.ListPeersResponse>(
+        'ListPeers',
+        listPeers_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($1.ListPeersResponse value) => value.writeToBuffer(),),);
   }
 
   $async.Future<$1.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.Empty> request) async {
@@ -94,7 +109,12 @@ abstract class DrivechainServiceBase extends $grpc.Service {
     return getBlockchainInfo(call, await request);
   }
 
+  $async.Future<$1.ListPeersResponse> listPeers_Pre($grpc.ServiceCall call, $async.Future<$0.Empty> request) async {
+    return listPeers(call, await request);
+  }
+
   $async.Future<$1.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions($grpc.ServiceCall call, $0.Empty request);
   $async.Future<$1.ListRecentBlocksResponse> listRecentBlocks($grpc.ServiceCall call, $0.Empty request);
   $async.Future<$1.GetBlockchainInfoResponse> getBlockchainInfo($grpc.ServiceCall call, $0.Empty request);
+  $async.Future<$1.ListPeersResponse> listPeers($grpc.ServiceCall call, $0.Empty request);
 }
