@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:drivechain_client/routing/router.dart';
 import 'package:flutter/material.dart';
@@ -191,10 +192,16 @@ class _StatusBarState extends State<StatusBar> {
           SailText.primary12(
             '${formatWithThousandSpacers(blockchainProvider.blockchainInfo.blocks)} blocks',
           ),
-          SailText.primary12(
-            formatTimeDifference(blockchainProvider.peers.length, 'peer'),
+          Tooltip(
+            message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
+            child: SailText.primary12(
+              formatTimeDifference(blockchainProvider.peers.length, 'peer'),
+            ),
           ),
-          SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+          Tooltip(
+            message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
+            child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+          ),
         ]
             .map(
               (child) => Container(
@@ -218,4 +225,10 @@ class _StatusBarState extends State<StatusBar> {
 
 String formatTimeDifference(int value, String unit) {
   return '$value $unit${value == 1 ? '' : 's'}';
+}
+
+extension on ListRecentBlocksResponse_RecentBlock {
+  String toPretty() {
+    return 'Block $blockHeight\nBlockTime=${blockTime.toDateTime().format()}\nHash=$hash';
+  }
 }
