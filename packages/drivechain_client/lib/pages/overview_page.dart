@@ -1,10 +1,10 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:drivechain_client/api.dart';
-import 'package:drivechain_client/util/currencies.dart';
+import 'package:drivechain_client/providers/balance_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class OverviewPage extends StatelessWidget {
@@ -12,16 +12,16 @@ class OverviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
+    return const Padding(
+      padding: EdgeInsets.symmetric(
         horizontal: 12.0,
         vertical: 12.0,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ExperimentalBanner(),
-          const SizedBox(height: 16.0),
+          ExperimentalBanner(),
+          SizedBox(height: 16.0),
           BalancesView(),
         ],
       ),
@@ -37,7 +37,7 @@ class ExperimentalBanner extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(4.0),
-        color: SailTheme.of(context).colors.yellow.withOpacity(0.8),
+        color: SailTheme.of(context).colors.orangeLight.withOpacity(0.8),
       ),
       width: double.infinity,
       padding: const EdgeInsets.all(4.0),
@@ -50,118 +50,120 @@ class ExperimentalBanner extends StatelessWidget {
 }
 
 class BalancesView extends StatelessWidget {
-  final API api = GetIt.I.get<API>();
-
-  BalancesView({super.key});
+  const BalancesView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: api.getBalance(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return SailText.primary12(snapshot.error.toString());
-        } else if (snapshot.hasData) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.end,
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => BalancesViewModel(),
+      builder: (context, model, child) => Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SailText.primary13(
-                    'Balances',
-                    bold: true,
-                  ),
-                  const SizedBox(height: 16.0),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 150),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        SailText.primary13('Available: '),
-                        SailText.primary13(
-                          Money.fromNumWithCurrency(
-                            snapshot.data!.confirmedSatoshi.toDouble(),
-                            satoshi,
-                          ).toString(),
-                          bold: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 150),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        SailText.primary13('Pending: '),
-                        SailText.primary13(
-                          Money.fromNumWithCurrency(
-                            snapshot.data!.pendingSatoshi.toDouble(),
-                            satoshi,
-                          ).toString(),
-                          bold: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24.0),
-                  const QtSeparator(width: 150),
-                  const SizedBox(height: 24.0),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 150),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        SailText.primary13('Total: '),
-                        SailText.primary13(
-                          Money.fromNumWithCurrency(
-                            snapshot.data!.pendingSatoshi.toDouble() + snapshot.data!.confirmedSatoshi.toDouble(),
-                            satoshi,
-                          ).toString(),
-                          bold: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              SailText.primary13(
+                'Balances',
+                bold: true,
               ),
-              const SizedBox(width: 16.0),
-              Align(
-                alignment: Alignment.bottomLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 16.0),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 150),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    BitcoinPrice(
-                      money: Money.fromNumWithCurrency(
-                        50000,
-                        CommonCurrencies().usd,
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-                    // Sum of all balances converted to USD at current BTC price
+                    SailText.primary13('Available: '),
                     SailText.primary13(
-                      Money.fromNumWithCurrency(
-                        (((snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt()) * 50000) *
-                            0.00000001), // TODO: Get current BTC price
-                        CommonCurrencies().usd,
-                      ).format('S###,###.##'),
+                      formatBitcoin(
+                        satoshiToBTC(model.confirmedBalance),
+                      ),
+                      bold: true,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 150),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SailText.primary13('Pending: '),
+                    SailText.primary13(
+                      formatBitcoin(
+                        satoshiToBTC(model.pendingBalance),
+                      ),
+                      bold: true,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24.0),
+              const QtSeparator(width: 150),
+              const SizedBox(height: 24.0),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 150),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SailText.primary13('Total: '),
+                    SailText.primary13(
+                      formatBitcoin(
+                        satoshiToBTC(
+                          model.totalBalance,
+                        ),
+                      ),
+                      bold: true,
                     ),
                   ],
                 ),
               ),
             ],
-          );
-        }
-        return const CircularProgressIndicator.adaptive(); // TODO: Skeleton loading?
-      },
+          ),
+          const SizedBox(width: 16.0),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BitcoinPrice(
+                  money: Money.fromNumWithCurrency(
+                    50000,
+                    CommonCurrencies().usd,
+                  ),
+                ),
+                const SizedBox(height: 16.0),
+                // Sum of all balances converted to USD at current BTC price
+                SailText.primary13(
+                  Money.fromNumWithCurrency(
+                    model.totalBalanceUSD,
+                    CommonCurrencies().usd,
+                  ).format('S###,###.##'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
+
+class BalancesViewModel extends BaseViewModel {
+  final BalanceProvider balanceProvider = GetIt.I.get<BalanceProvider>();
+
+  BalancesViewModel() {
+    balanceProvider.addListener(notifyListeners);
+  }
+
+  int get confirmedBalance => balanceProvider.balance;
+  int get pendingBalance => balanceProvider.pendingBalance;
+  int get totalBalance => balanceProvider.balance + balanceProvider.pendingBalance;
+  double get totalBalanceUSD => (satoshiToBTC(totalBalance) * 50000);
 }
 
 class QtSeparator extends StatelessWidget {
