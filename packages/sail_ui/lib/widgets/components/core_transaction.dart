@@ -133,7 +133,6 @@ class CoreTransactionView extends StatelessWidget {
                 message: 'Unconfirmed',
                 child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
               ),
-        label: tx.category,
         value: extractTXTitle(tx),
         trailingText: DateFormat('dd MMM HH:mm:ss').format(tx.time),
       ),

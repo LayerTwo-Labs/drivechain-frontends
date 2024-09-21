@@ -149,14 +149,17 @@ class SailTextButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return InkWell(
-      borderRadius: SailStyleValues.borderRadiusButton,
-      onTap: onPressed,
-      highlightColor: Colors.transparent,
-      focusColor: theme.colors.backgroundActionModal.withOpacity(0.1),
-      hoverColor: theme.colors.backgroundActionModal.withOpacity(0.1),
-      splashColor: Colors.transparent,
-      child: SailText.secondary12(label, bold: true),
+    return SailScaleButton(
+      onPressed: onPressed,
+      child: InkWell(
+        borderRadius: SailStyleValues.borderRadiusButton,
+        onTap: onPressed,
+        highlightColor: Colors.transparent,
+        focusColor: theme.colors.backgroundActionModal.withOpacity(0.1),
+        hoverColor: theme.colors.backgroundActionModal.withOpacity(0.1),
+        splashColor: Colors.transparent,
+        child: SailText.secondary12(label, bold: true),
+      ),
     );
   }
 }
@@ -287,50 +290,40 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: widget.onPressed == null
-          ? null
-          : (_) async {
-              await reset();
-              shrink();
+    Widget buttonContent = Listener(
+      onPointerDown: (_) async {
+        await reset();
+        shrink();
 
-              await Future.delayed(const Duration(milliseconds: 100));
-              _readyForFling = true;
-            },
-      onPointerUp: widget.onPressed == null
-          ? null
-          : (_) async {
-              if (!_readyForFling) {
-                await Future.delayed(const Duration(milliseconds: 40));
-              }
+        await Future.delayed(const Duration(milliseconds: 100));
+        _readyForFling = true;
+      },
+      onPointerUp: (_) async {
+        if (!_readyForFling) {
+          await Future.delayed(const Duration(milliseconds: 40));
+        }
 
-              await fling();
-            },
+        await fling();
+      },
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: widget.onPressed == null
-            ? null
-            : () async {
-                shrink();
-                await HapticFeedback.lightImpact();
-                await fling();
-                if (widget.disabled) {
-                  return;
-                }
-                if (widget.onPressed != null) {
-                  widget.onPressed!();
-                }
-              },
+        onTap: () async {
+          shrink();
+          await HapticFeedback.lightImpact();
+          await fling();
+          if (widget.disabled) {
+            return;
+          }
+          widget.onPressed!();
+        },
         child: InkWell(
-          borderRadius: widget.onPressed == null ? null : SailStyleValues.borderRadiusButton,
-          onTap: widget.onPressed == null
-              ? null
-              : () {
-                  if (widget.disabled) {
-                    return;
-                  }
-                  widget.onPressed!();
-                },
+          borderRadius: SailStyleValues.borderRadiusButton,
+          onTap: () {
+            if (widget.disabled) {
+              return;
+            }
+            widget.onPressed!();
+          },
           child: AnimatedBuilder(
             animation: _scaleController,
             builder: (context, child) {
@@ -343,6 +336,61 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
         ),
       ),
     );
+
+    if (widget.onPressed != null) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: SailTheme.of(context).colors.backgroundSecondary,
+          boxShadow: [
+            BoxShadow(
+              color: SailTheme.of(context).colors.shadow.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+            BoxShadow(
+              color: SailTheme.of(context).colors.shadow.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: SailTheme.of(context).colors.primary.withOpacity(0.1),
+              spreadRadius: 0,
+              blurRadius: 4,
+              offset: const Offset(0, -2),
+            ),
+          ],
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              SailTheme.of(context).colors.background.withOpacity(0.95),
+              SailTheme.of(context).colors.background,
+            ],
+          ),
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8.0),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                SailTheme.of(context).colors.primary.withOpacity(0.1),
+                Colors.transparent,
+              ],
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: buttonContent,
+          ),
+        ),
+      );
+    }
+
+    return buttonContent;
   }
 
   @override
