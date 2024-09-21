@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -63,10 +62,12 @@ func (s *Server) updateBalance(ctx context.Context) error {
 	}
 
 	prevBalance, ok := s.balance.Load().(bdk.Balance)
-	if ok && reflect.DeepEqual(balance, prevBalance) {
+	if ok && (balance.Confirmed == prevBalance.Confirmed &&
+		balance.Immature == prevBalance.Immature &&
+		balance.TrustedPending == prevBalance.TrustedPending &&
+		balance.UntrustedPending == prevBalance.UntrustedPending) {
 		return nil
 	}
-	s.balance.Store(*balance)
 
 	zerolog.Ctx(ctx).Info().
 		Msgf("balance changed: %+v -> %+v", prevBalance, balance)
