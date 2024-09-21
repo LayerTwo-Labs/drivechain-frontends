@@ -136,7 +136,7 @@ class UTXOView extends StatelessWidget {
   }
 
   String extractTXTitle(UTXO tx) {
-    String title = '${formatBitcoin(tx.amount)} BTC';
+    String title = formatBitcoin(tx.amount);
 
     if (tx.address.isEmpty) {
       return '$title in ${tx.txid}';

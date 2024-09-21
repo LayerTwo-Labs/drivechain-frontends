@@ -174,11 +174,11 @@ class SendOnParentChainAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Fee',
-              value: '${(formatBitcoin(viewModel.expectedFee ?? 0))} BTC',
+              value: (formatBitcoin(viewModel.expectedFee ?? 0)),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: '${viewModel.totalBitcoinAmount} BTC',
+              value: viewModel.totalBitcoinAmount,
             ),
           ],
         );

@@ -145,7 +145,7 @@ class CoreTransactionView extends StatelessWidget {
   }
 
   String extractTXTitle(CoreTransaction tx) {
-    String title = '${formatBitcoin(tx.amount)} $ticker';
+    String title = formatBitcoin(tx.amount, symbol: ticker);
 
     if (tx.address.isEmpty) {
       return '$title in ${tx.txid}';

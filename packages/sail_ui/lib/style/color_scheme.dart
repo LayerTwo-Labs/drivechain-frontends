@@ -9,8 +9,7 @@ abstract class SailColorScheme {
   static const black = Color(0xff000000);
   static const greenLight = Color(0xffB5E5AE);
   static const green = Color(0xff4CB782);
-  static const yellow = Color(0xffF2C94C);
-  static const orangeLight = Color(0xffFEEDD8);
+  static const orangeLight = Color(0xffFFBD6F);
   static const orange = Color(0xffFF8000);
   static const purple = Color(0xffBB87FC);
   static const white = Color(0xffFFFFFF);

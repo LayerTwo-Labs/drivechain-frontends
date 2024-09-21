@@ -21,7 +21,7 @@ class SailColor {
   final Color error;
   final Color success;
   final Color info;
-  final Color yellow;
+  final Color orangeLight;
   final Color disabledBackground;
 
   final Color actionHeader;
@@ -46,7 +46,7 @@ class SailColor {
     required this.error,
     required this.success,
     required this.info,
-    required this.yellow,
+    required this.orangeLight,
     required this.actionHeader,
     required this.chip,
     required this.disabledBackground,
@@ -71,7 +71,7 @@ class SailColor {
       error: SailColorScheme.red,
       success: SailColorScheme.green,
       info: SailColorScheme.blue,
-      yellow: SailColorScheme.yellow,
+      orangeLight: SailColorScheme.orangeLight,
       actionHeader: SailColorScheme.whiteDark,
       chip: SailColorScheme.greyMiddle.withOpacity(0.21),
       popoverBackground: SailColorScheme.white,
@@ -98,7 +98,7 @@ class SailColor {
       error: SailColorScheme.red,
       success: SailColorScheme.green,
       info: SailColorScheme.blue,
-      yellow: SailColorScheme.yellow,
+      orangeLight: SailColorScheme.orangeLight,
       chip: SailColorScheme.darkChip,
       popoverBackground: SailColorScheme.darkBackground,
       disabledBackground: SailColorScheme.whiteDark,

@@ -1,10 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/api.dart';
-import 'package:drivechain_client/util/currencies.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -70,10 +68,11 @@ class SendPage extends StatelessWidget {
                             future: api.getBalance(),
                             builder: (context, snapshot) {
                               if (snapshot.hasData) {
-                                final balance = Money.fromNumWithCurrency(
-                                  snapshot.data!.confirmedSatoshi.toDouble() + snapshot.data!.pendingSatoshi.toDouble(),
-                                  satoshi,
-                                ).toString();
+                                final balance = formatBitcoin(
+                                  satoshiToBTC(
+                                    snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt(),
+                                  ),
+                                );
                                 return SailText.primary12('Balance: $balance');
                               } else if (snapshot.hasError) {
                                 return SailText.primary12('Error: ${snapshot.error}');
