@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:drivechain_client/routing/router.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 
@@ -119,10 +123,99 @@ class RootPage extends StatelessWidget {
                 color: Colors.grey,
               ),
               Expanded(child: child),
+              const StatusBar(),
             ],
           ),
         );
       },
     );
   }
+}
+
+class StatusBar extends StatefulWidget {
+  const StatusBar({super.key});
+
+  @override
+  State<StatusBar> createState() => _StatusBarState();
+}
+
+class _StatusBarState extends State<StatusBar> {
+  BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  String _getTimeSinceLastBlock() {
+    if (blockchainProvider.lastBlockAt == null) {
+      return 'Unknown';
+    }
+
+    final now = DateTime.now();
+    final lastBlockTime = blockchainProvider.lastBlockAt!.toDateTime().toLocal();
+    final difference = now.difference(lastBlockTime);
+
+    if (difference.inDays > 0) {
+      return '${formatTimeDifference(difference.inDays, 'day')} ago';
+    } else if (difference.inHours > 0) {
+      return '${formatTimeDifference(difference.inHours, 'hour')} ago';
+    } else if (difference.inMinutes > 0) {
+      return '${formatTimeDifference(difference.inMinutes, 'minute')} ago';
+    } else {
+      return '${formatTimeDifference(difference.inSeconds, 'second')} ago';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: Colors.grey,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          SailText.primary12(
+            '${formatWithThousandSpacers(blockchainProvider.blockchainInfo.blocks)} blocks',
+          ),
+          SailText.primary12(
+            formatTimeDifference(blockchainProvider.peers.length, 'peer'),
+          ),
+          SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+        ]
+            .map(
+              (child) => Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4.0,
+                  vertical: 2.0,
+                ),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: Colors.grey),
+                  ),
+                ),
+                child: child,
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+String formatTimeDifference(int value, String unit) {
+  return '$value $unit${value == 1 ? '' : 's'}';
 }

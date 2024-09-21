@@ -90,40 +90,6 @@ class SendPage extends StatelessWidget {
             ),
           ),
         ),
-        DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            // Add a left border to every child
-            children: [
-              // TODO: Get actual info from the node
-              SailText.primary12('195755 blocks'),
-              SailText.primary12('1 peer'),
-              SailText.primary12('Last block: 6 days ago'),
-            ]
-                .map(
-                  (child) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4.0,
-                      vertical: 2.0,
-                    ),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        left: BorderSide(color: Colors.grey),
-                      ),
-                    ),
-                    child: child,
-                  ),
-                )
-                .toList(),
-          ),
-        ),
       ],
     );
   }

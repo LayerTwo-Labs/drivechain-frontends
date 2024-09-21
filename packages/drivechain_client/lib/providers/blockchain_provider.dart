@@ -2,20 +2,27 @@ import 'dart:async';
 
 import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:drivechain_client/gen/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
 class BlockchainProvider extends ChangeNotifier {
   API get api => GetIt.I.get<API>();
 
-  List<UnconfirmedTransaction> walletTransactions = [];
-  bool initialized = false;
+  // raw data go here
+  List<Peer> peers = [];
+  List<ListRecentBlocksResponse_RecentBlock> recentBlocks = [];
+  List<UnconfirmedTransaction> unconfirmedTXs = [];
+  GetBlockchainInfoResponse blockchainInfo = GetBlockchainInfoResponse();
+
+  // computed field go here
+  Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.last.blockTime : null;
 
   bool _isFetching = false;
 
   BlockchainProvider();
 
-  // call this function from anywhere to refetch transaction list
+  // call this function from anywhere to refetch blockchain info
   Future<void> fetch() async {
     if (_isFetching) {
       return;
@@ -23,10 +30,16 @@ class BlockchainProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
+      final newPeers = await api.drivechain.listPeers();
       final newTXs = await api.drivechain.listUnconfirmedTransactions();
+      final newBlockchainInfo = await api.drivechain.getBlockchainInfo();
+      final newRecentBlocks = await api.drivechain.listRecentBlocks();
 
-      if (_dataHasChanged(newTXs)) {
-        walletTransactions = newTXs;
+      if (_dataHasChanged(newPeers, newTXs, newBlockchainInfo, newRecentBlocks)) {
+        peers = newPeers;
+        unconfirmedTXs = newTXs;
+        blockchainInfo = newBlockchainInfo;
+        recentBlocks = newRecentBlocks;
         notifyListeners();
       }
     } finally {
@@ -35,9 +48,24 @@ class BlockchainProvider extends ChangeNotifier {
   }
 
   bool _dataHasChanged(
+    List<Peer> newPeers,
     List<UnconfirmedTransaction> newTXs,
+    GetBlockchainInfoResponse newBlockchainInfo,
+    List<ListRecentBlocksResponse_RecentBlock> newRecentBlocks,
   ) {
-    if (!listEquals(walletTransactions, newTXs)) {
+    if (!listEquals(peers, newPeers)) {
+      return true;
+    }
+
+    if (!listEquals(unconfirmedTXs, newTXs)) {
+      return true;
+    }
+
+    if (!listEquals(recentBlocks, newRecentBlocks)) {
+      return true;
+    }
+
+    if (blockchainInfo.toProto3Json() != newBlockchainInfo.toProto3Json()) {
       return true;
     }
 
