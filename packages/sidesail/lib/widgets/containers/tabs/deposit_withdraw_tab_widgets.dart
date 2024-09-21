@@ -50,15 +50,15 @@ class PegOutAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Parent chain fee',
-                value: '${formatBitcoin((viewModel.mainchainFee ?? 0))} BTC',
+                value: formatBitcoin((viewModel.mainchainFee ?? 0)),
               ),
               StaticActionField(
                 label: '${viewModel.sidechain.rpc.chain.name} fee',
-                value: '${formatBitcoin((viewModel.sidechainFee ?? 0))} ${viewModel.sidechain.rpc.chain.ticker}',
+                value: formatBitcoin((viewModel.sidechainFee ?? 0), symbol: viewModel.sidechain.rpc.chain.ticker),
               ),
               StaticActionField(
                 label: 'Total amount',
-                value: '${viewModel.totalBitcoinAmount} BTC',
+                value: viewModel.totalBitcoinAmount,
               ),
               SailButton.primary(
                 'Execute withdraw',
@@ -311,11 +311,11 @@ class PegInEthAction extends StatelessWidget {
             ),
             StaticActionField(
               label: '${viewModel.sidechain.rpc.chain.name} fee',
-              value: '${formatBitcoin((viewModel.sidechainFee ?? 0))} BTC',
+              value: formatBitcoin((viewModel.sidechainFee ?? 0)),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: '${viewModel.totalBitcoinAmount} BTC',
+              value: viewModel.totalBitcoinAmount,
             ),
           ],
         );
@@ -871,10 +871,10 @@ class ExpandedBundleView extends StatelessWidget {
   Map<String, dynamic> get _values => {
         if (bundle.status == BundleStatus.pending) 'blocks until timeout': timesOutIn,
         'block hash': bundle.hash,
-        'total amount': '${formatBitcoin(bundle.totalBitcoin)} BTC',
+        'total amount': formatBitcoin(bundle.totalBitcoin),
         'withdrawal count': bundle.withdrawals.length,
         'created at height': bundle.blockHeight,
-        'total fees': '${formatBitcoin(bundle.totalFeesBitcoin)} BTC',
+        'total fees': formatBitcoin(bundle.totalFeesBitcoin),
         'total size': '${bundle.bundleSize}/${maxWeight.toInt()} weight units',
       };
 
@@ -907,8 +907,8 @@ class ExpandedUnbundledWithdrawalView extends StatelessWidget {
 
   Map<String, dynamic> get _values => {
         'hashblindtx': withdrawal.hashBlindTx,
-        'amount': '${formatBitcoin(satoshiToBTC(withdrawal.amountSatoshi))} BTC',
-        'amountmainchainfee': '${formatBitcoin(satoshiToBTC(withdrawal.mainchainFeesSatoshi))} BTC',
+        'amount': formatBitcoin(satoshiToBTC(withdrawal.amountSatoshi)),
+        'amountmainchainfee': formatBitcoin(satoshiToBTC(withdrawal.mainchainFeesSatoshi)),
       };
 
   @override

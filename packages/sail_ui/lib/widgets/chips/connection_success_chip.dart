@@ -45,7 +45,7 @@ class ConnectionStatusChip extends StatelessWidget {
                 color: infoMessage != null
                     ? theme.colors.info
                     : initializing
-                        ? theme.colors.yellow
+                        ? theme.colors.orangeLight
                         : theme.colors.success,
               ),
               if (initializing) SailText.primary12('Initializing $chain'),

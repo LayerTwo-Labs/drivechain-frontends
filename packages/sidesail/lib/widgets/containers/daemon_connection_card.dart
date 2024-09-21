@@ -54,7 +54,7 @@ class DaemonConnectionCard extends StatelessWidget {
                     color: infoMessage != null
                         ? theme.colors.info
                         : initializing
-                            ? theme.colors.yellow
+                            ? theme.colors.orangeLight
                             : connected
                                 ? theme.colors.success
                                 : theme.colors.error,

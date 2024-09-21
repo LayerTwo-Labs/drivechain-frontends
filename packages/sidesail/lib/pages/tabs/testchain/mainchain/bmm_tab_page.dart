@@ -268,7 +268,7 @@ class BMMAttemptView extends StatelessWidget {
 
   String extractTXTitle(BmmAttempt attempt) {
     String title =
-        '${formatBitcoin(satoshiToBTC(attempt.bidSatoshis))} $ticker bid containing ${attempt.result.ntxn} transaction(s) with ${formatBitcoin(satoshiToBTC(attempt.result.nfees))} $ticker total fees';
+        '${formatBitcoin(satoshiToBTC(attempt.bidSatoshis), symbol: ticker)} bid containing ${attempt.result.ntxn} transaction(s) with ${formatBitcoin(satoshiToBTC(attempt.result.nfees), symbol: ticker)} total fees';
     return title;
   }
 }

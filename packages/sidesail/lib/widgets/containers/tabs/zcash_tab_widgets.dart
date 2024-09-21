@@ -58,7 +58,7 @@ class ShieldUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Shield fee',
-              value: formatBitcoin(viewModel.shieldFee),
+              value: formatBitcoin(viewModel.shieldFee, symbol: viewModel.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
@@ -84,7 +84,10 @@ class ShieldUTXOActionViewModel extends BaseViewModel {
   ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
 
   final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount => formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)));
+  String get totalBitcoinAmount => formatBitcoin(
+        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (shieldFee)),
+        symbol: ticker,
+      );
 
   double get shieldFee => _zcashProvider.sideFee;
   String get ticker => _sidechainContainer.rpc.chain.ticker;
@@ -219,7 +222,7 @@ class DeshieldUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Deshield fee',
-              value: formatBitcoin(viewModel.deshieldFee),
+              value: formatBitcoin(viewModel.deshieldFee, symbol: viewModel.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
@@ -242,7 +245,7 @@ class DeshieldUTXOActionViewModel extends BaseViewModel {
 
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount =>
-      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (deshieldFee)));
+      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (deshieldFee)), symbol: ticker);
 
   double get deshieldFee => _zcashProvider.sideFee;
   String get ticker => _sidechainContainer.rpc.chain.ticker;
@@ -379,11 +382,11 @@ class CastSingleUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Castable amount',
-              value: formatBitcoin(viewModel.castableAmount),
+              value: formatBitcoin(viewModel.castableAmount, symbol: viewModel.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: formatBitcoin(viewModel.totalBitcoinAmount),
+              value: formatBitcoin(viewModel.totalBitcoinAmount, symbol: viewModel.ticker),
             ),
           ],
         );
@@ -537,15 +540,15 @@ class MeltAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Melt fee',
-              value: '${formatBitcoin(viewModel.meltFee)} ${viewModel._rpc.chain.ticker}',
+              value: formatBitcoin(viewModel.meltFee, symbol: viewModel._rpc.chain.ticker),
             ),
             StaticActionField(
               label: 'Melt amount',
-              value: '${formatBitcoin(viewModel.meltAmount)} ${viewModel._rpc.chain.ticker}',
+              value: formatBitcoin(viewModel.meltAmount, symbol: viewModel._rpc.chain.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: '${formatBitcoin(viewModel.totalBitcoinAmount)} ${viewModel._rpc.chain.ticker}',
+              value: formatBitcoin(viewModel.totalBitcoinAmount, symbol: viewModel._rpc.chain.ticker),
             ),
           ],
         );
@@ -616,7 +619,7 @@ class MeltActionViewModel extends BaseViewModel {
         context: context,
         action: 'Initiated melt',
         title:
-            'You will shield ${meltableUTXOs.length} coins for a total of ${formatBitcoin(totalBitcoinAmount)} $ticker to your Z-address',
+            'You will shield ${meltableUTXOs.length} coins for a total of ${formatBitcoin(totalBitcoinAmount, symbol: ticker)} to your Z-address',
         subtitle: 'Will complete melt in ${willMeltAt.map((e) => e).join(', ')} seconds.',
       );
       // also pop the info modal
@@ -679,7 +682,7 @@ class MeltSingleUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Cast amount',
-              value: formatBitcoin(viewModel.castAmount),
+              value: formatBitcoin(viewModel.castAmount, symbol: viewModel.ticker),
             ),
             StaticActionField(
               label: 'Cast fee',
@@ -706,7 +709,7 @@ class MeltSingleUTXOActionViewModel extends BaseViewModel {
 
   final UnshieldedUTXO utxo;
 
-  String get totalBitcoinAmount => formatBitcoin(((castAmount + (shieldFee))));
+  String get totalBitcoinAmount => formatBitcoin(((castAmount + (shieldFee))), symbol: ticker);
   String get ticker => _sidechainContainer.rpc.chain.ticker;
   double get shieldFee => _zcashProvider.sideFee;
   double get castAmount => utxo.amount - shieldFee;
@@ -796,15 +799,15 @@ class CastAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Cast fee',
-              value: '${formatBitcoin(viewModel.castAllFee)} ${viewModel._rpc.chain.ticker}',
+              value: formatBitcoin(viewModel.castAllFee, symbol: viewModel._rpc.chain.ticker),
             ),
             StaticActionField(
               label: 'Cast amount',
-              value: '${formatBitcoin(viewModel.castAmount)} ${viewModel._rpc.chain.ticker}',
+              value: formatBitcoin(viewModel.castAmount, symbol: viewModel._rpc.chain.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: '${formatBitcoin(viewModel.totalBitcoinAmount)} ${viewModel._rpc.chain.ticker}',
+              value: formatBitcoin(viewModel.totalBitcoinAmount, symbol: viewModel._rpc.chain.ticker),
             ),
           ],
         );
@@ -898,7 +901,7 @@ class CastActionViewModel extends BaseViewModel {
         context: context,
         action: 'Cast UTXOs',
         title:
-            'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${formatBitcoin(totalBitcoinAmount)} $ticker to your Z-address',
+            'You will cast ${_zcashProvider.shieldedUTXOs.length} coins for a total of ${formatBitcoin(totalBitcoinAmount, symbol: ticker)} to your Z-address',
         subtitle:
             'Will cast to ${bundles.length} new unique UTXOs.\n\nDont close the application until you have no shielded coins left in your wallet.',
       );
@@ -996,7 +999,7 @@ class UnshieldedUTXOView extends StatelessWidget {
               ),
         color: utxoColor,
         copyable: false,
-        label: '${formatBitcoin(utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
+        label: formatBitcoin(utxo.amount, symbol: _sidechainContainer.rpc.chain.ticker),
         labelTooltip: isCastAmount(utxo.amount) ? 'Casted, safe UTXO' : 'Not casted, unsafe UTXO',
         value: utxo.address,
       ),
@@ -1048,7 +1051,7 @@ class ShieldedUTXOView extends StatelessWidget {
               ),
         color: utxoColor,
         copyable: false,
-        label: '${formatBitcoin(utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
+        label: formatBitcoin(utxo.amount, symbol: _sidechainContainer.rpc.chain.ticker),
         labelTooltip: isCastAmount(utxo.amount) ? 'Melted, safe UTXO' : 'Not melted, unsafe amount',
         value: utxo.txid,
         trailingText: '',
@@ -1114,7 +1117,7 @@ class _PendingCastViewState extends State<PendingCastView> {
           child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
         ),
         copyable: false,
-        label: '${formatBitcoin(widget.pending.castAmount)} ${widget.chain.ticker}',
+        label: formatBitcoin(widget.pending.castAmount, symbol: widget.chain.ticker),
         value:
             widget.pending.pendingShields.isNotEmpty ? 'Will deshield ${widget.pending.pendingShields.length} txs' : '',
         trailingText: countdownText,
@@ -1197,7 +1200,7 @@ class _PendingMeltViewState extends State<PendingMeltView> {
           child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
         ),
         copyable: false,
-        label: '${formatBitcoin(widget.tx.utxo.amount)} ${_sidechainContainer.rpc.chain.ticker}',
+        label: formatBitcoin(widget.tx.utxo.amount, symbol: _sidechainContainer.rpc.chain.ticker),
         value:
             'Will melt ${widget.tx.utxo.amount} ${_sidechainContainer.rpc.chain.ticker} from ${widget.tx.utxo.address}',
         trailingText: countdownText,

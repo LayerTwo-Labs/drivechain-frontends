@@ -54,11 +54,11 @@ class SendOnSidechainAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Fee',
-              value: '${(formatBitcoin(viewModel.sidechainExpectedFee ?? 0))} ${viewModel.ticker}',
+              value: (formatBitcoin(viewModel.sidechainExpectedFee ?? 0, symbol: viewModel.ticker)),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: '${viewModel.totalBitcoinAmount} ${viewModel.ticker}',
+              value: viewModel.totalBitcoinAmount,
             ),
           ],
         );
@@ -79,7 +79,8 @@ class SendOnSidechainViewModel extends BaseViewModel {
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
   String get totalBitcoinAmount =>
-      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)));
+      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainExpectedFee ?? 0)),
+          symbol: ticker,);
   String get ticker => _sidechainContainer.rpc.chain.ticker;
 
   double? sidechainExpectedFee;
