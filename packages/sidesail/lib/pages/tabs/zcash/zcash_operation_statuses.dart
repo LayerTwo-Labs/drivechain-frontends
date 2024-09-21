@@ -23,7 +23,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => OperationStatusesiewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         final tabsRouter = AutoTabsRouter.of(context);
 
         return SailPage(
@@ -43,9 +43,9 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                     children: [
                       SailTextButton(
                         label: 'Clear',
-                        onPressed: () => viewModel.clear(),
+                        onPressed: () => model.clear(),
                       ),
-                      HelpButton(onPressed: () => viewModel.operationHelp(context)),
+                      HelpButton(onPressed: () => model.operationHelp(context)),
                     ],
                   ),
                   children: [
@@ -57,10 +57,10 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: viewModel.operations.length,
+                          itemCount: model.operations.length,
                           itemBuilder: (context, index) => OperationView(
-                            key: ValueKey<String>(viewModel.operations[index].id),
-                            tx: viewModel.operations[index],
+                            key: ValueKey<String>(model.operations[index].id),
+                            tx: model.operations[index],
                           ),
                         ),
                       ],
@@ -69,7 +69,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                 ),
                 DashboardGroup(
                   title: 'Transparent transactions',
-                  widgetTrailing: SailText.secondary13(viewModel.transactions.length.toString()),
+                  widgetTrailing: SailText.secondary13(model.transactions.length.toString()),
                   children: [
                     SailColumn(
                       spacing: 0,
@@ -79,11 +79,11 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: viewModel.transactions.length,
+                          itemCount: model.transactions.length,
                           itemBuilder: (context, index) => CoreTransactionView(
-                            key: ValueKey<String>(viewModel.transactions[index].txid),
-                            tx: viewModel.transactions[index],
-                            ticker: viewModel.chain.ticker,
+                            key: ValueKey<String>(model.transactions[index].txid),
+                            tx: model.transactions[index],
+                            ticker: model.chain.ticker,
                           ),
                         ),
                       ],

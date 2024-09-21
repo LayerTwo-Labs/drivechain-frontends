@@ -32,42 +32,41 @@ class PegOutAction extends StatelessWidget {
       padding: const EdgeInsets.only(left: SailStyleValues.padding05),
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => PegOutViewModel(staticAddress: staticAddress),
-        builder: ((context, viewModel, child) {
+        builder: ((context, model, child) {
           return SailColumn(
             spacing: 0,
             children: [
               LargeEmbeddedInput(
-                controller: viewModel.bitcoinAddressController,
+                controller: model.bitcoinAddressController,
                 hintText: 'Enter a parent chain bitcoin-address',
                 autofocus: true,
                 disabled: staticAddress != null,
               ),
               LargeEmbeddedInput(
-                controller: viewModel.bitcoinAmountController,
+                controller: model.bitcoinAmountController,
                 hintText: 'Enter a BTC-amount',
                 suffixText: 'BTC',
                 bitcoinInput: true,
               ),
               StaticActionField(
                 label: 'Parent chain fee',
-                value: formatBitcoin((viewModel.mainchainFee ?? 0)),
+                value: formatBitcoin((model.mainchainFee ?? 0)),
               ),
               StaticActionField(
-                label: '${viewModel.sidechain.rpc.chain.name} fee',
-                value: formatBitcoin((viewModel.sidechainFee ?? 0), symbol: viewModel.sidechain.rpc.chain.ticker),
+                label: '${model.sidechain.rpc.chain.name} fee',
+                value: formatBitcoin((model.sidechainFee ?? 0), symbol: model.sidechain.rpc.chain.ticker),
               ),
               StaticActionField(
                 label: 'Total amount',
-                value: viewModel.totalBitcoinAmount,
+                value: model.totalBitcoinAmount,
               ),
               SailButton.primary(
                 'Execute withdraw',
-                disabled:
-                    viewModel.bitcoinAddressController.text.isEmpty || viewModel.bitcoinAmountController.text.isEmpty,
-                loading: viewModel.isBusy,
+                disabled: model.bitcoinAddressController.text.isEmpty || model.bitcoinAmountController.text.isEmpty,
+                loading: model.isBusy,
                 size: ButtonSize.regular,
                 onPressed: () async {
-                  viewModel.executePegOut(context);
+                  model.executePegOut(context);
                 },
               ),
             ],
@@ -233,21 +232,21 @@ class PegInAction extends StatelessWidget {
       padding: const EdgeInsets.only(left: SailStyleValues.padding05),
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => PegInViewModel(),
-        builder: ((context, viewModel, child) {
+        builder: ((context, model, child) {
           return SailColumn(
             spacing: SailStyleValues.padding10,
             children: [
               StaticActionField(
                 label: 'Address',
-                value: viewModel.pegInAddress ?? '',
+                value: model.pegInAddress ?? '',
                 copyable: true,
               ),
               SailButton.primary(
                 'Generate new address',
-                loading: viewModel.isBusy,
+                loading: model.isBusy,
                 size: ButtonSize.regular,
                 onPressed: () async {
-                  await viewModel.generatePegInAddress();
+                  await model.generatePegInAddress();
                 },
               ),
             ],
@@ -286,36 +285,36 @@ class PegInEthAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => PegInEthViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           'Deposit from parent chain',
           endActionButton: SailButton.primary(
             'Deposit funds',
-            loading: viewModel.isBusy,
+            loading: model.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              await viewModel.deposit(context);
+              await model.deposit(context);
             },
           ),
           children: [
             LargeEmbeddedInput(
-              controller: viewModel.bitcoinAmountController,
+              controller: model.bitcoinAmountController,
               hintText: 'How much do you want to deposit?',
               suffixText: 'BTC',
               bitcoinInput: true,
             ),
             StaticActionField(
               label: 'Deposit to',
-              value: viewModel.pegInAddress ?? '',
+              value: model.pegInAddress ?? '',
               copyable: true,
             ),
             StaticActionField(
-              label: '${viewModel.sidechain.rpc.chain.name} fee',
-              value: formatBitcoin((viewModel.sidechainFee ?? 0)),
+              label: '${model.sidechain.rpc.chain.name} fee',
+              value: formatBitcoin((model.sidechainFee ?? 0)),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: viewModel.totalBitcoinAmount,
+              value: model.totalBitcoinAmount,
             ),
           ],
         );
@@ -450,8 +449,8 @@ class EasyRegtestDeposit extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashWidgetTitleViewModel(),
-      builder: ((context, viewModel, child) {
-        if (viewModel.balance != 0) {
+      builder: ((context, model, child) {
+        if (model.balance != 0) {
           return Container();
         }
 
@@ -462,7 +461,7 @@ class EasyRegtestDeposit extends StatelessWidget {
               'Easy Deposit',
               onPressed: () async {
                 try {
-                  await viewModel.easyDeposit();
+                  await model.easyDeposit();
                 } catch (err) {
                   if (!context.mounted) {
                     return;
@@ -476,7 +475,7 @@ class EasyRegtestDeposit extends StatelessWidget {
                   );
                 }
               },
-              loading: viewModel.isBusy,
+              loading: model.isBusy,
               size: ButtonSize.small,
             ),
             SailText.secondary12(
@@ -540,7 +539,7 @@ class WithdrawalExplorer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => WithdrawalBundleViewViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SingleChildScrollView(
           child: Column(
             children: [
@@ -556,7 +555,7 @@ class WithdrawalExplorer extends StatelessWidget {
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 600),
                       child: SailTextField(
-                        controller: viewModel.searchController,
+                        controller: model.searchController,
                         prefixIcon: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding05),
                           child: SailSVG.icon(SailSVGAsset.iconSearch),
@@ -574,21 +573,20 @@ class WithdrawalExplorer extends StatelessWidget {
               ),
               DashboardGroup(
                 title: 'Unbundled transactions',
-                widgetTrailing: SailText.secondary13('${viewModel.unbundledTransactions.length}'),
+                widgetTrailing: SailText.secondary13('${model.unbundledTransactions.length}'),
                 children: [
                   SailColumn(
                     spacing: 0,
                     withDivider: true,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children:
-                        (viewModel.unbundledTransactions).map((e) => UnbundledWithdrawalView(withdrawal: e)).toList(),
+                    children: (model.unbundledTransactions).map((e) => UnbundledWithdrawalView(withdrawal: e)).toList(),
                   ),
                 ],
               ),
               const SailSpacing(SailStyleValues.padding30),
               DashboardGroup(
                 title: 'Bundle history',
-                widgetTrailing: SailText.secondary13('${viewModel.bundles.length} bundle(s)'),
+                widgetTrailing: SailText.secondary13('${model.bundles.length} bundle(s)'),
                 children: [
                   SailColumn(
                     spacing: 0,
@@ -596,9 +594,9 @@ class WithdrawalExplorer extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ...[
-                        if (!viewModel.hasDoneInitialFetch) LoadingIndicator.overlay(),
+                        if (!model.hasDoneInitialFetch) LoadingIndicator.overlay(),
                         // TODO: proper no bundle view
-                        if (viewModel.bundleCount == 0)
+                        if (model.bundleCount == 0)
                           Center(
                             child: Padding(
                               padding: const EdgeInsets.all(SailStyleValues.padding30),
@@ -606,11 +604,11 @@ class WithdrawalExplorer extends StatelessWidget {
                             ),
                           ),
                       ],
-                      ...viewModel.bundles.map(
+                      ...model.bundles.map(
                         (bundle) => BundleView(
                           bundle: bundle,
-                          timesOutIn: viewModel.timesOutIn(bundle.hash),
-                          votes: viewModel.votes(bundle.hash),
+                          timesOutIn: model.timesOutIn(bundle.hash),
+                          votes: model.votes(bundle.hash),
                         ),
                       ),
                     ],

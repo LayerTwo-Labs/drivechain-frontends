@@ -20,7 +20,7 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => WithdrawalBundleTabPageViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           body: SingleChildScrollView(
             child: Column(
@@ -37,7 +37,7 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 600),
                         child: SailTextField(
-                          controller: viewModel.searchController,
+                          controller: model.searchController,
                           prefixIcon: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding05),
                             child: SailSVG.icon(SailSVGAsset.iconSearch),
@@ -55,21 +55,21 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
                 ),
                 DashboardGroup(
                   title: 'Unbundled transactions',
-                  widgetTrailing: SailText.secondary13('${viewModel.unbundledTransactions.length}'),
+                  widgetTrailing: SailText.secondary13('${model.unbundledTransactions.length}'),
                   children: [
                     SailColumn(
                       spacing: 0,
                       withDivider: true,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children:
-                          (viewModel.unbundledTransactions).map((e) => UnbundledWithdrawalView(withdrawal: e)).toList(),
+                          (model.unbundledTransactions).map((e) => UnbundledWithdrawalView(withdrawal: e)).toList(),
                     ),
                   ],
                 ),
                 const SailSpacing(SailStyleValues.padding30),
                 DashboardGroup(
                   title: 'Bundle history',
-                  widgetTrailing: SailText.secondary13('${viewModel.bundles.length} bundle(s)'),
+                  widgetTrailing: SailText.secondary13('${model.bundles.length} bundle(s)'),
                   children: [
                     SailColumn(
                       spacing: 0,
@@ -77,8 +77,8 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ...[
-                          if (!viewModel.hasDoneInitialFetch) LoadingIndicator.overlay(),
-                          if (viewModel.bundleCount == 0)
+                          if (!model.hasDoneInitialFetch) LoadingIndicator.overlay(),
+                          if (model.bundleCount == 0)
                             Center(
                               child: Padding(
                                 padding: const EdgeInsets.all(SailStyleValues.padding30),
@@ -86,11 +86,11 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
                               ),
                             ),
                         ],
-                        ...viewModel.bundles.map(
+                        ...model.bundles.map(
                           (bundle) => BundleView(
                             bundle: bundle,
-                            timesOutIn: viewModel.timesOutIn(bundle.hash),
-                            votes: viewModel.votes(bundle.hash),
+                            timesOutIn: model.timesOutIn(bundle.hash),
+                            votes: model.votes(bundle.hash),
                           ),
                         ),
                       ],

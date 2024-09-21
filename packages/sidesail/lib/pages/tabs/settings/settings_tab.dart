@@ -28,33 +28,33 @@ class SettingsTabPage extends StatelessWidget {
       scrollable: true,
       body: ViewModelBuilder.reactive(
         viewModelBuilder: () => NodeConnectionViewModel(),
-        builder: ((context, viewModel, child) {
+        builder: ((context, model, child) {
           return SailColumn(
             spacing: SailStyleValues.padding50,
             children: [
               NodeConnectionSettings(
-                name: viewModel.sidechain.rpc.chain.name,
-                chain: viewModel.sidechain.rpc.chain,
-                connected: viewModel.sidechain.rpc.connected,
-                settings: viewModel.sidechain.rpc.conf,
-                testConnectionValues: viewModel.reconnectSidechain,
-                connectionError: viewModel.sidechain.rpc.connectionError,
-                readError: viewModel.sidechain.rpc.conf.readError,
-                loading: viewModel._sidechainBusy,
+                name: model.sidechain.rpc.chain.name,
+                chain: model.sidechain.rpc.chain,
+                connected: model.sidechain.rpc.connected,
+                settings: model.sidechain.rpc.conf,
+                testConnectionValues: model.reconnectSidechain,
+                connectionError: model.sidechain.rpc.connectionError,
+                readError: model.sidechain.rpc.conf.readError,
+                loading: model._sidechainBusy,
               ),
               NodeConnectionSettings(
                 name: 'Parent Chain',
                 chain: ParentChain(),
-                connected: viewModel.mainRPC.connected,
-                settings: viewModel.mainRPC.conf,
-                testConnectionValues: viewModel.reconnectMainchain,
-                connectionError: viewModel.mainRPC.connectionError,
-                readError: viewModel.mainRPC.conf.readError,
-                loading: viewModel._mainchainBusy,
+                connected: model.mainRPC.connected,
+                settings: model.mainRPC.conf,
+                testConnectionValues: model.reconnectMainchain,
+                connectionError: model.mainRPC.connectionError,
+                readError: model.mainRPC.conf.readError,
+                loading: model._mainchainBusy,
               ),
               ViewModelBuilder.reactive(
                 viewModelBuilder: () => ThemeSettingsViewModel(),
-                builder: ((context, settingsViewModel, child) {
+                builder: ((context, settingsmodel, child) {
                   return SailColumn(
                     spacing: SailStyleValues.padding10,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,22 +78,22 @@ class SettingsTabPage extends StatelessWidget {
                                     SailButton.primary(
                                       'Inter',
                                       onPressed: () {
-                                        settingsViewModel.setFont(SailFontValues.inter);
+                                        settingsmodel.setFont(SailFontValues.inter);
                                       },
                                       size: ButtonSize.regular,
-                                      disabled: settingsViewModel.font == SailFontValues.inter,
+                                      disabled: settingsmodel.font == SailFontValues.inter,
                                     ),
                                     SailButton.primary(
                                       'Source Code Pro',
                                       onPressed: () {
-                                        settingsViewModel.setFont(SailFontValues.sourceCodePro);
+                                        settingsmodel.setFont(SailFontValues.sourceCodePro);
                                       },
                                       size: ButtonSize.regular,
-                                      disabled: settingsViewModel.font == SailFontValues.sourceCodePro,
+                                      disabled: settingsmodel.font == SailFontValues.sourceCodePro,
                                     ),
                                   ],
                                 ),
-                                if (settingsViewModel.font != settingsViewModel.fontOnLoad)
+                                if (settingsmodel.font != settingsmodel.fontOnLoad)
                                   SailText.primary12(
                                     'Must restart app to apply font changes',
                                     color: theme.colors.orangeLight,
@@ -108,7 +108,7 @@ class SettingsTabPage extends StatelessWidget {
                       SailText.primary20('Log file', bold: true),
                       SailButton.secondary(
                         'Open Log File',
-                        onPressed: settingsViewModel.openLogRoute,
+                        onPressed: settingsmodel.openLogRoute,
                         size: ButtonSize.regular,
                       ),
                       ConstrainedBox(
@@ -123,7 +123,7 @@ class SettingsTabPage extends StatelessWidget {
                           padding: const EdgeInsets.only(right: SailStyleValues.padding10),
                           child: SailSVG.icon(SailSVGAsset.iconCopy),
                         ),
-                        value: settingsViewModel.logdir,
+                        value: settingsmodel.logdir,
                       ),
                     ],
                   );
@@ -160,7 +160,7 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
   });
 
   @override
-  Widget build(BuildContext context, NodeConnectionViewModel viewModel) {
+  Widget build(BuildContext context, NodeConnectionViewModel model) {
     final theme = SailTheme.of(context);
     return SailColumn(
       spacing: SailStyleValues.padding25,

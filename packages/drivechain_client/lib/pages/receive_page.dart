@@ -19,8 +19,8 @@ class ReceivePage extends StatelessWidget {
     return QtPage(
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => ReceivePageViewModel(),
-        onViewModelReady: (viewModel) => viewModel.init(),
-        builder: (context, viewModel, child) {
+        onViewModelReady: (model) => model.init(),
+        builder: (context, model, child) {
           return Column(
             children: [
               QtContainer(
@@ -40,7 +40,7 @@ class ReceivePage extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: SailTextField(
-                                    controller: viewModel.addressController,
+                                    controller: model.addressController,
                                     hintText: 'A Drivechain address',
                                     readOnly: true,
                                   ),
@@ -48,7 +48,7 @@ class ReceivePage extends StatelessWidget {
                                 const SizedBox(width: 4.0),
                                 QtIconButton(
                                   onPressed: () async {
-                                    await Clipboard.setData(ClipboardData(text: viewModel.addressController.text))
+                                    await Clipboard.setData(ClipboardData(text: model.addressController.text))
                                         .then((_) {
                                       if (context.mounted) showSnackBar(context, 'Copied address');
                                     }).catchError((error) {
@@ -64,8 +64,8 @@ class ReceivePage extends StatelessWidget {
                               ],
                             ),
                             QtButton(
-                              onPressed: viewModel.generateNewAddress,
-                              loading: viewModel.isBusy,
+                              onPressed: model.generateNewAddress,
+                              loading: model.isBusy,
                               child: SailText.primary12('New'),
                             ),
                           ],
@@ -75,7 +75,7 @@ class ReceivePage extends StatelessWidget {
                     QrImageView(
                       eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
                       dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
-                      data: viewModel.addressController.text,
+                      data: model.addressController.text,
                       version: QrVersions.auto,
                       size: 200.0,
                     ),

@@ -27,23 +27,23 @@ class ShieldUTXOAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ShieldUTXOActionViewModel(utxo),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           'Shield coins',
           endActionButton: SailButton.primary(
             'Execute shield',
-            disabled: viewModel.bitcoinAmountController.text.isEmpty,
-            loading: viewModel.isBusy,
+            disabled: model.bitcoinAmountController.text.isEmpty,
+            loading: model.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.executeShield(context, utxo);
+              model.executeShield(context, utxo);
             },
           ),
           children: [
             LargeEmbeddedInput(
-              controller: viewModel.bitcoinAmountController,
+              controller: model.bitcoinAmountController,
               hintText: 'How much do you want to shield?',
-              suffixText: viewModel.ticker,
+              suffixText: model.ticker,
               disabled: utxo.generated,
               bitcoinInput: true,
               autofocus: true,
@@ -58,11 +58,11 @@ class ShieldUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Shield fee',
-              value: formatBitcoin(viewModel.shieldFee, symbol: viewModel.ticker),
+              value: formatBitcoin(model.shieldFee, symbol: model.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: viewModel.totalBitcoinAmount,
+              value: model.totalBitcoinAmount,
             ),
             if (utxo.generated)
               const StaticActionInfo(
@@ -192,23 +192,23 @@ class DeshieldUTXOAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => DeshieldUTXOActionViewModel(utxo),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           'Deshield coins',
           endActionButton: SailButton.primary(
             'Execute deshield',
-            disabled: viewModel.bitcoinAmountController.text.isEmpty,
-            loading: viewModel.isBusy,
+            disabled: model.bitcoinAmountController.text.isEmpty,
+            loading: model.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.executeDeshield(context, utxo);
+              model.executeDeshield(context, utxo);
             },
           ),
           children: [
             LargeEmbeddedInput(
-              controller: viewModel.bitcoinAmountController,
+              controller: model.bitcoinAmountController,
               hintText: 'How much do you want to deshield?',
-              suffixText: viewModel.ticker,
+              suffixText: model.ticker,
               bitcoinInput: true,
               autofocus: true,
             ),
@@ -218,15 +218,15 @@ class DeshieldUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Deshield to',
-              value: viewModel.deshieldAddress,
+              value: model.deshieldAddress,
             ),
             StaticActionField(
               label: 'Deshield fee',
-              value: formatBitcoin(viewModel.deshieldFee, symbol: viewModel.ticker),
+              value: formatBitcoin(model.deshieldFee, symbol: model.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: viewModel.totalBitcoinAmount,
+              value: model.totalBitcoinAmount,
             ),
           ],
         );
@@ -355,16 +355,16 @@ class CastSingleUTXOAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => CastSingleUTXOActionViewModel(utxo: utxo),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           'Cast single UTXO',
           endActionButton: SailButton.primary(
             'Execute cast',
-            loading: viewModel.isBusy,
-            disabled: viewModel.includedInBills == null,
+            loading: model.isBusy,
+            disabled: model.includedInBills == null,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.executeCast(context, utxo);
+              model.executeCast(context, utxo);
             },
           ),
           children: [
@@ -374,19 +374,19 @@ class CastSingleUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Deshield to',
-              value: viewModel.castAddresses.join('\n'),
+              value: model.castAddresses.join('\n'),
             ),
             StaticActionField(
               label: 'Cast fee',
-              value: '${viewModel.castFee}',
+              value: '${model.castFee}',
             ),
             StaticActionField(
               label: 'Castable amount',
-              value: formatBitcoin(viewModel.castableAmount, symbol: viewModel.ticker),
+              value: formatBitcoin(model.castableAmount, symbol: model.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: formatBitcoin(viewModel.totalBitcoinAmount, symbol: viewModel.ticker),
+              value: formatBitcoin(model.totalBitcoinAmount, symbol: model.ticker),
             ),
           ],
         );
@@ -507,15 +507,15 @@ class MeltAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => MeltActionViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           doEverythingMode ? 'Do everything for me' : 'Melt UTXOs',
           endActionButton: SailButton.primary(
             doEverythingMode ? 'Execute melt, then cast' : 'Execute melt',
-            loading: viewModel.isBusy,
+            loading: model.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.melt(
+              model.melt(
                 context,
                 castAfterCompletion: doEverythingMode,
               );
@@ -536,19 +536,19 @@ class MeltAction extends StatelessWidget {
               label: 'Melt from',
               value:
                   // extract address, then join on a newline
-                  viewModel.meltableUTXOs.map((utxo) => utxo.address).join('\n'),
+                  model.meltableUTXOs.map((utxo) => utxo.address).join('\n'),
             ),
             StaticActionField(
               label: 'Melt fee',
-              value: formatBitcoin(viewModel.meltFee, symbol: viewModel._rpc.chain.ticker),
+              value: formatBitcoin(model.meltFee, symbol: model._rpc.chain.ticker),
             ),
             StaticActionField(
               label: 'Melt amount',
-              value: formatBitcoin(viewModel.meltAmount, symbol: viewModel._rpc.chain.ticker),
+              value: formatBitcoin(model.meltAmount, symbol: model._rpc.chain.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: formatBitcoin(viewModel.totalBitcoinAmount, symbol: viewModel._rpc.chain.ticker),
+              value: formatBitcoin(model.totalBitcoinAmount, symbol: model._rpc.chain.ticker),
             ),
           ],
         );
@@ -660,15 +660,15 @@ class MeltSingleUTXOAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => MeltSingleUTXOActionViewModel(utxo: utxo),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           'Melt single UTXO',
           endActionButton: SailButton.primary(
             'Execute melt',
-            loading: viewModel.isBusy,
+            loading: model.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.melt(context, utxo);
+              model.melt(context, utxo);
             },
           ),
           children: [
@@ -682,15 +682,15 @@ class MeltSingleUTXOAction extends StatelessWidget {
             ),
             StaticActionField(
               label: 'Cast amount',
-              value: formatBitcoin(viewModel.castAmount, symbol: viewModel.ticker),
+              value: formatBitcoin(model.castAmount, symbol: model.ticker),
             ),
             StaticActionField(
               label: 'Cast fee',
-              value: '${viewModel.shieldFee}',
+              value: '${model.shieldFee}',
             ),
             StaticActionField(
               label: 'Total amount',
-              value: viewModel.totalBitcoinAmount,
+              value: model.totalBitcoinAmount,
             ),
           ],
         );
@@ -775,15 +775,15 @@ class CastAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => CastActionViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           'Cast UTXOs',
           endActionButton: SailButton.primary(
             'Execute cast',
-            loading: viewModel.isBusy,
+            loading: model.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.cast(context);
+              model.cast(context);
             },
           ),
           children: [
@@ -795,19 +795,19 @@ class CastAction extends StatelessWidget {
               label: 'Deshield from (txid)',
               value:
                   // extract address, then join on a newline
-                  viewModel.castableUTXOs.map((utxo) => utxo.txid).join('\n'),
+                  model.castableUTXOs.map((utxo) => utxo.txid).join('\n'),
             ),
             StaticActionField(
               label: 'Cast fee',
-              value: formatBitcoin(viewModel.castAllFee, symbol: viewModel._rpc.chain.ticker),
+              value: formatBitcoin(model.castAllFee, symbol: model._rpc.chain.ticker),
             ),
             StaticActionField(
               label: 'Cast amount',
-              value: formatBitcoin(viewModel.castAmount, symbol: viewModel._rpc.chain.ticker),
+              value: formatBitcoin(model.castAmount, symbol: model._rpc.chain.ticker),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: formatBitcoin(viewModel.totalBitcoinAmount, symbol: viewModel._rpc.chain.ticker),
+              value: formatBitcoin(model.totalBitcoinAmount, symbol: model._rpc.chain.ticker),
             ),
           ],
         );

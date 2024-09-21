@@ -29,7 +29,7 @@ class ZCashTransferTabPage extends StatelessWidget {
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashTransferTabViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         final tabsRouter = AutoTabsRouter.of(context);
 
         return SailPage(
@@ -59,7 +59,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 category: Category.sidechain,
                                 icon: Icons.remove,
                                 onTap: () {
-                                  viewModel.sendTransparent(context);
+                                  model.sendTransparent(context);
                                 },
                               ),
                               ActionTile(
@@ -67,18 +67,18 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 category: Category.sidechain,
                                 icon: Icons.remove,
                                 onTap: () {
-                                  viewModel.receiveTransparent(context);
+                                  model.receiveTransparent(context);
                                 },
                               ),
                             ],
                           ),
                           DashboardGroup(
                             title: 'Transparent UTXOs',
-                            widgetTrailing: SailText.secondary13(viewModel.transparentUTXOs.length.toString()),
+                            widgetTrailing: SailText.secondary13(model.transparentUTXOs.length.toString()),
                             widgetEnd: SailToggle(
                               label: 'Hide dust UTXOs',
-                              value: viewModel.hideDust,
-                              onChanged: (to) => viewModel.setHideDust(to),
+                              value: model.hideDust,
+                              onChanged: (to) => model.setHideDust(to),
                             ),
                             children: [
                               SailColumn(
@@ -86,7 +86,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 withDivider: true,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  for (final utxo in viewModel.transparentUTXOs)
+                                  for (final utxo in model.transparentUTXOs)
                                     UnshieldedUTXOView(
                                       utxo: utxo,
                                       shieldAction: null,
@@ -116,7 +116,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 category: Category.sidechain,
                                 icon: Icons.remove,
                                 onTap: () {
-                                  viewModel.sendPrivate(context);
+                                  model.sendPrivate(context);
                                 },
                               ),
                               ActionTile(
@@ -124,21 +124,21 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 category: Category.sidechain,
                                 icon: Icons.add,
                                 onTap: () {
-                                  viewModel.receivePrivate(context);
+                                  model.receivePrivate(context);
                                 },
                               ),
                             ],
                           ),
                           DashboardGroup(
                             title: 'Private UTXOs',
-                            widgetTrailing: SailText.secondary13(viewModel.shieldedUTXOs.length.toString()),
+                            widgetTrailing: SailText.secondary13(model.shieldedUTXOs.length.toString()),
                             children: [
                               SailColumn(
                                 spacing: 0,
                                 withDivider: true,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  for (final utxo in viewModel.shieldedUTXOs)
+                                  for (final utxo in model.shieldedUTXOs)
                                     ShieldedUTXOView(
                                       utxo: utxo,
                                       deshieldAction: null,
@@ -274,12 +274,12 @@ class ZCashWidgetTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashWidgetTitleViewModel(),
-      builder: ((context, viewModel, child) {
-        if (viewModel.balance != 0) {
+      builder: ((context, model, child) {
+        if (model.balance != 0) {
           return SailRow(
             spacing: SailStyleValues.padding08,
             children: [
-              SailText.secondary13('Your ZCash-address: ${viewModel.zcashAddress}'),
+              SailText.secondary13('Your ZCash-address: ${model.zcashAddress}'),
               Expanded(child: Container()),
             ],
           );
@@ -306,7 +306,7 @@ class ZCashWidgetTitle extends StatelessWidget {
                   );
                 }
               },
-              loading: viewModel.isBusy,
+              loading: model.isBusy,
               size: ButtonSize.small,
             ),
             SailText.secondary12(

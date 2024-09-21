@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/chains.dart';
+import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
@@ -20,7 +20,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => SidechainExplorerTabViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           body: SailColumn(
             spacing: SailStyleValues.padding30,
@@ -35,29 +35,29 @@ class SidechainExplorerTabPage extends StatelessWidget {
                       children: [
                         ChainOverviewCard(
                           chain: TestSidechain(),
-                          confirmedBalance: viewModel.balance,
-                          unconfirmedBalance: viewModel.pendingBalance,
+                          confirmedBalance: model.balance,
+                          unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
-                          currentChain: viewModel.chain.type == ChainType.testChain,
-                          onPressed: () => viewModel.setSidechain(TestSidechain(), app),
+                          currentChain: model.chain.type == ChainType.testChain,
+                          onPressed: () => model.setSidechain(TestSidechain(), app),
                           inBottomNav: false,
                         ),
                         ChainOverviewCard(
                           chain: EthereumSidechain(),
-                          confirmedBalance: viewModel.balance,
-                          unconfirmedBalance: viewModel.pendingBalance,
+                          confirmedBalance: model.balance,
+                          unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
-                          currentChain: viewModel.chain.type == ChainType.ethereum,
-                          onPressed: () => viewModel.setSidechain(EthereumSidechain(), app),
+                          currentChain: model.chain.type == ChainType.ethereum,
+                          onPressed: () => model.setSidechain(EthereumSidechain(), app),
                           inBottomNav: false,
                         ),
                         ChainOverviewCard(
                           chain: ZCashSidechain(),
-                          confirmedBalance: viewModel.balance,
-                          unconfirmedBalance: viewModel.pendingBalance,
+                          confirmedBalance: model.balance,
+                          unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
-                          currentChain: viewModel.chain.type == ChainType.zcash,
-                          onPressed: () => viewModel.setSidechain(ZCashSidechain(), app),
+                          currentChain: model.chain.type == ChainType.zcash,
+                          onPressed: () => model.setSidechain(ZCashSidechain(), app),
                           inBottomNav: false,
                         ),
                       ],

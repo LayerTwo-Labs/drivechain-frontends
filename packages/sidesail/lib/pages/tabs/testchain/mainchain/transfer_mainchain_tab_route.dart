@@ -24,7 +24,7 @@ class TransferMainchainTabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => TransferMainchainTabViewModel(),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return SailPage(
           body: SingleChildScrollView(
             child: Padding(
@@ -43,7 +43,7 @@ class TransferMainchainTabPage extends StatelessWidget {
                             category: Category.mainchain,
                             icon: Icons.remove,
                             onTap: () {
-                              viewModel.send(context);
+                              model.send(context);
                             },
                           ),
                           ActionTile(
@@ -51,7 +51,7 @@ class TransferMainchainTabPage extends StatelessWidget {
                             category: Category.mainchain,
                             icon: Icons.add,
                             onTap: () {
-                              viewModel.receive(context);
+                              model.receive(context);
                             },
                           ),
                         ],
@@ -60,7 +60,7 @@ class TransferMainchainTabPage extends StatelessWidget {
                   ),
                   DashboardGroup(
                     title: 'Your UTXOs',
-                    widgetTrailing: SailText.secondary13(viewModel.utxos.length.toString()),
+                    widgetTrailing: SailText.secondary13(model.utxos.length.toString()),
                     children: [
                       SailColumn(
                         spacing: 0,
@@ -70,10 +70,10 @@ class TransferMainchainTabPage extends StatelessWidget {
                           ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: viewModel.utxos.length,
+                            itemCount: model.utxos.length,
                             itemBuilder: (context, index) => UTXOView(
-                              key: ValueKey<String>(viewModel.utxos[index].txid),
-                              utxo: viewModel.utxos[index],
+                              key: ValueKey<String>(model.utxos[index].txid),
+                              utxo: model.utxos[index],
                             ),
                           ),
                         ],
@@ -148,37 +148,37 @@ class SendOnParentChainAction extends StatelessWidget {
         customSendAction: customSendAction,
         maxAmount: maxAmount,
       ),
-      builder: ((context, viewModel, child) {
+      builder: ((context, model, child) {
         return DashboardActionModal(
           'Send on parent chain',
           endActionButton: SailButton.primary(
             'Execute send',
-            disabled: viewModel.addressController.text.isEmpty || viewModel.amountController.text.isEmpty,
-            loading: viewModel.isBusy,
+            disabled: model.addressController.text.isEmpty || model.amountController.text.isEmpty,
+            loading: model.isBusy,
             size: ButtonSize.regular,
             onPressed: () async {
-              viewModel.executeSendOnParentChain(context);
+              model.executeSendOnParentChain(context);
             },
           ),
           children: [
             LargeEmbeddedInput(
-              controller: viewModel.addressController,
+              controller: model.addressController,
               hintText: 'Enter a parent chain address',
               autofocus: true,
             ),
             LargeEmbeddedInput(
-              controller: viewModel.amountController,
+              controller: model.amountController,
               hintText: 'Enter a BTC-amount',
               suffixText: 'BTC',
               bitcoinInput: true,
             ),
             StaticActionField(
               label: 'Fee',
-              value: (formatBitcoin(viewModel.expectedFee ?? 0)),
+              value: (formatBitcoin(model.expectedFee ?? 0)),
             ),
             StaticActionField(
               label: 'Total amount',
-              value: viewModel.totalBitcoinAmount,
+              value: model.totalBitcoinAmount,
             ),
           ],
         );
