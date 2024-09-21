@@ -16,7 +16,7 @@ class BlockchainProvider extends ChangeNotifier {
   GetBlockchainInfoResponse blockchainInfo = GetBlockchainInfoResponse();
 
   // computed field go here
-  Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.last.blockTime : null;
+  Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.first.blockTime : null;
 
   bool _isFetching = false;
 
