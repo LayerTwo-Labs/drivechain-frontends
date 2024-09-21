@@ -92,3 +92,31 @@ final $typed_data.Uint8List getBlockchainInfoResponseDescriptor = $convert.base6
     'Y2tfaGFzaBgEIAEoCVINYmVzdEJsb2NrSGFzaBI0ChZpbml0aWFsX2Jsb2NrX2Rvd25sb2FkGA'
     'ggASgIUhRpbml0aWFsQmxvY2tEb3dubG9hZA==');
 
+@$core.Deprecated('Use peerDescriptor instead')
+const Peer$json = {
+  '1': 'Peer',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 5, '10': 'id'},
+    {'1': 'addr', '3': 2, '4': 1, '5': 9, '10': 'addr'},
+    {'1': 'synced_blocks', '3': 3, '4': 1, '5': 5, '10': 'syncedBlocks'},
+  ],
+};
+
+/// Descriptor for `Peer`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List peerDescriptor = $convert.base64Decode(
+    'CgRQZWVyEg4KAmlkGAEgASgFUgJpZBISCgRhZGRyGAIgASgJUgRhZGRyEiMKDXN5bmNlZF9ibG'
+    '9ja3MYAyABKAVSDHN5bmNlZEJsb2Nrcw==');
+
+@$core.Deprecated('Use listPeersResponseDescriptor instead')
+const ListPeersResponse$json = {
+  '1': 'ListPeersResponse',
+  '2': [
+    {'1': 'peers', '3': 1, '4': 3, '5': 11, '6': '.drivechain.v1.Peer', '10': 'peers'},
+  ],
+};
+
+/// Descriptor for `ListPeersResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listPeersResponseDescriptor = $convert.base64Decode(
+    'ChFMaXN0UGVlcnNSZXNwb25zZRIpCgVwZWVycxgBIAMoCzITLmRyaXZlY2hhaW4udjEuUGVlcl'
+    'IFcGVlcnM=');
+

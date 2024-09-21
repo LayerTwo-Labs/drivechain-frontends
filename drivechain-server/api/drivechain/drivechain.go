@@ -12,6 +12,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -124,5 +125,24 @@ func (s *Server) GetBlockchainInfo(ctx context.Context, c *connect.Request[empty
 		Headers:              info.Msg.Headers,
 		BestBlockHash:        info.Msg.BestBlockHash,
 		InitialBlockDownload: info.Msg.InitialBlockDownload,
+	}), nil
+}
+
+// ListPeers implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) ListPeers(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListPeersResponse], error) {
+	info, err := s.bitcoind.GetPeerInfo(ctx, connect.NewRequest(&corepb.GetPeerInfoRequest{}))
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&pb.ListPeersResponse{
+		Peers: lo.Map(info.Msg.Peers, func(item *corepb.Peer, index int) *pb.Peer {
+			return &pb.Peer{
+				Id:           item.Id,
+				Addr:         item.Addr,
+				SyncedBlocks: item.SyncedBlocks,
+			}
+
+		}),
 	}), nil
 }
