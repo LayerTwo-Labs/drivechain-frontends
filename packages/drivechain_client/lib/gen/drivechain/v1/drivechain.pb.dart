@@ -292,6 +292,112 @@ class UnconfirmedTransaction extends $pb.GeneratedMessage {
   void clearFeeSatoshi() => clearField(5);
 }
 
+class GetBlockchainInfoResponse extends $pb.GeneratedMessage {
+  factory GetBlockchainInfoResponse({
+    $core.String? chain,
+    $core.int? blocks,
+    $core.int? headers,
+    $core.String? bestBlockHash,
+    $core.bool? initialBlockDownload,
+  }) {
+    final $result = create();
+    if (chain != null) {
+      $result.chain = chain;
+    }
+    if (blocks != null) {
+      $result.blocks = blocks;
+    }
+    if (headers != null) {
+      $result.headers = headers;
+    }
+    if (bestBlockHash != null) {
+      $result.bestBlockHash = bestBlockHash;
+    }
+    if (initialBlockDownload != null) {
+      $result.initialBlockDownload = initialBlockDownload;
+    }
+    return $result;
+  }
+  GetBlockchainInfoResponse._() : super();
+  factory GetBlockchainInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBlockchainInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockchainInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'chain')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'blocks', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'headers', $pb.PbFieldType.OU3)
+    ..aOS(4, _omitFieldNames ? '' : 'bestBlockHash')
+    ..aOB(8, _omitFieldNames ? '' : 'initialBlockDownload')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBlockchainInfoResponse clone() => GetBlockchainInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBlockchainInfoResponse copyWith(void Function(GetBlockchainInfoResponse) updates) => super.copyWith((message) => updates(message as GetBlockchainInfoResponse)) as GetBlockchainInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBlockchainInfoResponse create() => GetBlockchainInfoResponse._();
+  GetBlockchainInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetBlockchainInfoResponse> createRepeated() => $pb.PbList<GetBlockchainInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetBlockchainInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBlockchainInfoResponse>(create);
+  static GetBlockchainInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get chain => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set chain($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasChain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChain() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get blocks => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set blocks($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBlocks() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBlocks() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get headers => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set headers($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasHeaders() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHeaders() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get bestBlockHash => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set bestBlockHash($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasBestBlockHash() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBestBlockHash() => clearField(4);
+
+  @$pb.TagNumber(8)
+  $core.bool get initialBlockDownload => $_getBF(4);
+  @$pb.TagNumber(8)
+  set initialBlockDownload($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasInitialBlockDownload() => $_has(4);
+  @$pb.TagNumber(8)
+  void clearInitialBlockDownload() => clearField(8);
+}
+
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
