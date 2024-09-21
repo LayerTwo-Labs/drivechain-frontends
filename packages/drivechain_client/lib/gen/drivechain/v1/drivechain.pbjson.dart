@@ -73,3 +73,22 @@ final $typed_data.Uint8List unconfirmedTransactionDescriptor = $convert.base64De
     'b2J1Zi5UaW1lc3RhbXBSBHRpbWUSEgoEdHhpZBgEIAEoCVIEdHhpZBIfCgtmZWVfc2F0b3NoaR'
     'gFIAEoBFIKZmVlU2F0b3NoaQ==');
 
+@$core.Deprecated('Use getBlockchainInfoResponseDescriptor instead')
+const GetBlockchainInfoResponse$json = {
+  '1': 'GetBlockchainInfoResponse',
+  '2': [
+    {'1': 'chain', '3': 1, '4': 1, '5': 9, '10': 'chain'},
+    {'1': 'blocks', '3': 2, '4': 1, '5': 13, '10': 'blocks'},
+    {'1': 'headers', '3': 3, '4': 1, '5': 13, '10': 'headers'},
+    {'1': 'best_block_hash', '3': 4, '4': 1, '5': 9, '10': 'bestBlockHash'},
+    {'1': 'initial_block_download', '3': 8, '4': 1, '5': 8, '10': 'initialBlockDownload'},
+  ],
+};
+
+/// Descriptor for `GetBlockchainInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBlockchainInfoResponseDescriptor = $convert.base64Decode(
+    'ChlHZXRCbG9ja2NoYWluSW5mb1Jlc3BvbnNlEhQKBWNoYWluGAEgASgJUgVjaGFpbhIWCgZibG'
+    '9ja3MYAiABKA1SBmJsb2NrcxIYCgdoZWFkZXJzGAMgASgNUgdoZWFkZXJzEiYKD2Jlc3RfYmxv'
+    'Y2tfaGFzaBgEIAEoCVINYmVzdEJsb2NrSGFzaBI0ChZpbml0aWFsX2Jsb2NrX2Rvd25sb2FkGA'
+    'ggASgIUhRpbml0aWFsQmxvY2tEb3dubG9hZA==');
+

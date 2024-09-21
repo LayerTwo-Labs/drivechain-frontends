@@ -12,6 +12,9 @@ service DrivechainService {
 
   // Lists the ten most recent blocks, lightly populated with data.
   rpc ListRecentBlocks(google.protobuf.Empty) returns (ListRecentBlocksResponse);
+
+  // Get basic blockchain info like height, last block time, peers etc.
+  rpc GetBlockchainInfo(google.protobuf.Empty) returns (GetBlockchainInfoResponse);
 }
 
 message ListRecentBlocksResponse {
@@ -44,4 +47,12 @@ message UnconfirmedTransaction {
   // bool is_bmm_request = 6;
 
   // bool is_critical_data_request = 7;
+}
+
+message GetBlockchainInfoResponse {
+  string chain = 1;
+  uint32 blocks = 2;
+  uint32 headers = 3;
+  string best_block_hash = 4;
+  bool initial_block_download = 8;
 }

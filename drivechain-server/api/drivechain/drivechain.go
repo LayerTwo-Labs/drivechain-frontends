@@ -104,11 +104,25 @@ func (s *Server) ListUnconfirmedTransactions(ctx context.Context, c *connect.Req
 			Time:        tx.Time,
 			Txid:        txid,
 			FeeSatoshi:  uint64(fee),
-			// IsBmmRequest:          false,
-			// IsCriticalDataRequest: false,
 		})
 	}
 	return connect.NewResponse(&pb.ListUnconfirmedTransactionsResponse{
 		UnconfirmedTransactions: out,
+	}), nil
+}
+
+// GetBlockchainInfo implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) GetBlockchainInfo(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBlockchainInfoResponse], error) {
+	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&pb.GetBlockchainInfoResponse{
+		Chain:                info.Msg.Chain,
+		Blocks:               info.Msg.Blocks,
+		Headers:              info.Msg.Headers,
+		BestBlockHash:        info.Msg.BestBlockHash,
+		InitialBlockDownload: info.Msg.InitialBlockDownload,
 	}), nil
 }

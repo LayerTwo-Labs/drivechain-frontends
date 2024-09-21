@@ -40,6 +40,9 @@ const (
 	// DrivechainServiceListRecentBlocksProcedure is the fully-qualified name of the DrivechainService's
 	// ListRecentBlocks RPC.
 	DrivechainServiceListRecentBlocksProcedure = "/drivechain.v1.DrivechainService/ListRecentBlocks"
+	// DrivechainServiceGetBlockchainInfoProcedure is the fully-qualified name of the
+	// DrivechainService's GetBlockchainInfo RPC.
+	DrivechainServiceGetBlockchainInfoProcedure = "/drivechain.v1.DrivechainService/GetBlockchainInfo"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -47,6 +50,7 @@ var (
 	drivechainServiceServiceDescriptor                           = v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService")
 	drivechainServiceListUnconfirmedTransactionsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListUnconfirmedTransactions")
 	drivechainServiceListRecentBlocksMethodDescriptor            = drivechainServiceServiceDescriptor.Methods().ByName("ListRecentBlocks")
+	drivechainServiceGetBlockchainInfoMethodDescriptor           = drivechainServiceServiceDescriptor.Methods().ByName("GetBlockchainInfo")
 )
 
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
@@ -56,6 +60,8 @@ type DrivechainServiceClient interface {
 	ListUnconfirmedTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
 	// Lists the ten most recent blocks, lightly populated with data.
 	ListRecentBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error)
+	// Get basic blockchain info like height, last block time, peers etc.
+	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
 }
 
 // NewDrivechainServiceClient constructs a client for the drivechain.v1.DrivechainService service.
@@ -80,6 +86,12 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(drivechainServiceListRecentBlocksMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		getBlockchainInfo: connect.NewClient[emptypb.Empty, v1.GetBlockchainInfoResponse](
+			httpClient,
+			baseURL+DrivechainServiceGetBlockchainInfoProcedure,
+			connect.WithSchema(drivechainServiceGetBlockchainInfoMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -87,6 +99,7 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 type drivechainServiceClient struct {
 	listUnconfirmedTransactions *connect.Client[emptypb.Empty, v1.ListUnconfirmedTransactionsResponse]
 	listRecentBlocks            *connect.Client[emptypb.Empty, v1.ListRecentBlocksResponse]
+	getBlockchainInfo           *connect.Client[emptypb.Empty, v1.GetBlockchainInfoResponse]
 }
 
 // ListUnconfirmedTransactions calls drivechain.v1.DrivechainService.ListUnconfirmedTransactions.
@@ -99,6 +112,11 @@ func (c *drivechainServiceClient) ListRecentBlocks(ctx context.Context, req *con
 	return c.listRecentBlocks.CallUnary(ctx, req)
 }
 
+// GetBlockchainInfo calls drivechain.v1.DrivechainService.GetBlockchainInfo.
+func (c *drivechainServiceClient) GetBlockchainInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error) {
+	return c.getBlockchainInfo.CallUnary(ctx, req)
+}
+
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
@@ -106,6 +124,8 @@ type DrivechainServiceHandler interface {
 	ListUnconfirmedTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
 	// Lists the ten most recent blocks, lightly populated with data.
 	ListRecentBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error)
+	// Get basic blockchain info like height, last block time, peers etc.
+	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
 }
 
 // NewDrivechainServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -126,12 +146,20 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 		connect.WithSchema(drivechainServiceListRecentBlocksMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	drivechainServiceGetBlockchainInfoHandler := connect.NewUnaryHandler(
+		DrivechainServiceGetBlockchainInfoProcedure,
+		svc.GetBlockchainInfo,
+		connect.WithSchema(drivechainServiceGetBlockchainInfoMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DrivechainServiceListUnconfirmedTransactionsProcedure:
 			drivechainServiceListUnconfirmedTransactionsHandler.ServeHTTP(w, r)
 		case DrivechainServiceListRecentBlocksProcedure:
 			drivechainServiceListRecentBlocksHandler.ServeHTTP(w, r)
+		case DrivechainServiceGetBlockchainInfoProcedure:
+			drivechainServiceGetBlockchainInfoHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -147,4 +175,8 @@ func (UnimplementedDrivechainServiceHandler) ListUnconfirmedTransactions(context
 
 func (UnimplementedDrivechainServiceHandler) ListRecentBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListRecentBlocks is not implemented"))
+}
+
+func (UnimplementedDrivechainServiceHandler) GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.GetBlockchainInfo is not implemented"))
 }

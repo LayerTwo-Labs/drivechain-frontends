@@ -30,6 +30,10 @@ class DrivechainServiceClient extends $grpc.Client {
       '/drivechain.v1.DrivechainService/ListRecentBlocks',
       ($0.Empty value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $1.ListRecentBlocksResponse.fromBuffer(value),);
+  static final _$getBlockchainInfo = $grpc.ClientMethod<$0.Empty, $1.GetBlockchainInfoResponse>(
+      '/drivechain.v1.DrivechainService/GetBlockchainInfo',
+      ($0.Empty value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $1.GetBlockchainInfoResponse.fromBuffer(value),);
 
   DrivechainServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -43,6 +47,10 @@ class DrivechainServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$1.ListRecentBlocksResponse> listRecentBlocks($0.Empty request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listRecentBlocks, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$1.GetBlockchainInfoResponse> getBlockchainInfo($0.Empty request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$getBlockchainInfo, request, options: options);
   }
 }
 
@@ -65,6 +73,13 @@ abstract class DrivechainServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($1.ListRecentBlocksResponse value) => value.writeToBuffer(),),);
+    $addMethod($grpc.ServiceMethod<$0.Empty, $1.GetBlockchainInfoResponse>(
+        'GetBlockchainInfo',
+        getBlockchainInfo_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($1.GetBlockchainInfoResponse value) => value.writeToBuffer(),),);
   }
 
   $async.Future<$1.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.Empty> request) async {
@@ -75,6 +90,11 @@ abstract class DrivechainServiceBase extends $grpc.Service {
     return listRecentBlocks(call, await request);
   }
 
+  $async.Future<$1.GetBlockchainInfoResponse> getBlockchainInfo_Pre($grpc.ServiceCall call, $async.Future<$0.Empty> request) async {
+    return getBlockchainInfo(call, await request);
+  }
+
   $async.Future<$1.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions($grpc.ServiceCall call, $0.Empty request);
   $async.Future<$1.ListRecentBlocksResponse> listRecentBlocks($grpc.ServiceCall call, $0.Empty request);
+  $async.Future<$1.GetBlockchainInfoResponse> getBlockchainInfo($grpc.ServiceCall call, $0.Empty request);
 }
