@@ -225,7 +225,7 @@ func (w *Wallet) GetBalance(ctx context.Context) (*Balance, error) {
 // of fetching fee rates, so this has to be obtained elsewhere.
 func (w *Wallet) CreateTransaction(
 	ctx context.Context, destinations map[string]btcutil.Amount,
-	satsPerVbyte float64,
+	satsPerVbyte float64, enableRBF bool,
 ) (string, error) {
 	if len(destinations) == 0 {
 		return "", errors.New("empty destinations")
@@ -233,9 +233,12 @@ func (w *Wallet) CreateTransaction(
 
 	args := []string{
 		"--verbose", "create_tx",
-		"--enable_rbf",
 		"--fee_rate", fmt.Sprint(satsPerVbyte),
 	}
+	if enableRBF {
+		args = append(args, "--enable_rbf")
+	}
+
 	for dest, amount := range destinations {
 		args = append(args, "--to", fmt.Sprintf("%s:%d", dest, amount))
 	}
