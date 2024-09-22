@@ -46,6 +46,9 @@ const (
 	// DrivechainServiceListPeersProcedure is the fully-qualified name of the DrivechainService's
 	// ListPeers RPC.
 	DrivechainServiceListPeersProcedure = "/drivechain.v1.DrivechainService/ListPeers"
+	// DrivechainServiceEstimateSmartFeeProcedure is the fully-qualified name of the DrivechainService's
+	// EstimateSmartFee RPC.
+	DrivechainServiceEstimateSmartFeeProcedure = "/drivechain.v1.DrivechainService/EstimateSmartFee"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -55,6 +58,7 @@ var (
 	drivechainServiceListRecentBlocksMethodDescriptor            = drivechainServiceServiceDescriptor.Methods().ByName("ListRecentBlocks")
 	drivechainServiceGetBlockchainInfoMethodDescriptor           = drivechainServiceServiceDescriptor.Methods().ByName("GetBlockchainInfo")
 	drivechainServiceListPeersMethodDescriptor                   = drivechainServiceServiceDescriptor.Methods().ByName("ListPeers")
+	drivechainServiceEstimateSmartFeeMethodDescriptor            = drivechainServiceServiceDescriptor.Methods().ByName("EstimateSmartFee")
 )
 
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
@@ -68,6 +72,8 @@ type DrivechainServiceClient interface {
 	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
 	// Lists very basic info about all peers
 	ListPeers(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error)
+	// Lists very basic info about all peers
+	EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error)
 }
 
 // NewDrivechainServiceClient constructs a client for the drivechain.v1.DrivechainService service.
@@ -104,6 +110,12 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(drivechainServiceListPeersMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		estimateSmartFee: connect.NewClient[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse](
+			httpClient,
+			baseURL+DrivechainServiceEstimateSmartFeeProcedure,
+			connect.WithSchema(drivechainServiceEstimateSmartFeeMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -113,6 +125,7 @@ type drivechainServiceClient struct {
 	listRecentBlocks            *connect.Client[emptypb.Empty, v1.ListRecentBlocksResponse]
 	getBlockchainInfo           *connect.Client[emptypb.Empty, v1.GetBlockchainInfoResponse]
 	listPeers                   *connect.Client[emptypb.Empty, v1.ListPeersResponse]
+	estimateSmartFee            *connect.Client[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse]
 }
 
 // ListUnconfirmedTransactions calls drivechain.v1.DrivechainService.ListUnconfirmedTransactions.
@@ -135,6 +148,11 @@ func (c *drivechainServiceClient) ListPeers(ctx context.Context, req *connect.Re
 	return c.listPeers.CallUnary(ctx, req)
 }
 
+// EstimateSmartFee calls drivechain.v1.DrivechainService.EstimateSmartFee.
+func (c *drivechainServiceClient) EstimateSmartFee(ctx context.Context, req *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error) {
+	return c.estimateSmartFee.CallUnary(ctx, req)
+}
+
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
@@ -146,6 +164,8 @@ type DrivechainServiceHandler interface {
 	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
 	// Lists very basic info about all peers
 	ListPeers(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error)
+	// Lists very basic info about all peers
+	EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error)
 }
 
 // NewDrivechainServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -178,6 +198,12 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 		connect.WithSchema(drivechainServiceListPeersMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	drivechainServiceEstimateSmartFeeHandler := connect.NewUnaryHandler(
+		DrivechainServiceEstimateSmartFeeProcedure,
+		svc.EstimateSmartFee,
+		connect.WithSchema(drivechainServiceEstimateSmartFeeMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DrivechainServiceListUnconfirmedTransactionsProcedure:
@@ -188,6 +214,8 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 			drivechainServiceGetBlockchainInfoHandler.ServeHTTP(w, r)
 		case DrivechainServiceListPeersProcedure:
 			drivechainServiceListPeersHandler.ServeHTTP(w, r)
+		case DrivechainServiceEstimateSmartFeeProcedure:
+			drivechainServiceEstimateSmartFeeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -211,4 +239,8 @@ func (UnimplementedDrivechainServiceHandler) GetBlockchainInfo(context.Context, 
 
 func (UnimplementedDrivechainServiceHandler) ListPeers(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListPeers is not implemented"))
+}
+
+func (UnimplementedDrivechainServiceHandler) EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.EstimateSmartFee is not implemented"))
 }

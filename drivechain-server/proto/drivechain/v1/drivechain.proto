@@ -18,6 +18,9 @@ service DrivechainService {
 
   // Lists very basic info about all peers
   rpc ListPeers(google.protobuf.Empty) returns (ListPeersResponse);
+
+  // Lists very basic info about all peers
+  rpc EstimateSmartFee(EstimateSmartFeeRequest) returns (EstimateSmartFeeResponse);
 }
 
 message ListRecentBlocksResponse {
@@ -68,4 +71,13 @@ message Peer {
 
 message ListPeersResponse {
   repeated Peer peers = 1;
+}
+
+message EstimateSmartFeeRequest {
+  int64 conf_target = 1;
+}
+
+message EstimateSmartFeeResponse {
+  double fee_rate = 1;
+  repeated string errors = 2;
 }
