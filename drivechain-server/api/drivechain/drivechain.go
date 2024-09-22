@@ -29,6 +29,21 @@ type Server struct {
 	bitcoind *coreproxy.Bitcoind
 }
 
+// EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) EstimateSmartFee(ctx context.Context, req *connect.Request[pb.EstimateSmartFeeRequest]) (*connect.Response[pb.EstimateSmartFeeResponse], error) {
+	estimate, err := s.bitcoind.EstimateSmartFee(ctx, connect.NewRequest(&corepb.EstimateSmartFeeRequest{
+		ConfTarget: req.Msg.ConfTarget,
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&pb.EstimateSmartFeeResponse{
+		FeeRate: estimate.Msg.FeeRate,
+		Errors:  estimate.Msg.Errors,
+	}), nil
+}
+
 // ListRecentBlocks implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListRecentBlocksResponse], error) {
 	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
