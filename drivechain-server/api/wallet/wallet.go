@@ -83,14 +83,14 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if c.Msg.SatoshiPerVbyte < 0 {
+	if c.Msg.FeeRate < 0 {
 		err := errors.New("fee rate cannot be negative")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	log := zerolog.Ctx(ctx)
 
-	if c.Msg.SatoshiPerVbyte == 0 {
+	if c.Msg.FeeRate == 0 {
 		log.Debug().Msgf("send tx: received no fee rate, querying bitcoin core")
 
 		estimate, err := s.bitcoind.EstimateSmartFee(ctx, connect.NewRequest(&corepb.EstimateSmartFeeRequest{
@@ -101,15 +101,8 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 			return nil, err
 		}
 
-		btcPerKb, err := btcutil.NewAmount(estimate.Msg.FeeRate)
-		if err != nil {
-			return nil, err
-		}
-
-		btcPerByte := btcPerKb / 1000
-		c.Msg.SatoshiPerVbyte = btcPerByte.ToUnit(btcutil.AmountSatoshi)
-
-		log.Info().Msgf("send tx: determined fee rate: %f", c.Msg.SatoshiPerVbyte)
+		c.Msg.FeeRate = estimate.Msg.FeeRate
+		log.Info().Msgf("send tx: determined fee rate: %f", c.Msg.FeeRate)
 	}
 
 	destinations := make(map[string]btcutil.Amount)
@@ -125,7 +118,13 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		destinations[address] = btcutil.Amount(amount)
 	}
 
-	created, err := s.wallet.CreateTransaction(ctx, destinations, c.Msg.SatoshiPerVbyte)
+	btcPerByte, err := btcutil.NewAmount(c.Msg.FeeRate / 1000)
+	if err != nil {
+		return nil, err
+	}
+	satoshiPerVByte := btcPerByte.ToUnit(btcutil.AmountSatoshi)
+
+	created, err := s.wallet.CreateTransaction(ctx, destinations, satoshiPerVByte, c.Msg.Rbf)
 	if err != nil {
 		return nil, err
 	}

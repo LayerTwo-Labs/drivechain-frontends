@@ -26,9 +26,12 @@ message SendTransactionRequest {
   // Address -> satoshi amount
   map<string, uint64> destinations = 1;
 
-  // Fee rate, measured in satoshis/virtual byte. If set to zero,
-  // a reasonable rate is used by asking Core for an estimate.
-  double satoshi_per_vbyte = 2;
+  // Fee rate, measured in BTC/kvB. If set to zero, a reasonable
+  // rate is used by asking Core for an estimate.
+  double fee_rate = 2;
+
+  // Whether to activate replace by fee for this transaction
+  bool rbf = 3;
 }
 
 message SendTransactionResponse {
