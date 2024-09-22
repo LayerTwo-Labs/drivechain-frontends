@@ -38,6 +38,10 @@ class DrivechainServiceClient extends $grpc.Client {
       '/drivechain.v1.DrivechainService/ListPeers',
       ($0.Empty value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $1.ListPeersResponse.fromBuffer(value),);
+  static final _$estimateSmartFee = $grpc.ClientMethod<$1.EstimateSmartFeeRequest, $1.EstimateSmartFeeResponse>(
+      '/drivechain.v1.DrivechainService/EstimateSmartFee',
+      ($1.EstimateSmartFeeRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $1.EstimateSmartFeeResponse.fromBuffer(value),);
 
   DrivechainServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -59,6 +63,10 @@ class DrivechainServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$1.ListPeersResponse> listPeers($0.Empty request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listPeers, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$1.EstimateSmartFeeResponse> estimateSmartFee($1.EstimateSmartFeeRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$estimateSmartFee, request, options: options);
   }
 }
 
@@ -95,6 +103,13 @@ abstract class DrivechainServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($1.ListPeersResponse value) => value.writeToBuffer(),),);
+    $addMethod($grpc.ServiceMethod<$1.EstimateSmartFeeRequest, $1.EstimateSmartFeeResponse>(
+        'EstimateSmartFee',
+        estimateSmartFee_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $1.EstimateSmartFeeRequest.fromBuffer(value),
+        ($1.EstimateSmartFeeResponse value) => value.writeToBuffer(),),);
   }
 
   $async.Future<$1.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.Empty> request) async {
@@ -113,8 +128,13 @@ abstract class DrivechainServiceBase extends $grpc.Service {
     return listPeers(call, await request);
   }
 
+  $async.Future<$1.EstimateSmartFeeResponse> estimateSmartFee_Pre($grpc.ServiceCall call, $async.Future<$1.EstimateSmartFeeRequest> request) async {
+    return estimateSmartFee(call, await request);
+  }
+
   $async.Future<$1.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions($grpc.ServiceCall call, $0.Empty request);
   $async.Future<$1.ListRecentBlocksResponse> listRecentBlocks($grpc.ServiceCall call, $0.Empty request);
   $async.Future<$1.GetBlockchainInfoResponse> getBlockchainInfo($grpc.ServiceCall call, $0.Empty request);
   $async.Future<$1.ListPeersResponse> listPeers($grpc.ServiceCall call, $0.Empty request);
+  $async.Future<$1.EstimateSmartFeeResponse> estimateSmartFee($grpc.ServiceCall call, $1.EstimateSmartFeeRequest request);
 }

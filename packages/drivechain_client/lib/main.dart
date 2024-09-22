@@ -72,15 +72,15 @@ Future<void> initDependencies(Logger log) async {
   );
   unawaited(balanceProvider.fetch());
 
-  final txProvider = TransactionProvider();
-  GetIt.I.registerLazySingleton<TransactionProvider>(
-    () => txProvider,
-  );
-  unawaited(txProvider.fetch());
-
   final blockchainProvider = BlockchainProvider();
   GetIt.I.registerLazySingleton<BlockchainProvider>(
     () => blockchainProvider,
   );
   unawaited(blockchainProvider.fetch());
+
+  final txProvider = TransactionProvider();
+  GetIt.I.registerLazySingleton<TransactionProvider>(
+    () => txProvider,
+  );
+  unawaited(txProvider.fetch());
 }

@@ -150,12 +150,6 @@ class _StatusBarState extends State<StatusBar> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
   }
 
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
   String _getTimeSinceLastBlock() {
     if (blockchainProvider.lastBlockAt == null) {
       return 'Unknown';
@@ -220,6 +214,12 @@ class _StatusBarState extends State<StatusBar> {
             .toList(),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
   }
 }
 

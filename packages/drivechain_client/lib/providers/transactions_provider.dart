@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:drivechain_client/providers/balance_provider.dart';
+import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
@@ -11,6 +12,7 @@ import 'package:get_it/get_it.dart';
 class TransactionProvider extends ChangeNotifier {
   API get api => GetIt.I.get<API>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
+  BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
   List<Transaction> walletTransactions = [];
   bool initialized = false;
@@ -19,6 +21,7 @@ class TransactionProvider extends ChangeNotifier {
 
   TransactionProvider() {
     balanceProvider.addListener(fetch);
+    blockchainProvider.addListener(fetch);
   }
 
   // call this function from anywhere to refetch transaction list

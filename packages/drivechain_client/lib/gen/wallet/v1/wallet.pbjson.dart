@@ -32,7 +32,8 @@ const SendTransactionRequest$json = {
   '1': 'SendTransactionRequest',
   '2': [
     {'1': 'destinations', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.SendTransactionRequest.DestinationsEntry', '10': 'destinations'},
-    {'1': 'satoshi_per_vbyte', '3': 2, '4': 1, '5': 1, '10': 'satoshiPerVbyte'},
+    {'1': 'fee_rate', '3': 2, '4': 1, '5': 1, '10': 'feeRate'},
+    {'1': 'rbf', '3': 3, '4': 1, '5': 8, '10': 'rbf'},
   ],
   '3': [SendTransactionRequest_DestinationsEntry$json],
 };
@@ -51,8 +52,9 @@ const SendTransactionRequest_DestinationsEntry$json = {
 final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64Decode(
     'ChZTZW5kVHJhbnNhY3Rpb25SZXF1ZXN0ElcKDGRlc3RpbmF0aW9ucxgBIAMoCzIzLndhbGxldC'
     '52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZXN0LkRlc3RpbmF0aW9uc0VudHJ5UgxkZXN0aW5hdGlv'
-    'bnMSKgoRc2F0b3NoaV9wZXJfdmJ5dGUYAiABKAFSD3NhdG9zaGlQZXJWYnl0ZRo/ChFEZXN0aW'
-    '5hdGlvbnNFbnRyeRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoBFIFdmFsdWU6AjgB');
+    'bnMSGQoIZmVlX3JhdGUYAiABKAFSB2ZlZVJhdGUSEAoDcmJmGAMgASgIUgNyYmYaPwoRRGVzdG'
+    'luYXRpb25zRW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKARSBXZhbHVlOgI4'
+    'AQ==');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {

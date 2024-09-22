@@ -19,8 +19,11 @@ class BlockchainProvider extends ChangeNotifier {
   Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.first.blockTime : null;
 
   bool _isFetching = false;
+  Timer? _fetchTimer;
 
-  BlockchainProvider();
+  BlockchainProvider() {
+    _startFetchTimer();
+  }
 
   // call this function from anywhere to refetch blockchain info
   Future<void> fetch() async {
@@ -70,5 +73,16 @@ class BlockchainProvider extends ChangeNotifier {
     }
 
     return false;
+  }
+
+  void _startFetchTimer() {
+    _fetchTimer = Timer.periodic(const Duration(seconds: 1), (_) => fetch());
+  }
+
+  @override
+  void dispose() {
+    _fetchTimer?.cancel();
+    _fetchTimer = null;
+    super.dispose();
   }
 }

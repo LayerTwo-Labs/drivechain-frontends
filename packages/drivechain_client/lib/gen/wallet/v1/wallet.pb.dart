@@ -83,14 +83,18 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
 class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest({
     $core.Map<$core.String, $fixnum.Int64>? destinations,
-    $core.double? satoshiPerVbyte,
+    $core.double? feeRate,
+    $core.bool? rbf,
   }) {
     final $result = create();
     if (destinations != null) {
       $result.destinations.addAll(destinations);
     }
-    if (satoshiPerVbyte != null) {
-      $result.satoshiPerVbyte = satoshiPerVbyte;
+    if (feeRate != null) {
+      $result.feeRate = feeRate;
+    }
+    if (rbf != null) {
+      $result.rbf = rbf;
     }
     return $result;
   }
@@ -100,7 +104,8 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..m<$core.String, $fixnum.Int64>(1, _omitFieldNames ? '' : 'destinations', entryClassName: 'SendTransactionRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OU6, packageName: const $pb.PackageName('wallet.v1'))
-    ..a<$core.double>(2, _omitFieldNames ? '' : 'satoshiPerVbyte', $pb.PbFieldType.OD)
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
+    ..aOB(3, _omitFieldNames ? '' : 'rbf')
     ..hasRequiredFields = false
   ;
 
@@ -129,16 +134,26 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.Map<$core.String, $fixnum.Int64> get destinations => $_getMap(0);
 
-  /// Fee rate, measured in satoshis/virtual byte. If set to zero,
-  /// a reasonable rate is used by asking Core for an estimate.
+  /// Fee rate, measured in BTC/kvB. If set to zero, a reasonable
+  /// rate is used by asking Core for an estimate.
   @$pb.TagNumber(2)
-  $core.double get satoshiPerVbyte => $_getN(1);
+  $core.double get feeRate => $_getN(1);
   @$pb.TagNumber(2)
-  set satoshiPerVbyte($core.double v) { $_setDouble(1, v); }
+  set feeRate($core.double v) { $_setDouble(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasSatoshiPerVbyte() => $_has(1);
+  $core.bool hasFeeRate() => $_has(1);
   @$pb.TagNumber(2)
-  void clearSatoshiPerVbyte() => clearField(2);
+  void clearFeeRate() => clearField(2);
+
+  /// Whether to activate replace by fee for this transaction
+  @$pb.TagNumber(3)
+  $core.bool get rbf => $_getBF(2);
+  @$pb.TagNumber(3)
+  set rbf($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasRbf() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRbf() => clearField(3);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
