@@ -14,7 +14,6 @@ class BalanceProvider extends ChangeNotifier {
   int pendingBalance = 0;
 
   bool _isFetching = false;
-  // Timer to call fetch() every second
   Timer? _fetchTimer;
 
   BalanceProvider() {

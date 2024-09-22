@@ -120,3 +120,30 @@ final $typed_data.Uint8List listPeersResponseDescriptor = $convert.base64Decode(
     'ChFMaXN0UGVlcnNSZXNwb25zZRIpCgVwZWVycxgBIAMoCzITLmRyaXZlY2hhaW4udjEuUGVlcl'
     'IFcGVlcnM=');
 
+@$core.Deprecated('Use estimateSmartFeeRequestDescriptor instead')
+const EstimateSmartFeeRequest$json = {
+  '1': 'EstimateSmartFeeRequest',
+  '2': [
+    {'1': 'conf_target', '3': 1, '4': 1, '5': 3, '10': 'confTarget'},
+  ],
+};
+
+/// Descriptor for `EstimateSmartFeeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List estimateSmartFeeRequestDescriptor = $convert.base64Decode(
+    'ChdFc3RpbWF0ZVNtYXJ0RmVlUmVxdWVzdBIfCgtjb25mX3RhcmdldBgBIAEoA1IKY29uZlRhcm'
+    'dldA==');
+
+@$core.Deprecated('Use estimateSmartFeeResponseDescriptor instead')
+const EstimateSmartFeeResponse$json = {
+  '1': 'EstimateSmartFeeResponse',
+  '2': [
+    {'1': 'fee_rate', '3': 1, '4': 1, '5': 1, '10': 'feeRate'},
+    {'1': 'errors', '3': 2, '4': 3, '5': 9, '10': 'errors'},
+  ],
+};
+
+/// Descriptor for `EstimateSmartFeeResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List estimateSmartFeeResponseDescriptor = $convert.base64Decode(
+    'ChhFc3RpbWF0ZVNtYXJ0RmVlUmVzcG9uc2USGQoIZmVlX3JhdGUYASABKAFSB2ZlZVJhdGUSFg'
+    'oGZXJyb3JzGAIgAygJUgZlcnJvcnM=');
+

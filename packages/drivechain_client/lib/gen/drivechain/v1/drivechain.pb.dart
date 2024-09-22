@@ -520,6 +520,114 @@ class ListPeersResponse extends $pb.GeneratedMessage {
   $core.List<Peer> get peers => $_getList(0);
 }
 
+class EstimateSmartFeeRequest extends $pb.GeneratedMessage {
+  factory EstimateSmartFeeRequest({
+    $fixnum.Int64? confTarget,
+  }) {
+    final $result = create();
+    if (confTarget != null) {
+      $result.confTarget = confTarget;
+    }
+    return $result;
+  }
+  EstimateSmartFeeRequest._() : super();
+  factory EstimateSmartFeeRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EstimateSmartFeeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EstimateSmartFeeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'confTarget')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EstimateSmartFeeRequest clone() => EstimateSmartFeeRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EstimateSmartFeeRequest copyWith(void Function(EstimateSmartFeeRequest) updates) => super.copyWith((message) => updates(message as EstimateSmartFeeRequest)) as EstimateSmartFeeRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EstimateSmartFeeRequest create() => EstimateSmartFeeRequest._();
+  EstimateSmartFeeRequest createEmptyInstance() => create();
+  static $pb.PbList<EstimateSmartFeeRequest> createRepeated() => $pb.PbList<EstimateSmartFeeRequest>();
+  @$core.pragma('dart2js:noInline')
+  static EstimateSmartFeeRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EstimateSmartFeeRequest>(create);
+  static EstimateSmartFeeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get confTarget => $_getI64(0);
+  @$pb.TagNumber(1)
+  set confTarget($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasConfTarget() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConfTarget() => clearField(1);
+}
+
+class EstimateSmartFeeResponse extends $pb.GeneratedMessage {
+  factory EstimateSmartFeeResponse({
+    $core.double? feeRate,
+    $core.Iterable<$core.String>? errors,
+  }) {
+    final $result = create();
+    if (feeRate != null) {
+      $result.feeRate = feeRate;
+    }
+    if (errors != null) {
+      $result.errors.addAll(errors);
+    }
+    return $result;
+  }
+  EstimateSmartFeeResponse._() : super();
+  factory EstimateSmartFeeResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory EstimateSmartFeeResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'EstimateSmartFeeResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
+    ..pPS(2, _omitFieldNames ? '' : 'errors')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  EstimateSmartFeeResponse clone() => EstimateSmartFeeResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  EstimateSmartFeeResponse copyWith(void Function(EstimateSmartFeeResponse) updates) => super.copyWith((message) => updates(message as EstimateSmartFeeResponse)) as EstimateSmartFeeResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static EstimateSmartFeeResponse create() => EstimateSmartFeeResponse._();
+  EstimateSmartFeeResponse createEmptyInstance() => create();
+  static $pb.PbList<EstimateSmartFeeResponse> createRepeated() => $pb.PbList<EstimateSmartFeeResponse>();
+  @$core.pragma('dart2js:noInline')
+  static EstimateSmartFeeResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<EstimateSmartFeeResponse>(create);
+  static EstimateSmartFeeResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get feeRate => $_getN(0);
+  @$pb.TagNumber(1)
+  set feeRate($core.double v) { $_setDouble(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFeeRate() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFeeRate() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.List<$core.String> get errors => $_getList(1);
+}
+
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

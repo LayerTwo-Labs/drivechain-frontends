@@ -12,8 +12,10 @@ abstract class API {
 
 abstract class WalletAPI {
   Future<String> sendTransaction(
-    Map<String, int> destinations, [
-    double? satoshiPerVbyte,
+    String destination,
+    int amountSatoshi, [
+    double? btcPerKvB,
+    bool replaceByFee,
   ]);
   Future<GetBalanceResponse> getBalance();
   Future<String> getNewAddress();
@@ -25,6 +27,7 @@ abstract class DrivechainAPI {
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions();
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks();
   Future<GetBlockchainInfoResponse> getBlockchainInfo();
+  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
 }
 
 class APILive extends API {
@@ -65,12 +68,15 @@ class _WalletAPILive implements WalletAPI {
 
   @override
   Future<String> sendTransaction(
-    Map<String, int> destinations, [
-    double? satoshiPerVbyte,
+    String destination,
+    int amountSatoshi, [
+    double? btcPerKvB,
+    bool replaceByFee = false,
   ]) async {
     final request = SendTransactionRequest(
-      destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
-      satoshiPerVbyte: satoshiPerVbyte,
+      destinations: {destination: Int64(amountSatoshi)},
+      feeRate: btcPerKvB,
+      rbf: replaceByFee,
     );
 
     final response = await _client.sendTransaction(request);
@@ -122,5 +128,11 @@ class _DrivechainAPILive implements DrivechainAPI {
   Future<List<Peer>> listPeers() async {
     final response = await _client.listPeers(Empty());
     return response.peers;
+  }
+
+  @override
+  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) async {
+    final response = await _client.estimateSmartFee(EstimateSmartFeeRequest()..confTarget = Int64(confTarget));
+    return response;
   }
 }

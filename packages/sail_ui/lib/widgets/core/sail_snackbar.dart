@@ -3,15 +3,16 @@ import 'package:sail_ui/sail_ui.dart';
 
 void showSnackBar(
   BuildContext context,
-  String message,
-) {
+  String message, {
+  int duration = 3,
+}) {
   if (!context.mounted) return;
   final theme = SailTheme.of(context);
   final messenger = ScaffoldMessenger.of(context);
 
   messenger.showSnackBar(
     SnackBar(
-      duration: const Duration(seconds: 1),
+      duration: Duration(seconds: duration),
       behavior: SnackBarBehavior.fixed,
       backgroundColor: theme.colors.background,
       content: SailPadding(

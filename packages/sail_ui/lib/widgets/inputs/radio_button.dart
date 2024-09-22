@@ -65,7 +65,6 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
         height: widget.size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          // borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
           color: color,
           border: Border.all(color: SailTheme.of(context).colors.formFieldBorder, width: 1.0),
           boxShadow: sailBoxShadow(context),
@@ -74,21 +73,14 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
     }
 
     if (widget.label != null) {
-      var textStyle = SailStyleValues.twelve;
-      if (!enabled) {
-        textStyle = textStyle.copyWith(
-          color: SailTheme.of(context).colors.textTertiary,
-        );
-      }
-
       visual = Row(
         children: [
           visual,
           Padding(
             padding: const EdgeInsets.only(left: 8.0),
-            child: Text(
+            child: SailText.primary12(
               widget.label!,
-              style: textStyle,
+              color: enabled ? SailTheme.of(context).colors.text : SailTheme.of(context).colors.textTertiary,
             ),
           ),
         ],
