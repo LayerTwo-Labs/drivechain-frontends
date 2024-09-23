@@ -19,77 +19,73 @@ class SendPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: QtPage(
-            child: ViewModelBuilder<SendPageViewModel>.reactive(
-              viewModelBuilder: () => SendPageViewModel(),
-              onViewModelReady: (model) => model.init(),
-              builder: (context, model, child) {
-                return Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    const Expanded(
-                      child: QtContainer(
-                        child: SendDetailsForm(),
-                      ),
-                    ),
-                    const SizedBox(height: SailStyleValues.padding08),
-                    const Expanded(
-                      child: QtContainer(
-                        child: TransactionFeeForm(),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: SailStyleValues.padding08,
-                      ),
-                      child: Row(
+    return Expanded(
+      child: QtPage(
+        child: ViewModelBuilder<SendPageViewModel>.reactive(
+          viewModelBuilder: () => SendPageViewModel(),
+          onViewModelReady: (model) => model.init(),
+          builder: (context, model, child) {
+            return Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                const Expanded(
+                  child: QtContainer(
+                    child: SendDetailsForm(),
+                  ),
+                ),
+                const SizedBox(height: SailStyleValues.padding08),
+                const Expanded(
+                  child: QtContainer(
+                    child: TransactionFeeForm(),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: SailStyleValues.padding08,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              QtButton(
-                                onPressed: () => model.sendTransaction(context),
-                                child: SailText.primary12('Send'),
-                              ),
-                              const SizedBox(width: SailStyleValues.padding08),
-                              QtButton(
-                                onPressed: model.clearAll,
-                                child: SailText.primary12('Clear All'),
-                              ),
-                            ],
+                          QtButton(
+                            onPressed: () => model.sendTransaction(context),
+                            child: SailText.primary12('Send'),
                           ),
-                          // Balance
-                          FutureBuilder(
-                            future: api.wallet.getBalance(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                final balance = formatBitcoin(
-                                  satoshiToBTC(
-                                    snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt(),
-                                  ),
-                                );
-                                return SailText.primary12('Balance: $balance');
-                              } else if (snapshot.hasError) {
-                                return SailText.primary12('Error: ${snapshot.error}');
-                              } else {
-                                return SailText.primary12('Balance: Loading...');
-                              }
-                            },
+                          const SizedBox(width: SailStyleValues.padding08),
+                          QtButton(
+                            onPressed: model.clearAll,
+                            child: SailText.primary12('Clear All'),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
+                      // Balance
+                      FutureBuilder(
+                        future: api.wallet.getBalance(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            final balance = formatBitcoin(
+                              satoshiToBTC(
+                                snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt(),
+                              ),
+                            );
+                            return SailText.primary12('Balance: $balance');
+                          } else if (snapshot.hasError) {
+                            return SailText.primary12('Error: ${snapshot.error}');
+                          } else {
+                            return SailText.primary12('Balance: Loading...');
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-      ],
+      ),
     );
   }
 }
@@ -114,7 +110,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
                 child: SailText.primary12('Pay To:'),
               ),
             ),
-            const SizedBox(width: 16.0),
+            const SizedBox(width: SailStyleValues.padding15),
             Expanded(
               child: SailTextField(
                 controller: viewModel.addressController,
@@ -153,7 +149,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
             ),
           ],
         ),
-        const SizedBox(height: 16.0),
+        const SizedBox(height: SailStyleValues.padding15),
         Row(
           children: [
             ConstrainedBox(
@@ -165,14 +161,14 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
                 child: SailText.primary12('Amount:'),
               ),
             ),
-            const SizedBox(width: 16.0),
+            const SizedBox(width: SailStyleValues.padding15),
             Flexible(
               flex: 1,
               child: NumericField(
                 controller: viewModel.amountController,
               ),
             ),
-            const SizedBox(width: 16.0),
+            const SizedBox(width: SailStyleValues.padding15),
             Expanded(
               flex: 3,
               child: Row(
@@ -231,7 +227,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
             ),
           ],
         ),
-        const SizedBox(height: 16.0),
+        const SizedBox(height: SailStyleValues.padding15),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -281,7 +277,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
             ),
           ],
         ),
-        const SizedBox(height: 16.0),
+        const SizedBox(height: SailStyleValues.padding15),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -321,7 +317,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
                               enabled: false,
                             ),
                           ),
-                          const SizedBox(width: 16.0),
+                          const SizedBox(width: SailStyleValues.padding15),
                         ],
                       ),
                       const SizedBox(height: SailStyleValues.padding08),
@@ -332,7 +328,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
             ),
           ],
         ),
-        const SizedBox(height: 16.0),
+        const SizedBox(height: SailStyleValues.padding15),
         Tooltip(
           message: '''
 With Replace-By-Fee (BIP-125)
@@ -464,13 +460,18 @@ class QtPage extends StatelessWidget {
 
 class QtContainer extends StatelessWidget {
   final Widget child;
+  final bool tight;
 
-  const QtContainer({super.key, required this.child});
+  const QtContainer({
+    super.key,
+    required this.child,
+    this.tight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12.0),
+      padding: tight ? const EdgeInsets.all(0) : const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey),
       ),
