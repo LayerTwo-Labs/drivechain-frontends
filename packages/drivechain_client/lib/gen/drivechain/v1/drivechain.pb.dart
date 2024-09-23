@@ -16,6 +16,56 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/timestamp.pb.dart' as $3;
 
+class ListRecentBlocksRequest extends $pb.GeneratedMessage {
+  factory ListRecentBlocksRequest({
+    $fixnum.Int64? count,
+  }) {
+    final $result = create();
+    if (count != null) {
+      $result.count = count;
+    }
+    return $result;
+  }
+  ListRecentBlocksRequest._() : super();
+  factory ListRecentBlocksRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListRecentBlocksRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListRecentBlocksRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'count')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListRecentBlocksRequest clone() => ListRecentBlocksRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListRecentBlocksRequest copyWith(void Function(ListRecentBlocksRequest) updates) => super.copyWith((message) => updates(message as ListRecentBlocksRequest)) as ListRecentBlocksRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListRecentBlocksRequest create() => ListRecentBlocksRequest._();
+  ListRecentBlocksRequest createEmptyInstance() => create();
+  static $pb.PbList<ListRecentBlocksRequest> createRepeated() => $pb.PbList<ListRecentBlocksRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListRecentBlocksRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListRecentBlocksRequest>(create);
+  static ListRecentBlocksRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get count => $_getI64(0);
+  @$pb.TagNumber(1)
+  set count($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCount() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCount() => clearField(1);
+}
+
 class ListRecentBlocksResponse_RecentBlock extends $pb.GeneratedMessage {
   factory ListRecentBlocksResponse_RecentBlock({
     $3.Timestamp? blockTime,
@@ -138,6 +188,56 @@ class ListRecentBlocksResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(4)
   $core.List<ListRecentBlocksResponse_RecentBlock> get recentBlocks => $_getList(0);
+}
+
+class ListUnconfirmedTransactionsRequest extends $pb.GeneratedMessage {
+  factory ListUnconfirmedTransactionsRequest({
+    $fixnum.Int64? count,
+  }) {
+    final $result = create();
+    if (count != null) {
+      $result.count = count;
+    }
+    return $result;
+  }
+  ListUnconfirmedTransactionsRequest._() : super();
+  factory ListUnconfirmedTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListUnconfirmedTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnconfirmedTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'drivechain.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'count')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListUnconfirmedTransactionsRequest clone() => ListUnconfirmedTransactionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListUnconfirmedTransactionsRequest copyWith(void Function(ListUnconfirmedTransactionsRequest) updates) => super.copyWith((message) => updates(message as ListUnconfirmedTransactionsRequest)) as ListUnconfirmedTransactionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListUnconfirmedTransactionsRequest create() => ListUnconfirmedTransactionsRequest._();
+  ListUnconfirmedTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListUnconfirmedTransactionsRequest> createRepeated() => $pb.PbList<ListUnconfirmedTransactionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListUnconfirmedTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnconfirmedTransactionsRequest>(create);
+  static ListUnconfirmedTransactionsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get count => $_getI64(0);
+  @$pb.TagNumber(1)
+  set count($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCount() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCount() => clearField(1);
 }
 
 class ListUnconfirmedTransactionsResponse extends $pb.GeneratedMessage {

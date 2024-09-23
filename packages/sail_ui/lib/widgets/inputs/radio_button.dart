@@ -14,7 +14,7 @@ class SailRadioButton<T> extends StatefulWidget {
     required this.groupValue,
     this.onChanged,
     this.label,
-    this.size = 16.0,
+    this.size = SailStyleValues.padding15,
     this.enabled = true,
     super.key,
   });

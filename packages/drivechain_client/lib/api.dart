@@ -108,13 +108,13 @@ class _DrivechainAPILive implements DrivechainAPI {
 
   @override
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {
-    final response = await _client.listUnconfirmedTransactions(Empty());
+    final response = await _client.listUnconfirmedTransactions(ListUnconfirmedTransactionsRequest()..count = Int64(20));
     return response.unconfirmedTransactions;
   }
 
   @override
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
-    final response = await _client.listRecentBlocks(Empty());
+    final response = await _client.listRecentBlocks(ListRecentBlocksRequest()..count = Int64(20));
     return response.recentBlocks;
   }
 

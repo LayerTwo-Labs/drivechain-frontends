@@ -3,8 +3,8 @@
 Drivechain-Qt elements to implement:
 
 #### Core Bitcoin features:
-- [ ] Latest transactions / mempool viewer
-- [ ] Latest blocks list
+- [X] Latest transactions / mempool viewer
+- [X] Latest blocks list
 - [X] Block explorer
 - [X] Wallet (Create, view, send, receive)
 - [X] View bitcoin network statistics

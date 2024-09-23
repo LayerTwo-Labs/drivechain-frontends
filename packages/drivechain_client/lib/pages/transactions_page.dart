@@ -32,7 +32,6 @@ class TransactionsPage extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
             ],
           ),
         );
@@ -76,7 +75,7 @@ class TransactionTable extends StatelessWidget {
           context.sailTheme.colors.formFieldBorder,
         ),
         // Set the sort arrow color using the theme's primary color
-        columnSpacing: 16.0,
+        columnSpacing: SailStyleValues.padding15,
         headingRowHeight: 24.0,
         dataTextStyle: SailStyleValues.twelve,
         headingTextStyle: SailStyleValues.ten,
@@ -117,7 +116,7 @@ class TransactionTable extends StatelessWidget {
                   DataCell(SailText.primary12(entry.confirmationTime.height.toString())),
                   DataCell(SailText.primary12(entry.confirmationTime.timestamp.toDateTime().format())),
                   DataCell(SailText.primary12(entry.txid)),
-                  DataCell(SailText.primary12('${entry.receivedSatoshi} sats')),
+                  DataCell(SailText.primary12(formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt())))),
                 ],
               ),
             )

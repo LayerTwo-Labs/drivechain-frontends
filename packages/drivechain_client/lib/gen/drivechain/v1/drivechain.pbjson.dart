@@ -13,6 +13,18 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use listRecentBlocksRequestDescriptor instead')
+const ListRecentBlocksRequest$json = {
+  '1': 'ListRecentBlocksRequest',
+  '2': [
+    {'1': 'count', '3': 1, '4': 1, '5': 3, '10': 'count'},
+  ],
+};
+
+/// Descriptor for `ListRecentBlocksRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listRecentBlocksRequestDescriptor = $convert.base64Decode(
+    'ChdMaXN0UmVjZW50QmxvY2tzUmVxdWVzdBIUCgVjb3VudBgBIAEoA1IFY291bnQ=');
+
 @$core.Deprecated('Use listRecentBlocksResponseDescriptor instead')
 const ListRecentBlocksResponse$json = {
   '1': 'ListRecentBlocksResponse',
@@ -39,6 +51,19 @@ final $typed_data.Uint8List listRecentBlocksResponseDescriptor = $convert.base64
     'bG9ja3MafwoLUmVjZW50QmxvY2sSOQoKYmxvY2tfdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2'
     'J1Zi5UaW1lc3RhbXBSCWJsb2NrVGltZRIhCgxibG9ja19oZWlnaHQYAiABKA1SC2Jsb2NrSGVp'
     'Z2h0EhIKBGhhc2gYAyABKAlSBGhhc2g=');
+
+@$core.Deprecated('Use listUnconfirmedTransactionsRequestDescriptor instead')
+const ListUnconfirmedTransactionsRequest$json = {
+  '1': 'ListUnconfirmedTransactionsRequest',
+  '2': [
+    {'1': 'count', '3': 1, '4': 1, '5': 3, '10': 'count'},
+  ],
+};
+
+/// Descriptor for `ListUnconfirmedTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listUnconfirmedTransactionsRequestDescriptor = $convert.base64Decode(
+    'CiJMaXN0VW5jb25maXJtZWRUcmFuc2FjdGlvbnNSZXF1ZXN0EhQKBWNvdW50GAEgASgDUgVjb3'
+    'VudA==');
 
 @$core.Deprecated('Use listUnconfirmedTransactionsResponseDescriptor instead')
 const ListUnconfirmedTransactionsResponse$json = {

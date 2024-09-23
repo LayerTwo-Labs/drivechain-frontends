@@ -13,7 +13,7 @@ class SailCheckbox extends StatefulWidget {
     required this.value,
     this.onChanged,
     this.label,
-    this.size = 16.0,
+    this.size = SailStyleValues.padding15,
     this.cornerRadius = 4.0,
     this.enabled = true,
     super.key,

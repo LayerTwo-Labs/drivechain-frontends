@@ -76,7 +76,7 @@ class BlockchainProvider extends ChangeNotifier {
   }
 
   void _startFetchTimer() {
-    _fetchTimer = Timer.periodic(const Duration(seconds: 1), (_) => fetch());
+    _fetchTimer = Timer.periodic(const Duration(seconds: 10), (_) => fetch());
   }
 
   @override
