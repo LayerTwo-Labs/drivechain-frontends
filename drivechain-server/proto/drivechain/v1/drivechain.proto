@@ -8,10 +8,10 @@ import "google/protobuf/timestamp.proto";
 service DrivechainService {
   // The "latest transactions" list in the first tab of Drivechain-QT is actually
   // a list of unconfirmed transactions!
-  rpc ListUnconfirmedTransactions(google.protobuf.Empty) returns (ListUnconfirmedTransactionsResponse);
+  rpc ListUnconfirmedTransactions(ListUnconfirmedTransactionsRequest) returns (ListUnconfirmedTransactionsResponse);
 
   // Lists the ten most recent blocks, lightly populated with data.
-  rpc ListRecentBlocks(google.protobuf.Empty) returns (ListRecentBlocksResponse);
+  rpc ListRecentBlocks(ListRecentBlocksRequest) returns (ListRecentBlocksResponse);
 
   // Get basic blockchain info like height, last block time, peers etc.
   rpc GetBlockchainInfo(google.protobuf.Empty) returns (GetBlockchainInfoResponse);
@@ -23,6 +23,10 @@ service DrivechainService {
   rpc EstimateSmartFee(EstimateSmartFeeRequest) returns (EstimateSmartFeeResponse);
 }
 
+message ListRecentBlocksRequest {
+  int64 count = 1;
+}
+
 message ListRecentBlocksResponse {
   message RecentBlock {
     google.protobuf.Timestamp block_time = 1;
@@ -31,6 +35,10 @@ message ListRecentBlocksResponse {
   }
 
   repeated RecentBlock recent_blocks = 4;
+}
+
+message ListUnconfirmedTransactionsRequest {
+  int64 count = 1;
 }
 
 message ListUnconfirmedTransactionsResponse {

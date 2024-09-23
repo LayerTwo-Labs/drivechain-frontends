@@ -65,9 +65,9 @@ var (
 type DrivechainServiceClient interface {
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
 	// a list of unconfirmed transactions!
-	ListUnconfirmedTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
+	ListUnconfirmedTransactions(context.Context, *connect.Request[v1.ListUnconfirmedTransactionsRequest]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
 	// Lists the ten most recent blocks, lightly populated with data.
-	ListRecentBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error)
+	ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error)
 	// Get basic blockchain info like height, last block time, peers etc.
 	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
 	// Lists very basic info about all peers
@@ -86,13 +86,13 @@ type DrivechainServiceClient interface {
 func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DrivechainServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &drivechainServiceClient{
-		listUnconfirmedTransactions: connect.NewClient[emptypb.Empty, v1.ListUnconfirmedTransactionsResponse](
+		listUnconfirmedTransactions: connect.NewClient[v1.ListUnconfirmedTransactionsRequest, v1.ListUnconfirmedTransactionsResponse](
 			httpClient,
 			baseURL+DrivechainServiceListUnconfirmedTransactionsProcedure,
 			connect.WithSchema(drivechainServiceListUnconfirmedTransactionsMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		listRecentBlocks: connect.NewClient[emptypb.Empty, v1.ListRecentBlocksResponse](
+		listRecentBlocks: connect.NewClient[v1.ListRecentBlocksRequest, v1.ListRecentBlocksResponse](
 			httpClient,
 			baseURL+DrivechainServiceListRecentBlocksProcedure,
 			connect.WithSchema(drivechainServiceListRecentBlocksMethodDescriptor),
@@ -121,20 +121,20 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 
 // drivechainServiceClient implements DrivechainServiceClient.
 type drivechainServiceClient struct {
-	listUnconfirmedTransactions *connect.Client[emptypb.Empty, v1.ListUnconfirmedTransactionsResponse]
-	listRecentBlocks            *connect.Client[emptypb.Empty, v1.ListRecentBlocksResponse]
+	listUnconfirmedTransactions *connect.Client[v1.ListUnconfirmedTransactionsRequest, v1.ListUnconfirmedTransactionsResponse]
+	listRecentBlocks            *connect.Client[v1.ListRecentBlocksRequest, v1.ListRecentBlocksResponse]
 	getBlockchainInfo           *connect.Client[emptypb.Empty, v1.GetBlockchainInfoResponse]
 	listPeers                   *connect.Client[emptypb.Empty, v1.ListPeersResponse]
 	estimateSmartFee            *connect.Client[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse]
 }
 
 // ListUnconfirmedTransactions calls drivechain.v1.DrivechainService.ListUnconfirmedTransactions.
-func (c *drivechainServiceClient) ListUnconfirmedTransactions(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error) {
+func (c *drivechainServiceClient) ListUnconfirmedTransactions(ctx context.Context, req *connect.Request[v1.ListUnconfirmedTransactionsRequest]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error) {
 	return c.listUnconfirmedTransactions.CallUnary(ctx, req)
 }
 
 // ListRecentBlocks calls drivechain.v1.DrivechainService.ListRecentBlocks.
-func (c *drivechainServiceClient) ListRecentBlocks(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error) {
+func (c *drivechainServiceClient) ListRecentBlocks(ctx context.Context, req *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error) {
 	return c.listRecentBlocks.CallUnary(ctx, req)
 }
 
@@ -157,9 +157,9 @@ func (c *drivechainServiceClient) EstimateSmartFee(ctx context.Context, req *con
 type DrivechainServiceHandler interface {
 	// The "latest transactions" list in the first tab of Drivechain-QT is actually
 	// a list of unconfirmed transactions!
-	ListUnconfirmedTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
+	ListUnconfirmedTransactions(context.Context, *connect.Request[v1.ListUnconfirmedTransactionsRequest]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
 	// Lists the ten most recent blocks, lightly populated with data.
-	ListRecentBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error)
+	ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error)
 	// Get basic blockchain info like height, last block time, peers etc.
 	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
 	// Lists very basic info about all peers
@@ -225,11 +225,11 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 // UnimplementedDrivechainServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDrivechainServiceHandler struct{}
 
-func (UnimplementedDrivechainServiceHandler) ListUnconfirmedTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error) {
+func (UnimplementedDrivechainServiceHandler) ListUnconfirmedTransactions(context.Context, *connect.Request[v1.ListUnconfirmedTransactionsRequest]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListUnconfirmedTransactions is not implemented"))
 }
 
-func (UnimplementedDrivechainServiceHandler) ListRecentBlocks(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListRecentBlocksResponse], error) {
+func (UnimplementedDrivechainServiceHandler) ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListRecentBlocks is not implemented"))
 }
 

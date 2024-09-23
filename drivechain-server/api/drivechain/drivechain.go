@@ -45,7 +45,7 @@ func (s *Server) EstimateSmartFee(ctx context.Context, req *connect.Request[pb.E
 }
 
 // ListRecentBlocks implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListRecentBlocksResponse], error) {
+func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.ListRecentBlocksRequest]) (*connect.Response[pb.ListRecentBlocksResponse], error) {
 	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
 		return nil, err
@@ -56,8 +56,12 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[emptyp
 		WithCancelOnError().
 		WithFirstError()
 
-	const numBlocks = 10
-	for i := range numBlocks {
+	const defaultCount = 10
+	if c.Msg.Count == 0 {
+		c.Msg.Count = defaultCount
+	}
+
+	for i := range c.Msg.Count {
 		p.Go(func(ctx context.Context) (*pb.ListRecentBlocksResponse_RecentBlock, error) {
 
 			height := info.Msg.Blocks - uint32(i)
@@ -99,7 +103,7 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[emptyp
 }
 
 // ListUnconfirmedTransactions implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) ListUnconfirmedTransactions(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListUnconfirmedTransactionsResponse], error) {
+func (s *Server) ListUnconfirmedTransactions(ctx context.Context, c *connect.Request[pb.ListUnconfirmedTransactionsRequest]) (*connect.Response[pb.ListUnconfirmedTransactionsResponse], error) {
 	res, err := s.bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
 		Verbose: true,
 	}))
@@ -108,6 +112,7 @@ func (s *Server) ListUnconfirmedTransactions(ctx context.Context, c *connect.Req
 	}
 
 	var out []*pb.UnconfirmedTransaction
+
 	for txid, tx := range res.Msg.Transactions {
 		fee, err := btcutil.NewAmount(tx.Fees.Base)
 		if err != nil {
@@ -122,6 +127,18 @@ func (s *Server) ListUnconfirmedTransactions(ctx context.Context, c *connect.Req
 			FeeSatoshi:  uint64(fee),
 		})
 	}
+
+	slices.SortFunc(out, func(a, b *pb.UnconfirmedTransaction) int {
+		return cmp.Compare(b.Time.AsTime().Unix(), a.Time.AsTime().Unix())
+	})
+
+	if c.Msg.Count > 0 {
+		if c.Msg.Count > int64(len(out)) {
+			c.Msg.Count = int64(len(out))
+		}
+		out = out[:c.Msg.Count]
+	}
+
 	return connect.NewResponse(&pb.ListUnconfirmedTransactionsResponse{
 		UnconfirmedTransactions: out,
 	}), nil
