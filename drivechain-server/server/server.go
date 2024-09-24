@@ -13,9 +13,11 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
+	api_bitcoind "github.com/LayerTwo-Labs/sidesail/drivechain-server/api/bitcoind"
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/drivechain-server/api/drivechain"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/drivechain-server/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/bitcoind/v1/bitcoindv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	"github.com/barebitcoin/btc-buf/server"
@@ -30,6 +32,9 @@ func New(ctx context.Context, bitcoind *server.Bitcoind, wallet *bdk.Wallet) (*S
 	mux := http.NewServeMux()
 	srv := &Server{mux: mux}
 
+	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
+		bitcoind,
+	)))
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
 		bitcoind,
 	)))
