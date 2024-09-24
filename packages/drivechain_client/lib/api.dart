@@ -1,3 +1,4 @@
+import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
@@ -8,6 +9,7 @@ import 'package:grpc/grpc.dart';
 abstract class API {
   WalletAPI get wallet;
   BitcoindAPI get bitcoind;
+  DrivechainAPI get drivechain;
 }
 
 abstract class WalletAPI {
@@ -30,12 +32,18 @@ abstract class BitcoindAPI {
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
 }
 
+abstract class DrivechainAPI {
+  Future<List<ListSidechainsResponse_Sidechain>> listSidechains();
+}
+
 class APILive extends API {
+  late final DrivechainServiceClient _client;
   late final BitcoindServiceClient _bitcoindClient;
   late final WalletServiceClient _walletClient;
 
   late final WalletAPI _wallet;
   late final BitcoindAPI _bitcoind;
+  late final DrivechainAPI _drivechain;
 
   APILive({
     required String host,
@@ -49,17 +57,21 @@ class APILive extends API {
       ),
     );
 
+    _client = DrivechainServiceClient(channel);
     _bitcoindClient = BitcoindServiceClient(channel);
     _walletClient = WalletServiceClient(channel);
 
     _wallet = _WalletAPILive(_walletClient);
     _bitcoind = _BitcoindAPILive(_bitcoindClient);
+    _drivechain = _DrivechainAPILive(_client);
   }
 
   @override
   WalletAPI get wallet => _wallet;
   @override
   BitcoindAPI get bitcoind => _bitcoind;
+  @override
+  DrivechainAPI get drivechain => _drivechain;
 }
 
 class _WalletAPILive implements WalletAPI {
@@ -135,5 +147,17 @@ class _BitcoindAPILive implements BitcoindAPI {
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) async {
     final response = await _client.estimateSmartFee(EstimateSmartFeeRequest()..confTarget = Int64(confTarget));
     return response;
+  }
+}
+
+class _DrivechainAPILive implements DrivechainAPI {
+  final DrivechainServiceClient _client;
+
+  _DrivechainAPILive(this._client);
+
+  @override
+  Future<List<ListSidechainsResponse_Sidechain>> listSidechains() async {
+    final response = await _client.listSidechains(ListSidechainsRequest());
+    return response.sidechains;
   }
 }
