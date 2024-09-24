@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/api.dart';
-import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:drivechain_client/providers/balance_provider.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
@@ -629,7 +629,7 @@ class SendPageViewModel extends BaseViewModel {
   Future<void> fetchEstimate() async {
     setBusy(true);
     try {
-      final estimate = await api.drivechain.estimateSmartFee(confirmationTarget);
+      final estimate = await api.bitcoind.estimateSmartFee(confirmationTarget);
       Logger().d('Estimate: estimate=${estimate.feeRate} errors=${estimate.errors}');
       feeEstimate = estimate;
     } finally {
