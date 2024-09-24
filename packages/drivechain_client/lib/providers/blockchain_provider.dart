@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:drivechain_client/api.dart';
-import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:drivechain_client/gen/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -33,10 +33,10 @@ class BlockchainProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newPeers = await api.drivechain.listPeers();
-      final newTXs = await api.drivechain.listUnconfirmedTransactions();
-      final newBlockchainInfo = await api.drivechain.getBlockchainInfo();
-      final newRecentBlocks = await api.drivechain.listRecentBlocks();
+      final newPeers = await api.bitcoind.listPeers();
+      final newTXs = await api.bitcoind.listUnconfirmedTransactions();
+      final newBlockchainInfo = await api.bitcoind.getBlockchainInfo();
+      final newRecentBlocks = await api.bitcoind.listRecentBlocks();
 
       if (_dataHasChanged(newPeers, newTXs, newBlockchainInfo, newRecentBlocks)) {
         peers = newPeers;

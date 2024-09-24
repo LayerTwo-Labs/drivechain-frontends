@@ -1,5 +1,5 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:drivechain_client/pages/send_page.dart';
 import 'package:drivechain_client/providers/balance_provider.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';

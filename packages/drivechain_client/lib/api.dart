@@ -7,7 +7,7 @@ import 'package:grpc/grpc.dart';
 /// API to the drivechain server.
 abstract class API {
   WalletAPI get wallet;
-  DrivechainAPI get drivechain;
+  BitcoindAPI get bitcoind;
 }
 
 abstract class WalletAPI {
@@ -22,7 +22,7 @@ abstract class WalletAPI {
   Future<List<Transaction>> listTransactions();
 }
 
-abstract class DrivechainAPI {
+abstract class BitcoindAPI {
   Future<List<Peer>> listPeers();
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions();
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks();
@@ -31,10 +31,11 @@ abstract class DrivechainAPI {
 }
 
 class APILive extends API {
-  late final DrivechainServiceClient _client;
+  late final BitcoindServiceClient _bitcoindClient;
   late final WalletServiceClient _walletClient;
+
   late final WalletAPI _wallet;
-  late final DrivechainAPI _drivechain;
+  late final BitcoindAPI _bitcoind;
 
   APILive({
     required String host,
@@ -48,17 +49,17 @@ class APILive extends API {
       ),
     );
 
-    _client = DrivechainServiceClient(channel);
+    _bitcoindClient = BitcoindServiceClient(channel);
     _walletClient = WalletServiceClient(channel);
+
     _wallet = _WalletAPILive(_walletClient);
-    _drivechain = _DrivechainAPILive(_client);
+    _bitcoind = _BitcoindAPILive(_bitcoindClient);
   }
 
   @override
   WalletAPI get wallet => _wallet;
-
   @override
-  DrivechainAPI get drivechain => _drivechain;
+  BitcoindAPI get bitcoind => _bitcoind;
 }
 
 class _WalletAPILive implements WalletAPI {
@@ -101,10 +102,10 @@ class _WalletAPILive implements WalletAPI {
   }
 }
 
-class _DrivechainAPILive implements DrivechainAPI {
-  final DrivechainServiceClient _client;
+class _BitcoindAPILive implements BitcoindAPI {
+  final BitcoindServiceClient _client;
 
-  _DrivechainAPILive(this._client);
+  _BitcoindAPILive(this._client);
 
   @override
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {

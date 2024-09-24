@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:dotted_border/dotted_border.dart';
-import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:drivechain_client/routing/router.dart';
 import 'package:flutter/material.dart';
