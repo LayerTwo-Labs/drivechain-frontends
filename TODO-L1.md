@@ -10,7 +10,7 @@ Drivechain-Qt elements to implement:
 - [X] View bitcoin network statistics
 
 #### Sidechain-specific features:
-- [ ] View list of sidechains
+- [X] View list of sidechains
 - [ ] Propose sidechains
 - [ ] Deposit to sidechains
 - [ ] View list of sidechain withdrawals 
