@@ -4,6 +4,7 @@ import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/env.dart';
 import 'package:drivechain_client/providers/balance_provider.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';
+import 'package:drivechain_client/providers/sidechain_provider.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
 import 'package:drivechain_client/routing/router.dart';
 import 'package:flutter/material.dart';
@@ -83,4 +84,10 @@ Future<void> initDependencies(Logger log) async {
     () => txProvider,
   );
   unawaited(txProvider.fetch());
+
+  final sidechainProvider = SidechainProvider();
+  GetIt.I.registerLazySingleton<SidechainProvider>(
+    () => sidechainProvider,
+  );
+  unawaited(sidechainProvider.fetch());
 }
