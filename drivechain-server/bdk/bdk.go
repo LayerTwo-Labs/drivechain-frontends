@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -115,12 +116,17 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 			}
 		}
 
+		// Sanitize the error message
+		sanitizedArgs := sanitizeArgs(fullArgs)
+		sanitizedCommand := sanitizeCommand(command)
+		sanitizedErrorMessage := sanitizeErrorMessage(errorMessage)
+
 		zerolog.Ctx(ctx).Err(err).Msgf("exec: %q errored",
-			strings.Join(slices.Concat([]string{bdkCliPath}, fullArgs), " "),
+			strings.Join(slices.Concat([]string{bdkCliPath}, sanitizedArgs), " "),
 		)
 
 		return nil, fmt.Errorf("exec: bdk-cli %q: %s",
-			command, errorMessage,
+			sanitizedCommand, sanitizedErrorMessage,
 		)
 	}
 
@@ -324,7 +330,7 @@ type Transaction struct {
 // decrypt the existing mnemonic.
 func NewWallet(
 	ctx context.Context, datadir,
-	network, electrum, passphrase string, xprivOverride string,
+	network, electrum, passphrase string, xprvOverride string,
 ) (*Wallet, error) {
 
 	w := &Wallet{
@@ -333,29 +339,29 @@ func NewWallet(
 		Electrum: electrum,
 	}
 
-	xpriv, err := w.findXPriv(ctx, passphrase, xprivOverride)
+	xprv, err := w.findXPrv(ctx, passphrase, xprvOverride)
 	if err != nil {
 		return nil, err
 	}
 
-	w.Descriptor = fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", xpriv)
+	w.Descriptor = fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", xprv)
 
 	return w, nil
 }
 
-func (w *Wallet) findXPriv(ctx context.Context, passphrase string, xprivOverride string) (string, error) {
-	if xprivOverride != "" {
-		return xprivOverride, nil
+func (w *Wallet) findXPrv(ctx context.Context, passphrase string, xprvOverride string) (string, error) {
+	if xprvOverride != "" {
+		return xprvOverride, nil
 	}
 
 	keyFile := filepath.Join(w.Datadir, "wallet.key")
 
-	var xpriv string
+	var xprv string
 	if _, err := os.Stat(keyFile); err == nil {
 		zerolog.Ctx(ctx).Debug().
 			Msgf("bdk: loading existing wallet from key file: %s", keyFile)
 
-		xpriv, err = w.loadExistingWallet(ctx, keyFile, passphrase)
+		xprv, err = w.loadExistingWallet(ctx, keyFile, passphrase)
 		if err != nil {
 			return "", fmt.Errorf("failed to load existing wallet: %w", err)
 		}
@@ -363,13 +369,13 @@ func (w *Wallet) findXPriv(ctx context.Context, passphrase string, xprivOverride
 		zerolog.Ctx(ctx).Info().
 			Msg("bdk: creating new wallet")
 
-		xpriv, err = w.createNewWallet(ctx, keyFile, passphrase)
+		xprv, err = w.createNewWallet(ctx, keyFile, passphrase)
 		if err != nil {
 			return "", fmt.Errorf("failed to create new wallet: %w", err)
 		}
 	}
 
-	return xpriv, nil
+	return xprv, nil
 }
 
 func (w *Wallet) loadExistingWallet(ctx context.Context, keyFile, passphrase string) (string, error) {
@@ -524,4 +530,32 @@ func decryptKey(data []byte, passphrase string) (string, error) {
 	}
 
 	return string(decrypted), nil
+}
+
+// sanitizeArgs removes sensitive information from command arguments
+func sanitizeArgs(args []string) []string {
+	return lo.Map(args, func(arg string, _ int) string {
+		if strings.HasPrefix(arg, "wpkh(") {
+			return "wpkh([REDACTED])"
+		}
+		return arg
+	})
+}
+
+// sanitizeCommand removes sensitive information from the command string
+func sanitizeCommand(command string) string {
+	parts := strings.Split(command, " ")
+	return strings.Join(sanitizeArgs(parts), " ")
+}
+
+// sanitizeErrorMessage removes sensitive information from error messages
+func sanitizeErrorMessage(message string) string {
+	// Remove any xprv or xpub keys
+	message = regexp.MustCompile(`xprv[a-zA-Z0-9]{107}`).ReplaceAllString(message, "xprv[REDACTED]")
+	message = regexp.MustCompile(`xpub[a-zA-Z0-9]{107}`).ReplaceAllString(message, "xpub[REDACTED]")
+
+	// Remove any descriptors
+	message = regexp.MustCompile(`wpkh\([^)]+\)`).ReplaceAllString(message, "wpkh([REDACTED])")
+
+	return message
 }
