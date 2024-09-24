@@ -23,7 +23,7 @@ class SailTextField extends StatelessWidget {
   final bool readOnly;
   final bool dense;
   final bool enabled;
-  
+
   const SailTextField({
     super.key,
     required this.controller,

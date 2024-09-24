@@ -1,0 +1,19 @@
+# This file contains commands to be run on all sub-clients
+
+format:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for dir in */; do
+        if [ -d "$dir" ]; then
+            (cd "$dir" && just format)
+        fi
+    done
+
+fix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for dir in */; do
+        if [ -d "$dir" ]; then
+            (cd "$dir" && dart fix --apply)
+        fi
+    done

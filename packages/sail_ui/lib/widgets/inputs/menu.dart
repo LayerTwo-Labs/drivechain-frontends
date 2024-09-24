@@ -5,8 +5,7 @@ const _minMenuEdgePadding = 8.0;
 
 Rect getGlobalBoundsForContext(BuildContext context) {
   var renderBox = context.findRenderObject() as RenderBox;
-  var overlay =
-      Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+  var overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
 
   return Rect.fromPoints(
     renderBox.localToGlobal(
@@ -41,17 +40,17 @@ Future showSailMenu({
       semanticLabel ??= MaterialLocalizations.of(context).popupMenuLabel;
   }
 
-  final NavigatorState navigator =
-      Navigator.of(context, rootNavigator: useRootNavigator);
-  return navigator.push(_PopupMenuRoute(
-    preferredAnchorPoint: preferredAnchorPoint,
-    alignment: alignment,
-    semanticLabel: semanticLabel,
-    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-    capturedThemes:
-        InheritedTheme.capture(from: context, to: navigator.context),
-    menu: menu,
-  ),);
+  final NavigatorState navigator = Navigator.of(context, rootNavigator: useRootNavigator);
+  return navigator.push(
+    _PopupMenuRoute(
+      preferredAnchorPoint: preferredAnchorPoint,
+      alignment: alignment,
+      semanticLabel: semanticLabel,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      capturedThemes: InheritedTheme.capture(from: context, to: navigator.context),
+      menu: menu,
+    ),
+  );
 }
 
 class _PopupMenuRoute extends PopupRoute {
