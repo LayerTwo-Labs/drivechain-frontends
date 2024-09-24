@@ -2,90 +2,23 @@ syntax = "proto3";
 
 package drivechain.v1;
 
-import "google/protobuf/empty.proto";
-import "google/protobuf/timestamp.proto";
-
 service DrivechainService {
-  // The "latest transactions" list in the first tab of Drivechain-QT is actually
-  // a list of unconfirmed transactions!
-  rpc ListUnconfirmedTransactions(ListUnconfirmedTransactionsRequest) returns (ListUnconfirmedTransactionsResponse);
-
-  // Lists the ten most recent blocks, lightly populated with data.
-  rpc ListRecentBlocks(ListRecentBlocksRequest) returns (ListRecentBlocksResponse);
-
-  // Get basic blockchain info like height, last block time, peers etc.
-  rpc GetBlockchainInfo(google.protobuf.Empty) returns (GetBlockchainInfoResponse);
-
-  // Lists very basic info about all peers
-  rpc ListPeers(google.protobuf.Empty) returns (ListPeersResponse);
-
-  // Lists very basic info about all peers
-  rpc EstimateSmartFee(EstimateSmartFeeRequest) returns (EstimateSmartFeeResponse);
+  rpc ListSidechains(ListSidechainsRequest) returns (ListSidechainsResponse);
 }
 
-message ListRecentBlocksRequest {
-  int64 count = 1;
-}
+message ListSidechainsRequest {}
 
-message ListRecentBlocksResponse {
-  message RecentBlock {
-    google.protobuf.Timestamp block_time = 1;
-    uint32 block_height = 2;
-    string hash = 3;
+message ListSidechainsResponse {
+  message Sidechain {
+    string title = 1;
+    string description = 2;
+    uint32 nversion = 3;
+    string hashid1 = 4;
+    string hashid2 = 5;
+    int32 slot = 6;
+    int64 amount_satoshi = 7;
+    string chaintip_txid = 8;
   }
 
-  repeated RecentBlock recent_blocks = 4;
-}
-
-message ListUnconfirmedTransactionsRequest {
-  int64 count = 1;
-}
-
-message ListUnconfirmedTransactionsResponse {
-  repeated UnconfirmedTransaction unconfirmed_transactions = 1;
-}
-
-message UnconfirmedTransaction {
-  uint32 virtual_size = 1;
-  uint32 weight = 2;
-  google.protobuf.Timestamp time = 3;
-  string txid = 4;
-  uint64 fee_satoshi = 5;
-
-  // is_bmm_request and is_critical_data_request both
-  // pertain to BMM (BIP301). Hearing chatter that the
-  // new CUSF approach might actually do away with BMM
-  // entirely? Holding off on that for a little while.
-
-  // BMM = blind merged mining
-  // bool is_bmm_request = 6;
-
-  // bool is_critical_data_request = 7;
-}
-
-message GetBlockchainInfoResponse {
-  string chain = 1;
-  uint32 blocks = 2;
-  uint32 headers = 3;
-  string best_block_hash = 4;
-  bool initial_block_download = 8;
-}
-
-message Peer {
-  int32 id = 1;
-  string addr = 2;
-  int32 synced_blocks = 3;
-}
-
-message ListPeersResponse {
-  repeated Peer peers = 1;
-}
-
-message EstimateSmartFeeRequest {
-  int64 conf_target = 1;
-}
-
-message EstimateSmartFeeResponse {
-  double fee_rate = 1;
-  repeated string errors = 2;
+  repeated Sidechain sidechains = 1;
 }

@@ -6,7 +6,7 @@ toolchain go1.23.0
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240921112641-d0703c6d3ca0
+	github.com/barebitcoin/btc-buf v0.0.0-20240924083329-999a9636f977
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.33.0
