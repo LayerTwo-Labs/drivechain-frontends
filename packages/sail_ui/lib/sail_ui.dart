@@ -21,6 +21,7 @@ export './widgets/components/dashboard_group.dart';
 export './widgets/components/expanded_tx_view.dart';
 export './widgets/components/raw_transaction.dart';
 export './widgets/components/utxo.dart';
+export './widgets/components/table.dart';
 export './widgets/containers/action_tile.dart';
 export './widgets/containers/expandable_list_entry.dart';
 export './widgets/containers/notification.dart';
