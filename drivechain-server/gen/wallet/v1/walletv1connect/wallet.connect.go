@@ -46,15 +46,19 @@ const (
 	// WalletServiceListTransactionsProcedure is the fully-qualified name of the WalletService's
 	// ListTransactions RPC.
 	WalletServiceListTransactionsProcedure = "/wallet.v1.WalletService/ListTransactions"
+	// WalletServiceListSidechainDepositsProcedure is the fully-qualified name of the WalletService's
+	// ListSidechainDeposits RPC.
+	WalletServiceListSidechainDepositsProcedure = "/wallet.v1.WalletService/ListSidechainDeposits"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	walletServiceServiceDescriptor                = v1.File_wallet_v1_wallet_proto.Services().ByName("WalletService")
-	walletServiceSendTransactionMethodDescriptor  = walletServiceServiceDescriptor.Methods().ByName("SendTransaction")
-	walletServiceGetBalanceMethodDescriptor       = walletServiceServiceDescriptor.Methods().ByName("GetBalance")
-	walletServiceGetNewAddressMethodDescriptor    = walletServiceServiceDescriptor.Methods().ByName("GetNewAddress")
-	walletServiceListTransactionsMethodDescriptor = walletServiceServiceDescriptor.Methods().ByName("ListTransactions")
+	walletServiceServiceDescriptor                     = v1.File_wallet_v1_wallet_proto.Services().ByName("WalletService")
+	walletServiceSendTransactionMethodDescriptor       = walletServiceServiceDescriptor.Methods().ByName("SendTransaction")
+	walletServiceGetBalanceMethodDescriptor            = walletServiceServiceDescriptor.Methods().ByName("GetBalance")
+	walletServiceGetNewAddressMethodDescriptor         = walletServiceServiceDescriptor.Methods().ByName("GetNewAddress")
+	walletServiceListTransactionsMethodDescriptor      = walletServiceServiceDescriptor.Methods().ByName("ListTransactions")
+	walletServiceListSidechainDepositsMethodDescriptor = walletServiceServiceDescriptor.Methods().ByName("ListSidechainDeposits")
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -65,6 +69,7 @@ type WalletServiceClient interface {
 	// out unused addresses, so we risk crossing the sync gap.
 	GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error)
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
+	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -101,15 +106,22 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceListTransactionsMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		listSidechainDeposits: connect.NewClient[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse](
+			httpClient,
+			baseURL+WalletServiceListSidechainDepositsProcedure,
+			connect.WithSchema(walletServiceListSidechainDepositsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // walletServiceClient implements WalletServiceClient.
 type walletServiceClient struct {
-	sendTransaction  *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
-	getBalance       *connect.Client[emptypb.Empty, v1.GetBalanceResponse]
-	getNewAddress    *connect.Client[emptypb.Empty, v1.GetNewAddressResponse]
-	listTransactions *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
+	sendTransaction       *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
+	getBalance            *connect.Client[emptypb.Empty, v1.GetBalanceResponse]
+	getNewAddress         *connect.Client[emptypb.Empty, v1.GetNewAddressResponse]
+	listTransactions      *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
+	listSidechainDeposits *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
 }
 
 // SendTransaction calls wallet.v1.WalletService.SendTransaction.
@@ -132,6 +144,11 @@ func (c *walletServiceClient) ListTransactions(ctx context.Context, req *connect
 	return c.listTransactions.CallUnary(ctx, req)
 }
 
+// ListSidechainDeposits calls wallet.v1.WalletService.ListSidechainDeposits.
+func (c *walletServiceClient) ListSidechainDeposits(ctx context.Context, req *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error) {
+	return c.listSidechainDeposits.CallUnary(ctx, req)
+}
+
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
@@ -140,6 +157,7 @@ type WalletServiceHandler interface {
 	// out unused addresses, so we risk crossing the sync gap.
 	GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error)
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
+	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -172,6 +190,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceListTransactionsMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceListSidechainDepositsHandler := connect.NewUnaryHandler(
+		WalletServiceListSidechainDepositsProcedure,
+		svc.ListSidechainDeposits,
+		connect.WithSchema(walletServiceListSidechainDepositsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceSendTransactionProcedure:
@@ -182,6 +206,8 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceGetNewAddressHandler.ServeHTTP(w, r)
 		case WalletServiceListTransactionsProcedure:
 			walletServiceListTransactionsHandler.ServeHTTP(w, r)
+		case WalletServiceListSidechainDepositsProcedure:
+			walletServiceListSidechainDepositsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -205,4 +231,8 @@ func (UnimplementedWalletServiceHandler) GetNewAddress(context.Context, *connect
 
 func (UnimplementedWalletServiceHandler) ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListTransactions is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListSidechainDeposits is not implemented"))
 }
