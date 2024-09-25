@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -12,7 +13,7 @@ class SidechainProvider extends ChangeNotifier {
 
   // This always has 255 slots. The fetch-method fills in the slots that
   // are actually in use.
-  List<ListSidechainsResponse_Sidechain?> sidechains = List.filled(255, null);
+  List<Sidechain?> sidechains = List.filled(255, null);
 
   bool _isFetching = false;
 
@@ -31,12 +32,13 @@ class SidechainProvider extends ChangeNotifier {
       final newSidechains = await api.drivechain.listSidechains();
 
       // Create a new list with 255 slots
-      List<ListSidechainsResponse_Sidechain?> updatedSidechains = List.filled(255, null);
+      List<Sidechain?> updatedSidechains = List.filled(255, null);
 
       // Fill in the slots with the data retrieved from the API
       for (var sidechain in newSidechains) {
+        final deposits = await api.wallet.listSidechainDeposits(sidechain.slot);
         if (sidechain.slot < 255) {
-          updatedSidechains[sidechain.slot] = sidechain;
+          updatedSidechains[sidechain.slot] = Sidechain(sidechain, deposits);
         }
       }
 
@@ -49,7 +51,7 @@ class SidechainProvider extends ChangeNotifier {
     }
   }
 
-  bool _dataHasChanged(List<ListSidechainsResponse_Sidechain?> newSidechains) {
+  bool _dataHasChanged(List<Sidechain?> newSidechains) {
     if (!listEquals(sidechains, newSidechains)) {
       return true;
     }
@@ -61,4 +63,11 @@ class SidechainProvider extends ChangeNotifier {
     blockchainProvider.removeListener(fetch);
     super.dispose();
   }
+}
+
+class Sidechain {
+  final ListSidechainsResponse_Sidechain info;
+  final List<ListSidechainDepositsResponse_SidechainDeposit> deposits;
+
+  Sidechain(this.info, this.deposits);
 }

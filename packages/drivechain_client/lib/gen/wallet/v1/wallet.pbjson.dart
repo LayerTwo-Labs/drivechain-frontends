@@ -128,3 +128,44 @@ final $typed_data.Uint8List transactionDescriptor = $convert.base64Decode(
     'CgxzZW50X3NhdG9zaGkYBCABKARSC3NlbnRTYXRvc2hpEkQKEWNvbmZpcm1hdGlvbl90aW1lGA'
     'UgASgLMhcud2FsbGV0LnYxLkNvbmZpcm1hdGlvblIQY29uZmlybWF0aW9uVGltZQ==');
 
+@$core.Deprecated('Use listSidechainDepositsRequestDescriptor instead')
+const ListSidechainDepositsRequest$json = {
+  '1': 'ListSidechainDepositsRequest',
+  '2': [
+    {'1': 'slot', '3': 1, '4': 1, '5': 5, '10': 'slot'},
+  ],
+};
+
+/// Descriptor for `ListSidechainDepositsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listSidechainDepositsRequestDescriptor = $convert.base64Decode(
+    'ChxMaXN0U2lkZWNoYWluRGVwb3NpdHNSZXF1ZXN0EhIKBHNsb3QYASABKAVSBHNsb3Q=');
+
+@$core.Deprecated('Use listSidechainDepositsResponseDescriptor instead')
+const ListSidechainDepositsResponse$json = {
+  '1': 'ListSidechainDepositsResponse',
+  '2': [
+    {'1': 'deposits', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit', '10': 'deposits'},
+  ],
+  '3': [ListSidechainDepositsResponse_SidechainDeposit$json],
+};
+
+@$core.Deprecated('Use listSidechainDepositsResponseDescriptor instead')
+const ListSidechainDepositsResponse_SidechainDeposit$json = {
+  '1': 'SidechainDeposit',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'address', '3': 2, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'amount', '3': 3, '4': 1, '5': 1, '10': 'amount'},
+    {'1': 'fee', '3': 4, '4': 1, '5': 1, '10': 'fee'},
+    {'1': 'confirmations', '3': 5, '4': 1, '5': 5, '10': 'confirmations'},
+  ],
+};
+
+/// Descriptor for `ListSidechainDepositsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listSidechainDepositsResponseDescriptor = $convert.base64Decode(
+    'Ch1MaXN0U2lkZWNoYWluRGVwb3NpdHNSZXNwb25zZRJVCghkZXBvc2l0cxgBIAMoCzI5LndhbG'
+    'xldC52MS5MaXN0U2lkZWNoYWluRGVwb3NpdHNSZXNwb25zZS5TaWRlY2hhaW5EZXBvc2l0Ughk'
+    'ZXBvc2l0cxqQAQoQU2lkZWNoYWluRGVwb3NpdBISCgR0eGlkGAEgASgJUgR0eGlkEhgKB2FkZH'
+    'Jlc3MYAiABKAlSB2FkZHJlc3MSFgoGYW1vdW50GAMgASgBUgZhbW91bnQSEAoDZmVlGAQgASgB'
+    'UgNmZWUSJAoNY29uZmlybWF0aW9ucxgFIAEoBVINY29uZmlybWF0aW9ucw==');
+
