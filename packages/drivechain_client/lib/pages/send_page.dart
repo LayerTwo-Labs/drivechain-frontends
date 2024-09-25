@@ -151,6 +151,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
         ),
         const SizedBox(height: SailStyleValues.padding15),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ConstrainedBox(
               constraints: const BoxConstraints(
@@ -162,38 +163,44 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
               ),
             ),
             const SizedBox(width: SailStyleValues.padding15),
-            Flexible(
-              flex: 1,
-              child: NumericField(
-                controller: viewModel.amountController,
-              ),
-            ),
-            const SizedBox(width: SailStyleValues.padding15),
             Expanded(
-              flex: 3,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
+                      Expanded(
+                        child: NumericField(
+                          controller: viewModel.amountController,
+                        ),
+                      ),
+                      const SizedBox(width: SailStyleValues.padding15),
                       UnitDropdown(
                         value: viewModel.unit,
                         onChanged: viewModel.onUnitChanged,
                         enabled: false,
                       ),
-                      const SizedBox(width: 24.0),
-                      SailCheckbox(
-                        value: viewModel.subtractFee,
-                        onChanged: viewModel.onSubtractFeeChanged,
-                        label: 'Subtract fee from amount',
-                      ),
                     ],
                   ),
-                  QtButton(
-                    onPressed: viewModel.onUseAvailableBalance,
-                    child: SailText.primary12('Use available balance'),
+                  const SizedBox(height: SailStyleValues.padding15),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Wrap(
+                        spacing: SailStyleValues.padding15,
+                        runSpacing: SailStyleValues.padding08,
+                        children: [
+                          SailCheckbox(
+                            value: viewModel.subtractFee,
+                            onChanged: viewModel.onSubtractFeeChanged,
+                            label: 'Subtract fee from amount',
+                          ),
+                          QtButton(
+                            onPressed: viewModel.onUseAvailableBalance,
+                            child: SailText.primary12('Use available balance'),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
