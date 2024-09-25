@@ -15,6 +15,8 @@ service WalletService {
   rpc GetNewAddress(google.protobuf.Empty) returns (GetNewAddressResponse);
 
   rpc ListTransactions(google.protobuf.Empty) returns (ListTransactionsResponse);
+
+  rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
 }
 
 message GetNewAddressResponse {
@@ -61,4 +63,20 @@ message Transaction {
   uint64 sent_satoshi = 4;
 
   Confirmation confirmation_time = 5;
+}
+
+message ListSidechainDepositsRequest {
+  int32 slot = 1;
+}
+
+message ListSidechainDepositsResponse {
+  message SidechainDeposit {
+    string txid = 1;
+    string address = 2;
+    double amount = 3;
+    double fee = 4;
+    int32 confirmations = 5;
+  }
+
+  repeated SidechainDeposit deposits = 1;
 }

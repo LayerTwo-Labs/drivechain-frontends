@@ -39,7 +39,7 @@ func New(ctx context.Context, bitcoind *server.Bitcoind, wallet *bdk.Wallet) (*S
 		bitcoind,
 	)))
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, wallet,
+		ctx, wallet, bitcoind,
 	)))
 
 	return srv, nil

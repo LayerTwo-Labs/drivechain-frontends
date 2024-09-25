@@ -9,8 +9,8 @@ connectrpc.com/grpcreflect v1.2.0/go.mod h1:nwSOKmE8nU5u/CidgHtPYk1PFI3U9ignz7iD
 filippo.io/age v1.2.0 h1:vRDp7pUMaAJzXNIWJVAZnEf/Dyi4Vu4wI8S1LBzufhE=
 filippo.io/age v1.2.0/go.mod h1:JL9ew2lTN+Pyft4RiNGguFfOpewKwSHm5ayKD/A4004=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
-github.com/barebitcoin/btc-buf v0.0.0-20240924083329-999a9636f977 h1:HFITqk3SstbXM3ULqkytWfahKxUumD+2w0CUkdLsYAs=
-github.com/barebitcoin/btc-buf v0.0.0-20240924083329-999a9636f977/go.mod h1:bvhN5SSmcFn6KjH9LF1no3OGQI8F3tC8AXCAxznCeP8=
+github.com/barebitcoin/btc-buf v0.0.0-20240925154721-b3126118abbd h1:mGfeh42vFV8M60R1qxZMzVlySEhV0syXWb54su4iuxo=
+github.com/barebitcoin/btc-buf v0.0.0-20240925154721-b3126118abbd/go.mod h1:bvhN5SSmcFn6KjH9LF1no3OGQI8F3tC8AXCAxznCeP8=
 github.com/barebitcoin/btcd/rpcclient v0.0.0-20240919173453-8aa8db4dc765 h1:QpuEPURSB5YlDTSsOCtWVn7oeaZaTP0EXOWJiomHzCs=
 github.com/barebitcoin/btcd/rpcclient v0.0.0-20240919173453-8aa8db4dc765/go.mod h1:40gHHP6p9jQNolMHF7tbzSyW/EpEy04tvcSATgikQGE=
 github.com/btcsuite/btcd v0.20.1-beta/go.mod h1:wVuoA8VJLEcwgqHBwHmzLRazpKxTv13Px/pDuV7OomQ=

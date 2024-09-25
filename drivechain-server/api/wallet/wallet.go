@@ -12,6 +12,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	drivechainpb "github.com/barebitcoin/btc-buf/gen/bitcoin/drivechaind/v1"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
@@ -23,8 +24,8 @@ import (
 var _ rpc.WalletServiceHandler = new(Server)
 
 // New creates a new Server and starts the balance update loop
-func New(ctx context.Context, wallet *bdk.Wallet) *Server {
-	s := &Server{wallet: wallet}
+func New(ctx context.Context, wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind) *Server {
+	s := &Server{wallet: wallet, bitcoind: bitcoind}
 	go s.startBalanceUpdateLoop(ctx)
 	return s
 }
@@ -214,4 +215,55 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 	}
 
 	return connect.NewResponse(res), nil
+}
+
+// ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
+func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
+
+	deposits, err := s.bitcoind.ListSidechainDeposits(ctx, &connect.Request[drivechainpb.ListSidechainDepositsRequest]{
+		Msg: &drivechainpb.ListSidechainDepositsRequest{
+			Slot: c.Msg.Slot,
+		},
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list all sidechain deposits: %w", err))
+	}
+
+	transactions, err := s.bitcoind.ListTransactions(ctx, &connect.Request[corepb.ListTransactionsRequest]{
+		Msg: &corepb.ListTransactionsRequest{},
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list transactions: %w", err))
+	}
+
+	var response pb.ListSidechainDepositsResponse
+	for _, tx := range transactions.Msg.Transactions {
+		if tx.Amount != 0 {
+			continue
+		}
+
+		rawTxResponse, err := s.bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
+			Msg: &corepb.GetRawTransactionRequest{
+				Txid: tx.Txid,
+			},
+		})
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get raw transaction: %w", err))
+		}
+
+		for _, deposit := range deposits.Msg.Deposits {
+			if deposit.Txhex == rawTxResponse.Msg.Tx.Hex {
+				response.Deposits = append(response.Deposits, &pb.ListSidechainDepositsResponse_SidechainDeposit{
+					Txid:          tx.Txid,
+					Address:       deposit.Strdest,
+					Amount:        tx.Amount,
+					Fee:           tx.Fee,
+					Confirmations: tx.Confirmations,
+				})
+				break
+			}
+		}
+	}
+
+	return connect.NewResponse(&response), nil
 }
