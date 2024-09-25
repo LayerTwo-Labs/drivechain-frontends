@@ -13,6 +13,7 @@ abstract class API {
 }
 
 abstract class WalletAPI {
+  // pure bitcoind wallet stuff here
   Future<String> sendTransaction(
     String destination,
     int amountSatoshi, [
@@ -22,6 +23,9 @@ abstract class WalletAPI {
   Future<GetBalanceResponse> getBalance();
   Future<String> getNewAddress();
   Future<List<Transaction>> listTransactions();
+
+  // drivechain wallet stuff here
+  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
 }
 
 abstract class BitcoindAPI {
@@ -111,6 +115,12 @@ class _WalletAPILive implements WalletAPI {
   Future<List<Transaction>> listTransactions() async {
     final response = await _client.listTransactions(Empty());
     return response.transactions;
+  }
+
+  @override
+  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot) async {
+    final response = await _client.listSidechainDeposits(ListSidechainDepositsRequest()..slot = slot);
+    return response.deposits;
   }
 }
 
