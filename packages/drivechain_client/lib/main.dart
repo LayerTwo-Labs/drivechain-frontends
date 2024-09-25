@@ -13,15 +13,29 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   Environment.validateAtRuntime();
 
   final log = Logger();
   final router = AppRouter();
   await initDependencies(log);
+
+  await windowManager.ensureInitialized();
+  const windowOptions = WindowOptions(
+    minimumSize: Size(600, 700),
+    titleBarStyle: TitleBarStyle.normal,
+    title: 'Drivechain (Bitcoin Core 0.16.99 + BIPs 300 and 301)', // TODO: Insert actual version number
+  );
+
+  unawaited(
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    }),
+  );
 
   return runApp(
     SailApp(

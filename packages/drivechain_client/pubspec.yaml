@@ -29,6 +29,7 @@ dependencies:
   dotted_border: ^2.1.0
   money2: ^5.2.1
   super_clipboard: ^0.8.22
+  window_manager: ^0.4.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
