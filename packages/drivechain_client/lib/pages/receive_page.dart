@@ -1,6 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/pages/send_page.dart';
+import 'package:drivechain_client/widgets/qt_button.dart';
+import 'package:drivechain_client/widgets/qt_container.dart';
+import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';

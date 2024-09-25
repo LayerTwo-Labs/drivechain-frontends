@@ -4,6 +4,9 @@ import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:drivechain_client/providers/balance_provider.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
+import 'package:drivechain_client/widgets/qt_button.dart';
+import 'package:drivechain_client/widgets/qt_container.dart';
+import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -446,46 +449,8 @@ class _NumericFieldState extends State<NumericField> {
   }
 }
 
-class QtPage extends StatelessWidget {
-  final Widget child;
 
-  const QtPage({super.key, required this.child});
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: SailStyleValues.padding12,
-        right: SailStyleValues.padding12,
-        top: SailStyleValues.padding12,
-        bottom: SailStyleValues.padding05,
-      ),
-      child: child,
-    );
-  }
-}
-
-class QtContainer extends StatelessWidget {
-  final Widget child;
-  final bool tight;
-
-  const QtContainer({
-    super.key,
-    required this.child,
-    this.tight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: tight ? const EdgeInsets.all(0) : const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey),
-      ),
-      child: child,
-    );
-  }
-}
 
 class QtIconButton extends StatelessWidget {
   final Widget icon;
@@ -514,43 +479,6 @@ class QtIconButton extends StatelessWidget {
   }
 }
 
-class QtButton extends StatelessWidget {
-  final VoidCallback? onPressed;
-  final Widget child;
-  final EdgeInsets padding;
-  final bool large;
-  final bool important;
-  final bool enabled;
-  final bool loading;
-
-  const QtButton({
-    super.key,
-    required this.onPressed,
-    required this.child,
-    this.padding = const EdgeInsets.symmetric(
-      horizontal: SailStyleValues.padding30,
-      vertical: SailStyleValues.padding10,
-    ),
-    this.large = false,
-    this.important = false,
-    this.enabled = true,
-    this.loading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: large ? 32 : 24,
-      child: SailRawButton(
-        disabled: !enabled,
-        loading: loading,
-        onPressed: enabled ? onPressed : null,
-        padding: padding,
-        child: child,
-      ),
-    );
-  }
-}
 
 class SendPageViewModel extends BaseViewModel {
   BalanceProvider get balanceProvider => GetIt.I<BalanceProvider>();

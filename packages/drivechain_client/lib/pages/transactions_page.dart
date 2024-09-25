@@ -1,7 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pb.dart';
-import 'package:drivechain_client/pages/send_page.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
+import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';

@@ -1,8 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:drivechain_client/pages/send_page.dart';
 import 'package:drivechain_client/providers/balance_provider.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';
+import 'package:drivechain_client/widgets/qt_container.dart';
+import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:money2/money2.dart';
