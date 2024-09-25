@@ -85,18 +85,8 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
             ),
           ),
           const SizedBox(height: SailStyleValues.padding15),
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: QtButton(
-                  onPressed: () {
-                    showSnackBar(context, 'Not implemented');
-                  },
-                  child: SailText.primary13('Add / Remove'),
-                ),
-              ),
-            ],
           ),
         ],
       ),
