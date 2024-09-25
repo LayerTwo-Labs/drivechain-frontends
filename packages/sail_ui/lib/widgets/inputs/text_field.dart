@@ -114,7 +114,7 @@ class SailTextField extends StatelessWidget {
             prefix: prefixWidget,
             prefixIcon: prefixIcon,
             prefixIconConstraints: prefixIconConstraints,
-            fillColor: SailTheme.of(context).colors.background,
+            fillColor: SailTheme.of(context).colors.backgroundSecondary,
             filled: true,
             contentPadding: padding,
             isDense: theme.dense,

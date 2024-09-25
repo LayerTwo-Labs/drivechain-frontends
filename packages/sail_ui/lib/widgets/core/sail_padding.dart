@@ -15,9 +15,9 @@ class SailPadding extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding ??
-          const EdgeInsets.symmetric(
-            horizontal: SailStyleValues.padding20,
-            vertical: SailStyleValues.padding25,
+          EdgeInsets.symmetric(
+            horizontal: SailTheme.of(context).dense ? SailStyleValues.padding10 : SailStyleValues.padding20,
+            vertical: SailTheme.of(context).dense ? SailStyleValues.padding15 : SailStyleValues.padding25,
           ),
       child: child,
     );
