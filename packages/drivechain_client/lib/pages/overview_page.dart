@@ -22,6 +22,8 @@ class OverviewPage extends StatelessWidget {
           ExperimentalBanner(),
           SizedBox(height: SailStyleValues.padding15),
           BalancesView(),
+          SizedBox(height: SailStyleValues.padding15),
+          TransactionsView(),
         ],
       ),
     );
@@ -149,8 +151,22 @@ class BalancesView extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: SailStyleValues.padding15),
-          QtContainer(
+                 ],
+      ),
+    );
+  }
+}
+
+class TransactionsView extends StatelessWidget {
+  const TransactionsView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<BalancesViewModel>.reactive(
+      viewModelBuilder: () => BalancesViewModel(),
+      builder: (context, model, child) {
+        return Expanded(
+          child: QtContainer(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -182,9 +198,8 @@ class BalancesView extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: SailStyleValues.padding15),
-        ],
-      ),
+        );
+      },
     );
   }
 }
