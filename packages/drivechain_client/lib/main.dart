@@ -51,7 +51,6 @@ void main() async {
             textTheme: GoogleFonts.interTightTextTheme(
               GoogleFonts.sourceCodeProTextTheme(),
             ),
-            scaffoldBackgroundColor: const Color.fromARGB(255, 240, 240, 240),
           ),
         );
       },
