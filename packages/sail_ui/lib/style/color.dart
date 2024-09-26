@@ -54,8 +54,8 @@ class SailColor {
 
   factory SailColor.lightTheme(Color primary) {
     return SailColor(
-      background: SailColorScheme.white,
-      backgroundSecondary: SailColorScheme.whiteDark,
+      background: SailColorScheme.whiteDark,
+      backgroundSecondary: SailColorScheme.white,
       backgroundActionModal: SailColorScheme.greyMiddle,
       formField: SailColorScheme.whiteDark,
       formFieldBorder: SailColorScheme.greyMiddle,

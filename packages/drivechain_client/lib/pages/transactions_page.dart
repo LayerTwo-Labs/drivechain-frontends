@@ -59,7 +59,7 @@ class TransactionTable extends StatelessWidget {
     return SingleChildScrollView(
       child: DataTable(
         decoration: BoxDecoration(
-          color: context.sailTheme.colors.background,
+          color: context.sailTheme.colors.backgroundSecondary,
           border: Border.all(
             color: context.sailTheme.colors.formFieldBorder,
             width: 1.0,

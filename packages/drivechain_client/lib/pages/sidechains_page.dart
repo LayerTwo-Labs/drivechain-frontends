@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:drivechain_client/pages/overview_page.dart';
@@ -79,11 +81,13 @@ class SidechainsViewContent extends ViewModelWidget<SidechainsViewModel> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              QtButton(
-                onPressed: () {
-                  showSnackBar(context, 'Not implemented');
-                },
-                child: SailText.primary13('Add / Remove'),
+              Expanded(
+                child: QtButton(
+                  onPressed: () {
+                    showSnackBar(context, 'Not implemented');
+                  },
+                  child: SailText.primary13('Add / Remove'),
+                ),
               ),
             ],
           ),
@@ -174,6 +178,16 @@ class SidechainsViewModel extends BaseViewModel {
     } else {
       _selectedIndex = index; // Select the new item
     }
+    notifyListeners();
+  }
+
+  void decrementSelectedIndex() {
+    _selectedIndex = max(0, (_selectedIndex ?? 0) - 1);
+    notifyListeners();
+  }
+
+  void incrementSelectedIndex() {
+    _selectedIndex = min(254, (_selectedIndex ?? 0) + 1);
     notifyListeners();
   }
 
@@ -333,7 +347,7 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
           scrollDirection: Axis.horizontal,
           child: DataTable(
             decoration: BoxDecoration(
-              color: context.sailTheme.colors.background,
+              color: context.sailTheme.colors.backgroundSecondary,
               border: Border.all(
                 color: context.sailTheme.colors.formFieldBorder,
                 width: 1.0,

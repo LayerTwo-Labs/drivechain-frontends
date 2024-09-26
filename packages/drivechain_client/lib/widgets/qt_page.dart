@@ -10,9 +10,7 @@ class QtPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color:context.isDarkMode
-          ? context.sailTheme.colors.background // Dark Qt-grey
-          : const Color.fromARGB(255, 240, 240, 240), // Light Qt-grey
+      color: context.sailTheme.colors.background,
       child: Padding(
         padding: const EdgeInsets.only(
           left: SailStyleValues.padding12,

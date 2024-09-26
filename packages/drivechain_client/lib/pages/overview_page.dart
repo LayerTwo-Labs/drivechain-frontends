@@ -152,7 +152,7 @@ class BalancesView extends StatelessWidget {
               ),
             ],
           ),
-                 ],
+        ],
       ),
     );
   }
@@ -304,7 +304,7 @@ class LatestTransactionTable extends StatelessWidget {
             scrollDirection: Axis.horizontal, // Enable horizontal scrolling
             child: DataTable(
               decoration: BoxDecoration(
-                color: context.sailTheme.colors.background,
+                color: context.sailTheme.colors.backgroundSecondary,
                 border: Border.all(
                   color: context.sailTheme.colors.formFieldBorder,
                   width: 1.0,
@@ -396,7 +396,7 @@ class LatestBlocksTable extends StatelessWidget {
             scrollDirection: Axis.horizontal, // Enable horizontal scrolling
             child: DataTable(
               decoration: BoxDecoration(
-                color: context.sailTheme.colors.background,
+                color: context.sailTheme.colors.backgroundSecondary,
                 border: Border.all(
                   color: context.sailTheme.colors.formFieldBorder,
                   width: 1.0,
