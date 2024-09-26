@@ -150,7 +150,7 @@ class _Button extends StatelessWidget {
       child: MaterialButton(
         // textTheme: textTheme,
         mouseCursor: enabled ? WidgetStateMouseCursor.clickable : SystemMouseCursors.forbidden,
-        color: enabled ? sailTheme.colors.background : sailTheme.colors.disabledBackground,
+        color: enabled ? sailTheme.colors.backgroundSecondary : sailTheme.colors.disabledBackground,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(context.isWindows ? 3 : 4)),
           side: BorderSide(
