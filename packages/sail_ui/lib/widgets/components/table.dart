@@ -475,7 +475,6 @@ class _TableRow extends StatelessWidget {
     required this.horizontalRowPadding,
     required this.drawBorder,
     this.backgroundColor,
-    super.key,
   });
 
   final List<Widget> cells;
