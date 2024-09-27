@@ -12,7 +12,6 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	drivechainpb "github.com/barebitcoin/btc-buf/gen/bitcoin/drivechaind/v1"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/rs/zerolog"
@@ -220,14 +219,12 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
 
-	deposits, err := s.bitcoind.ListSidechainDeposits(ctx, &connect.Request[drivechainpb.ListSidechainDepositsRequest]{
-		Msg: &drivechainpb.ListSidechainDepositsRequest{
-			Slot: c.Msg.Slot,
-		},
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list all sidechain deposits: %w", err))
+	// TODO: Call ListSidechainDeposits with the CUSF-wallet here
+	type Deposit struct {
+		Txhex   string
+		Strdest string
 	}
+	deposits := []Deposit{}
 
 	transactions, err := s.bitcoind.ListTransactions(ctx, &connect.Request[corepb.ListTransactionsRequest]{
 		Msg: &corepb.ListTransactionsRequest{},
@@ -251,7 +248,7 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get raw transaction: %w", err))
 		}
 
-		for _, deposit := range deposits.Msg.Deposits {
+		for _, deposit := range deposits {
 			if deposit.Txhex == rawTxResponse.Msg.Tx.Hex {
 				response.Deposits = append(response.Deposits, &pb.ListSidechainDepositsResponse_SidechainDeposit{
 					Txid:          tx.Txid,
@@ -266,4 +263,13 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 	}
 
 	return connect.NewResponse(&response), nil
+}
+
+// CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
+func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	// TODO: Connect to CUSF-wallet, and send using that..?
+
+	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
+		Txid: "deadbeef",
+	}), nil
 }

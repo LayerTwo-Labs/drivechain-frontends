@@ -1,10 +1,12 @@
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:drivechain_client/pages/overview_page.dart';
 import 'package:drivechain_client/pages/send_page.dart';
 import 'package:drivechain_client/providers/sidechain_provider.dart';
+import 'package:drivechain_client/providers/transactions_provider.dart';
 import 'package:drivechain_client/widgets/qt_button.dart';
 import 'package:drivechain_client/widgets/qt_container.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
@@ -35,7 +37,7 @@ class SidechainsView extends StatelessWidget {
       viewModelBuilder: () => SidechainsViewModel(),
       builder: (context, model, child) => const Row(
         children: [
-          Expanded(child: SidechainsViewContent()),
+          Expanded(child: SidechainsList()),
           Expanded(child: DepositView()),
         ],
       ),
@@ -43,8 +45,8 @@ class SidechainsView extends StatelessWidget {
   }
 }
 
-class SidechainsViewContent extends ViewModelWidget<SidechainsViewModel> {
-  const SidechainsViewContent({super.key});
+class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
+  const SidechainsList({super.key});
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
@@ -118,7 +120,7 @@ class SelectableListTile extends StatelessWidget {
     return GestureDetector(
       onTap: onSelected,
       child: Container(
-        color: isSelected ? SailTheme.of(context).colors.primary.withOpacity(0.5) : Colors.transparent,
+        color: isSelected ? context.sailTheme.colors.primary.withOpacity(0.5) : Colors.transparent,
         child: Row(
           children: [
             SizedBox(
@@ -152,11 +154,13 @@ class SelectableListTile extends StatelessWidget {
 }
 
 class SidechainsViewModel extends BaseViewModel {
+  final TransactionProvider transactionsProvider = GetIt.I.get<TransactionProvider>();
   final SidechainProvider sidechainProvider = GetIt.I.get<SidechainProvider>();
+  final API api = GetIt.I.get<API>();
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController depositAmountController = TextEditingController();
-  final TextEditingController feeController = TextEditingController();
+  final TextEditingController feeController = TextEditingController(text: '0.0001');
 
   SidechainsViewModel() {
     sidechainProvider.addListener(notifyListeners);
@@ -211,9 +215,34 @@ class SidechainsViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void deposit(BuildContext context) {
-    // Implement deposit functionality
-    showSnackBar(context, 'Deposit functionality not implemented');
+  void deposit(BuildContext context) async {
+    if (double.tryParse(depositAmountController.text) == null) {
+      showSnackBar(context, 'Invalid amount, enter a number');
+      return;
+    }
+    if (double.tryParse(feeController.text) == null) {
+      showSnackBar(context, 'Invalid fee, enter a number');
+      return;
+    }
+
+    try {
+      setBusy(true);
+      await api.wallet.createSidechainDeposit(
+        addressController.text,
+        double.parse(depositAmountController.text),
+        double.parse(feeController.text),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        showSnackBar(context, 'Could not create deposit:\n$e');
+      }
+    } finally {
+      setBusy(false);
+    }
+
+    // refetch sidechain transaction list & transaction list
+    await sidechainProvider.fetch();
+    await transactionsProvider.fetch();
   }
 
   @override
@@ -233,12 +262,13 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     return QtContainer(
       child: SailPadding(
-        child: Column(
+        child: SailColumn(
           crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding08,
           children: [
             SailText.primary13('An address you own on the sidechain you are depositing to:'),
-            const SizedBox(height: SailStyleValues.padding08),
-            Row(
+            SailRow(
+              spacing: SailStyleValues.padding08,
               children: [
                 Expanded(
                   child: SailTextField(
@@ -247,7 +277,6 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
                     size: TextFieldSize.small,
                   ),
                 ),
-                const SizedBox(width: SailStyleValues.padding08),
                 QtIconButton(
                   onPressed: viewModel.pasteAddress,
                   icon: Icon(
@@ -256,7 +285,6 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
                     color: context.sailTheme.colors.text,
                   ),
                 ),
-                const SizedBox(width: SailStyleValues.padding08),
                 QtIconButton(
                   onPressed: viewModel.clearAddress,
                   icon: Icon(
@@ -267,18 +295,16 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
                 ),
               ],
             ),
-            const SizedBox(height: SailStyleValues.padding15),
-            Row(
+            SailRow(
+              spacing: SailStyleValues.padding08,
               children: [
-                SailText.primary13('Deposit:'),
-                const SizedBox(width: SailStyleValues.padding08),
+                SailText.primary13('Amount:'),
                 Expanded(
                   child: NumericField(
                     controller: viewModel.depositAmountController,
                     hintText: '0.00',
                   ),
                 ),
-                const SizedBox(width: SailStyleValues.padding08),
                 UnitDropdown(
                   value: Unit.BTC,
                   onChanged: (_) => {},
@@ -286,18 +312,16 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
                 ),
               ],
             ),
-            const SizedBox(height: SailStyleValues.padding15),
-            Row(
+            SailRow(
+              spacing: SailStyleValues.padding08,
               children: [
                 SailText.primary13('Fee:'),
-                const SizedBox(width: SailStyleValues.padding08),
                 Expanded(
                   child: NumericField(
                     controller: viewModel.feeController,
                     hintText: '0.00',
                   ),
                 ),
-                const SizedBox(width: SailStyleValues.padding08),
                 UnitDropdown(
                   value: Unit.BTC,
                   onChanged: (_) => {},
@@ -305,25 +329,21 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
                 ),
               ],
             ),
-            const SizedBox(height: SailStyleValues.padding15),
             QtButton(
               enabled: viewModel.addressController.text != '' ||
                   viewModel.depositAmountController.text != '' ||
                   viewModel.feeController.text != '',
               onPressed: () => viewModel.deposit(context),
+              loading: viewModel.isBusy,
               child: SailText.primary12('Deposit'),
             ),
-            const SizedBox(height: SailStyleValues.padding15),
             SailText.secondary12('The sidechain may also deduct a fee from your deposit.'),
-            const SizedBox(height: SailStyleValues.padding30),
-            const QtSeparator(),
             const SizedBox(height: SailStyleValues.padding15),
+            const QtSeparator(),
             SailText.primary13('Your Recent Deposits:'),
-            const SizedBox(height: SailStyleValues.padding08),
             Expanded(
               child: RecentDepositsTable(deposits: viewModel.recentDeposits),
             ),
-            const SizedBox(height: SailStyleValues.padding08),
             SailText.secondary12('We have no way of knowing when/if your deposit will show up on the SC'),
           ],
         ),
