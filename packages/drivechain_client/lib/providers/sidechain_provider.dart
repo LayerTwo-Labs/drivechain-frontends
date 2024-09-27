@@ -17,6 +17,8 @@ class SidechainProvider extends ChangeNotifier {
 
   bool _isFetching = false;
 
+  String? error;
+
   SidechainProvider() {
     blockchainProvider.addListener(fetch);
   }
@@ -44,8 +46,12 @@ class SidechainProvider extends ChangeNotifier {
 
       if (_dataHasChanged(updatedSidechains)) {
         sidechains = updatedSidechains;
+        error = null;
         notifyListeners();
       }
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
     } finally {
       _isFetching = false;
     }

@@ -16,6 +16,7 @@ class TransactionProvider extends ChangeNotifier {
 
   List<Transaction> walletTransactions = [];
   bool initialized = false;
+  String? error;
 
   bool _isFetching = false;
 
@@ -30,14 +31,20 @@ class TransactionProvider extends ChangeNotifier {
       return;
     }
     _isFetching = true;
+    error = null;
 
     try {
       final newTXs = await api.wallet.listTransactions();
 
       if (_dataHasChanged(newTXs)) {
         walletTransactions = newTXs;
+        initialized = true;
+        error = null;
         notifyListeners();
       }
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
     } finally {
       _isFetching = false;
     }
@@ -46,16 +53,13 @@ class TransactionProvider extends ChangeNotifier {
   bool _dataHasChanged(
     List<Transaction> newTXs,
   ) {
-    if (!listEquals(walletTransactions, newTXs)) {
-      return true;
-    }
-
-    return false;
+    return !listEquals(walletTransactions, newTXs);
   }
 
   @override
   void dispose() {
     balanceProvider.removeListener(fetch);
+    blockchainProvider.removeListener(fetch);
     super.dispose();
   }
 }

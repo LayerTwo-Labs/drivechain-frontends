@@ -7,6 +7,7 @@ import 'package:drivechain_client/pages/overview_page.dart';
 import 'package:drivechain_client/pages/send_page.dart';
 import 'package:drivechain_client/providers/sidechain_provider.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
+import 'package:drivechain_client/widgets/error_container.dart';
 import 'package:drivechain_client/widgets/qt_button.dart';
 import 'package:drivechain_client/widgets/qt_container.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
@@ -35,10 +36,14 @@ class SidechainsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => SidechainsViewModel(),
-      builder: (context, model, child) => const Row(
+      builder: (context, model, child) => Row(
         children: [
-          Expanded(child: SidechainsList()),
-          Expanded(child: DepositView()),
+          if (model.hasErrorForKey('sidechain')) ...{
+            ErrorContainer(error: model.error('sidechain').toString()),
+          } else ...{
+            const Expanded(child: SidechainsList()),
+          },
+          const Expanded(child: DepositView()),
         ],
       ),
     );
@@ -163,7 +168,9 @@ class SidechainsViewModel extends BaseViewModel {
   final TextEditingController feeController = TextEditingController(text: '0.0001');
 
   SidechainsViewModel() {
-    sidechainProvider.addListener(notifyListeners);
+    sidechainProvider
+      ..addListener(notifyListeners)
+      ..addListener(errorListener);
     addressController.addListener(notifyListeners);
     depositAmountController.addListener(notifyListeners);
     feeController.addListener(notifyListeners);
@@ -183,6 +190,12 @@ class SidechainsViewModel extends BaseViewModel {
       _selectedIndex = index; // Select the new item
     }
     notifyListeners();
+  }
+
+  void errorListener() {
+    if (sidechainProvider.error != null) {
+      setErrorForObject('sidechain', sidechainProvider.error);
+    }
   }
 
   void decrementSelectedIndex() {

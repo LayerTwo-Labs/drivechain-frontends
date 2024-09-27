@@ -16,6 +16,8 @@ class BalanceProvider extends ChangeNotifier {
   bool _isFetching = false;
   Timer? _fetchTimer;
 
+  String? error;
+
   BalanceProvider() {
     _startFetchTimer();
   }
@@ -32,10 +34,12 @@ class BalanceProvider extends ChangeNotifier {
       if (_dataHasChanged(res.confirmedSatoshi.toInt(), res.pendingSatoshi.toInt())) {
         balance = res.confirmedSatoshi.toInt();
         pendingBalance = res.pendingSatoshi.toInt();
+        error = null;
         notifyListeners();
       }
     } catch (err) {
       // Swallow the error, becomes incredibly noisy
+      error = err.toString();
     } finally {
       _isFetching = false;
     }
