@@ -42,6 +42,10 @@ class WalletServiceClient extends $grpc.Client {
       '/wallet.v1.WalletService/ListSidechainDeposits',
       ($3.ListSidechainDepositsRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $3.ListSidechainDepositsResponse.fromBuffer(value),);
+  static final _$createSidechainDeposit = $grpc.ClientMethod<$3.CreateSidechainDepositRequest, $3.CreateSidechainDepositResponse>(
+      '/wallet.v1.WalletService/CreateSidechainDeposit',
+      ($3.CreateSidechainDepositRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.CreateSidechainDepositResponse.fromBuffer(value),);
 
   WalletServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -67,6 +71,10 @@ class WalletServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$3.ListSidechainDepositsResponse> listSidechainDeposits($3.ListSidechainDepositsRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listSidechainDeposits, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$3.CreateSidechainDepositResponse> createSidechainDeposit($3.CreateSidechainDepositRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$createSidechainDeposit, request, options: options);
   }
 }
 
@@ -110,6 +118,13 @@ abstract class WalletServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $3.ListSidechainDepositsRequest.fromBuffer(value),
         ($3.ListSidechainDepositsResponse value) => value.writeToBuffer(),),);
+    $addMethod($grpc.ServiceMethod<$3.CreateSidechainDepositRequest, $3.CreateSidechainDepositResponse>(
+        'CreateSidechainDeposit',
+        createSidechainDeposit_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $3.CreateSidechainDepositRequest.fromBuffer(value),
+        ($3.CreateSidechainDepositResponse value) => value.writeToBuffer(),),);
   }
 
   $async.Future<$3.SendTransactionResponse> sendTransaction_Pre($grpc.ServiceCall call, $async.Future<$3.SendTransactionRequest> request) async {
@@ -132,9 +147,14 @@ abstract class WalletServiceBase extends $grpc.Service {
     return listSidechainDeposits(call, await request);
   }
 
+  $async.Future<$3.CreateSidechainDepositResponse> createSidechainDeposit_Pre($grpc.ServiceCall call, $async.Future<$3.CreateSidechainDepositRequest> request) async {
+    return createSidechainDeposit(call, await request);
+  }
+
   $async.Future<$3.SendTransactionResponse> sendTransaction($grpc.ServiceCall call, $3.SendTransactionRequest request);
   $async.Future<$3.GetBalanceResponse> getBalance($grpc.ServiceCall call, $1.Empty request);
   $async.Future<$3.GetNewAddressResponse> getNewAddress($grpc.ServiceCall call, $1.Empty request);
   $async.Future<$3.ListTransactionsResponse> listTransactions($grpc.ServiceCall call, $1.Empty request);
   $async.Future<$3.ListSidechainDepositsResponse> listSidechainDeposits($grpc.ServiceCall call, $3.ListSidechainDepositsRequest request);
+  $async.Future<$3.CreateSidechainDepositResponse> createSidechainDeposit($grpc.ServiceCall call, $3.CreateSidechainDepositRequest request);
 }

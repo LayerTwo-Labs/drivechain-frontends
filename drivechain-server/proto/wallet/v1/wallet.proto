@@ -7,16 +7,14 @@ import "google/protobuf/timestamp.proto";
 
 service WalletService {
   rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
-
   rpc GetBalance(google.protobuf.Empty) returns (GetBalanceResponse);
-
   // Problem: deriving nilly willy here is potentially problematic. There's no way of listing
   // out unused addresses, so we risk crossing the sync gap.
   rpc GetNewAddress(google.protobuf.Empty) returns (GetNewAddressResponse);
-
   rpc ListTransactions(google.protobuf.Empty) returns (ListTransactionsResponse);
 
   rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
+  rpc CreateSidechainDeposit(CreateSidechainDepositRequest) returns (CreateSidechainDepositResponse);
 }
 
 message GetNewAddressResponse {
@@ -79,4 +77,17 @@ message ListSidechainDepositsResponse {
   }
 
   repeated SidechainDeposit deposits = 1;
+}
+
+message CreateSidechainDepositRequest {
+  // The sidechain deposit address to send to.
+  string destination = 1;
+  // The amount in BTC to send. eg 0.1
+  double amount = 2;
+  // The fee in BTC
+  double fee = 3;
+}
+
+message CreateSidechainDepositResponse {
+  string txid = 1;
 }

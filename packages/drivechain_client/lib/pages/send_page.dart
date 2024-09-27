@@ -449,9 +449,6 @@ class _NumericFieldState extends State<NumericField> {
   }
 }
 
-
-
-
 class QtIconButton extends StatelessWidget {
   final Widget icon;
   final VoidCallback onPressed;
@@ -478,7 +475,6 @@ class QtIconButton extends StatelessWidget {
     );
   }
 }
-
 
 class SendPageViewModel extends BaseViewModel {
   BalanceProvider get balanceProvider => GetIt.I<BalanceProvider>();
@@ -534,7 +530,7 @@ class SendPageViewModel extends BaseViewModel {
     try {
       subtractFee = true;
       final balance = satoshiToBTC(balanceProvider.balance) - feeRate;
-      amountController.text = balance.toString();
+      amountController.text = balance.toStringAsFixed(8);
       notifyListeners();
     } catch (error) {
       // TODO: Use sail_ui logger?
