@@ -6,7 +6,7 @@ toolchain go1.23.0
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240925154721-b3126118abbd
+	github.com/barebitcoin/btc-buf v0.0.0-20240927070747-3176a08f887b
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.33.0
@@ -21,7 +21,7 @@ require (
 	connectrpc.com/grpchealth v1.3.0 // indirect
 	connectrpc.com/grpcreflect v1.2.0
 	filippo.io/age v1.2.0
-	github.com/barebitcoin/btcd/rpcclient v0.0.0-20240919173453-8aa8db4dc765 // indirect
+	github.com/barebitcoin/btcd/rpcclient v0.0.0-20240927061622-c0a9f969fd8d // indirect
 	github.com/btcsuite/btcd v0.24.2 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
