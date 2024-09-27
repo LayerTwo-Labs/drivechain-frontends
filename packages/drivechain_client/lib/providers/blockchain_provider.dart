@@ -5,8 +5,10 @@ import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:drivechain_client/gen/google/protobuf/timestamp.pb.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 
 class BlockchainProvider extends ChangeNotifier {
+  Logger get log => GetIt.I.get<Logger>();
   API get api => GetIt.I.get<API>();
 
   // raw data go here
@@ -20,6 +22,8 @@ class BlockchainProvider extends ChangeNotifier {
 
   bool _isFetching = false;
   Timer? _fetchTimer;
+
+  String? error;
 
   BlockchainProvider() {
     _startFetchTimer();
@@ -43,8 +47,12 @@ class BlockchainProvider extends ChangeNotifier {
         unconfirmedTXs = newTXs;
         blockchainInfo = newBlockchainInfo;
         recentBlocks = newRecentBlocks;
+        error = null;
         notifyListeners();
       }
+    } catch (e) {
+      log.e('Error fetching blockchain data: $e');
+      error = e.toString();
     } finally {
       _isFetching = false;
     }

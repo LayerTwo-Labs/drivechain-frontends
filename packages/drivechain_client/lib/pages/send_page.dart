@@ -75,7 +75,10 @@ class SendPage extends StatelessWidget {
                             );
                             return SailText.primary12('Balance: $balance');
                           } else if (snapshot.hasError) {
-                            return SailText.primary12('Error: ${snapshot.error}');
+                            return SailText.primary12(
+                              'Error: could not fetch balance',
+                              color: context.sailTheme.colors.error,
+                            );
                           } else {
                             return SailText.primary12('Balance: Loading...');
                           }
@@ -481,7 +484,7 @@ class SendPageViewModel extends BaseViewModel {
   BlockchainProvider get blockchainProvider => GetIt.I<BlockchainProvider>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
   API get api => GetIt.I<API>();
-
+  Logger get log => GetIt.I<Logger>();
   late TextEditingController addressController;
   late TextEditingController amountController;
   late TextEditingController customFeeController;
@@ -533,8 +536,8 @@ class SendPageViewModel extends BaseViewModel {
       amountController.text = balance.toStringAsFixed(8);
       notifyListeners();
     } catch (error) {
-      // TODO: Use sail_ui logger?
-      Logger().e('Error fetching balance: $error');
+      log.e('Error converting satoshi to BTC: $error');
+      setError(error.toString());
     }
   }
 
@@ -563,6 +566,8 @@ class SendPageViewModel extends BaseViewModel {
       final estimate = await api.bitcoind.estimateSmartFee(confirmationTarget);
       Logger().d('Estimate: estimate=${estimate.feeRate} errors=${estimate.errors}');
       feeEstimate = estimate;
+    } catch (error) {
+      setError(error.toString());
     } finally {
       setBusy(false);
       notifyListeners();

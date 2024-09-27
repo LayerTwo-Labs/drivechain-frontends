@@ -63,6 +63,9 @@ void main() async {
 Future<void> initDependencies(Logger log) async {
   final prefs = await SharedPreferences.getInstance();
 
+  // Register the logger
+  GetIt.I.registerLazySingleton<Logger>(() => log);
+
   // Needed for sidesail_ui to work
   GetIt.I.registerLazySingleton<ClientSettings>(
     () => ClientSettings(

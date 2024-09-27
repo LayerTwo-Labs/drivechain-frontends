@@ -3,7 +3,10 @@ import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:get_it/get_it.dart';
 import 'package:grpc/grpc.dart';
+import 'package:logger/logger.dart';
+import 'package:drivechain_client/exceptions.dart';
 
 /// API to the drivechain server.
 abstract class API {
@@ -42,6 +45,7 @@ abstract class DrivechainAPI {
 }
 
 class APILive extends API {
+  Logger get log => GetIt.I.get<Logger>();
   late final DrivechainServiceClient _client;
   late final BitcoindServiceClient _bitcoindClient;
   late final WalletServiceClient _walletClient;
@@ -81,6 +85,7 @@ class APILive extends API {
 
 class _WalletAPILive implements WalletAPI {
   final WalletServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
 
   _WalletAPILive(this._client);
 
@@ -91,95 +96,158 @@ class _WalletAPILive implements WalletAPI {
     double? btcPerKvB,
     bool replaceByFee = false,
   ]) async {
-    final request = SendTransactionRequest(
-      destinations: {destination: Int64(amountSatoshi)},
-      feeRate: btcPerKvB,
-      rbf: replaceByFee,
-    );
+    try {
+      final request = SendTransactionRequest(
+        destinations: {destination: Int64(amountSatoshi)},
+        feeRate: btcPerKvB,
+        rbf: replaceByFee,
+      );
 
-    final response = await _client.sendTransaction(request);
-    return response.txid;
+      final response = await _client.sendTransaction(request);
+      return response.txid;
+    } catch (e) {
+      log.e('Error sending transaction: $e');
+      throw WalletException('Failed to send transaction: ${e.toString()}');
+    }
   }
 
   @override
   Future<GetBalanceResponse> getBalance() async {
-    return await _client.getBalance(Empty());
+    try {
+      return await _client.getBalance(Empty());
+    } catch (e) {
+      log.e('Error getting balance: $e');
+      throw WalletException('Failed to get balance: ${e.toString()}');
+    }
   }
 
   @override
   Future<String> getNewAddress() async {
-    final response = await _client.getNewAddress(Empty());
-    return response.address;
+    try {
+      final response = await _client.getNewAddress(Empty());
+      return response.address;
+    } catch (e) {
+      log.e('Error getting new address: $e');
+      throw WalletException('Failed to get new address: ${e.toString()}');
+    }
   }
 
   @override
   Future<List<Transaction>> listTransactions() async {
-    final response = await _client.listTransactions(Empty());
-    return response.transactions;
+    try {
+      final response = await _client.listTransactions(Empty());
+      return response.transactions;
+    } catch (e) {
+      log.e('Error listing transactions: $e');
+      throw WalletException('Failed to list transactions: ${e.toString()}');
+    }
   }
 
   @override
   Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot) async {
-    final response = await _client.listSidechainDeposits(ListSidechainDepositsRequest()..slot = slot);
-    return response.deposits;
+    try {
+      final response = await _client.listSidechainDeposits(ListSidechainDepositsRequest()..slot = slot);
+      return response.deposits;
+    } catch (e) {
+      log.e('Error listing sidechain deposits: $e');
+      throw WalletException('Failed to list sidechain deposits: ${e.toString()}');
+    }
   }
 
   @override
   Future<String> createSidechainDeposit(String destination, double amount, double fee) async {
-    final response = await _client.createSidechainDeposit(
-      CreateSidechainDepositRequest()
-        ..destination = destination
-        ..amount = amount
-        ..fee = fee,
-    );
-    return response.txid;
+    try {
+      final response = await _client.createSidechainDeposit(
+        CreateSidechainDepositRequest()
+          ..destination = destination
+          ..amount = amount
+          ..fee = fee,
+      );
+      return response.txid;
+    } catch (e) {
+      log.e('Error creating sidechain deposit: $e');
+      throw WalletException('Failed to create sidechain deposit: ${e.toString()}');
+    }
   }
 }
 
 class _BitcoindAPILive implements BitcoindAPI {
   final BitcoindServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
 
   _BitcoindAPILive(this._client);
 
   @override
   Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {
-    final response = await _client.listUnconfirmedTransactions(ListUnconfirmedTransactionsRequest()..count = Int64(20));
-    return response.unconfirmedTransactions;
+    try {
+      final response =
+          await _client.listUnconfirmedTransactions(ListUnconfirmedTransactionsRequest()..count = Int64(20));
+      return response.unconfirmedTransactions;
+    } catch (e) {
+      log.e('Error listing unconfirmed transactions: $e');
+      throw BitcoindException('Failed to list unconfirmed transactions: ${e.toString()}');
+    }
   }
 
   @override
   Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
-    final response = await _client.listRecentBlocks(ListRecentBlocksRequest()..count = Int64(20));
-    return response.recentBlocks;
+    try {
+      final response = await _client.listRecentBlocks(ListRecentBlocksRequest()..count = Int64(20));
+      return response.recentBlocks;
+    } catch (e) {
+      log.e('Error listing recent blocks: $e');
+      throw BitcoindException('Failed to list recent blocks: ${e.toString()}');
+    }
   }
 
   @override
   Future<GetBlockchainInfoResponse> getBlockchainInfo() async {
-    final response = await _client.getBlockchainInfo(Empty());
-    return response;
+    try {
+      final response = await _client.getBlockchainInfo(Empty());
+      return response;
+    } catch (e) {
+      log.e('Error getting blockchain info: $e');
+      throw BitcoindException('Failed to get blockchain info: ${e.toString()}');
+    }
   }
 
   @override
   Future<List<Peer>> listPeers() async {
-    final response = await _client.listPeers(Empty());
-    return response.peers;
+    try {
+      final response = await _client.listPeers(Empty());
+      return response.peers;
+    } catch (e) {
+      log.e('Error listing peers: $e');
+      throw BitcoindException('Failed to list peers: ${e.toString()}');
+    }
   }
 
   @override
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) async {
-    final response = await _client.estimateSmartFee(EstimateSmartFeeRequest()..confTarget = Int64(confTarget));
-    return response;
+    try {
+      final response = await _client.estimateSmartFee(EstimateSmartFeeRequest()..confTarget = Int64(confTarget));
+      return response;
+    } catch (e) {
+      log.e('Error estimating smart fee: $e');
+      throw BitcoindException('Failed to estimate smart fee: ${e.toString()}');
+    }
   }
 }
 
 class _DrivechainAPILive implements DrivechainAPI {
   final DrivechainServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
 
   _DrivechainAPILive(this._client);
 
   @override
   Future<List<ListSidechainsResponse_Sidechain>> listSidechains() async {
-    final response = await _client.listSidechains(ListSidechainsRequest());
-    return response.sidechains;
+    try {
+      final response = await _client.listSidechains(ListSidechainsRequest());
+      return response.sidechains;
+    } catch (e) {
+      log.e('Error listing sidechains: $e');
+      throw DrivechainException('Failed to list sidechains: ${e.toString()}');
+    }
   }
 }
