@@ -1,7 +1,6 @@
-version: "3.9"
 services:
   mainchain:
-    image: barebitcoin/mainchain:latest
+    image: barebitcoin/bitcoin-patched:latest
     volumes: [$HOME/.drivechain:/drivechain]
     healthcheck:
       # This doesn't verify that' we're able to query the JSON-RPC interface,
@@ -13,10 +12,10 @@ services:
     command:
       - drivechaind
       - -printtoconsole
-      - -regtest
       - -txindex
       - -rpcallowip=0.0.0.0/0
       - -rpcbind=0.0.0.0:18443
+      - -addnode=172.105.148.135 
       - -rpcport=18443
       - -rpcuser=user
       - -rpcpassword=password
