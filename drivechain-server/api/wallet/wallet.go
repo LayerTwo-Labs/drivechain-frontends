@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/drivechain"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -267,9 +268,28 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
-	// TODO: Connect to CUSF-wallet, and send using that..?
+	// TODO: Connect to CUSF-enforcer here, and use methods from there instead (whenever it's fixed)
+
+	slot, _, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
+	if err != nil {
+		return nil, fmt.Errorf("invalid deposit address: %w", err)
+	}
+
+	active, err := s.sidechainIsActive(ctx, slot)
+	if err != nil {
+		return nil, fmt.Errorf("could not check whether sidechain is active: %w", err)
+	}
+	if !active {
+		return nil, fmt.Errorf("sidechain is not active, can't deposit")
+	}
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
 		Txid: "deadbeef",
 	}), nil
+}
+
+// ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) sidechainIsActive(_ context.Context, _ int64) (bool, error) {
+	// TODO: List active sidechains here, and check if the sidechain in question is active
+	return true, nil
 }
