@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/drivechain"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -24,8 +25,14 @@ import (
 var _ rpc.WalletServiceHandler = new(Server)
 
 // New creates a new Server and starts the balance update loop
-func New(ctx context.Context, wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind) *Server {
-	s := &Server{wallet: wallet, bitcoind: bitcoind}
+func New(
+	ctx context.Context, wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind,
+	enforcer enforcer.ValidatorClient,
+
+) *Server {
+	s := &Server{
+		wallet: wallet, bitcoind: bitcoind, enforcer: enforcer,
+	}
 	go s.startBalanceUpdateLoop(ctx)
 	return s
 }
@@ -33,7 +40,9 @@ func New(ctx context.Context, wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind) 
 type Server struct {
 	wallet   *bdk.Wallet
 	bitcoind *coreproxy.Bitcoind
-	balance  atomic.Value
+	enforcer enforcer.ValidatorClient
+
+	balance atomic.Value
 }
 
 func (s *Server) startBalanceUpdateLoop(ctx context.Context) {

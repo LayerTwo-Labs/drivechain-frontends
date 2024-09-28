@@ -6,19 +6,26 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 )
 
 var _ rpc.DrivechainServiceHandler = new(Server)
 
 // New creates a new Server
-func New(bitcoind *coreproxy.Bitcoind) *Server {
-	s := &Server{bitcoind: bitcoind}
+func New(
+	bitcoind *coreproxy.Bitcoind, enforcer enforcer.ValidatorClient,
+
+) *Server {
+	s := &Server{
+		bitcoind: bitcoind, enforcer: enforcer,
+	}
 	return s
 }
 
 type Server struct {
 	bitcoind *coreproxy.Bitcoind
+	enforcer enforcer.ValidatorClient
 }
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
