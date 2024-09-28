@@ -1,0 +1,20 @@
+version: v2
+
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/LayerTwo-Labs/sidesail/drivechain-server/gen
+
+plugins:
+  # Base types for Go. Generates message and enum types.
+  - remote: buf.build/protocolbuffers/go
+    out: gen
+    opt:
+      - paths=source_relative
+
+  # Generates Go client and server stubs for the gRPC framework.
+  - remote: buf.build/grpc/go:v1.5.1
+    out: gen
+    opt:
+      - paths=source_relative

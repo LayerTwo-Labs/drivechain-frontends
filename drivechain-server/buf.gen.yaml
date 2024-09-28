@@ -7,16 +7,20 @@ managed:
       value: github.com/LayerTwo-Labs/sidesail/drivechain-server/gen
 
 plugins:
+  # Base types for Go. Generates message and enum types.
   - remote: buf.build/protocolbuffers/go
     out: gen
     opt:
       - paths=source_relative
 
+  # Generates client and server stubs for connectrpc.com/connect.
+  # Compatible with the gRPC, gRPC-Web, and Connect RPC protocols.
   - remote: buf.build/connectrpc/go
     out: gen
     opt:
       - paths=source_relative
 
+  # Base types for Dart. Generates message and enum types.
   - remote: buf.build/protocolbuffers/dart:v21.1.2
     out: ../packages/drivechain_client/lib/gen
     include_wkt: true
