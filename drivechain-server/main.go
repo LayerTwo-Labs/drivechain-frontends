@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/dial"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/server"
 	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -60,6 +61,11 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
+	enforcer, err := dial.BIPEnforcer(ctx, conf.EnforcerHost)
+	if err != nil {
+		return fmt.Errorf("connect to enforcer: %w", err)
+	}
+
 	zerolog.Ctx(ctx).Info().Msgf("blockchain info: %s", info.Msg.String())
 
 	electrumProtocol := "ssl"
@@ -93,7 +99,7 @@ func realMain(ctx context.Context) error {
 	zerolog.Ctx(ctx).Debug().
 		Msgf("initiating electrum connection at %s", wallet.Electrum)
 
-	srv, err := server.New(ctx, proxy, wallet)
+	srv, err := server.New(ctx, proxy, wallet, enforcer)
 	if err != nil {
 		return err
 	}

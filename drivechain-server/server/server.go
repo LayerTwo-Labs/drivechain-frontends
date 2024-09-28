@@ -19,6 +19,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/bitcoind/v1/bitcoindv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	"github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
@@ -28,18 +29,20 @@ import (
 )
 
 // New creates a new Server with interceptors applied.
-func New(ctx context.Context, bitcoind *server.Bitcoind, wallet *bdk.Wallet) (*Server, error) {
+func New(
+	ctx context.Context, bitcoind *server.Bitcoind, wallet *bdk.Wallet, enforcer enforcer.ValidatorClient,
+) (*Server, error) {
 	mux := http.NewServeMux()
 	srv := &Server{mux: mux}
 
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
-		bitcoind,
+		bitcoind, enforcer,
 	)))
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
-		bitcoind,
+		bitcoind, enforcer,
 	)))
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, wallet, bitcoind,
+		ctx, wallet, bitcoind, enforcer,
 	)))
 
 	return srv, nil
