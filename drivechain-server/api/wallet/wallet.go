@@ -10,6 +10,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/drivechain"
+	drivechainv1 "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
+	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
@@ -27,20 +29,22 @@ var _ rpc.WalletServiceHandler = new(Server)
 // New creates a new Server and starts the balance update loop
 func New(
 	ctx context.Context, wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind,
-	enforcer enforcer.ValidatorClient,
+	enforcer enforcer.ValidatorClient, drivechain drivechainv1connect.DrivechainServiceClient,
 
 ) *Server {
 	s := &Server{
 		wallet: wallet, bitcoind: bitcoind, enforcer: enforcer,
+		drivechain: drivechain,
 	}
 	go s.startBalanceUpdateLoop(ctx)
 	return s
 }
 
 type Server struct {
-	wallet   *bdk.Wallet
-	bitcoind *coreproxy.Bitcoind
-	enforcer enforcer.ValidatorClient
+	wallet     *bdk.Wallet
+	bitcoind   *coreproxy.Bitcoind
+	enforcer   enforcer.ValidatorClient
+	drivechain drivechainv1connect.DrivechainServiceClient
 
 	balance atomic.Value
 }
@@ -275,11 +279,14 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 	return connect.NewResponse(&response), nil
 }
 
+const OP_DRIVECHAIN = 0xb4
+const OP_RETURN = 0x6a
+
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
 	// TODO: Connect to CUSF-enforcer here, and use methods from there instead (whenever it's fixed)
 
-	slot, _, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
+	slot, address, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
 	if err != nil {
 		return nil, fmt.Errorf("invalid deposit address: %w", err)
 	}
@@ -294,15 +301,59 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
 	}
 
-	active, err := s.sidechainIsActive(ctx, slot)
+	sidechain, err := s.getSidechain(ctx, slot)
 	if err != nil {
-		return nil, fmt.Errorf("could not check whether sidechain is active: %w", err)
-	}
-	if !active {
-		return nil, fmt.Errorf("sidechain is not active, can't deposit")
+		return nil, err
 	}
 
-	// TODO: Figure out how to build the transaction
+	_, err = s.bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+		Txid: sidechain.ChaintipTxid,
+	}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get chaintip: %w", err))
+	}
+
+	// There's a few custom steps to creating a sidechain deposit.
+	// In part 1 we create the input script
+	// In part 2 we create the output script
+
+	////// PART 1 - CREATING THE INPUTS //////
+	// Step 1: Select input coins to cover the amount + fee, including change (if any)
+	// 		   This comes from our own wallet
+	// TODO..
+
+	// Step 2: Add another input, the ctip of the sidechain. We must add it as
+	// an to the transaction because every deposit to a sidechain always spends
+	// the previous CTIP. All of a sidechains bitcoin is stored in a single UTXO,
+	// always
+
+	// TODO: Add the existing CTIP as an input, and make sure to spend 100% of the amount
+	// TODO: vin.add(sidechain.ctipTxid:ctipVout)
+
+	////// PART 2 - CREATING THE OUTPUTS //////
+	// Each sidechain deposit has two outputs. One contains data, the other contains a transfer
+
+	// Step 1: Create the first output, which is a OP_RETURN with the destination (without sx_ and _checksum)
+	//         Simple!
+	dataScript := []byte{OP_RETURN}
+	_ = append(dataScript, []byte(address.EncodeAddress())...)
+	// TODO: vout.add(amount: 0, scriptPubkey: dataScript)
+
+	// Step 2: Create the second output, which is a OP_NOP5 (OP_DRIVECHAIN) that includes
+	//         the slot for the sidechain we're depositing to. The amount of this output
+	//         is the sidechains total balance, so we must take the previous balance, and
+	//         add the amount we want to deposit
+
+	_ = btcutil.Amount(sidechain.AmountSatoshi) + amount
+	scriptPubKey := make([]byte, 2)
+	scriptPubKey[0] = 0xb4 // OP_DRIVECHAIN/OP_NOP5
+	scriptPubKey[1] = uint8(slot)
+	// TODO: vout.add(amount: outputAmount, scriptPubkey: scriptPubKey)
+
+	// That's it! We've successfully created a sidechain deposit. Now doing that in practice is
+	// not this simple... Should probably use some package from btcd or something else.
+	// bdk-cli can't create raw transactions, only sign them. So the actual construction must
+	// happen with something else.
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
 		Txid: "deadbeef",
@@ -310,7 +361,18 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 }
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) sidechainIsActive(_ context.Context, _ int64) (bool, error) {
-	// TODO: List active sidechains here, and check if the sidechain in question is active
-	return true, nil
+func (s *Server) getSidechain(ctx context.Context, slot int64) (*drivechainv1.ListSidechainsResponse_Sidechain, error) {
+	activeSidechains, err := s.drivechain.ListSidechains(ctx, connect.NewRequest(&drivechainv1.ListSidechainsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("find active sidechains: %w", err)
+	}
+
+	activeSidechain, found := lo.Find(activeSidechains.Msg.Sidechains, func(item *drivechainv1.ListSidechainsResponse_Sidechain) bool {
+		return item.Slot == int32(slot)
+	})
+	if !found {
+		return nil, fmt.Errorf("sidechain is not active")
+	}
+
+	return activeSidechain, nil
 }
