@@ -38,11 +38,12 @@ func New(
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
 		bitcoind, enforcer,
 	)))
-	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
+	drivechainClient := drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
 		bitcoind, enforcer,
-	)))
+	))
+	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, wallet, bitcoind, enforcer,
+		ctx, wallet, bitcoind, enforcer, drivechainClient,
 	)))
 
 	return srv, nil
