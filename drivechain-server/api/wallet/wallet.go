@@ -284,6 +284,16 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("invalid deposit address: %w", err)
 	}
 
+	amount, err := btcutil.NewAmount(c.Msg.Amount)
+	if err != nil || amount < 0 {
+		return nil, fmt.Errorf("invalid amount, must be a BTC-amount greater than zero")
+	}
+
+	fee, err := btcutil.NewAmount(c.Msg.Fee)
+	if err != nil || fee < 0 {
+		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
+	}
+
 	active, err := s.sidechainIsActive(ctx, slot)
 	if err != nil {
 		return nil, fmt.Errorf("could not check whether sidechain is active: %w", err)
@@ -291,6 +301,8 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	if !active {
 		return nil, fmt.Errorf("sidechain is not active, can't deposit")
 	}
+
+	// TODO: Figure out how to build the transaction
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
 		Txid: "deadbeef",

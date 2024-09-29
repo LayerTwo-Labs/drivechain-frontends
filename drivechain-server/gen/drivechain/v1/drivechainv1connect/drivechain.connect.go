@@ -36,17 +36,22 @@ const (
 	// DrivechainServiceListSidechainsProcedure is the fully-qualified name of the DrivechainService's
 	// ListSidechains RPC.
 	DrivechainServiceListSidechainsProcedure = "/drivechain.v1.DrivechainService/ListSidechains"
+	// DrivechainServiceListSidechainProposalsProcedure is the fully-qualified name of the
+	// DrivechainService's ListSidechainProposals RPC.
+	DrivechainServiceListSidechainProposalsProcedure = "/drivechain.v1.DrivechainService/ListSidechainProposals"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	drivechainServiceServiceDescriptor              = v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService")
-	drivechainServiceListSidechainsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListSidechains")
+	drivechainServiceServiceDescriptor                      = v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService")
+	drivechainServiceListSidechainsMethodDescriptor         = drivechainServiceServiceDescriptor.Methods().ByName("ListSidechains")
+	drivechainServiceListSidechainProposalsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListSidechainProposals")
 )
 
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
 type DrivechainServiceClient interface {
 	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
+	ListSidechainProposals(context.Context, *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error)
 }
 
 // NewDrivechainServiceClient constructs a client for the drivechain.v1.DrivechainService service.
@@ -65,12 +70,19 @@ func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(drivechainServiceListSidechainsMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		listSidechainProposals: connect.NewClient[v1.ListSidechainProposalsRequest, v1.ListSidechainProposalsResponse](
+			httpClient,
+			baseURL+DrivechainServiceListSidechainProposalsProcedure,
+			connect.WithSchema(drivechainServiceListSidechainProposalsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // drivechainServiceClient implements DrivechainServiceClient.
 type drivechainServiceClient struct {
-	listSidechains *connect.Client[v1.ListSidechainsRequest, v1.ListSidechainsResponse]
+	listSidechains         *connect.Client[v1.ListSidechainsRequest, v1.ListSidechainsResponse]
+	listSidechainProposals *connect.Client[v1.ListSidechainProposalsRequest, v1.ListSidechainProposalsResponse]
 }
 
 // ListSidechains calls drivechain.v1.DrivechainService.ListSidechains.
@@ -78,9 +90,15 @@ func (c *drivechainServiceClient) ListSidechains(ctx context.Context, req *conne
 	return c.listSidechains.CallUnary(ctx, req)
 }
 
+// ListSidechainProposals calls drivechain.v1.DrivechainService.ListSidechainProposals.
+func (c *drivechainServiceClient) ListSidechainProposals(ctx context.Context, req *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error) {
+	return c.listSidechainProposals.CallUnary(ctx, req)
+}
+
 // DrivechainServiceHandler is an implementation of the drivechain.v1.DrivechainService service.
 type DrivechainServiceHandler interface {
 	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
+	ListSidechainProposals(context.Context, *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error)
 }
 
 // NewDrivechainServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -95,10 +113,18 @@ func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.H
 		connect.WithSchema(drivechainServiceListSidechainsMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	drivechainServiceListSidechainProposalsHandler := connect.NewUnaryHandler(
+		DrivechainServiceListSidechainProposalsProcedure,
+		svc.ListSidechainProposals,
+		connect.WithSchema(drivechainServiceListSidechainProposalsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DrivechainServiceListSidechainsProcedure:
 			drivechainServiceListSidechainsHandler.ServeHTTP(w, r)
+		case DrivechainServiceListSidechainProposalsProcedure:
+			drivechainServiceListSidechainProposalsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -110,4 +136,8 @@ type UnimplementedDrivechainServiceHandler struct{}
 
 func (UnimplementedDrivechainServiceHandler) ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListSidechains is not implemented"))
+}
+
+func (UnimplementedDrivechainServiceHandler) ListSidechainProposals(context.Context, *connect.Request[v1.ListSidechainProposalsRequest]) (*connect.Response[v1.ListSidechainProposalsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("drivechain.v1.DrivechainService.ListSidechainProposals is not implemented"))
 }
