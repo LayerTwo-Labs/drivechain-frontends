@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	BitcoinCoreHost string `long:"bitcoincore.host" description:"host:port for connecting to Bitcoin Core" default:"localhost:18332"`
+	BitcoinCoreHost string `long:"bitcoincore.host" description:"host:port for connecting to Bitcoin Core" default:"localhost:18443"`
 
 	BitcoinCoreCookie string `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
 
