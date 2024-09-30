@@ -22,8 +22,9 @@ type Config struct {
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 
-	Passphrase    string `long:"passphrase" description:"Passphrase for encrypting/decrypting the wallet key"`
-	XPrivOverride string `long:"xpriv" description:"Override the wallet stored to disk with a custom xpriv'"`
+	Passphrase      string `long:"passphrase" description:"Passphrase for encrypting/decrypting the wallet key"`
+	XPrivOverride   string `long:"xpriv" description:"Override the wallet stored to disk with a custom xpriv'"`
+	DescriptorPrint bool   `long:"descriptor.print" description:"Print the descriptor that bdk-cli creates. Useful for testing'"`
 }
 
 func readConfig() (Config, error) {
