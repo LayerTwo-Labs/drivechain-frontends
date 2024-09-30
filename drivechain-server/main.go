@@ -48,16 +48,19 @@ func main() {
 func realMain(ctx context.Context) error {
 	conf, err := readConfig()
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("read config")
 		return err
 	}
 
 	proxy, err := startCoreProxy(ctx, conf)
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("start core proxy")
 		return err
 	}
 
 	info, err := proxy.GetBlockchainInfo(ctx, connect.NewRequest(&pb.GetBlockchainInfoRequest{}))
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get blockchain info")
 		return err
 	}
 
@@ -86,6 +89,12 @@ func realMain(ctx context.Context) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	if conf.DescriptorPrint {
+		zerolog.Ctx(ctx).Info().
+			Str("descriptor", wallet.Descriptor).
+			Msg("bdk: descriptor is")
 	}
 
 	// Verify the wallet is wired together correctly
