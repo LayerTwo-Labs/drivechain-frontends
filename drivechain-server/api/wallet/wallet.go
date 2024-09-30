@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -18,6 +19,10 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/psbt"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -173,7 +178,7 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.E
 	}
 
 	return connect.NewResponse(&pb.GetNewAddressResponse{
-		Address: address,
+		Address: address.EncodeAddress(),
 		Index:   uint32(index),
 	}), nil
 }
@@ -279,14 +284,9 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 	return connect.NewResponse(&response), nil
 }
 
-const OP_DRIVECHAIN = 0xb4
-const OP_RETURN = 0x6a
-
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
-	// TODO: Connect to CUSF-enforcer here, and use methods from there instead (whenever it's fixed)
-
-	slot, address, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
+	slot, depositAddress, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
 	if err != nil {
 		return nil, fmt.Errorf("invalid deposit address: %w", err)
 	}
@@ -306,58 +306,165 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, err
 	}
 
-	_, err = s.bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-		Txid: sidechain.ChaintipTxid,
-	}))
+	tx := wire.NewMsgTx(wire.TxVersion)
+
+	sidechainScript, err := drivechain.ScriptSidechainDeposit(uint8(slot))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get chaintip: %w", err))
+		return nil, fmt.Errorf("create sidechain deposit script: %w", err)
 	}
 
-	// There's a few custom steps to creating a sidechain deposit.
-	// In part 1 we create the input script
-	// In part 2 we create the output script
+	// First fund the tx using UTXO's from our own wallet
+	if err := s.fundTx(ctx, tx, amount, fee); err != nil {
+		return nil, err
+	}
 
-	////// PART 1 - CREATING THE INPUTS //////
-	// Step 1: Select input coins to cover the amount + fee, including change (if any)
-	// 		   This comes from our own wallet
-	// TODO..
+	// Add extra drivechain-inputs (previous sidechain ctip)
+	err = s.addDepositInputs(tx, sidechain)
+	if err != nil {
+		return nil, err
+	}
 
-	// Step 2: Add another input, the ctip of the sidechain. We must add it as
-	// an to the transaction because every deposit to a sidechain always spends
-	// the previous CTIP. All of a sidechains bitcoin is stored in a single UTXO,
-	// always
+	// Add extra drivechain-outputs (new sidechain UTXO, address data script)
+	err = s.addDepositOutputs(tx, sidechainScript, amount, depositAddress, sidechain)
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO: Add the existing CTIP as an input, and make sure to spend 100% of the amount
-	// TODO: vin.add(sidechain.ctipTxid:ctipVout)
+	unsignedPSBT, err := psbt.NewFromUnsignedTx(tx)
+	if err != nil {
+		return nil, err
+	}
 
-	////// PART 2 - CREATING THE OUTPUTS //////
-	// Each sidechain deposit has two outputs. One contains data, the other contains a transfer
+	base64PSBT, err := unsignedPSBT.B64Encode()
+	if err != nil {
+		return nil, err
+	}
 
-	// Step 1: Create the first output, which is a OP_RETURN with the destination (without sx_ and _checksum)
-	//         Simple!
-	dataScript := []byte{OP_RETURN}
-	_ = append(dataScript, []byte(address.EncodeAddress())...)
-	// TODO: vout.add(amount: 0, scriptPubkey: dataScript)
+	signedPSBT, err := s.wallet.SignTransaction(ctx, base64PSBT)
+	if err != nil {
+		return nil, err
+	}
 
-	// Step 2: Create the second output, which is a OP_NOP5 (OP_DRIVECHAIN) that includes
-	//         the slot for the sidechain we're depositing to. The amount of this output
-	//         is the sidechains total balance, so we must take the previous balance, and
-	//         add the amount we want to deposit
-
-	_ = btcutil.Amount(sidechain.AmountSatoshi) + amount
-	scriptPubKey := make([]byte, 2)
-	scriptPubKey[0] = 0xb4 // OP_DRIVECHAIN/OP_NOP5
-	scriptPubKey[1] = uint8(slot)
-	// TODO: vout.add(amount: outputAmount, scriptPubkey: scriptPubKey)
-
-	// That's it! We've successfully created a sidechain deposit. Now doing that in practice is
-	// not this simple... Should probably use some package from btcd or something else.
-	// bdk-cli can't create raw transactions, only sign them. So the actual construction must
-	// happen with something else.
+	txid, err := s.wallet.BroadcastTransaction(ctx, signedPSBT)
+	if err != nil {
+		return nil, err
+	}
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
-		Txid: "deadbeef",
+		Txid: txid,
 	}), nil
+}
+
+func (s *Server) addDepositInputs(
+	tx *wire.MsgTx, sidechain *drivechainv1.ListSidechainsResponse_Sidechain,
+) error {
+
+	hash, err := chainhash.NewHashFromStr(sidechain.ChaintipTxid)
+	if err != nil {
+		return fmt.Errorf("invalid chaintip txid: %w", err)
+	}
+
+	// All of a sidechains bitcoin is stored in a single UTXO. Always.
+	// We therefore have to add the previous sidechains CTIP as an input.
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{
+		Hash:  *hash,
+		Index: sidechain.ChaintipVout,
+	}, nil, nil))
+
+	return nil
+}
+
+func (s *Server) addDepositOutputs(
+	tx *wire.MsgTx, sidechainScript []byte, amount btcutil.Amount,
+	sidechainDepositAddress btcutil.Address,
+	sidechain *drivechainv1.ListSidechainsResponse_Sidechain,
+) error {
+
+	// Indicate what address we're depositing to (on the sidechain)
+	depositAddrScript, err := drivechain.ScriptDepositAddress(sidechainDepositAddress)
+	if err != nil {
+		return fmt.Errorf("create deposit address script: %w", err)
+	}
+	depositAddr := wire.NewTxOut(int64(0), depositAddrScript)
+	tx.AddTxOut(depositAddr)
+
+	// Add the new sidechain output, which includes what sidechain slot we're depositing to.
+	// The amount is the new full amount of the sidechain.
+	newSidechainBalance := btcutil.Amount(sidechain.AmountSatoshi) + amount
+	sidechainUTXO := wire.NewTxOut(int64(newSidechainBalance), sidechainScript)
+	tx.AddTxOut(sidechainUTXO)
+
+	return nil
+}
+
+// fundTx attempts to fund a transaction sending amt bitcoin. The coins are
+// selected such that the final amount spent pays enough fees as dictated by the
+// passed fee. If there's any change left over, it's added as a change output.
+// Cribbed from btcd, with minor modifictaions:
+// https://github.com/btcsuite/btcd/blob/67b8efd3ba53b60ff0eba5d79babe2c3d82f6c54/integration/rpctest/memwallet.go#L384
+func (s *Server) fundTx(
+	ctx context.Context, tx *wire.MsgTx, amt btcutil.Amount, fee btcutil.Amount,
+) error {
+	utxos, err := s.wallet.ListUnspentTransactions(ctx)
+	if err != nil {
+		return fmt.Errorf("list unspent transactions: %w", err)
+	}
+
+	// Sort in ascending order to select small UTXOs
+	sort.Slice(utxos, func(i, j int) bool {
+		return utxos[i].Amount < utxos[j].Amount
+	})
+
+	var (
+		amtSelected btcutil.Amount
+	)
+
+	for _, utxo := range utxos {
+		amtSelected += btcutil.Amount(utxo.Amount)
+
+		// Add the selected output to the transaction, updating the
+		// current tx size while accounting for the size of the future
+		// sigScript.
+		tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{
+			Hash:  utxo.Outpoint.Hash,
+			Index: utxo.Outpoint.Index,
+		}, nil, nil))
+
+		// Calculate the fee required for the txn at this point
+		// observing the specified fee rate. If we don't have enough
+		// coins from he current amount selected to pay the fee, then
+		// continue to grab more coins.
+		if amtSelected-fee < amt {
+			continue
+		}
+
+		// If we have any change left over and we should create a change
+		// output, then add an additional output to the transaction
+		// reserved for it.
+		changeVal := amtSelected - amt - fee
+		if changeVal > 0 {
+			changeAddress, _, err := s.wallet.GetNewAddress(ctx)
+			if err != nil {
+				return fmt.Errorf("get new address: %w", err)
+			}
+
+			pkScript, err := txscript.PayToAddrScript(changeAddress)
+			if err != nil {
+				return err
+			}
+			changeOutput := &wire.TxOut{
+				Value:    int64(changeVal),
+				PkScript: pkScript,
+			}
+			tx.AddTxOut(changeOutput)
+		}
+
+		return nil
+	}
+
+	// If we've reached this point, then coin selection failed due to an
+	// insufficient amount of coins.
+	return fmt.Errorf("not enough funds for coin selection")
 }
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
