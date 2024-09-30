@@ -19,6 +19,7 @@ message ListSidechainsResponse {
     int32 slot = 6;
     int64 amount_satoshi = 7;
     string chaintip_txid = 8;
+    uint32 chaintip_vout = 9;
   }
 
   repeated Sidechain sidechains = 1;
@@ -37,14 +38,4 @@ message SidechainProposal {
 
 message ListSidechainProposalsResponse {
   repeated SidechainProposal proposals = 1;
-}
-
-message GetSidechainCtipRequest {
-  uint32 sidechain_number = 1;
-}
-
-message GetSidechainCtipResponse {
-  optional string outpoint = 1;
-  optional uint64 value = 2;
-  optional uint32 sequence_number = 3;
 }
