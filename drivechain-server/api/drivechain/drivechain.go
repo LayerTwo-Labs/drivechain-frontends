@@ -2,7 +2,6 @@ package api_drivechain
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
@@ -92,7 +91,8 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 			Hashid2:       decodedData, // TODO: Decode and fill in correctly
 			Slot:          int32(sidechain.SidechainNumber),
 			AmountSatoshi: int64(ctipResponse.Ctip.Value),
-			ChaintipTxid:  fmt.Sprintf("%s:%d", txidHash.String(), ctipResponse.Ctip.Vout),
+			ChaintipTxid:  txidHash.String(),
+			ChaintipVout:  uint32(ctipResponse.Ctip.Vout),
 		})
 	}
 
