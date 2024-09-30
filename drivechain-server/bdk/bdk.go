@@ -12,11 +12,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/tidwall/gjson"
@@ -185,11 +187,11 @@ func (w *Wallet) Sync(ctx context.Context) error {
 
 // GetNewAddress returns a new unused address from the wallet, as well as
 // the index of this address in the wallet descriptor.
-func (w *Wallet) GetNewAddress(ctx context.Context) (string, uint, error) {
+func (w *Wallet) GetNewAddress(ctx context.Context) (btcutil.Address, uint, error) {
 	// Must include the verbose flag to get the index.
 	res, err := w.execWallet(ctx, "--verbose", "get_new_address")
 	if err != nil {
-		return "", 0, err
+		return nil, 0, err
 	}
 
 	var parsed struct {
@@ -198,9 +200,15 @@ func (w *Wallet) GetNewAddress(ctx context.Context) (string, uint, error) {
 	}
 
 	if err := json.Unmarshal(res, &parsed); err != nil {
-		return "", 0, err
+		return nil, 0, err
 	}
-	return parsed.Address, parsed.Index, nil
+
+	address, err := btcutil.DecodeAddress(parsed.Address, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return address, parsed.Index, nil
 }
 
 type Balance struct {
@@ -303,6 +311,20 @@ func (w *Wallet) ListTransactions(ctx context.Context) ([]Transaction, error) {
 	return txs, nil
 }
 
+func (w *Wallet) ListUnspentTransactions(ctx context.Context) ([]UnspentTransaction, error) {
+	res, err := w.execWallet(ctx, "--verbose", "list_unspent")
+	if err != nil {
+		return nil, err
+	}
+
+	var txs []UnspentTransaction
+	if err := json.Unmarshal(res, &txs); err != nil {
+		return nil, err
+	}
+
+	return txs, nil
+}
+
 type transactionDetails struct {
 	TXID string `json:"txid"`
 }
@@ -322,6 +344,42 @@ type Transaction struct {
 	Received btcutil.Amount `json:"received"`
 	Sent     btcutil.Amount `json:"sent"`
 	TXID     string         `json:"txid"`
+}
+type OutPoint struct {
+	Hash  chainhash.Hash
+	Index uint32
+}
+
+func (o *OutPoint) UnmarshalJSON(data []byte) error {
+	var outpointStr string
+	if err := json.Unmarshal(data, &outpointStr); err != nil {
+		return err
+	}
+
+	parts := strings.Split(outpointStr, ":")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid outpoint format: %s", outpointStr)
+	}
+
+	hash, err := chainhash.NewHashFromStr(parts[0])
+	if err != nil {
+		return fmt.Errorf("invalid transaction hash: %w", err)
+	}
+
+	index, err := strconv.ParseUint(parts[1], 10, 32)
+	if err != nil {
+		return fmt.Errorf("invalid output index: %w", err)
+	}
+
+	o.Hash = *hash
+	o.Index = uint32(index)
+	return nil
+}
+
+type UnspentTransaction struct {
+	Outpoint     OutPoint `json:"outpoint"`
+	Amount       int64    `json:"txout.value"`
+	ScriptPubKey string   `json:"txout.script_pubkey"`
 }
 
 // NewWallet either creates a new wallet or loads an existing one. If a
@@ -349,7 +407,9 @@ func NewWallet(
 	return w, nil
 }
 
-func (w *Wallet) findXPrv(ctx context.Context, passphrase string, xprvOverride string) (string, error) {
+func (w *Wallet) findXPrv(
+	ctx context.Context, passphrase string, xprvOverride string,
+) (string, error) {
 	if xprvOverride != "" {
 		return xprvOverride, nil
 	}
