@@ -44,7 +44,6 @@ Some interface for setting withdrawal bundle ACK / NACK / ABSTAIN, and to list y
 - [ ] clearwithdrawalvotes
 - [ ] listwithdrawalvotes
 - [ ] setwithdrawalvote
-
   
 For withdrawal bundles BitWindow will need to get their work score, a list of failed withdrawals, and a list of paid out withdrawals. The current software uses many RPCs for this, but it can be done however you want. 
 - [ ] getworkscore "nsidechain" "hash")
@@ -60,12 +59,6 @@ An interface to create sidechain proposals, and to list activation status of pen
 - [ ] listsidechainactivationstatus
 - [ ] listsidechainproposals
 
-Also a list of currently active sidechains
-- [ ] listactivesidechains
-
 BitWindows needs to be able to create and list user-created sidechain deposits at least (Maybe all sidechain deposits???)
 - [ ] createsidechaindeposit "nsidechain" "depositaddress" "amount"
 - [ ] listsidechaindeposits
-
-BitWindow needs a way to display the current CTIP for each sidechain
-- [ ] listsidechainctip
