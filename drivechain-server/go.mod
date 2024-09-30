@@ -8,6 +8,7 @@ require (
 	connectrpc.com/connect v1.16.2
 	github.com/barebitcoin/btc-buf v0.0.0-20240930061304-04a85a797185
 	github.com/btcsuite/btcd/btcutil v1.1.6
+	github.com/btcsuite/btcd/btcutil/psbt v1.1.9
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.33.0
 	github.com/samber/lo v1.47.0
@@ -25,7 +26,7 @@ require (
 	connectrpc.com/grpcreflect v1.2.0
 	filippo.io/age v1.2.0
 	github.com/barebitcoin/btcd/rpcclient v0.0.0-20240927061622-c0a9f969fd8d // indirect
-	github.com/btcsuite/btcd v0.24.2 // indirect
+	github.com/btcsuite/btcd v0.24.2
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
