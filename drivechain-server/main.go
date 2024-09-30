@@ -78,10 +78,7 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
-	// This is all wonky stuff. We're on some kind of botched regtest...
-	// However, the address format is mainnet - and that's the only thing
-	// that matters.
-	const network = "bitcoin" // means mainnet!
+	const network = "signet"
 	wallet, err := bdk.NewWallet(
 		ctx, datadir, network,
 		fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost),
