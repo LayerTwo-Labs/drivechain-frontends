@@ -8,20 +8,26 @@ import 'package:stacked/stacked.dart';
 import 'package:drivechain_client/providers/sidechain_provider.dart';
 import 'package:get_it/get_it.dart';
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:drivechain_client/pages/sidechain_proposal_page.dart';
 
 @RoutePage()
-class SidechainActivationManagementModal extends StatelessWidget {
-  const SidechainActivationManagementModal({super.key});
+class SidechainActivationManagementPage extends StatelessWidget {
+  const SidechainActivationManagementPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 480,
-      width: 600,
-      child: QtPage(
-        child: Padding(
-          padding: EdgeInsets.all(SailStyleValues.padding08),
-          child: SidechainActivationManagementView(),
+    return ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
+      viewModelBuilder: () => SidechainActivationManagementViewModel(),
+      builder: (context, model, child) => QtPage(
+        child: Column(
+          children: [
+            // ... (existing widgets)
+            QtButton(
+              onPressed: () => showSidechainProposalModal(context),
+              child: SailText.primary13('Create Sidechain Proposal'),
+            ),
+            // ... (existing widgets)
+          ],
         ),
       ),
     );
@@ -84,7 +90,8 @@ class SidechainActivationManagementView extends StatelessWidget {
                   SailTableCell(child: SailText.primary12('Yes')),
                   SailTableCell(child: SailText.primary12(sidechain.title)),
                   SailTableCell(
-                      child: SailText.primary12(sidechain.chaintipTxid.isEmpty ? 'N/A' : sidechain.chaintipTxid),),
+                    child: SailText.primary12(sidechain.chaintipTxid.isEmpty ? 'N/A' : sidechain.chaintipTxid),
+                  ),
                   //TODO: SailTableCell(child: SailText.primary12('TODO')),
                 ];
               },
@@ -188,7 +195,21 @@ Future<void> showSidechainActivationManagementModal(BuildContext context) {
         child: Material(
           clipBehavior: Clip.antiAlias,
           borderRadius: BorderRadius.circular(4.0),
-          child: const SidechainActivationManagementModal(),
+          child: const SidechainActivationManagementPage(),
+        ),
+      );
+    },
+  );
+}
+
+Future<void> showSidechainProposalModal(BuildContext context) async {
+  await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
+          child: const SidechainProposalView(),
         ),
       );
     },
