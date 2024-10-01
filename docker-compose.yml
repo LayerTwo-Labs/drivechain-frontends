@@ -116,4 +116,4 @@ services:
       - --main.port=18443
 
 volumes:
-    mainchain-data: 
+  mainchain-data: 
