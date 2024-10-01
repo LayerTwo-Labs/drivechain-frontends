@@ -1,7 +1,6 @@
 package drivechain
 
 import (
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/txscript"
 )
 
@@ -15,8 +14,7 @@ func ScriptSidechainDeposit(slot uint8) ([]byte, error) {
 
 // DrivechainDepositAddress creates a new script to deposit funds to a
 // specific address on a sidechain.
-func ScriptDepositAddress(address btcutil.Address) ([]byte, error) {
-	depositAddress := address.EncodeAddress()
+func ScriptDepositAddress(depositAddress string) ([]byte, error) {
 
 	return txscript.NewScriptBuilder().AddOp(txscript.OP_RETURN).AddData([]byte(depositAddress)).Script()
 }
