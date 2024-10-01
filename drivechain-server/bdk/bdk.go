@@ -19,6 +19,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/tidwall/gjson"
@@ -273,7 +274,7 @@ func (w *Wallet) CreateTransaction(
 func (w *Wallet) SignTransaction(ctx context.Context, psbt string) (string, error) {
 	res, err := w.execWallet(ctx, "--verbose", "sign", "--psbt", psbt)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("sign transaction: %w", err)
 	}
 
 	var parsed transactionResult
@@ -311,18 +312,70 @@ func (w *Wallet) ListTransactions(ctx context.Context) ([]Transaction, error) {
 	return txs, nil
 }
 
-func (w *Wallet) ListUnspentTransactions(ctx context.Context) ([]UnspentTransaction, error) {
+func (w *Wallet) ListUnspent(ctx context.Context) ([]Unspent, error) {
 	res, err := w.execWallet(ctx, "--verbose", "list_unspent")
 	if err != nil {
 		return nil, err
 	}
 
-	var txs []UnspentTransaction
-	if err := json.Unmarshal(res, &txs); err != nil {
-		return nil, err
+	parseRawUnspent := func(value gjson.Result) (Unspent, error) {
+		rawHash, rawIndex, ok := strings.Cut(value.Get("outpoint").Str, ":")
+		if !ok {
+			return Unspent{}, errors.New("find outpoint components")
+		}
+
+		hash, err := chainhash.NewHashFromStr(rawHash)
+		if err != nil {
+			return Unspent{}, err
+		}
+
+		index, err := strconv.Atoi(rawIndex)
+		if err != nil {
+			return Unspent{}, fmt.Errorf("invalid output index: %w", err)
+		}
+
+		amount := value.Get("txout.value")
+		if !amount.Exists() {
+			return Unspent{}, errors.New("find txout value")
+		}
+
+		scriptPubKey := value.Get("txout.script_pubkey")
+		if !scriptPubKey.Exists() {
+			return Unspent{}, errors.New("find scriptPubKey")
+		}
+
+		return Unspent{
+			Outpoint:     wire.NewOutPoint(hash, uint32(index)),
+			Amount:       btcutil.Amount(amount.Num),
+			ScriptPubKey: scriptPubKey.Str,
+		}, nil
+
+	}
+
+	var txs []Unspent
+	gjson.ParseBytes(res).ForEach(func(key, value gjson.Result) bool {
+		parsed, err := parseRawUnspent(value)
+		if err != nil {
+			zerolog.Ctx(ctx).Err(err).Msgf("unable to parse raw unspent: %q", value.Str)
+			return false
+		}
+
+		txs = append(txs, parsed)
+		return true
+	})
+
+	if !bytes.Equal(res, []byte(`[]`)) && len(txs) == 0 {
+		return nil, fmt.Errorf("ended up with empty TXs: %s", string(res))
 	}
 
 	return txs, nil
+}
+
+type Unspent struct {
+	Outpoint *wire.OutPoint
+
+	Amount       btcutil.Amount
+	ScriptPubKey string // Hex-encoded
 }
 
 type transactionDetails struct {
@@ -344,42 +397,6 @@ type Transaction struct {
 	Received btcutil.Amount `json:"received"`
 	Sent     btcutil.Amount `json:"sent"`
 	TXID     string         `json:"txid"`
-}
-type OutPoint struct {
-	Hash  chainhash.Hash
-	Index uint32
-}
-
-func (o *OutPoint) UnmarshalJSON(data []byte) error {
-	var outpointStr string
-	if err := json.Unmarshal(data, &outpointStr); err != nil {
-		return err
-	}
-
-	parts := strings.Split(outpointStr, ":")
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid outpoint format: %s", outpointStr)
-	}
-
-	hash, err := chainhash.NewHashFromStr(parts[0])
-	if err != nil {
-		return fmt.Errorf("invalid transaction hash: %w", err)
-	}
-
-	index, err := strconv.ParseUint(parts[1], 10, 32)
-	if err != nil {
-		return fmt.Errorf("invalid output index: %w", err)
-	}
-
-	o.Hash = *hash
-	o.Index = uint32(index)
-	return nil
-}
-
-type UnspentTransaction struct {
-	Outpoint     OutPoint `json:"outpoint"`
-	Amount       int64    `json:"txout.value"`
-	ScriptPubKey string   `json:"txout.script_pubkey"`
 }
 
 // NewWallet either creates a new wallet or loads an existing one. If a
