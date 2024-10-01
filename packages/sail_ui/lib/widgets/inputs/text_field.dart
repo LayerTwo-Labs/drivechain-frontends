@@ -23,7 +23,7 @@ class SailTextField extends StatelessWidget {
   final bool readOnly;
   final bool dense;
   final bool enabled;
-
+  final int? maxLines;
   const SailTextField({
     super.key,
     required this.controller,
@@ -42,6 +42,7 @@ class SailTextField extends StatelessWidget {
     this.readOnly = false,
     this.dense = false,
     this.enabled = true,
+    this.maxLines,
   });
 
   @override
@@ -84,6 +85,7 @@ class SailTextField extends StatelessWidget {
             if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
             if (textFieldType == TextFieldType.bitcoin) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
           ],
+          maxLines: maxLines,
           decoration: InputDecoration(
             errorBorder: InputBorder.none,
             disabledBorder: InputBorder.none,
