@@ -20,6 +20,7 @@ import (
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -159,7 +160,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 	txid, err := s.wallet.BroadcastTransaction(ctx, signed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("broadcast transaction: %w", err)
 	}
 
 	log.Info().Msgf("send tx: broadcast transaction: %s", txid)
@@ -301,10 +302,12 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
 	}
 
-	sidechain, err := s.getSidechain(ctx, slot)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		sidechain, err = s.getSidechain(ctx, slot)
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	tx := wire.NewMsgTx(wire.TxVersion)
 
@@ -318,36 +321,40 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, err
 	}
 
-	// Add extra drivechain-inputs (previous sidechain ctip)
-	err = s.addDepositInputs(tx, sidechain)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		// Add extra drivechain-inputs (previous sidechain ctip)
+		err = s.addDepositInputs(tx, sidechain)
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	// Add extra drivechain-outputs (new sidechain UTXO, address data script)
-	err = s.addDepositOutputs(tx, sidechainScript, amount, depositAddress, sidechain)
+	err = s.addDepositOutputs(tx, sidechainScript, amount, depositAddress)
 	if err != nil {
 		return nil, err
 	}
 
 	unsignedPSBT, err := psbt.NewFromUnsignedTx(tx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create psbt: %w", err)
 	}
 
 	base64PSBT, err := unsignedPSBT.B64Encode()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("encode psbt: %w", err)
 	}
+
+	fmt.Println(base64PSBT)
 
 	signedPSBT, err := s.wallet.SignTransaction(ctx, base64PSBT)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sign psbt: %w", err)
 	}
 
 	txid, err := s.wallet.BroadcastTransaction(ctx, signedPSBT)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("broadcast tx: %w", err)
 	}
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
@@ -376,8 +383,7 @@ func (s *Server) addDepositInputs(
 
 func (s *Server) addDepositOutputs(
 	tx *wire.MsgTx, sidechainScript []byte, amount btcutil.Amount,
-	sidechainDepositAddress btcutil.Address,
-	sidechain *drivechainv1.ListSidechainsResponse_Sidechain,
+	sidechainDepositAddress string,
 ) error {
 
 	// Indicate what address we're depositing to (on the sidechain)
@@ -385,12 +391,15 @@ func (s *Server) addDepositOutputs(
 	if err != nil {
 		return fmt.Errorf("create deposit address script: %w", err)
 	}
-	depositAddr := wire.NewTxOut(int64(0), depositAddrScript)
-	tx.AddTxOut(depositAddr)
+	depositOutput := &wire.TxOut{
+		Value:    int64(0),
+		PkScript: depositAddrScript,
+	}
+	tx.AddTxOut(depositOutput)
 
 	// Add the new sidechain output, which includes what sidechain slot we're depositing to.
 	// The amount is the new full amount of the sidechain.
-	newSidechainBalance := btcutil.Amount(sidechain.AmountSatoshi) + amount
+	newSidechainBalance := btcutil.Amount(0) + amount
 	sidechainUTXO := wire.NewTxOut(int64(newSidechainBalance), sidechainScript)
 	tx.AddTxOut(sidechainUTXO)
 
@@ -405,33 +414,32 @@ func (s *Server) addDepositOutputs(
 func (s *Server) fundTx(
 	ctx context.Context, tx *wire.MsgTx, amt btcutil.Amount, fee btcutil.Amount,
 ) error {
-	utxos, err := s.wallet.ListUnspentTransactions(ctx)
+
+	unspents, err := s.wallet.ListUnspent(ctx)
 	if err != nil {
 		return fmt.Errorf("list unspent transactions: %w", err)
 	}
 
 	// Sort in ascending order to select small UTXOs
-	sort.Slice(utxos, func(i, j int) bool {
-		return utxos[i].Amount < utxos[j].Amount
+	sort.Slice(unspents, func(i, j int) bool {
+		return unspents[i].Amount < unspents[j].Amount
 	})
 
 	var (
 		amtSelected btcutil.Amount
 	)
 
-	for _, utxo := range utxos {
+	for _, utxo := range unspents {
 		amtSelected += btcutil.Amount(utxo.Amount)
 
-		// Add the selected output to the transaction, updating the
-		// current tx size while accounting for the size of the future
-		// sigScript.
+		// Add the selected output to the transaction
 		tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{
 			Hash:  utxo.Outpoint.Hash,
 			Index: utxo.Outpoint.Index,
 		}, nil, nil))
 
 		// Calculate the fee required for the txn at this point
-		// observing the specified fee rate. If we don't have enough
+		// observing the specified fee. If we don't have enough coins
 		// coins from he current amount selected to pay the fee, then
 		// continue to grab more coins.
 		if amtSelected-fee < amt {
@@ -443,7 +451,7 @@ func (s *Server) fundTx(
 		// reserved for it.
 		changeVal := amtSelected - amt - fee
 		if changeVal > 0 {
-			changeAddress, _, err := s.wallet.GetNewAddress(ctx)
+			changeAddress, err := btcutil.DecodeAddress("tb1qaavrmxsyl9vdt9k9t8dydmwf73e0ruwcmfzyzw", &chaincfg.SigNetParams)
 			if err != nil {
 				return fmt.Errorf("get new address: %w", err)
 			}
