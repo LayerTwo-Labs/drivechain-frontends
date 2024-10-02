@@ -1,5 +1,5 @@
 import 'package:drivechain_client/api.dart';
-import 'package:drivechain_client/pages/send_page.dart';
+import 'package:drivechain_client/widgets/qt_icon_button.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:auto_route/annotations.dart';
@@ -52,6 +52,7 @@ class SidechainProposalView extends StatelessWidget {
                       SailText.primary12('Optional (but recommended)'),
                       const SizedBox(width: SailStyleValues.padding08),
                       QtIconButton(
+                        tooltip: 'Read more',
                         icon: const Icon(Icons.info_outline, size: 16),
                         onPressed: () => _showInfoDialog(context),
                       ),

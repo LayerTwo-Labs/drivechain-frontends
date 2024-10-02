@@ -1,9 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/api.dart';
-import 'package:drivechain_client/pages/send_page.dart';
 import 'package:drivechain_client/widgets/error_container.dart';
 import 'package:drivechain_client/widgets/qt_button.dart';
 import 'package:drivechain_client/widgets/qt_container.dart';
+import 'package:drivechain_client/widgets/qt_icon_button.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -58,6 +58,7 @@ class ReceivePage extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4.0),
                                 QtIconButton(
+                                  tooltip: 'Copy address',
                                   onPressed: () async {
                                     await Clipboard.setData(ClipboardData(text: model.addressController.text))
                                         .then((_) {
