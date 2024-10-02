@@ -41,7 +41,7 @@ class SidechainProposalView extends StatelessWidget {
                       color: context.sailTheme.colors.error,
                     ),
                   },
-                  SailText.primary20('Create Sidechain Proposal'),
+                  SailText.primary12('Create Sidechain Proposal'),
                   const SizedBox(height: SailStyleValues.padding25),
                   _buildRequiredSection(context, model),
                   const SizedBox(height: SailStyleValues.padding25),
@@ -75,7 +75,7 @@ class SidechainProposalView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary15('Required'),
+          SailText.primary12('Required'),
           const SizedBox(height: SailStyleValues.padding15),
           Row(
             children: [
@@ -88,6 +88,7 @@ class SidechainProposalView extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   validator: (value) => model.validateSlot(value),
                   errorText: model.slotError,
+                  size: TextFieldSize.small,
                 ),
               ),
               const SizedBox(width: SailStyleValues.padding15),
@@ -99,6 +100,7 @@ class SidechainProposalView extends StatelessWidget {
                   controller: model.titleController,
                   validator: (value) => model.validateTitle(value),
                   errorText: model.titleError,
+                  size: TextFieldSize.small,
                 ),
               ),
             ],
@@ -115,7 +117,7 @@ class SidechainProposalView extends StatelessWidget {
         children: [
           Row(
             children: [
-              SailText.primary15('Optional (but recommended)'),
+              SailText.primary12('Optional (but recommended)'),
               const SizedBox(width: SailStyleValues.padding08),
               QtIconButton(
                 icon: const Icon(Icons.info_outline, size: 16),
@@ -129,6 +131,7 @@ class SidechainProposalView extends StatelessWidget {
             hintText: 'Sidechain description',
             controller: model.descriptionController,
             maxLines: 5,
+            size: TextFieldSize.small,
           ),
           const SizedBox(height: SailStyleValues.padding15),
           SailTextFormField(
@@ -138,6 +141,7 @@ class SidechainProposalView extends StatelessWidget {
             keyboardType: TextInputType.number,
             validator: (value) => model.validateVersion(value),
             errorText: model.versionError,
+            size: TextFieldSize.small,
           ),
           const SizedBox(height: SailStyleValues.padding15),
           SailTextFormField(
@@ -146,6 +150,7 @@ class SidechainProposalView extends StatelessWidget {
             controller: model.tarballHashController,
             validator: (value) => model.validateHash(value, 256),
             errorText: model.tarballHashError,
+            size: TextFieldSize.small,
           ),
           const SizedBox(height: SailStyleValues.padding15),
           SailTextFormField(
@@ -154,6 +159,7 @@ class SidechainProposalView extends StatelessWidget {
             controller: model.commitHashController,
             validator: (value) => model.validateHash(value, 160),
             errorText: model.commitHashError,
+            size: TextFieldSize.small,
           ),
         ],
       ),
@@ -295,14 +301,20 @@ class SidechainProposalViewModel extends BaseViewModel {
   }
 }
 
-Future<void> showSidechainProposalModal(BuildContext context) async {
-  await showDialog(
+Future<void> showSidechainProposalModal(BuildContext context) {
+  return showAdaptiveDialog<void>(
+    barrierDismissible: true,
     context: context,
     builder: (BuildContext context) {
-      return Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
-          child: const SidechainProposalView(),
+      return Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width * 0.2,
+          vertical: MediaQuery.of(context).size.height * 0.01,
+        ),
+        child: Material(
+          clipBehavior: Clip.antiAlias,
+          borderRadius: BorderRadius.circular(4.0),
+          child: const SidechainProposalPage(),
         ),
       );
     },

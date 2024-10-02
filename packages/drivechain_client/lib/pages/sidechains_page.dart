@@ -5,6 +5,7 @@ import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:drivechain_client/pages/overview_page.dart';
 import 'package:drivechain_client/pages/send_page.dart';
+import 'package:drivechain_client/pages/sidechain_activation_management_page.dart';
 import 'package:drivechain_client/providers/sidechain_provider.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
 import 'package:drivechain_client/widgets/error_container.dart';
@@ -85,8 +86,11 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
             ),
           ),
           const SizedBox(height: SailStyleValues.padding15),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Center(
+            child: QtButton(
+              child: SailText.primary12('Add / Remove'),
+              onPressed: () => showSidechainActivationManagementModal(context),
+            ),
           ),
         ],
       ),
