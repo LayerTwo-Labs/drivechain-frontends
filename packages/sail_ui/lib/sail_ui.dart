@@ -1,5 +1,3 @@
-library sail_ui;
-
 export './bitcoin.dart';
 export './extensions/build_context.dart';
 export './extensions/formatting.dart';
