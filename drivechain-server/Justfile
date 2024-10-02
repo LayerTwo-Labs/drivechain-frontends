@@ -16,10 +16,7 @@ gen-server:
     buf generate
 
 gen-enforcer:
-    mkdir -p proto/enforcer
-    curl -o proto/enforcer/enforcer.proto https://raw.githubusercontent.com/LayerTwo-Labs/bip300301_enforcer/refs/heads/master/proto/validator/v1/validator.proto
-    buf generate --path=proto/enforcer --template buf.gen.enforcer.yaml
-    rm -r proto/enforcer
+    buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/bip300301_enforcer.git
 
 build-bdk-cli:
     #!/usr/bin/env bash

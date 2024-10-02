@@ -15,8 +15,8 @@ import 'dart:core' as $core;
 import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart' as $1;
-import 'package:drivechain_client/gen/wallet/v1/wallet.pb.dart' as $3;
+import '../../google/protobuf/empty.pb.dart' as $1;
+import 'wallet.pb.dart' as $3;
 
 export 'wallet.pb.dart';
 
@@ -25,33 +25,33 @@ class WalletServiceClient extends $grpc.Client {
   static final _$sendTransaction = $grpc.ClientMethod<$3.SendTransactionRequest, $3.SendTransactionResponse>(
       '/wallet.v1.WalletService/SendTransaction',
       ($3.SendTransactionRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.SendTransactionResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $3.SendTransactionResponse.fromBuffer(value));
   static final _$getBalance = $grpc.ClientMethod<$1.Empty, $3.GetBalanceResponse>(
       '/wallet.v1.WalletService/GetBalance',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.GetBalanceResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $3.GetBalanceResponse.fromBuffer(value));
   static final _$getNewAddress = $grpc.ClientMethod<$1.Empty, $3.GetNewAddressResponse>(
       '/wallet.v1.WalletService/GetNewAddress',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.GetNewAddressResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $3.GetNewAddressResponse.fromBuffer(value));
   static final _$listTransactions = $grpc.ClientMethod<$1.Empty, $3.ListTransactionsResponse>(
       '/wallet.v1.WalletService/ListTransactions',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.ListTransactionsResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $3.ListTransactionsResponse.fromBuffer(value));
   static final _$listSidechainDeposits = $grpc.ClientMethod<$3.ListSidechainDepositsRequest, $3.ListSidechainDepositsResponse>(
       '/wallet.v1.WalletService/ListSidechainDeposits',
       ($3.ListSidechainDepositsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.ListSidechainDepositsResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $3.ListSidechainDepositsResponse.fromBuffer(value));
   static final _$createSidechainDeposit = $grpc.ClientMethod<$3.CreateSidechainDepositRequest, $3.CreateSidechainDepositResponse>(
       '/wallet.v1.WalletService/CreateSidechainDeposit',
       ($3.CreateSidechainDepositRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.CreateSidechainDepositResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $3.CreateSidechainDepositResponse.fromBuffer(value));
 
   WalletServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors,})
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
       : super(channel, options: options,
-        interceptors: interceptors,);
+        interceptors: interceptors);
 
   $grpc.ResponseFuture<$3.SendTransactionResponse> sendTransaction($3.SendTransactionRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$sendTransaction, request, options: options);
@@ -89,42 +89,42 @@ abstract class WalletServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $3.SendTransactionRequest.fromBuffer(value),
-        ($3.SendTransactionResponse value) => value.writeToBuffer(),),);
+        ($3.SendTransactionResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$1.Empty, $3.GetBalanceResponse>(
         'GetBalance',
         getBalance_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($3.GetBalanceResponse value) => value.writeToBuffer(),),);
+        ($3.GetBalanceResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$1.Empty, $3.GetNewAddressResponse>(
         'GetNewAddress',
         getNewAddress_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($3.GetNewAddressResponse value) => value.writeToBuffer(),),);
+        ($3.GetNewAddressResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$1.Empty, $3.ListTransactionsResponse>(
         'ListTransactions',
         listTransactions_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($3.ListTransactionsResponse value) => value.writeToBuffer(),),);
+        ($3.ListTransactionsResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$3.ListSidechainDepositsRequest, $3.ListSidechainDepositsResponse>(
         'ListSidechainDeposits',
         listSidechainDeposits_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $3.ListSidechainDepositsRequest.fromBuffer(value),
-        ($3.ListSidechainDepositsResponse value) => value.writeToBuffer(),),);
+        ($3.ListSidechainDepositsResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$3.CreateSidechainDepositRequest, $3.CreateSidechainDepositResponse>(
         'CreateSidechainDeposit',
         createSidechainDeposit_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $3.CreateSidechainDepositRequest.fromBuffer(value),
-        ($3.CreateSidechainDepositResponse value) => value.writeToBuffer(),),);
+        ($3.CreateSidechainDepositResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$3.SendTransactionResponse> sendTransaction_Pre($grpc.ServiceCall call, $async.Future<$3.SendTransactionRequest> request) async {

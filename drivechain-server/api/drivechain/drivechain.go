@@ -6,7 +6,8 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
-	enforcer "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
@@ -17,7 +18,7 @@ var _ rpc.DrivechainServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
-	bitcoind *coreproxy.Bitcoind, enforcer enforcer.ValidatorServiceClient,
+	bitcoind *coreproxy.Bitcoind, enforcer validatorrpc.ValidatorServiceClient,
 
 ) *Server {
 	s := &Server{
@@ -28,18 +29,18 @@ func New(
 
 type Server struct {
 	bitcoind *coreproxy.Bitcoind
-	enforcer enforcer.ValidatorServiceClient
+	enforcer validatorrpc.ValidatorServiceClient
 }
 
 // ListSidechainProposals implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[pb.ListSidechainProposalsRequest]) (*connect.Response[pb.ListSidechainProposalsResponse], error) {
-	sidechainProposals, err := s.enforcer.GetSidechainProposals(ctx, &enforcer.GetSidechainProposalsRequest{})
+	sidechainProposals, err := s.enforcer.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
 	if err != nil {
 		return nil, err
 	}
 
 	return connect.NewResponse(&pb.ListSidechainProposalsResponse{
-		Proposals: lo.Map(sidechainProposals.SidechainProposals, func(proposal *enforcer.SidechainProposal, _ int) *pb.SidechainProposal {
+		Proposals: lo.Map(sidechainProposals.Msg.SidechainProposals, func(proposal *validatorpb.SidechainProposal, _ int) *pb.SidechainProposal {
 			// TODO: I have no idea what the data hash looks like yet, needs to test this with real data
 			dataHash, err := chainhash.NewHash(proposal.DataHash)
 			if err != nil {
@@ -61,22 +62,24 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
-	sidechains, err := s.enforcer.GetSidechains(ctx, &enforcer.GetSidechainsRequest{})
+	sidechains, err := s.enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
 	if err != nil {
 		return nil, err
 	}
 
 	// Loop over all sidechains and get their chaintiptxid using s.enforcer.GetCtip()
-	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Sidechains))
-	for _, sidechain := range sidechains.Sidechains {
-		ctipResponse, err := s.enforcer.GetCtip(ctx, &enforcer.GetCtipRequest{SidechainNumber: sidechain.SidechainNumber})
+	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Msg.Sidechains))
+	for _, sidechain := range sidechains.Msg.Sidechains {
+		ctipResponse, err := s.enforcer.GetCtip(ctx, connect.NewRequest(
+			&validatorpb.GetCtipRequest{SidechainNumber: sidechain.SidechainNumber},
+		))
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Uint32("sidechain", sidechain.SidechainNumber).Msg("failed to get ctip")
 			continue
 		}
 
 		// Decode the txid using chainhash.NewHashFromStr
-		txidHash, err := chainhash.NewHashFromStr(string(ctipResponse.Ctip.Txid))
+		txidHash, err := chainhash.NewHashFromStr(string(ctipResponse.Msg.Ctip.Txid))
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to decode txid")
 			continue
@@ -86,13 +89,13 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		sidechainList = append(sidechainList, &pb.ListSidechainsResponse_Sidechain{
 			Title:         decodedData, // TODO: Decode and fill in correctly
 			Description:   decodedData, // TODO: Decode and fill in correctly
-			Nversion:      uint32(ctipResponse.Ctip.SequenceNumber),
+			Nversion:      uint32(ctipResponse.Msg.Ctip.SequenceNumber),
 			Hashid1:       decodedData, // TODO: Decode and fill in correctly
 			Hashid2:       decodedData, // TODO: Decode and fill in correctly
 			Slot:          int32(sidechain.SidechainNumber),
-			AmountSatoshi: int64(ctipResponse.Ctip.Value),
+			AmountSatoshi: int64(ctipResponse.Msg.Ctip.Value),
 			ChaintipTxid:  txidHash.String(),
-			ChaintipVout:  uint32(ctipResponse.Ctip.Vout),
+			ChaintipVout:  uint32(ctipResponse.Msg.Ctip.Vout),
 		})
 	}
 

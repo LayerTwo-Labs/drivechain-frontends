@@ -19,7 +19,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/bitcoind/v1/bitcoindv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
-	enforcer "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	"github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
@@ -30,7 +30,7 @@ import (
 
 // New creates a new Server with interceptors applied.
 func New(
-	ctx context.Context, bitcoind *server.Bitcoind, wallet *bdk.Wallet, enforcer enforcer.ValidatorServiceClient,
+	ctx context.Context, bitcoind *server.Bitcoind, wallet *bdk.Wallet, enforcer validatorrpc.ValidatorServiceClient,
 ) (*Server, error) {
 	mux := http.NewServeMux()
 	srv := &Server{mux: mux}

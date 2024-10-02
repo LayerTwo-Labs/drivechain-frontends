@@ -15,7 +15,7 @@ import 'dart:core' as $core;
 import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'package:drivechain_client/gen/drivechain/v1/drivechain.pb.dart' as $2;
+import 'drivechain.pb.dart' as $2;
 
 export 'drivechain.pb.dart';
 
@@ -24,17 +24,17 @@ class DrivechainServiceClient extends $grpc.Client {
   static final _$listSidechains = $grpc.ClientMethod<$2.ListSidechainsRequest, $2.ListSidechainsResponse>(
       '/drivechain.v1.DrivechainService/ListSidechains',
       ($2.ListSidechainsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.ListSidechainsResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $2.ListSidechainsResponse.fromBuffer(value));
   static final _$listSidechainProposals = $grpc.ClientMethod<$2.ListSidechainProposalsRequest, $2.ListSidechainProposalsResponse>(
       '/drivechain.v1.DrivechainService/ListSidechainProposals',
       ($2.ListSidechainProposalsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.ListSidechainProposalsResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $2.ListSidechainProposalsResponse.fromBuffer(value));
 
   DrivechainServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors,})
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
       : super(channel, options: options,
-        interceptors: interceptors,);
+        interceptors: interceptors);
 
   $grpc.ResponseFuture<$2.ListSidechainsResponse> listSidechains($2.ListSidechainsRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listSidechains, request, options: options);
@@ -56,14 +56,14 @@ abstract class DrivechainServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $2.ListSidechainsRequest.fromBuffer(value),
-        ($2.ListSidechainsResponse value) => value.writeToBuffer(),),);
+        ($2.ListSidechainsResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$2.ListSidechainProposalsRequest, $2.ListSidechainProposalsResponse>(
         'ListSidechainProposals',
         listSidechainProposals_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $2.ListSidechainProposalsRequest.fromBuffer(value),
-        ($2.ListSidechainProposalsResponse value) => value.writeToBuffer(),),);
+        ($2.ListSidechainProposalsResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$2.ListSidechainsResponse> listSidechains_Pre($grpc.ServiceCall call, $async.Future<$2.ListSidechainsRequest> request) async {

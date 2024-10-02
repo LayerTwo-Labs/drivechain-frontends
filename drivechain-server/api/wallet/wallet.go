@@ -11,9 +11,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/drivechain"
-	drivechainv1 "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
-	enforcer "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
+	drivechainpb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
+	drivechainrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -35,7 +35,7 @@ var _ rpc.WalletServiceHandler = new(Server)
 // New creates a new Server and starts the balance update loop
 func New(
 	ctx context.Context, wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind,
-	enforcer enforcer.ValidatorServiceClient, drivechain drivechainv1connect.DrivechainServiceClient,
+	enforcer validatorrpc.ValidatorServiceClient, drivechain drivechainrpc.DrivechainServiceClient,
 
 ) *Server {
 	s := &Server{
@@ -49,8 +49,8 @@ func New(
 type Server struct {
 	wallet     *bdk.Wallet
 	bitcoind   *coreproxy.Bitcoind
-	enforcer   enforcer.ValidatorServiceClient
-	drivechain drivechainv1connect.DrivechainServiceClient
+	enforcer   validatorrpc.ValidatorServiceClient
+	drivechain drivechainrpc.DrivechainServiceClient
 
 	balance atomic.Value
 }
@@ -359,7 +359,7 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 }
 
 func (s *Server) addDepositInputs(
-	tx *wire.MsgTx, sidechain *drivechainv1.ListSidechainsResponse_Sidechain,
+	tx *wire.MsgTx, sidechain *drivechainpb.ListSidechainsResponse_Sidechain,
 ) error {
 	if sidechain.ChaintipTxid == "" {
 		// There are currently no active sidechains, so we can't add this
@@ -481,8 +481,8 @@ func (s *Server) fundTx(
 }
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) getSidechain(ctx context.Context, slot int64) (*drivechainv1.ListSidechainsResponse_Sidechain, error) {
-	return &drivechainv1.ListSidechainsResponse_Sidechain{
+func (s *Server) getSidechain(ctx context.Context, slot int64) (*drivechainpb.ListSidechainsResponse_Sidechain, error) {
+	return &drivechainpb.ListSidechainsResponse_Sidechain{
 		Title:         "Testchain",
 		Description:   "This is a testchain",
 		Nversion:      0,

@@ -2,18 +2,23 @@ package dial
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"time"
 
-	enforcer "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
+	"connectrpc.com/connect"
+	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"golang.org/x/net/http2"
 )
 
-func BIPEnforcer(ctx context.Context, url string) (enforcer.ValidatorServiceClient, error) {
+// Enforcer creates a CUSF enforcer (validator) client.
+func Enforcer(ctx context.Context, url string) (rpc.ValidatorServiceClient, error) {
 	start := time.Now()
 
 	if url == "" {
@@ -21,28 +26,42 @@ func BIPEnforcer(ctx context.Context, url string) (enforcer.ValidatorServiceClie
 	}
 
 	// Use the provided context directly with grpc.NewClient
-	conn, err := grpc.NewClient(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
-	}
+	client := rpc.NewValidatorServiceClient(
+		newInsecureClient(),
+		fmt.Sprintf("http://%s", url),
+		connect.WithGRPC(),
+	)
 
-	client := enforcer.NewValidatorServiceClient(conn)
-
-	tip, err := client.GetMainChainTip(ctx, &enforcer.GetMainChainTipRequest{})
+	tip, err := client.GetMainChainTip(ctx, connect.NewRequest(&pb.GetMainChainTipRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("get mainchain tip: %w", err)
 	}
 
-	blockHash, err := chainhash.NewHash(tip.BlockHash)
+	blockHash, err := chainhash.NewHash(tip.Msg.BlockHash)
 	if err != nil {
 		return nil, fmt.Errorf("parse blockhash: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Debug().
-		Dur("duration", time.Since(start)).
+		Stringer("duration", time.Since(start)).
 		Str("url", url).
 		Str("tip", blockHash.String()).
 		Msg("connected to enforcer")
 
 	return client, nil
+}
+
+// https://connectrpc.com/docs/go/deployment/#h2c
+func newInsecureClient() *http.Client {
+	return &http.Client{
+		Transport: &http2.Transport{
+			AllowHTTP: true,
+			DialTLS: func(network, addr string, _ *tls.Config) (net.Conn, error) {
+				// If you're also using this client for non-h2c traffic, you may want
+				// to delegate to tls.Dial if the network isn't TCP or the addr isn't
+				// in an allowlist.
+				return net.Dial(network, addr)
+			},
+		},
+	}
 }
