@@ -14,7 +14,7 @@ To get the app(s) up and running, make sure you have the following dependencies:
 Running the app is as simple as the following command:
 
 ```bash
-flutter run --dart-define DRIVECHAIN_HOST=http://localhost --dart-define DRIVECHAIN_PORT=8080
+flutter run --dart-define DRIVECHAIN_HOST=localhost --dart-define DRIVECHAIN_PORT=8080
 ```
 
 The project is set up with launch configurations for Visual Studio Code as well.
