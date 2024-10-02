@@ -1,7 +1,9 @@
+import 'package:drivechain_client/api.dart';
 import 'package:drivechain_client/pages/send_page.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:auto_route/annotations.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:drivechain_client/widgets/qt_container.dart';
@@ -41,10 +43,21 @@ class SidechainProposalView extends StatelessWidget {
                       color: context.sailTheme.colors.error,
                     ),
                   },
-                  SailText.primary12('Create Sidechain Proposal'),
-                  const SizedBox(height: SailStyleValues.padding25),
+                  SailText.primary12('Required'),
+                  const SizedBox(height: SailStyleValues.padding08),
                   _buildRequiredSection(context, model),
                   const SizedBox(height: SailStyleValues.padding25),
+                  Row(
+                    children: [
+                      SailText.primary12('Optional (but recommended)'),
+                      const SizedBox(width: SailStyleValues.padding08),
+                      QtIconButton(
+                        icon: const Icon(Icons.info_outline, size: 16),
+                        onPressed: () => _showInfoDialog(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: SailStyleValues.padding08),
                   _buildOptionalSection(context, model),
                   const SizedBox(height: SailStyleValues.padding25),
                   QtButton(
@@ -55,9 +68,9 @@ class SidechainProposalView extends StatelessWidget {
                     },
                     child: model.isProposing
                         ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            width: 13,
+                            height: 13,
+                            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                           )
                         : SailText.primary13('Propose Sidechain'),
                   ),
@@ -75,9 +88,8 @@ class SidechainProposalView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary12('Required'),
-          const SizedBox(height: SailStyleValues.padding15),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 flex: 1,
@@ -115,17 +127,6 @@ class SidechainProposalView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              SailText.primary12('Optional (but recommended)'),
-              const SizedBox(width: SailStyleValues.padding08),
-              QtIconButton(
-                icon: const Icon(Icons.info_outline, size: 16),
-                onPressed: () => _showInfoDialog(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: SailStyleValues.padding15),
           SailTextFormField(
             label: 'Description',
             hintText: 'Sidechain description',
@@ -167,22 +168,61 @@ class SidechainProposalView extends StatelessWidget {
   }
 
   void _showInfoDialog(BuildContext context) {
-    showDialog(
+    showAdaptiveDialog(
       context: context,
+      barrierDismissible: true,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Optional Fields'),
-          content: const Text(
-            'These fields are optional but recommended. They provide additional information about your sidechain proposal, which can help others understand and evaluate it better.',
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+        return Center(
+          child: Material(
+            clipBehavior: Clip.antiAlias,
+            borderRadius: BorderRadius.circular(4.0),
+            child: QtPage(
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(SailStyleValues.padding15),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary12('''
+These fields are optional but highly recommended.
+
+Description:
+Brief description of the sidechain's purpose and where to find more information.
+
+Release tarball hash:
+Hash of the original gitian software build of this sidechain.
+Use the sha256sum utility to generate this hash, or copy the hash when it is printed to the console after gitian builds complete.
+
+Example:
+sha256sum Drivechain-12.0.21.00-x86_64-linux-gnu.tar.gz
+
+Result:
+fd9637e427f1e967cc658bfe1a836d537346ce3a6dd0746878129bb5bc646680  Drivechain-12-0.21.00-x86_64-linux-gnu.tar.gz
+
+Build commit hash (160 bits):
+If the software was developed using git, the build commit hash should match the commit hash of the first sidechain release.
+To verify it later, you can look up this commit in the repository history.
+
+These help users find the sidechain full node software. Only this software can filter out invalid withdrawals.
+                      '''),
+                        // Close butto
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -197,6 +237,8 @@ class SidechainProposalViewModel extends BaseViewModel {
   final versionController = TextEditingController();
   final tarballHashController = TextEditingController();
   final commitHashController = TextEditingController();
+
+  DrivechainAPI get drivechain => GetIt.I.get<DrivechainAPI>();
 
   String? slotError;
   String? titleError;
