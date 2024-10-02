@@ -6,6 +6,7 @@ import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
 import 'package:drivechain_client/widgets/qt_button.dart';
 import 'package:drivechain_client/widgets/qt_container.dart';
+import 'package:drivechain_client/widgets/qt_icon_button.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -128,6 +129,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
             ),
             const SizedBox(width: 4.0),
             QtIconButton(
+              tooltip: 'Paste from clipboard',
               onPressed: () async {
                 if (SystemClipboard.instance != null) {
                   await SystemClipboard.instance?.read().then((reader) async {
@@ -149,6 +151,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
             ),
             const SizedBox(width: 4.0),
             QtIconButton(
+              tooltip: 'Clear',
               onPressed: () => viewModel.clearAddress(),
               icon: Icon(
                 Icons.cancel_outlined,
@@ -456,38 +459,6 @@ class _NumericFieldState extends State<NumericField> {
       onSubmitted: widget.onSubmitted != null
           ? (value) => widget.onSubmitted!(value)
           : null,
-    );
-  }
-}
-
-class QtIconButton extends StatelessWidget {
-  final Widget icon;
-  final VoidCallback onPressed;
-
-  const QtIconButton({super.key, required this.icon, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4.0),
-      child: SailScaleButton(
-        color: context.sailTheme.colors.background,
-        onPressed: onPressed,
-        child: Container(
-          clipBehavior: Clip.hardEdge,
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Colors.grey,
-            ),
-            borderRadius: BorderRadius.circular(4.0),
-          ),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 4.0,
-            vertical: 4.0,
-          ),
-          child: icon,
-        ),
-      ),
     );
   }
 }

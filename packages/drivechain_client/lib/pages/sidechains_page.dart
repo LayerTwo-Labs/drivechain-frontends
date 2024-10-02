@@ -11,6 +11,7 @@ import 'package:drivechain_client/providers/transactions_provider.dart';
 import 'package:drivechain_client/widgets/error_container.dart';
 import 'package:drivechain_client/widgets/qt_button.dart';
 import 'package:drivechain_client/widgets/qt_container.dart';
+import 'package:drivechain_client/widgets/qt_icon_button.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -285,6 +286,7 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
                   ),
                 ),
                 QtIconButton(
+                  tooltip: 'Paste from clipboard',
                   onPressed: viewModel.pasteAddress,
                   icon: Icon(
                     Icons.content_paste_rounded,
@@ -293,6 +295,7 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
                   ),
                 ),
                 QtIconButton(
+                  tooltip: 'Clear',
                   onPressed: viewModel.clearAddress,
                   icon: Icon(
                     Icons.cancel_outlined,

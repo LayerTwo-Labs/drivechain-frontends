@@ -1,5 +1,5 @@
 import 'package:auto_route/annotations.dart';
-import 'package:drivechain_client/pages/send_page.dart';
+import 'package:drivechain_client/widgets/qt_icon_button.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:drivechain_client/widgets/qt_button.dart';
 import 'package:flutter/material.dart';
@@ -178,6 +178,7 @@ class SidechainActivationManagementView extends StatelessWidget {
                   ),
                   const SizedBox(width: SailStyleValues.padding15),
                   QtIconButton(
+                    tooltip: 'What is this?',
                     icon: const Icon(Icons.question_mark_rounded, size: 13),
                     onPressed: () {
                       showSnackBar(context, 'Not implemented');
