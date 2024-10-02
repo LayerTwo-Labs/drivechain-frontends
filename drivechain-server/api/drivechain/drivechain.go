@@ -6,7 +6,7 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
+	enforcer "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
@@ -17,7 +17,7 @@ var _ rpc.DrivechainServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
-	bitcoind *coreproxy.Bitcoind, enforcer enforcer.ValidatorClient,
+	bitcoind *coreproxy.Bitcoind, enforcer enforcer.ValidatorServiceClient,
 
 ) *Server {
 	s := &Server{
@@ -28,7 +28,7 @@ func New(
 
 type Server struct {
 	bitcoind *coreproxy.Bitcoind
-	enforcer enforcer.ValidatorClient
+	enforcer enforcer.ValidatorServiceClient
 }
 
 // ListSidechainProposals implements drivechainv1connect.DrivechainServiceHandler.

@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
+	enforcer "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func BIPEnforcer(ctx context.Context, url string) (enforcer.ValidatorClient, error) {
+func BIPEnforcer(ctx context.Context, url string) (enforcer.ValidatorServiceClient, error) {
 	start := time.Now()
 
 	if url == "" {
@@ -26,7 +26,7 @@ func BIPEnforcer(ctx context.Context, url string) (enforcer.ValidatorClient, err
 		return nil, err
 	}
 
-	client := enforcer.NewValidatorClient(conn)
+	client := enforcer.NewValidatorServiceClient(conn)
 
 	tip, err := client.GetMainChainTip(ctx, &enforcer.GetMainChainTipRequest{})
 	if err != nil {

@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: enforcer/enforcer.proto
 
-package enforcer
+package validatorv1
 
 import (
 	context "context"
@@ -19,21 +19,21 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Validator_ConnectBlock_FullMethodName          = "/validator.Validator/ConnectBlock"
-	Validator_DisconnectBlock_FullMethodName       = "/validator.Validator/DisconnectBlock"
-	Validator_GetCoinbasePSBT_FullMethodName       = "/validator.Validator/GetCoinbasePSBT"
-	Validator_GetDeposits_FullMethodName           = "/validator.Validator/GetDeposits"
-	Validator_GetSidechainProposals_FullMethodName = "/validator.Validator/GetSidechainProposals"
-	Validator_GetSidechains_FullMethodName         = "/validator.Validator/GetSidechains"
-	Validator_GetCtip_FullMethodName               = "/validator.Validator/GetCtip"
-	Validator_GetMainBlockHeight_FullMethodName    = "/validator.Validator/GetMainBlockHeight"
-	Validator_GetMainChainTip_FullMethodName       = "/validator.Validator/GetMainChainTip"
+	ValidatorService_ConnectBlock_FullMethodName          = "/validator.v1.ValidatorService/ConnectBlock"
+	ValidatorService_DisconnectBlock_FullMethodName       = "/validator.v1.ValidatorService/DisconnectBlock"
+	ValidatorService_GetCoinbasePSBT_FullMethodName       = "/validator.v1.ValidatorService/GetCoinbasePSBT"
+	ValidatorService_GetDeposits_FullMethodName           = "/validator.v1.ValidatorService/GetDeposits"
+	ValidatorService_GetSidechainProposals_FullMethodName = "/validator.v1.ValidatorService/GetSidechainProposals"
+	ValidatorService_GetSidechains_FullMethodName         = "/validator.v1.ValidatorService/GetSidechains"
+	ValidatorService_GetCtip_FullMethodName               = "/validator.v1.ValidatorService/GetCtip"
+	ValidatorService_GetMainBlockHeight_FullMethodName    = "/validator.v1.ValidatorService/GetMainBlockHeight"
+	ValidatorService_GetMainChainTip_FullMethodName       = "/validator.v1.ValidatorService/GetMainChainTip"
 )
 
-// ValidatorClient is the client API for Validator service.
+// ValidatorServiceClient is the client API for ValidatorService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ValidatorClient interface {
+type ValidatorServiceClient interface {
 	ConnectBlock(ctx context.Context, in *ConnectBlockRequest, opts ...grpc.CallOption) (*ConnectBlockResponse, error)
 	DisconnectBlock(ctx context.Context, in *DisconnectBlockRequest, opts ...grpc.CallOption) (*DisconnectBlockResponse, error)
 	GetCoinbasePSBT(ctx context.Context, in *GetCoinbasePSBTRequest, opts ...grpc.CallOption) (*GetCoinbasePSBTResponse, error)
@@ -45,108 +45,108 @@ type ValidatorClient interface {
 	GetMainChainTip(ctx context.Context, in *GetMainChainTipRequest, opts ...grpc.CallOption) (*GetMainChainTipResponse, error)
 }
 
-type validatorClient struct {
+type validatorServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewValidatorClient(cc grpc.ClientConnInterface) ValidatorClient {
-	return &validatorClient{cc}
+func NewValidatorServiceClient(cc grpc.ClientConnInterface) ValidatorServiceClient {
+	return &validatorServiceClient{cc}
 }
 
-func (c *validatorClient) ConnectBlock(ctx context.Context, in *ConnectBlockRequest, opts ...grpc.CallOption) (*ConnectBlockResponse, error) {
+func (c *validatorServiceClient) ConnectBlock(ctx context.Context, in *ConnectBlockRequest, opts ...grpc.CallOption) (*ConnectBlockResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ConnectBlockResponse)
-	err := c.cc.Invoke(ctx, Validator_ConnectBlock_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_ConnectBlock_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *validatorClient) DisconnectBlock(ctx context.Context, in *DisconnectBlockRequest, opts ...grpc.CallOption) (*DisconnectBlockResponse, error) {
+func (c *validatorServiceClient) DisconnectBlock(ctx context.Context, in *DisconnectBlockRequest, opts ...grpc.CallOption) (*DisconnectBlockResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DisconnectBlockResponse)
-	err := c.cc.Invoke(ctx, Validator_DisconnectBlock_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_DisconnectBlock_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *validatorClient) GetCoinbasePSBT(ctx context.Context, in *GetCoinbasePSBTRequest, opts ...grpc.CallOption) (*GetCoinbasePSBTResponse, error) {
+func (c *validatorServiceClient) GetCoinbasePSBT(ctx context.Context, in *GetCoinbasePSBTRequest, opts ...grpc.CallOption) (*GetCoinbasePSBTResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetCoinbasePSBTResponse)
-	err := c.cc.Invoke(ctx, Validator_GetCoinbasePSBT_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_GetCoinbasePSBT_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *validatorClient) GetDeposits(ctx context.Context, in *GetDepositsRequest, opts ...grpc.CallOption) (*GetDepositsResponse, error) {
+func (c *validatorServiceClient) GetDeposits(ctx context.Context, in *GetDepositsRequest, opts ...grpc.CallOption) (*GetDepositsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetDepositsResponse)
-	err := c.cc.Invoke(ctx, Validator_GetDeposits_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_GetDeposits_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *validatorClient) GetSidechainProposals(ctx context.Context, in *GetSidechainProposalsRequest, opts ...grpc.CallOption) (*GetSidechainProposalsResponse, error) {
+func (c *validatorServiceClient) GetSidechainProposals(ctx context.Context, in *GetSidechainProposalsRequest, opts ...grpc.CallOption) (*GetSidechainProposalsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetSidechainProposalsResponse)
-	err := c.cc.Invoke(ctx, Validator_GetSidechainProposals_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_GetSidechainProposals_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *validatorClient) GetSidechains(ctx context.Context, in *GetSidechainsRequest, opts ...grpc.CallOption) (*GetSidechainsResponse, error) {
+func (c *validatorServiceClient) GetSidechains(ctx context.Context, in *GetSidechainsRequest, opts ...grpc.CallOption) (*GetSidechainsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetSidechainsResponse)
-	err := c.cc.Invoke(ctx, Validator_GetSidechains_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_GetSidechains_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *validatorClient) GetCtip(ctx context.Context, in *GetCtipRequest, opts ...grpc.CallOption) (*GetCtipResponse, error) {
+func (c *validatorServiceClient) GetCtip(ctx context.Context, in *GetCtipRequest, opts ...grpc.CallOption) (*GetCtipResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetCtipResponse)
-	err := c.cc.Invoke(ctx, Validator_GetCtip_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_GetCtip_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *validatorClient) GetMainBlockHeight(ctx context.Context, in *GetMainBlockHeightRequest, opts ...grpc.CallOption) (*GetMainBlockHeightResponse, error) {
+func (c *validatorServiceClient) GetMainBlockHeight(ctx context.Context, in *GetMainBlockHeightRequest, opts ...grpc.CallOption) (*GetMainBlockHeightResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetMainBlockHeightResponse)
-	err := c.cc.Invoke(ctx, Validator_GetMainBlockHeight_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_GetMainBlockHeight_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *validatorClient) GetMainChainTip(ctx context.Context, in *GetMainChainTipRequest, opts ...grpc.CallOption) (*GetMainChainTipResponse, error) {
+func (c *validatorServiceClient) GetMainChainTip(ctx context.Context, in *GetMainChainTipRequest, opts ...grpc.CallOption) (*GetMainChainTipResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetMainChainTipResponse)
-	err := c.cc.Invoke(ctx, Validator_GetMainChainTip_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ValidatorService_GetMainChainTip_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// ValidatorServer is the server API for Validator service.
-// All implementations must embed UnimplementedValidatorServer
+// ValidatorServiceServer is the server API for ValidatorService service.
+// All implementations must embed UnimplementedValidatorServiceServer
 // for forward compatibility.
-type ValidatorServer interface {
+type ValidatorServiceServer interface {
 	ConnectBlock(context.Context, *ConnectBlockRequest) (*ConnectBlockResponse, error)
 	DisconnectBlock(context.Context, *DisconnectBlockRequest) (*DisconnectBlockResponse, error)
 	GetCoinbasePSBT(context.Context, *GetCoinbasePSBTRequest) (*GetCoinbasePSBTResponse, error)
@@ -156,268 +156,268 @@ type ValidatorServer interface {
 	GetCtip(context.Context, *GetCtipRequest) (*GetCtipResponse, error)
 	GetMainBlockHeight(context.Context, *GetMainBlockHeightRequest) (*GetMainBlockHeightResponse, error)
 	GetMainChainTip(context.Context, *GetMainChainTipRequest) (*GetMainChainTipResponse, error)
-	mustEmbedUnimplementedValidatorServer()
+	mustEmbedUnimplementedValidatorServiceServer()
 }
 
-// UnimplementedValidatorServer must be embedded to have
+// UnimplementedValidatorServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedValidatorServer struct{}
+type UnimplementedValidatorServiceServer struct{}
 
-func (UnimplementedValidatorServer) ConnectBlock(context.Context, *ConnectBlockRequest) (*ConnectBlockResponse, error) {
+func (UnimplementedValidatorServiceServer) ConnectBlock(context.Context, *ConnectBlockRequest) (*ConnectBlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConnectBlock not implemented")
 }
-func (UnimplementedValidatorServer) DisconnectBlock(context.Context, *DisconnectBlockRequest) (*DisconnectBlockResponse, error) {
+func (UnimplementedValidatorServiceServer) DisconnectBlock(context.Context, *DisconnectBlockRequest) (*DisconnectBlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DisconnectBlock not implemented")
 }
-func (UnimplementedValidatorServer) GetCoinbasePSBT(context.Context, *GetCoinbasePSBTRequest) (*GetCoinbasePSBTResponse, error) {
+func (UnimplementedValidatorServiceServer) GetCoinbasePSBT(context.Context, *GetCoinbasePSBTRequest) (*GetCoinbasePSBTResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCoinbasePSBT not implemented")
 }
-func (UnimplementedValidatorServer) GetDeposits(context.Context, *GetDepositsRequest) (*GetDepositsResponse, error) {
+func (UnimplementedValidatorServiceServer) GetDeposits(context.Context, *GetDepositsRequest) (*GetDepositsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDeposits not implemented")
 }
-func (UnimplementedValidatorServer) GetSidechainProposals(context.Context, *GetSidechainProposalsRequest) (*GetSidechainProposalsResponse, error) {
+func (UnimplementedValidatorServiceServer) GetSidechainProposals(context.Context, *GetSidechainProposalsRequest) (*GetSidechainProposalsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSidechainProposals not implemented")
 }
-func (UnimplementedValidatorServer) GetSidechains(context.Context, *GetSidechainsRequest) (*GetSidechainsResponse, error) {
+func (UnimplementedValidatorServiceServer) GetSidechains(context.Context, *GetSidechainsRequest) (*GetSidechainsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSidechains not implemented")
 }
-func (UnimplementedValidatorServer) GetCtip(context.Context, *GetCtipRequest) (*GetCtipResponse, error) {
+func (UnimplementedValidatorServiceServer) GetCtip(context.Context, *GetCtipRequest) (*GetCtipResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCtip not implemented")
 }
-func (UnimplementedValidatorServer) GetMainBlockHeight(context.Context, *GetMainBlockHeightRequest) (*GetMainBlockHeightResponse, error) {
+func (UnimplementedValidatorServiceServer) GetMainBlockHeight(context.Context, *GetMainBlockHeightRequest) (*GetMainBlockHeightResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMainBlockHeight not implemented")
 }
-func (UnimplementedValidatorServer) GetMainChainTip(context.Context, *GetMainChainTipRequest) (*GetMainChainTipResponse, error) {
+func (UnimplementedValidatorServiceServer) GetMainChainTip(context.Context, *GetMainChainTipRequest) (*GetMainChainTipResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMainChainTip not implemented")
 }
-func (UnimplementedValidatorServer) mustEmbedUnimplementedValidatorServer() {}
-func (UnimplementedValidatorServer) testEmbeddedByValue()                   {}
+func (UnimplementedValidatorServiceServer) mustEmbedUnimplementedValidatorServiceServer() {}
+func (UnimplementedValidatorServiceServer) testEmbeddedByValue()                          {}
 
-// UnsafeValidatorServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ValidatorServer will
+// UnsafeValidatorServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ValidatorServiceServer will
 // result in compilation errors.
-type UnsafeValidatorServer interface {
-	mustEmbedUnimplementedValidatorServer()
+type UnsafeValidatorServiceServer interface {
+	mustEmbedUnimplementedValidatorServiceServer()
 }
 
-func RegisterValidatorServer(s grpc.ServiceRegistrar, srv ValidatorServer) {
-	// If the following call pancis, it indicates UnimplementedValidatorServer was
+func RegisterValidatorServiceServer(s grpc.ServiceRegistrar, srv ValidatorServiceServer) {
+	// If the following call pancis, it indicates UnimplementedValidatorServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&Validator_ServiceDesc, srv)
+	s.RegisterService(&ValidatorService_ServiceDesc, srv)
 }
 
-func _Validator_ConnectBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_ConnectBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ConnectBlockRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).ConnectBlock(ctx, in)
+		return srv.(ValidatorServiceServer).ConnectBlock(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_ConnectBlock_FullMethodName,
+		FullMethod: ValidatorService_ConnectBlock_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).ConnectBlock(ctx, req.(*ConnectBlockRequest))
+		return srv.(ValidatorServiceServer).ConnectBlock(ctx, req.(*ConnectBlockRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Validator_DisconnectBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_DisconnectBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DisconnectBlockRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).DisconnectBlock(ctx, in)
+		return srv.(ValidatorServiceServer).DisconnectBlock(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_DisconnectBlock_FullMethodName,
+		FullMethod: ValidatorService_DisconnectBlock_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).DisconnectBlock(ctx, req.(*DisconnectBlockRequest))
+		return srv.(ValidatorServiceServer).DisconnectBlock(ctx, req.(*DisconnectBlockRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Validator_GetCoinbasePSBT_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_GetCoinbasePSBT_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetCoinbasePSBTRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).GetCoinbasePSBT(ctx, in)
+		return srv.(ValidatorServiceServer).GetCoinbasePSBT(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_GetCoinbasePSBT_FullMethodName,
+		FullMethod: ValidatorService_GetCoinbasePSBT_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).GetCoinbasePSBT(ctx, req.(*GetCoinbasePSBTRequest))
+		return srv.(ValidatorServiceServer).GetCoinbasePSBT(ctx, req.(*GetCoinbasePSBTRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Validator_GetDeposits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_GetDeposits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetDepositsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).GetDeposits(ctx, in)
+		return srv.(ValidatorServiceServer).GetDeposits(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_GetDeposits_FullMethodName,
+		FullMethod: ValidatorService_GetDeposits_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).GetDeposits(ctx, req.(*GetDepositsRequest))
+		return srv.(ValidatorServiceServer).GetDeposits(ctx, req.(*GetDepositsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Validator_GetSidechainProposals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_GetSidechainProposals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSidechainProposalsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).GetSidechainProposals(ctx, in)
+		return srv.(ValidatorServiceServer).GetSidechainProposals(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_GetSidechainProposals_FullMethodName,
+		FullMethod: ValidatorService_GetSidechainProposals_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).GetSidechainProposals(ctx, req.(*GetSidechainProposalsRequest))
+		return srv.(ValidatorServiceServer).GetSidechainProposals(ctx, req.(*GetSidechainProposalsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Validator_GetSidechains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_GetSidechains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSidechainsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).GetSidechains(ctx, in)
+		return srv.(ValidatorServiceServer).GetSidechains(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_GetSidechains_FullMethodName,
+		FullMethod: ValidatorService_GetSidechains_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).GetSidechains(ctx, req.(*GetSidechainsRequest))
+		return srv.(ValidatorServiceServer).GetSidechains(ctx, req.(*GetSidechainsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Validator_GetCtip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_GetCtip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetCtipRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).GetCtip(ctx, in)
+		return srv.(ValidatorServiceServer).GetCtip(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_GetCtip_FullMethodName,
+		FullMethod: ValidatorService_GetCtip_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).GetCtip(ctx, req.(*GetCtipRequest))
+		return srv.(ValidatorServiceServer).GetCtip(ctx, req.(*GetCtipRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Validator_GetMainBlockHeight_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_GetMainBlockHeight_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetMainBlockHeightRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).GetMainBlockHeight(ctx, in)
+		return srv.(ValidatorServiceServer).GetMainBlockHeight(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_GetMainBlockHeight_FullMethodName,
+		FullMethod: ValidatorService_GetMainBlockHeight_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).GetMainBlockHeight(ctx, req.(*GetMainBlockHeightRequest))
+		return srv.(ValidatorServiceServer).GetMainBlockHeight(ctx, req.(*GetMainBlockHeightRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Validator_GetMainChainTip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ValidatorService_GetMainChainTip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetMainChainTipRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ValidatorServer).GetMainChainTip(ctx, in)
+		return srv.(ValidatorServiceServer).GetMainChainTip(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Validator_GetMainChainTip_FullMethodName,
+		FullMethod: ValidatorService_GetMainChainTip_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ValidatorServer).GetMainChainTip(ctx, req.(*GetMainChainTipRequest))
+		return srv.(ValidatorServiceServer).GetMainChainTip(ctx, req.(*GetMainChainTipRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Validator_ServiceDesc is the grpc.ServiceDesc for Validator service.
+// ValidatorService_ServiceDesc is the grpc.ServiceDesc for ValidatorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Validator_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "validator.Validator",
-	HandlerType: (*ValidatorServer)(nil),
+var ValidatorService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "validator.v1.ValidatorService",
+	HandlerType: (*ValidatorServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "ConnectBlock",
-			Handler:    _Validator_ConnectBlock_Handler,
+			Handler:    _ValidatorService_ConnectBlock_Handler,
 		},
 		{
 			MethodName: "DisconnectBlock",
-			Handler:    _Validator_DisconnectBlock_Handler,
+			Handler:    _ValidatorService_DisconnectBlock_Handler,
 		},
 		{
 			MethodName: "GetCoinbasePSBT",
-			Handler:    _Validator_GetCoinbasePSBT_Handler,
+			Handler:    _ValidatorService_GetCoinbasePSBT_Handler,
 		},
 		{
 			MethodName: "GetDeposits",
-			Handler:    _Validator_GetDeposits_Handler,
+			Handler:    _ValidatorService_GetDeposits_Handler,
 		},
 		{
 			MethodName: "GetSidechainProposals",
-			Handler:    _Validator_GetSidechainProposals_Handler,
+			Handler:    _ValidatorService_GetSidechainProposals_Handler,
 		},
 		{
 			MethodName: "GetSidechains",
-			Handler:    _Validator_GetSidechains_Handler,
+			Handler:    _ValidatorService_GetSidechains_Handler,
 		},
 		{
 			MethodName: "GetCtip",
-			Handler:    _Validator_GetCtip_Handler,
+			Handler:    _ValidatorService_GetCtip_Handler,
 		},
 		{
 			MethodName: "GetMainBlockHeight",
-			Handler:    _Validator_GetMainBlockHeight_Handler,
+			Handler:    _ValidatorService_GetMainBlockHeight_Handler,
 		},
 		{
 			MethodName: "GetMainChainTip",
-			Handler:    _Validator_GetMainChainTip_Handler,
+			Handler:    _ValidatorService_GetMainChainTip_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
