@@ -302,12 +302,10 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
 	}
 
-	/*
-		sidechain, err = s.getSidechain(ctx, slot)
-		if err != nil {
-			return nil, err
-		}
-	*/
+	sidechain, err := s.getSidechain(ctx, slot)
+	if err != nil {
+		return nil, err
+	}
 
 	tx := wire.NewMsgTx(wire.TxVersion)
 
@@ -321,13 +319,11 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, err
 	}
 
-	/*
-		// Add extra drivechain-inputs (previous sidechain ctip)
-		err = s.addDepositInputs(tx, sidechain)
-		if err != nil {
-			return nil, err
-		}
-	*/
+	// Add extra drivechain-inputs (previous sidechain ctip)
+	err = s.addDepositInputs(tx, sidechain)
+	if err != nil {
+		return nil, err
+	}
 
 	// Add extra drivechain-outputs (new sidechain UTXO, address data script)
 	err = s.addDepositOutputs(tx, sidechainScript, amount, depositAddress)
@@ -365,6 +361,11 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 func (s *Server) addDepositInputs(
 	tx *wire.MsgTx, sidechain *drivechainv1.ListSidechainsResponse_Sidechain,
 ) error {
+	if sidechain.ChaintipTxid == "" {
+		// There are currently no active sidechains, so we can't add this
+		// input yet.
+		return nil
+	}
 
 	hash, err := chainhash.NewHashFromStr(sidechain.ChaintipTxid)
 	if err != nil {
@@ -391,14 +392,18 @@ func (s *Server) addDepositOutputs(
 	if err != nil {
 		return fmt.Errorf("create deposit address script: %w", err)
 	}
+
+	// This UTXO does not need an amount. It only exists to indicate which address
+	// should receive money on the sidechain.
 	depositOutput := &wire.TxOut{
 		Value:    int64(0),
 		PkScript: depositAddrScript,
 	}
 	tx.AddTxOut(depositOutput)
 
-	// Add the new sidechain output, which includes what sidechain slot we're depositing to.
-	// The amount is the new full amount of the sidechain.
+	// Each sidechain stores all its BTC in one UTXO, and will be valid as long as
+	// the new CTIP has more coins in it, than before. We ensure that is the case
+	// by adding the current chaintip amount to the amount we're depositing.
 	newSidechainBalance := btcutil.Amount(0) + amount
 	sidechainUTXO := wire.NewTxOut(int64(newSidechainBalance), sidechainScript)
 	tx.AddTxOut(sidechainUTXO)
@@ -477,17 +482,31 @@ func (s *Server) fundTx(
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) getSidechain(ctx context.Context, slot int64) (*drivechainv1.ListSidechainsResponse_Sidechain, error) {
-	activeSidechains, err := s.drivechain.ListSidechains(ctx, connect.NewRequest(&drivechainv1.ListSidechainsRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("find active sidechains: %w", err)
-	}
+	return &drivechainv1.ListSidechainsResponse_Sidechain{
+		Title:         "Testchain",
+		Description:   "This is a testchain",
+		Nversion:      0,
+		Hashid1:       "",
+		Hashid2:       "",
+		Slot:          0,
+		AmountSatoshi: 100_000,
+		ChaintipTxid:  "",
+		ChaintipVout:  0,
+	}, nil
 
-	activeSidechain, found := lo.Find(activeSidechains.Msg.Sidechains, func(item *drivechainv1.ListSidechainsResponse_Sidechain) bool {
-		return item.Slot == int32(slot)
-	})
-	if !found {
-		return nil, fmt.Errorf("sidechain is not active")
-	}
+	/*
+		activeSidechains, err := s.drivechain.ListSidechains(ctx, connect.NewRequest(&drivechainv1.ListSidechainsRequest{}))
+		if err != nil {
+			return nil, fmt.Errorf("find active sidechains: %w", err)
+		}
 
-	return activeSidechain, nil
+		activeSidechain, found := lo.Find(activeSidechains.Msg.Sidechains, func(item *drivechainv1.ListSidechainsResponse_Sidechain) bool {
+			return item.Slot == int32(slot)
+		})
+		if !found {
+			return nil, fmt.Errorf("sidechain is not active")
+		}
+
+		return activeSidechain, nil
+	*/
 }
