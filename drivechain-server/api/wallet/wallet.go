@@ -13,7 +13,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/drivechain"
 	drivechainv1 "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
+	enforcer "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -35,7 +35,7 @@ var _ rpc.WalletServiceHandler = new(Server)
 // New creates a new Server and starts the balance update loop
 func New(
 	ctx context.Context, wallet *bdk.Wallet, bitcoind *coreproxy.Bitcoind,
-	enforcer enforcer.ValidatorClient, drivechain drivechainv1connect.DrivechainServiceClient,
+	enforcer enforcer.ValidatorServiceClient, drivechain drivechainv1connect.DrivechainServiceClient,
 
 ) *Server {
 	s := &Server{
@@ -49,7 +49,7 @@ func New(
 type Server struct {
 	wallet     *bdk.Wallet
 	bitcoind   *coreproxy.Bitcoind
-	enforcer   enforcer.ValidatorClient
+	enforcer   enforcer.ValidatorServiceClient
 	drivechain drivechainv1connect.DrivechainServiceClient
 
 	balance atomic.Value

@@ -25,6 +25,10 @@ class DrivechainServiceClient extends $grpc.Client {
       '/drivechain.v1.DrivechainService/ListSidechains',
       ($2.ListSidechainsRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $2.ListSidechainsResponse.fromBuffer(value),);
+  static final _$listSidechainProposals = $grpc.ClientMethod<$2.ListSidechainProposalsRequest, $2.ListSidechainProposalsResponse>(
+      '/drivechain.v1.DrivechainService/ListSidechainProposals',
+      ($2.ListSidechainProposalsRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $2.ListSidechainProposalsResponse.fromBuffer(value),);
 
   DrivechainServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -34,6 +38,10 @@ class DrivechainServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$2.ListSidechainsResponse> listSidechains($2.ListSidechainsRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listSidechains, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$2.ListSidechainProposalsResponse> listSidechainProposals($2.ListSidechainProposalsRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$listSidechainProposals, request, options: options);
   }
 }
 
@@ -49,11 +57,23 @@ abstract class DrivechainServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $2.ListSidechainsRequest.fromBuffer(value),
         ($2.ListSidechainsResponse value) => value.writeToBuffer(),),);
+    $addMethod($grpc.ServiceMethod<$2.ListSidechainProposalsRequest, $2.ListSidechainProposalsResponse>(
+        'ListSidechainProposals',
+        listSidechainProposals_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $2.ListSidechainProposalsRequest.fromBuffer(value),
+        ($2.ListSidechainProposalsResponse value) => value.writeToBuffer(),),);
   }
 
   $async.Future<$2.ListSidechainsResponse> listSidechains_Pre($grpc.ServiceCall call, $async.Future<$2.ListSidechainsRequest> request) async {
     return listSidechains(call, await request);
   }
 
+  $async.Future<$2.ListSidechainProposalsResponse> listSidechainProposals_Pre($grpc.ServiceCall call, $async.Future<$2.ListSidechainProposalsRequest> request) async {
+    return listSidechainProposals(call, await request);
+  }
+
   $async.Future<$2.ListSidechainsResponse> listSidechains($grpc.ServiceCall call, $2.ListSidechainsRequest request);
+  $async.Future<$2.ListSidechainProposalsResponse> listSidechainProposals($grpc.ServiceCall call, $2.ListSidechainProposalsRequest request);
 }
