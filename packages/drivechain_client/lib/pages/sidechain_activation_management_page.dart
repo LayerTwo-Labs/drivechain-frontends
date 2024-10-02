@@ -19,16 +19,7 @@ class SidechainActivationManagementPage extends StatelessWidget {
     return ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
       viewModelBuilder: () => SidechainActivationManagementViewModel(),
       builder: (context, model, child) => QtPage(
-        child: Column(
-          children: [
-            // ... (existing widgets)
-            QtButton(
-              onPressed: () => showSidechainProposalModal(context),
-              child: SailText.primary13('Create Sidechain Proposal'),
-            ),
-            // ... (existing widgets)
-          ],
-        ),
+        child: SidechainActivationManagementView(),
       ),
     );
   }
@@ -162,7 +153,7 @@ class SidechainActivationManagementView extends StatelessWidget {
                 children: [
                   QtButton(
                     onPressed: () {
-                      showSnackBar(context, 'Not implemented');
+                      showSidechainProposalModal(context);
                     },
                     child: SailText.primary13('Create Sidechain Proposal'),
                   ),
@@ -202,16 +193,3 @@ Future<void> showSidechainActivationManagementModal(BuildContext context) {
   );
 }
 
-Future<void> showSidechainProposalModal(BuildContext context) async {
-  await showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
-          child: const SidechainProposalView(),
-        ),
-      );
-    },
-  );
-}
