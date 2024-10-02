@@ -11,6 +11,16 @@ class SailTextFormField extends StatelessWidget {
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final int? maxLines;
+  final TextFieldSize? size;
+  final bool enabled;
+  final FocusNode? focusNode;
+  final String? suffix;
+  final Widget? suffixWidget;
+  final String? prefix;
+  final Widget? prefixWidget;
+  final Widget? prefixIcon;
+  final BoxConstraints? prefixIconConstraints;
+
   const SailTextFormField({
     super.key,
     this.controller,
@@ -22,48 +32,89 @@ class SailTextFormField extends StatelessWidget {
     this.validator,
     this.onChanged,
     this.maxLines,
+    this.size,
+    this.enabled = true,
+    this.focusNode,
+    this.suffix,
+    this.suffixWidget,
+    this.prefix,
+    this.prefixWidget,
+    this.prefixIcon,
+    this.prefixIconConstraints,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final padding = size != TextFieldSize.regular
+        ? EdgeInsets.all(
+            theme.dense ? SailStyleValues.padding08 : SailStyleValues.padding15,
+          )
+        : EdgeInsets.symmetric(
+            vertical: theme.dense ? SailStyleValues.padding05 : SailStyleValues.padding10,
+            horizontal: theme.dense ? SailStyleValues.padding10 : SailStyleValues.padding15,
+          );
+    final textSize = size == TextFieldSize.regular ? 15.0 : 12.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label != null) 
+        if (label != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: SailText.primary13(label!),
+            padding: const EdgeInsets.only(
+              left: 2,
+            ),
+            child: SailText.secondary13(label!),
           ),
         TextFormField(
+           enabled: enabled,
+          mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
+          cursorColor: theme.colors.primary,
+          cursorHeight: textSize,
           controller: controller,
+          focusNode: focusNode,
+          readOnly: readOnly,
           decoration: InputDecoration(
-            hintText: hintText,
-            errorText: errorText,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: context.sailTheme.colors.formFieldBorder),
-            ),
+            errorBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: context.sailTheme.colors.formFieldBorder),
+              borderRadius: const BorderRadius.all(Radius.circular(6)),
+              borderSide: BorderSide(color: theme.colors.formFieldBorder),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: context.sailTheme.colors.primary),
+              borderRadius: const BorderRadius.all(Radius.circular(6)),
+              borderSide: BorderSide(color: theme.colors.formFieldBorder),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: context.sailTheme.colors.error),
+            suffixStyle: TextStyle(
+              color: SailTheme.of(context).colors.textTertiary,
+              fontSize: textSize,
             ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: context.sailTheme.colors.error),
+            suffixText: suffix,
+            suffix: suffixWidget == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(left: SailStyleValues.padding08),
+                    child: suffixWidget,
+                  ),
+            prefixStyle: TextStyle(
+              color: SailTheme.of(context).colors.textTertiary,
+              fontSize: textSize,
             ),
+            prefixText: prefix,
+            prefix: prefixWidget,
+            prefixIcon: prefixIcon,
+            prefixIconConstraints: prefixIconConstraints,
+            fillColor: SailTheme.of(context).colors.backgroundSecondary,
             filled: true,
-            fillColor: context.sailTheme.colors.formField,
+            contentPadding: padding,
+            isDense: theme.dense,
+            hintText: hintText,
+            hintStyle: TextStyle(
+              color: SailTheme.of(context).colors.textTertiary,
+              fontSize: textSize,
+            ),
           ),
           style: SailStyleValues.thirteen,
-          readOnly: readOnly,
           keyboardType: keyboardType,
           validator: validator,
           onChanged: onChanged,
