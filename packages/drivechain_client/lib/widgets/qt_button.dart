@@ -29,7 +29,7 @@ class QtButton extends StatelessWidget {
     return SizedBox(
       height: large ? 32 : 24,
       child: SailRawButton(
-        backgroundColor: context.sailTheme.colors.background,
+        backgroundColor: context.sailTheme.colors.backgroundSecondary,
         disabled: !enabled,
         loading: loading,
         onPressed: enabled ? onPressed : null,
