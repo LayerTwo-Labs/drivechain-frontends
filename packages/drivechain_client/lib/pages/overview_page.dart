@@ -225,8 +225,6 @@ class BalancesViewModel extends BaseViewModel {
   BalancesViewModel() {
     balanceProvider.addListener(notifyListeners);
     blockchainProvider.addListener(notifyListeners);
-
-    setErrorForObject('balance', 'test');
   }
 
   void errorListener() {
@@ -236,9 +234,6 @@ class BalancesViewModel extends BaseViewModel {
     if (blockchainProvider.error != null) {
       setErrorForObject('blockchain', blockchainProvider.error);
     }
-
-    // test
-    setErrorForObject('balance', 'test');
   }
 
   int get confirmedBalance => balanceProvider.balance;
