@@ -272,7 +272,13 @@ func (w *Wallet) CreateTransaction(
 }
 
 func (w *Wallet) SignTransaction(ctx context.Context, psbt string) (string, error) {
-	res, err := w.execWallet(ctx, "--verbose", "sign", "--psbt", psbt)
+	res, err := w.execWallet(ctx,
+		"--verbose", "sign",
+		"--psbt", psbt,
+		// The signer should trust the witness_utxo, even if the
+		// non_witness_utxo hasn’t been provided
+		"--trust_witness_utxo=true",
+	)
 	if err != nil {
 		return "", fmt.Errorf("sign transaction: %w", err)
 	}

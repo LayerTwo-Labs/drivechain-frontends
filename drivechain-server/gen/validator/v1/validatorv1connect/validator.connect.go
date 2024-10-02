@@ -84,6 +84,7 @@ type ValidatorServiceClient interface {
 	GetDeposits(context.Context, *connect.Request[v1.GetDepositsRequest]) (*connect.Response[v1.GetDepositsResponse], error)
 	GetSidechainProposals(context.Context, *connect.Request[v1.GetSidechainProposalsRequest]) (*connect.Response[v1.GetSidechainProposalsResponse], error)
 	GetSidechains(context.Context, *connect.Request[v1.GetSidechainsRequest]) (*connect.Response[v1.GetSidechainsResponse], error)
+	// Fetch the chain tip (ctip) for a specific sidechain.
 	GetCtip(context.Context, *connect.Request[v1.GetCtipRequest]) (*connect.Response[v1.GetCtipResponse], error)
 	GetMainBlockHeight(context.Context, *connect.Request[v1.GetMainBlockHeightRequest]) (*connect.Response[v1.GetMainBlockHeightResponse], error)
 	GetMainChainTip(context.Context, *connect.Request[v1.GetMainChainTipRequest]) (*connect.Response[v1.GetMainChainTipResponse], error)
@@ -222,6 +223,7 @@ type ValidatorServiceHandler interface {
 	GetDeposits(context.Context, *connect.Request[v1.GetDepositsRequest]) (*connect.Response[v1.GetDepositsResponse], error)
 	GetSidechainProposals(context.Context, *connect.Request[v1.GetSidechainProposalsRequest]) (*connect.Response[v1.GetSidechainProposalsResponse], error)
 	GetSidechains(context.Context, *connect.Request[v1.GetSidechainsRequest]) (*connect.Response[v1.GetSidechainsResponse], error)
+	// Fetch the chain tip (ctip) for a specific sidechain.
 	GetCtip(context.Context, *connect.Request[v1.GetCtipRequest]) (*connect.Response[v1.GetCtipResponse], error)
 	GetMainBlockHeight(context.Context, *connect.Request[v1.GetMainBlockHeightRequest]) (*connect.Response[v1.GetMainBlockHeightResponse], error)
 	GetMainChainTip(context.Context, *connect.Request[v1.GetMainChainTipRequest]) (*connect.Response[v1.GetMainChainTipResponse], error)

@@ -11,8 +11,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/drivechain"
-	drivechainpb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
 	drivechainrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
@@ -20,7 +20,6 @@ import (
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
@@ -265,7 +264,7 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 			},
 		})
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get raw transaction: %w", err))
+			return nil, fmt.Errorf("failed to get raw transaction: %w", err)
 		}
 
 		for _, deposit := range deposits {
@@ -287,24 +286,29 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	// TODO: this is an external address. Would be nice to be possible to
+	// fetch an internal address
+	changeAddress, _, err := s.wallet.GetNewAddress(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	slot, depositAddress, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
 	if err != nil {
-		return nil, fmt.Errorf("invalid deposit address: %w", err)
+		err := fmt.Errorf("invalid deposit address: %w", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	amount, err := btcutil.NewAmount(c.Msg.Amount)
-	if err != nil || amount < 0 {
-		return nil, fmt.Errorf("invalid amount, must be a BTC-amount greater than zero")
+	if err != nil || amount <= 0 {
+		err := errors.New("invalid amount, must be a BTC-amount greater than zero")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	fee, err := btcutil.NewAmount(c.Msg.Fee)
 	if err != nil || fee < 0 {
-		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
-	}
-
-	sidechain, err := s.getSidechain(ctx, slot)
-	if err != nil {
-		return nil, err
+		err := fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	tx := wire.NewMsgTx(wire.TxVersion)
@@ -314,22 +318,37 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("create sidechain deposit script: %w", err)
 	}
 
+	zerolog.Ctx(ctx).Debug().
+		Msgf("create sidechain deposit: created sidechain script: %s", string(sidechainScript))
+
 	// First fund the tx using UTXO's from our own wallet
-	if err := s.fundTx(ctx, tx, amount, fee); err != nil {
+	if err := s.fundTx(ctx, tx, amount, fee, changeAddress); err != nil {
+		return nil, err
+	}
+
+	zerolog.Ctx(ctx).Debug().
+		Msgf("create sidechain deposit: funded TX")
+
+	chainTip, err := s.getSidechainTip(ctx, slot)
+	if err != nil {
 		return nil, err
 	}
 
 	// Add extra drivechain-inputs (previous sidechain ctip)
-	err = s.addDepositInputs(tx, sidechain)
-	if err != nil {
+	if err := s.addDepositInputs(tx, chainTip); err != nil {
 		return nil, err
 	}
 
 	// Add extra drivechain-outputs (new sidechain UTXO, address data script)
-	err = s.addDepositOutputs(tx, sidechainScript, amount, depositAddress)
-	if err != nil {
+	if err := s.addDepositOutputs(
+		ctx, tx, sidechainScript, amount, depositAddress,
+		chainTip,
+	); err != nil {
 		return nil, err
 	}
+
+	zerolog.Ctx(ctx).Debug().
+		Msg("create sidechain deposit: added deposit outputs")
 
 	unsignedPSBT, err := psbt.NewFromUnsignedTx(tx)
 	if err != nil {
@@ -341,7 +360,11 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("encode psbt: %w", err)
 	}
 
-	fmt.Println(base64PSBT)
+	zerolog.Ctx(ctx).Debug().
+		Any("psbt.ins", unsignedPSBT.Inputs).
+		Any("psbt.outs", unsignedPSBT.Outputs).
+		Str("psbt.raw", base64PSBT).
+		Msg("create sidechain deposit: signing PSBT")
 
 	signedPSBT, err := s.wallet.SignTransaction(ctx, base64PSBT)
 	if err != nil {
@@ -358,16 +381,17 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	}), nil
 }
 
+// https://github.com/LayerTwo-Labs/bip300301_wallet/blob/f2177c32f7854980e43df242f0634a01be3618bf/src/wallet.rs#L749-L768
 func (s *Server) addDepositInputs(
-	tx *wire.MsgTx, sidechain *drivechainpb.ListSidechainsResponse_Sidechain,
+	tx *wire.MsgTx, sidechain *validatorpb.Ctip,
 ) error {
-	if sidechain.ChaintipTxid == "" {
+	if string(sidechain.Txid) == "" {
 		// There are currently no active sidechains, so we can't add this
 		// input yet.
 		return nil
 	}
 
-	hash, err := chainhash.NewHashFromStr(sidechain.ChaintipTxid)
+	hash, err := chainhash.NewHash(sidechain.Txid)
 	if err != nil {
 		return fmt.Errorf("invalid chaintip txid: %w", err)
 	}
@@ -376,15 +400,15 @@ func (s *Server) addDepositInputs(
 	// We therefore have to add the previous sidechains CTIP as an input.
 	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{
 		Hash:  *hash,
-		Index: sidechain.ChaintipVout,
+		Index: sidechain.Vout,
 	}, nil, nil))
 
 	return nil
 }
 
 func (s *Server) addDepositOutputs(
-	tx *wire.MsgTx, sidechainScript []byte, amount btcutil.Amount,
-	sidechainDepositAddress string,
+	ctx context.Context, tx *wire.MsgTx, sidechainScript []byte, amount btcutil.Amount,
+	sidechainDepositAddress string, sidechainTip *validatorpb.Ctip,
 ) error {
 
 	// Indicate what address we're depositing to (on the sidechain)
@@ -395,18 +419,30 @@ func (s *Server) addDepositOutputs(
 
 	// This UTXO does not need an amount. It only exists to indicate which address
 	// should receive money on the sidechain.
-	depositOutput := &wire.TxOut{
+	// https://github.com/LayerTwo-Labs/bip300301_wallet/blob/f2177c32f7854980e43df242f0634a01be3618bf/src/wallet.rs#L747C28-L747C45
+	tx.AddTxOut(&wire.TxOut{
 		Value:    int64(0),
 		PkScript: depositAddrScript,
-	}
-	tx.AddTxOut(depositOutput)
+	})
+
+	zerolog.Ctx(ctx).Debug().
+		Hex("script", depositAddrScript).
+		Msgf("add deposit outputs: added deposit address script")
 
 	// Each sidechain stores all its BTC in one UTXO, and will be valid as long as
 	// the new CTIP has more coins in it, than before. We ensure that is the case
 	// by adding the current chaintip amount to the amount we're depositing.
-	newSidechainBalance := btcutil.Amount(0) + amount
-	sidechainUTXO := wire.NewTxOut(int64(newSidechainBalance), sidechainScript)
-	tx.AddTxOut(sidechainUTXO)
+	//
+	// https://github.com/LayerTwo-Labs/bip300301_wallet/blob/f2177c32f7854980e43df242f0634a01be3618bf/src/wallet.rs#L746
+	newSidechainBalance := btcutil.Amount(sidechainTip.Value) + amount
+	tx.AddTxOut(&wire.TxOut{
+		PkScript: sidechainScript,
+		Value:    int64(newSidechainBalance),
+	})
+
+	zerolog.Ctx(ctx).Debug().
+		Hex("script", sidechainScript).
+		Msgf("add deposit outputs: added sidechain UTXO")
 
 	return nil
 }
@@ -418,6 +454,7 @@ func (s *Server) addDepositOutputs(
 // https://github.com/btcsuite/btcd/blob/67b8efd3ba53b60ff0eba5d79babe2c3d82f6c54/integration/rpctest/memwallet.go#L384
 func (s *Server) fundTx(
 	ctx context.Context, tx *wire.MsgTx, amt btcutil.Amount, fee btcutil.Amount,
+	changeAddress btcutil.Address,
 ) error {
 
 	unspents, err := s.wallet.ListUnspent(ctx)
@@ -436,6 +473,9 @@ func (s *Server) fundTx(
 
 	for _, utxo := range unspents {
 		amtSelected += btcutil.Amount(utxo.Amount)
+
+		zerolog.Ctx(ctx).Debug().
+			Msgf("fund tx: adding input: %s", utxo.Outpoint)
 
 		// Add the selected output to the transaction
 		tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{
@@ -456,20 +496,20 @@ func (s *Server) fundTx(
 		// reserved for it.
 		changeVal := amtSelected - amt - fee
 		if changeVal > 0 {
-			changeAddress, err := btcutil.DecodeAddress("tb1qaavrmxsyl9vdt9k9t8dydmwf73e0ruwcmfzyzw", &chaincfg.SigNetParams)
-			if err != nil {
-				return fmt.Errorf("get new address: %w", err)
-			}
 
 			pkScript, err := txscript.PayToAddrScript(changeAddress)
 			if err != nil {
 				return err
 			}
-			changeOutput := &wire.TxOut{
+
+			zerolog.Ctx(ctx).Debug().
+				Hex("script", pkScript).
+				Msgf("fund tx: adding change output to %s", changeAddress)
+
+			tx.AddTxOut(&wire.TxOut{
 				Value:    int64(changeVal),
 				PkScript: pkScript,
-			}
-			tx.AddTxOut(changeOutput)
+			})
 		}
 
 		return nil
@@ -480,33 +520,22 @@ func (s *Server) fundTx(
 	return fmt.Errorf("not enough funds for coin selection")
 }
 
-// ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) getSidechain(ctx context.Context, slot int64) (*drivechainpb.ListSidechainsResponse_Sidechain, error) {
-	return &drivechainpb.ListSidechainsResponse_Sidechain{
-		Title:         "Testchain",
-		Description:   "This is a testchain",
-		Nversion:      0,
-		Hashid1:       "",
-		Hashid2:       "",
-		Slot:          0,
-		AmountSatoshi: 100_000,
-		ChaintipTxid:  "",
-		ChaintipVout:  0,
+func (s *Server) getSidechainTip(ctx context.Context, slot uint32) (*validatorpb.Ctip, error) {
+	// No sidechains are activated currently, so there's no ctips either.
+	return &validatorpb.Ctip{
+		Txid:  nil,
+		Vout:  0,
+		Value: 0,
 	}, nil
 
 	/*
-		activeSidechains, err := s.drivechain.ListSidechains(ctx, connect.NewRequest(&drivechainv1.ListSidechainsRequest{}))
+		chainTip, err := s.enforcer.GetCtip(ctx, connect.NewRequest(&validatorpb.GetCtipRequest{
+			SidechainNumber: wrapperspb.UInt32(slot),
+		}))
 		if err != nil {
-			return nil, fmt.Errorf("find active sidechains: %w", err)
+			return nil, err
 		}
 
-		activeSidechain, found := lo.Find(activeSidechains.Msg.Sidechains, func(item *drivechainv1.ListSidechainsResponse_Sidechain) bool {
-			return item.Slot == int32(slot)
-		})
-		if !found {
-			return nil, fmt.Errorf("sidechain is not active")
-		}
-
-		return activeSidechain, nil
+		return chainTip.Msg.Ctip, nil
 	*/
 }

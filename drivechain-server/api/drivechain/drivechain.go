@@ -12,6 +12,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ rpc.DrivechainServiceHandler = new(Server)
@@ -71,7 +72,7 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Msg.Sidechains))
 	for _, sidechain := range sidechains.Msg.Sidechains {
 		ctipResponse, err := s.enforcer.GetCtip(ctx, connect.NewRequest(
-			&validatorpb.GetCtipRequest{SidechainNumber: sidechain.SidechainNumber},
+			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber)},
 		))
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Uint32("sidechain", sidechain.SidechainNumber).Msg("failed to get ctip")

@@ -14,15 +14,15 @@ import (
 // It returns the slot number, the Bitcoin address, the checksum, and any error encountered.
 // The function validates the format, parses the slot, decodes the Bitcoin address,
 // and verifies the checksum to ensure the integrity of the deposit address.
-func DecodeDepositAddress(depositAddress string) (int64, string, string, error) {
+func DecodeDepositAddress(depositAddress string) (uint32, string, string, error) {
 	parts := strings.Split(depositAddress, "_")
 	if len(parts) != 3 {
 		return 0, "", "", errors.New("invalid format, expected slot_address_checksum")
 	}
 
 	slotStr := strings.TrimPrefix(parts[0], "s")
-	slot, err := strconv.ParseInt(slotStr, 10, 64)
-	if err != nil || slot < 0 || slot > 254 {
+	slot, err := strconv.ParseUint(slotStr, 10, 64)
+	if err != nil || slot > 254 {
 		return 0, "", "", fmt.Errorf("slot must be a whole number between 0 and 254: %w", err)
 	}
 
@@ -36,5 +36,5 @@ func DecodeDepositAddress(depositAddress string) (int64, string, string, error) 
 		return 0, "", "", fmt.Errorf("invalid checksum: expected %s, got %s", calculatedChecksum, checksum)
 	}
 
-	return slot, address, checksum, nil
+	return uint32(slot), address, checksum, nil
 }
