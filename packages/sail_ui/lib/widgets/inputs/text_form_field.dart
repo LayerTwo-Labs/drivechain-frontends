@@ -64,7 +64,7 @@ class SailTextFormField extends StatelessWidget {
             padding: const EdgeInsets.only(
               left: 2,
             ),
-            child: SailText.secondary13(label!),
+            child: SailText.primary12(label!),
           ),
         TextFormField(
            enabled: enabled,
@@ -75,8 +75,16 @@ class SailTextFormField extends StatelessWidget {
           focusNode: focusNode,
           readOnly: readOnly,
           decoration: InputDecoration(
-            errorBorder: InputBorder.none,
+            errorBorder: OutlineInputBorder(
+              borderRadius: const BorderRadius.all(Radius.circular(6)),
+              borderSide: BorderSide(color: theme.colors.error),
+            ),
             disabledBorder: InputBorder.none,
+            focusedErrorBorder:  OutlineInputBorder(
+              
+              borderRadius: const BorderRadius.all(Radius.circular(6)),
+              borderSide: BorderSide(color: theme.colors.error),
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: const BorderRadius.all(Radius.circular(6)),
               borderSide: BorderSide(color: theme.colors.formFieldBorder),
