@@ -33,6 +33,8 @@ class SidechainActivationManagementViewModel extends BaseViewModel {
       .cast<ListSidechainsResponse_Sidechain>()
       .toList();
 
+  List<SidechainProposal> get sidechainProposals => sidechainProvider.sidechainProposals;
+
   SidechainActivationManagementViewModel() {
     sidechainProvider.addListener(notifyListeners);
   }
@@ -127,18 +129,20 @@ class SidechainActivationManagementView extends StatelessWidget {
                 SailTableHeaderCell(child: SailText.primary12('Fails')),
                 SailTableHeaderCell(child: SailText.primary12('Hash')),
               ],
-              rowBuilder: (context, row, selected) => [
-                // TODO: Get actual data
-                SailTableCell(child: SailText.primary12('Row $row, Col 1')),
-                SailTableCell(child: SailText.primary12('Row $row, Col 2')),
-                SailTableCell(child: SailText.primary12('Row $row, Col 3')),
-                SailTableCell(child: SailText.primary12('Row $row, Col 4')),
-                SailTableCell(child: SailText.primary12('Row $row, Col 5')),
-                SailTableCell(child: SailText.primary12('Row $row, Col 6')),
-                SailTableCell(child: SailText.primary12('Row $row, Col 7')),
-                SailTableCell(child: SailText.primary12('Row $row, Col 8')),
-              ],
-              rowCount: 10, // Example row count
+              rowBuilder: (context, row, selected) {
+                final proposal = model.sidechainProposals[row];
+                return [
+                  SailTableCell(child: SailText.primary12(proposal.voteCount.toString())),
+                  SailTableCell(child: SailText.primary12(proposal.slot.toString())),
+                  SailTableCell(child: SailText.primary12('Replacement')),
+                  SailTableCell(child: SailText.primary12(proposal.data.toString())),
+                  SailTableCell(child: SailText.primary12('Description')),
+                  SailTableCell(child: SailText.primary12(proposal.proposalAge.toString())),
+                  SailTableCell(child: SailText.primary12(proposal.proposalHeight.toString())),
+                  SailTableCell(child: SailText.primary12(proposal.dataHash)),
+                ];
+              },
+              rowCount: model.sidechainProposals.length,
               columnCount: 8,
               columnWidths: const [50, 50, 100, 100, 200, 50, 50, 200],
             ),

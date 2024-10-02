@@ -15,6 +15,8 @@ class SidechainProvider extends ChangeNotifier {
   // are actually in use.
   List<Sidechain?> sidechains = List.filled(255, null);
 
+  List<SidechainProposal> sidechainProposals = [];
+
   bool _isFetching = false;
 
   String? error;
@@ -32,6 +34,7 @@ class SidechainProvider extends ChangeNotifier {
 
     try {
       final newSidechains = await api.drivechain.listSidechains();
+      final newSidechainProposals = await api.drivechain.listSidechainProposals();
 
       // Create a new list with 255 slots
       List<Sidechain?> updatedSidechains = List.filled(255, null);
@@ -44,8 +47,9 @@ class SidechainProvider extends ChangeNotifier {
         }
       }
 
-      if (_dataHasChanged(updatedSidechains)) {
+      if (_dataHasChanged(sidechains, updatedSidechains) || _dataHasChanged(sidechainProposals, newSidechainProposals)) {
         sidechains = updatedSidechains;
+        sidechainProposals = newSidechainProposals;
         error = null;
         notifyListeners();
       }
@@ -57,8 +61,8 @@ class SidechainProvider extends ChangeNotifier {
     }
   }
 
-  bool _dataHasChanged(List<Sidechain?> newSidechains) {
-    if (!listEquals(sidechains, newSidechains)) {
+  bool _dataHasChanged<T>(List<T> oldData, List<T> newData) {
+    if (!listEquals(oldData, newData)) {
       return true;
     }
     return false;
