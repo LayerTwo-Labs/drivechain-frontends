@@ -42,6 +42,7 @@ abstract class BitcoindAPI {
 
 abstract class DrivechainAPI {
   Future<List<ListSidechainsResponse_Sidechain>> listSidechains();
+  Future<List<SidechainProposal>> listSidechainProposals();
 }
 
 class APILive extends API {
@@ -248,6 +249,17 @@ class _DrivechainAPILive implements DrivechainAPI {
     } catch (e) {
       log.e('Error listing sidechains: $e');
       throw DrivechainException('Failed to list sidechains: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<SidechainProposal>> listSidechainProposals() async {
+    try {
+      final response = await _client.listSidechainProposals(ListSidechainProposalsRequest());
+      return response.proposals;
+    } catch (e) {
+      log.e('Error listing sidechain proposals: $e');
+      throw DrivechainException('Failed to list sidechain proposals: ${e.toString()}');
     }
   }
 }
