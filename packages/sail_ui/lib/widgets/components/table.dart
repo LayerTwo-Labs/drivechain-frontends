@@ -103,146 +103,149 @@ class _SailTableState extends State<SailTable> {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    var themeAltColor = theme.colors.backgroundSecondary;
+    var themeAltColor = theme.colors.background;
     var altBgColor = widget.altBackgroundColor ?? themeAltColor;
 
     var isWindows = context.isWindows;
     var horizontalRowPadding = _horizontalRowPadding(context);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        double totalColumnSpace = constraints.maxWidth - horizontalRowPadding * 2;
-        bool hasHorizontalOverflow = _totalColumnWidths > totalColumnSpace;
-
-        double extraSpace = 0;
-        if (!hasHorizontalOverflow) {
-          extraSpace = totalColumnSpace - _totalColumnWidths;
-        }
-
-        Widget innerListView;
-
-        if (widget.shrinkWrap) {
-          var children = <Widget>[];
-          for (int i = 0; i < widget.rowCount; i++) {
-            var backgroundColor = i % 2 == 1 ? altBgColor : null;
-            var isLastRow = i == widget.rowCount - 1;
-            children.add(
-              _TableRow(
-                cells: widget.rowBuilder(context, i, _selectedRow == i),
-                widths: _widths,
-                height: widget.cellHeight,
-                selected: _selectedRow == i,
-                backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                hasHorizontalOverflow: hasHorizontalOverflow,
-                horizontalRowPadding: horizontalRowPadding,
-                grid: widget.drawGrid,
-                extraSpace: extraSpace,
-                drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
-                onPressed: () {
-                  if (widget.selectableRows) {
-                    setState(() {
-                      _selectedRow = i;
-                    });
-                    if (widget.onSelectedRow != null) {
-                      widget.onSelectedRow!(i);
+    return Container(
+      color: theme.colors.backgroundSecondary,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          double totalColumnSpace = constraints.maxWidth - horizontalRowPadding * 2;
+          bool hasHorizontalOverflow = _totalColumnWidths > totalColumnSpace;
+      
+          double extraSpace = 0;
+          if (!hasHorizontalOverflow) {
+            extraSpace = totalColumnSpace - _totalColumnWidths;
+          }
+      
+          Widget innerListView;
+      
+          if (widget.shrinkWrap) {
+            var children = <Widget>[];
+            for (int i = 0; i < widget.rowCount; i++) {
+              var backgroundColor = i % 2 == 1 ? altBgColor : null;
+              var isLastRow = i == widget.rowCount - 1;
+              children.add(
+                _TableRow(
+                  cells: widget.rowBuilder(context, i, _selectedRow == i),
+                  widths: _widths,
+                  height: widget.cellHeight,
+                  selected: _selectedRow == i,
+                  backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
+                  hasHorizontalOverflow: hasHorizontalOverflow,
+                  horizontalRowPadding: horizontalRowPadding,
+                  grid: widget.drawGrid,
+                  extraSpace: extraSpace,
+                  drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
+                  onPressed: () {
+                    if (widget.selectableRows) {
+                      setState(() {
+                        _selectedRow = i;
+                      });
+                      if (widget.onSelectedRow != null) {
+                        widget.onSelectedRow!(i);
+                      }
                     }
-                  }
-                },
+                  },
+                ),
+              );
+            }
+      
+            innerListView = Column(
+              mainAxisSize: MainAxisSize.min,
+              children: children,
+            );
+          } else {
+            innerListView = ListView.builder(
+              padding: EdgeInsets.symmetric(
+                vertical: isWindows || widget.drawGrid ? 0 : 6,
               ),
+              shrinkWrap: widget.shrinkWrap,
+              physics: widget.physics,
+              itemCount: widget.rowCount,
+              controller: _verticalController,
+              prototypeItem: SizedBox(
+                width: hasHorizontalOverflow ? _totalColumnWidths + horizontalRowPadding * 2 : constraints.maxWidth,
+                height: widget.cellHeight,
+              ),
+              itemBuilder: (context, row) {
+                var backgroundColor = row % 2 == 1 ? altBgColor : null;
+                var isLastRow = row == widget.rowCount - 1;
+                return _TableRow(
+                  cells: widget.rowBuilder(context, row, false),
+                  widths: _widths,
+                  height: widget.cellHeight,
+                  selected: _selectedRow == row,
+                  backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
+                  hasHorizontalOverflow: hasHorizontalOverflow,
+                  horizontalRowPadding: horizontalRowPadding,
+                  grid: widget.drawGrid,
+                  extraSpace: extraSpace,
+                  drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
+                  onPressed: () {
+                    if (widget.selectableRows) {
+                      setState(() {
+                        _selectedRow = row;
+                      });
+                      if (widget.onSelectedRow != null) {
+                        widget.onSelectedRow!(row);
+                      }
+                    }
+                  },
+                );
+              },
             );
           }
-
-          innerListView = Column(
-            mainAxisSize: MainAxisSize.min,
-            children: children,
-          );
-        } else {
-          innerListView = ListView.builder(
-            padding: EdgeInsets.symmetric(
-              vertical: isWindows || widget.drawGrid ? 0 : 6,
-            ),
-            shrinkWrap: widget.shrinkWrap,
-            physics: widget.physics,
-            itemCount: widget.rowCount,
-            controller: _verticalController,
-            prototypeItem: SizedBox(
-              width: hasHorizontalOverflow ? _totalColumnWidths + horizontalRowPadding * 2 : constraints.maxWidth,
-              height: widget.cellHeight,
-            ),
-            itemBuilder: (context, row) {
-              var backgroundColor = row % 2 == 1 ? altBgColor : null;
-              var isLastRow = row == widget.rowCount - 1;
-              return _TableRow(
-                cells: widget.rowBuilder(context, row, false),
-                widths: _widths,
-                height: widget.cellHeight,
-                selected: _selectedRow == row,
-                backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                hasHorizontalOverflow: hasHorizontalOverflow,
-                horizontalRowPadding: horizontalRowPadding,
-                grid: widget.drawGrid,
-                extraSpace: extraSpace,
-                drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
-                onPressed: () {
-                  if (widget.selectableRows) {
-                    setState(() {
-                      _selectedRow = row;
-                    });
-                    if (widget.onSelectedRow != null) {
-                      widget.onSelectedRow!(row);
-                    }
-                  }
-                },
-              );
-            },
-          );
-        }
-
-        return Scrollbar(
-          controller: _horizontalController,
-          scrollbarOrientation: ScrollbarOrientation.bottom,
-          child: SingleChildScrollView(
+      
+          return Scrollbar(
             controller: _horizontalController,
-            scrollDirection: Axis.horizontal,
-            physics: const ClampingScrollPhysics(),
-            child: SizedBox(
-              width: hasHorizontalOverflow ? _totalColumnWidths + horizontalRowPadding * 2 : constraints.maxWidth,
-              child: Column(
-                children: [
-                  _TableHeader(
-                    widths: _widths,
-                    decoration: widget.headerDecoration ??
-                        BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: theme.colors.divider, width: 1),
+            scrollbarOrientation: ScrollbarOrientation.bottom,
+            child: SingleChildScrollView(
+              controller: _horizontalController,
+              scrollDirection: Axis.horizontal,
+              physics: const ClampingScrollPhysics(),
+              child: SizedBox(
+                width: hasHorizontalOverflow ? _totalColumnWidths + horizontalRowPadding * 2 : constraints.maxWidth,
+                child: Column(
+                  children: [
+                    _TableHeader(
+                      widths: _widths,
+                      decoration: widget.headerDecoration ??
+                          BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: theme.colors.divider, width: 1),
+                            ),
+                            color: theme.colors.background,
                           ),
-                          color: theme.colors.background,
-                        ),
-                    cells: widget.headerBuilder(context),
-                    grid: widget.drawGrid,
-                    resizableColumns: widget.resizableColumns,
-                    horizontalRowPadding: horizontalRowPadding,
-                    extraSpace: extraSpace,
-                    onStartResizeColumn: _onStartResizeColumn,
-                    onEndResizeColumn: _onEndResizeColumn,
-                    onResizedColumn: _onResizedColumn,
-                  ),
-                  if (!widget.shrinkWrap)
-                    Expanded(
-                      child: ScrollConfiguration(
-                        behavior: ScrollConfiguration.of(context).copyWith(
-                          scrollbars: !hasHorizontalOverflow,
-                        ),
-                        child: innerListView,
-                      ),
+                      cells: widget.headerBuilder(context),
+                      grid: widget.drawGrid,
+                      resizableColumns: widget.resizableColumns,
+                      horizontalRowPadding: horizontalRowPadding,
+                      extraSpace: extraSpace,
+                      onStartResizeColumn: _onStartResizeColumn,
+                      onEndResizeColumn: _onEndResizeColumn,
+                      onResizedColumn: _onResizedColumn,
                     ),
-                  if (widget.shrinkWrap) innerListView,
-                ],
+                    if (!widget.shrinkWrap)
+                      Expanded(
+                        child: ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(context).copyWith(
+                            scrollbars: !hasHorizontalOverflow,
+                          ),
+                          child: innerListView,
+                        ),
+                      ),
+                    if (widget.shrinkWrap) innerListView,
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
