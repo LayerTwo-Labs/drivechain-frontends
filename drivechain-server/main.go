@@ -64,7 +64,7 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
-	enforcer, err := dial.BIPEnforcer(ctx, conf.EnforcerHost)
+	enforcer, err := dial.Enforcer(ctx, conf.EnforcerHost)
 	if err != nil {
 		return fmt.Errorf("connect to enforcer: %w", err)
 	}

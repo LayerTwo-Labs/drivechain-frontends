@@ -15,8 +15,8 @@ import 'dart:core' as $core;
 import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart' as $1;
-import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pb.dart' as $0;
+import '../../google/protobuf/empty.pb.dart' as $1;
+import 'bitcoind.pb.dart' as $0;
 
 export 'bitcoind.pb.dart';
 
@@ -25,29 +25,29 @@ class BitcoindServiceClient extends $grpc.Client {
   static final _$listUnconfirmedTransactions = $grpc.ClientMethod<$0.ListUnconfirmedTransactionsRequest, $0.ListUnconfirmedTransactionsResponse>(
       '/bitcoind.v1.BitcoindService/ListUnconfirmedTransactions',
       ($0.ListUnconfirmedTransactionsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListUnconfirmedTransactionsResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $0.ListUnconfirmedTransactionsResponse.fromBuffer(value));
   static final _$listRecentBlocks = $grpc.ClientMethod<$0.ListRecentBlocksRequest, $0.ListRecentBlocksResponse>(
       '/bitcoind.v1.BitcoindService/ListRecentBlocks',
       ($0.ListRecentBlocksRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListRecentBlocksResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $0.ListRecentBlocksResponse.fromBuffer(value));
   static final _$getBlockchainInfo = $grpc.ClientMethod<$1.Empty, $0.GetBlockchainInfoResponse>(
       '/bitcoind.v1.BitcoindService/GetBlockchainInfo',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.GetBlockchainInfoResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $0.GetBlockchainInfoResponse.fromBuffer(value));
   static final _$listPeers = $grpc.ClientMethod<$1.Empty, $0.ListPeersResponse>(
       '/bitcoind.v1.BitcoindService/ListPeers',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListPeersResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $0.ListPeersResponse.fromBuffer(value));
   static final _$estimateSmartFee = $grpc.ClientMethod<$0.EstimateSmartFeeRequest, $0.EstimateSmartFeeResponse>(
       '/bitcoind.v1.BitcoindService/EstimateSmartFee',
       ($0.EstimateSmartFeeRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.EstimateSmartFeeResponse.fromBuffer(value),);
+      ($core.List<$core.int> value) => $0.EstimateSmartFeeResponse.fromBuffer(value));
 
   BitcoindServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
-      $core.Iterable<$grpc.ClientInterceptor>? interceptors,})
+      $core.Iterable<$grpc.ClientInterceptor>? interceptors})
       : super(channel, options: options,
-        interceptors: interceptors,);
+        interceptors: interceptors);
 
   $grpc.ResponseFuture<$0.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions($0.ListUnconfirmedTransactionsRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listUnconfirmedTransactions, request, options: options);
@@ -81,35 +81,35 @@ abstract class BitcoindServiceBase extends $grpc.Service {
         false,
         false,
         ($core.List<$core.int> value) => $0.ListUnconfirmedTransactionsRequest.fromBuffer(value),
-        ($0.ListUnconfirmedTransactionsResponse value) => value.writeToBuffer(),),);
+        ($0.ListUnconfirmedTransactionsResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ListRecentBlocksRequest, $0.ListRecentBlocksResponse>(
         'ListRecentBlocks',
         listRecentBlocks_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.ListRecentBlocksRequest.fromBuffer(value),
-        ($0.ListRecentBlocksResponse value) => value.writeToBuffer(),),);
+        ($0.ListRecentBlocksResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$1.Empty, $0.GetBlockchainInfoResponse>(
         'GetBlockchainInfo',
         getBlockchainInfo_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($0.GetBlockchainInfoResponse value) => value.writeToBuffer(),),);
+        ($0.GetBlockchainInfoResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$1.Empty, $0.ListPeersResponse>(
         'ListPeers',
         listPeers_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($0.ListPeersResponse value) => value.writeToBuffer(),),);
+        ($0.ListPeersResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.EstimateSmartFeeRequest, $0.EstimateSmartFeeResponse>(
         'EstimateSmartFee',
         estimateSmartFee_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.EstimateSmartFeeRequest.fromBuffer(value),
-        ($0.EstimateSmartFeeResponse value) => value.writeToBuffer(),),);
+        ($0.EstimateSmartFeeResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.ListUnconfirmedTransactionsRequest> request) async {

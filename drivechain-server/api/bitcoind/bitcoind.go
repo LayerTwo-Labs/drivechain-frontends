@@ -9,7 +9,7 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/bitcoind/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/bitcoind/v1/bitcoindv1connect"
-	enforcer "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/enforcer"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
@@ -22,7 +22,7 @@ var _ rpc.BitcoindServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
-	bitcoind *coreproxy.Bitcoind, enforcer enforcer.ValidatorServiceClient,
+	bitcoind *coreproxy.Bitcoind, enforcer validatorrpc.ValidatorServiceClient,
 ) *Server {
 	s := &Server{
 		bitcoind: bitcoind, enforcer: enforcer,
@@ -32,7 +32,7 @@ func New(
 
 type Server struct {
 	bitcoind *coreproxy.Bitcoind
-	enforcer enforcer.ValidatorServiceClient
+	enforcer validatorrpc.ValidatorServiceClient
 }
 
 // EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
