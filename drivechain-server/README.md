@@ -12,9 +12,29 @@ Building and running:
 ```bash
 $ just build
 
-# This assumes you're running drivechain-qt, with the
-# default Drivechain Launcher settings.
+# This assumes you're running drivechaind in signet mode.
+# A modified version of bitcoin core where the only change
+# is 60 second blocktimes. You can also start this with:
+# $ docker compose up mainchain
+# Or download directly from https://github.com/barebitcoin/bitcoin-patched
 #
+$ drivechaind \
+  -rpcuser=user \
+  -rpcpassword=password \
+  -server \
+  -signet \
+  -signetblocktime=60 \
+  -signetchallenge=00141f61d57873d70d28bd28b3c9f9d6bf818b5a0d6a \
+  -listen
+
+#
+# Then, start the bip300301_enforcer
+$ ./enforcer/bin/enforcer \
+  --node-rpc-password=password \
+  --node-rpc-user=user \
+  --node-rpc-port=38332
+
+# Finally, start the server.
 # We're connecting to a public Electrum server, running
 # /without/ SSL.
 #

@@ -1,7 +1,7 @@
 build-go:
     go build -o drivechain-server .
 
-build: build-bdk-cli build-go
+build: build-bdk-cli build-enforcer build-go
 
 clean:
     rm -rf ./bdk/bin
@@ -40,4 +40,24 @@ build-bdk-cli:
         echo "bdk-cli has been built to ./bdk/bin/bdk-cli"
     else
         echo "bdk-cli already exists, skipping build"
+    fi
+
+build-enforcer:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f "./enforcer/bin/bip300301_enforcer" ]; then
+        echo "Building enforcer..."
+        mkdir -p ./enforcer/bin
+        if ! command -v rustc &> /dev/null; then
+            echo "Error: Rust is not installed. Please install Rust and try again."
+            exit 1
+        fi
+        cargo install \
+        --git https://github.com/LayerTwo-Labs/bip300301_enforcer.git \
+        --branch master \
+        --root ./enforcer \
+        --bin bip300301_enforcer
+        echo "enforcer has been built to ./enforcer/bin/bip300301_enforcer"
+    else
+        echo "enforcer already exists, skipping build"
     fi
