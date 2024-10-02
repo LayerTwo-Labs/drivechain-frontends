@@ -42,6 +42,17 @@ class SidechainActivationManagementViewModel extends BaseViewModel {
     sidechainProvider.removeListener(notifyListeners);
     super.dispose();
   }
+
+  // New placeholder functions
+  void ack() {
+    // TODO: Implement ACK functionality
+    print('ACK function called');
+  }
+
+  void nack() {
+    // TODO: Implement NACK functionality
+    print('NACK function called');
+  }
 }
 
 class SidechainActivationManagementView extends StatelessWidget {
@@ -139,12 +150,12 @@ class SidechainActivationManagementView extends StatelessWidget {
               Row(
                 children: [
                   QtButton(
-                    onPressed: () {},
+                    onPressed: () => model.ack(),
                     child: SailText.primary13('ACK'),
                   ),
                   const SizedBox(width: SailStyleValues.padding15),
                   QtButton(
-                    onPressed: () {},
+                    onPressed: () => model.nack(),
                     child: SailText.primary13('NACK'),
                   ),
                 ],
@@ -192,4 +203,3 @@ Future<void> showSidechainActivationManagementModal(BuildContext context) {
     },
   );
 }
-
