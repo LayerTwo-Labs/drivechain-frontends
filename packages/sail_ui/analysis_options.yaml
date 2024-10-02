@@ -31,4 +31,5 @@ analyzer:
         - "**/*.pbenum.dart"
         - "**/*.pbserver.dart"
         - "**/*.pbjson.dart"
+        - "**/*.pbgrpc.dart"
         - '**/build/**'
