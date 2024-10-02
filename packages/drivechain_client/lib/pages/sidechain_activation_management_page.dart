@@ -45,15 +45,14 @@ class SidechainActivationManagementViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  // New placeholder functions
-  void ack() {
-    // TODO: Implement ACK functionality
-    print('ACK function called');
+  // TODO: Implement the actual API call to ACK the sidechain
+  void ack(BuildContext context) {
+    showSnackBar(context, 'ACK not implemented');
   }
 
-  void nack() {
-    // TODO: Implement NACK functionality
-    print('NACK function called');
+  // TODO: Implement the actual API call to NACK the sidechain
+  void nack(BuildContext context) {
+    showSnackBar(context, 'NACK not implemented');
   }
 }
 
@@ -79,6 +78,7 @@ class SidechainActivationManagementView extends StatelessWidget {
               borderRadius: BorderRadius.circular(4.0),
             ),
             height: 150,
+            
             child: SailTable(
               headerBuilder: (context) => [
                 SailTableHeaderCell(child: SailText.primary12('#')),
@@ -88,6 +88,8 @@ class SidechainActivationManagementView extends StatelessWidget {
                 //TODO: SailTableHeaderCell(child: SailText.primary12('CTIP Index')),
               ],
               rowBuilder: (context, row, selected) {
+                // TODO: Revise the data, it's not yet clear what is what. The columns is taken straight from
+                // drivechain-qt and might not be available in the API.
                 final sidechain = model.activeSidechains[row];
                 return [
                   SailTableCell(child: SailText.primary12('${sidechain.slot}')),
@@ -131,6 +133,8 @@ class SidechainActivationManagementView extends StatelessWidget {
               ],
               rowBuilder: (context, row, selected) {
                 final proposal = model.sidechainProposals[row];
+                // TODO: Revise the data, it's not yet clear what is what. The columns is taken straight from
+                // drivechain-qt and might not be available in the API.
                 return [
                   SailTableCell(child: SailText.primary12(proposal.voteCount.toString())),
                   SailTableCell(child: SailText.primary12(proposal.slot.toString())),
@@ -154,12 +158,12 @@ class SidechainActivationManagementView extends StatelessWidget {
               Row(
                 children: [
                   QtButton(
-                    onPressed: () => model.ack(),
+                    onPressed: () => model.ack(context),
                     child: SailText.primary13('ACK'),
                   ),
                   const SizedBox(width: SailStyleValues.padding15),
                   QtButton(
-                    onPressed: () => model.nack(),
+                    onPressed: () => model.nack(context),
                     child: SailText.primary13('NACK'),
                   ),
                 ],
