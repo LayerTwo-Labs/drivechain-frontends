@@ -28,6 +28,9 @@ class SailTable extends StatefulWidget {
     this.onColumnWidthsChanged,
     this.drawLastRowsBorder = true,
     this.onScrollApproachingEnd,
+    this.sortColumnIndex,
+    this.sortAscending,
+    this.onSort,
     super.key,
   });
 
@@ -54,6 +57,9 @@ class SailTable extends StatefulWidget {
   final bool drawLastRowsBorder;
   final void Function(List<double> widths)? onColumnWidthsChanged;
   final VoidCallback? onScrollApproachingEnd;
+  final int? sortColumnIndex;
+  final bool? sortAscending;
+  final Function(int columnIndex, bool ascending)? onSort;
 
   @override
   State<SailTable> createState() => _SailTableState();
@@ -68,6 +74,9 @@ class _SailTableState extends State<SailTable> {
 
   final _widths = <double>[];
 
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+
   double _horizontalRowPadding(BuildContext context) {
     return context.isWindows || widget.drawGrid ? 0.0 : 8.0;
   }
@@ -76,6 +85,8 @@ class _SailTableState extends State<SailTable> {
   void initState() {
     super.initState();
     _selectedRow = widget.selectedRow;
+    _sortColumnIndex = widget.sortColumnIndex;
+    _sortAscending = widget.sortAscending ?? true;
     for (var width in widget.columnWidths) {
       _widths.add(width);
     }
@@ -100,6 +111,14 @@ class _SailTableState extends State<SailTable> {
     }
   }
 
+  void _sort(int columnIndex, bool ascending) {
+    setState(() {
+      _sortColumnIndex = columnIndex;
+      _sortAscending = ascending;
+    });
+    widget.onSort?.call(columnIndex, ascending);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -115,14 +134,14 @@ class _SailTableState extends State<SailTable> {
         builder: (context, constraints) {
           double totalColumnSpace = constraints.maxWidth - horizontalRowPadding * 2;
           bool hasHorizontalOverflow = _totalColumnWidths > totalColumnSpace;
-      
+
           double extraSpace = 0;
           if (!hasHorizontalOverflow) {
             extraSpace = totalColumnSpace - _totalColumnWidths;
           }
-      
+
           Widget innerListView;
-      
+
           if (widget.shrinkWrap) {
             var children = <Widget>[];
             for (int i = 0; i < widget.rowCount; i++) {
@@ -153,7 +172,7 @@ class _SailTableState extends State<SailTable> {
                 ),
               );
             }
-      
+
             innerListView = Column(
               mainAxisSize: MainAxisSize.min,
               children: children,
@@ -199,7 +218,16 @@ class _SailTableState extends State<SailTable> {
               },
             );
           }
-      
+
+          // Update the header builder to include sort indicators and functionality
+          List<Widget> header = widget.headerBuilder(context);
+          for (int i = 0; i < header.length; i++) {
+            header[i] = GestureDetector(
+              onTap: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
+              child: header[i],
+            );
+          }
+
           return Scrollbar(
             controller: _horizontalController,
             scrollbarOrientation: ScrollbarOrientation.bottom,
@@ -220,7 +248,7 @@ class _SailTableState extends State<SailTable> {
                             ),
                             color: theme.colors.background,
                           ),
-                      cells: widget.headerBuilder(context),
+                      cells: header,
                       grid: widget.drawGrid,
                       resizableColumns: widget.resizableColumns,
                       horizontalRowPadding: horizontalRowPadding,
@@ -639,19 +667,24 @@ class SailTableHeaderCell extends StatelessWidget {
     required this.child,
     this.alignment = Alignment.centerLeft,
     this.padding = const EdgeInsets.symmetric(horizontal: 8),
+    this.onSort,
     super.key,
   });
 
   final Widget child;
   final Alignment alignment;
   final EdgeInsets padding;
+  final VoidCallback? onSort;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      alignment: alignment,
-      padding: padding,
-      child: child,
+    return GestureDetector(
+      onTap: onSort,
+      child: Container(
+        alignment: alignment,
+        padding: padding,
+        child: child,
+      ),
     );
   }
 }
