@@ -340,9 +340,9 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
               ],
             ),
             QtButton(
-              enabled: viewModel.addressController.text != '' ||
-                  viewModel.depositAmountController.text != '' ||
-                  viewModel.feeController.text != '',
+              disabled: viewModel.addressController.text == '' ||
+                  viewModel.depositAmountController.text == '' ||
+                  viewModel.feeController.text == '',
               onPressed: () => viewModel.deposit(context),
               loading: viewModel.isBusy,
               child: SailText.primary12('Deposit'),

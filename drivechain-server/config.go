@@ -17,7 +17,7 @@ type Config struct {
 	BitcoinCoreRpcUser     string `long:"bitcoincore.rpcuser"`
 	BitcoinCoreRpcPassword string `long:"bitcoincore.rpcpassword"`
 
-	ElectrumHost  string `long:"electrum.host" description:"host:port for connecting to Electrum server" default:"electrum.blockstream.info:60002"`
+	ElectrumHost  string `long:"electrum.host" description:"host:port for connecting to Electrum server" default:"drivechain.live:50001"`
 	ElectrumNoSSL bool   `long:"electrum.no-ssl" description:"Avoid using SSL for connecting to Electrum"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
