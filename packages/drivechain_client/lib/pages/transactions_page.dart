@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pb.dart';
 import 'package:drivechain_client/providers/transactions_provider.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -26,9 +27,6 @@ class TransactionsPage extends StatelessWidget {
                   width: double.infinity,
                   child: TransactionTable(
                     entries: model.entries,
-                    sortColumn: model.sortColumn,
-                    sortAscending: model.sortAscending,
-                    onSort: model.onSort,
                   ),
                 ),
               ),
@@ -40,122 +38,55 @@ class TransactionsPage extends StatelessWidget {
   }
 }
 
-class TransactionTable extends StatelessWidget {
+class TransactionTable extends StatefulWidget {
   final List<Transaction> entries;
-  final String sortColumn;
-  final bool sortAscending;
-  final Function(String) onSort;
 
   const TransactionTable({
     super.key,
     required this.entries,
-    required this.sortColumn,
-    required this.sortAscending,
-    required this.onSort,
+
   });
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: DataTable(
-        decoration: BoxDecoration(
-          color: context.sailTheme.colors.backgroundSecondary,
-          border: Border.all(
-            color: context.sailTheme.colors.formFieldBorder,
-            width: 1.0,
-          ),
-        ),
-        border: TableBorder.symmetric(
-          inside: BorderSide(
-            color: context.sailTheme.colors.formFieldBorder,
-            width: 1.0,
-          ),
-        ),
-        headingRowColor: WidgetStateProperty.all(
-          context.sailTheme.colors.formFieldBorder,
-        ),
-        // Set the sort arrow color using the theme's primary color
-        columnSpacing: SailStyleValues.padding15,
-        headingRowHeight: 24.0,
-        dataTextStyle: SailStyleValues.twelve,
-        headingTextStyle: SailStyleValues.ten,
-        dividerThickness: 0,
-        dataRowMaxHeight: 48.0,
-        columns: [
-          DataColumn(
-            label: SailText.primary12('Conf'),
-            onSort: (_, __) => onSort('conf'),
-            headingRowAlignment: MainAxisAlignment.spaceBetween,
-          ),
-          DataColumn(
-            label: SailText.primary12('Date'),
-            onSort: (_, __) => onSort('date'),
-            headingRowAlignment: MainAxisAlignment.spaceBetween,
-          ),
-          DataColumn(
-            label: SailText.primary12('TxID'),
-            onSort: (_, __) => onSort('txid'),
-            headingRowAlignment: MainAxisAlignment.spaceBetween,
-          ),
-          DataColumn(
-            label: SailText.primary12('Amount'),
-            onSort: (_, __) => onSort('amount'),
-            headingRowAlignment: MainAxisAlignment.spaceBetween,
-          ),
-        ],
-        rows: entries
-            .map(
-              (entry) => DataRow(
-                color: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return context.sailTheme.colors.primary.withOpacity(0.5);
-                  }
-                  return Colors.transparent;
-                }),
-                cells: [
-                  DataCell(SailText.primary12(entry.confirmationTime.height.toString())),
-                  DataCell(SailText.primary12(entry.confirmationTime.timestamp.toDateTime().format())),
-                  DataCell(SailText.primary12(entry.txid)),
-                  DataCell(SailText.primary12(formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt())))),
-                ],
-              ),
-            )
-            .toList(),
-        sortColumnIndex: ['conf', 'date', 'txid', 'amount'].indexOf(sortColumn),
-        sortAscending: sortAscending,
-      ),
-    );
-  }
+  State<TransactionTable> createState() => _TransactionTableState();
 }
 
-class AddressMenuViewModel extends BaseViewModel {
-  final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
-  List<Transaction> get entries => _txProvider.walletTransactions
-      .where(
-        (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
-      )
-      .toList();
-
+class _TransactionTableState extends State<TransactionTable> {
   String sortColumn = 'conf';
   bool sortAscending = true;
+  List<Transaction> entries = [];
 
-  final TextEditingController searchController = TextEditingController();
-
-  AddressMenuViewModel() {
-    loadEntries();
-    searchController.addListener(notifyListeners);
+  @override
+  void initState() {
+    super.initState();
+    entries = widget.entries;
   }
 
-  Future<void> loadEntries() async {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if(!listEquals(entries, widget.entries)) {
+      entries = widget.entries;
+      onSort(sortColumn);
+    }
+  }
+
+  void onSort(String column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
     sortEntries();
-    notifyListeners();
+    setState(() {});
   }
 
   void sortEntries() {
     entries.sort((a, b) {
       dynamic aValue = '';
       dynamic bValue = '';
-
+      
       switch (sortColumn) {
         case 'conf':
           aValue = a.confirmationTime.height;
@@ -174,20 +105,72 @@ class AddressMenuViewModel extends BaseViewModel {
           bValue = b.receivedSatoshi;
           break;
       }
-
+      
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
 
-  void onSort(String column) {
-    if (sortColumn == column) {
-      sortAscending = !sortAscending;
-    } else {
-      sortColumn = column;
-      sortAscending = true;
-    }
-    sortEntries();
-    notifyListeners();
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      headerBuilder: (context) => [
+        SailTableHeaderCell(
+          child: SailText.primary12('Conf'),
+          onSort: () => onSort('conf'),
+        ),
+        SailTableHeaderCell(
+          child: SailText.primary12('Date'),
+          onSort: () => onSort('date'),
+        ),
+        SailTableHeaderCell(
+          child: SailText.primary12('TxID'),
+          onSort: () => onSort('txid'),
+        ),
+        SailTableHeaderCell(
+          child: SailText.primary12('Amount'),
+          onSort: () => onSort('amount'),
+        ),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = widget.entries[row];
+        return [
+          SailTableCell(child: SailText.primary12(entry.confirmationTime.height.toString())),
+          SailTableCell(child: SailText.primary12(entry.confirmationTime.timestamp.toDateTime().format())),
+          SailTableCell(child: SailText.primary12(entry.txid)),
+          SailTableCell(child: SailText.primary12(formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt())))),
+        ];
+      },
+      rowCount: widget.entries.length,
+      columnCount: 4,
+      columnWidths: const [100, 150, 200, 150],
+      headerDecoration: BoxDecoration(
+        color: context.sailTheme.colors.formFieldBorder,
+      ),
+      drawGrid: true,
+      sortColumnIndex: ['conf', 'date', 'txid', 'amount'].indexOf(sortColumn),
+      sortAscending: sortAscending,
+      onSort: (columnIndex, ascending) {
+        onSort(['conf', 'date', 'txid', 'amount'][columnIndex]);
+      },
+    );
+  }
+}
+
+class AddressMenuViewModel extends BaseViewModel {
+  final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
+  List<Transaction> get entries => _txProvider.walletTransactions
+      .where(
+        (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
+      )
+      .toList();
+
+  String sortColumn = 'conf';
+  bool sortAscending = true;
+
+  final TextEditingController searchController = TextEditingController();
+
+  AddressMenuViewModel() {
+    searchController.addListener(notifyListeners);
   }
 
   void onChoosePressed(BuildContext context) {

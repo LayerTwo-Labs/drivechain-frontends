@@ -371,55 +371,31 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     return QtContainer(
       tight: true,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            decoration: BoxDecoration(
-              color: context.sailTheme.colors.backgroundSecondary,
-              border: Border.all(
-                color: context.sailTheme.colors.formFieldBorder,
-                width: 1.0,
-              ),
-            ),
-            border: TableBorder.symmetric(
-              inside: BorderSide(
-                color: context.sailTheme.colors.formFieldBorder,
-                width: 1.0,
-              ),
-            ),
-            headingRowColor: WidgetStateProperty.all(
-              context.sailTheme.colors.formFieldBorder,
-            ),
-            columnSpacing: SailStyleValues.padding15,
-            headingRowHeight: 24.0,
-            dataTextStyle: SailStyleValues.twelve,
-            headingTextStyle: SailStyleValues.ten,
-            dividerThickness: 0,
-            dataRowMaxHeight: 48.0,
-            columns: [
-              DataColumn(label: SailText.primary12('SC #')),
-              DataColumn(label: SailText.primary12('Amount')),
-              DataColumn(label: SailText.primary12('Txid')),
-              DataColumn(label: SailText.primary12('Address')),
-              DataColumn(label: SailText.primary12('Visible on SC?')),
-            ],
-            rows: deposits
-                .map(
-                  (deposit) => DataRow(
-                    cells: [
-                      DataCell(SailText.primary12(viewModel._selectedIndex.toString())),
-                      DataCell(SailText.primary12(deposit.amount.toString())),
-                      DataCell(SailText.primary12(deposit.txid.toString())),
-                      DataCell(SailText.primary12(deposit.address)),
-                      DataCell(SailText.primary12(deposit.confirmations >= 2 ? 'Yes' : 'No')),
-                    ],
-                  ),
-                )
-                .toList(),
-          ),
+      child: SailTable(
+        headerBuilder: (context) => [
+          SailTableHeaderCell(child: SailText.primary12('SC #')),
+          SailTableHeaderCell(child: SailText.primary12('Amount')),
+          SailTableHeaderCell(child: SailText.primary12('Txid')),
+          SailTableHeaderCell(child: SailText.primary12('Address')),
+          SailTableHeaderCell(child: SailText.primary12('Visible on SC?')),
+        ],
+        rowBuilder: (context, row, selected) {
+          final deposit = deposits[row];
+          return [
+            SailTableCell(child: SailText.primary12(viewModel._selectedIndex.toString())),
+            SailTableCell(child: SailText.primary12(deposit.amount.toString())),
+            SailTableCell(child: SailText.primary12(deposit.txid.toString())),
+            SailTableCell(child: SailText.primary12(deposit.address)),
+            SailTableCell(child: SailText.primary12(deposit.confirmations >= 2 ? 'Yes' : 'No')),
+          ];
+        },
+        rowCount: deposits.length,
+        columnCount: 5,
+        columnWidths: const [50, 100, 200, 200, 100],
+        headerDecoration: BoxDecoration(
+          color: context.sailTheme.colors.formFieldBorder,
         ),
+        drawGrid: true,
       ),
     );
   }
