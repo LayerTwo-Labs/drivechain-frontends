@@ -1,12 +1,13 @@
+import 'package:drivechain_client/exceptions.dart';
 import 'package:drivechain_client/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:drivechain_client/gen/google/protobuf/empty.pb.dart';
 import 'package:drivechain_client/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:drivechain_client/util/error.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
-import 'package:drivechain_client/exceptions.dart';
 
 /// API to the drivechain server.
 abstract class API {
@@ -107,8 +108,9 @@ class _WalletAPILive implements WalletAPI {
       final response = await _client.sendTransaction(request);
       return response.txid;
     } catch (e) {
-      log.e('Error sending transaction: $e');
-      throw WalletException('Failed to send transaction: ${e.toString()}');
+      final error = 'could not send transaction: ${extractGRPCError(e)}';
+      log.e(error);
+      throw WalletException(error);
     }
   }
 
@@ -117,8 +119,9 @@ class _WalletAPILive implements WalletAPI {
     try {
       return await _client.getBalance(Empty());
     } catch (e) {
-      log.e('Error getting balance: $e');
-      throw WalletException('Failed to get balance: ${e.toString()}');
+      final error = 'could not get balance: ${extractGRPCError(e)}';
+      log.e(error);
+      throw WalletException(error);
     }
   }
 
@@ -128,8 +131,9 @@ class _WalletAPILive implements WalletAPI {
       final response = await _client.getNewAddress(Empty());
       return response.address;
     } catch (e) {
-      log.e('Error getting new address: $e');
-      throw WalletException('Failed to get new address: ${e.toString()}');
+      final error = 'could not get new address: ${extractGRPCError(e)}';
+      log.e(error);
+      throw WalletException(error);
     }
   }
 
@@ -139,8 +143,9 @@ class _WalletAPILive implements WalletAPI {
       final response = await _client.listTransactions(Empty());
       return response.transactions;
     } catch (e) {
-      log.e('Error listing transactions: $e');
-      throw WalletException('Failed to list transactions: ${e.toString()}');
+      final error = 'could not list transactions: ${extractGRPCError(e)}';
+      log.e(error);
+      throw WalletException(error);
     }
   }
 
@@ -150,8 +155,9 @@ class _WalletAPILive implements WalletAPI {
       final response = await _client.listSidechainDeposits(ListSidechainDepositsRequest()..slot = slot);
       return response.deposits;
     } catch (e) {
-      log.e('Error listing sidechain deposits: $e');
-      throw WalletException('Failed to list sidechain deposits: ${e.toString()}');
+      final error = 'could not list sidechain deposits: ${extractGRPCError(e)}';
+      log.e(error);
+      throw WalletException(error);
     }
   }
 
@@ -166,8 +172,9 @@ class _WalletAPILive implements WalletAPI {
       );
       return response.txid;
     } catch (e) {
-      log.e('Error creating sidechain deposit: $e');
-      throw WalletException('Failed to create sidechain deposit: ${e.toString()}');
+      final error = extractGRPCError(e);
+      log.e('could not create deposit: $error');
+      throw WalletException(error);
     }
   }
 }
@@ -185,8 +192,9 @@ class _BitcoindAPILive implements BitcoindAPI {
           await _client.listUnconfirmedTransactions(ListUnconfirmedTransactionsRequest()..count = Int64(20));
       return response.unconfirmedTransactions;
     } catch (e) {
-      log.e('Error listing unconfirmed transactions: $e');
-      throw BitcoindException('Failed to list unconfirmed transactions: ${e.toString()}');
+      final error = 'could not list unconfirmed transactions: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
     }
   }
 
@@ -196,8 +204,9 @@ class _BitcoindAPILive implements BitcoindAPI {
       final response = await _client.listRecentBlocks(ListRecentBlocksRequest()..count = Int64(20));
       return response.recentBlocks;
     } catch (e) {
-      log.e('Error listing recent blocks: $e');
-      throw BitcoindException('Failed to list recent blocks: ${e.toString()}');
+      final error = 'could not list recent blocks: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
     }
   }
 
@@ -207,8 +216,9 @@ class _BitcoindAPILive implements BitcoindAPI {
       final response = await _client.getBlockchainInfo(Empty());
       return response;
     } catch (e) {
-      log.e('Error getting blockchain info: $e');
-      throw BitcoindException('Failed to get blockchain info: ${e.toString()}');
+      final error = 'could not get blockchain info: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
     }
   }
 
@@ -218,8 +228,9 @@ class _BitcoindAPILive implements BitcoindAPI {
       final response = await _client.listPeers(Empty());
       return response.peers;
     } catch (e) {
-      log.e('Error listing peers: $e');
-      throw BitcoindException('Failed to list peers: ${e.toString()}');
+      final error = 'could not list peers: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
     }
   }
 
@@ -229,8 +240,9 @@ class _BitcoindAPILive implements BitcoindAPI {
       final response = await _client.estimateSmartFee(EstimateSmartFeeRequest()..confTarget = Int64(confTarget));
       return response;
     } catch (e) {
-      log.e('Error estimating smart fee: $e');
-      throw BitcoindException('Failed to estimate smart fee: ${e.toString()}');
+      final error = 'could not estimate smart fee: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
     }
   }
 }
@@ -247,8 +259,9 @@ class _DrivechainAPILive implements DrivechainAPI {
       final response = await _client.listSidechains(ListSidechainsRequest());
       return response.sidechains;
     } catch (e) {
-      log.e('Error listing sidechains: $e');
-      throw DrivechainException('Failed to list sidechains: ${e.toString()}');
+      final error = 'could not list sidechains: ${extractGRPCError(e)}';
+      log.e(error);
+      throw DrivechainException(error);
     }
   }
 
@@ -258,8 +271,9 @@ class _DrivechainAPILive implements DrivechainAPI {
       final response = await _client.listSidechainProposals(ListSidechainProposalsRequest());
       return response.proposals;
     } catch (e) {
-      log.e('Error listing sidechain proposals: $e');
-      throw DrivechainException('Failed to list sidechain proposals: ${e.toString()}');
+      final error = 'could not list sidechain proposals: ${extractGRPCError(e)}';
+      log.e(error);
+      throw DrivechainException(error);
     }
   }
 }
