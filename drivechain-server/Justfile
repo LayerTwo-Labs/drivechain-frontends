@@ -1,5 +1,5 @@
 build-go:
-    go build -o drivechain-server .
+    go build -o ./bin/drivechain-server .
 
 build: build-bdk-cli build-enforcer build-go
 
