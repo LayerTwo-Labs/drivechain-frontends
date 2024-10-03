@@ -4,7 +4,9 @@ import 'package:drivechain_client/providers/balance_provider.dart';
 import 'package:drivechain_client/providers/blockchain_provider.dart';
 import 'package:drivechain_client/widgets/error_container.dart';
 import 'package:drivechain_client/widgets/qt_container.dart';
+import 'package:drivechain_client/widgets/qt_icon_button.dart';
 import 'package:drivechain_client/widgets/qt_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:money2/money2.dart';
@@ -190,8 +192,14 @@ class TransactionsView extends StatelessWidget {
                     children: [
                       SailText.primary13('Latest transactions:'),
                       const SailSpacing(SailStyleValues.padding08),
-                      LatestTransactionTable(
-                        entries: model.unconfirmedTransactions,
+                      QtContainer(
+                        tight: true,
+                        child: SizedBox(
+                          height: 300,
+                          child: LatestTransactionTable(
+                            entries: model.unconfirmedTransactions,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -203,8 +211,14 @@ class TransactionsView extends StatelessWidget {
                     children: [
                       SailText.primary13('Latest blocks:'),
                       const SailSpacing(SailStyleValues.padding08),
-                      LatestBlocksTable(
-                        blocks: model.recentBlocks,
+                      QtContainer(
+                        tight: true,
+                        child: SizedBox(
+                          height: 300,
+                          child: LatestBlocksTable(
+                            blocks: model.recentBlocks,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -292,21 +306,18 @@ class BitcoinPrice extends StatelessWidget {
           '${money.format('S###,###.##')}/BTC',
         ),
         const SizedBox(width: 8.0),
-        SailScaleButton(
+        QtIconButton(
           onPressed: () {
             showSnackBar(context, 'Not implemented');
           },
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: SailStyleValues.padding15, vertical: 4.0),
-            child: Icon(Icons.settings),
-          ),
+          icon: Icon(Icons.settings),
         ),
       ],
     );
   }
 }
 
-class LatestTransactionTable extends StatelessWidget {
+class LatestTransactionTable extends StatefulWidget {
   final List<UnconfirmedTransaction> entries;
 
   const LatestTransactionTable({
@@ -315,90 +326,115 @@ class LatestTransactionTable extends StatelessWidget {
   });
 
   @override
+  State<LatestTransactionTable> createState() => _LatestTransactionTableState();
+}
+
+class _LatestTransactionTableState extends State<LatestTransactionTable> {
+  String sortColumn = 'time';
+  bool sortAscending = true;
+  List<UnconfirmedTransaction> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    entries = widget.entries;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!listEquals(entries, widget.entries)) {
+      entries = widget.entries;
+      onSort(sortColumn);
+    }
+  }
+
+  void onSort(String column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
+    sortEntries();
+    setState(() {});
+  }
+
+  void sortEntries() {
+    entries.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (sortColumn) {
+        case 'time':
+          aValue = a.time.toDateTime().millisecondsSinceEpoch;
+          bValue = b.time.toDateTime().millisecondsSinceEpoch;
+          break;
+        case 'fee':
+          aValue = a.feeSatoshi;
+          bValue = b.feeSatoshi;
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+        case 'size':
+          aValue = a.virtualSize;
+          bValue = b.virtualSize;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return QtContainer(
-      tight: true,
-      child: SizedBox(
-        height: 300, // Set the maximum height to 300 pixels
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical, // Enable vertical scrolling
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal, // Enable horizontal scrolling
-            child: DataTable(
-              decoration: BoxDecoration(
-                color: context.sailTheme.colors.backgroundSecondary,
-                border: Border.all(
-                  color: context.sailTheme.colors.formFieldBorder,
-                  width: 1.0,
-                ),
-              ),
-              border: TableBorder.symmetric(
-                inside: BorderSide(
-                  color: context.sailTheme.colors.formFieldBorder,
-                  width: 1.0,
-                ),
-              ),
-              headingRowColor: WidgetStateProperty.all(
-                context.sailTheme.colors.formFieldBorder,
-              ),
-              columnSpacing: SailStyleValues.padding15,
-              headingRowHeight: 24.0,
-              dataTextStyle: SailStyleValues.twelve,
-              headingTextStyle: SailStyleValues.ten,
-              dividerThickness: 0,
-              dataRowMaxHeight: 48.0,
-              columns: [
-                DataColumn(
-                  label: SailText.primary12('Time'),
-                  headingRowAlignment: MainAxisAlignment.spaceBetween,
-                ),
-                DataColumn(
-                  label: SailText.primary12('sat/vB'),
-                  headingRowAlignment: MainAxisAlignment.spaceBetween,
-                ),
-                DataColumn(
-                  label: SailText.primary12('TxID'),
-                  headingRowAlignment: MainAxisAlignment.spaceBetween,
-                ),
-                DataColumn(
-                  label: SailText.primary12('Size'),
-                  headingRowAlignment: MainAxisAlignment.spaceBetween,
-                ),
-              ],
-              rows: entries
-                  .map(
-                    (entry) => DataRow(
-                      color: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return context.sailTheme.colors.primary.withOpacity(0.5);
-                        }
-                        return Colors.transparent;
-                      }),
-                      cells: [
-                        DataCell(SailText.primary12(entry.time.toDateTime().format())),
-                        DataCell(SailText.primary12(entry.feeSatoshi.toString())),
-                        DataCell(SailText.primary12(entry.txid)),
-                        DataCell(SailText.primary12(entry.virtualSize.toString())),
-                      ],
-                    ),
-                  )
-                  .toList(),
-              sortColumnIndex: [
-                'time',
-                'fee',
-                'txid',
-                'size',
-              ].indexOf('time'),
-              sortAscending: false,
-            ),
-          ),
+    return SailTable(
+      headerBuilder: (context) => [
+        SailTableHeaderCell(
+          child: SailText.primary12('Time'),
+          onSort: () => onSort('time'),
         ),
+        SailTableHeaderCell(
+          child: SailText.primary12('sat/vB'),
+          onSort: () => onSort('fee'),
+        ),
+        SailTableHeaderCell(
+          child: SailText.primary12('TxID'),
+          onSort: () => onSort('txid'),
+        ),
+        SailTableHeaderCell(
+          child: SailText.primary12('Size'),
+          onSort: () => onSort('size'),
+        ),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = entries[row];
+        return [
+          SailTableCell(child: SailText.primary12(entry.time.toDateTime().format())),
+          SailTableCell(child: SailText.primary12(entry.feeSatoshi.toString())),
+          SailTableCell(child: SailText.primary12(entry.txid)),
+          SailTableCell(child: SailText.primary12(entry.virtualSize.toString())),
+        ];
+      },
+      rowCount: entries.length,
+      columnCount: 4,
+      columnWidths: const [150, 100, 200, 100],
+      headerDecoration: BoxDecoration(
+        color: context.sailTheme.colors.formFieldBorder,
       ),
+      drawGrid: true,
+      sortColumnIndex: ['time', 'fee', 'txid', 'size'].indexOf(sortColumn),
+      sortAscending: sortAscending,
+      onSort: (columnIndex, ascending) {
+        onSort(['time', 'fee', 'txid', 'size'][columnIndex]);
+      },
     );
   }
 }
 
-class LatestBlocksTable extends StatelessWidget {
+class LatestBlocksTable extends StatefulWidget {
   final List<ListRecentBlocksResponse_RecentBlock> blocks;
 
   const LatestBlocksTable({
@@ -407,76 +443,92 @@ class LatestBlocksTable extends StatelessWidget {
   });
 
   @override
+  State<LatestBlocksTable> createState() => _LatestBlocksTableState();
+}
+
+class _LatestBlocksTableState extends State<LatestBlocksTable> {
+  String sortColumn = 'time';
+  bool sortAscending = true;
+  List<ListRecentBlocksResponse_RecentBlock> blocks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    blocks = widget.blocks;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!listEquals(blocks, widget.blocks)) {
+      blocks = widget.blocks;
+      onSort(sortColumn);
+    }
+  }
+
+  void onSort(String column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
+    sortEntries();
+    setState(() {});
+  }
+
+  void sortEntries() {
+    blocks.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (sortColumn) {
+        case 'time':
+          aValue = a.blockTime.toDateTime().millisecondsSinceEpoch;
+          bValue = b.blockTime.toDateTime().millisecondsSinceEpoch;
+          break;
+        case 'height':
+          aValue = a.blockHeight;
+          bValue = b.blockHeight;
+          break;
+        case 'hash':
+          aValue = a.hash;
+          bValue = b.hash;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return QtContainer(
-      tight: true,
-      child: SizedBox(
-        height: 300, // Set the maximum height to 300 pixels
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical, // Enable vertical scrolling
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal, // Enable horizontal scrolling
-            child: DataTable(
-              decoration: BoxDecoration(
-                color: context.sailTheme.colors.backgroundSecondary,
-                border: Border.all(
-                  color: context.sailTheme.colors.formFieldBorder,
-                  width: 1.0,
-                ),
-              ),
-              border: TableBorder.symmetric(
-                inside: BorderSide(
-                  color: context.sailTheme.colors.formFieldBorder,
-                  width: 1.0,
-                ),
-              ),
-              headingRowColor: WidgetStateProperty.all(
-                context.sailTheme.colors.formFieldBorder,
-              ),
-              // Set the sort arrow color using the theme's primary color
-              columnSpacing: SailStyleValues.padding15,
-              headingRowHeight: 24.0,
-              dataTextStyle: SailStyleValues.twelve,
-              headingTextStyle: SailStyleValues.ten,
-              dividerThickness: 0,
-              dataRowMaxHeight: 48.0,
-              columns: [
-                DataColumn(
-                  label: SailText.primary12('Time'),
-                  headingRowAlignment: MainAxisAlignment.spaceBetween,
-                ),
-                DataColumn(
-                  label: SailText.primary12('Height'),
-                  headingRowAlignment: MainAxisAlignment.spaceBetween,
-                ),
-                DataColumn(
-                  label: SailText.primary12('Hash'),
-                  headingRowAlignment: MainAxisAlignment.spaceBetween,
-                ),
-              ],
-              rows: blocks
-                  .map(
-                    (entry) => DataRow(
-                      color: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return context.sailTheme.colors.primary.withOpacity(0.5);
-                        }
-                        return Colors.transparent;
-                      }),
-                      cells: [
-                        DataCell(SailText.primary12(entry.blockTime.toDateTime().format())),
-                        DataCell(SailText.primary12(entry.blockHeight.toString())),
-                        DataCell(SailText.primary12(entry.hash)),
-                      ],
-                    ),
-                  )
-                  .toList(),
-              sortColumnIndex: ['time', 'height', 'hash'].indexOf('time'),
-              sortAscending: false,
-            ),
-          ),
-        ),
+    return SailTable(
+      headerBuilder: (context) => [
+        SailTableHeaderCell(child: SailText.primary12('Time')),
+        SailTableHeaderCell(child: SailText.primary12('Height')),
+        SailTableHeaderCell(child: SailText.primary12('Hash')),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = blocks[row];
+        return [
+          SailTableCell(child: SailText.primary12(entry.blockTime.toDateTime().format())),
+          SailTableCell(child: SailText.primary12(entry.blockHeight.toString())),
+          SailTableCell(child: SailText.primary12(entry.hash)),
+        ];
+      },
+      rowCount: blocks.length,
+      columnCount: 3,
+      columnWidths: const [150, 100, 200],
+      headerDecoration: BoxDecoration(
+        color: context.sailTheme.colors.formFieldBorder,
       ),
+      drawGrid: true,
+      sortColumnIndex: ['time', 'height', 'hash'].indexOf(sortColumn),
+      sortAscending: sortAscending,
+      onSort: (columnIndex, ascending) {
+        onSort(['time', 'height', 'hash'][columnIndex]);
+      },
     );
   }
 }
