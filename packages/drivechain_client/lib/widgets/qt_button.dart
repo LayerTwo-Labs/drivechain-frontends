@@ -7,7 +7,7 @@ class QtButton extends StatelessWidget {
   final EdgeInsets padding;
   final bool large;
   final bool important;
-  final bool enabled;
+  final bool disabled;
   final bool loading;
 
   const QtButton({
@@ -20,7 +20,7 @@ class QtButton extends StatelessWidget {
     ),
     this.large = false,
     this.important = false,
-    this.enabled = true,
+    this.disabled = false,
     this.loading = false,
   });
 
@@ -30,9 +30,9 @@ class QtButton extends StatelessWidget {
       height: large ? 32 : 24,
       child: SailRawButton(
         backgroundColor: context.sailTheme.colors.backgroundSecondary,
-        disabled: !enabled,
+        disabled: disabled,
         loading: loading,
-        onPressed: enabled ? onPressed : null,
+        onPressed: onPressed,
         padding: padding,
         child: child,
       ),
