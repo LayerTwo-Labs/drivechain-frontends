@@ -23,76 +23,73 @@ class SendPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: QtPage(
-        child: ViewModelBuilder<SendPageViewModel>.reactive(
-          viewModelBuilder: () => SendPageViewModel(),
-          onViewModelReady: (model) => model.init(),
-          builder: (context, model, child) {
-            return Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                const Expanded(
-                  child: QtContainer(
-                    child: SendDetailsForm(),
-                  ),
+    return QtPage(
+      child: ViewModelBuilder<SendPageViewModel>.reactive(
+        viewModelBuilder: () => SendPageViewModel(),
+        onViewModelReady: (model) => model.init(),
+        builder: (context, model, child) {
+          return Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              const Expanded(
+                child: QtContainer(
+                  child: SendDetailsForm(),
                 ),
-                const SizedBox(height: SailStyleValues.padding08),
-                const Expanded(
-                  child: QtContainer(
-                    child: TransactionFeeForm(),
-                  ),
+              ),
+              const SizedBox(height: SailStyleValues.padding08),
+              const Expanded(
+                child: QtContainer(
+                  child: TransactionFeeForm(),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    top: SailStyleValues.padding08,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          QtButton(
-                            onPressed: () => model.sendTransaction(context),
-                            child: SailText.primary12('Send'),
-                          ),
-                          const SizedBox(width: SailStyleValues.padding08),
-                          QtButton(
-                            onPressed: model.clearAll,
-                            child: SailText.primary12('Clear All'),
-                          ),
-                        ],
-                      ),
-                      // Balance
-                      FutureBuilder(
-                        future: api.wallet.getBalance(),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            final balance = formatBitcoin(
-                              satoshiToBTC(
-                                snapshot.data!.confirmedSatoshi.toInt() +
-                                    snapshot.data!.pendingSatoshi.toInt(),
-                              ),
-                            );
-                            return SailText.primary12('Balance: $balance');
-                          } else if (snapshot.hasError) {
-                            return SailText.primary12(
-                              'Error: could not fetch balance',
-                              color: context.sailTheme.colors.error,
-                            );
-                          } else {
-                            return SailText.primary12('Balance: Loading...');
-                          }
-                        },
-                      ),
-                    ],
-                  ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: SailStyleValues.padding08,
                 ),
-              ],
-            );
-          },
-        ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        QtButton(
+                          onPressed: () => model.sendTransaction(context),
+                          child: SailText.primary12('Send'),
+                        ),
+                        const SizedBox(width: SailStyleValues.padding08),
+                        QtButton(
+                          onPressed: model.clearAll,
+                          child: SailText.primary12('Clear All'),
+                        ),
+                      ],
+                    ),
+                    // Balance
+                    FutureBuilder(
+                      future: api.wallet.getBalance(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          final balance = formatBitcoin(
+                            satoshiToBTC(
+                              snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt(),
+                            ),
+                          );
+                          return SailText.primary12('Balance: $balance');
+                        } else if (snapshot.hasError) {
+                          return SailText.primary12(
+                            'Error: could not fetch balance',
+                            color: context.sailTheme.colors.error,
+                          );
+                        } else {
+                          return SailText.primary12('Balance: Loading...');
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -122,8 +119,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
             Expanded(
               child: SailTextField(
                 controller: viewModel.addressController,
-                hintText:
-                    'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                hintText: 'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
                 size: TextFieldSize.small,
               ),
             ),
@@ -135,8 +131,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
                   await SystemClipboard.instance?.read().then((reader) async {
                     if (reader.canProvide(Formats.plainText)) {
                       final text = await reader.readValue(Formats.plainText);
-                      viewModel.addressController.text =
-                          text ?? viewModel.addressController.text;
+                      viewModel.addressController.text = text ?? viewModel.addressController.text;
                     }
                   });
                 } else {
@@ -266,7 +261,8 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
                     Row(
                       children: [
                         SailText.primary12(
-                            '${formatBitcoin(viewModel.feeRate)}/kvB',),
+                          '${formatBitcoin(viewModel.feeRate)}/kvB',
+                        ),
                         const SizedBox(width: 8.0),
                       ],
                     ),
@@ -286,8 +282,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
                               ),
                             );
                           }).toList(),
-                          onChanged: (value) =>
-                              viewModel.setConfirmationTarget(value),
+                          onChanged: (value) => viewModel.setConfirmationTarget(value),
                           value: viewModel.confirmationTarget,
                         ),
                       ],
@@ -326,8 +321,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
                             child: NumericField(
                               controller: viewModel.customFeeController,
                               hintText: 'Custom fee',
-                              enabled: viewModel.feeType == 'custom' &&
-                                  !viewModel.useMinimumFee,
+                              enabled: viewModel.feeType == 'custom' && !viewModel.useMinimumFee,
                             ),
                           ),
                           const SizedBox(width: SailStyleValues.padding08),
@@ -456,9 +450,7 @@ class _NumericFieldState extends State<NumericField> {
       size: TextFieldSize.small,
       dense: true,
       enabled: widget.enabled,
-      onSubmitted: widget.onSubmitted != null
-          ? (value) => widget.onSubmitted!(value)
-          : null,
+      onSubmitted: widget.onSubmitted != null ? (value) => widget.onSubmitted!(value) : null,
     );
   }
 }
@@ -466,8 +458,7 @@ class _NumericFieldState extends State<NumericField> {
 class SendPageViewModel extends BaseViewModel {
   BalanceProvider get balanceProvider => GetIt.I<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I<BlockchainProvider>();
-  TransactionProvider get transactionsProvider =>
-      GetIt.I<TransactionProvider>();
+  TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
   API get api => GetIt.I<API>();
   Logger get log => GetIt.I<Logger>();
   late TextEditingController addressController;
@@ -550,7 +541,8 @@ class SendPageViewModel extends BaseViewModel {
     try {
       final estimate = await api.bitcoind.estimateSmartFee(confirmationTarget);
       Logger().d(
-          'Estimate: estimate=${estimate.feeRate} errors=${estimate.errors}',);
+        'Estimate: estimate=${estimate.feeRate} errors=${estimate.errors}',
+      );
       feeEstimate = estimate;
     } catch (error) {
       setError(error.toString());
@@ -579,10 +571,9 @@ class SendPageViewModel extends BaseViewModel {
       final txid = await api.wallet.sendTransaction(
         addressController.text,
         btcToSatoshi(
-            double.parse(amountController.text) - (subtractFee ? feeRate : 0),),
-        feeType == 'recommended'
-            ? feeRate
-            : double.parse(customFeeController.text),
+          double.parse(amountController.text) - (subtractFee ? feeRate : 0),
+        ),
+        feeType == 'recommended' ? feeRate : double.parse(customFeeController.text),
         replaceByFee,
       );
       Logger().d('Sent transaction: txid=$txid ');
