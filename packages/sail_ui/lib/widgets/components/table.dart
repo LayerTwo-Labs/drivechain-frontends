@@ -17,7 +17,7 @@ class SailTable extends StatefulWidget {
     this.backgroundColor,
     this.altBackgroundColor,
     this.headerDecoration,
-    this.selectedRow,
+    this.selectedRowId,
     this.selectableRows = true,
     this.onSelectedRow,
     this.cellHeight = 24.0,
@@ -31,6 +31,7 @@ class SailTable extends StatefulWidget {
     this.sortColumnIndex,
     this.sortAscending,
     this.onSort,
+    required this.getRowId,
     super.key,
   });
 
@@ -46,9 +47,9 @@ class SailTable extends StatefulWidget {
   final Color? backgroundColor;
   final Color? altBackgroundColor;
   final BoxDecoration? headerDecoration;
-  final int? selectedRow;
+  final String? selectedRowId;
   final bool selectableRows;
-  final ValueChanged<int?>? onSelectedRow;
+  final ValueChanged<String?>? onSelectedRow;
   final double cellHeight;
   final bool shrinkWrap;
   final ScrollPhysics? physics;
@@ -60,6 +61,7 @@ class SailTable extends StatefulWidget {
   final int? sortColumnIndex;
   final bool? sortAscending;
   final Function(int columnIndex, bool ascending)? onSort;
+  final String Function(int index) getRowId;
 
   @override
   State<SailTable> createState() => _SailTableState();
@@ -69,7 +71,7 @@ class _SailTableState extends State<SailTable> {
   final ScrollController _horizontalController = ScrollController();
   final ScrollController _verticalController = ScrollController();
 
-  int? _selectedRow;
+  String? _selectedId;
   double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);
 
   final _widths = <double>[];
@@ -84,7 +86,7 @@ class _SailTableState extends State<SailTable> {
   @override
   void initState() {
     super.initState();
-    _selectedRow = widget.selectedRow;
+    _selectedId = widget.selectedRowId;
     _sortColumnIndex = widget.sortColumnIndex;
     _sortAscending = widget.sortAscending ?? true;
     for (var width in widget.columnWidths) {
@@ -119,6 +121,16 @@ class _SailTableState extends State<SailTable> {
     widget.onSort?.call(columnIndex, ascending);
   }
 
+  int? _getSelectedIndex() {
+    if (_selectedId == null) return null;
+    for (int i = 0; i < widget.rowCount; i++) {
+      if (widget.getRowId(i) == _selectedId) {
+        return i;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -145,14 +157,16 @@ class _SailTableState extends State<SailTable> {
           if (widget.shrinkWrap) {
             var children = <Widget>[];
             for (int i = 0; i < widget.rowCount; i++) {
+              final rowId = widget.getRowId(i);
+              final isSelected = rowId == _selectedId;
               var backgroundColor = i % 2 == 1 ? altBgColor : null;
               var isLastRow = i == widget.rowCount - 1;
               children.add(
                 _TableRow(
-                  cells: widget.rowBuilder(context, i, _selectedRow == i),
+                  cells: widget.rowBuilder(context, i, isSelected),
                   widths: _widths,
                   height: widget.cellHeight,
-                  selected: _selectedRow == i,
+                  selected: isSelected,
                   backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
                   hasHorizontalOverflow: hasHorizontalOverflow,
                   horizontalRowPadding: horizontalRowPadding,
@@ -162,11 +176,9 @@ class _SailTableState extends State<SailTable> {
                   onPressed: () {
                     if (widget.selectableRows) {
                       setState(() {
-                        _selectedRow = i;
+                        _selectedId = rowId;
                       });
-                      if (widget.onSelectedRow != null) {
-                        widget.onSelectedRow!(i);
-                      }
+                      widget.onSelectedRow?.call(rowId);
                     }
                   },
                 ),
@@ -191,13 +203,15 @@ class _SailTableState extends State<SailTable> {
                 height: widget.cellHeight,
               ),
               itemBuilder: (context, row) {
+                final rowId = widget.getRowId(row);
+                final isSelected = rowId == _selectedId;
                 var backgroundColor = row % 2 == 1 ? altBgColor : null;
                 var isLastRow = row == widget.rowCount - 1;
                 return _TableRow(
-                  cells: widget.rowBuilder(context, row, false),
+                  cells: widget.rowBuilder(context, row, isSelected),
                   widths: _widths,
                   height: widget.cellHeight,
-                  selected: _selectedRow == row,
+                  selected: isSelected,
                   backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
                   hasHorizontalOverflow: hasHorizontalOverflow,
                   horizontalRowPadding: horizontalRowPadding,
@@ -207,11 +221,9 @@ class _SailTableState extends State<SailTable> {
                   onPressed: () {
                     if (widget.selectableRows) {
                       setState(() {
-                        _selectedRow = row;
+                        _selectedId = rowId;
                       });
-                      if (widget.onSelectedRow != null) {
-                        widget.onSelectedRow!(row);
-                      }
+                      widget.onSelectedRow?.call(rowId);
                     }
                   },
                 );
@@ -223,7 +235,7 @@ class _SailTableState extends State<SailTable> {
           List<Widget> header = widget.headerBuilder(context).asMap().entries.map((entry) {
             int i = entry.key;
             Widget headerCell = entry.value;
-            
+
             if (headerCell is SailTableHeaderCell) {
               return SailTableHeaderCell(
                 alignment: headerCell.alignment,
@@ -234,7 +246,7 @@ class _SailTableState extends State<SailTable> {
                 child: headerCell.child,
               );
             }
-            
+
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _sort(i, _sortColumnIndex != i || !_sortAscending),

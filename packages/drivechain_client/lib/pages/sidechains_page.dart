@@ -372,6 +372,7 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
     return QtContainer(
       tight: true,
       child: SailTable(
+        getRowId: (index) => deposits[index].txid,
         headerBuilder: (context) => [
           SailTableHeaderCell(child: SailText.primary12('SC #')),
           SailTableHeaderCell(child: SailText.primary12('Amount')),
