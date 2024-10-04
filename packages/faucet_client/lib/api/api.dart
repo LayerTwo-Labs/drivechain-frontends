@@ -21,7 +21,7 @@ abstract class API {
   });
 
   Future<List<GetTransactionResponse>> listClaims();
-  Future<String> claim(String address, double amount);
+  Future<String?> claim(String address, double amount);
 }
 
 class APILive extends API {
@@ -61,15 +61,16 @@ class APILive extends API {
   }
 
   @override
-  Future<String> claim(String address, double amount) async {
+  Future<String?> claim(String address, double amount) async {
     amount = cleanAmount(amount);
 
     try {
-      await _client.dispenseCoins(
+      final res = await _client.dispenseCoins(
         DispenseCoinsRequest()
           ..destination = address
           ..amount = amount,
       );
+      return res.txid;
     } catch (e) {
       final error = 'could not dispense coins: ${extractGRPCError(e)}';
       log.e(error);

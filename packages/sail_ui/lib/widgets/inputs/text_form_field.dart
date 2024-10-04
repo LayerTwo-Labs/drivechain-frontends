@@ -67,7 +67,7 @@ class SailTextFormField extends StatelessWidget {
             child: SailText.primary12(label!),
           ),
         TextFormField(
-           enabled: enabled,
+          enabled: enabled,
           mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
           cursorColor: theme.colors.primary,
           cursorHeight: textSize,
@@ -80,8 +80,7 @@ class SailTextFormField extends StatelessWidget {
               borderSide: BorderSide(color: theme.colors.error),
             ),
             disabledBorder: InputBorder.none,
-            focusedErrorBorder:  OutlineInputBorder(
-              
+            focusedErrorBorder: OutlineInputBorder(
               borderRadius: const BorderRadius.all(Radius.circular(6)),
               borderSide: BorderSide(color: theme.colors.error),
             ),

@@ -1,15 +1,15 @@
 import 'package:auto_route/annotations.dart';
-import 'package:drivechain_client/widgets/qt_icon_button.dart';
-import 'package:drivechain_client/widgets/qt_page.dart';
-import 'package:drivechain_client/widgets/qt_button.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
-import 'package:drivechain_client/providers/sidechain_provider.dart';
-import 'package:get_it/get_it.dart';
 import 'package:drivechain_client/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:drivechain_client/pages/sidechain_proposal_page.dart';
+import 'package:drivechain_client/providers/sidechain_provider.dart';
+import 'package:drivechain_client/widgets/qt_button.dart';
+import 'package:drivechain_client/widgets/qt_icon_button.dart';
+import 'package:drivechain_client/widgets/qt_page.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class SidechainActivationManagementPage extends StatelessWidget {

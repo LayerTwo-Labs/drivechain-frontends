@@ -3,9 +3,6 @@ import 'package:faucet_client/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
 class MockAPI implements API {
   @override
-  String get apiURL => 'localhost';
-
-  @override
   Future<String> claim(String address, double amount) async {
     return 'txid';
   }
@@ -14,4 +11,10 @@ class MockAPI implements API {
   Future<List<GetTransactionResponse>> listClaims() async {
     return [];
   }
+
+  @override
+  String get host => 'localhost';
+
+  @override
+  int? get port => null;
 }
