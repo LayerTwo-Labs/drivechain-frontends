@@ -11,11 +11,13 @@ import (
 
 type Config struct {
 	BitcoinCoreHost        string `long:"bitcoincore.host" description:"host:port for connecting to Bitcoin Core" default:"localhost:38332"`
-	BitcoinCoreCookie      string `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
-	BitcoinCoreRPCUser     string `long:"bitcoincore.rpcuser"`
-	BitcoinCoreRPCPassword string `long:"bitcoincore.rpcpassword"`
+	BitcoinCoreCookie      string `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file"`
+	BitcoinCoreRPCUser     string `long:"bitcoincore.rpcuser" description:"Username for Bitcoin Core RPC" default:"user"`
+	BitcoinCoreRPCPassword string `long:"bitcoincore.rpcpassword" description:"Password for Bitcoin Core RPC" default:"password"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
+
+	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:8082"`
 }
 
 func readConfig() (Config, error) {

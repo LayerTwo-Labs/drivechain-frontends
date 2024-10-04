@@ -27,7 +27,6 @@ type DispenseCoinsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// TODO: Make required
 	Destination string  `protobuf:"bytes,1,opt,name=destination,proto3" json:"destination,omitempty"`
 	Amount      float64 `protobuf:"fixed64,2,opt,name=amount,proto3" json:"amount,omitempty"`
 }

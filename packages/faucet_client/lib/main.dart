@@ -1,10 +1,12 @@
 import 'package:faucet_client/api/api.dart';
 import 'package:faucet_client/app.dart';
+import 'package:faucet_client/env.dart';
 import 'package:faucet_client/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,6 +16,8 @@ void main() {
 
 Future<void> start() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Environment.validateAtRuntime();
+
   await initializeDateFormatting();
 
   await initDependencies();
@@ -53,7 +57,10 @@ Future<void> initDependencies() async {
 
   // api must be registered first, because other singletons depend on it
   GetIt.I.registerLazySingleton<API>(
-    () => APILive(apiURL: 'https://api.drivechain.live'),
+    () => APILive(
+      apiHost: env(Environment.apiHost),
+      apiPort: optionalEnv(Environment.apiPort),
+    ),
   );
 
   GetIt.I.registerLazySingleton<TransactionsProvider>(

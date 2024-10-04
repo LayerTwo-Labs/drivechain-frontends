@@ -2,32 +2,61 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:faucet_client/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:faucet_client/gen/faucet/v1/faucet.pbgrpc.dart';
 import 'package:faucet_client/gen/google/protobuf/timestamp.pb.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:http/http.dart' as http;
+import 'package:get_it/get_it.dart';
+import 'package:grpc/grpc.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// RPC connection to the mainchain node.
 abstract class API {
-  final String apiURL;
+  final String host;
+  final int? port;
 
-  API({required this.apiURL});
+  API({
+    required this.host,
+    this.port = 443,
+  });
 
   Future<List<GetTransactionResponse>> listClaims();
   Future<String> claim(String address, double amount);
 }
 
 class APILive extends API {
-  APILive({required super.apiURL});
+  Logger get log => GetIt.I.get<Logger>();
+  late final FaucetServiceClient _client;
+
+  APILive({
+    required String host,
+    int? port,
+  }) : super(host: host, port: port) {
+    bool ssl = false;
+    if (host.contains('https://')) {
+      ssl = true;
+    }
+
+    final channel = ClientChannel(
+      host,
+      port: port ?? 443,
+      options: ChannelOptions(
+        credentials: ssl ? ChannelCredentials.secure() : ChannelCredentials.insecure(),
+      ),
+    );
+
+    _client = FaucetServiceClient(channel);
+  }
+  String get apiURL => port == null ? host : '$host:$port';
 
   @override
   Future<List<GetTransactionResponse>> listClaims() async {
-    final url = Uri.parse('$apiURL/listclaims');
-    final res = await http.get(url);
-    if (res.statusCode == 200) {
-      return parseClaims(res.body);
-    } else {
-      throw Exception('could not list claims');
+    try {
+      return (await _client.listClaims(ListClaimsRequest())).transactions;
+    } catch (e) {
+      final error = 'could not list claims: ${extractGRPCError(e)}';
+      log.e(error);
+      throw Exception(error);
     }
   }
 
@@ -35,24 +64,16 @@ class APILive extends API {
   Future<String> claim(String address, double amount) async {
     amount = cleanAmount(amount);
 
-    final url = Uri.parse('$apiURL/claim');
-
-    Map<String, dynamic> requestBody = {
-      'destination': address.trim(),
-      'amount': amount.toString().trim(),
-    };
-
-    final res = await http.post(
-      url,
-      body: json.encode(requestBody),
-    );
-
-    if (res.statusCode == 200) {
-      final jsonResponse = json.decode(res.body);
-      final txid = jsonResponse['txid'];
-      return txid;
-    } else {
-      throw Exception(res.body);
+    try {
+      await _client.dispenseCoins(
+        DispenseCoinsRequest()
+          ..destination = address
+          ..amount = amount,
+      );
+    } catch (e) {
+      final error = 'could not dispense coins: ${extractGRPCError(e)}';
+      log.e(error);
+      throw Exception(error);
     }
   }
 }
@@ -91,4 +112,18 @@ List<GetTransactionResponse> parseClaims(String jsonTXs) {
   }).toList();
 
   return transactions;
+}
+
+String extractGRPCError(
+  Object error,
+) {
+  const messageIfUnknown = "We couldn't figure out exactly what went wrong. Reach out to the devs.";
+
+  if (error is GrpcError) {
+    return error.message ?? messageIfUnknown;
+  } else if (error is String) {
+    return error.toString();
+  } else {
+    return messageIfUnknown;
+  }
 }
