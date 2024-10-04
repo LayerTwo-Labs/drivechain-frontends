@@ -220,13 +220,27 @@ class _SailTableState extends State<SailTable> {
           }
 
           // Update the header builder to include sort indicators and functionality
-          List<Widget> header = widget.headerBuilder(context);
-          for (int i = 0; i < header.length; i++) {
-            header[i] = GestureDetector(
+          List<Widget> header = widget.headerBuilder(context).asMap().entries.map((entry) {
+            int i = entry.key;
+            Widget headerCell = entry.value;
+            
+            if (headerCell is SailTableHeaderCell) {
+              return SailTableHeaderCell(
+                alignment: headerCell.alignment,
+                padding: headerCell.padding,
+                isSorted: _sortColumnIndex == i,
+                isAscending: _sortAscending,
+                onSort: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
+                child: headerCell.child,
+              );
+            }
+            
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
-              child: header[i],
+              child: headerCell,
             );
-          }
+          }).toList();
 
           return Scrollbar(
             controller: _horizontalController,
@@ -668,6 +682,8 @@ class SailTableHeaderCell extends StatelessWidget {
     this.alignment = Alignment.centerLeft,
     this.padding = const EdgeInsets.symmetric(horizontal: 8),
     this.onSort,
+    this.isSorted = false,
+    this.isAscending = true,
     super.key,
   });
 
@@ -675,15 +691,30 @@ class SailTableHeaderCell extends StatelessWidget {
   final Alignment alignment;
   final EdgeInsets padding;
   final VoidCallback? onSort;
+  final bool isSorted;
+  final bool isAscending;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onSort,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         alignment: alignment,
         padding: padding,
-        child: child,
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(child: child),
+            if (isSorted)
+              Icon(
+                isAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 13,
+                color: SailTheme.of(context).colors.icon,
+              ),
+          ],
+        ),
       ),
     );
   }
