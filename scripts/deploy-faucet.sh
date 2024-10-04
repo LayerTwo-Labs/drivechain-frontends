@@ -4,7 +4,7 @@ set -e
 
 docker compose --file docker-compose.faucet.yml up --build --wait 
 
-cd ./packages/faucet_client
+cd ./clients/faucet_client
 flutter clean
 flutter pub get --enforce-lockfile
 flutter build web --profile --dart-define=Dart2jsOptimization=O0
