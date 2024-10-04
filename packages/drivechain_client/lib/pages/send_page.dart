@@ -345,21 +345,10 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
           ],
         ),
         const SizedBox(height: SailStyleValues.padding15),
-        Tooltip(
-          message: '''
-With Replace-By-Fee (BIP-125)
-you can increase a transaction's
-fee after it is sent. Without this,
-a higher fee may be
-recommended to compensate
-for increased transaction delay
-risk.
-''',
-          child: SailCheckbox(
-            value: viewModel.replaceByFee,
-            onChanged: viewModel.setReplaceByFee,
-            label: 'Request Replace-By-Fee',
-          ),
+        SailCheckbox(
+          value: viewModel.replaceByFee,
+          onChanged: viewModel.setReplaceByFee,
+          label: 'Request Replace-By-Fee',
         ),
       ],
     );
