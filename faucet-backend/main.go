@@ -58,13 +58,12 @@ func realMain(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	const address = "localhost:8080"
 
-	zerolog.Ctx(ctx).Info().Msgf("server: listening on %s", address)
+	zerolog.Ctx(ctx).Info().Msgf("server: listening on %s", conf.APIHost)
 
 	errs := make(chan error)
 	go func() {
-		errs <- srv.Serve(ctx, address)
+		errs <- srv.Serve(ctx, conf.APIHost)
 	}()
 	go func() {
 		<-ctx.Done()

@@ -3,6 +3,7 @@ module github.com/LayerTwo-Labs/sidesail/faucet-backend
 go 1.23
 
 require (
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.34.2-20240920164238-5a7b106cbb87.2
 	connectrpc.com/connect v1.16.2
 	connectrpc.com/grpcreflect v1.2.0
 	github.com/barebitcoin/btc-buf v0.0.0-20240930061304-04a85a797185
