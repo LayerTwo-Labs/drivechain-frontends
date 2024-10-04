@@ -3,10 +3,11 @@ name: Dart
 on:
   pull_request:
     paths:
-      - 'packages/sail_ui/**'
-      - 'packages/sidesail/**'
-      - 'packages/drivechain_client/**'
-      - 'packages/faucet_client/**'
+      - 'clients/sail_ui/**'
+      - 'clients/sidesail/**'
+      - 'clients/bitwindow/**'
+      - 'clients/faucet/**'
+      - 'clients/launcher/**'
       - '.github/workflows/**'
 
 jobs:
@@ -14,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [sail_ui, sidesail, drivechain_client, faucet_client, launcher]
+        package: [sail_ui, sidesail, bitwindow, faucet, launcher]
 
     defaults:
       run:
-        working-directory: packages/${{ matrix.package }}
+        working-directory: clients/${{ matrix.package }}
 
     steps:
       - uses: actions/checkout@v4
@@ -28,6 +29,12 @@ jobs:
 
       - name: Install dependencies for ${{ matrix.package }}
         run: flutter pub get
+
+      - name: Create necessary directories
+        if: matrix.package == 'sidesail'
+        run: |
+          mkdir -p bins
+          mkdir -p assets/bin
 
       - name: Verify formatting for ${{ matrix.package }}
         run: find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120

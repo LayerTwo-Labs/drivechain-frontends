@@ -4,16 +4,16 @@ on:
   push:
     branches: ["master"]
     paths:
-      - 'packages/sidesail/**'
+      - 'clients/sidesail/**'
   pull_request:
     branches: ["master"]
     paths:
-      - 'packages/sidesail/**'
+      - 'clients/sidesail/**'
       - '.github/workflows/**'
 
 defaults:
   run:
-    working-directory: packages/sidesail
+    working-directory: clients/sidesail
 
 jobs:
 
@@ -32,7 +32,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: packages/sidesail # must be specified here as well, otherwise overwrites top most
+        working-directory: clients/sidesail # must be specified here as well, otherwise overwrites top most
 
     steps:
       - uses: actions/checkout@v4
@@ -98,6 +98,11 @@ jobs:
           echo "Creating notarization API key file"
           echo ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY }} | base64 --decode > notarization_api_key.p8
 
+      - name: Create necessary directories
+        run: |
+          mkdir -p bins
+          mkdir -p assets/bin
+
       - name: Build app
         run: |
           # Everything after first line is only relevant for macOS  
@@ -110,7 +115,7 @@ jobs:
         with:
           name: sidesail-binaries-${{ runner.os }}-${{ matrix.chain }}
           if-no-files-found: error
-          path: packages/sidesail/release/*
+          path: clients/sidesail/release/*
 
   upload-artifacts-to-releases-drivechain-info:
     name: Upload artifacts to releases.drivechain.info

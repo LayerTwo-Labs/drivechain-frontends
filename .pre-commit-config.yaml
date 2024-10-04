@@ -11,4 +11,4 @@ repos:
       - id: flutter-analyze
         exclude: "lib/gen/.*"
         args:
-          - packages/sidesail/lib/*
+          - clients/sidesail/lib/*
