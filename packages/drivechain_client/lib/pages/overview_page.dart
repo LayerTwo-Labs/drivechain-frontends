@@ -391,6 +391,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
   @override
   Widget build(BuildContext context) {
     return SailTable(
+      getRowId: (index) => entries[index].txid,
       headerBuilder: (context) => [
         SailTableHeaderCell(
           child: SailText.primary12('Time'),
@@ -504,6 +505,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
   @override
   Widget build(BuildContext context) {
     return SailTable(
+      getRowId: (index) => blocks[index].hash,
       headerBuilder: (context) => [
         SailTableHeaderCell(child: SailText.primary12('Time')),
         SailTableHeaderCell(child: SailText.primary12('Height')),

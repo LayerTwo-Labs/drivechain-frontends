@@ -44,7 +44,6 @@ class TransactionTable extends StatefulWidget {
   const TransactionTable({
     super.key,
     required this.entries,
-
   });
 
   @override
@@ -65,7 +64,7 @@ class _TransactionTableState extends State<TransactionTable> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if(!listEquals(entries, widget.entries)) {
+    if (!listEquals(entries, widget.entries)) {
       entries = widget.entries;
       onSort(sortColumn);
     }
@@ -86,7 +85,7 @@ class _TransactionTableState extends State<TransactionTable> {
     entries.sort((a, b) {
       dynamic aValue = '';
       dynamic bValue = '';
-      
+
       switch (sortColumn) {
         case 'conf':
           aValue = a.confirmationTime.height;
@@ -105,7 +104,7 @@ class _TransactionTableState extends State<TransactionTable> {
           bValue = b.receivedSatoshi;
           break;
       }
-      
+
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
@@ -113,6 +112,7 @@ class _TransactionTableState extends State<TransactionTable> {
   @override
   Widget build(BuildContext context) {
     return SailTable(
+      getRowId: (index) => widget.entries[index].txid,
       headerBuilder: (context) => [
         SailTableHeaderCell(
           child: SailText.primary12('Conf'),
@@ -162,6 +162,7 @@ class AddressMenuViewModel extends BaseViewModel {
       .where(
         (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
       )
+      // if empty, mock some data
       .toList();
 
   String sortColumn = 'conf';

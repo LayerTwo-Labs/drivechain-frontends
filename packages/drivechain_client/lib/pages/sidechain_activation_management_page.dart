@@ -211,6 +211,7 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
   @override
   Widget build(BuildContext context) {
     return SailTable(
+      getRowId: (index) => blocks[index].slot.toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(child: SailText.primary12('#')),
         SailTableHeaderCell(child: SailText.primary12('Active')),
@@ -354,6 +355,7 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
   @override
   Widget build(BuildContext context) {
     return SailTable(
+      getRowId: (index) => widget.proposals[index].slot.toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(child: SailText.primary12('Vote')),
         SailTableHeaderCell(child: SailText.primary12('SC #')),
