@@ -4,12 +4,12 @@ import 'package:drivechain_client/widgets/error_container.dart';
 import 'package:drivechain_client/widgets/qt_button.dart';
 import 'package:drivechain_client/widgets/qt_container.dart';
 import 'package:drivechain_client/widgets/qt_icon_button.dart';
-import 'package:drivechain_client/widgets/qt_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
