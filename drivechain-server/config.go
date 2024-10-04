@@ -25,6 +25,8 @@ type Config struct {
 	Passphrase      string `long:"passphrase" description:"Passphrase for encrypting/decrypting the wallet key"`
 	XPrivOverride   string `long:"xpriv" description:"Override the wallet stored to disk with a custom xpriv'"`
 	DescriptorPrint bool   `long:"descriptor.print" description:"Print the descriptor that bdk-cli creates. Useful for testing'"`
+
+	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:8080"`
 }
 
 func readConfig() (Config, error) {
