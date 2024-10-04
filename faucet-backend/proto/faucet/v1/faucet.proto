@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package faucet.v1;
+
+import "bitcoin/bitcoind/v1alpha/bitcoin.proto";
+import "buf/validate/validate.proto";
+
+service FaucetService {
+  rpc DispenseCoins(DispenseCoinsRequest) returns (DispenseCoinsResponse) {}
+  rpc ListClaims(ListClaimsRequest) returns (ListClaimsResponse) {}
+}
+
+message DispenseCoinsRequest {
+  string destination = 1 [(buf.validate.field).required = true];
+  double amount = 2 [(buf.validate.field).required = true];
+}
+
+message DispenseCoinsResponse {
+  string txid = 1;
+}
+
+message ListClaimsRequest {}
+
+message ListClaimsResponse {
+  repeated bitcoin.bitcoind.v1alpha.GetTransactionResponse transactions = 1;
+}
