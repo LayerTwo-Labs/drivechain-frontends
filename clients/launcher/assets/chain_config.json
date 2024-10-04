@@ -1,0 +1,357 @@
+{
+  "schema_version": "1.0",
+  "chains": [
+      {
+          "id": "drivechain",
+          "version": "0.46.03",
+          "display_name": "Bitcoin + BIPs 300/301",
+          "description": "BIP 300 & 301 enabled bitcoin.",
+          "repo_url": "https://github.com/LayerTwo-Labs/mainchain",
+          "directories": {
+              "base": {
+                  "linux": "drivechain",
+                  "darwin": "Drivechain",
+                  "win32": "Drivechain"
+              },
+              "wallet": "wallet.dat"
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "L1-Mainchain-latest-x86_64-unknown-linux-gnu.zip",
+                  "darwin": "L1-Mainchain-latest-x86_64-apple-darwin.zip",
+                  "win32": "L1-Mainchain-latest-x86_64-w64-mingw32.zip"
+              },
+              "sizes": {
+                  "linux": 19502907,
+                  "darwin": 25143001,
+                  "win32": 25569685
+              },
+              "hashes": {
+                  "linux": "7B86A135674AC3E55BB4F2821913728D4EC6FFDF4934AAA2DFAECDFEA0A1F2DA",
+                  "darwin": "80D669274D583ADC77E40D2A9EFF65DCC2E3B43E1E103714538D0E16F5BDB3F1",
+                  "win32": "2A93AFEF9C8F54DE2658AD93AADCF10E62FBE715B89A28568726C99A78E6630C"
+              }
+          },
+          "binary": {
+              "linux": "L1-Mainchain-latest-x86_64-unknown-linux-gnu/drivechain-qt",
+              "darwin": "L1-Mainchain-latest-x86_64-apple-darwin/drivechain-qt",
+              "win32": "L1-Mainchain-latest-x86_64-w64-mingw32/drivechain-qt.exe"
+          },
+          "network": {
+              "port": 8332
+          },
+          "chain_type": 0,
+          "slot": -1
+      },
+      {
+          "id": "testchain",
+          "version": "0.3",
+          "display_name": "Testchain",
+          "description": "A blank sidechain w/ GUI. The easiest way to learn BIPs 300/301.",
+          "repo_url": "https://github.com/LayerTwo-Labs/testchain",
+          "directories": {
+              "base": {
+                  "linux": "drivechain_launcher_sidechains/testchain",
+                  "darwin": "drivechain_launcher_sidechains/testchain",
+                  "win32": "drivechain_launcher_sidechains/testchain"
+              },
+              "wallet": "wallet.dat"
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "L2-S0-Testchain-latest-x86_64-unknown-linux-gnu.zip",
+                  "darwin": "L2-S0-Testchain-latest-x86_64-apple-darwin.zip",
+                  "win32": "L2-S0-Testchain-latest-x86_64-w64-mingw32.zip"
+              },
+              "sizes": {
+                  "linux": 18339044,
+                  "darwin": 23934697,
+                  "win32": 24421129
+              },
+              "hashes": {
+                  "linux": "1981082289735D3717A052B48A4294F32785493CE889158EE4F97F99314DD646",
+                  "darwin": "E7DA4D092CA52DD1B499680C9C809CF532C75C161BCA8D04938426365D890347",
+                  "win32": "30551401994D9B4EFD2A2F5E342B6DB2B3BDABDC0E4F4973FECF12F1F85CB2FF"
+              }
+          },
+          "binary": {
+              "linux": "L2-S0-Testchain-latest-x86_64-unknown-linux-gnu/testchain-qt",
+              "darwin": "L2-S0-Testchain-latest-x86_64-apple-darwin/testchain-qt",
+              "win32": "L2-S0-Testchain-latest-x86_64-w64-mingw32/testchain-qt.exe"
+          },
+          "network": {
+              "port": 8272
+          },
+          "chain_type": 1,
+          "slot": 0
+      },
+      {
+          "id": "bitnames",
+          "version": "0.4.0",
+          "display_name": "Bitnames",
+          "description": "Own one username that you use everywhere — replaces DNS, logging in, and email",
+          "repo_url": "https://github.com/LayerTwo-Labs/plain-bitnames",
+          "directories": {
+              "base": {
+                  "linux": "drivechain_launcher_sidechains/Bitnames",
+                  "darwin": "drivechain_launcher_sidechains/Bitnames",
+                  "win32": "drivechain_launcher_sidechains/Bitnames"
+              },
+              "wallet": "data/wallet.mdb"
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip",
+                  "darwin": "L2-S2-BitNames-latest-x86_64-apple-darwin.zip",
+                  "win32": "L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip"
+              },
+              "sizes": {
+                  "linux": 11811153,
+                  "darwin": 14265257,
+                  "win32": 10901471
+              },
+              "hashes": {
+                  "linux": "0CEE1965F92B4196890ADEC83DAF8B60B9DADE8C557E9D0D476135B2C8DAAB13",
+                  "darwin": "9146138A3812B03DACCD05EDBE4230699239AA0858E205D95ED8211D0AAA4CA5",
+                  "win32": "AFDFE03A055E35EFB5EB2FA1B99D7708A9BF1F22EFB14700CC3BC8941E52AC8D"
+              }
+          },
+          "binary": {
+              "linux": "bitnames-latest-x86_64-unknown-linux-gnu",
+              "darwin": "bitnames-latest-x86_64-apple-darwin",
+              "win32": "bitnames-latest-x86_64-pc-windows-gnu.exe"
+          },
+          "network": {
+              "port": 6002
+          },
+          "chain_type": 1,
+          "slot": 2
+      },
+      {
+          "id": "bitassets",
+          "version": "0.4.0",
+          "display_name": "BitAssets",
+          "description": "A sidechain for issuing Bit-Art (NFTs) and digital assets (ICOs, tokens).",
+          "repo_url": "https://github.com/LayerTwo-Labs/plain-bitassets",
+          "directories": {
+              "base": {
+                  "linux": "drivechain_launcher_sidechains/BitAssets",
+                  "darwin": "drivechain_launcher_sidechains/BitAssets",
+                  "win32": "drivechain_launcher_sidechains/BitAssets"
+              },
+              "wallet": "data/wallet.mdb"
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip",
+                  "darwin": "L2-S4-BitAssets-latest-x86_64-apple-darwin.zip",
+                  "win32": "L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip"
+              },
+              "sizes": {
+                  "linux": 11087000,
+                  "darwin": 13924786,
+                  "win32": 10693353
+              },
+              "hashes": {
+                  "linux": "79B3ABE53C5167DB6437F484E4CB7BD844B0C138201D3A37B2D7CE34D09C52E1",
+                  "darwin": "B28312E2C76C3EF407EEC04BA5D992AC1548135ACB77D402DAC3995155969B8C",
+                  "win32": "7CFBF0A72BDDBB1EE2D05DC90074AE9A116E25818453D6B91F7C6883E8E63F4E"
+              }
+          },
+          "binary": {
+              "linux": "bitassets-latest-x86_64-unknown-linux-gnu",
+              "darwin": "bitassets-latest-x86_64-apple-darwin",
+              "win32": "bitassets-latest-x86_64-pc-windows-gnu.exe"
+          },
+          "network": {
+              "port": 6004
+          },
+          "chain_type": 1,
+          "slot": 4
+      },
+      {
+          "id": "zsail",
+          "version": "0.4.0",
+          "display_name": "zSide",
+          "description": "A zCash clone, for privacy.",
+          "repo_url": "https://github.com/LayerTwo-Labs/zcash-sidechain",
+          "directories": {
+              "base": {
+                  "linux": "drivechain_launcher_sidechains/zsail",
+                  "darwin": "drivechain_launcher_sidechains/ZSail",
+                  "win32": "drivechain_launcher_sidechains/ZSail"
+              },
+              "wallet": {
+                  "linux": ".zcash-drivechain/regtest/wallet.dat",
+                  "darwin": "ZcashDrivechain/regtest/wallet.dat",
+                  "win32": ""
+              }
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip",
+                  "darwin": "L2-S5-ZSail-latest-x86_64-apple-darwin.zip",
+                  "win32": ""
+              },
+              "sizes": {
+                  "linux": 56879098,
+                  "darwin": 35748755,
+                  "win32": 0
+              },
+              "hashes": {
+                  "linux": "AF16BE76B8A6EDB1115B6E29CF75EE6F55FC2077B710F5E2748A05D9B94D27E9",
+                  "darwin": "2AEC42BB0D828E50344EADE10794D55885491319F7359ED19569F087AA4C0A84",
+                  "win32": ""
+              }
+          },
+          "binary": {
+              "linux": "zsail",
+              "darwin": "ZSail.app/Contents/MacOS/ZSail",
+              "win32": ""
+          },
+          "network": {
+              "port": 8232
+          },
+          "chain_type": 1,
+          "slot": 5
+      },
+      {
+          "id": "ethsail",
+          "version": "0.4.0",
+          "display_name": "Bit-Ethereum",
+          "description": "A clone of Ethereum, the #2 coin.",
+          "repo_url": "https://github.com/barebitcoin/sidesail",
+          "directories": {
+              "base": {
+                  "linux": "drivechain_launcher_sidechains/ethsail",
+                  "darwin": "drivechain_launcher_sidechains/EthSail",
+                  "win32": "drivechain_launcher_sidechains/EthSail"
+              },
+              "wallet": {
+                  "linux": ".ethereum/keystore",
+                  "darwin": "Library/Ethereum/keystore",
+                  "win32": ""
+              }
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip",
+                  "darwin": "L2-S6-EthSail-latest-x86_64-apple-darwin.zip",
+                  "win32": "L2-S6-EthSail-latest-x86_64-w64-mingw32.zip"
+              },
+              "sizes": {
+                  "linux": 57917534,
+                  "darwin": 45453776,
+                  "win32": 123372752
+              },
+              "hashes": {
+                  "linux": "115B4F037FCAD11ECDA7BCE8A42F21802FF9F015BD36BC3FE60EBBEDE2BDA270",
+                  "darwin": "F4303F1DF96D51157F58344A9E6E65A27742223123808B24C057DFA7CB0CD8C5",
+                  "win32": "ADC2F6C2203DABE757B9AFD49FE34B1D502656DC5F9D700697EB498C2FE0187A"
+              }
+          },
+          "binary": {
+              "linux": "ethsail",
+              "darwin": "EthSail.app/Contents/MacOS/EthSail",
+              "win32": "EthSail.exe"
+          },
+          "network": {
+              "port": 8545
+          },
+          "chain_type": 1,
+          "slot": 6
+      },
+      {
+          "id": "thunder",
+          "version": "0.4.0",
+          "display_name": "Thunder",
+          "description": "A high performance largeblock sidechain",
+          "repo_url": "https://github.com/LayerTwo-Labs/thunder-rust",
+          "directories": {
+              "base": {
+                  "linux": "drivechain_launcher_sidechains/Thunder",
+                  "darwin": "drivechain_launcher_sidechains/Thunder",
+                  "win32": "drivechain_launcher_sidechains/Thunder"
+              },
+              "wallet": "data/wallet.mdb"
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
+                  "darwin": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
+                  "win32": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
+              },
+              "sizes": {
+                  "linux": 7663000,
+                  "darwin": 8372222,
+                  "win32": 8212946
+              },
+              "hashes": {
+                  "linux": "78A254906541C327228D561C7FC5F0E73E8216C7803D3F067566D0FB73ECB2FB",
+                  "darwin": "CDBBC08F73149019CD5F65C7AE26360BEBDA051807E2CD34F2AE2893CC4D81BB",
+                  "win32": "2038EDEDC322E389C2C4A7F9EE1E388312B13AEC9EA1FEB130325128251FD5F7"
+              }
+          },
+          "binary": {
+              "linux": "thunder-latest-x86_64-unknown-linux-gnu",
+              "darwin": "thunder-latest-x86_64-apple-darwin",
+              "win32": "thunder-latest-x86_64-pc-windows-gnu.exe"
+          },
+          "network": {
+              "port": 6009
+          },
+          "chain_type": 2,
+          "slot": 9
+      },
+      {
+          "id": "latestcore",
+          "version": "4.02.00",
+          "display_name": "Latest Core Plus",
+          "description": "Bitcoin Core v25 + BIPS 118, 119, & 345",
+          "repo_url": "https://github.com/LayerTwo-Labs/bitcoin",
+          "directories": {
+              "base": {
+                  "linux": "drivechain_launcher_sidechains/Latestcore",
+                  "darwin": "drivechain_launcher_sidechains/Latestcore",
+                  "win32": "drivechain_launcher_sidechains/Latestcore"
+              },
+              "wallet": "wallets"
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "L2-S11-latestCore-linux.zip",
+                  "darwin": "",
+                  "win32": ""
+              },
+              "sizes": {
+                  "linux": 35821141,
+                  "darwin": 0,
+                  "win32": 0
+              },
+              "hashes": {
+                  "linux": "ADA6A2939F39D337FE0DDC13CE23803076732F6D04B14DE06A9370B9C3D3E509",
+                  "darwin": "",
+                  "win32": ""
+              }
+          },
+          "binary": {
+              "linux": "bitcoin-qt",
+              "darwin": "",
+              "win32": ""
+          },
+          "network": {
+              "port": 19015
+          },
+          "chain_type": 1,
+          "slot": 11
+      }
+  ]
+}
