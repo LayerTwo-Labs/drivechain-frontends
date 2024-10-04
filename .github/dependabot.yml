@@ -21,3 +21,8 @@ updates:
     directory: "/packages/drivechain_client"
     schedule:
       interval: weekly
+
+  - package-ecosystem: pub
+    directory: "/packages/drivechain_launcher"
+    schedule:
+      interval: weekly
