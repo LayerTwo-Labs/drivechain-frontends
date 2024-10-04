@@ -47,7 +47,8 @@ class SidechainProvider extends ChangeNotifier {
         }
       }
 
-      if (_dataHasChanged(sidechains, updatedSidechains) || _dataHasChanged(sidechainProposals, newSidechainProposals)) {
+      if (_dataHasChanged(sidechains, updatedSidechains) ||
+          _dataHasChanged(sidechainProposals, newSidechainProposals)) {
         sidechains = updatedSidechains;
         sidechainProposals = newSidechainProposals;
         error = null;

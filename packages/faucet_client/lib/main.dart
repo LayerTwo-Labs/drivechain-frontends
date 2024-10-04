@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -58,8 +57,8 @@ Future<void> initDependencies() async {
   // api must be registered first, because other singletons depend on it
   GetIt.I.registerLazySingleton<API>(
     () => APILive(
-      apiHost: env(Environment.apiHost),
-      apiPort: optionalEnv(Environment.apiPort),
+      host: env(Environment.apiHost),
+      port: optionalEnv(Environment.apiPort),
     ),
   );
 

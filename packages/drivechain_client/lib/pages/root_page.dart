@@ -51,9 +51,7 @@ class RootPage extends StatelessWidget {
                       QtTab(
                         icon: Icon(
                           Icons.home,
-                          color: tabsRouter.activeIndex == 0
-                              ? theme.colors.primary
-                              : theme.colors.text,
+                          color: tabsRouter.activeIndex == 0 ? theme.colors.primary : theme.colors.text,
                         ),
                         label: 'Overview',
                         active: tabsRouter.activeIndex == 0,
@@ -62,9 +60,7 @@ class RootPage extends StatelessWidget {
                       QtTab(
                         icon: Icon(
                           Icons.send,
-                          color: tabsRouter.activeIndex == 1
-                              ? theme.colors.primary
-                              : theme.colors.text,
+                          color: tabsRouter.activeIndex == 1 ? theme.colors.primary : theme.colors.text,
                         ),
                         label: 'Send',
                         active: tabsRouter.activeIndex == 1,
@@ -73,9 +69,7 @@ class RootPage extends StatelessWidget {
                       QtTab(
                         icon: Icon(
                           Icons.qr_code,
-                          color: tabsRouter.activeIndex == 2
-                              ? theme.colors.primary
-                              : theme.colors.text,
+                          color: tabsRouter.activeIndex == 2 ? theme.colors.primary : theme.colors.text,
                         ),
                         label: 'Receive',
                         active: tabsRouter.activeIndex == 2,
@@ -84,9 +78,7 @@ class RootPage extends StatelessWidget {
                       QtTab(
                         icon: Icon(
                           Icons.list,
-                          color: tabsRouter.activeIndex == 3
-                              ? theme.colors.primary
-                              : theme.colors.text,
+                          color: tabsRouter.activeIndex == 3 ? theme.colors.primary : theme.colors.text,
                         ),
                         label: 'Transactions',
                         active: tabsRouter.activeIndex == 3,
@@ -103,14 +95,11 @@ class RootPage extends StatelessWidget {
                             ..moveTo(size.width, size.height)
                             ..lineTo(size.width, 0),
                           child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 4.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
                             child: QtTab(
                               icon: Icon(
                                 Icons.link,
-                                color: tabsRouter.activeIndex == 4
-                                    ? theme.colors.primary
-                                    : theme.colors.text,
+                                color: tabsRouter.activeIndex == 4 ? theme.colors.primary : theme.colors.text,
                               ),
                               label: 'Sidechains',
                               active: tabsRouter.activeIndex == 4,
@@ -152,8 +141,7 @@ class StatusBar extends StatefulWidget {
 }
 
 class _StatusBarState extends State<StatusBar> {
-  BlockchainProvider get blockchainProvider =>
-      GetIt.I.get<BlockchainProvider>();
+  BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   late Timer _timer;
 
   @override
@@ -168,8 +156,7 @@ class _StatusBarState extends State<StatusBar> {
     }
 
     final now = DateTime.now();
-    final lastBlockTime =
-        blockchainProvider.lastBlockAt!.toDateTime().toLocal();
+    final lastBlockTime = blockchainProvider.lastBlockAt!.toDateTime().toLocal();
     final difference = now.difference(lastBlockTime);
 
     if (difference.inDays > 0) {
@@ -200,18 +187,14 @@ class _StatusBarState extends State<StatusBar> {
             '${formatWithThousandSpacers(blockchainProvider.blockchainInfo.blocks)} blocks',
           ),
           Tooltip(
-            message: blockchainProvider.peers
-                .map((e) => 'Peer id=${e.id} addr=${e.addr}')
-                .join('\n'),
+            message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
             child: SailText.primary12(
               formatTimeDifference(blockchainProvider.peers.length, 'peer'),
             ),
           ),
           Tooltip(
-            message:
-                blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
-            child:
-                SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+            message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
+            child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
           ),
         ]
             .map(
