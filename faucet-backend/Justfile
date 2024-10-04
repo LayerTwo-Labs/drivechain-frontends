@@ -3,3 +3,6 @@ build:
 
 lint: 
     golangci-lint run ./...
+
+gen:
+    buf generate

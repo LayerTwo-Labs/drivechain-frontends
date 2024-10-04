@@ -8,7 +8,5 @@ plugins:
     out: lib/gen
     include_wkt: true
     include_imports: true
-
-inputs:
-  # The backend uses btc-buf
-  - module: buf.build/bitcoin/bitcoind
+    opt:
+      - grpc

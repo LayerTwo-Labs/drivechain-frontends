@@ -1,5 +1,5 @@
-gen:
-    buf generate
-
 format:
     find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
+
+gen:
+    buf generate ../../faucet-backend

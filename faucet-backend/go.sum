@@ -5,10 +5,10 @@ connectrpc.com/grpchealth v1.3.0/go.mod h1:3vpqmX25/ir0gVgW6RdnCPPZRcR6HvqtXX5RN
 connectrpc.com/grpcreflect v1.2.0 h1:Q6og1S7HinmtbEuBvARLNwYmTbhEGRpHDhqrPNlmK+U=
 connectrpc.com/grpcreflect v1.2.0/go.mod h1:nwSOKmE8nU5u/CidgHtPYk1PFI3U9ignz7iDMxOYkSY=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
-github.com/barebitcoin/btc-buf v0.0.0-20240916082311-69cac2b5d121 h1:QaKl8fvlqscHXVieKvq90s/05ZI3zbhGMshQWBseNr4=
-github.com/barebitcoin/btc-buf v0.0.0-20240916082311-69cac2b5d121/go.mod h1:Ejj8VRYAG5+cwUL1ML3FposoaI50uP5WGccf3KX2+f0=
-github.com/barebitcoin/btcd/rpcclient v0.0.0-20240913081458-4dd5591f22b8 h1:L0rObrQHuLWM1g85rMxXSIynaWrT/gytGcw1JT+rqPo=
-github.com/barebitcoin/btcd/rpcclient v0.0.0-20240913081458-4dd5591f22b8/go.mod h1:40gHHP6p9jQNolMHF7tbzSyW/EpEy04tvcSATgikQGE=
+github.com/barebitcoin/btc-buf v0.0.0-20240930061304-04a85a797185 h1:WuupqgxQQSyqyJhVztk5UZOBYO8WRS0CBlGwZHuBMLc=
+github.com/barebitcoin/btc-buf v0.0.0-20240930061304-04a85a797185/go.mod h1:pD1neuhFJPk/tUboEhvBzQDjH8+m2YqZMHmAtOd3crs=
+github.com/barebitcoin/btcd/rpcclient v0.0.0-20240927061622-c0a9f969fd8d h1:EQBrH0PUvxKeO+Ttbcax7xDwbaAN0FFedXAp7dhSY+w=
+github.com/barebitcoin/btcd/rpcclient v0.0.0-20240927061622-c0a9f969fd8d/go.mod h1:40gHHP6p9jQNolMHF7tbzSyW/EpEy04tvcSATgikQGE=
 github.com/btcsuite/btcd v0.20.1-beta/go.mod h1:wVuoA8VJLEcwgqHBwHmzLRazpKxTv13Px/pDuV7OomQ=
 github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c/go.mod h1:tjmYdS6MLJ5/s0Fj4DbLgSbDHbEqLJrtnHecBFkdz5M=
 github.com/btcsuite/btcd v0.23.5-0.20231215221805-96c9fd8078fd/go.mod h1:nm3Bko6zh6bWP60UxwoT5LzdGJsQJaPo6HjduXq9p6A=
@@ -158,8 +158,8 @@ google.golang.org/protobuf v0.0.0-20200228230310-ab0ca4ff8a60/go.mod h1:cfTl7dwQ
 google.golang.org/protobuf v1.20.1-0.20200309200217-e05f789c0967/go.mod h1:A+miEFZTKqfCUM6K7xSMQL9OKL/b6hQv+e19PK+JZNE=
 google.golang.org/protobuf v1.21.0/go.mod h1:47Nbq4nVaFHyn7ilMalzfO3qCViNmqZ2kzikPIcrTAo=
 google.golang.org/protobuf v1.23.0/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2l/sGQquU=
-google.golang.org/protobuf v1.34.1 h1:9ddQBjfCyZPOHPUiPxpYESBLc+T8P3E+Vo4IbKZgFWg=
-google.golang.org/protobuf v1.34.1/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
+google.golang.org/protobuf v1.34.2 h1:6xV6lTsCfpGD21XK49h7MhtcApnLqkfYgPcdHftf6hg=
+google.golang.org/protobuf v1.34.2/go.mod h1:qYOHts0dSfpeUzUFpOMr/WGzszTmLH+DiWniOlNbLDw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/fsnotify.v1 v1.4.7/go.mod h1:Tz8NjZHkW78fSQdbUxIjBTcgA1z1m8ZHf0WmKUhAMys=
 gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7/go.mod h1:dt/ZhP58zS4L8KSrWDmTeBkI65Dw0HsyUHuEVlX15mw=

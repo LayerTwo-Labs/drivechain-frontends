@@ -9,14 +9,13 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
-import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../../google/protobuf/timestamp.pb.dart' as $0;
-import '../../../google/protobuf/wrappers.pb.dart' as $1;
+import '../../../google/protobuf/timestamp.pb.dart' as $3;
+import '../../../google/protobuf/wrappers.pb.dart' as $4;
 import 'bitcoin.pbenum.dart';
 
 export 'bitcoin.pbenum.dart';
@@ -61,6 +60,7 @@ class GetBlockchainInfoResponse extends $pb.GeneratedMessage {
     $core.bool? initialBlockDownload,
     $core.int? blocks,
     $core.int? headers,
+    $core.double? verificationProgress,
   }) {
     final $result = create();
     if (bestBlockHash != null) {
@@ -81,6 +81,9 @@ class GetBlockchainInfoResponse extends $pb.GeneratedMessage {
     if (headers != null) {
       $result.headers = headers;
     }
+    if (verificationProgress != null) {
+      $result.verificationProgress = verificationProgress;
+    }
     return $result;
   }
   GetBlockchainInfoResponse._() : super();
@@ -94,6 +97,7 @@ class GetBlockchainInfoResponse extends $pb.GeneratedMessage {
     ..aOB(4, _omitFieldNames ? '' : 'initialBlockDownload')
     ..a<$core.int>(5, _omitFieldNames ? '' : 'blocks', $pb.PbFieldType.OU3)
     ..a<$core.int>(6, _omitFieldNames ? '' : 'headers', $pb.PbFieldType.OU3)
+    ..a<$core.double>(7, _omitFieldNames ? '' : 'verificationProgress', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -173,6 +177,169 @@ class GetBlockchainInfoResponse extends $pb.GeneratedMessage {
   $core.bool hasHeaders() => $_has(5);
   @$pb.TagNumber(6)
   void clearHeaders() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.double get verificationProgress => $_getN(6);
+  @$pb.TagNumber(7)
+  set verificationProgress($core.double v) { $_setDouble(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasVerificationProgress() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearVerificationProgress() => clearField(7);
+}
+
+class GetPeerInfoRequest extends $pb.GeneratedMessage {
+  factory GetPeerInfoRequest() => create();
+  GetPeerInfoRequest._() : super();
+  factory GetPeerInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPeerInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPeerInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPeerInfoRequest clone() => GetPeerInfoRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPeerInfoRequest copyWith(void Function(GetPeerInfoRequest) updates) => super.copyWith((message) => updates(message as GetPeerInfoRequest)) as GetPeerInfoRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPeerInfoRequest create() => GetPeerInfoRequest._();
+  GetPeerInfoRequest createEmptyInstance() => create();
+  static $pb.PbList<GetPeerInfoRequest> createRepeated() => $pb.PbList<GetPeerInfoRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetPeerInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPeerInfoRequest>(create);
+  static GetPeerInfoRequest? _defaultInstance;
+}
+
+class Peer extends $pb.GeneratedMessage {
+  factory Peer({
+    $core.int? id,
+    $core.String? addr,
+    $core.int? syncedBlocks,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (addr != null) {
+      $result.addr = addr;
+    }
+    if (syncedBlocks != null) {
+      $result.syncedBlocks = syncedBlocks;
+    }
+    return $result;
+  }
+  Peer._() : super();
+  factory Peer.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Peer.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Peer', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'id', $pb.PbFieldType.O3)
+    ..aOS(2, _omitFieldNames ? '' : 'addr')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'syncedBlocks', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  Peer clone() => Peer()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  Peer copyWith(void Function(Peer) updates) => super.copyWith((message) => updates(message as Peer)) as Peer;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Peer create() => Peer._();
+  Peer createEmptyInstance() => create();
+  static $pb.PbList<Peer> createRepeated() => $pb.PbList<Peer>();
+  @$core.pragma('dart2js:noInline')
+  static Peer getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Peer>(create);
+  static Peer? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get id => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set id($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get addr => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set addr($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAddr() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddr() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get syncedBlocks => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set syncedBlocks($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSyncedBlocks() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSyncedBlocks() => clearField(3);
+}
+
+class GetPeerInfoResponse extends $pb.GeneratedMessage {
+  factory GetPeerInfoResponse({
+    $core.Iterable<Peer>? peers,
+  }) {
+    final $result = create();
+    if (peers != null) {
+      $result.peers.addAll(peers);
+    }
+    return $result;
+  }
+  GetPeerInfoResponse._() : super();
+  factory GetPeerInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPeerInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPeerInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..pc<Peer>(1, _omitFieldNames ? '' : 'peers', $pb.PbFieldType.PM, subBuilder: Peer.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPeerInfoResponse clone() => GetPeerInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPeerInfoResponse copyWith(void Function(GetPeerInfoResponse) updates) => super.copyWith((message) => updates(message as GetPeerInfoResponse)) as GetPeerInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPeerInfoResponse create() => GetPeerInfoResponse._();
+  GetPeerInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetPeerInfoResponse> createRepeated() => $pb.PbList<GetPeerInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetPeerInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPeerInfoResponse>(create);
+  static GetPeerInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<Peer> get peers => $_getList(0);
 }
 
 class GetNewAddressRequest extends $pb.GeneratedMessage {
@@ -1100,7 +1267,6 @@ class GetTransactionResponse_Details extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearAddress() => clearField(2);
 
-  /// TODO: enum - send, receive, generate, immature, orphan
   @$pb.TagNumber(3)
   GetTransactionResponse_Category get category => $_getN(2);
   @$pb.TagNumber(3)
@@ -1147,13 +1313,13 @@ class GetTransactionResponse extends $pb.GeneratedMessage {
     $core.int? confirmations,
     $core.String? blockHash,
     $core.int? blockIndex,
-    $0.Timestamp? blockTime,
+    $3.Timestamp? blockTime,
     $core.String? txid,
     $core.Iterable<$core.String>? walletConflicts,
     $core.String? replacedByTxid,
     $core.String? replacesTxid,
-    $0.Timestamp? time,
-    $0.Timestamp? timeReceived,
+    $3.Timestamp? time,
+    $3.Timestamp? timeReceived,
     GetTransactionResponse_Replaceable? bip125Replaceable,
     $core.Iterable<GetTransactionResponse_Details>? details,
     $core.String? hex,
@@ -1216,13 +1382,13 @@ class GetTransactionResponse extends $pb.GeneratedMessage {
     ..a<$core.int>(3, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
     ..aOS(6, _omitFieldNames ? '' : 'blockHash')
     ..a<$core.int>(8, _omitFieldNames ? '' : 'blockIndex', $pb.PbFieldType.OU3)
-    ..aOM<$0.Timestamp>(9, _omitFieldNames ? '' : 'blockTime', subBuilder: $0.Timestamp.create)
+    ..aOM<$3.Timestamp>(9, _omitFieldNames ? '' : 'blockTime', subBuilder: $3.Timestamp.create)
     ..aOS(10, _omitFieldNames ? '' : 'txid')
     ..pPS(12, _omitFieldNames ? '' : 'walletConflicts')
     ..aOS(13, _omitFieldNames ? '' : 'replacedByTxid')
     ..aOS(14, _omitFieldNames ? '' : 'replacesTxid')
-    ..aOM<$0.Timestamp>(17, _omitFieldNames ? '' : 'time', subBuilder: $0.Timestamp.create)
-    ..aOM<$0.Timestamp>(18, _omitFieldNames ? '' : 'timeReceived', subBuilder: $0.Timestamp.create)
+    ..aOM<$3.Timestamp>(17, _omitFieldNames ? '' : 'time', subBuilder: $3.Timestamp.create)
+    ..aOM<$3.Timestamp>(18, _omitFieldNames ? '' : 'timeReceived', subBuilder: $3.Timestamp.create)
     ..e<GetTransactionResponse_Replaceable>(19, _omitFieldNames ? '' : 'bip125Replaceable', $pb.PbFieldType.OE, defaultOrMaker: GetTransactionResponse_Replaceable.REPLACEABLE_UNSPECIFIED, valueOf: GetTransactionResponse_Replaceable.valueOf, enumValues: GetTransactionResponse_Replaceable.values)
     ..pc<GetTransactionResponse_Details>(21, _omitFieldNames ? '' : 'details', $pb.PbFieldType.PM, subBuilder: GetTransactionResponse_Details.create)
     ..aOS(22, _omitFieldNames ? '' : 'hex')
@@ -1302,15 +1468,15 @@ class GetTransactionResponse extends $pb.GeneratedMessage {
   void clearBlockIndex() => clearField(8);
 
   @$pb.TagNumber(9)
-  $0.Timestamp get blockTime => $_getN(5);
+  $3.Timestamp get blockTime => $_getN(5);
   @$pb.TagNumber(9)
-  set blockTime($0.Timestamp v) { setField(9, v); }
+  set blockTime($3.Timestamp v) { setField(9, v); }
   @$pb.TagNumber(9)
   $core.bool hasBlockTime() => $_has(5);
   @$pb.TagNumber(9)
   void clearBlockTime() => clearField(9);
   @$pb.TagNumber(9)
-  $0.Timestamp ensureBlockTime() => $_ensure(5);
+  $3.Timestamp ensureBlockTime() => $_ensure(5);
 
   @$pb.TagNumber(10)
   $core.String get txid => $_getSZ(6);
@@ -1346,26 +1512,26 @@ class GetTransactionResponse extends $pb.GeneratedMessage {
   /// string comment = 15;
   /// string to = 16;
   @$pb.TagNumber(17)
-  $0.Timestamp get time => $_getN(10);
+  $3.Timestamp get time => $_getN(10);
   @$pb.TagNumber(17)
-  set time($0.Timestamp v) { setField(17, v); }
+  set time($3.Timestamp v) { setField(17, v); }
   @$pb.TagNumber(17)
   $core.bool hasTime() => $_has(10);
   @$pb.TagNumber(17)
   void clearTime() => clearField(17);
   @$pb.TagNumber(17)
-  $0.Timestamp ensureTime() => $_ensure(10);
+  $3.Timestamp ensureTime() => $_ensure(10);
 
   @$pb.TagNumber(18)
-  $0.Timestamp get timeReceived => $_getN(11);
+  $3.Timestamp get timeReceived => $_getN(11);
   @$pb.TagNumber(18)
-  set timeReceived($0.Timestamp v) { setField(18, v); }
+  set timeReceived($3.Timestamp v) { setField(18, v); }
   @$pb.TagNumber(18)
   $core.bool hasTimeReceived() => $_has(11);
   @$pb.TagNumber(18)
   void clearTimeReceived() => clearField(18);
   @$pb.TagNumber(18)
-  $0.Timestamp ensureTimeReceived() => $_ensure(11);
+  $3.Timestamp ensureTimeReceived() => $_ensure(11);
 
   ///  Whether this transaction signals BIP125 (Replace-by-fee, RBF) replaceability
   ///  or has an unconfirmed ancestor signaling BIP125 replaceability. May be unspecified
@@ -1801,7 +1967,7 @@ class SendRequest extends $pb.GeneratedMessage {
     $core.String? wallet,
     $core.bool? includeUnsafe,
     $core.Iterable<$core.String>? subtractFeeFromOutputs,
-    $1.BoolValue? addToWallet,
+    $4.BoolValue? addToWallet,
     $core.double? feeRate,
   }) {
     final $result = create();
@@ -1838,7 +2004,7 @@ class SendRequest extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'wallet')
     ..aOB(4, _omitFieldNames ? '' : 'includeUnsafe')
     ..pPS(5, _omitFieldNames ? '' : 'subtractFeeFromOutputs')
-    ..aOM<$1.BoolValue>(6, _omitFieldNames ? '' : 'addToWallet', subBuilder: $1.BoolValue.create)
+    ..aOM<$4.BoolValue>(6, _omitFieldNames ? '' : 'addToWallet', subBuilder: $4.BoolValue.create)
     ..a<$core.double>(7, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
@@ -1918,15 +2084,15 @@ class SendRequest extends $pb.GeneratedMessage {
   ///
   ///  Both of these seem bad.
   @$pb.TagNumber(6)
-  $1.BoolValue get addToWallet => $_getN(5);
+  $4.BoolValue get addToWallet => $_getN(5);
   @$pb.TagNumber(6)
-  set addToWallet($1.BoolValue v) { setField(6, v); }
+  set addToWallet($4.BoolValue v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasAddToWallet() => $_has(5);
   @$pb.TagNumber(6)
   void clearAddToWallet() => clearField(6);
   @$pb.TagNumber(6)
-  $1.BoolValue ensureAddToWallet() => $_ensure(5);
+  $4.BoolValue ensureAddToWallet() => $_ensure(5);
 
   /// Satoshis per virtual byte (sat/vB).
   @$pb.TagNumber(7)
@@ -2598,7 +2764,7 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
     $core.bool? active,
     $core.int? rangeStart,
     $core.int? rangeEnd,
-    $0.Timestamp? timestamp,
+    $3.Timestamp? timestamp,
     $core.bool? internal,
     $core.String? label,
   }) {
@@ -2635,7 +2801,7 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
     ..aOB(2, _omitFieldNames ? '' : 'active')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'rangeStart', $pb.PbFieldType.OU3)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'rangeEnd', $pb.PbFieldType.OU3)
-    ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
+    ..aOM<$3.Timestamp>(5, _omitFieldNames ? '' : 'timestamp', subBuilder: $3.Timestamp.create)
     ..aOB(6, _omitFieldNames ? '' : 'internal')
     ..aOS(7, _omitFieldNames ? '' : 'label')
     ..hasRequiredFields = false
@@ -2702,15 +2868,15 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
 
   /// Nil passes 'now' to Bitcoin Core, which bypasses scanning.
   @$pb.TagNumber(5)
-  $0.Timestamp get timestamp => $_getN(4);
+  $3.Timestamp get timestamp => $_getN(4);
   @$pb.TagNumber(5)
-  set timestamp($0.Timestamp v) { setField(5, v); }
+  set timestamp($3.Timestamp v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasTimestamp() => $_has(4);
   @$pb.TagNumber(5)
   void clearTimestamp() => clearField(5);
   @$pb.TagNumber(5)
-  $0.Timestamp ensureTimestamp() => $_ensure(4);
+  $3.Timestamp ensureTimestamp() => $_ensure(4);
 
   /// Whether matching outputs should be treated as not incoming payments (e.g. change)
   @$pb.TagNumber(6)
@@ -3206,7 +3372,7 @@ class GetBlockResponse extends $pb.GeneratedMessage {
     $core.int? version,
     $core.String? versionHex,
     $core.String? merkleRoot,
-    $0.Timestamp? time,
+    $3.Timestamp? time,
     $core.int? nonce,
     $core.String? bits,
     $core.double? difficulty,
@@ -3283,7 +3449,7 @@ class GetBlockResponse extends $pb.GeneratedMessage {
     ..a<$core.int>(5, _omitFieldNames ? '' : 'version', $pb.PbFieldType.O3)
     ..aOS(6, _omitFieldNames ? '' : 'versionHex')
     ..aOS(7, _omitFieldNames ? '' : 'merkleRoot')
-    ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'time', subBuilder: $0.Timestamp.create)
+    ..aOM<$3.Timestamp>(8, _omitFieldNames ? '' : 'time', subBuilder: $3.Timestamp.create)
     ..a<$core.int>(9, _omitFieldNames ? '' : 'nonce', $pb.PbFieldType.OU3)
     ..aOS(10, _omitFieldNames ? '' : 'bits')
     ..a<$core.double>(11, _omitFieldNames ? '' : 'difficulty', $pb.PbFieldType.OD)
@@ -3381,15 +3547,15 @@ class GetBlockResponse extends $pb.GeneratedMessage {
   void clearMerkleRoot() => clearField(7);
 
   @$pb.TagNumber(8)
-  $0.Timestamp get time => $_getN(7);
+  $3.Timestamp get time => $_getN(7);
   @$pb.TagNumber(8)
-  set time($0.Timestamp v) { setField(8, v); }
+  set time($3.Timestamp v) { setField(8, v); }
   @$pb.TagNumber(8)
   $core.bool hasTime() => $_has(7);
   @$pb.TagNumber(8)
   void clearTime() => clearField(8);
   @$pb.TagNumber(8)
-  $0.Timestamp ensureTime() => $_ensure(7);
+  $3.Timestamp ensureTime() => $_ensure(7);
 
   @$pb.TagNumber(9)
   $core.int get nonce => $_getIZ(8);
@@ -3877,7 +4043,7 @@ class MempoolEntry extends $pb.GeneratedMessage {
   factory MempoolEntry({
     $core.int? virtualSize,
     $core.int? weight,
-    $0.Timestamp? time,
+    $3.Timestamp? time,
     $core.int? descendantCount,
     $core.int? descendantSize,
     $core.int? ancestorCount,
@@ -3938,7 +4104,7 @@ class MempoolEntry extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MempoolEntry', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'virtualSize', $pb.PbFieldType.OU3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'weight', $pb.PbFieldType.OU3)
-    ..aOM<$0.Timestamp>(3, _omitFieldNames ? '' : 'time', subBuilder: $0.Timestamp.create)
+    ..aOM<$3.Timestamp>(3, _omitFieldNames ? '' : 'time', subBuilder: $3.Timestamp.create)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'descendantCount', $pb.PbFieldType.OU3)
     ..a<$core.int>(5, _omitFieldNames ? '' : 'descendantSize', $pb.PbFieldType.OU3)
     ..a<$core.int>(6, _omitFieldNames ? '' : 'ancestorCount', $pb.PbFieldType.OU3)
@@ -3992,15 +4158,15 @@ class MempoolEntry extends $pb.GeneratedMessage {
   void clearWeight() => clearField(2);
 
   @$pb.TagNumber(3)
-  $0.Timestamp get time => $_getN(2);
+  $3.Timestamp get time => $_getN(2);
   @$pb.TagNumber(3)
-  set time($0.Timestamp v) { setField(3, v); }
+  set time($3.Timestamp v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasTime() => $_has(2);
   @$pb.TagNumber(3)
   void clearTime() => clearField(3);
   @$pb.TagNumber(3)
-  $0.Timestamp ensureTime() => $_ensure(2);
+  $3.Timestamp ensureTime() => $_ensure(2);
 
   @$pb.TagNumber(4)
   $core.int get descendantCount => $_getIZ(3);
@@ -4362,64 +4528,320 @@ class ListTransactionsResponse extends $pb.GeneratedMessage {
   $core.List<GetTransactionResponse> get transactions => $_getList(0);
 }
 
-class BitcoinServiceApi {
-  $pb.RpcClient _client;
-  BitcoinServiceApi(this._client);
+class ListWalletsResponse extends $pb.GeneratedMessage {
+  factory ListWalletsResponse({
+    $core.Iterable<$core.String>? wallets,
+  }) {
+    final $result = create();
+    if (wallets != null) {
+      $result.wallets.addAll(wallets);
+    }
+    return $result;
+  }
+  ListWalletsResponse._() : super();
+  factory ListWalletsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListWalletsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  $async.Future<GetBlockchainInfoResponse> getBlockchainInfo($pb.ClientContext? ctx, GetBlockchainInfoRequest request) =>
-    _client.invoke<GetBlockchainInfoResponse>(ctx, 'BitcoinService', 'GetBlockchainInfo', request, GetBlockchainInfoResponse())
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWalletsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'wallets')
+    ..hasRequiredFields = false
   ;
-  $async.Future<GetTransactionResponse> getTransaction($pb.ClientContext? ctx, GetTransactionRequest request) =>
-    _client.invoke<GetTransactionResponse>(ctx, 'BitcoinService', 'GetTransaction', request, GetTransactionResponse())
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListWalletsResponse clone() => ListWalletsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListWalletsResponse copyWith(void Function(ListWalletsResponse) updates) => super.copyWith((message) => updates(message as ListWalletsResponse)) as ListWalletsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListWalletsResponse create() => ListWalletsResponse._();
+  ListWalletsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListWalletsResponse> createRepeated() => $pb.PbList<ListWalletsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListWalletsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListWalletsResponse>(create);
+  static ListWalletsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<$core.String> get wallets => $_getList(0);
+}
+
+class GetAddressInfoRequest extends $pb.GeneratedMessage {
+  factory GetAddressInfoRequest({
+    $core.String? address,
+    $core.String? wallet,
+  }) {
+    final $result = create();
+    if (address != null) {
+      $result.address = address;
+    }
+    if (wallet != null) {
+      $result.wallet = wallet;
+    }
+    return $result;
+  }
+  GetAddressInfoRequest._() : super();
+  factory GetAddressInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetAddressInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetAddressInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'address')
+    ..aOS(2, _omitFieldNames ? '' : 'wallet')
+    ..hasRequiredFields = false
   ;
-  $async.Future<ListSinceBlockResponse> listSinceBlock($pb.ClientContext? ctx, ListSinceBlockRequest request) =>
-    _client.invoke<ListSinceBlockResponse>(ctx, 'BitcoinService', 'ListSinceBlock', request, ListSinceBlockResponse())
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetAddressInfoRequest clone() => GetAddressInfoRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetAddressInfoRequest copyWith(void Function(GetAddressInfoRequest) updates) => super.copyWith((message) => updates(message as GetAddressInfoRequest)) as GetAddressInfoRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetAddressInfoRequest create() => GetAddressInfoRequest._();
+  GetAddressInfoRequest createEmptyInstance() => create();
+  static $pb.PbList<GetAddressInfoRequest> createRepeated() => $pb.PbList<GetAddressInfoRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetAddressInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAddressInfoRequest>(create);
+  static GetAddressInfoRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get address => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set address($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAddress() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get wallet => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set wallet($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWallet() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWallet() => clearField(2);
+}
+
+class GetAddressInfoResponse extends $pb.GeneratedMessage {
+  factory GetAddressInfoResponse({
+    $core.String? address,
+    $core.String? scriptPubKey,
+    $core.bool? isMine,
+    $core.bool? isWatchOnly,
+    $core.bool? solvable,
+    $core.bool? isScript,
+    $core.bool? isChange,
+    $core.bool? isWitness,
+    $core.int? witnessVersion,
+    $core.String? witnessProgram,
+    $core.String? scriptType,
+    $core.bool? isCompressed,
+  }) {
+    final $result = create();
+    if (address != null) {
+      $result.address = address;
+    }
+    if (scriptPubKey != null) {
+      $result.scriptPubKey = scriptPubKey;
+    }
+    if (isMine != null) {
+      $result.isMine = isMine;
+    }
+    if (isWatchOnly != null) {
+      $result.isWatchOnly = isWatchOnly;
+    }
+    if (solvable != null) {
+      $result.solvable = solvable;
+    }
+    if (isScript != null) {
+      $result.isScript = isScript;
+    }
+    if (isChange != null) {
+      $result.isChange = isChange;
+    }
+    if (isWitness != null) {
+      $result.isWitness = isWitness;
+    }
+    if (witnessVersion != null) {
+      $result.witnessVersion = witnessVersion;
+    }
+    if (witnessProgram != null) {
+      $result.witnessProgram = witnessProgram;
+    }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
+    if (isCompressed != null) {
+      $result.isCompressed = isCompressed;
+    }
+    return $result;
+  }
+  GetAddressInfoResponse._() : super();
+  factory GetAddressInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetAddressInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetAddressInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'address')
+    ..aOS(2, _omitFieldNames ? '' : 'scriptPubKey')
+    ..aOB(3, _omitFieldNames ? '' : 'isMine')
+    ..aOB(4, _omitFieldNames ? '' : 'isWatchOnly')
+    ..aOB(5, _omitFieldNames ? '' : 'solvable')
+    ..aOB(6, _omitFieldNames ? '' : 'isScript')
+    ..aOB(7, _omitFieldNames ? '' : 'isChange')
+    ..aOB(8, _omitFieldNames ? '' : 'isWitness')
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'witnessVersion', $pb.PbFieldType.OU3)
+    ..aOS(10, _omitFieldNames ? '' : 'witnessProgram')
+    ..aOS(11, _omitFieldNames ? '' : 'scriptType')
+    ..aOB(12, _omitFieldNames ? '' : 'isCompressed')
+    ..hasRequiredFields = false
   ;
-  $async.Future<GetNewAddressResponse> getNewAddress($pb.ClientContext? ctx, GetNewAddressRequest request) =>
-    _client.invoke<GetNewAddressResponse>(ctx, 'BitcoinService', 'GetNewAddress', request, GetNewAddressResponse())
-  ;
-  $async.Future<GetWalletInfoResponse> getWalletInfo($pb.ClientContext? ctx, GetWalletInfoRequest request) =>
-    _client.invoke<GetWalletInfoResponse>(ctx, 'BitcoinService', 'GetWalletInfo', request, GetWalletInfoResponse())
-  ;
-  $async.Future<GetBalancesResponse> getBalances($pb.ClientContext? ctx, GetBalancesRequest request) =>
-    _client.invoke<GetBalancesResponse>(ctx, 'BitcoinService', 'GetBalances', request, GetBalancesResponse())
-  ;
-  $async.Future<SendResponse> send($pb.ClientContext? ctx, SendRequest request) =>
-    _client.invoke<SendResponse>(ctx, 'BitcoinService', 'Send', request, SendResponse())
-  ;
-  $async.Future<SendToAddressResponse> sendToAddress($pb.ClientContext? ctx, SendToAddressRequest request) =>
-    _client.invoke<SendToAddressResponse>(ctx, 'BitcoinService', 'SendToAddress', request, SendToAddressResponse())
-  ;
-  $async.Future<BumpFeeResponse> bumpFee($pb.ClientContext? ctx, BumpFeeRequest request) =>
-    _client.invoke<BumpFeeResponse>(ctx, 'BitcoinService', 'BumpFee', request, BumpFeeResponse())
-  ;
-  $async.Future<EstimateSmartFeeResponse> estimateSmartFee($pb.ClientContext? ctx, EstimateSmartFeeRequest request) =>
-    _client.invoke<EstimateSmartFeeResponse>(ctx, 'BitcoinService', 'EstimateSmartFee', request, EstimateSmartFeeResponse())
-  ;
-  $async.Future<ImportDescriptorsResponse> importDescriptors($pb.ClientContext? ctx, ImportDescriptorsRequest request) =>
-    _client.invoke<ImportDescriptorsResponse>(ctx, 'BitcoinService', 'ImportDescriptors', request, ImportDescriptorsResponse())
-  ;
-  $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, ListTransactionsRequest request) =>
-    _client.invoke<ListTransactionsResponse>(ctx, 'BitcoinService', 'ListTransactions', request, ListTransactionsResponse())
-  ;
-  $async.Future<GetDescriptorInfoResponse> getDescriptorInfo($pb.ClientContext? ctx, GetDescriptorInfoRequest request) =>
-    _client.invoke<GetDescriptorInfoResponse>(ctx, 'BitcoinService', 'GetDescriptorInfo', request, GetDescriptorInfoResponse())
-  ;
-  $async.Future<GetRawMempoolResponse> getRawMempool($pb.ClientContext? ctx, GetRawMempoolRequest request) =>
-    _client.invoke<GetRawMempoolResponse>(ctx, 'BitcoinService', 'GetRawMempool', request, GetRawMempoolResponse())
-  ;
-  $async.Future<GetRawTransactionResponse> getRawTransaction($pb.ClientContext? ctx, GetRawTransactionRequest request) =>
-    _client.invoke<GetRawTransactionResponse>(ctx, 'BitcoinService', 'GetRawTransaction', request, GetRawTransactionResponse())
-  ;
-  $async.Future<DecodeRawTransactionResponse> decodeRawTransaction($pb.ClientContext? ctx, DecodeRawTransactionRequest request) =>
-    _client.invoke<DecodeRawTransactionResponse>(ctx, 'BitcoinService', 'DecodeRawTransaction', request, DecodeRawTransactionResponse())
-  ;
-  $async.Future<GetBlockResponse> getBlock($pb.ClientContext? ctx, GetBlockRequest request) =>
-    _client.invoke<GetBlockResponse>(ctx, 'BitcoinService', 'GetBlock', request, GetBlockResponse())
-  ;
-  $async.Future<GetBlockHashResponse> getBlockHash($pb.ClientContext? ctx, GetBlockHashRequest request) =>
-    _client.invoke<GetBlockHashResponse>(ctx, 'BitcoinService', 'GetBlockHash', request, GetBlockHashResponse())
-  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetAddressInfoResponse clone() => GetAddressInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetAddressInfoResponse copyWith(void Function(GetAddressInfoResponse) updates) => super.copyWith((message) => updates(message as GetAddressInfoResponse)) as GetAddressInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetAddressInfoResponse create() => GetAddressInfoResponse._();
+  GetAddressInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetAddressInfoResponse> createRepeated() => $pb.PbList<GetAddressInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetAddressInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAddressInfoResponse>(create);
+  static GetAddressInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get address => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set address($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAddress() => clearField(1);
+
+  /// Hex-encoded script pub key
+  @$pb.TagNumber(2)
+  $core.String get scriptPubKey => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set scriptPubKey($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasScriptPubKey() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearScriptPubKey() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get isMine => $_getBF(2);
+  @$pb.TagNumber(3)
+  set isMine($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasIsMine() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIsMine() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get isWatchOnly => $_getBF(3);
+  @$pb.TagNumber(4)
+  set isWatchOnly($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasIsWatchOnly() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIsWatchOnly() => clearField(4);
+
+  /// If Core knows how to spend coins sent to this address, ignoring
+  /// possible lack of private keys.
+  @$pb.TagNumber(5)
+  $core.bool get solvable => $_getBF(4);
+  @$pb.TagNumber(5)
+  set solvable($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSolvable() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSolvable() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get isScript => $_getBF(5);
+  @$pb.TagNumber(6)
+  set isScript($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasIsScript() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearIsScript() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get isChange => $_getBF(6);
+  @$pb.TagNumber(7)
+  set isChange($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasIsChange() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearIsChange() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get isWitness => $_getBF(7);
+  @$pb.TagNumber(8)
+  set isWitness($core.bool v) { $_setBool(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasIsWitness() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearIsWitness() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get witnessVersion => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set witnessVersion($core.int v) { $_setUnsignedInt32(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasWitnessVersion() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearWitnessVersion() => clearField(9);
+
+  /// Hex-encoded
+  @$pb.TagNumber(10)
+  $core.String get witnessProgram => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set witnessProgram($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasWitnessProgram() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearWitnessProgram() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get scriptType => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set scriptType($core.String v) { $_setString(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasScriptType() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearScriptType() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.bool get isCompressed => $_getBF(11);
+  @$pb.TagNumber(12)
+  set isCompressed($core.bool v) { $_setBool(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasIsCompressed() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearIsCompressed() => clearField(12);
 }
 
 

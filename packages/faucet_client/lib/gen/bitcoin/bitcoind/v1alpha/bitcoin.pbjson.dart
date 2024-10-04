@@ -13,9 +13,6 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../../google/protobuf/timestamp.pbjson.dart' as $0;
-import '../../../google/protobuf/wrappers.pbjson.dart' as $1;
-
 @$core.Deprecated('Use getBlockchainInfoRequestDescriptor instead')
 const GetBlockchainInfoRequest$json = {
   '1': 'GetBlockchainInfoRequest',
@@ -35,6 +32,7 @@ const GetBlockchainInfoResponse$json = {
     {'1': 'chain', '3': 2, '4': 1, '5': 9, '10': 'chain'},
     {'1': 'chain_work', '3': 3, '4': 1, '5': 9, '10': 'chainWork'},
     {'1': 'initial_block_download', '3': 4, '4': 1, '5': 8, '10': 'initialBlockDownload'},
+    {'1': 'verification_progress', '3': 7, '4': 1, '5': 1, '10': 'verificationProgress'},
   ],
 };
 
@@ -44,7 +42,45 @@ final $typed_data.Uint8List getBlockchainInfoResponseDescriptor = $convert.base6
     'VzdEJsb2NrSGFzaBIWCgZibG9ja3MYBSABKA1SBmJsb2NrcxIYCgdoZWFkZXJzGAYgASgNUgdo'
     'ZWFkZXJzEhQKBWNoYWluGAIgASgJUgVjaGFpbhIdCgpjaGFpbl93b3JrGAMgASgJUgljaGFpbl'
     'dvcmsSNAoWaW5pdGlhbF9ibG9ja19kb3dubG9hZBgEIAEoCFIUaW5pdGlhbEJsb2NrRG93bmxv'
-    'YWQ=');
+    'YWQSMwoVdmVyaWZpY2F0aW9uX3Byb2dyZXNzGAcgASgBUhR2ZXJpZmljYXRpb25Qcm9ncmVzcw'
+    '==');
+
+@$core.Deprecated('Use getPeerInfoRequestDescriptor instead')
+const GetPeerInfoRequest$json = {
+  '1': 'GetPeerInfoRequest',
+};
+
+/// Descriptor for `GetPeerInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getPeerInfoRequestDescriptor = $convert.base64Decode(
+    'ChJHZXRQZWVySW5mb1JlcXVlc3Q=');
+
+@$core.Deprecated('Use peerDescriptor instead')
+const Peer$json = {
+  '1': 'Peer',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 5, '10': 'id'},
+    {'1': 'addr', '3': 2, '4': 1, '5': 9, '10': 'addr'},
+    {'1': 'synced_blocks', '3': 3, '4': 1, '5': 5, '10': 'syncedBlocks'},
+  ],
+};
+
+/// Descriptor for `Peer`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List peerDescriptor = $convert.base64Decode(
+    'CgRQZWVyEg4KAmlkGAEgASgFUgJpZBISCgRhZGRyGAIgASgJUgRhZGRyEiMKDXN5bmNlZF9ibG'
+    '9ja3MYAyABKAVSDHN5bmNlZEJsb2Nrcw==');
+
+@$core.Deprecated('Use getPeerInfoResponseDescriptor instead')
+const GetPeerInfoResponse$json = {
+  '1': 'GetPeerInfoResponse',
+  '2': [
+    {'1': 'peers', '3': 1, '4': 3, '5': 11, '6': '.bitcoin.bitcoind.v1alpha.Peer', '10': 'peers'},
+  ],
+};
+
+/// Descriptor for `GetPeerInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getPeerInfoResponseDescriptor = $convert.base64Decode(
+    'ChNHZXRQZWVySW5mb1Jlc3BvbnNlEjQKBXBlZXJzGAEgAygLMh4uYml0Y29pbi5iaXRjb2luZC'
+    '52MWFscGhhLlBlZXJSBXBlZXJz');
 
 @$core.Deprecated('Use getNewAddressRequestDescriptor instead')
 const GetNewAddressRequest$json = {
@@ -910,125 +946,59 @@ final $typed_data.Uint8List listTransactionsResponseDescriptor = $convert.base64
     '9pbi5iaXRjb2luZC52MWFscGhhLkdldFRyYW5zYWN0aW9uUmVzcG9uc2VSDHRyYW5zYWN0aW9u'
     'cw==');
 
-const $core.Map<$core.String, $core.dynamic> BitcoinServiceBase$json = {
-  '1': 'BitcoinService',
+@$core.Deprecated('Use listWalletsResponseDescriptor instead')
+const ListWalletsResponse$json = {
+  '1': 'ListWalletsResponse',
   '2': [
-    {'1': 'GetBlockchainInfo', '2': '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoResponse'},
-    {'1': 'GetTransaction', '2': '.bitcoin.bitcoind.v1alpha.GetTransactionRequest', '3': '.bitcoin.bitcoind.v1alpha.GetTransactionResponse'},
-    {'1': 'ListSinceBlock', '2': '.bitcoin.bitcoind.v1alpha.ListSinceBlockRequest', '3': '.bitcoin.bitcoind.v1alpha.ListSinceBlockResponse'},
-    {'1': 'GetNewAddress', '2': '.bitcoin.bitcoind.v1alpha.GetNewAddressRequest', '3': '.bitcoin.bitcoind.v1alpha.GetNewAddressResponse'},
-    {'1': 'GetWalletInfo', '2': '.bitcoin.bitcoind.v1alpha.GetWalletInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetWalletInfoResponse'},
-    {'1': 'GetBalances', '2': '.bitcoin.bitcoind.v1alpha.GetBalancesRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBalancesResponse'},
-    {'1': 'Send', '2': '.bitcoin.bitcoind.v1alpha.SendRequest', '3': '.bitcoin.bitcoind.v1alpha.SendResponse'},
-    {'1': 'SendToAddress', '2': '.bitcoin.bitcoind.v1alpha.SendToAddressRequest', '3': '.bitcoin.bitcoind.v1alpha.SendToAddressResponse'},
-    {'1': 'BumpFee', '2': '.bitcoin.bitcoind.v1alpha.BumpFeeRequest', '3': '.bitcoin.bitcoind.v1alpha.BumpFeeResponse'},
-    {'1': 'EstimateSmartFee', '2': '.bitcoin.bitcoind.v1alpha.EstimateSmartFeeRequest', '3': '.bitcoin.bitcoind.v1alpha.EstimateSmartFeeResponse'},
-    {'1': 'ImportDescriptors', '2': '.bitcoin.bitcoind.v1alpha.ImportDescriptorsRequest', '3': '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse'},
-    {'1': 'ListTransactions', '2': '.bitcoin.bitcoind.v1alpha.ListTransactionsRequest', '3': '.bitcoin.bitcoind.v1alpha.ListTransactionsResponse'},
-    {'1': 'GetDescriptorInfo', '2': '.bitcoin.bitcoind.v1alpha.GetDescriptorInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetDescriptorInfoResponse'},
-    {'1': 'GetRawMempool', '2': '.bitcoin.bitcoind.v1alpha.GetRawMempoolRequest', '3': '.bitcoin.bitcoind.v1alpha.GetRawMempoolResponse'},
-    {'1': 'GetRawTransaction', '2': '.bitcoin.bitcoind.v1alpha.GetRawTransactionRequest', '3': '.bitcoin.bitcoind.v1alpha.GetRawTransactionResponse'},
-    {'1': 'DecodeRawTransaction', '2': '.bitcoin.bitcoind.v1alpha.DecodeRawTransactionRequest', '3': '.bitcoin.bitcoind.v1alpha.DecodeRawTransactionResponse'},
-    {'1': 'GetBlock', '2': '.bitcoin.bitcoind.v1alpha.GetBlockRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBlockResponse'},
-    {'1': 'GetBlockHash', '2': '.bitcoin.bitcoind.v1alpha.GetBlockHashRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBlockHashResponse'},
+    {'1': 'wallets', '3': 1, '4': 3, '5': 9, '10': 'wallets'},
   ],
 };
 
-@$core.Deprecated('Use bitcoinServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinServiceBase$messageJson = {
-  '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoRequest': GetBlockchainInfoRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoResponse': GetBlockchainInfoResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetTransactionRequest': GetTransactionRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetTransactionResponse': GetTransactionResponse$json,
-  '.google.protobuf.Timestamp': $0.Timestamp$json,
-  '.bitcoin.bitcoind.v1alpha.GetTransactionResponse.Details': GetTransactionResponse_Details$json,
-  '.bitcoin.bitcoind.v1alpha.ListSinceBlockRequest': ListSinceBlockRequest$json,
-  '.bitcoin.bitcoind.v1alpha.ListSinceBlockResponse': ListSinceBlockResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetNewAddressRequest': GetNewAddressRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetNewAddressResponse': GetNewAddressResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetWalletInfoRequest': GetWalletInfoRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetWalletInfoResponse': GetWalletInfoResponse$json,
-  '.bitcoin.bitcoind.v1alpha.WalletScan': WalletScan$json,
-  '.bitcoin.bitcoind.v1alpha.GetBalancesRequest': GetBalancesRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetBalancesResponse': GetBalancesResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetBalancesResponse.Mine': GetBalancesResponse_Mine$json,
-  '.bitcoin.bitcoind.v1alpha.GetBalancesResponse.Watchonly': GetBalancesResponse_Watchonly$json,
-  '.bitcoin.bitcoind.v1alpha.SendRequest': SendRequest$json,
-  '.bitcoin.bitcoind.v1alpha.SendRequest.DestinationsEntry': SendRequest_DestinationsEntry$json,
-  '.google.protobuf.BoolValue': $1.BoolValue$json,
-  '.bitcoin.bitcoind.v1alpha.SendResponse': SendResponse$json,
-  '.bitcoin.bitcoind.v1alpha.RawTransaction': RawTransaction$json,
-  '.bitcoin.bitcoind.v1alpha.SendToAddressRequest': SendToAddressRequest$json,
-  '.bitcoin.bitcoind.v1alpha.SendToAddressResponse': SendToAddressResponse$json,
-  '.bitcoin.bitcoind.v1alpha.BumpFeeRequest': BumpFeeRequest$json,
-  '.bitcoin.bitcoind.v1alpha.BumpFeeResponse': BumpFeeResponse$json,
-  '.bitcoin.bitcoind.v1alpha.EstimateSmartFeeRequest': EstimateSmartFeeRequest$json,
-  '.bitcoin.bitcoind.v1alpha.EstimateSmartFeeResponse': EstimateSmartFeeResponse$json,
-  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsRequest': ImportDescriptorsRequest$json,
-  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsRequest.Request': ImportDescriptorsRequest_Request$json,
-  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse': ImportDescriptorsResponse$json,
-  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse.Response': ImportDescriptorsResponse_Response$json,
-  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse.Error': ImportDescriptorsResponse_Error$json,
-  '.bitcoin.bitcoind.v1alpha.ListTransactionsRequest': ListTransactionsRequest$json,
-  '.bitcoin.bitcoind.v1alpha.ListTransactionsResponse': ListTransactionsResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetDescriptorInfoRequest': GetDescriptorInfoRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetDescriptorInfoResponse': GetDescriptorInfoResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetRawMempoolRequest': GetRawMempoolRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetRawMempoolResponse': GetRawMempoolResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetRawMempoolResponse.TransactionsEntry': GetRawMempoolResponse_TransactionsEntry$json,
-  '.bitcoin.bitcoind.v1alpha.MempoolEntry': MempoolEntry$json,
-  '.bitcoin.bitcoind.v1alpha.MempoolEntry.Fees': MempoolEntry_Fees$json,
-  '.bitcoin.bitcoind.v1alpha.GetRawTransactionRequest': GetRawTransactionRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetRawTransactionResponse': GetRawTransactionResponse$json,
-  '.bitcoin.bitcoind.v1alpha.Input': Input$json,
-  '.bitcoin.bitcoind.v1alpha.Output': Output$json,
-  '.bitcoin.bitcoind.v1alpha.ScriptPubKey': ScriptPubKey$json,
-  '.bitcoin.bitcoind.v1alpha.DecodeRawTransactionRequest': DecodeRawTransactionRequest$json,
-  '.bitcoin.bitcoind.v1alpha.DecodeRawTransactionResponse': DecodeRawTransactionResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetBlockRequest': GetBlockRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetBlockResponse': GetBlockResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetBlockHashRequest': GetBlockHashRequest$json,
-  '.bitcoin.bitcoind.v1alpha.GetBlockHashResponse': GetBlockHashResponse$json,
+/// Descriptor for `ListWalletsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listWalletsResponseDescriptor = $convert.base64Decode(
+    'ChNMaXN0V2FsbGV0c1Jlc3BvbnNlEhgKB3dhbGxldHMYASADKAlSB3dhbGxldHM=');
+
+@$core.Deprecated('Use getAddressInfoRequestDescriptor instead')
+const GetAddressInfoRequest$json = {
+  '1': 'GetAddressInfoRequest',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'wallet', '3': 2, '4': 1, '5': 9, '10': 'wallet'},
+  ],
 };
 
-/// Descriptor for `BitcoinService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List bitcoinServiceDescriptor = $convert.base64Decode(
-    'Cg5CaXRjb2luU2VydmljZRJ8ChFHZXRCbG9ja2NoYWluSW5mbxIyLmJpdGNvaW4uYml0Y29pbm'
-    'QudjFhbHBoYS5HZXRCbG9ja2NoYWluSW5mb1JlcXVlc3QaMy5iaXRjb2luLmJpdGNvaW5kLnYx'
-    'YWxwaGEuR2V0QmxvY2tjaGFpbkluZm9SZXNwb25zZRJzCg5HZXRUcmFuc2FjdGlvbhIvLmJpdG'
-    'NvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRUcmFuc2FjdGlvblJlcXVlc3QaMC5iaXRjb2luLmJp'
-    'dGNvaW5kLnYxYWxwaGEuR2V0VHJhbnNhY3Rpb25SZXNwb25zZRJzCg5MaXN0U2luY2VCbG9jax'
-    'IvLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0U2luY2VCbG9ja1JlcXVlc3QaMC5iaXRj'
-    'b2luLmJpdGNvaW5kLnYxYWxwaGEuTGlzdFNpbmNlQmxvY2tSZXNwb25zZRJwCg1HZXROZXdBZG'
-    'RyZXNzEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE5ld0FkZHJlc3NSZXF1ZXN0Gi8u'
-    'Yml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE5ld0FkZHJlc3NSZXNwb25zZRJwCg1HZXRXYW'
-    'xsZXRJbmZvEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFdhbGxldEluZm9SZXF1ZXN0'
-    'Gi8uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFdhbGxldEluZm9SZXNwb25zZRJqCgtHZX'
-    'RCYWxhbmNlcxIsLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRCYWxhbmNlc1JlcXVlc3Qa'
-    'LS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0QmFsYW5jZXNSZXNwb25zZRJVCgRTZW5kEi'
-    'UuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLlNlbmRSZXF1ZXN0GiYuYml0Y29pbi5iaXRjb2lu'
-    'ZC52MWFscGhhLlNlbmRSZXNwb25zZRJwCg1TZW5kVG9BZGRyZXNzEi4uYml0Y29pbi5iaXRjb2'
-    'luZC52MWFscGhhLlNlbmRUb0FkZHJlc3NSZXF1ZXN0Gi8uYml0Y29pbi5iaXRjb2luZC52MWFs'
-    'cGhhLlNlbmRUb0FkZHJlc3NSZXNwb25zZRJeCgdCdW1wRmVlEiguYml0Y29pbi5iaXRjb2luZC'
-    '52MWFscGhhLkJ1bXBGZWVSZXF1ZXN0GikuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkJ1bXBG'
-    'ZWVSZXNwb25zZRJ5ChBFc3RpbWF0ZVNtYXJ0RmVlEjEuYml0Y29pbi5iaXRjb2luZC52MWFscG'
-    'hhLkVzdGltYXRlU21hcnRGZWVSZXF1ZXN0GjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkVz'
-    'dGltYXRlU21hcnRGZWVSZXNwb25zZRJ8ChFJbXBvcnREZXNjcmlwdG9ycxIyLmJpdGNvaW4uYm'
-    'l0Y29pbmQudjFhbHBoYS5JbXBvcnREZXNjcmlwdG9yc1JlcXVlc3QaMy5iaXRjb2luLmJpdGNv'
-    'aW5kLnYxYWxwaGEuSW1wb3J0RGVzY3JpcHRvcnNSZXNwb25zZRJ5ChBMaXN0VHJhbnNhY3Rpb2'
-    '5zEjEuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkxpc3RUcmFuc2FjdGlvbnNSZXF1ZXN0GjIu'
-    'Yml0Y29pbi5iaXRjb2luZC52MWFscGhhLkxpc3RUcmFuc2FjdGlvbnNSZXNwb25zZRJ8ChFHZX'
-    'REZXNjcmlwdG9ySW5mbxIyLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXREZXNjcmlwdG9y'
-    'SW5mb1JlcXVlc3QaMy5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0RGVzY3JpcHRvckluZm'
-    '9SZXNwb25zZRJwCg1HZXRSYXdNZW1wb29sEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdl'
-    'dFJhd01lbXBvb2xSZXF1ZXN0Gi8uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFJhd01lbX'
-    'Bvb2xSZXNwb25zZRJ8ChFHZXRSYXdUcmFuc2FjdGlvbhIyLmJpdGNvaW4uYml0Y29pbmQudjFh'
-    'bHBoYS5HZXRSYXdUcmFuc2FjdGlvblJlcXVlc3QaMy5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaG'
-    'EuR2V0UmF3VHJhbnNhY3Rpb25SZXNwb25zZRKFAQoURGVjb2RlUmF3VHJhbnNhY3Rpb24SNS5i'
-    'aXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuRGVjb2RlUmF3VHJhbnNhY3Rpb25SZXF1ZXN0GjYuYm'
-    'l0Y29pbi5iaXRjb2luZC52MWFscGhhLkRlY29kZVJhd1RyYW5zYWN0aW9uUmVzcG9uc2USYQoI'
-    'R2V0QmxvY2sSKS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0QmxvY2tSZXF1ZXN0GiouYm'
-    'l0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEJsb2NrUmVzcG9uc2USbQoMR2V0QmxvY2tIYXNo'
-    'Ei0uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEJsb2NrSGFzaFJlcXVlc3QaLi5iaXRjb2'
-    'luLmJpdGNvaW5kLnYxYWxwaGEuR2V0QmxvY2tIYXNoUmVzcG9uc2U=');
+/// Descriptor for `GetAddressInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getAddressInfoRequestDescriptor = $convert.base64Decode(
+    'ChVHZXRBZGRyZXNzSW5mb1JlcXVlc3QSGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcxIWCgZ3YW'
+    'xsZXQYAiABKAlSBndhbGxldA==');
+
+@$core.Deprecated('Use getAddressInfoResponseDescriptor instead')
+const GetAddressInfoResponse$json = {
+  '1': 'GetAddressInfoResponse',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'script_pub_key', '3': 2, '4': 1, '5': 9, '10': 'scriptPubKey'},
+    {'1': 'is_mine', '3': 3, '4': 1, '5': 8, '10': 'isMine'},
+    {'1': 'is_watch_only', '3': 4, '4': 1, '5': 8, '10': 'isWatchOnly'},
+    {'1': 'solvable', '3': 5, '4': 1, '5': 8, '10': 'solvable'},
+    {'1': 'is_script', '3': 6, '4': 1, '5': 8, '10': 'isScript'},
+    {'1': 'is_change', '3': 7, '4': 1, '5': 8, '10': 'isChange'},
+    {'1': 'is_witness', '3': 8, '4': 1, '5': 8, '10': 'isWitness'},
+    {'1': 'witness_version', '3': 9, '4': 1, '5': 13, '10': 'witnessVersion'},
+    {'1': 'witness_program', '3': 10, '4': 1, '5': 9, '10': 'witnessProgram'},
+    {'1': 'script_type', '3': 11, '4': 1, '5': 9, '10': 'scriptType'},
+    {'1': 'is_compressed', '3': 12, '4': 1, '5': 8, '10': 'isCompressed'},
+  ],
+};
+
+/// Descriptor for `GetAddressInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getAddressInfoResponseDescriptor = $convert.base64Decode(
+    'ChZHZXRBZGRyZXNzSW5mb1Jlc3BvbnNlEhgKB2FkZHJlc3MYASABKAlSB2FkZHJlc3MSJAoOc2'
+    'NyaXB0X3B1Yl9rZXkYAiABKAlSDHNjcmlwdFB1YktleRIXCgdpc19taW5lGAMgASgIUgZpc01p'
+    'bmUSIgoNaXNfd2F0Y2hfb25seRgEIAEoCFILaXNXYXRjaE9ubHkSGgoIc29sdmFibGUYBSABKA'
+    'hSCHNvbHZhYmxlEhsKCWlzX3NjcmlwdBgGIAEoCFIIaXNTY3JpcHQSGwoJaXNfY2hhbmdlGAcg'
+    'ASgIUghpc0NoYW5nZRIdCgppc193aXRuZXNzGAggASgIUglpc1dpdG5lc3MSJwoPd2l0bmVzc1'
+    '92ZXJzaW9uGAkgASgNUg53aXRuZXNzVmVyc2lvbhInCg93aXRuZXNzX3Byb2dyYW0YCiABKAlS'
+    'DndpdG5lc3NQcm9ncmFtEh8KC3NjcmlwdF90eXBlGAsgASgJUgpzY3JpcHRUeXBlEiMKDWlzX2'
+    'NvbXByZXNzZWQYDCABKAhSDGlzQ29tcHJlc3NlZA==');
 
