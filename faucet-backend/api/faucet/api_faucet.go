@@ -90,7 +90,7 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.
 
 	amount, err := s.validateDispenseArgs(c.Msg)
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	ip, err := faucet_ip.FromContext(ctx)
@@ -118,7 +118,7 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.
 		s.dispensed[ip.IP.String()] = false
 		s.totalDispensed -= CoinsPerRequest
 
-		return nil, fmt.Errorf("could not dispense coins: %w", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not dispense coins: %w", err))
 	}
 
 	fmt.Printf("sent %.8f to %s in %s\n", amount.ToBTC(), c.Msg.Destination, txid.Msg.Txid)
@@ -158,7 +158,7 @@ func (s *Server) ListClaims(ctx context.Context, req *connect.Request[faucetv1.L
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not list transactions: %w", err))
 	}
 
 	transactions := lo.Filter(txs.Msg.Transactions, func(tx *bitcoindv1alpha.GetTransactionResponse, index int) bool {
