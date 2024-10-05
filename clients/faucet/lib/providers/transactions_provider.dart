@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:faucet/gen/faucet/v1/faucet.pbgrpc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
@@ -25,7 +26,8 @@ class TransactionsProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newClaims = (await api.listClaims()).reversed.take(100).toList();
+      final newClaims =
+          (await api.clients.faucet.listClaims(ListClaimsRequest())).transactions.reversed.take(100).toList();
       const newInitialized = true;
 
       if (_dataHasChanged(newClaims, newInitialized)) {

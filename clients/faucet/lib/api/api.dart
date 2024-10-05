@@ -1,59 +1,49 @@
-import 'dart:async';
-
 import 'package:faucet/api/api_base.dart';
-import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
-import 'package:faucet/gen/faucet/v1/faucet.pbgrpc.dart';
+import 'package:faucet/env.dart';
 import 'package:get_it/get_it.dart';
-import 'package:grpc/grpc_web.dart';
+import 'package:grpc/grpc.dart';
+import 'package:grpc/grpc_or_grpcweb.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/sail_ui.dart';
 
 class APILive extends API {
   Logger get log => GetIt.I.get<Logger>();
-  late final FaucetServiceClient _client;
 
-  APILive({
-    required String host,
-    int? port,
-  }) : super(host: host, port: port) {
-    final url = Uri.parse('${host.startsWith('https://') ? host : 'http://$host'}${port != null ? ':$port' : ''}');
-    final channel = GrpcWebClientChannel.xhr(
-      url,
+  APILive() {
+    final channel = getClientChannel();
+
+    clients = ServiceClients.setup(
+      channel: channel,
+      callOptions: createOptions(),
+      interceptorFactory: () => [PathInterceptor()],
     );
-
-    _client = FaucetServiceClient(channel);
-  }
-
-  String get apiURL => port == null ? host : '$host:$port';
-
-  @override
-  Future<List<GetTransactionResponse>> listClaims() async {
-    try {
-      return (await _client.listClaims(ListClaimsRequest())).transactions;
-    } catch (e) {
-      final error = 'could not list claims: $e: ${extractGRPCError(e)}';
-      log.e(error);
-      throw Exception(error);
-    }
   }
 
   @override
-  Future<String?> claim(String address, double amount) async {
-    amount = cleanAmount(amount);
-
+  CallOptions createOptions() {
+    final timeout = Duration(
+      seconds: 3,
+    );
+    final providers = [
+      (metadata, uri) async {},
+    ];
     try {
-      final res = await _client.dispenseCoins(
-        DispenseCoinsRequest()
-          ..destination = address
-          ..amount = amount,
+      return getCallOptions(
+        timeout: timeout,
+        providers: providers,
       );
-      return res.txid;
-    } catch (e) {
-      final error = 'could not dispense coins: ${extractGRPCError(e)}';
-      log.e(error);
-      throw Exception(error);
-    }
+    } catch (error) {
+      log.e('could not create callOptions: ${error.toString()}');
+      return CallOptions();
+    } finally {}
   }
+}
+
+GrpcOrGrpcWebClientChannel getClientChannel() {
+  return GrpcOrGrpcWebClientChannel.toSingleEndpoint(
+    host: Environment.apiHost,
+    port: Environment.apiPort,
+    transportSecure: Environment.grpcSSL,
+  );
 }
 
 String extractGRPCError(
@@ -67,5 +57,25 @@ String extractGRPCError(
     return error.toString();
   } else {
     return messageIfUnknown;
+  }
+}
+
+class PathInterceptor extends ClientInterceptor {
+  @override
+  ResponseFuture<R> interceptUnary<Q, R>(
+    ClientMethod<Q, R> method,
+    Q request,
+    CallOptions options,
+    ClientUnaryInvoker<Q, R> invoker,
+  ) {
+    final modifiedMethod = ClientMethod<Q, R>(
+      '/api${method.path}',
+      method.requestSerializer,
+      method.responseDeserializer,
+    );
+
+    final response = invoker(modifiedMethod, request, options);
+
+    return response;
   }
 }
