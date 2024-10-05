@@ -15,6 +15,7 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	api_faucet "github.com/LayerTwo-Labs/sidesail/faucet-backend/api/faucet"
+	"github.com/LayerTwo-Labs/sidesail/faucet-backend/api/faucet/validation"
 	"github.com/LayerTwo-Labs/sidesail/faucet-backend/gen/faucet/v1/faucetv1connect"
 	faucet_ip "github.com/LayerTwo-Labs/sidesail/faucet-backend/ip"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -30,6 +31,7 @@ func New(
 ) (*Server, error) {
 	interceptors := []connect.Interceptor{
 		faucet_ip.Interceptor(),
+		validation.Interceptor(),
 	}
 
 	mux := http.NewServeMux()
@@ -179,13 +181,14 @@ func Register[T any](
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		allowedOrigin := "https://drivechain.live"
 		origin := r.Header.Get("Origin")
 
+		allowedOrigin := "https://drivechain.live"
 		if origin == allowedOrigin || strings.HasPrefix(origin, "http://localhost") || strings.HasPrefix(origin, "http://127.0.0.1") {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept-Language, Content-Language, Origin, Connect-Protocol-Version, Connect-Timeout-Ms, Grpc-Timeout, Content-Type")
+			w.Header().Set("Access-Control-Allow-Methods", "*")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
 
 		if r.Method == "OPTIONS" {
