@@ -28,7 +28,7 @@ import (
 // New creates a new Server with interceptors applied.
 func New(
 	ctx context.Context, bitcoind *coreproxy.Bitcoind,
-) (*Server, error) {
+) *Server {
 	interceptors := []connect.Interceptor{
 		faucet_ip.Interceptor(),
 		validation.Interceptor(),
@@ -40,7 +40,7 @@ func New(
 	// TODO: Register handlers
 	Register(srv, faucetv1connect.NewFaucetServiceHandler, faucetv1connect.FaucetServiceHandler(api_faucet.New(bitcoind)))
 
-	return srv, nil
+	return srv
 }
 
 // Server exposes a set of Connect APIs over both gRPC and HTTP. Reflection is enabled.
