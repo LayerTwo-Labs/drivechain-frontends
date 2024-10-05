@@ -41,7 +41,6 @@ func main() {
 func realMain(ctx context.Context) error {
 	conf, err := readConfig()
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("read config")
 		return err
 	}
 
@@ -54,10 +53,7 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
-	srv, err := server.New(ctx, proxy)
-	if err != nil {
-		return err
-	}
+	srv := server.New(ctx, proxy)
 
 	zerolog.Ctx(ctx).Info().Msgf("server: listening on %s", conf.APIHost)
 
