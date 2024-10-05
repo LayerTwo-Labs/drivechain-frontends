@@ -11,6 +11,7 @@ require (
 	github.com/bufbuild/protovalidate-go v0.7.2
 	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.6.1
+	github.com/rs/cors v1.11.1
 	github.com/rs/zerolog v1.31.0
 	github.com/samber/lo v1.47.0
 	golang.org/x/net v0.23.0

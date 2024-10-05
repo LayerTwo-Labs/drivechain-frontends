@@ -19,6 +19,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/faucet-backend/gen/faucet/v1/faucetv1connect"
 	faucet_ip "github.com/LayerTwo-Labs/sidesail/faucet-backend/ip"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
+	"github.com/rs/cors"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"golang.org/x/net/http2"
@@ -54,9 +55,13 @@ type Server struct {
 	interceptors []connect.Interceptor
 }
 
-func (s *Server) Handler() http.Handler {
+func (s *Server) Handler(ctx context.Context) http.Handler {
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// the client adds /api to the path. We need to remove it to match
+		// stuff correctly
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
+
 		// If the body is completely empty, replace it with the
 		// empty object. This makes it possible to send requests
 		// without a body, without getting a cryptic error.
@@ -64,11 +69,37 @@ func (s *Server) Handler() http.Handler {
 			r.Body = io.NopCloser(strings.NewReader(`{}`))
 		}
 
-		s.mux.ServeHTTP(w, r)
+		corsHandler := cors.New(cors.Options{
+			AllowedOrigins: []string{
+				"https://drivechain.live", "http://localhost:55092",
+			},
+			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PATCH"},
+			AllowedHeaders: []string{
+				"Connect-Protocol-Version", "Content-Type", "Connect-Protocol-Version", "Content-Type", "Accept",
 
+				"Connect-Accept-Encoding", "Connect-Content-Encoding",
+				"Grpc-Timeout",
+
+				"X-Grpc-Web", "X-User-Agent",
+				"Access-Control-Allow-Origin",
+				"Access-Control-Request-Headers",
+			},
+			ExposedHeaders: []string{
+				"Content-Encoding",
+				"Connect-Content-Encoding",
+				"Grpc-Status",
+				"Grpc-Message",
+				"Access-Control-Allow-Origin",
+				"Access-Control-Request-Headers",
+			},
+		})
+
+		withCORS := corsHandler.Handler(s.mux)
+		withCORS.ServeHTTP(w, r)
 	})
+
 	// Use h2c, so we can serve HTTP/2 without TLS.
-	return corsMiddleware(h2c.NewHandler(handler, &http2.Server{}))
+	return h2c.NewHandler(handler, &http2.Server{})
 }
 
 func (s *Server) Serve(ctx context.Context, address string) error {
@@ -112,7 +143,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 	}()
 
 	s.server = &http.Server{
-		Handler: s.Handler(),
+		Handler: s.Handler(ctx),
 	}
 	return s.server.Serve(lis)
 }
@@ -177,25 +208,4 @@ func Register[T any](
 
 	s.services = append(s.services, service)
 	s.mux.Handle(service, h)
-}
-
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := r.Header.Get("Origin")
-
-		allowedOrigin := "https://drivechain.live"
-		if origin == allowedOrigin || strings.HasPrefix(origin, "http://localhost") || strings.HasPrefix(origin, "http://127.0.0.1") {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "*")
-			w.Header().Set("Access-Control-Allow-Headers", "*")
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-		}
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
 }
