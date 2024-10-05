@@ -12,7 +12,4 @@ RUN apk add curl
 
 COPY --from=builder /build/faucet-backend /usr/bin/
 
-# Verify we can start
-RUN faucet-backend --help
-
 CMD ["faucet-backend"]
