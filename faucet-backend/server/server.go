@@ -38,7 +38,6 @@ func New(
 	mux := http.NewServeMux()
 	srv := &Server{mux: mux, interceptors: interceptors}
 
-	// TODO: Register handlers
 	Register(srv, faucetv1connect.NewFaucetServiceHandler, faucetv1connect.FaucetServiceHandler(api_faucet.New(bitcoind)))
 
 	return srv
@@ -58,10 +57,6 @@ type Server struct {
 func (s *Server) Handler(ctx context.Context) http.Handler {
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// the client adds /api to the path. We need to remove it to match
-		// stuff correctly
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
-
 		// If the body is completely empty, replace it with the
 		// empty object. This makes it possible to send requests
 		// without a body, without getting a cryptic error.
@@ -71,7 +66,7 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 
 		corsHandler := cors.New(cors.Options{
 			AllowedOrigins: []string{
-				"https://drivechain.live", "http://localhost:55092",
+				"https://drivechain.live",
 			},
 			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PATCH"},
 			AllowedHeaders: []string{

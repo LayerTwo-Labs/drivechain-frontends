@@ -129,8 +129,9 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.
 }
 
 func (s *Server) validateDispenseArgs(req *faucetv1.DispenseCoinsRequest) (btcutil.Amount, error) {
-	if req.Amount > 1 || req.Amount <= 0 {
-		return 0, fmt.Errorf("amount must be less than 1, and greater than zero")
+	const maxAmount = 5
+	if req.Amount > maxAmount || req.Amount <= 0 {
+		return 0, fmt.Errorf("amount must be less than %d, and greater than zero", maxAmount)
 	}
 
 	amount, err := btcutil.NewAmount(req.Amount)
