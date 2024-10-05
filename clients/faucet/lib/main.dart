@@ -1,4 +1,5 @@
 import 'package:faucet/api/api.dart';
+import 'package:faucet/api/api_base.dart';
 import 'package:faucet/app.dart';
 import 'package:faucet/env.dart';
 import 'package:faucet/providers/transactions_provider.dart';

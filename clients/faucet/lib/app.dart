@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:faucet/api/api.dart';
+import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:faucet/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';

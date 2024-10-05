@@ -1,28 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 
+import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:faucet/gen/faucet/v1/faucet.pbgrpc.dart';
-import 'package:faucet/gen/google/protobuf/timestamp.pb.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:grpc/grpc_web.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-
-/// RPC connection to the mainchain node.
-abstract class API {
-  final String host;
-  final int? port;
-
-  API({
-    required this.host,
-    this.port = 443,
-  });
-
-  Future<List<GetTransactionResponse>> listClaims();
-  Future<String?> claim(String address, double amount);
-}
 
 class APILive extends API {
   Logger get log => GetIt.I.get<Logger>();
@@ -70,42 +54,6 @@ class APILive extends API {
       throw Exception(error);
     }
   }
-}
-
-List<GetTransactionResponse> parseClaims(String jsonTXs) {
-  final List<dynamic> jsonList = json.decode(jsonTXs);
-  final transactions = jsonList.map((item) {
-    return GetTransactionResponse(
-      amount: double.tryParse(item['amount'].toString()),
-      fee: double.tryParse(item['fee'].toString()),
-      confirmations: int.tryParse(item['confirmations'].toString()),
-      blockHash: item['block_hash'],
-      blockIndex: int.tryParse(item['block_index'].toString()),
-      blockTime: Timestamp(seconds: Int64.tryParseInt(item['block_time']?['seconds']?.toString() ?? '')),
-      txid: item['txid'],
-      walletConflicts: item['wallet_conflicts'],
-      replacedByTxid: item['replaced_by_txid'],
-      replacesTxid: item['replaces_txid'],
-      time: Timestamp(seconds: Int64.tryParseInt(item['time']?['seconds']?.toString() ?? '')),
-      timeReceived: Timestamp(seconds: Int64.tryParseInt(item['time_received']?['seconds']?.toString() ?? '')),
-      bip125Replaceable: item['bip125_replaceable'] == 2
-          ? GetTransactionResponse_Replaceable.REPLACEABLE_NO
-          : GetTransactionResponse_Replaceable.REPLACEABLE_YES,
-      details: (item['details'] as List<dynamic>?)?.map(
-        (detail) => GetTransactionResponse_Details(
-          involvesWatchOnly: detail['involvesWatchOnly'],
-          address: detail['address'] ?? '',
-          category: GetTransactionResponse_Category.valueOf(detail['category']) ??
-              GetTransactionResponse_Category.CATEGORY_UNSPECIFIED,
-          amount: double.tryParse(item['amount'].toString()),
-          vout: detail['vout'],
-        ),
-      ),
-      hex: item['hex'],
-    );
-  }).toList();
-
-  return transactions;
 }
 
 String extractGRPCError(

@@ -1,4 +1,4 @@
-import 'package:faucet/api/api.dart';
+import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 
 class MockAPI implements API {
