@@ -1,15 +1,42 @@
-import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:faucet/gen/faucet/v1/faucet.pbgrpc.dart';
+import 'package:grpc/grpc.dart';
+import 'package:grpc/grpc_or_grpcweb.dart';
 
 /// RPC connection to the mainchain node.
 abstract class API {
-  final String host;
-  final int? port;
+  late ServiceClients clients;
 
-  API({
-    required this.host,
-    this.port = 443,
+  API();
+
+  CallOptions createOptions();
+}
+
+CallOptions getCallOptions({
+  Duration? timeout,
+  Map<String, String>? metadata,
+  List<MetadataProvider>? providers,
+}) {
+  return CallOptions(
+    timeout: timeout,
+    metadata: metadata,
+    providers: providers,
+  );
+}
+
+class ServiceClients {
+  final FaucetServiceClient faucet;
+
+  ServiceClients._({
+    required this.faucet,
   });
 
-  Future<List<GetTransactionResponse>> listClaims();
-  Future<String?> claim(String address, double amount);
+  factory ServiceClients.setup({
+    required GrpcOrGrpcWebClientChannel channel,
+    required CallOptions callOptions,
+    required List<ClientInterceptor> Function() interceptorFactory,
+  }) {
+    return ServiceClients._(
+      faucet: FaucetServiceClient(channel, options: callOptions, interceptors: interceptorFactory()),
+    );
+  }
 }

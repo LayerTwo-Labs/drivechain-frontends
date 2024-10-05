@@ -1,7 +1,6 @@
 import 'package:faucet/api/api.dart';
 import 'package:faucet/api/api_base.dart';
 import 'package:faucet/app.dart';
-import 'package:faucet/env.dart';
 import 'package:faucet/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -16,7 +15,6 @@ void main() {
 
 Future<void> start() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Environment.validateAtRuntime();
 
   await initializeDateFormatting();
 
@@ -56,13 +54,8 @@ Future<void> initDependencies() async {
   );
 
   // api must be registered first, because other singletons depend on it
-  final host = env(Environment.apiHost);
-  final port = env(Environment.apiPort);
   GetIt.I.registerLazySingleton<API>(
-    () => APILive(
-      host: host,
-      port: port == 0 ? null : port,
-    ),
+    () => APILive(),
   );
 
   GetIt.I.registerLazySingleton<TransactionsProvider>(

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
+import 'package:faucet/gen/faucet/v1/faucet.pbgrpc.dart';
 import 'package:faucet/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -59,8 +60,13 @@ class FaucetViewModel extends BaseViewModel {
       setBusy(true);
 
       final amount = double.parse(amountController.text);
-      final txid = await api.claim(addressController.text, amount);
-      return txid;
+      final txid = await api.clients.faucet.dispenseCoins(
+        DispenseCoinsRequest(
+          destination: addressController.text,
+          amount: amount,
+        ),
+      );
+      return txid.txid;
     } catch (error) {
       dispenseErr = error.toString();
     } finally {
