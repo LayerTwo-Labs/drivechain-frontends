@@ -122,7 +122,14 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}
 
 		c.Msg.FeeRate = estimate.Msg.FeeRate
+
 		log.Info().Msgf("send tx: determined fee rate: %f", c.Msg.FeeRate)
+
+		if c.Msg.FeeRate <= 0 {
+			log.Info().Msgf("send tx: fee rate estimate empty, using default: %f", c.Msg.FeeRate)
+			c.Msg.FeeRate = 0.00021
+		}
+
 	}
 
 	destinations := make(map[string]btcutil.Amount)
