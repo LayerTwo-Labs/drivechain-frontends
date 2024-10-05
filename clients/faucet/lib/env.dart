@@ -14,9 +14,9 @@ class Environment {
     'FAUCET_API_HOST',
     String.fromEnvironment('FAUCET_API_HOST', defaultValue: 'https://api.drivechain.live'),
   );
-  static const apiPort = Variable(
+  static const apiPort = Variable<int>(
     'FAUCET_API_PORT',
-    int.fromEnvironment('FAUCET_API_PORT'),
+    int.fromEnvironment('FAUCET_API_PORT', defaultValue: 0),
   );
 
   const Environment._();
@@ -33,10 +33,9 @@ class Environment {
 
   static void validateAtRuntime() {
     _validate<String>(apiHost, (v) => v.isNotEmpty);
-    // API port is optional, so we don't need to validate it
+    _validate<int>(apiPort);
   }
 }
 
 // Helper function to access environment variables
 T env<T>(Variable<T> variable) => variable.value as T;
-T? optionalEnv<T>(Variable<T?> variable) => variable.value;

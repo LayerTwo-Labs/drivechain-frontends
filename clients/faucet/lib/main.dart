@@ -56,10 +56,12 @@ Future<void> initDependencies() async {
   );
 
   // api must be registered first, because other singletons depend on it
+  final host = env(Environment.apiHost);
+  final port = env(Environment.apiPort);
   GetIt.I.registerLazySingleton<API>(
     () => APILive(
-      host: env(Environment.apiHost),
-      port: optionalEnv(Environment.apiPort),
+      host: host,
+      port: port == 0 ? null : port,
     ),
   );
 

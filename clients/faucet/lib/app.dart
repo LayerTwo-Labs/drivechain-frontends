@@ -33,8 +33,8 @@ class FaucetViewModel extends BaseViewModel {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
   }
 
+  final maxAmount = 5;
   void _capAmount() {
-    const maxAmount = 1;
     String currentInput = amountController.text;
 
     if ((double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount)) {
@@ -150,7 +150,7 @@ class _FaucetPageState extends State<FaucetPage> {
                             borderSide:
                                 BorderSide(color: theme.colors.text.withOpacity(0.9)), // Set focused border color
                           ),
-                          labelText: 'Enter amount (max 1 BTC)',
+                          labelText: 'Enter amount (max ${model.maxAmount} BTC)',
                           focusColor: theme.colors.text,
                         ),
                         cursorColor: theme.colors.primary,
