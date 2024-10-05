@@ -6,7 +6,7 @@ import 'package:faucet/gen/faucet/v1/faucet.pbgrpc.dart';
 import 'package:faucet/gen/google/protobuf/timestamp.pb.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
-import 'package:grpc/grpc.dart';
+import 'package:grpc/grpc_web.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -32,21 +32,14 @@ class APILive extends API {
     required String host,
     int? port,
   }) : super(host: host, port: port) {
-    bool ssl = false;
-    if (host.contains('https://')) {
-      ssl = true;
-    }
-
-    final channel = ClientChannel(
-      host,
-      port: port ?? 443,
-      options: ChannelOptions(
-        credentials: ssl ? ChannelCredentials.secure() : ChannelCredentials.insecure(),
-      ),
+    final url = Uri.parse('${host.startsWith('https://') ? host : 'http://$host'}${port != null ? ':$port' : ''}');
+    final channel = GrpcWebClientChannel.xhr(
+      url,
     );
 
     _client = FaucetServiceClient(channel);
   }
+
   String get apiURL => port == null ? host : '$host:$port';
 
   @override
@@ -54,7 +47,7 @@ class APILive extends API {
     try {
       return (await _client.listClaims(ListClaimsRequest())).transactions;
     } catch (e) {
-      final error = 'could not list claims: ${extractGRPCError(e)}';
+      final error = 'could not list claims: $e: ${extractGRPCError(e)}';
       log.e(error);
       throw Exception(error);
     }
