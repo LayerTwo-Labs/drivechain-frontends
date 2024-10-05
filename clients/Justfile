@@ -1,11 +1,10 @@
 # This file contains commands to be run on all sub-clients
-
 format:
     #!/usr/bin/env bash
     set -euo pipefail
     for dir in */; do
         if [ -d "$dir" ]; then
-            (cd "$dir" && just format)
+            (cd "$dir" && find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120)
         fi
     done
 
