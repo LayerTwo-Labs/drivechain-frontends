@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:faucet/api/api.dart';
+import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
