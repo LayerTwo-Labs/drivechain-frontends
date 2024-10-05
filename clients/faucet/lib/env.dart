@@ -11,12 +11,12 @@ class Variable<T> {
 class Environment {
   // Define the environment variables here
   static const apiHost = Variable(
-    'API_HOST',
-    String.fromEnvironment('API_HOST', defaultValue: 'localhost'),
+    'FAUCET_API_HOST',
+    String.fromEnvironment('FAUCET_API_HOST', defaultValue: 'https://api.drivechain.live'),
   );
   static const apiPort = Variable(
-    'API_PORT',
-    int.fromEnvironment('DRIVECHAIN_PORT'),
+    'FAUCET_API_PORT',
+    int.fromEnvironment('FAUCET_API_PORT'),
   );
 
   const Environment._();
