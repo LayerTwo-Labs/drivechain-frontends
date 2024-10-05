@@ -1,7 +1,6 @@
 import 'package:faucet/api/api_base.dart';
 import 'package:faucet/env.dart';
 import 'package:get_it/get_it.dart';
-import 'package:grpc/grpc.dart';
 import 'package:grpc/grpc_or_grpcweb.dart';
 import 'package:logger/logger.dart';
 
@@ -14,7 +13,7 @@ class APILive extends API {
     clients = ServiceClients.setup(
       channel: channel,
       callOptions: createOptions(),
-      interceptorFactory: () => [PathInterceptor()],
+      interceptorFactory: () => [],
     );
   }
 
@@ -57,25 +56,5 @@ String extractGRPCError(
     return error.toString();
   } else {
     return messageIfUnknown;
-  }
-}
-
-class PathInterceptor extends ClientInterceptor {
-  @override
-  ResponseFuture<R> interceptUnary<Q, R>(
-    ClientMethod<Q, R> method,
-    Q request,
-    CallOptions options,
-    ClientUnaryInvoker<Q, R> invoker,
-  ) {
-    final modifiedMethod = ClientMethod<Q, R>(
-      '/api${method.path}',
-      method.requestSerializer,
-      method.responseDeserializer,
-    );
-
-    final response = invoker(modifiedMethod, request, options);
-
-    return response;
   }
 }
