@@ -28,7 +28,7 @@ class DashboardGroup extends StatelessWidget {
           height: 36,
           color: theme.colors.actionHeader,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+            padding: const EdgeInsets.symmetric(vertical: 05, horizontal: 30),
             child: Row(
               children: [
                 SailRow(

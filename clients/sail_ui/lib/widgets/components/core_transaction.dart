@@ -151,7 +151,7 @@ class CoreTransactionView extends StatelessWidget {
     }
 
     if (tx.amount.isNegative || tx.amount == 0) {
-      return '$title ${externalDirection ? 'from' : 'to'} ${tx.address}';
+      return '$title ${externalDirection ? 'to' : 'to'} ${tx.address}';
     }
 
     return '${externalDirection ? "" : "+"} $title ${externalDirection ? 'to' : 'from'} ${tx.address}';

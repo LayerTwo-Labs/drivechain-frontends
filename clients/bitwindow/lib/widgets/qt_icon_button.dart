@@ -16,23 +16,14 @@ class QtIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = ClipRRect(
-      borderRadius: BorderRadius.circular(4.0),
-      child: SailScaleButton(
-        onPressed: onPressed,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: context.sailTheme.colors.formFieldBorder,
-            ),
-            borderRadius: BorderRadius.circular(4.0),
-          ),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 4.0,
-            vertical: 4.0,
-          ),
-          child: icon,
+    final button = SailScaleButton(
+      onPressed: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 4.0,
+          vertical: 4.0,
         ),
+        child: icon,
       ),
     );
 

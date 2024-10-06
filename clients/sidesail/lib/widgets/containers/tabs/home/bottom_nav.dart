@@ -131,7 +131,7 @@ class BottomNavViewModel extends BaseViewModel {
       action: 'Startup connection',
       dialogText: 'Daemon status',
       dialogType: DialogType.info,
-      maxWidth: 536,
+      maxWidth: 566,
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => BottomNavViewModel(navigateToSettings: navigateToSettings),
         builder: ((context, model, child) {
