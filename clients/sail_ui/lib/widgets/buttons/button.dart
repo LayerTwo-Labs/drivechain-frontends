@@ -262,10 +262,11 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
     lowerBound: 0.995,
     upperBound: 1.0,
     value: 1,
-    duration: const Duration(milliseconds: 20),
+    duration: const Duration(milliseconds: 100),
   );
 
   bool _readyForFling = false;
+  bool _isPressed = false;
 
   @override
   void initState() {
@@ -290,19 +291,24 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
     Widget buttonContent = Listener(
       onPointerDown: (_) async {
+        setState(() {
+          _isPressed = true;
+        });
         await reset();
         shrink();
-
         await Future.delayed(const Duration(milliseconds: 100));
         _readyForFling = true;
       },
       onPointerUp: (_) async {
+        setState(() {
+          _isPressed = false;
+        });
         if (!_readyForFling) {
           await Future.delayed(const Duration(milliseconds: 40));
         }
-
         await fling();
       },
       child: GestureDetector(
@@ -338,53 +344,41 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
     );
 
     if (widget.onPressed != null) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: SailTheme.of(context).colors.backgroundSecondary,
-          boxShadow: [
-            BoxShadow(
-              color: SailTheme.of(context).colors.shadow.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
-            ),
-            BoxShadow(
-              color: SailTheme.of(context).colors.shadow.withOpacity(0.2),
-              spreadRadius: 2,
-              blurRadius: 8,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: SailTheme.of(context).colors.primary.withOpacity(0.1),
-              spreadRadius: 0,
-              blurRadius: 4,
-              offset: const Offset(0, -2),
-            ),
-          ],
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              SailTheme.of(context).colors.background.withOpacity(0.95),
-              SailTheme.of(context).colors.background,
-            ],
-          ),
-        ),
+      return Container(
+        padding: const EdgeInsets.only(bottom: 3, right: 3),
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.0),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                SailTheme.of(context).colors.primary.withOpacity(0.1),
-                Colors.transparent,
-              ],
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: SailTheme.of(context).colors.shadow.withOpacity(0.5),
+                offset: const Offset(1.5, 1.5),
+                blurRadius: 0,
+                spreadRadius: 0,
+              ),
+            ],
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: buttonContent,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 50),
+            padding: EdgeInsets.only(
+              top: _isPressed ? 1.5 : 0,
+              left: _isPressed ? 1.5 : 0,
+              bottom: _isPressed ? 0 : 1.5,
+              right: _isPressed ? 0 : 1.5,
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8.0),
+                color: theme.colors.backgroundSecondary,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                  child: buttonContent,
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -398,4 +392,30 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
     _scaleController.dispose();
     super.dispose();
   }
+}
+
+class RightSideShadowPainter extends CustomPainter {
+  final Color shadowColor;
+  final double shadowWidth;
+
+  RightSideShadowPainter({required this.shadowColor, required this.shadowWidth});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [Colors.transparent, shadowColor],
+        stops: [0.7, 1.0],
+      ).createShader(Rect.fromLTRB(size.width - shadowWidth, 0, size.width, size.height));
+
+    canvas.drawRect(
+      Rect.fromLTRB(size.width - shadowWidth, 0, size.width, size.height),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

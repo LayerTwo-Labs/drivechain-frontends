@@ -15,8 +15,8 @@ class QtButton extends StatelessWidget {
     required this.onPressed,
     required this.child,
     this.padding = const EdgeInsets.symmetric(
-      horizontal: SailStyleValues.padding30,
-      vertical: SailStyleValues.padding10,
+      horizontal: SailStyleValues.padding15,
+      vertical: 0,
     ),
     this.large = false,
     this.important = false,
@@ -26,15 +26,16 @@ class QtButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: large ? 32 : 24,
-      child: SailRawButton(
-        backgroundColor: context.sailTheme.colors.backgroundSecondary,
+    return IntrinsicWidth(
+      child: SailScaleButton(
+        color: context.sailTheme.colors.backgroundSecondary,
         disabled: disabled,
         loading: loading,
         onPressed: onPressed,
-        padding: padding,
-        child: child,
+        child: Padding(
+          padding: padding,
+          child: Center(child: child),
+        ),
       ),
     );
   }

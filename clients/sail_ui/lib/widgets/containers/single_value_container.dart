@@ -47,15 +47,15 @@ class SingleValueContainer extends StatelessWidget {
                 : SailText.primary12(label!, color: color),
           ),
         Expanded(
-          child: SailScaleButton(
-            onPressed: copyable
-                ? () {
+          child: copyable
+              ? SailScaleButton(
+                  onPressed: () {
                     Clipboard.setData(ClipboardData(text: value.toString()));
                     showSnackBar(context, 'Copied ${copyLabel()}');
-                  }
-                : null,
-            child: SailText.primary12(value.toString()),
-          ),
+                  },
+                  child: SailText.primary12(value.toString()),
+                )
+              : SailText.primary12(value.toString()),
         ),
         if (trailingText != null) SailText.secondary12(trailingText!),
       ],

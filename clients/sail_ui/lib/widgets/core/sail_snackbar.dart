@@ -14,7 +14,7 @@ void showSnackBar(
     SnackBar(
       duration: Duration(seconds: duration),
       behavior: SnackBarBehavior.fixed,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.backgroundSecondary,
       content: SailPadding(
         padding: const EdgeInsets.symmetric(
           vertical: SailStyleValues.padding10,
