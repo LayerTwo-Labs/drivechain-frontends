@@ -33,6 +33,7 @@ services:
      - -debug=rpc
      - -debug=net
      - -txindex
+     - -fallbackfee=0.00021
 
   zside:
     image: barebitcoin/zside:latest
