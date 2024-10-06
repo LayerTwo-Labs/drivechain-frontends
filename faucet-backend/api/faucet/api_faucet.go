@@ -25,7 +25,10 @@ func New(
 	bitcoind *coreproxy.Bitcoind,
 ) *Server {
 	s := &Server{
-		bitcoind: bitcoind,
+		bitcoind:       bitcoind,
+		dispensed:      make(map[string]bool),
+		dispensedIP:    make(map[string]bool),
+		totalDispensed: 0,
 	}
 	return s
 }
