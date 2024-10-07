@@ -2,14 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/providers/process_provider.dart';
 
 abstract class Chain {
   String get name;
   Color get color;
   ChainType get type;
-
-  // TODO: turn this into a function that takes a regtest/signet/whatever param
   int get rpcPort;
 
   String get ticker {
@@ -25,14 +22,12 @@ abstract class Sidechain extends Chain {
   static Sidechain? fromString(String input) {
     switch (input.toLowerCase()) {
       case 'ethereum':
-      case 'ethside':
         return EthereumSidechain();
 
       case 'testchain':
         return TestSidechain();
 
       case 'zcash':
-      case 'zside':
         return ZCashSidechain();
     }
     return null;
@@ -50,7 +45,7 @@ class TestSidechain extends Sidechain {
   Color color = SailColorScheme.orange;
 
   @override
-  ChainType get type => ChainType.testChain;
+  ChainType get type => ChainType.testchain;
 
   @override
   int get rpcPort => 8272;
@@ -116,12 +111,17 @@ class ParentChain extends Chain {
   String get binary => 'drivechaind';
 }
 
-enum ChainType { testChain, ethereum, zcash, parentchain }
+enum ChainType {
+  parentchain,
+  testchain,
+  ethereum,
+  zcash,
+}
 
 extension SidechainPaths on ChainType {
   String confFile() {
     switch (this) {
-      case ChainType.testChain:
+      case ChainType.testchain:
         return 'testchain.conf';
       case ChainType.ethereum:
         return 'config.toml';
@@ -134,7 +134,7 @@ extension SidechainPaths on ChainType {
 
   String logDir() {
     switch (this) {
-      case ChainType.testChain:
+      case ChainType.testchain:
         return filePath([datadir(), 'debug.log']);
       case ChainType.ethereum:
         return filePath([datadir(), 'ethereum.log']);
@@ -164,7 +164,7 @@ extension SidechainPaths on ChainType {
 
   String _linuxDirname() {
     switch (this) {
-      case ChainType.testChain:
+      case ChainType.testchain:
         return 'drivechain_launcher_sidechains/testchain';
       case ChainType.ethereum:
         return '.ethside';
@@ -177,7 +177,7 @@ extension SidechainPaths on ChainType {
 
   String _macosDirname() {
     switch (this) {
-      case ChainType.testChain:
+      case ChainType.testchain:
         return 'drivechain_launcher_sidechains/testchain';
       case ChainType.ethereum:
         return 'EthSide';
@@ -190,7 +190,7 @@ extension SidechainPaths on ChainType {
 
   String _windowsDirname() {
     switch (this) {
-      case ChainType.testChain:
+      case ChainType.testchain:
         return 'drivechain_launcher_sidechains/testchain';
       case ChainType.ethereum:
         return 'EthSide';
@@ -232,4 +232,10 @@ String applicationDir({String? subdir}) {
   } else {
     throw 'unsupported operating system: ${Platform.operatingSystem}';
   }
+}
+
+/// Join a list of filepath segments based on the underlying platform
+/// path separator
+String filePath(List<String> segments) {
+  return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }

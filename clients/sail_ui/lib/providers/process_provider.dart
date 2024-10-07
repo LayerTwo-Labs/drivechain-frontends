@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sidesail/config/chains.dart';
+import 'package:sail_ui/config/chains.dart';
 
 class SailProcess {
   final int pid;
@@ -88,9 +88,7 @@ class ProcessProvider extends ChangeNotifier {
       ]),
     );
 
-    // Have to convert the ByteData -> List<int>. Side note: why tf does writeAsBytes
-    // operate on a list of numbers? Jesus
-    // https://stackoverflow.com/a/50121777
+    // Have to convert the ByteData -> List<int>. https://stackoverflow.com/a/50121777
     final buffer = binResource.buffer;
     await file.writeAsBytes(
       buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
@@ -190,10 +188,4 @@ class ProcessProvider extends ChangeNotifier {
       Process.killPid(process.pid, ProcessSignal.sigterm);
     }
   }
-}
-
-/// Join a list of filepath segments based on the underlying platform
-/// path separator
-String filePath(List<String> segments) {
-  return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }

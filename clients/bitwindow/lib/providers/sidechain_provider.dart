@@ -13,7 +13,7 @@ class SidechainProvider extends ChangeNotifier {
 
   // This always has 255 slots. The fetch-method fills in the slots that
   // are actually in use.
-  List<Sidechain?> sidechains = List.filled(255, null);
+  List<SidechainOverview?> sidechains = List.filled(255, null);
 
   List<SidechainProposal> sidechainProposals = [];
 
@@ -37,13 +37,13 @@ class SidechainProvider extends ChangeNotifier {
       final newSidechainProposals = await api.drivechain.listSidechainProposals();
 
       // Create a new list with 255 slots
-      List<Sidechain?> updatedSidechains = List.filled(255, null);
+      List<SidechainOverview?> updatedSidechains = List.filled(255, null);
 
       // Fill in the slots with the data retrieved from the API
       for (var sidechain in newSidechains) {
         final deposits = await api.wallet.listSidechainDeposits(sidechain.slot);
         if (sidechain.slot < 255) {
-          updatedSidechains[sidechain.slot] = Sidechain(sidechain, deposits);
+          updatedSidechains[sidechain.slot] = SidechainOverview(sidechain, deposits);
         }
       }
 
@@ -76,9 +76,9 @@ class SidechainProvider extends ChangeNotifier {
   }
 }
 
-class Sidechain {
+class SidechainOverview {
   final ListSidechainsResponse_Sidechain info;
   final List<ListSidechainDepositsResponse_SidechainDeposit> deposits;
 
-  Sidechain(this.info, this.deposits);
+  SidechainOverview(this.info, this.deposits);
 }

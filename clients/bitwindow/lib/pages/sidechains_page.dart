@@ -101,7 +101,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
 class SelectableListTile extends StatelessWidget {
   final int index;
-  final Sidechain? sidechain;
+  final SidechainOverview? sidechain;
   final Color textColor;
   final bool isSelected;
   final VoidCallback onSelected;
@@ -171,7 +171,7 @@ class SidechainsViewModel extends BaseViewModel {
     feeController.addListener(notifyListeners);
   }
 
-  List<Sidechain?> get sidechains => sidechainProvider.sidechains;
+  List<SidechainOverview?> get sidechains => sidechainProvider.sidechains;
 
   int? _selectedIndex;
 

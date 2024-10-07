@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -38,7 +37,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           confirmedBalance: model.balance,
                           unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
-                          currentChain: model.chain.type == ChainType.testChain,
+                          currentChain: model.chain.type == ChainType.testchain,
                           onPressed: () => model.setSidechain(TestSidechain(), app),
                           inBottomNav: false,
                         ),
