@@ -1,19 +1,24 @@
+#!/usr/bin/env bash
+
 set -e
 
 app_name="$1"
-identity="$2"
-notarization_key_path="$3"
-notarization_key_id="$4"
-notarization_issuer_id="$5"
-# Check if exactly one argument is provided
-if [ "$app_name" = "" ]; then
-    echo "Usage: $0 app_name [identity notarization_key_path notarization_key_id notarization_issuer_id]"
+client_dir="$2"
+identity="$3"
+notarization_key_path="$4"
+notarization_key_id="$5"
+notarization_issuer_id="$6"
+
+if [ "$app_name" = "" ] || [ "$client_dir" = "" ]; then
+    echo "Usage: $0 app_name client_directory [identity notarization_key_path notarization_key_id notarization_issuer_id]"
     exit 1
 fi
 
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
 echo Building $app_name
+
+cd "$client_dir"
 
 flutter build macos --dart-define-from-file=build-vars.env
 
@@ -58,5 +63,6 @@ if test -n "$notarization_key_path"; then
     xcrun stapler validate $app_name.app
 fi
 
-mkdir -p $old_cwd/release
-cp $zip_name $old_cwd/release/
+release_dir="$old_cwd/release"
+mkdir -p "$release_dir"
+cp $zip_name "$release_dir"

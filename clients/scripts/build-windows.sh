@@ -1,12 +1,17 @@
-set -e 
+#!/usr/bin/env bash
+
+set -e
 
 app_name="$1"
-if [ "$app_name" = "" ]; then
-    echo "Usage: $0 app_name"
+client_dir="$2"
+if [ "$app_name" = "" ] || [ "$client_dir" = "" ]; then
+    echo "Usage: $0 app_name client_dir"
     exit 1
 fi
 
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
+
+cd $client_dir
 
 # Dirty hack: we're running the big build script
 # from within bash in WSL, and we need to go back

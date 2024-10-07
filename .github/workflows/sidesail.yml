@@ -13,7 +13,7 @@ on:
 
 defaults:
   run:
-    working-directory: clients/sidesail
+    working-directory: clients
 
 jobs:
 
@@ -32,7 +32,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: clients/sidesail # must be specified here as well, otherwise overwrites top most
+        working-directory: clients # must be specified here as well, otherwise overwrites top most
 
     steps:
       - uses: actions/checkout@v4
@@ -42,9 +42,10 @@ jobs:
       # You can specify other versions if desired, see documentation here:
       # https://github.com/dart-lang/setup-dart/blob/main/README.md
       - uses: dart-lang/setup-dart@v1
-
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          cd sidesail
+          flutter pub get
 
       # standard macOS sed has subtle differences from gnu
       - name: Install GNU sed on macOS
@@ -100,13 +101,13 @@ jobs:
 
       - name: Create necessary directories
         run: |
-          mkdir -p bins
-          mkdir -p assets/bin
+          mkdir -p sidesail/bins
+          mkdir -p sidesail/assets/bin
 
       - name: Build app
         run: |
           # Everything after first line is only relevant for macOS  
-          ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.chain }} \
+          ./scripts/build-app.sh ${{ runner.os }} sidesail ${{ matrix.chain }} \
             "$CODESIGN_IDENTITY" $PWD/notarization_api_key.p8 \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
