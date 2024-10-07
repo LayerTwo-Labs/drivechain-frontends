@@ -8,9 +8,8 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sidesail/config/chains.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
-import 'package:sidesail/providers/process_provider.dart';
 
 // when you implement this class, you should extend a ChangeNotifier, to get
 // a proper implementation of notifyListeners(), e.g:

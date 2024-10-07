@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/routing/router.dart';

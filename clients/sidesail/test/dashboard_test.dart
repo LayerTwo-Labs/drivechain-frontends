@@ -8,10 +8,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/providers/process_provider.dart';
 import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
-import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';

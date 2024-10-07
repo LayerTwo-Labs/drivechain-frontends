@@ -121,16 +121,6 @@ class _SailTableState extends State<SailTable> {
     widget.onSort?.call(columnIndex, ascending);
   }
 
-  int? _getSelectedIndex() {
-    if (_selectedId == null) return null;
-    for (int i = 0; i < widget.rowCount; i++) {
-      if (widget.getRowId(i) == _selectedId) {
-        return i;
-      }
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);

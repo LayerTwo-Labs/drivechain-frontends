@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
-import 'package:sidesail/config/chains.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
@@ -61,7 +61,7 @@ class AppRouter extends RootStackRouter {
             ),
             AutoRoute(
               page: SidechainSendRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == ChainType.testChain,
+              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == ChainType.testchain,
             ),
             AutoRoute(
               page: TestchainRPCTabRoute.page,

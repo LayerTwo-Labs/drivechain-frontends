@@ -7,7 +7,6 @@ import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/notification_provider.dart';
-import 'package:sidesail/providers/process_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/widgets/containers/daemon_connection_card.dart';
 import 'package:sidesail/widgets/containers/tabs/home/bottom_nav.dart';

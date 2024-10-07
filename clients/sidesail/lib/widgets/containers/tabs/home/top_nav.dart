@@ -4,7 +4,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
-import 'package:sidesail/config/chains.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -53,7 +52,7 @@ class _TopNavState extends State<TopNav> {
                       },
                       icon: SailSVG.icon(SailSVGAsset.iconTabPeg),
                     ),
-                    if (_sidechain.rpc.chain.type == ChainType.testChain)
+                    if (_sidechain.rpc.chain.type == ChainType.testchain)
                       QtTab(
                         label: 'Withdrawal Explorer',
                         active: tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
@@ -62,7 +61,7 @@ class _TopNavState extends State<TopNav> {
                         },
                         icon: SailSVG.icon(SailSVGAsset.iconTabWithdrawalExplorer),
                       ),
-                    if (_sidechain.rpc.chain.type == ChainType.testChain)
+                    if (_sidechain.rpc.chain.type == ChainType.testchain)
                       QtTab(
                         label: 'Blind Merged Mining',
                         active: tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
@@ -121,7 +120,7 @@ class _TopNavState extends State<TopNav> {
     auto_router.TabsRouter tabsRouter,
   ) {
     switch (chain.type) {
-      case ChainType.testChain:
+      case ChainType.testchain:
         return [
           QtTab(
             label: 'Send',
@@ -193,7 +192,7 @@ class _TopNavState extends State<TopNav> {
     List<QtTab> trailing = [];
 
     switch (chain.type) {
-      case ChainType.testChain:
+      case ChainType.testchain:
         trailing = [
           QtTab(
             label: 'Console',
