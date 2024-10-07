@@ -19,13 +19,13 @@ class QtTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
+      child: SailScaleButton(
+        onPressed: onTap,
+        pressed: active,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 50),
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: active ? Colors.grey.withOpacity(0.2) : Colors.transparent,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Row(
@@ -33,7 +33,10 @@ class QtTab extends StatelessWidget {
             children: [
               icon,
               const SizedBox(width: 2),
-              SailText.primary12(label),
+              SailText.primary12(
+                label,
+                color: active ? context.sailTheme.colors.primary : null,
+              ),
             ],
           ),
         ),

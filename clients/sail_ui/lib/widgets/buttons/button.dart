@@ -238,6 +238,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
 
 class SailScaleButton extends StatefulWidget {
   final VoidCallback? onPressed;
+  final bool pressed;
   final Widget child;
   final bool disabled;
   final bool loading;
@@ -247,6 +248,7 @@ class SailScaleButton extends StatefulWidget {
     super.key,
     required this.onPressed,
     required this.child,
+    this.pressed = false,
     this.disabled = false,
     this.loading = false,
     this.color,
@@ -271,6 +273,21 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
   @override
   void initState() {
     super.initState();
+    _updatePressedState();
+  }
+
+  @override
+  void didUpdateWidget(SailScaleButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pressed != widget.pressed) {
+      _updatePressedState();
+    }
+  }
+
+  void _updatePressedState() {
+    setState(() {
+      _isPressed = widget.pressed;
+    });
   }
 
   Future<void> reset() async {
@@ -295,7 +312,11 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
     Widget buttonContent = Listener(
       onPointerDown: (_) async {
         setState(() {
-          _isPressed = true;
+          if (widget.pressed) {
+            _isPressed = false;
+          } else {
+            _isPressed = true;
+          }
         });
         await reset();
         shrink();
@@ -304,7 +325,11 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
       },
       onPointerUp: (_) async {
         setState(() {
-          _isPressed = false;
+          if (widget.pressed) {
+            _isPressed = true;
+          } else {
+            _isPressed = false;
+          }
         });
         if (!_readyForFling) {
           await Future.delayed(const Duration(milliseconds: 40));
@@ -371,12 +396,9 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
                 borderRadius: BorderRadius.circular(8.0),
                 color: theme.colors.backgroundSecondary,
               ),
-              child: Material(
-                color: Colors.transparent,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                  child: buttonContent,
-                ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                child: buttonContent,
               ),
             ),
           ),
