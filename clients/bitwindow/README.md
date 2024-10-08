@@ -1,4 +1,4 @@
-# drivechain_client
+# bitwindow
 
 This package contains a frontend for interacting with a Drivechain-enabled layer 1 bitcoin network.
 

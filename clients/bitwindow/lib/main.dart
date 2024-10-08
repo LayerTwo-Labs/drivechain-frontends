@@ -66,7 +66,7 @@ Future<void> initDependencies(Logger log) async {
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
 
-  // Needed for sidesail_ui to work
+  // Needed for sail_ui to work
   GetIt.I.registerLazySingleton<ClientSettings>(
     () => ClientSettings(
       store: Storage(

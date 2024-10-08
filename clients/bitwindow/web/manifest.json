@@ -1,6 +1,6 @@
 {
-    "name": "drivechain_client",
-    "short_name": "drivechain_client",
+    "name": "bitwindow",
+    "short_name": "bitwindow",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
