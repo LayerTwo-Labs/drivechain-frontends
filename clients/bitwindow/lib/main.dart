@@ -107,3 +107,25 @@ Future<void> initDependencies(Logger log) async {
   );
   unawaited(sidechainProvider.fetch());
 }
+
+void ignoreOverflowErrors(
+  FlutterErrorDetails details, {
+  bool forceReport = false,
+}) {
+  bool ifIsOverflowError = false;
+
+  // Detect overflow error.
+  var exception = details.exception;
+  if (exception is FlutterError) {
+    ifIsOverflowError = !exception.diagnostics.any(
+      (e) => e.value.toString().startsWith('A RenderFlex overflowed by'),
+    );
+  }
+
+  // Ignore if is overflow error.
+  if (ifIsOverflowError) {
+    debugPrint('ignored overflow error');
+  } else {
+    FlutterError.dumpErrorToConsole(details, forceReport: forceReport);
+  }
+}
