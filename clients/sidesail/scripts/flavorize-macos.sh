@@ -15,4 +15,3 @@ sed -i "s/sidesail/$lower_app_name/" macos/Runner/Configs/AppInfo.xcconfig
 
 # App name
 sed -i "s/SideSail/$app_name/" macos/Runner/Configs/AppInfo.xcconfig
-

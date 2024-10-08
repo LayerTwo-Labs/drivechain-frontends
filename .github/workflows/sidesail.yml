@@ -1,14 +1,16 @@
-name: Sidesail
+name: Build Sidesail
 
 on:
   push:
     branches: ["master"]
     paths:
       - 'clients/sidesail/**'
+      - 'clients/bitwindow/**'
   pull_request:
     branches: ["master"]
     paths:
       - 'clients/sidesail/**'
+      - 'clients/bitwindow/**'
       - '.github/workflows/**'
 
 defaults:
@@ -21,13 +23,48 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        chain: [testchain, ethereum, zcash]
-        exclude:
-          - os: windows-latest
+        include:
+          # SideSail builds on
+          # os: [ubuntu-latest, macos-latest, windows-latest]
+          # chain: [testchain, ethereum, zcash] (but not zcash for windows)
+          - os: ubuntu-latest
+            client: sidesail
+            chain: testchain
+          - os: ubuntu-latest
+            client: sidesail
+            chain: ethereum
+          - os: ubuntu-latest
+            client: sidesail
             chain: zcash
+          - os: macos-latest
+            client: sidesail
+            chain: testchain
+          - os: macos-latest
+            client: sidesail
+            chain: ethereum
+          - os: macos-latest
+            client: sidesail
+            chain: zcash
+          - os: windows-latest
+            client: sidesail
+            chain: testchain
+          - os: windows-latest
+            client: sidesail
+            chain: ethereum
+          # BitWindow builds on
+          # os: [ubuntu-latest, macos-latest, windows-latest]
+          # chain: [''] (no chain)
+          - os: ubuntu-latest
+            client: bitwindow
+            chain: ''
+          - os: macos-latest
+            client: bitwindow
+            chain: ''
+          - os: windows-latest
+            client: bitwindow
+            chain: ''
 
-    name: Build binaries
+    name: Build ${{ matrix.client }} ${{ matrix.chain }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -44,7 +81,7 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - name: Install dependencies
         run: |
-          cd sidesail
+          cd ${{ matrix.client }}
           flutter pub get
 
       # standard macOS sed has subtle differences from gnu
@@ -101,22 +138,21 @@ jobs:
 
       - name: Create necessary directories
         run: |
-          mkdir -p sidesail/bins
-          mkdir -p sidesail/assets/bin
+          mkdir -p ${{ matrix.client }}/assets/bin
 
       - name: Build app
         run: |
           # Everything after first line is only relevant for macOS  
-          ./scripts/build-app.sh ${{ runner.os }} sidesail ${{ matrix.chain }} \
+          ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} "${{ matrix.chain }}" \
             "$CODESIGN_IDENTITY" $PWD/notarization_api_key.p8 \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: sidesail-binaries-${{ runner.os }}-${{ matrix.chain }}
+          name: ${{ matrix.client }}-binaries-${{ runner.os }}${{ matrix.chain != '' && format('-{0}', matrix.chain) || '' }}
           if-no-files-found: error
-          path: clients/sidesail/release/*
+          path: clients/${{ matrix.client }}/release/*
 
   upload-artifacts-to-releases-drivechain-info:
     name: Upload artifacts to releases.drivechain.info
@@ -129,18 +165,27 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
 
-      - name: Zip artifacts
-        working-directory: . # we set a default above, with a directory that doesn't exist for this job
-        # The files here are already zips. No point in zipping again!
+      - name: Rename and move artifacts
+        working-directory: .
         run: |
-          mv sidesail-binaries-macOS-testchain/testsail-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-testchain/testsail-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip 
+          if [[ "${{ matrix.client }}" == "sidesail" ]]; then
+            mv sidesail-binaries-macOS-testchain/testsail-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip 
+            mv sidesail-binaries-Linux-testchain/testsail-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip 
+            mv sidesail-binaries-Windows-testchain/testsail-win64.zip L2-S0-TestSail-latest-x86_64-pc-windows-msvc.zip
 
-          mv sidesail-binaries-macOS-zcash/zsail-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-zcash/zsail-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip 
+            mv sidesail-binaries-macOS-zcash/zsail-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip 
+            mv sidesail-binaries-Linux-zcash/zsail-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip 
 
-          mv sidesail-binaries-macOS-ethereum/ethsail-osx64.zip L2-S6-EthSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-ethereum/ethsail-x86_64-linux-gnu.zip L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip
+            mv sidesail-binaries-macOS-ethereum/ethsail-osx64.zip L2-S6-EthSail-latest-x86_64-apple-darwin.zip 
+            mv sidesail-binaries-Linux-ethereum/ethsail-x86_64-linux-gnu.zip L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip
+            mv sidesail-binaries-Windows-ethereum/ethsail-win64.zip L2-S6-EthSail-latest-x86_64-pc-windows-msvc.zip
+          fi
+
+          if [[ "${{ matrix.client }}" == "bitwindow" ]]; then
+            mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip
+            mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip
+            mv bitwindow-binaries-Windows/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip
+          fi
 
       - name: Upload artifacts to releases.drivechain.info
         uses: cross-the-world/ssh-scp-ssh-pipelines@latest
@@ -150,4 +195,5 @@ jobs:
           pass: ${{ secrets.RELEASES_SERVER_PW }}
           port: 22
           scp: |
-            'L2-S*.zip' => '/var/www/html/'
+            'L2-*.zip' => '/var/www/html/'
+            'BitWindow-*.zip' => '/var/www/html/'
