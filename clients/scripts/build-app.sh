@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
-# All sub-folders that wants to build needs these scripts
-# to be present. 
+# This script orchestrates the build process for clients in the sub-folder of this directory.
+# for different platforms (Linux, macOS, Windows).
+# All sub-folders that want to use this script need these scripts
+# to be present:
 # 1. set-app-name.sh
 # 2. download-binaries.sh
-# 3. flavorize-<platform>.sh
+# 3. flavorize-<linux/macos/windows>.sh
 
 set -e
 
@@ -17,7 +19,7 @@ notarization_key_id="$6"
 notarization_issuer_id="$7"
 
 if test -z "$platform" -o -z "$client"; then
-    echo "Usage: $0 <linux/macos/windows> [code_sign_identity] [notarization_key_path] [notarization_key_id] [notarization_issuer_id] <sidesail/launcher/bitwindow> [chain]"
+    echo "Usage: $0 <linux/macos/windows> <sidesail/launcher/bitwindow> [chain] [code_sign_identity] [notarization_key_path] [notarization_key_id] [notarization_issuer_id]"
     exit 1
 fi
 
@@ -28,22 +30,27 @@ if [ ! -d "$client_dir" ]; then
     exit 1
 fi
 
-# Store the current directory before changing
+# Enter the directory of the client we're building for
 cd "$client_dir"
 
 cleanup() {
-    echo "Cleaning up..."
-    git checkout -- $client_dir/windows $client_dir/macos $client_dir/linux $client_dir/pubspec.yaml
-    rm "$client_dir/build-vars.env"
+    rm -f "$client_dir/build-vars.env"
+    echo "Cleaned up successfully"
     cd ../
 }
-# Set up trap to call cleanup function on script exit
+# run cleanup on exit
 trap cleanup EXIT
+
+# set-app-name.sh is required in the client directory. 
+if [ ! -f "./scripts/set-app-name.sh" ]; then
+    echo "set-app-name.sh is required, does not exist in ./$client_dir/scripts/"
+    exit 1
+fi
 
 # Run set-app-name.sh to set $app_name and create build-vars.env
 source ./scripts/set-app-name.sh "$chain"
 
-# Check if app_name is set after sourcing set-app-name.sh
+# Check that set-app-name.sh did its job
 if [ -z "$app_name" ]; then
     echo "Error: set-app-name.sh did not set a valid app name"
     exit 1
@@ -52,22 +59,28 @@ fi
 # Print the app_name for debugging
 echo "App name set to: $app_name"
 
-if [ -z "$app_name" ]; then
-    echo "Error: set-app-name.sh did not export a valid app name."
+# download-binaries.sh is required in the client directory. 
+if [ ! -f "./scripts/download-binaries.sh" ]; then
+    echo "download-binaries.sh is required, does not exist in ./$client_dir/scripts/"
     exit 1
 fi
 
-echo "Building for platform: $platform, client: $client, app: $app_name"
-
-echo "Downloading binaries for $platform"
+echo "Downloading $client_dir binaries for $platform"
 bash ./scripts/download-binaries.sh "$platform" "$chain"
 
-echo "Flavorizing for $platform"
+# flavorize-<platform>.sh is required in the client directory. 
+if [ ! -f "./scripts/flavorize-$platform.sh" ]; then
+    echo "Error: flavorize-$platform.sh does not exist in ./$client_dir/scripts/"
+    exit 1
+fi
+
+echo "Flavorizing $client_dir for $platform"
 bash ./scripts/flavorize-"$platform".sh "$app_name"
 
+# Return to the parent directory to run the platform-specific build script
 cd ../
 
-echo "Building $app_name release"
+echo "Building $client_dir $app_name release"
 bash ./scripts/build-"$platform".sh "$app_name" "$client_dir" \
     "$identity" "$notarization_key_path" \
     "$notarization_key_id" "$notarization_issuer_id"

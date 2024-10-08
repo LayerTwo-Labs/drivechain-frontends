@@ -5,8 +5,8 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "drivechain_client",
-            "cwd": "packages/drivechain_client",
+            "name": "BitWindow",
+            "cwd": "clients/bitwindow",
             "request": "launch",
             "type": "dart",
             "toolArgs": [
@@ -17,8 +17,8 @@
             ]
         },
         {
-            "name": "drivechain_client (profile mode)",
-            "cwd": "packages/drivechain_client",
+            "name": "bitwindow (profile mode)",
+            "cwd": "clients/bitwindow",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile",
@@ -30,8 +30,8 @@
             ]
         },
         {
-            "name": "drivechain_client (release mode)",
-            "cwd": "packages/drivechain_client",
+            "name": "bitwindow (release mode)",
+            "cwd": "clients/bitwindow",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release",
@@ -44,60 +44,60 @@
         },
         {
             "name": "faucet",
-            "cwd": "packages/faucet",
+            "cwd": "clients/faucet",
             "request": "launch",
             "type": "dart"
         },
         {
             "name": "faucet (profile mode)",
-            "cwd": "packages/faucet",
+            "cwd": "clients/faucet",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
             "name": "faucet (release mode)",
-            "cwd": "packages/faucet",
+            "cwd": "clients/faucet",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
         },
         {
             "name": "sail_ui",
-            "cwd": "packages/sail_ui",
+            "cwd": "clients/sail_ui",
             "request": "launch",
             "type": "dart"
         },
         {
             "name": "sail_ui (profile mode)",
-            "cwd": "packages/sail_ui",
+            "cwd": "clients/sail_ui",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
             "name": "sail_ui (release mode)",
-            "cwd": "packages/sail_ui",
+            "cwd": "clients/sail_ui",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
         },
         {
             "name": "sidesail",
-            "cwd": "packages/sidesail",
+            "cwd": "clients/sidesail",
             "request": "launch",
             "type": "dart"
         },
         {
             "name": "sidesail (profile mode)",
-            "cwd": "packages/sidesail",
+            "cwd": "clients/sidesail",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
             "name": "sidesail (release mode)",
-            "cwd": "packages/sidesail",
+            "cwd": "clients/sidesail",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

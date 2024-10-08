@@ -10,9 +10,8 @@ fi
 
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
-# Name of executable + app
-sed -i "s/sidesail/$lower_app_name/" linux/CMakeLists.txt
+# Bundle identifier
+sed -i "s/BitWindow/$lower_app_name/" macos/Runner/Configs/AppInfo.xcconfig
 
-# Name of main window
-sed -i "s/SideSail/$app_name/" linux/my_application.cc
-sed -i "s/SideSail/$lower_app_name/" linux/my_application.cc
+# App name
+sed -i "s/BitWindow/$app_name/" macos/Runner/Configs/AppInfo.xcconfig
