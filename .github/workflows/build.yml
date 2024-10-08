@@ -1,4 +1,4 @@
-name: Build Sidesail
+name: Build Clients
 
 on:
   push:
