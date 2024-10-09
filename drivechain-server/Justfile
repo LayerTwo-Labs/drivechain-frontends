@@ -4,7 +4,9 @@ build-go:
 build: build-bdk-cli build-enforcer build-go
 
 clean:
-    rm -rf ./bdk/bin
+    rm -r ./bin
+    rm -r bip300301_enforcer.mdb
+    rm -r .crates*
     go clean
 
 lint:
@@ -21,7 +23,7 @@ gen-enforcer:
 build-bdk-cli:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -f "./bdk/bin/bdk-cli" ]; then
+    if [ ! -f "./bin/bdk-cli" ]; then
         echo "Building bdk-cli..."
         mkdir -p ./bin
         if ! command -v rustc &> /dev/null; then
@@ -31,10 +33,10 @@ build-bdk-cli:
         cargo install \
         --git https://github.com/bitcoindevkit/bdk-cli.git \
         --tag v0.27.1 \
-        --root ./bdk \
+        --root . \
         --no-default-features \
         --features=key-value-db,compiler,electrum
-        echo "bdk-cli has been built to ./bdk/bin/bdk-cli"
+        echo "bdk-cli has been built to ./bin/bdk-cli"
     else
         echo "bdk-cli already exists, skipping build"
     fi

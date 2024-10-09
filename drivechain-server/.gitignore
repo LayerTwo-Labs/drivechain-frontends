@@ -1,6 +1,4 @@
 drivechain-server
-/bdk/bin/
-/bdk/.crates*
-/enforcer/bin/
-/enforcer/.crates*
+bin/
+.crates*
 /*.mdb
