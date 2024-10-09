@@ -4,11 +4,13 @@ on:
   push:
     branches: ["master"]
     paths:
+      - 'clients/scripts/**'
       - 'clients/sidesail/**'
       - 'clients/bitwindow/**'
   pull_request:
     branches: ["master"]
     paths:
+      - 'clients/scripts/**'
       - 'clients/sidesail/**'
       - 'clients/bitwindow/**'
       - '.github/workflows/**'
@@ -84,6 +86,11 @@ jobs:
           cd ${{ matrix.client }}
           flutter pub get
 
+
+      - name: Create necessary directories
+        run: |
+          mkdir -p ${{ matrix.client }}/assets/bin
+
       # standard macOS sed has subtle differences from gnu
       - name: Install GNU sed on macOS
         if: runner.os == 'macOS'
@@ -136,14 +143,15 @@ jobs:
           echo "Creating notarization API key file"
           echo ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY }} | base64 --decode > notarization_api_key.p8
 
-      - name: Create necessary directories
-        run: |
-          mkdir -p ${{ matrix.client }}/assets/bin
-
       - name: Build app
         run: |
-          # Everything after first line is only relevant for macOS  
-          ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} "${{ matrix.chain }}" \
+          chain_param="${{ matrix.chain }}"
+          if [ -z "$chain_param" ]; then
+            chain_param="none"
+          fi
+          
+          # Everything after first line is only relevant for macOS
+          ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} "$chain_param" \
             "$CODESIGN_IDENTITY" $PWD/notarization_api_key.p8 \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}

@@ -35,8 +35,8 @@ if test -n  "$identity"; then
     for asset in $assets_bin_dir/* ; do 
         echo Signing binary asset $(basename $asset)
 
-        codesign --verbose --deep --force --options runtime \
-            --sign "$identity" $asset
+        codesign --verbose --deep --force --options runtime --sign \
+            "$identity" $asset
     done
 
     codesign --verbose --deep --force --options runtime \
