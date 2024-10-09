@@ -44,19 +44,38 @@ build-bdk-cli:
 build-enforcer:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -f "./enforcer/bin/bip300301_enforcer" ]; then
-        echo "Building enforcer..."
-        mkdir -p ./enforcer/bin
-        if ! command -v rustc &> /dev/null; then
-            echo "Error: Rust is not installed. Please install Rust and try again."
+
+    # Download the correct binary for the current OS
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        enforcer_version_postfix="apple-darwin"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        enforcer_version_postfix="unknown-linux-gnu"
+    else
+        echo "Unsupported operating system: $OSTYPE"
+        exit 1
+    fi
+
+    binary_name="bip300301_enforcer"
+    if ! test -f ./bin/$binary_name; then
+        # Setup
+        echo "Downloading $binary_name..."
+        mkdir -p ./bin
+        # Download
+        enforcer_zip=bip300301-enforcer-latest-x86_64-$enforcer_version_postfix.zip
+        curl --fail -O https://releases.drivechain.info/$enforcer_zip
+        # Unpack
+        echo unpacking: unzip $enforcer_zip
+        unzip $enforcer_zip
+        enforcer_binary=$(find . -name "bip300301_enforcer*" -print -quit)
+        if [ -z "$enforcer_binary" ]; then
+            echo "Error: Could not find the enforcer binary in the extracted files."
             exit 1
         fi
-        cargo install \
-        --git https://github.com/LayerTwo-Labs/bip300301_enforcer.git \
-        --branch master \
-        --root ./enforcer \
-        --bin bip300301_enforcer
-        echo "enforcer has been built to ./enforcer/bin/bip300301_enforcer"
+        # Move
+        mv "$enforcer_binary" ./bin/$binary_name
+        echo "$binary_name has been downloaded to ./bin/$binary_name"
+        # Clean up
+        rm $enforcer_zip
     else
-        echo "enforcer already exists, skipping build"
+        echo "$binary_name already exists in ./bin/$binary_name, skipping download"
     fi
