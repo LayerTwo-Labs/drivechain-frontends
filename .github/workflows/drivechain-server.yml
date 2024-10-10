@@ -32,7 +32,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.23"
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -44,7 +44,7 @@ jobs:
     name: go-build
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -55,27 +55,28 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.23"
 
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
 
       - name: Build bdk-cli
-        run: just build-bdk-cli
-
-      - name: Build drivechain-server
-        run: just build-go
-
-      - name: Determine artifact name
-        id: artifact-name
         run: |
-          echo "name=drivechain-server-${{ matrix.os }}" >> $GITHUB_OUTPUT
-
+          just build-bdk-cli
+          mv bin/bdk-cli${{ runner.os == 'Windows' && '.exe' || '' }} bin/bdk-cli${{ runner.os == 'Windows' && '.exe' || '' }}-${{ runner.os }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact-name.outputs.name }}
-          path: |
-            drivechain-server/bin/drivechain-server
-            drivechain-server/bin/bdk-cli
+          name: bdk-cli${{ runner.os == 'Windows' && '.exe' || '' }}-${{ runner.os }}
+          path: drivechain-server/bin
+          if-no-files-found: error
+
+      - name: Build drivechain-server
+        run: |
+          just build-go
+          mv bin/drivechain-server bin/drivechain-server-${{ runner.os }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drivechain-server-${{ runner.os }}
+          path: drivechain-server/bin
           if-no-files-found: error
