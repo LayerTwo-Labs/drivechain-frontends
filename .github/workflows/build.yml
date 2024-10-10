@@ -122,6 +122,9 @@ jobs:
           echo "Unlocking keychain"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
 
+          echo "Setting keychain timeout to 20 minutes"
+          security set-keychain-settings -t 1200 -l ~/Library/Keychains/build.keychain
+
           echo "Importing certificate into keychain"
           security import ./certificate.p12 -k ~/Library/Keychains/build.keychain -P ${{ secrets.MACOS_CERTIFICATE_PASSWORD }} -T /usr/bin/codesign
 
