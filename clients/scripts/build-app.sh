@@ -35,8 +35,9 @@ cleanup() {
     git checkout -f "$client_dir/macos"
     git checkout -f "$client_dir/linux"
     git checkout -f "$client_dir/windows"
-    echo "Cleaned up successfully"
+    echo "Cleaned up all files"
     cd $old_cwd
+    echo "Back to $old_cwd"
 }
 trap cleanup EXIT
 
