@@ -109,4 +109,28 @@ if ! test -f $assets_dir/$enforcer; then
     echo "Enforcer binary renamed to $enforcer"
 fi
 
+echo Going back to $old_cwd
+cd $old_cwd
+
+cd ../../drivechain-server
+server_cwd=$(pwd)
+
+# Build bdk-cli and drivechain-server
+echo "Building bdk-cli and drivechain-server in $server_cwd"
+
+# Build bdk-cli
+echo "Building bdk-cli"
+just build-bdk-cli
+
+# Build drivechain-server
+echo "Building drivechain-server"
+just build-go
+
+# Move the built binaries to the assets directory
+mv bin/bdk-cli $assets_dir/
+mv bin/drivechain-server $assets_dir/
+
+echo "bdk-cli and drivechain-server have been built and moved to $assets_dir"
+
+echo Going back to $old_cwd
 cd $old_cwd
