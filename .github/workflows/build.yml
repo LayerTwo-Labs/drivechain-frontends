@@ -76,6 +76,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
+      - uses: extractions/setup-just@v1
+      # Setup go for building drivechain-server
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      # Setup go for building bdk-cli
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
 
       # Note: This workflow uses the latest stable version of the Dart SDK.
       # You can specify other versions if desired, see documentation here:
