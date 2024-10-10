@@ -2,60 +2,56 @@ name: Build Clients
 
 on:
   push:
-    branches: ["master"]
+    branches: [master]
     paths:
+      - 'drivechain-server/**'
       - 'clients/scripts/**'
-      - 'clients/sidesail/**'
       - 'clients/bitwindow/**'
+      - 'clients/sidesail/**'
+      - '.github/workflows/**'
   pull_request:
-    branches: ["master"]
+    branches: [master]
     paths:
+      - 'drivechain-server/**'
       - 'clients/scripts/**'
-      - 'clients/sidesail/**'
       - 'clients/bitwindow/**'
+      - 'clients/sidesail/**'
       - '.github/workflows/**'
 
-defaults:
-  run:
-    working-directory: clients
-
 jobs:
-
   build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          # SideSail builds on
-          # os: [ubuntu-latest, macos-latest, windows-latest]
-          # chain: [testchain, ethereum, zcash] (but not zcash for windows)
+          # Sidesail testchain builds for all os'es
           - os: ubuntu-latest
             client: sidesail
             chain: testchain
+          - os: macos-latest
+            client: sidesail
+            chain: testchain
+          - os: windows-latest
+            client: sidesail
+            chain: testchain
+          # Sidesail ethereum builds for all os'es
           - os: ubuntu-latest
             client: sidesail
             chain: ethereum
+          - os: macos-latest
+            client: sidesail
+            chain: ethereum
+          - os: windows-latest
+            client: sidesail
+            chain: ethereum
+          # Sidesail zcash does not build for windows
           - os: ubuntu-latest
             client: sidesail
             chain: zcash
           - os: macos-latest
             client: sidesail
-            chain: testchain
-          - os: macos-latest
-            client: sidesail
-            chain: ethereum
-          - os: macos-latest
-            client: sidesail
             chain: zcash
-          - os: windows-latest
-            client: sidesail
-            chain: testchain
-          - os: windows-latest
-            client: sidesail
-            chain: ethereum
-          # BitWindow builds on
-          # os: [ubuntu-latest, macos-latest, windows-latest]
-          # chain: [''] (no chain)
+          # BitWindow builds for all os'es
           - os: ubuntu-latest
             client: bitwindow
             chain: ''
@@ -71,7 +67,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: clients # must be specified here as well, otherwise overwrites top most
+        working-directory: clients
 
     steps:
       - uses: actions/checkout@v4
@@ -87,21 +83,18 @@ jobs:
           toolchain: stable
 
 
-      # Note: This workflow uses the latest stable version of the Dart SDK.
-      # You can specify other versions if desired, see documentation here:
-      # https://github.com/dart-lang/setup-dart/blob/main/README.md
+      - name: Create assets/bin directory
+        run: |
+          mkdir -p ${{ matrix.client }}/assets/bin
+
+      # This workflow uses the latest stable version of the Dart SDK.
       - uses: dart-lang/setup-dart@v1
       - name: Install dependencies
         run: |
           cd ${{ matrix.client }}
           flutter pub get
 
-
-      - name: Create necessary directories
-        run: |
-          mkdir -p ${{ matrix.client }}/assets/bin
-
-      # standard macOS sed has subtle differences from gnu
+       # standard macOS sed has subtle differences from gnu
       - name: Install GNU sed on macOS
         if: runner.os == 'macOS'
         run: |
@@ -141,13 +134,8 @@ jobs:
           echo Certificate subject: "'$cert_subject'"
 
           cn_part=$(grep -o 'CN = "[^"]*"' <<< "$cert_subject")
-          echo CN part: "'$cn_part'"
-
           cn_value=$(sed 's/CN = "\(.*\)"/\1/' <<< "$cn_part")
-          echo CN value: "'$cn_value'"
-
-          echo "Determined code sign identity: '$cn_value'"
-
+          echo "Determined code sign identity"
           echo "CODESIGN_IDENTITY=$cn_value" >> $GITHUB_ENV
 
           echo "Creating notarization API key file"
@@ -160,7 +148,7 @@ jobs:
             chain_param="none"
           fi
           
-          # Everything after first line is only relevant for macOS
+          # Everything after the first line is only relevant for macOS
           ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} "$chain_param" \
             "$CODESIGN_IDENTITY" $PWD/notarization_api_key.p8 \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
@@ -175,7 +163,10 @@ jobs:
   upload-artifacts-to-releases-drivechain-info:
     name: Upload artifacts to releases.drivechain.info
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: build
+    defaults:
+      run:
+        working-directory: clients
     # avoid uploading on PRs
     # prettier-ignore
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'LayerTwo-Labs'
