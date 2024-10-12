@@ -1,12 +1,13 @@
 import 'dart:async';
 
-import 'package:bitwindow/api.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/servers/api.dart';
+import 'package:bitwindow/servers/mainchain_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,6 +23,8 @@ void main() async {
   final log = Logger();
   final router = AppRouter();
   await initDependencies(log);
+
+  MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
 
   await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
@@ -52,6 +55,12 @@ void main() async {
               GoogleFonts.sourceCodeProTextTheme(),
             ),
           ),
+        );
+      },
+      initMethod: (context) async {
+        await initMainchainBinary(context, log, mainchain);
+        log.i(
+          'mainchain init: ibd complete, ready to start enforcer',
         );
       },
       accentColor: const Color.fromARGB(255, 255, 153, 0),
@@ -106,6 +115,32 @@ Future<void> initDependencies(Logger log) async {
     () => sidechainProvider,
   );
   unawaited(sidechainProvider.fetch());
+
+  NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
+  try {
+    final network = 'signet';
+    mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'bitcoin.conf', ParentChain(), network);
+  } catch (error) {
+    // do nothing
+  }
+  final mainchainRPC = await MainchainRPCLive.create(mainchainConf);
+  GetIt.I.registerLazySingleton<MainchainRPC>(
+    () => mainchainRPC,
+  );
+}
+
+Future<void> initMainchainBinary(
+  BuildContext context,
+  Logger log,
+  MainchainRPC mainchain,
+) async {
+  await mainchain.initBinary(
+    context,
+    ParentChain(),
+  );
+  await mainchain.waitForIBD();
+
+  log.i('mainchain init: successfully started node');
 }
 
 void ignoreOverflowErrors(

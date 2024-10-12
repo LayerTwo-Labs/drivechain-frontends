@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
-import 'package:sidesail/rpc/rpc.dart';
 
 /// RPC connection for all sidechain nodes
 abstract class SidechainRPC extends RPCConnection {
@@ -11,11 +9,6 @@ abstract class SidechainRPC extends RPCConnection {
     required super.conf,
     required this.chain,
   });
-
-  /// Args to pass to the binary on startup.
-  List<String> binaryArgs(
-    SingleNodeConnectionSettings mainchainConf,
-  );
 
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
 

@@ -2,14 +2,13 @@
 // also includes functions for checking whether the connection
 // is live, and if not, what error message the node returned
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 
 // when you implement this class, you should extend a ChangeNotifier, to get
 // a proper implementation of notifyListeners(), e.g:
@@ -21,12 +20,19 @@ abstract class RPCConnection extends ChangeNotifier {
     required this.conf,
   });
 
+  /// Args to pass to the binary on startup.
+  List<String> binaryArgs(
+    NodeConnectionSettings mainchainConf,
+  );
+
   // attempt to stop the node gracefully
   Future<void> stopNode();
 
   // gets the current block height for this node
   // also used to test the connection
   Future<int> getBlockCount();
+
+  Future<BlockchainInfo> getBlockchainInfo();
 
   bool initializingBinary = false;
   bool _isTesting = false;
@@ -65,7 +71,7 @@ abstract class RPCConnection extends ChangeNotifier {
           }
         } else if (error is SocketException) {
           newError = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
-        } else if (error is HTTPException) {
+        } else if (error is HttpException) {
           // gotta parse out the error...
 
           // Looks like this: SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
@@ -95,22 +101,25 @@ abstract class RPCConnection extends ChangeNotifier {
   }
 
   // values for tracking connection state, and error (if any)
-  SingleNodeConnectionSettings conf;
+  NodeConnectionSettings conf;
   String? connectionError;
   bool connected = false;
   int blockCount = 0;
 
   Future<void> initBinary(
     BuildContext context,
-    Chain chain,
-    List<String> args,
-  ) async {
+    Chain chain, {
+    List<String>? arg,
+  }) async {
+    final args = binaryArgs(conf);
+    args.addAll(arg ?? []);
+
+    final processes = GetIt.I.get<ProcessProvider>();
+
     final binary = chain.binary;
 
     initializingBinary = true;
     notifyListeners();
-
-    final processes = GetIt.I.get<ProcessProvider>();
 
     log.d('init binaries: checking $binary connection ${conf.host}:${conf.port}');
 
@@ -253,4 +262,30 @@ Future<void> waitForBoolToBeTrue(
     await Future.delayed(pollInterval);
     await waitForBoolToBeTrue(boolGetter, pollInterval: pollInterval);
   }
+}
+
+class BlockchainInfo {
+  // indicates whether the chain is currently downloading the chain
+  // for the first time
+  final bool initialBlockDownload;
+  final int blockHeight;
+
+  BlockchainInfo({
+    required this.initialBlockDownload,
+    required this.blockHeight,
+  });
+
+  factory BlockchainInfo.fromMap(Map<String, dynamic> map) {
+    return BlockchainInfo(
+      initialBlockDownload: map['initialblockdownload'] ?? '',
+      blockHeight: map['blocks'] ?? 0,
+    );
+  }
+
+  static BlockchainInfo fromJson(String json) => BlockchainInfo.fromMap(jsonDecode(json));
+  String toJson() => jsonEncode(toMap());
+
+  Map<String, dynamic> toMap() => {
+        'initialblockdownload': initialBlockDownload,
+      };
 }

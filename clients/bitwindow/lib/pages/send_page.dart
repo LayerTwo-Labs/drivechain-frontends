@@ -1,9 +1,9 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/api.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/qt_button.dart';
 import 'package:bitwindow/widgets/qt_container.dart';
 import 'package:bitwindow/widgets/qt_icon_button.dart';

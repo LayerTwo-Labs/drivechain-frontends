@@ -3,10 +3,8 @@ import 'dart:async';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
-import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
@@ -244,7 +242,7 @@ class TestchainRPCLive extends TestchainRPC {
 
   @override
   List<String> binaryArgs(
-    SingleNodeConnectionSettings mainchainConf,
+    NodeConnectionSettings mainchainConf,
   ) {
     final baseArgs = bitcoinCoreBinaryArgs(
       conf,
@@ -261,6 +259,12 @@ class TestchainRPCLive extends TestchainRPC {
   @override
   Future<void> stopNode() async {
     await _client().call('stop');
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    final confirmedFut = await _client().call('getblockchaininfo');
+    return BlockchainInfo.fromMap(confirmedFut);
   }
 }
 

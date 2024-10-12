@@ -105,10 +105,10 @@ class ParentChain extends Chain {
   ChainType get type => ChainType.parentchain;
 
   @override
-  int get rpcPort => 8332;
+  int get rpcPort => 38332;
 
   @override
-  String get binary => 'drivechaind';
+  String get binary => 'bitcoind';
 }
 
 enum ChainType {
@@ -128,7 +128,7 @@ extension SidechainPaths on ChainType {
       case ChainType.zcash:
         return 'zcash.conf';
       case ChainType.parentchain:
-        return 'drivechain.conf';
+        return 'bitcoin.conf';
     }
   }
 

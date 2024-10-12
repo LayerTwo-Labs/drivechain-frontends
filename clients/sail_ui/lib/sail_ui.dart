@@ -1,4 +1,7 @@
 export './bitcoin.dart';
+export './classes/node_connection_settings.dart';
+export './classes/rpc_config.dart';
+export './classes/rpc_connection.dart';
 export './config/chains.dart';
 export './extensions/build_context.dart';
 export './extensions/formatting.dart';

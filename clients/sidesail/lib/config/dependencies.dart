@@ -3,7 +3,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
@@ -11,16 +10,12 @@ import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
-
-// This gets overwritten at a later point, just here to make the
-// type system happy.
-final _emptyNodeConf = SingleNodeConnectionSettings.empty();
+import 'package:sidesail/storage/sail_settings/network_settings.dart';
 
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
@@ -29,13 +24,15 @@ Future<void> initDependencies(Sidechain chain) async {
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, datadir);
   GetIt.I.registerLazySingleton<Logger>(() => log);
   final prefs = await SharedPreferences.getInstance();
-  GetIt.I.registerLazySingleton<ClientSettings>(
-    () => ClientSettings(
-      store: Storage(
-        preferences: prefs,
-      ),
-      log: log,
+  final clientSettings = ClientSettings(
+    store: Storage(
+      preferences: prefs,
     ),
+    log: log,
+  );
+
+  GetIt.I.registerLazySingleton<ClientSettings>(
+    () => clientSettings,
   );
   GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
 
@@ -49,9 +46,10 @@ Future<void> initDependencies(Sidechain chain) async {
     () => sidechainContainer,
   );
 
-  SingleNodeConnectionSettings mainchainConf = _emptyNodeConf;
+  NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
   try {
-    mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'drivechain.conf', ParentChain());
+    final network = RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
+    mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'drivechain.conf', ParentChain(), network);
   } catch (error) {
     // do nothing
   }
@@ -87,59 +85,15 @@ Future<void> initDependencies(Sidechain chain) async {
   );
 }
 
-Future<SingleNodeConnectionSettings> findSidechainConf(Sidechain chain) async {
-  SingleNodeConnectionSettings conf = _emptyNodeConf;
-  switch (chain.type) {
-    case ChainType.testchain:
-      try {
-        conf = await readRPCConfig(
-          TestSidechain().type.datadir(),
-          TestSidechain().type.confFile(),
-          TestSidechain(),
-        );
-      } catch (error) {
-        // do nothing, just don't exit
-      }
-      break;
-    case ChainType.ethereum:
-      try {
-        conf = await readRPCConfig(
-          EthereumSidechain().type.datadir(),
-          EthereumSidechain().type.confFile(),
-          EthereumSidechain(),
-        );
-      } catch (error) {
-        // do nothing, just don't exit
-      }
-      break;
-    case ChainType.zcash:
-      try {
-        conf = await readRPCConfig(
-          ZCashSidechain().type.datadir(),
-          ZCashSidechain().type.confFile(),
-          ZCashSidechain(),
-          overrideNetwork: 'regtest',
-          useCookieAuth: false,
-        );
-      } catch (error) {
-        // do nothing, just don't exit
-      }
-      break;
-
-    case ChainType.parentchain:
-      // do absolutely nothing, not a sidechain!
-      break;
-  }
-
-  return conf;
-}
-
 // register all rpc connections. We attempt to create all
 // rpcs in parallell, so they're ready instantly when swapping
 // we can also query the balance
 Future<SidechainRPC> findSubRPC(Sidechain chain) async {
   Logger log = GetIt.I.get<Logger>();
-  final conf = await findSidechainConf(chain);
+  final clientSettings = GetIt.I.get<ClientSettings>();
+  final network = RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
+
+  final conf = await findSidechainConf(chain, network);
 
   SidechainRPC? sidechain;
 

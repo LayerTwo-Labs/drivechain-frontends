@@ -4,9 +4,6 @@ import 'package:collection/collection.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
-import 'package:sidesail/storage/sail_settings/network_settings.dart';
 
 class Config {
   final String path;
@@ -30,24 +27,17 @@ class Config {
 // 2. Inspect cookie
 // 3. Defaults
 //
-Future<SingleNodeConnectionSettings> readRPCConfig(
+Future<NodeConnectionSettings> readRPCConfig(
   String datadir,
   String confFile,
-  Chain chain, {
+  Chain chain,
+  String network, {
   // if set, will force this network, irregardless of runtime argument
-  String? overrideNetwork,
   bool useCookieAuth = true,
 }) async {
   final log = GetIt.I.get<Logger>();
-  // network parameter is stored in here!
-  ClientSettings clientSettings = GetIt.I.get<ClientSettings>();
 
   final conf = File(filePath([datadir, confFile]));
-
-  // precedence goes like overrideNetwork > runtime args > saved network
-  var network =
-      overrideNetwork ?? RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
-
   // Mainnet == empty string, special datadirs only apply to non-mainnet
   final networkDir = filePath([datadir, network == 'mainnet' ? '' : network]);
 
@@ -60,7 +50,7 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
 
   if (!await conf.exists() && !await cookie.exists()) {
     log.d('missing both conf ($conf) and cookie ($cookie), returning default settings');
-    return SingleNodeConnectionSettings(
+    return NodeConnectionSettings(
       '',
       'localhost',
       chain.rpcPort,
@@ -105,7 +95,7 @@ Future<SingleNodeConnectionSettings> readRPCConfig(
 
 // Make sure to not include password here
   log.i('resolved conf: $username@$host:$port on $network');
-  return SingleNodeConnectionSettings(
+  return NodeConnectionSettings(
     conf.path,
     host,
     port,
@@ -121,7 +111,7 @@ String? _configValue(List<String> config, String key) {
 }
 
 List<String> bitcoinCoreBinaryArgs(
-  SingleNodeConnectionSettings conf,
+  NodeConnectionSettings conf,
 ) {
   return [
     conf.isLocalNetwork ? '-regtest' : '',

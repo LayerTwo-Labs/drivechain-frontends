@@ -5,7 +5,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/providers/balance_provider.dart';
-import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
@@ -196,7 +195,6 @@ class BottomNavViewModel extends BaseViewModel {
     return _mainRPC.initBinary(
       context,
       _mainRPC.chain,
-      bitcoinCoreBinaryArgs(_mainRPC.conf),
     );
   }
 
@@ -206,7 +204,6 @@ class BottomNavViewModel extends BaseViewModel {
     return _sideRPC.rpc.initBinary(
       context,
       _sideRPC.rpc.chain,
-      _sideRPC.rpc.binaryArgs(_mainRPC.conf),
     );
   }
 }
