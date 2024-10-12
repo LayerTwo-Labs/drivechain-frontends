@@ -1,6 +1,5 @@
 import 'package:http/http.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/json_rpc.dart' as jsonrpc;
 import 'package:web3dart/web3dart.dart';
@@ -109,7 +108,7 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   List<String> binaryArgs(
-    SingleNodeConnectionSettings mainchainConf,
+    NodeConnectionSettings mainchainConf,
   ) {
     return [
       '--http',
@@ -173,6 +172,11 @@ class EthereumRPCLive extends EthereumRPC {
   Future<String> getSideAddress() {
     // TODO: implement getSideAddress
     throw UnimplementedError();
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    return BlockchainInfo(initialBlockDownload: false, blockHeight: 68);
   }
 }
 

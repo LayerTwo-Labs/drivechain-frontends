@@ -1,7 +1,7 @@
-import 'package:bitwindow/api.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:bitwindow/servers/api.dart';
 
 class MockAPI implements API {
   @override
@@ -16,8 +16,12 @@ class MockAPI implements API {
 
 class MockWalletAPI implements WalletAPI {
   @override
-  Future<String> sendTransaction(String destination, int amountSatoshi,
-      [double? btcPerKvB, bool replaceByFee = false,]) async {
+  Future<String> sendTransaction(
+    String destination,
+    int amountSatoshi, [
+    double? btcPerKvB,
+    bool replaceByFee = false,
+  ]) async {
     return 'mock_txid';
   }
 

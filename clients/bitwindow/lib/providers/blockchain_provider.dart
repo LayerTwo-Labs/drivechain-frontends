@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:bitwindow/api.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/google/protobuf/timestamp.pb.dart';
+import 'package:bitwindow/servers/api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';

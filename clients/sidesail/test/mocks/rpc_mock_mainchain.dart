@@ -1,11 +1,9 @@
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
-import 'package:sidesail/rpc/models/blockchain_info.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 
 class MockMainchainRPC extends MainchainRPC {
-  MockMainchainRPC() : super(conf: SingleNodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', '', true));
+  MockMainchainRPC() : super(conf: NodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', '', true));
 
   @override
   Future<double> estimateFee() async {
@@ -103,5 +101,10 @@ class MockMainchainRPC extends MainchainRPC {
   @override
   Future<void> waitForIBD() async {
     return;
+  }
+
+  @override
+  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
+    return [];
   }
 }

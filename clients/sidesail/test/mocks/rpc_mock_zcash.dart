@@ -305,4 +305,9 @@ class MockZCashRPC extends ZCashRPC {
   Future<List<ShieldedUTXO>> listPrivateTransactions() async {
     return [];
   }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    return BlockchainInfo(initialBlockDownload: false, blockHeight: 67);
+  }
 }

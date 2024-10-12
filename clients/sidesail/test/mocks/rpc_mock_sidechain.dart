@@ -1,12 +1,11 @@
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
 class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
       : super(
-          conf: SingleNodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
+          conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
           chain: TestSidechain(),
         );
 
@@ -30,7 +29,7 @@ class MockSidechainRPC extends SidechainRPC {
 
   @override
   List<String> binaryArgs(
-    SingleNodeConnectionSettings mainchainConf,
+    NodeConnectionSettings mainchainConf,
   ) {
     return List.empty();
   }
@@ -68,5 +67,10 @@ class MockSidechainRPC extends SidechainRPC {
   @override
   Future<String> getSideAddress() async {
     return 'taddress';
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    return BlockchainInfo(initialBlockDownload: false, blockHeight: 70);
   }
 }

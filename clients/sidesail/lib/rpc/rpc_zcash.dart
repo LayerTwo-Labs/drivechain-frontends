@@ -8,9 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
-import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 const zcashFee = 0.0001;
@@ -82,7 +80,7 @@ abstract class ZCashRPC extends SidechainRPC {
   }) : super(chain: ZCashSidechain());
 
   @override
-  List<String> binaryArgs(SingleNodeConnectionSettings mainchainConf) {
+  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
     final args = bitcoinCoreBinaryArgs(
       conf,
     );
@@ -96,9 +94,12 @@ abstract class ZCashRPC extends SidechainRPC {
   @override
   Future<void> initBinary(
     BuildContext context,
-    Chain chain,
-    List<String> args,
-  ) async {
+    Chain chain, {
+    List<String>? arg,
+  }) async {
+    final args = binaryArgs(conf);
+    args.addAll(arg ?? []);
+
     try {
       final appDir = await getApplicationSupportDirectory();
       // first, figure out whether a folder exists
@@ -123,7 +124,7 @@ abstract class ZCashRPC extends SidechainRPC {
     }
 
     // after all assets are loaded properly, THEN init the zcash-binary
-    await super.initBinary(context, chain, args);
+    await super.initBinary(context, chain, arg: args);
   }
 
   /// There's no account in the wallet out of the box. Calling this
@@ -470,6 +471,12 @@ class ZcashRPCLive extends ZCashRPC {
   @override
   Future<void> stopNode() async {
     return await _client().call('stop');
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    final confirmedFut = await _client().call('getblockchaininfo');
+    return BlockchainInfo.fromMap(confirmedFut);
   }
 }
 

@@ -3,10 +3,7 @@ import 'dart:async';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
-import 'package:sidesail/rpc/models/blockchain_info.dart';
-import 'package:sidesail/rpc/rpc.dart';
 
 /// RPC connection to the mainchain node.
 abstract class MainchainRPC extends RPCConnection {
@@ -21,6 +18,7 @@ abstract class MainchainRPC extends RPCConnection {
   Future<List<MainchainWithdrawal>> listSpentWithdrawals();
   Future<List<MainchainWithdrawal>> listFailedWithdrawals();
   Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot);
+  @override
   Future<BlockchainInfo> getBlockchainInfo();
 
   Future<String> send(String address, double amount, bool subtractFeeFromAmount);
@@ -54,7 +52,7 @@ class MainchainRPCLive extends MainchainRPC {
   // hacky way to create an async class
   // https://stackoverflow.com/a/59304510
   MainchainRPCLive._create({required super.conf});
-  static Future<MainchainRPCLive> create(SingleNodeConnectionSettings conf) async {
+  static Future<MainchainRPCLive> create(NodeConnectionSettings conf) async {
     final container = MainchainRPCLive._create(conf: conf);
     await container.init();
     return container;
@@ -230,6 +228,19 @@ class MainchainRPCLive extends MainchainRPC {
   Future<BlockchainInfo> getBlockchainInfo() async {
     final confirmedFut = await _client().call('getblockchaininfo');
     return BlockchainInfo.fromMap(confirmedFut);
+  }
+
+  @override
+  List<String> binaryArgs(
+    NodeConnectionSettings mainchainConf,
+  ) {
+    final baseArgs = bitcoinCoreBinaryArgs(
+      conf,
+    );
+    final sidechainArgs = [
+      mainchainConf.confPath != '' ? '-conf=${mainchainConf.confPath}' : '',
+    ];
+    return [...baseArgs, ...sidechainArgs];
   }
 }
 

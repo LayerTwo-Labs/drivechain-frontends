@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:bitwindow/api.dart';
+import 'package:bitwindow/servers/api.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 

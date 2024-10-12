@@ -9,7 +9,6 @@ import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
-import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/storage/sail_settings/font_settings.dart';
@@ -64,7 +63,6 @@ Future<void> initMainchainBinary(
   await mainchain.initBinary(
     context,
     ParentChain(),
-    bitcoinCoreBinaryArgs(mainchain.conf),
   );
   await mainchain.waitForIBD();
 
@@ -121,7 +119,6 @@ Future<void> initSidechainBinary(
     // ignore: use_build_context_synchronously
     context,
     sidechain.rpc.chain,
-    sidechain.rpc.binaryArgs(mainchain.conf),
   );
 }
 

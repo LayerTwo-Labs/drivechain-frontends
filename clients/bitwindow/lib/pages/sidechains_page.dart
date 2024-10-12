@@ -1,13 +1,13 @@
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/api.dart';
 import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/send_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:bitwindow/widgets/qt_button.dart';
 import 'package:bitwindow/widgets/qt_container.dart';

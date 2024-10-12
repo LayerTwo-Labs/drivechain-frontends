@@ -7,10 +7,10 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_config.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/storage/sail_settings/font_settings.dart';
+import 'package:sidesail/storage/sail_settings/network_settings.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -31,7 +31,7 @@ class SettingsTabPage extends StatelessWidget {
           return SailColumn(
             spacing: SailStyleValues.padding50,
             children: [
-              NodeConnectionSettings(
+              TweakNodeConnectionSettings(
                 name: model.sidechain.rpc.chain.name,
                 chain: model.sidechain.rpc.chain,
                 connected: model.sidechain.rpc.connected,
@@ -41,7 +41,7 @@ class SettingsTabPage extends StatelessWidget {
                 readError: model.sidechain.rpc.conf.readError,
                 loading: model._sidechainBusy,
               ),
-              NodeConnectionSettings(
+              TweakNodeConnectionSettings(
                 name: 'Parent Chain',
                 chain: ParentChain(),
                 connected: model.mainRPC.connected,
@@ -136,17 +136,17 @@ class SettingsTabPage extends StatelessWidget {
   }
 }
 
-class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
+class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
   final Chain chain;
   final String name;
   final bool connected;
-  final SingleNodeConnectionSettings settings;
+  final NodeConnectionSettings settings;
   final VoidCallback testConnectionValues;
   final String? connectionError;
   final String? readError;
   final bool loading;
 
-  const NodeConnectionSettings({
+  const TweakNodeConnectionSettings({
     super.key,
     required this.name,
     required this.connected,
@@ -193,7 +193,7 @@ class NodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
           hintText: '/the/path/to/your/somethingchain.conf',
           suffixWidget: SailTextButton(
             label: 'Read file',
-            onPressed: () => settings.readAndSetValuesFromFile(chain),
+            onPressed: () => settings.readAndSetValuesFromFile(chain, viewModel.network),
           ),
         ),
         SailTextField(
@@ -252,12 +252,21 @@ class NodeConnectionViewModel extends BaseViewModel {
   bool _sidechainBusy = false;
   bool _mainchainBusy = false;
 
+  late String network;
+
+  Future<void> _initNetwork() async {
+    final clientSettings = GetIt.I.get<ClientSettings>();
+    network = RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
+  }
+
   NodeConnectionViewModel() {
     mainRPC.addListener(notifyListeners);
     mainRPC.conf.addListener(notifyListeners);
 
     sidechain.addListener(notifyListeners);
     sidechain.rpc.conf.addListener(notifyListeners);
+
+    _initNetwork();
   }
 
   Timer? _connectionTimer;
@@ -296,134 +305,6 @@ class NodeConnectionViewModel extends BaseViewModel {
     mainRPC.conf.removeListener(notifyListeners);
 
     super.dispose();
-  }
-}
-
-class SingleNodeConnectionSettings extends ChangeNotifier {
-  /// On local networks (i.e. regtest, simnet) we can mine blocks
-  /// on the mainchain and activate new sidechains. That's NOT
-  /// possible on global networks.
-  late final bool isLocalNetwork;
-
-  final configPathController = TextEditingController();
-  final hostController = TextEditingController();
-  final portController = TextEditingController();
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
-
-  String get host => hostController.text;
-  int get port => int.tryParse(portController.text) ?? 0;
-  String get username => usernameController.text;
-  String get password => passwordController.text;
-  final ssl = false;
-
-  String? readError;
-
-  late String fileConfigPath;
-  late String fileHost;
-  late int filePort;
-  late String fileUsername;
-  late String filePassword;
-  bool get inputDifferentThanFile =>
-      configPathController.text != fileConfigPath ||
-      hostController.text != fileHost ||
-      portController.text != filePort.toString() ||
-      usernameController.text != fileUsername ||
-      passwordController.text != filePassword;
-
-  SingleNodeConnectionSettings(
-    String path,
-    String host,
-    int port,
-    String username,
-    String password,
-    bool localNetwork,
-  ) {
-    _setFileValues(path, host, port, username, password);
-    isLocalNetwork = localNetwork;
-
-    configPathController.text = path;
-    hostController.text = host;
-    portController.text = port.toString();
-    usernameController.text = username;
-    passwordController.text = password;
-
-    configPathController.addListener(notifyListeners);
-    hostController.addListener(notifyListeners);
-    portController.addListener(notifyListeners);
-    usernameController.addListener(notifyListeners);
-    passwordController.addListener(notifyListeners);
-  }
-
-  void _setFileValues(String path, String host, int port, String username, String password) {
-    fileConfigPath = path;
-    fileHost = host;
-    filePort = port;
-    fileUsername = username;
-    filePassword = password;
-  }
-
-  void resetToFileValues() {
-    configPathController.text = fileConfigPath;
-    hostController.text = fileHost;
-    portController.text = filePort.toString();
-    usernameController.text = fileUsername;
-    passwordController.text = filePassword;
-
-    notifyListeners();
-  }
-
-  void readAndSetValuesFromFile(Chain chain) async {
-    try {
-      var parts = splitPath(configPathController.text);
-      String dataDir = parts.$1;
-      String confFile = parts.$2;
-      readError = null;
-
-      final config = await readRPCConfig(dataDir, confFile, chain);
-      configPathController.text = config.fileConfigPath;
-      hostController.text = config.host;
-      portController.text = config.port.toString();
-      usernameController.text = config.username;
-      passwordController.text = config.password;
-
-      _setFileValues(
-        config.fileConfigPath,
-        config.host,
-        config.port,
-        config.username,
-        config.password,
-      );
-    } catch (error) {
-      readError = error.toString();
-    }
-
-    notifyListeners();
-  }
-
-  (String, String) splitPath(String path) {
-    final sep = Platform.pathSeparator;
-    if (!path.contains(sep)) {
-      return ('', '');
-    }
-    String directory = path.substring(0, path.lastIndexOf(sep));
-    String fileName = path.split(sep).last;
-
-    return (directory, fileName);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    configPathController.removeListener(notifyListeners);
-    hostController.removeListener(notifyListeners);
-    portController.removeListener(notifyListeners);
-    usernameController.removeListener(notifyListeners);
-    passwordController.removeListener(notifyListeners);
-  }
-
-  static SingleNodeConnectionSettings empty() {
-    return SingleNodeConnectionSettings('', '', 0, '', '', false);
   }
 }
 
