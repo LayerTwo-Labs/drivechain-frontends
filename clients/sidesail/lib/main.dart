@@ -62,7 +62,7 @@ Future<void> initMainchainBinary(
 ) async {
   await mainchain.initBinary(
     context,
-    ParentChain(),
+    ParentChain().binary,
   );
   await mainchain.waitForIBD();
 
@@ -118,7 +118,7 @@ Future<void> initSidechainBinary(
   return sidechain.rpc.initBinary(
     // ignore: use_build_context_synchronously
     context,
-    sidechain.rpc.chain,
+    sidechain.rpc.chain.binary,
   );
 }
 

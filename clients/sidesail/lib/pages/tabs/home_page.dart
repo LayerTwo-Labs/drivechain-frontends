@@ -167,7 +167,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: _proccessProvider.runningProcesses.entries.map((entry) {
                 return DaemonConnectionCard(
-                  chain: entry.value.chain,
+                  chain: Chain.fromBinary(entry.value.binary)!,
                   initializing: true,
                   connected: false,
                   errorMessage: 'with pid ${entry.value.pid}',

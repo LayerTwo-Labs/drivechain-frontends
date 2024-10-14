@@ -14,6 +14,23 @@ abstract class Chain {
   }
 
   String get binary;
+
+  static Chain? fromBinary(String binary) {
+    switch (binary.toLowerCase()) {
+      case 'bitcoind':
+        return ParentChain();
+
+      case 'sidegeth':
+        return EthereumSidechain();
+
+      case 'testchaind':
+        return TestSidechain();
+
+      case 'zsided':
+        return ZCashSidechain();
+    }
+    return null;
+  }
 }
 
 abstract class Sidechain extends Chain {
