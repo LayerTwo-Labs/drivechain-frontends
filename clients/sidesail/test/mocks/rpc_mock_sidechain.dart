@@ -68,9 +68,4 @@ class MockSidechainRPC extends SidechainRPC {
   Future<String> getSideAddress() async {
     return 'taddress';
   }
-
-  @override
-  Future<BlockchainInfo> getBlockchainInfo() async {
-    return BlockchainInfo(initialBlockDownload: false, blockHeight: 70);
-  }
 }

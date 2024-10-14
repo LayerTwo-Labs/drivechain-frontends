@@ -14,25 +14,21 @@ LogPrinter _printer() {
   return LogfmtPrinter();
 }
 
-Future<LogOutput> _logoutput(bool fileLog, bool consoleLog, Directory? datadir) async {
+Future<LogOutput> _logoutput(bool fileLog, bool consoleLog, File? logFile) async {
   if (fileLog) {
     // force file log
-  } else if (!kReleaseMode || consoleLog || datadir == null) {
+  } else if (!kReleaseMode || consoleLog || logFile == null) {
     // NOT in release mode: print everything to console
     return ConsoleOutput();
   }
 
-  await datadir!.create(recursive: true);
-
-  // If we're in release, just write to file.
-  final path = [datadir.path, 'debug.log'].join(Platform.pathSeparator);
-  final logFile = File(path);
-  return FileOutput(file: logFile);
+  // If we're in release, write to file.
+  return FileOutput(file: logFile!);
 }
 
-Future<Logger> logger(bool fileLog, bool consoleLog, Directory? datadir) async => Logger(
+Future<Logger> logger(bool fileLog, bool consoleLog, File? logFile) async => Logger(
       level: Level.debug,
       filter: ProductionFilter(),
       printer: _printer(),
-      output: await _logoutput(fileLog, consoleLog, datadir),
+      output: await _logoutput(fileLog, consoleLog, logFile),
     );

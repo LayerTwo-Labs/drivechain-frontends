@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
@@ -331,8 +331,8 @@ class ThemeSettingsViewModel extends BaseViewModel {
     theme = (await _clientSettings.getValue(ThemeSetting())).value;
     font = (await _clientSettings.getValue(FontSetting())).value;
     fontOnLoad = font;
-    final datadir = await RuntimeArgs.datadir().then((dir) => dir.path);
-    logdir = '$datadir${Platform.pathSeparator}debug.log';
+    final logFile = await getLogFile();
+    logdir = logFile.path;
     notifyListeners();
   }
 
