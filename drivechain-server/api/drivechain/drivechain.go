@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/cusf/mainchain/v1/mainchainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ rpc.DrivechainServiceHandler = new(Server)
@@ -40,9 +41,9 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 	}
 
 	return connect.NewResponse(&pb.ListSidechainProposalsResponse{
-		Proposals: lo.Map(sidechainProposals.Msg.SidechainProposals, func(proposal *validatorpb.SidechainProposal, _ int) *pb.SidechainProposal {
+		Proposals: lo.Map(sidechainProposals.Msg.SidechainProposals, func(proposal *validatorpb.GetSidechainProposalsResponse_SidechainProposal, _ int) *pb.SidechainProposal {
 			// TODO: I have no idea what the data hash looks like yet, needs to test this with real data
-			dataHash, err := chainhash.NewHash(proposal.DataHash)
+			dataHash, err := chainhash.NewHash([]byte(proposal.DataHash.Hex.Value))
 			if err != nil {
 				dataHash, _ = chainhash.NewHashFromStr("deadbeef")
 				zerolog.Ctx(ctx).Error().Err(err).Msg("could not create hash")
@@ -50,7 +51,7 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 
 			return &pb.SidechainProposal{
 				Slot:           proposal.SidechainNumber,
-				Data:           proposal.Data,
+				Data:           proposal.Data.Value,
 				DataHash:       dataHash.String(),
 				VoteCount:      proposal.VoteCount,
 				ProposalHeight: proposal.ProposalHeight,
@@ -71,7 +72,7 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Msg.Sidechains))
 	for _, sidechain := range sidechains.Msg.Sidechains {
 		ctipResponse, err := s.enforcer.GetCtip(ctx, connect.NewRequest(
-			&validatorpb.GetCtipRequest{SidechainNumber: sidechain.SidechainNumber},
+			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber)},
 		))
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Uint32("sidechain", sidechain.SidechainNumber).Msg("failed to get ctip")
@@ -79,13 +80,13 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		}
 
 		// Decode the txid using chainhash.NewHashFromStr
-		txidHash, err := chainhash.NewHashFromStr(string(ctipResponse.Msg.Ctip.Txid))
+		txidHash, err := chainhash.NewHashFromStr(string(ctipResponse.Msg.Ctip.Txid.String()))
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to decode txid")
 			continue
 		}
 
-		decodedData := string(sidechain.Data)
+		decodedData := string(sidechain.Data.Value)
 		sidechainList = append(sidechainList, &pb.ListSidechainsResponse_Sidechain{
 			Title:         decodedData, // TODO: Decode and fill in correctly
 			Description:   decodedData, // TODO: Decode and fill in correctly

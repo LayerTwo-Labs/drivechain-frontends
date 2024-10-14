@@ -82,7 +82,6 @@ jobs:
         with:
           toolchain: stable
 
-
       - name: Create assets/bin directory
         run: |
           mkdir -p ${{ matrix.client }}/assets/bin

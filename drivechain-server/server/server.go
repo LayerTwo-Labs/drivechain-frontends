@@ -18,8 +18,8 @@ import (
 	api_wallet "github.com/LayerTwo-Labs/sidesail/drivechain-server/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/bitcoind/v1/bitcoindv1connect"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/drivechain/v1/drivechainv1connect"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/wallet/v1/walletv1connect"
 	"github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
@@ -147,8 +147,11 @@ func (s *Server) Shutdown(ctx context.Context) {
 	}
 
 	if atomic.LoadInt64(&forced) == 0 {
+		log.Info().Msg("server: successful graceful stop")
 		log.Print("server: successful graceful stop")
 	}
+
+	log.Info().Msg("server: failed graceful stop")
 
 	atomic.AddInt64(&stopped, 1)
 }
