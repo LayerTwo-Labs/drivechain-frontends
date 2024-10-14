@@ -961,18 +961,18 @@ packages:
     dependency: "direct main"
     description:
       name: super_clipboard
-      sha256: bfbfc602becb256c675c37332a0c5083a870f20806092938a247c36b3d6ecb88
+      sha256: "4a6ae6dfaa282ec1f2bff750976f535517ed8ca842d5deae13985eb11c00ac1f"
       url: "https://pub.dev"
     source: hosted
-    version: "0.8.23"
+    version: "0.8.24"
   super_native_extensions:
     dependency: transitive
     description:
       name: super_native_extensions
-      sha256: "8fe12946dbee374937eacb8aea2658369e66306708319675fda641f7f13874ac"
+      sha256: a433bba8186cd6b707560c42535bf284804665231c00bca86faf1aa4968b7637
       url: "https://pub.dev"
     source: hosted
-    version: "0.8.23"
+    version: "0.8.24"
   term_glyph:
     dependency: transitive
     description:
