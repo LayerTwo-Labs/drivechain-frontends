@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:meta/meta.dart';
+import 'package:path_provider/path_provider.dart';
 
 @immutable
 class Variable<T> {
@@ -11,13 +14,26 @@ class Variable<T> {
 class Environment {
   // Define the environment variables here
   static const drivechainHost = Variable(
-    'DRIVECHAIN_HOST',
-    String.fromEnvironment('DRIVECHAIN_HOST', defaultValue: 'localhost'),
+    'BITWINDOW_HOST',
+    String.fromEnvironment('BITWINDOW_HOST', defaultValue: 'localhost'),
   );
   static const drivechainPort = Variable(
-    'DRIVECHAIN_PORT',
-    int.fromEnvironment('DRIVECHAIN_PORT', defaultValue: 8080),
+    'BITWINDOW_PORT',
+    int.fromEnvironment('BITWINDOW_PORT', defaultValue: 8080),
   );
+
+  static Future<Directory> datadir() async {
+    final fromEnv = Platform.environment['BITWINDOW_DATADIR'] ?? const String.fromEnvironment('SIDESAIL_DATADIR');
+    if (fromEnv.isNotEmpty) {
+      final dir = Directory(fromEnv);
+      return dir;
+    }
+
+    return await getApplicationSupportDirectory();
+  }
+
+  static bool consoleLog = Platform.environment['BITWINDOW_LOG_CONSOLE']?.isNotEmpty ?? false;
+  static bool fileLog = Platform.environment['BITWINDOW_LOG_FILE']?.isNotEmpty ?? false;
 
   const Environment._();
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
@@ -21,9 +22,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Environment.validateAtRuntime();
 
-  final log = Logger();
+  final logFile = await getLogFile();
+  final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
   final router = AppRouter();
-  await initDependencies(log);
+  await initDependencies(log, logFile);
 
   MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
 
@@ -86,7 +88,7 @@ void main() async {
   );
 }
 
-Future<void> initDependencies(Logger log) async {
+Future<void> initDependencies(Logger log, File logFile) async {
   final prefs = await SharedPreferences.getInstance();
 
   // Register the logger
@@ -119,6 +121,7 @@ Future<void> initDependencies(Logger log) async {
       host: env(Environment.drivechainHost),
       port: env(Environment.drivechainPort),
       conf: mainchainConf,
+      logFile: logFile,
     ),
   );
 
@@ -215,4 +218,14 @@ void ignoreOverflowErrors(
   } else {
     FlutterError.dumpErrorToConsole(details, forceReport: forceReport);
   }
+}
+
+Future<File> getLogFile() async {
+  final datadir = await Environment.datadir();
+  await datadir.create(recursive: true);
+
+  final path = [datadir.path, 'debug.log'].join(Platform.pathSeparator);
+  final logFile = File(path);
+
+  return logFile;
 }

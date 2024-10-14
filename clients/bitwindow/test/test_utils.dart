@@ -51,7 +51,7 @@ Future<void> registerTestDependencies() async {
 
   if (!GetIt.I.isRegistered<API>()) {
     GetIt.I.registerLazySingleton<API>(
-      () => MockAPI(),
+      () => MockAPI(conf: NodeConnectionSettings.empty()),
     );
   }
 

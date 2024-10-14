@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bitwindow/exceptions.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
@@ -59,9 +61,12 @@ class APILive extends API {
   late final BitcoindAPI _bitcoind;
   late final DrivechainAPI _drivechain;
 
+  final File logFile;
+
   APILive({
     required String host,
     required int port,
+    required this.logFile,
     required super.conf,
   }) {
     final channel = ClientChannel(
@@ -95,7 +100,7 @@ class APILive extends API {
       '--electrum.no-ssl',
       '--bitcoincore.rpcuser=${mainchainConf.username}',
       '--bitcoincore.rpcpassword=${mainchainConf.password}',
-      '--log.path=/Users/bo/code/drivechain-frontends/drivechain-server.log',
+      '--log.path=${logFile.path}',
     ];
   }
 
