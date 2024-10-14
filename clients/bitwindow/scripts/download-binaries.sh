@@ -126,11 +126,10 @@ just build-bdk-cli
 echo "Building drivechain-server"
 just build-go
 
-# Move the built binaries to the assets directory
-mv bin/bdk-cli $assets_dir/
+# Move the necessary binaries to the assets directory
 mv bin/drivechain-server $assets_dir/
 
-echo "bdk-cli and drivechain-server have been built and moved to $assets_dir"
+echo "drivechain-server with embedded bdk-cli have been built and moved to $assets_dir"
 
 echo Going back to $old_cwd
 cd $old_cwd
