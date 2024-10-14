@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/validator/v1/validatorv1connect"
+	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/cusf/mainchain/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
@@ -32,12 +32,12 @@ func Enforcer(ctx context.Context, url string) (rpc.ValidatorServiceClient, erro
 		connect.WithGRPC(),
 	)
 
-	tip, err := client.GetMainChainTip(ctx, connect.NewRequest(&pb.GetMainChainTipRequest{}))
+	tip, err := client.GetChainTip(ctx, connect.NewRequest(&pb.GetChainTipRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("get mainchain tip: %w", err)
 	}
 
-	blockHash, err := chainhash.NewHash(tip.Msg.BlockHash)
+	blockHash, err := chainhash.NewHash([]byte(tip.Msg.BlockHeaderInfo.BlockHash.Hex.Value))
 	if err != nil {
 		return nil, fmt.Errorf("parse blockhash: %w", err)
 	}

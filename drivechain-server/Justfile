@@ -18,7 +18,7 @@ gen-server:
     buf generate
 
 gen-enforcer:
-    buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/bip300301_enforcer.git
+    buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 
 build-bdk-cli:
     #!/usr/bin/env bash
