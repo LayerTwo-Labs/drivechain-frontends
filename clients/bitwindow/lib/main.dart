@@ -7,6 +7,7 @@ import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/servers/api.dart';
+import 'package:bitwindow/servers/enforcer_rpc.dart';
 import 'package:bitwindow/servers/mainchain_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -58,10 +59,26 @@ void main() async {
         );
       },
       initMethod: (context) async {
-        await initMainchainBinary(context, log, mainchain);
-        log.i(
-          'mainchain init: ibd complete, ready to start enforcer',
-        );
+        try {
+          await initMainchainBinary(context, log, mainchain);
+          log.i(
+            'mainchain inited: ibd complete, ready to start enforcer',
+          );
+
+          if (!context.mounted) return;
+          await initEnforcer(context, log);
+          log.i(
+            'enforcer inited: ready to start server',
+          );
+
+          if (!context.mounted) return;
+          await initServer(context, log);
+          log.i(
+            'server inited: ready to serve frontend',
+          );
+        } catch (e) {
+          log.e('could not init necessary binaries: $e');
+        }
       },
       accentColor: const Color.fromARGB(255, 255, 153, 0),
       log: log,
@@ -85,11 +102,29 @@ Future<void> initDependencies(Logger log) async {
     ),
   );
 
+  GetIt.I.registerLazySingleton<ProcessProvider>(
+    () => ProcessProvider(),
+  );
+
+  NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
+  try {
+    final network = 'signet';
+    mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'bitcoin.conf', ParentChain(), network);
+  } catch (error) {
+    // do nothing
+  }
+
   GetIt.I.registerLazySingleton<API>(
     () => APILive(
       host: env(Environment.drivechainHost),
       port: env(Environment.drivechainPort),
+      conf: mainchainConf,
     ),
+  );
+
+  final enforcer = EnforcerRPC(conf: mainchainConf);
+  GetIt.I.registerLazySingleton<EnforcerRPC>(
+    () => enforcer,
   );
 
   final balanceProvider = BalanceProvider();
@@ -116,13 +151,6 @@ Future<void> initDependencies(Logger log) async {
   );
   unawaited(sidechainProvider.fetch());
 
-  NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
-  try {
-    final network = 'signet';
-    mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'bitcoin.conf', ParentChain(), network);
-  } catch (error) {
-    // do nothing
-  }
   final mainchainRPC = await MainchainRPCLive.create(mainchainConf);
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
@@ -136,11 +164,35 @@ Future<void> initMainchainBinary(
 ) async {
   await mainchain.initBinary(
     context,
-    ParentChain(),
+    ParentChain().binary,
   );
   await mainchain.waitForIBD();
 
-  log.i('mainchain init: successfully started node');
+  log.i('mainchain init: successfully started node blocks=${mainchain.blockCount}');
+}
+
+Future<void> initEnforcer(
+  BuildContext context,
+  Logger log,
+) async {
+  final enforcer = GetIt.I.get<EnforcerRPC>();
+  final binary = 'bip300301-enforcer';
+
+  await enforcer.initBinary(context, binary);
+
+  log.i('mainchain init: successfully started enforcer');
+}
+
+Future<void> initServer(
+  BuildContext context,
+  Logger log,
+) async {
+  final server = GetIt.I.get<API>();
+  final binary = 'drivechain-server';
+
+  await server.initBinary(context, binary);
+
+  log.i('server init: successfully started');
 }
 
 void ignoreOverflowErrors(

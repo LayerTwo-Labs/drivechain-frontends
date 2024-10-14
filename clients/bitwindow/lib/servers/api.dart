@@ -8,9 +8,13 @@ import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/classes/node_connection_settings.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
 
 /// API to the drivechain server.
-abstract class API {
+abstract class API extends RPCConnection {
+  API({required super.conf});
+
   WalletAPI get wallet;
   BitcoindAPI get bitcoind;
   DrivechainAPI get drivechain;
@@ -47,7 +51,6 @@ abstract class DrivechainAPI {
 }
 
 class APILive extends API {
-  Logger get log => GetIt.I.get<Logger>();
   late final DrivechainServiceClient _client;
   late final BitcoindServiceClient _bitcoindClient;
   late final WalletServiceClient _walletClient;
@@ -59,6 +62,7 @@ class APILive extends API {
   APILive({
     required String host,
     required int port,
+    required super.conf,
   }) {
     final channel = ClientChannel(
       host,
@@ -83,6 +87,27 @@ class APILive extends API {
   BitcoindAPI get bitcoind => _bitcoind;
   @override
   DrivechainAPI get drivechain => _drivechain;
+
+  @override
+  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
+    return [
+      '--electrum.host=drivechain.live:50001',
+      '--electrum.no-ssl',
+      '--bitcoincore.rpcuser=${mainchainConf.username}',
+      '--bitcoincore.rpcpassword=${mainchainConf.password}',
+      '--log.path=/Users/bo/code/drivechain-frontends/drivechain-server.log',
+    ];
+  }
+
+  @override
+  Future<int> ping() async {
+    return _bitcoind.getBlockchainInfo().then((value) => value.blocks);
+  }
+
+  @override
+  Future<void> stop() async {
+    // TODO: not implemented
+  }
 }
 
 class _WalletAPILive implements WalletAPI {
@@ -212,14 +237,10 @@ class _BitcoindAPILive implements BitcoindAPI {
 
   @override
   Future<GetBlockchainInfoResponse> getBlockchainInfo() async {
-    try {
-      final response = await _client.getBlockchainInfo(Empty());
-      return response;
-    } catch (e) {
-      final error = 'could not get blockchain info: ${extractGRPCError(e)}';
-      log.e(error);
-      throw BitcoindException(error);
-    }
+    // This should not try catched because callers elsewhere expect
+    // it to throw if the connection is not live.
+    final response = await _client.getBlockchainInfo(Empty());
+    return response;
   }
 
   @override

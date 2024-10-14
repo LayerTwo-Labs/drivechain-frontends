@@ -106,15 +106,13 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Future<void> initBinary(
     BuildContext context,
-    Chain chain, {
+    String binary, {
     List<String>? arg,
   }) async {
     final args = binaryArgs(conf);
     args.addAll(arg ?? []);
 
     final processes = GetIt.I.get<ProcessProvider>();
-
-    final binary = chain.binary;
 
     initializingBinary = true;
     notifyListeners();
@@ -144,8 +142,7 @@ abstract class RPCConnection extends ChangeNotifier {
         context,
         binary,
         args,
-        stopNode,
-        chain,
+        stop,
       );
       log.d('init binaries: started $binary with PID $pid');
     } catch (err) {

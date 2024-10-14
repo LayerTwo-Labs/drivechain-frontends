@@ -23,6 +23,10 @@ class BalanceProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
+    if (!api.connected) {
+      return;
+    }
+
     try {
       if (_isFetching) {
         return;

@@ -87,6 +87,7 @@ class MainchainRPCLive extends MainchainRPC {
     );
     final sidechainArgs = [
       '-conf=${mainchainConf.confPath}',
+      '-zmqpubsequence=tcp://0.0.0.0:29000',
     ];
     return [...baseArgs, ...sidechainArgs];
   }

@@ -31,6 +31,10 @@ class BlockchainProvider extends ChangeNotifier {
 
   // call this function from anywhere to refetch blockchain info
   Future<void> fetch() async {
+    if (!api.connected) {
+      return;
+    }
+
     if (_isFetching) {
       return;
     }
