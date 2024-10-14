@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -20,8 +23,8 @@ import 'package:sidesail/storage/sail_settings/network_settings.dart';
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
 Future<void> initDependencies(Sidechain chain) async {
-  final datadir = await RuntimeArgs.datadir();
-  final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, datadir);
+  final logFile = await getLogFile();
+  final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
   GetIt.I.registerLazySingleton<Logger>(() => log);
   final prefs = await SharedPreferences.getInstance();
   final clientSettings = ClientSettings(
@@ -141,4 +144,18 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
   }
 
   return sidechain!;
+}
+
+Future<File> getLogFile() async {
+  final datadir = await RuntimeArgs.datadir();
+  try {
+    await datadir.create(recursive: true);
+  } catch (error) {
+    debugPrint('Failed to create datadir: $error');
+  }
+
+  final path = [datadir.path, 'debug.log'].join(Platform.pathSeparator);
+  final logFile = File(path);
+
+  return logFile;
 }
