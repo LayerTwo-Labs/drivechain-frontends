@@ -53,7 +53,7 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
-	cleanup, err := initFileLogger(ctx, conf)
+	cleanup, err := initFileLogger(conf)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("init logger")
 		return err
@@ -142,7 +142,7 @@ func realMain(ctx context.Context) error {
 	return <-errs
 }
 
-func initFileLogger(ctx context.Context, conf Config) (func(), error) {
+func initFileLogger(conf Config) (func(), error) {
 	if conf.LogPath == "" {
 		return func() {}, nil
 	}
