@@ -18,7 +18,6 @@ abstract class MainchainRPC extends RPCConnection {
   Future<List<MainchainWithdrawal>> listSpentWithdrawals();
   Future<List<MainchainWithdrawal>> listFailedWithdrawals();
   Future<List<MainchainWithdrawalStatus>> listWithdrawalStatus(int slot);
-  @override
   Future<BlockchainInfo> getBlockchainInfo();
 
   Future<String> send(String address, double amount, bool subtractFeeFromAmount);

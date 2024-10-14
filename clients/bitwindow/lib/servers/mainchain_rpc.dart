@@ -103,7 +103,6 @@ class MainchainRPCLive extends MainchainRPC {
     return blockHeight;
   }
 
-  @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final confirmedFut = await _client().call('getblockchaininfo');
     return BlockchainInfo.fromMap(confirmedFut);
