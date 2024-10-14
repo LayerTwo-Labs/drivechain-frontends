@@ -17,6 +17,7 @@ import (
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
 
@@ -52,15 +53,26 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
+	cleanup, err := initFileLogger(ctx, conf)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("init logger")
+		return err
+	}
+	defer cleanup()
+
+	// Now that the logger is initialized, we can use zerolog.Ctx(ctx) safely
+	log := zerolog.Ctx(ctx)
+	log.Info().Msg("logger initialized successfully")
+
 	proxy, err := startCoreProxy(ctx, conf)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("start core proxy")
+		log.Error().Err(err).Msg("start core proxy")
 		return err
 	}
 
 	info, err := proxy.GetBlockchainInfo(ctx, connect.NewRequest(&pb.GetBlockchainInfoRequest{}))
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("get blockchain info")
+		log.Error().Err(err).Msg("get blockchain info")
 		return err
 	}
 
@@ -69,7 +81,7 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("connect to enforcer: %w", err)
 	}
 
-	zerolog.Ctx(ctx).Info().Msgf("blockchain info: %s", info.Msg.String())
+	log.Info().Msgf("blockchain info: %s", info.Msg.String())
 
 	electrumProtocol := "ssl"
 	if conf.ElectrumNoSSL {
@@ -92,7 +104,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if conf.DescriptorPrint {
-		zerolog.Ctx(ctx).Info().
+		log.Info().
 			Str("descriptor", wallet.Descriptor).
 			Msg("bdk: descriptor is")
 	}
@@ -102,7 +114,7 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("initial wallet sync: %w", err)
 	}
 
-	zerolog.Ctx(ctx).Debug().
+	log.Debug().
 		Msgf("initiating electrum connection at %s", wallet.Electrum)
 
 	srv, err := server.New(ctx, proxy, wallet, enforcer)
@@ -110,7 +122,7 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
-	zerolog.Ctx(ctx).Info().Msgf("server: listening on %s", conf.APIHost)
+	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
 	errs := make(chan error)
 	go func() {
@@ -128,6 +140,35 @@ func realMain(ctx context.Context) error {
 	}()
 
 	return <-errs
+}
+
+func initFileLogger(ctx context.Context, conf Config) (func(), error) {
+	if conf.LogPath == "" {
+		return func() {}, nil
+	}
+
+	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open log file: %w", err)
+	}
+
+	multiWriter := zerolog.MultiLevelWriter(
+		zerolog.NewConsoleWriter(),
+		logFile,
+	)
+
+	logger := zerolog.New(multiWriter).
+		With().
+		Timestamp().
+		Logger().
+		Level(zerolog.TraceLevel)
+	zerolog.DefaultContextLogger = &logger
+
+	return func() {
+		if err := logFile.Close(); err != nil {
+			log.Error().Err(err).Msg("failed to close log file")
+		}
+	}, nil
 }
 
 func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, error) {

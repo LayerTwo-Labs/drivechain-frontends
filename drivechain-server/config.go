@@ -27,6 +27,8 @@ type Config struct {
 	DescriptorPrint bool   `long:"descriptor.print" description:"Print the descriptor that bdk-cli creates. Useful for testing'"`
 
 	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:8080"`
+
+	LogPath string `long:"log.path" description:"Path to write logs to"`
 }
 
 func readConfig() (Config, error) {
