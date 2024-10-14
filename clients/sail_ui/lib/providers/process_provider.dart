@@ -10,12 +10,10 @@ import 'package:sail_ui/config/chains.dart';
 
 class SailProcess {
   final int pid;
-  final Chain chain;
   Future<void> Function() cleanup;
 
   SailProcess({
     required this.pid,
-    required this.chain,
     required this.cleanup,
   });
 }
@@ -53,7 +51,6 @@ class ProcessProvider extends ChangeNotifier {
     String binary,
     List<String> args,
     Future<void> Function() cleanup,
-    Chain chain,
   ) async {
     if (Platform.isWindows) {
       binary = '$binary.exe';
@@ -110,7 +107,6 @@ class ProcessProvider extends ChangeNotifier {
     runningProcesses[process.pid] = SailProcess(
       pid: process.pid,
       cleanup: cleanup,
-      chain: chain,
     );
 
     // Let output streaming chug in the background
@@ -136,8 +132,11 @@ class ProcessProvider extends ChangeNotifier {
 
         final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
         _stderrStreams[process.pid] = Stream.fromIterable(errLogs);
-
-        log.log(level, '"$binary" exited with code $code: ${errLogs.last}');
+        if (errLogs.isNotEmpty) {
+          log.log(level, '"$binary" exited with code $code: ${errLogs.last}');
+        } else {
+          log.log(level, '"$binary" exited with code $code');
+        }
 
         // Resolve the process exit future
         processExited.complete(true);
@@ -145,7 +144,7 @@ class ProcessProvider extends ChangeNotifier {
         // Forward to listeners that the process finished.
         _exitTuples[process.pid] = ExitTuple(
           code: code,
-          message: errLogs.last,
+          message: errLogs.isNotEmpty ? errLogs.last : 'no error message',
         );
         runningProcesses.remove(process.pid);
         notifyListeners();
