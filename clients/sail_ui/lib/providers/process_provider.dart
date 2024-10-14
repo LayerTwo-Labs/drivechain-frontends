@@ -9,10 +9,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/chains.dart';
 
 class SailProcess {
+  final String binary;
   final int pid;
   Future<void> Function() cleanup;
 
   SailProcess({
+    required this.binary,
     required this.pid,
     required this.cleanup,
   });
@@ -105,6 +107,7 @@ class ProcessProvider extends ChangeNotifier {
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
     );
     runningProcesses[process.pid] = SailProcess(
+      binary: binary,
       pid: process.pid,
       cleanup: cleanup,
     );
