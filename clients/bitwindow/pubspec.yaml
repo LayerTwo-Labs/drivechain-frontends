@@ -34,7 +34,7 @@ dependencies:
   protobuf: ^3.1.0
   dotted_border: ^2.1.0
   money2: ^5.3.0
-  super_clipboard: ^0.8.23
+  super_clipboard: ^0.8.24
   window_manager: ^0.4.2
 dev_dependencies:
   flutter_test:
