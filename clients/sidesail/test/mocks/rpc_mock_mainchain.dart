@@ -64,12 +64,12 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
-  Future<void> stopNode() async {
+  Future<void> stop() async {
     return;
   }
 
   @override
-  Future<int> getBlockCount() async {
+  Future<int> ping() async {
     return 69;
   }
 

@@ -25,14 +25,12 @@ abstract class RPCConnection extends ChangeNotifier {
     NodeConnectionSettings mainchainConf,
   );
 
-  // attempt to stop the node gracefully
-  Future<void> stopNode();
+  // attempt to stop the binary gracefully
+  Future<void> stop();
 
-  // gets the current block height for this node
-  // also used to test the connection
-  Future<int> getBlockCount();
-
-  Future<BlockchainInfo> getBlockchainInfo();
+  // used to ping the node to check if the connection is live
+  // for bitcoin core based binaries, returns the block height
+  Future<int> ping();
 
   bool initializingBinary = false;
   bool _isTesting = false;
@@ -44,7 +42,7 @@ abstract class RPCConnection extends ChangeNotifier {
       }
       _isTesting = true;
 
-      final newBlockCount = await getBlockCount();
+      final newBlockCount = await ping();
       connectionError = null;
       connected = true;
 

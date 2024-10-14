@@ -50,7 +50,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<int> getBlockCount() async {
+  Future<int> ping() async {
     return 69;
   }
 
@@ -60,7 +60,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<void> stopNode() async {
+  Future<void> stop() async {
     return;
   }
 

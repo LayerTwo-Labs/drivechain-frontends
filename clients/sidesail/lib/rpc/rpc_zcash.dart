@@ -404,7 +404,7 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<int> getBlockCount() async {
+  Future<int> ping() async {
     // the network keeps gettin fooked in regtest, adding the remote node
     // as a bad peer. We don't want that, so we try to clear banned every time
     // the block count is refetched
@@ -469,7 +469,7 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<void> stopNode() async {
+  Future<void> stop() async {
     return await _client().call('stop');
   }
 
