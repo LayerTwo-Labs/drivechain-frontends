@@ -2,8 +2,9 @@ import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:bitwindow/servers/api.dart';
+import 'package:sail_ui/classes/node_connection_settings.dart';
 
-class MockAPI implements API {
+class MockAPI extends API {
   @override
   late final WalletAPI wallet = MockWalletAPI();
 
@@ -12,6 +13,23 @@ class MockAPI implements API {
 
   @override
   late final DrivechainAPI drivechain = MockDrivechainAPI();
+
+  MockAPI({required super.conf});
+
+  @override
+  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
+    return [];
+  }
+
+  @override
+  Future<int> ping() async {
+    return 1;
+  }
+
+  @override
+  Future<void> stop() async {
+    return;
+  }
 }
 
 class MockWalletAPI implements WalletAPI {
