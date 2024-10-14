@@ -125,12 +125,10 @@ class ReceivePageViewModel extends BaseViewModel {
     try {
       final address = await api.wallet.getNewAddress();
       addressController.text = address;
-      setBusy(false);
-      notifyListeners();
     } catch (e) {
       setError(e.toString());
+    } finally {
       setBusy(false);
-      notifyListeners();
     }
   }
 }
