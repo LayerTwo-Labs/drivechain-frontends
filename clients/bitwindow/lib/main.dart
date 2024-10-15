@@ -183,8 +183,9 @@ Future<void> initEnforcer(
   Logger log,
 ) async {
   final enforcer = GetIt.I.get<EnforcerRPC>();
-  final binary = 'bip300301-enforcer';
 
+  // TODO: Find a way to ping the enforcer
+  final binary = 'bip300301-enforcer';
   await enforcer.initBinary(context, binary);
 
   log.i('mainchain init: successfully started enforcer');
