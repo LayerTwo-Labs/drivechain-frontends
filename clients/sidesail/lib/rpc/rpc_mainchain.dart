@@ -230,9 +230,9 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
-  List<String> binaryArgs(
+  Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
-  ) {
+  ) async {
     final baseArgs = bitcoinCoreBinaryArgs(
       conf,
     );

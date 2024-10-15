@@ -94,7 +94,7 @@ class APILive extends API {
   DrivechainAPI get drivechain => _drivechain;
 
   @override
-  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
+  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     return [
       '--electrum.host=drivechain.live:50001',
       '--electrum.no-ssl',

@@ -51,7 +51,7 @@ Future<NodeConnectionSettings> readRPCConfig(
   if (!await conf.exists() && !await cookie.exists()) {
     log.d('missing both conf ($conf) and cookie ($cookie), returning default settings');
     return NodeConnectionSettings(
-      '',
+      conf.path,
       'localhost',
       chain.rpcPort,
       'user',

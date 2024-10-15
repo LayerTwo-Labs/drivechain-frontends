@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
@@ -24,6 +25,7 @@ class MainchainRPCLive extends MainchainRPC {
       username: conf.username,
       password: conf.password,
       useSSL: false,
+      debug: true,
     );
 
     // Completely empty client, with no retry logic.
@@ -48,14 +50,20 @@ class MainchainRPCLive extends MainchainRPC {
   void pollIBDStatus() async {
     // start off with the assumption that the parent chain is in IBD
     inIBD = true;
-
     log.i('mainchain init: waiting for initial block download to finish');
+    DateTime lastLogTime = DateTime.now();
     while (inIBD) {
       try {
         final info = await getBlockchainInfo();
         // if block height is 0, the node might have not synced headers yet, and believe
         // height 1 is the current best height
         inIBD = info.initialBlockDownload || info.blockHeight <= 1;
+
+        // Log height every 10 seconds
+        if (DateTime.now().difference(lastLogTime).inSeconds >= 10) {
+          log.i('Current block height: ${info.blockHeight}');
+          lastLogTime = DateTime.now();
+        }
       } catch (error) {
         // probably just cant connect, and is in bootup-phase, which is okay
       } finally {
@@ -73,22 +81,55 @@ class MainchainRPCLive extends MainchainRPC {
 
   @override
   Future<void> waitForIBD() async {
+    int lastLoggedThousand = 0;
     while (inIBD) {
-      await Future.delayed(const Duration(seconds: 1));
+      try {
+        final info = await getBlockchainInfo();
+        int currentThousand = (info.blockHeight / 1000).floor();
+        if (currentThousand > lastLoggedThousand) {
+          log.w('Synced ${info.blockHeight} blocks');
+          lastLoggedThousand = currentThousand;
+        }
+      } finally {
+        await Future.delayed(const Duration(seconds: 1));
+      }
     }
   }
 
   @override
-  List<String> binaryArgs(
+  Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
-  ) {
+  ) async {
     final baseArgs = bitcoinCoreBinaryArgs(
       conf,
     );
+    var parts = conf.splitPath(conf.confPath);
+    final dataDir = parts.$1;
+    // Ensure the directory exists
+    Directory(dataDir).createSync(recursive: true);
+
     final sidechainArgs = [
-      '-conf=${mainchainConf.confPath}',
+      '-datadir=$dataDir',
       '-zmqpubsequence=tcp://0.0.0.0:29000',
+      '-signet',
+      '-server',
+      '-addnode=drivechain.live:8383',
+      '-signetblocktime=60',
+      '-signetchallenge=00141f61d57873d70d28bd28b3c9f9d6bf818b5a0d6a',
+      '-listen',
+      '-rpcbind=0.0.0.0',
+      '-rpcallowip=0.0.0.0/0',
+      '-debug=rpc',
+      '-debug=net',
+      '-txindex',
+      '-fallbackfee=0.00021',
     ];
+
+    // Check if the data directory exists before starting the node
+    if (!await Directory(dataDir).exists()) {
+      log.e('Data directory "$dataDir" does not exist. Please create it manually.');
+    }
+
     return [...baseArgs, ...sidechainArgs];
   }
 

@@ -107,9 +107,9 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  List<String> binaryArgs(
+  Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
-  ) {
+  ) async {
     return [
       '--http',
       '--http.api=eth,web3,personal,admin,miner,net,txpool',
