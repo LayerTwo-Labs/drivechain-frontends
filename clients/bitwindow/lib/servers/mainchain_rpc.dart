@@ -110,7 +110,6 @@ class MainchainRPCLive extends MainchainRPC {
 
     final sidechainArgs = [
       '-datadir=$dataDir',
-      '-zmqpubsequence=tcp://0.0.0.0:29000',
       '-signet',
       '-server',
       '-addnode=drivechain.live:8383',
@@ -123,6 +122,7 @@ class MainchainRPCLive extends MainchainRPC {
       '-debug=net',
       '-txindex',
       '-fallbackfee=0.00021',
+      '-zmqpubsequence=tcp://0.0.0.0:29000',
     ];
 
     // Check if the data directory exists before starting the node
