@@ -71,9 +71,9 @@ if ! test -f $assets_dir/$drivechain; then
 
     for file in $drivechain $drivechain_cli; do 
         mv L1-bitcoin-patched-latest-x86_64-$version_postfix/$file $assets_dir/$file
+        chmod +x $assets_dir/$file
     done
 fi 
-
 enforcer=bip300301-enforcer$bin_name_postfix
 
 # Avoid fetching the binary if it already exists
@@ -107,6 +107,10 @@ if ! test -f $assets_dir/$enforcer; then
     fi
 
     echo "Enforcer binary renamed to $enforcer"
+
+    # Make the binary executable
+    chmod +x $assets_dir/$enforcer
+    echo "Made $enforcer executable"
 fi
 
 echo Going back to $old_cwd
@@ -117,6 +121,10 @@ server_cwd=$(pwd)
 
 # Build bdk-cli and drivechain-server
 echo "Building bdk-cli and drivechain-server in $server_cwd"
+
+# Build bdk-cli
+echo "Cleaning old binaries"
+just clean
 
 # Build bdk-cli
 echo "Building bdk-cli"
