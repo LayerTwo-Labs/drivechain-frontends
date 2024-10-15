@@ -4,9 +4,9 @@ build-go:
 build: build-bdk-cli build-enforcer build-go
 
 clean:
-    rm -r ./bin
-    rm -r bip300301_enforcer.mdb
-    rm -r .crates*
+    rm -rf ./bin
+    rm -rf bip300301_enforcer.mdb
+    rm -rf .crates*
     go clean
 
 lint:
@@ -71,9 +71,10 @@ build-enforcer:
             echo "Error: Could not find the enforcer binary in the extracted files."
             exit 1
         fi
-        # Move
+        # Move and make executable
         mv "$enforcer_binary" ./bin/$binary_name
-        echo "$binary_name has been downloaded to ./bin/$binary_name"
+        chmod +x ./bin/$binary_name
+        echo "$binary_name has been downloaded to ./bin/$binary_name and made executable"
         # Clean up
         rm $enforcer_zip
     else
