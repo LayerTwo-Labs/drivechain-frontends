@@ -31,15 +31,29 @@ func Enforcer(ctx context.Context, url string) (rpc.ValidatorServiceClient, erro
 		fmt.Sprintf("http://%s", url),
 		connect.WithGRPC(),
 	)
+	var tip *connect.Response[pb.GetChainTipResponse]
+	var blockHash *chainhash.Hash
+	var err error
+	for attempt := range 5 {
+		tip, err = client.GetChainTip(ctx, connect.NewRequest(&pb.GetChainTipRequest{}))
+		if err == nil {
+			blockHash, err = chainhash.NewHash([]byte(tip.Msg.BlockHeaderInfo.BlockHash.Hex.Value))
+			if err == nil {
+				break
+			}
+		}
 
-	tip, err := client.GetChainTip(ctx, connect.NewRequest(&pb.GetChainTipRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("get mainchain tip: %w", err)
+		sleepDuration := time.Second * time.Duration(attempt+1)
+		zerolog.Ctx(ctx).Info().
+			Int("attempt", attempt+1).
+			Err(err).
+			Msgf("failed to get chain tip. trying again in %s", sleepDuration)
+		if attempt < 4 {
+			time.Sleep(sleepDuration)
+		}
 	}
-
-	blockHash, err := chainhash.NewHash([]byte(tip.Msg.BlockHeaderInfo.BlockHash.Hex.Value))
 	if err != nil {
-		return nil, fmt.Errorf("parse blockhash: %w", err)
+		return nil, fmt.Errorf("get mainchain tip and parse blockhash after 5 attempts: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Debug().
