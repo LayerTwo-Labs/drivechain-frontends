@@ -104,7 +104,7 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
-  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
+  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     return [];
   }
 }

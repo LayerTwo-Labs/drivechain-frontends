@@ -17,7 +17,7 @@ class MockAPI extends API {
   MockAPI({required super.conf});
 
   @override
-  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
+  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     return [];
   }
 

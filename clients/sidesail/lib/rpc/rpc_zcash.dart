@@ -80,7 +80,7 @@ abstract class ZCashRPC extends SidechainRPC {
   }) : super(chain: ZCashSidechain());
 
   @override
-  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
+  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     final args = bitcoinCoreBinaryArgs(
       conf,
     );
@@ -97,7 +97,7 @@ abstract class ZCashRPC extends SidechainRPC {
     String binary, {
     List<String>? arg,
   }) async {
-    final args = binaryArgs(conf);
+    final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
 
     try {

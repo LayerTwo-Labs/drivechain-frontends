@@ -241,9 +241,9 @@ class TestchainRPCLive extends TestchainRPC {
   }
 
   @override
-  List<String> binaryArgs(
+  Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
-  ) {
+  ) async {
     final baseArgs = bitcoinCoreBinaryArgs(
       conf,
     );

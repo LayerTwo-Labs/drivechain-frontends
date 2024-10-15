@@ -24,6 +24,7 @@ void main() async {
 
   final logFile = await getLogFile();
   final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
+  log.i('starting bitwindow, writing logs to $logFile');
   final router = AppRouter();
   await initDependencies(log, logFile);
 
@@ -116,12 +117,14 @@ Future<void> initDependencies(Logger log, File logFile) async {
     // do nothing
   }
 
+  var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
+  log.i('logging server logs to: $serverLogFile');
   GetIt.I.registerLazySingleton<API>(
     () => APILive(
       host: env(Environment.drivechainHost),
       port: env(Environment.drivechainPort),
       conf: mainchainConf,
-      logFile: logFile,
+      logFile: File(serverLogFile),
     ),
   );
 
@@ -169,6 +172,7 @@ Future<void> initMainchainBinary(
     context,
     ParentChain().binary,
   );
+  log.i('mainchain init: started node, waiting for ibd');
   await mainchain.waitForIBD();
 
   log.i('mainchain init: successfully started node blocks=${mainchain.blockCount}');

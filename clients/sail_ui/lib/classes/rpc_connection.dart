@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:synchronized/synchronized.dart';
 
 // when you implement this class, you should extend a ChangeNotifier, to get
 // a proper implementation of notifyListeners(), e.g:
@@ -21,7 +22,7 @@ abstract class RPCConnection extends ChangeNotifier {
   });
 
   /// Args to pass to the binary on startup.
-  List<String> binaryArgs(
+  Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
   );
 
@@ -33,69 +34,64 @@ abstract class RPCConnection extends ChangeNotifier {
   Future<int> ping();
 
   bool initializingBinary = false;
-  bool _isTesting = false;
+  final _connectionLock = Lock();
 
   Future<(bool, String?)> testConnection() async {
-    try {
-      if (_isTesting) {
-        return (connected, connectionError);
-      }
-      _isTesting = true;
+    return _connectionLock.synchronized(() async {
+      try {
+        final newBlockCount = await ping();
+        connectionError = null;
+        connected = true;
 
-      final newBlockCount = await ping();
-      connectionError = null;
-      connected = true;
-
-      if (blockCount != newBlockCount) {
-        blockCount = newBlockCount;
-        notifyListeners();
-      } else {
-        // nothing has changed, don't notify any listeners!
-        return (connected, connectionError);
-      }
-    } catch (error) {
-      // Only update the error message if we're finished with binary init
-      if (!initializingBinary) {
-        String? newError = error.toString();
-
-        if (newError.contains('Connection refused')) {
-          if (connectionError != null) {
-            // an error is already set, and we don't want to override it with
-            // a generic non-informative message!
-            newError = connectionError!;
-          } else {
-            // don't show a generic Connection refused as the first error
-            newError = null;
-          }
-        } else if (error is SocketException) {
-          newError = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
-        } else if (error is HttpException) {
-          // gotta parse out the error...
-
-          // Looks like this: SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
-
-          newError = error.message;
-          RegExp regExp = RegExp(r'\(([^)]+)\)');
-          final match = regExp.firstMatch(error.message);
-          if (match != null) {
-            newError = match.group(1)!;
-          }
-        }
-
-        if (connectionError != newError) {
-          // we have a new error on our hands!
-          log.e('could not test connection: ${error.toString()}!');
+        if (blockCount != newBlockCount) {
+          blockCount = newBlockCount;
           notifyListeners();
+        } else {
+          // nothing has changed, don't notify any listeners!
+          return (connected, connectionError);
         }
+      } catch (error) {
+        // Only update the error message if we're finished with binary init
+        if (!initializingBinary) {
+          String? newError = error.toString();
 
-        connectionError = newError;
+          if (newError.contains('Connection refused')) {
+            if (connectionError != null) {
+              // an error is already set, and we don't want to override it with
+              // a generic non-informative message!
+              newError = connectionError!;
+            } else {
+              // don't show a generic Connection refused as the first error
+              newError = null;
+            }
+          } else if (error is SocketException) {
+            newError = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
+          } else if (error is HttpException) {
+            // gotta parse out the error...
+
+            // Looks like this: SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
+
+            newError = error.message;
+            RegExp regExp = RegExp(r'\(([^)]+)\)');
+            final match = regExp.firstMatch(error.message);
+            if (match != null) {
+              newError = match.group(1)!;
+            }
+          }
+
+          if (connectionError != newError) {
+            // we have a new error on our hands!
+            log.e('could not test connection: ${error.toString()}!');
+            notifyListeners();
+          }
+
+          connectionError = newError;
+        }
+        connected = false;
       }
-      connected = false;
-    } finally {
-      _isTesting = false;
-    }
 
-    return (connected, connectionError);
+      return (connected, connectionError);
+    });
   }
 
   // values for tracking connection state, and error (if any)
@@ -109,7 +105,7 @@ abstract class RPCConnection extends ChangeNotifier {
     String binary, {
     List<String>? arg,
   }) async {
-    final args = binaryArgs(conf);
+    final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
 
     final processes = GetIt.I.get<ProcessProvider>();
@@ -119,7 +115,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.d('init binaries: checking $binary connection ${conf.host}:${conf.port}');
 
-    _startConnectionTimer();
+    await _startConnectionTimer();
     // If we managed to connect to an already running daemon, we're finished here!
     if (connected) {
       log.d('init binaries: $binary is already running, not doing anything');
@@ -212,7 +208,8 @@ abstract class RPCConnection extends ChangeNotifier {
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the connection drops/begins
   Timer? _connectionTimer;
-  void _startConnectionTimer() {
+  Future<void> _startConnectionTimer() async {
+    await testConnection();
     _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();
     });

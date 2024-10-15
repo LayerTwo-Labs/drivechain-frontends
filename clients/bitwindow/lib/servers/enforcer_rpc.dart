@@ -5,7 +5,7 @@ class EnforcerRPC extends RPCConnection {
   EnforcerRPC({required super.conf});
 
   @override
-  List<String> binaryArgs(NodeConnectionSettings mainchainConf) {
+  Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     return [
       '--node-rpc-pass=${mainchainConf.password}',
       '--node-rpc-user=${mainchainConf.username}',
