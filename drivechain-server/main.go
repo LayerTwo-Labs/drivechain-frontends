@@ -38,11 +38,10 @@ func main() {
 		if _, ok := lo.ErrorsAs[*flags.Error](err); ok {
 			os.Exit(1)
 		}
-
-		zerolog.Ctx(ctx).
-			Fatal().
-			Err(err).
-			Msgf("main: got error: %T", err)
+		// the zerolog logger won't work here, because the file logger is closed.
+		// what we do instead is a simple printf
+		fmt.Printf("main: got error: %T - %v\n", err, err)
+		os.Exit(1)
 	}
 }
 
@@ -164,10 +163,13 @@ func initFileLogger(conf Config) (func(), error) {
 		Level(zerolog.TraceLevel)
 	zerolog.DefaultContextLogger = &logger
 
+	log.Info().Str("file", logFile.Name()).Msg("logging to file")
+
 	return func() {
 		if err := logFile.Close(); err != nil {
 			log.Error().Err(err).Msg("failed to close log file")
 		}
+		log.Info().Msg("closed log file")
 	}, nil
 }
 
