@@ -77,7 +77,9 @@ func realMain(ctx context.Context) error {
 
 	enforcer, err := dial.Enforcer(ctx, conf.EnforcerHost)
 	if err != nil {
-		return fmt.Errorf("connect to enforcer: %w", err)
+		log.Error().Err(err).Msg("connect to enforcer")
+		// enforcer does not work right now, but we still want to test
+		// the rest of the server
 	}
 
 	log.Info().Msgf("blockchain info: %s", info.Msg.String())

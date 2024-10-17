@@ -34,7 +34,7 @@ func Enforcer(ctx context.Context, url string) (rpc.ValidatorServiceClient, erro
 	var tip *connect.Response[pb.GetChainTipResponse]
 	var blockHash *chainhash.Hash
 	var err error
-	for attempt := range 5 {
+	for attempt := range 3 {
 		tip, err = client.GetChainTip(ctx, connect.NewRequest(&pb.GetChainTipRequest{}))
 		if err == nil {
 			blockHash, err = chainhash.NewHash([]byte(tip.Msg.BlockHeaderInfo.BlockHash.Hex.Value))
@@ -53,7 +53,7 @@ func Enforcer(ctx context.Context, url string) (rpc.ValidatorServiceClient, erro
 		}
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get mainchain tip and parse blockhash after 5 attempts: %w", err)
+		return client, fmt.Errorf("get mainchain tip and parse blockhash after 3 attempts: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Debug().
