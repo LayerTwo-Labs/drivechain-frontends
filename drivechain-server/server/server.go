@@ -36,7 +36,7 @@ func New(
 	srv := &Server{mux: mux}
 
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
-		bitcoind, enforcer,
+		bitcoind,
 	)))
 	drivechainClient := drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
 		bitcoind, enforcer,
