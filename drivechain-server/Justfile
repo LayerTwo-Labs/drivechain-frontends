@@ -26,6 +26,7 @@ build-bdk-cli:
     if [ ! -f "./bdk/bin/bdk-cli" ]; then
         echo "Building bdk-cli..."
         mkdir -p ./bdk/bin
+        mkdir -p ./bin
         if ! command -v rustc &> /dev/null; then
             echo "Error: Rust is not installed. Please install Rust and try again."
             exit 1
@@ -37,7 +38,7 @@ build-bdk-cli:
         --no-default-features \
         --features=key-value-db,compiler,electrum
         echo "bdk-cli has been built to ./bdk/bin/bdk-cli"
-        cp -f ./bdk/bin/bdk-cli ./bin/bdk-cli
+        cp ./bdk/bin/bdk-cli ./bin/bdk-cli
     else
         echo "bdk-cli already exists, skipping build"
     fi

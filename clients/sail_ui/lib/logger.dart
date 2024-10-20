@@ -14,21 +14,24 @@ LogPrinter _printer() {
   return LogfmtPrinter();
 }
 
-Future<LogOutput> _logoutput(bool fileLog, bool consoleLog, File? logFile) async {
-  if (fileLog) {
-    // force file log
-  } else if (!kReleaseMode || consoleLog || logFile == null) {
-    // NOT in release mode: print everything to console
-    return ConsoleOutput();
+Future<LogOutput> _logoutput(File? logFile) async {
+  List<LogOutput> outputs = [];
+
+  if (logFile != null) {
+    outputs.add(FileOutput(file: logFile));
   }
 
-  // If we're in release, write to file.
-  return FileOutput(file: logFile!);
+  if (logFile == null || kDebugMode) {
+    // always print to console in debug mode
+    outputs.add(ConsoleOutput());
+  }
+
+  return MultiOutput(outputs);
 }
 
 Future<Logger> logger(bool fileLog, bool consoleLog, File? logFile) async => Logger(
       level: Level.debug,
       filter: ProductionFilter(),
       printer: _printer(),
-      output: await _logoutput(fileLog, consoleLog, logFile),
+      output: await _logoutput(logFile),
     );
