@@ -52,6 +52,15 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
+	datadir, err := getDataDir()
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get data dir")
+		return err
+	}
+	if conf.LogPath == "" {
+		conf.LogPath = filepath.Join(datadir, "debug.log")
+	}
+
 	cleanup, err := initFileLogger(conf)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("init logger")
@@ -180,4 +189,43 @@ func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, erro
 	}
 
 	return core, nil
+}
+
+func getDataDir() (string, error) {
+	const appName = "drivechain-server"
+	var dir string
+
+	switch runtime.GOOS {
+	case "linux":
+	case "darwin":
+		if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+			dir = filepath.Join(xdgDataHome, appName)
+		} else {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
+			if runtime.GOOS == "darwin" {
+				dir = filepath.Join(home, "Library", "Application Support", appName)
+			} else {
+				dir = filepath.Join(home, ".local", "share", appName)
+			}
+		}
+	case "windows":
+		appData, ok := os.LookupEnv("APPDATA")
+		if !ok {
+			return "", fmt.Errorf("APPDATA environment variable not set")
+		}
+		dir = filepath.Join(appData, appName)
+	default:
+		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	}
+
+	// Ensure the directory exists
+	err := os.MkdirAll(dir, 0755)
+	if err != nil && !os.IsExist(err) {
+		return "", err
+	}
+
+	return dir, nil
 }
