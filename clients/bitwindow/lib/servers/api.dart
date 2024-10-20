@@ -106,7 +106,7 @@ class APILive extends API {
 
   @override
   Future<int> ping() async {
-    return _bitcoind.getBlockchainInfo().then((value) => value.blocks);
+    return await _bitcoind.getBlockchainInfo().then((value) => value.blocks);
   }
 
   @override
