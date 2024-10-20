@@ -123,10 +123,6 @@ server_cwd=$(pwd)
 echo "Building bdk-cli and drivechain-server in $server_cwd"
 
 # Build bdk-cli
-echo "Cleaning old binaries"
-just clean
-
-# Build bdk-cli
 echo "Building bdk-cli"
 just build-bdk-cli
 
