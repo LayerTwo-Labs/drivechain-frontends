@@ -23,9 +23,9 @@ gen-enforcer:
 build-bdk-cli:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -f "./bin/bdk-cli" ]; then
+    if [ ! -f "./bdk/bin/bdk-cli" ]; then
         echo "Building bdk-cli..."
-        mkdir -p ./bin
+        mkdir -p ./bdk/bin
         if ! command -v rustc &> /dev/null; then
             echo "Error: Rust is not installed. Please install Rust and try again."
             exit 1
@@ -33,10 +33,11 @@ build-bdk-cli:
         cargo install \
         --git https://github.com/bitcoindevkit/bdk-cli.git \
         --tag v0.27.1 \
-        --root . \
+        --root ./bdk \
         --no-default-features \
         --features=key-value-db,compiler,electrum
-        echo "bdk-cli has been built to ./bin/bdk-cli"
+        echo "bdk-cli has been built to ./bdk/bin/bdk-cli"
+        cp -f ./bdk/bin/bdk-cli ./bin/bdk-cli
     else
         echo "bdk-cli already exists, skipping build"
     fi
