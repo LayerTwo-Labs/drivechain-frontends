@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ var validNetworks = []string{
 	"regtest",
 }
 
-func getBdkCliPath() (string, error) {
+func getBdkCliPath(ctx context.Context) (string, error) {
 	var err error
 	bdkCliPathOnce.Do(func() {
 		var tempDir string
@@ -63,20 +64,27 @@ func getBdkCliPath() (string, error) {
 			return
 		}
 
+		zerolog.Ctx(ctx).Info().Msg("reading bdk-cli binary from embedded filesystem")
 		var bdkCliBytes []byte
 		bdkCliBytes, err = bdkCliBinary.ReadFile("bin/bdk-cli")
 		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not read bdk-cli binary")
 			return
 		}
 
+		zerolog.Ctx(ctx).Info().Str("path", bdkCliPath).Msg("writing bdk-cli binary to temporary file")
 		bdkCliPath = filepath.Join(tempDir, "bdk-cli")
 		err = os.WriteFile(bdkCliPath, bdkCliBytes, 0755)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not write bdk-cli binary")
+		}
 	})
 
 	if err != nil {
 		return "", err
 	}
 
+	zerolog.Ctx(context.Background()).Trace().Str("path", bdkCliPath).Msg("returning bdk-cli path")
 	return bdkCliPath, nil
 }
 
@@ -102,7 +110,7 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 		return nil, errors.New("bdk: exec: empty command")
 	}
 
-	bdkCliPath, err := getBdkCliPath()
+	bdkCliPath, err := getBdkCliPath(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bdk-cli path: %w", err)
 	}
@@ -119,7 +127,7 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 			}
 		}
 
-		// Sanitize the error message
+		// sanitize the error message
 		sanitizedArgs := sanitizeArgs(fullArgs)
 		sanitizedCommand := sanitizeCommand(command)
 		sanitizedErrorMessage := sanitizeErrorMessage(errorMessage)
@@ -183,7 +191,13 @@ func (w *Wallet) Sync(ctx context.Context) error {
 	defer cancel()
 
 	_, err := w.execWallet(ctx, "sync")
-	return err
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not sync wallet")
+		return err
+	}
+
+	zerolog.Ctx(ctx).Info().Msg("successfully synced wallet")
+	return nil
 }
 
 // GetNewAddress returns a new unused address from the wallet, as well as
@@ -209,6 +223,11 @@ func (w *Wallet) GetNewAddress(ctx context.Context) (btcutil.Address, uint, erro
 		return nil, 0, err
 	}
 
+	zerolog.Ctx(ctx).Info().
+		Str("address", address.String()).
+		Uint("index", parsed.Index).
+		Msg("got new address")
+
 	return address, parsed.Index, nil
 }
 
@@ -232,7 +251,13 @@ func (w *Wallet) GetBalance(ctx context.Context) (*Balance, error) {
 		return nil, err
 	}
 
-	return &parsed.Satoshi, err
+	zerolog.Ctx(ctx).Info().
+		Float64("confirmed", parsed.Satoshi.Confirmed.ToBTC()).
+		Float64("immature", parsed.Satoshi.Immature.ToBTC()).
+		Float64("trusted_pending", parsed.Satoshi.TrustedPending.ToBTC()).
+		Float64("untrusted_pending", parsed.Satoshi.UntrustedPending.ToBTC()).
+		Msg("got balance")
+	return &parsed.Satoshi, nil
 }
 
 // CreateTransaction creates a new transaction (but does not do any signing!).
@@ -268,6 +293,10 @@ func (w *Wallet) CreateTransaction(
 		return "", fmt.Errorf("unmarshal newly created PSBT: %w", err)
 	}
 
+	zerolog.Ctx(ctx).Info().
+		Str("psbt", parsed.PSBT).
+		Msg("created transaction")
+
 	return parsed.PSBT, nil
 }
 
@@ -286,6 +315,10 @@ func (w *Wallet) SignTransaction(ctx context.Context, psbt string) (string, erro
 		return "", fmt.Errorf("signed PSBT was not finalized: %s", string(res))
 	}
 
+	zerolog.Ctx(ctx).Info().
+		Str("psbt", parsed.PSBT).
+		Msg("signed transaction")
+
 	return parsed.PSBT, nil
 }
 
@@ -295,7 +328,13 @@ func (w *Wallet) BroadcastTransaction(ctx context.Context, psbt string) (string,
 		return "", err
 	}
 
-	return gjson.GetBytes(res, "txid").String(), nil
+	txid := gjson.GetBytes(res, "txid").String()
+
+	zerolog.Ctx(ctx).Info().
+		Str("txid", txid).
+		Msg("broadcasted transaction")
+
+	return txid, nil
 }
 
 func (w *Wallet) ListTransactions(ctx context.Context) ([]Transaction, error) {
@@ -308,6 +347,10 @@ func (w *Wallet) ListTransactions(ctx context.Context) ([]Transaction, error) {
 	if err := json.Unmarshal(res, &txs); err != nil {
 		return nil, err
 	}
+
+	zerolog.Ctx(ctx).Info().
+		Int("transaction_count", len(txs)).
+		Msg("listed transactions")
 
 	return txs, nil
 }
@@ -368,6 +411,10 @@ func (w *Wallet) ListUnspent(ctx context.Context) ([]Unspent, error) {
 		return nil, fmt.Errorf("ended up with empty TXs: %s", string(res))
 	}
 
+	zerolog.Ctx(ctx).Info().
+		Int("unspent_count", len(txs)).
+		Msg("listed unspent")
+
 	return txs, nil
 }
 
@@ -399,14 +446,56 @@ type Transaction struct {
 	TXID     string         `json:"txid"`
 }
 
+func getDataDir() (string, error) {
+	const appName = "bdk-cli"
+	var dir string
+
+	switch runtime.GOOS {
+	case "linux":
+	case "darwin":
+		if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+			dir = filepath.Join(xdgDataHome, appName)
+		} else {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
+			if runtime.GOOS == "darwin" {
+				dir = filepath.Join(home, "Library", "Application Support", appName)
+			} else {
+				dir = filepath.Join(home, ".local", "share", appName)
+			}
+		}
+	case "windows":
+		appData, ok := os.LookupEnv("APPDATA")
+		if !ok {
+			return "", fmt.Errorf("APPDATA environment variable not set")
+		}
+		dir = filepath.Join(appData, appName)
+	default:
+		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	}
+
+	// Ensure the directory exists
+	err := os.MkdirAll(dir, 0755)
+	if err != nil && !os.IsExist(err) {
+		return "", err
+	}
+
+	return dir, nil
+}
+
 // NewWallet either creates a new wallet or loads an existing one. If a
 // passphrase is provided, the mnemonic is encrypted before saving if the
 // wallet is created. If the wallet already exists, the passphrase is used to
 // decrypt the existing mnemonic.
 func NewWallet(
-	ctx context.Context, datadir,
-	network, electrum, passphrase string, xprvOverride string,
+	ctx context.Context, network, electrum, passphrase, xprvOverride string,
 ) (*Wallet, error) {
+	datadir, err := getDataDir()
+	if err != nil {
+		return nil, err
+	}
 
 	w := &Wallet{
 		Network:  network,
@@ -421,6 +510,12 @@ func NewWallet(
 
 	w.Descriptor = fmt.Sprintf("wpkh(%s/84h/1h/0h/0/*)", xprv)
 
+	zerolog.Ctx(ctx).Info().
+		Str("network", network).
+		Str("datadir", datadir).
+		Str("electrum", electrum).
+		Msg("created new wallet")
+
 	return w, nil
 }
 
@@ -428,6 +523,7 @@ func (w *Wallet) findXPrv(
 	ctx context.Context, passphrase string, xprvOverride string,
 ) (string, error) {
 	if xprvOverride != "" {
+		zerolog.Ctx(ctx).Debug().Msg("using xprv override")
 		return xprvOverride, nil
 	}
 
@@ -485,6 +581,7 @@ func (w *Wallet) loadExistingWallet(ctx context.Context, keyFile, passphrase str
 		return "", fmt.Errorf("failed to parse xprv from bdk-cli output")
 	}
 
+	zerolog.Ctx(ctx).Info().Msg("loaded existing wallet")
 	return xprv, nil
 }
 
@@ -534,6 +631,7 @@ func (w *Wallet) createNewWallet(ctx context.Context, keyFile, passphrase string
 		return "", fmt.Errorf("failed to save mnemonic to file: %w", err)
 	}
 
+	zerolog.Ctx(ctx).Info().Msg("created new wallet")
 	return xprv, nil
 }
 

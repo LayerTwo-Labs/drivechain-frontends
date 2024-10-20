@@ -89,14 +89,9 @@ func realMain(ctx context.Context) error {
 		electrumProtocol = "tcp"
 	}
 
-	datadir, err := getDataDir()
-	if err != nil {
-		return err
-	}
-
 	const network = "signet"
 	wallet, err := bdk.NewWallet(
-		ctx, datadir, network,
+		ctx, network,
 		fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost),
 		conf.Passphrase, conf.XPrivOverride,
 	)
@@ -185,43 +180,4 @@ func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, erro
 	}
 
 	return core, nil
-}
-
-func getDataDir() (string, error) {
-	const appName = "bdk-cli"
-	var dir string
-
-	switch runtime.GOOS {
-	case "linux":
-	case "darwin":
-		if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
-			dir = filepath.Join(xdgDataHome, appName)
-		} else {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return "", err
-			}
-			if runtime.GOOS == "darwin" {
-				dir = filepath.Join(home, "Library", "Application Support", appName)
-			} else {
-				dir = filepath.Join(home, ".local", "share", appName)
-			}
-		}
-	case "windows":
-		appData, ok := os.LookupEnv("APPDATA")
-		if !ok {
-			return "", fmt.Errorf("APPDATA environment variable not set")
-		}
-		dir = filepath.Join(appData, appName)
-	default:
-		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-	}
-
-	// Ensure the directory exists
-	err := os.MkdirAll(dir, 0755)
-	if err != nil && !os.IsExist(err) {
-		return "", err
-	}
-
-	return dir, nil
 }
