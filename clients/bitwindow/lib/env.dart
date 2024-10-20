@@ -23,7 +23,7 @@ class Environment {
   );
 
   static Future<Directory> datadir() async {
-    final fromEnv = Platform.environment['BITWINDOW_DATADIR'] ?? const String.fromEnvironment('SIDESAIL_DATADIR');
+    final fromEnv = Platform.environment['BITWINDOW_DATADIR'] ?? const String.fromEnvironment('BITWINDOW_DATADIR');
     if (fromEnv.isNotEmpty) {
       final dir = Directory(fromEnv);
       return dir;
