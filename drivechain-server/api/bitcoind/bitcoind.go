@@ -12,6 +12,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -66,7 +67,6 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 
 	for i := range c.Msg.Count {
 		p.Go(func(ctx context.Context) (*pb.ListRecentBlocksResponse_RecentBlock, error) {
-
 			height := info.Msg.Blocks - uint32(i)
 			hash, err := s.bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
 				Height: height,
@@ -154,6 +154,14 @@ func (s *Server) GetBlockchainInfo(ctx context.Context, c *connect.Request[empty
 		return nil, err
 	}
 
+	zerolog.Ctx(ctx).Info().
+		Str("chain", info.Msg.Chain).
+		Int64("blocks", int64(info.Msg.Blocks)).
+		Int64("headers", int64(info.Msg.Headers)).
+		Str("bestBlockHash", info.Msg.BestBlockHash).
+		Bool("initialBlockDownload", info.Msg.InitialBlockDownload).
+		Msg("got blockchain info")
+
 	return connect.NewResponse(&pb.GetBlockchainInfoResponse{
 		Chain:                info.Msg.Chain,
 		Blocks:               info.Msg.Blocks,
@@ -177,7 +185,6 @@ func (s *Server) ListPeers(ctx context.Context, c *connect.Request[emptypb.Empty
 				Addr:         item.Addr,
 				SyncedBlocks: item.SyncedBlocks,
 			}
-
 		}),
 	}), nil
 }
