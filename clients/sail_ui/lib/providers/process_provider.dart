@@ -114,11 +114,23 @@ class ProcessProvider extends ChangeNotifier {
 
     // Let output streaming chug in the background
 
-    // Proper logs are written here
-    _stdoutStreams[process.pid] = process.stdout.transform(utf8.decoder);
+    // Capture stdout and stderr
+    final stdoutController = StreamController<String>();
+    final stderrController = StreamController<String>();
 
-    // Error messages while starting up are written here
-    _stderrStreams[process.pid] = process.stderr.transform(utf8.decoder);
+    process.stdout.transform(utf8.decoder).listen((data) {
+      stdoutController.add(data);
+      log.d('$binary: $data');
+    });
+
+    process.stderr.transform(utf8.decoder).listen((data) {
+      stderrController.add(data);
+      log.e('$binary: $data');
+    });
+
+    // Store the streams for later access
+    _stdoutStreams[process.pid] = stdoutController.stream;
+    _stderrStreams[process.pid] = stderrController.stream;
 
     // By default, this doesn't resolve to anything
     var processExited = Completer<bool>();
@@ -127,14 +139,12 @@ class ProcessProvider extends ChangeNotifier {
     unawaited(
       process.exitCode.then((code) async {
         var level = Level.error;
-        // Node software exited with a success code. Someone called
-        // `drivechain-cli stop`?
+        // Node software exited with a success code. Someone stopped it?
         if (code == 0) {
           level = Level.info;
         }
 
         final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
-        _stderrStreams[process.pid] = Stream.fromIterable(errLogs);
         if (errLogs.isNotEmpty) {
           log.log(level, '"$binary" exited with code $code: ${errLogs.last}');
         } else {
@@ -150,6 +160,11 @@ class ProcessProvider extends ChangeNotifier {
           message: errLogs.isNotEmpty ? errLogs.last : 'no error message',
         );
         runningProcesses.remove(process.pid);
+
+        // Close the stream controllers
+        await stdoutController.close();
+        await stderrController.close();
+
         notifyListeners();
       }),
     );
