@@ -35,7 +35,7 @@ dependencies:
     version: 2.7.3
   http: ^1.2.2
   path_provider: ^2.1.4
-  crypto: ^3.0.5
+  crypto: ^3.0.6
   shared_preferences: ^2.3.2
   flutter_window_close: ^1.2.0
 
