@@ -128,7 +128,7 @@ Future<void> initDependencies(Logger log, File logFile) async {
     ),
   );
 
-  final enforcer = EnforcerRPC(conf: mainchainConf);
+  final enforcer = EnforcerLive(conf: mainchainConf);
   GetIt.I.registerLazySingleton<EnforcerRPC>(
     () => enforcer,
   );
@@ -184,7 +184,6 @@ Future<void> initEnforcer(
 ) async {
   final enforcer = GetIt.I.get<EnforcerRPC>();
 
-  // TODO: Find a way to ping the enforcer
   final binary = 'bip300301-enforcer';
   await enforcer.initBinary(context, binary);
 

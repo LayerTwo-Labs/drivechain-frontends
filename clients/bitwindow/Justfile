@@ -3,3 +3,6 @@ format:
 
 gen:
     buf generate ../../drivechain-server
+
+gen-enforcer:
+    buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git

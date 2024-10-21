@@ -1,8 +1,30 @@
+import 'package:bitwindow/gen/cusf/mainchain/v1/validator.pbgrpc.dart';
+import 'package:grpc/grpc.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 
-class EnforcerRPC extends RPCConnection {
+/// API to the drivechain server.
+abstract class EnforcerRPC extends RPCConnection {
   EnforcerRPC({required super.conf});
+
+  ValidatorServiceClient get validator;
+}
+
+class EnforcerLive extends EnforcerRPC {
+  @override
+  late final ValidatorServiceClient validator;
+
+  EnforcerLive({required super.conf}) {
+    final channel = ClientChannel(
+      'localhost',
+      port: 50051,
+      options: const ChannelOptions(
+        credentials: ChannelCredentials.insecure(),
+      ),
+    );
+
+    validator = ValidatorServiceClient(channel);
+  }
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
@@ -16,12 +38,12 @@ class EnforcerRPC extends RPCConnection {
 
   @override
   Future<int> ping() async {
-    // return anything other than 0 to indicate success
-    return 1;
+    final res = await validator.getBlockHeaderInfo(GetBlockHeaderInfoRequest());
+    return res.headerInfo.height;
   }
 
   @override
   Future<void> stop() async {
-    // TODO: not implemented
+    // TODO: not implemented!
   }
 }
