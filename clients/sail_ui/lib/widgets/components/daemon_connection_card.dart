@@ -22,52 +22,49 @@ class DaemonConnectionCard extends StatelessWidget {
 
     return SailScaleButton(
       onPressed: navigateToLogs == null ? null : () => navigateToLogs!(connection.binaryName, connection.logPath),
-      child: SizedBox(
-        width: 250,
-        child: SailBorder(
-          padding: const EdgeInsets.symmetric(
-            horizontal: SailStyleValues.padding12,
-            vertical: SailStyleValues.padding08,
-          ),
-          child: SailColumn(
-            spacing: 0,
-            children: [
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  SailSVG.fromAsset(
-                    SailSVGAsset.iconGlobe,
-                    color: infoMessage != null
-                        ? theme.colors.info
-                        : connection.initializingBinary
-                            ? theme.colors.orangeLight
-                            : connection.connected
-                                ? theme.colors.success
-                                : theme.colors.error,
+      child: SailBorder(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SailStyleValues.padding12,
+          vertical: SailStyleValues.padding08,
+        ),
+        child: SailColumn(
+          spacing: 0,
+          children: [
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.fromAsset(
+                  SailSVGAsset.iconGlobe,
+                  color: infoMessage != null
+                      ? theme.colors.info
+                      : connection.initializingBinary
+                          ? theme.colors.orangeLight
+                          : connection.connected
+                              ? theme.colors.success
+                              : theme.colors.error,
+                ),
+                SailText.primary13('${connection.binaryName} daemon'),
+                Expanded(child: Container()),
+                SailScaleButton(
+                  onPressed: restartDaemon,
+                  child: InitializingDaemonSVG(
+                    animate: connection.initializingBinary,
                   ),
-                  SailText.primary13('${connection.binaryName} daemon'),
-                  Expanded(child: Container()),
-                  SailScaleButton(
-                    onPressed: restartDaemon,
-                    child: InitializingDaemonSVG(
-                      animate: connection.initializingBinary,
-                    ),
-                  ),
-                ],
-              ),
-              SailText.primary10('View logs', color: theme.colors.textSecondary),
-              const SailSpacing(SailStyleValues.padding12),
-              SailText.secondary12(
-                infoMessage ??
-                    connection.connectionError ??
-                    (connection.initializingBinary
-                        ? 'Initializing...'
-                        : connection.connected
-                            ? 'Connected'
-                            : 'Unknown error occured'),
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+            SailText.primary10('View logs', color: theme.colors.textSecondary),
+            const SailSpacing(SailStyleValues.padding12),
+            SailText.secondary12(
+              infoMessage ??
+                  connection.connectionError ??
+                  (connection.initializingBinary
+                      ? 'Initializing...'
+                      : connection.connected
+                          ? 'Connected'
+                          : 'Unknown error occured'),
+            ),
+          ],
         ),
       ),
     );

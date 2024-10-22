@@ -206,61 +206,51 @@ class _StatusBarState extends State<StatusBar> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Tooltip(
-                    message: 'Confirmed balance',
-                    child: SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailSVG.icon(SailSVGAsset.iconSuccess),
-                        SailText.secondary12(formatBitcoin(balanceProvider.balance, symbol: 'BTC')),
-                      ],
-                    ),
+              Separator(
+                child: Tooltip(
+                  message: 'Confirmed balance',
+                  child: SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SailSVG.icon(SailSVGAsset.iconSuccess),
+                      SailText.secondary12(formatBitcoin(balanceProvider.balance, symbol: 'BTC')),
+                    ],
                   ),
-                  Tooltip(
-                    message: 'Unconfirmed balance',
-                    child: SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailSVG.icon(SailSVGAsset.iconPending),
-                        SailText.secondary12(formatBitcoin(balanceProvider.pendingBalance, symbol: 'BTC')),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              Expanded(child: Container()),
-              SailText.primary12(
-                '${formatWithThousandSpacers(blockchainProvider.blockchainInfo.blocks)} blocks',
-              ),
-              Tooltip(
-                message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
-                child: SailText.primary12(
-                  formatTimeDifference(blockchainProvider.peers.length, 'peer'),
                 ),
               ),
-              Tooltip(
-                message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
-                child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
-              ),
-            ]
-                .map(
-                  (child) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4.0,
-                      vertical: 2.0,
-                    ),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        left: BorderSide(color: Colors.grey),
-                      ),
-                    ),
-                    child: child,
+              Separator(
+                child: Tooltip(
+                  message: 'Unconfirmed balance',
+                  child: SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SailSVG.icon(SailSVGAsset.iconPending),
+                      SailText.secondary12(formatBitcoin(balanceProvider.pendingBalance, symbol: 'BTC')),
+                    ],
                   ),
-                )
-                .toList(),
+                ),
+              ),
+              Expanded(child: Container()),
+              Separator(
+                child: SailText.primary12(
+                  '${formatWithThousandSpacers(blockchainProvider.blockchainInfo.blocks)} blocks',
+                ),
+              ),
+              Separator(
+                child: Tooltip(
+                  message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
+                  child: SailText.primary12(
+                    formatTimeDifference(blockchainProvider.peers.length, 'peer'),
+                  ),
+                ),
+              ),
+              Separator(
+                child: Tooltip(
+                  message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
+                  child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+                ),
+              ),
+            ],
           ),
         );
       }),
@@ -286,7 +276,7 @@ class _StatusBarState extends State<StatusBar> {
             children: [
               const SailSpacing(SailStyleValues.padding08),
               if (!model.mainchainConnected || !model.enforcerConnected || !model.serverConnected)
-                SailText.secondary12('You cannot use BitWindow until backends are connected'),
+                SailText.secondary12("You use BitWindow without the enforcer, but it's not that interesting."),
               SailColumn(
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,5 +395,33 @@ class BottomNavViewModel extends BaseViewModel {
     mainchain.removeListener(notifyListeners);
     enforcer.removeListener(notifyListeners);
     server.removeListener(notifyListeners);
+  }
+}
+
+class Separator extends StatelessWidget {
+  final Widget child;
+  final bool right;
+
+  const Separator({
+    super.key,
+    required this.child,
+    this.right = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 4.0,
+        vertical: 2.0,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          left: right ? BorderSide.none : BorderSide(color: Colors.grey),
+          right: right ? BorderSide(color: Colors.grey) : BorderSide.none,
+        ),
+      ),
+      child: child,
+    );
   }
 }
