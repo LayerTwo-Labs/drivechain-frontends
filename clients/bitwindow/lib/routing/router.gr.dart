@@ -86,6 +86,44 @@ class SendRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [SidechainActivationManagementPage]
+class SidechainActivationManagementRoute extends PageRouteInfo<void> {
+  const SidechainActivationManagementRoute({List<PageRouteInfo>? children})
+      : super(
+          SidechainActivationManagementRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SidechainActivationManagementRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const SidechainActivationManagementPage();
+    },
+  );
+}
+
+/// generated route for
+/// [SidechainProposalPage]
+class SidechainProposalRoute extends PageRouteInfo<void> {
+  const SidechainProposalRoute({List<PageRouteInfo>? children})
+      : super(
+          SidechainProposalRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SidechainProposalRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const SidechainProposalPage();
+    },
+  );
+}
+
+/// generated route for
 /// [SidechainsPage]
 class SidechainsRoute extends PageRouteInfo<void> {
   const SidechainsRoute({List<PageRouteInfo>? children})
