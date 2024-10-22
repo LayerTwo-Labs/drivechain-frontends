@@ -46,8 +46,8 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<int> ping() async {
-    final res = await validator.getBlockHeaderInfo(GetBlockHeaderInfoRequest());
-    return res.headerInfo.height;
+    final res = await validator.getChainTip(GetChainTipRequest());
+    return res.blockHeaderInfo.height;
   }
 
   @override

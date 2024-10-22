@@ -25,7 +25,6 @@ void main() async {
   final logFile = await getLogFile();
   final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
   log.i('starting bitwindow, writing logs to $logFile');
-  final router = AppRouter();
   await initDependencies(log, logFile);
 
   MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
@@ -43,6 +42,8 @@ void main() async {
       await windowManager.focus();
     }),
   );
+
+  final router = GetIt.I.get<AppRouter>();
 
   return runApp(
     SailApp(
@@ -69,9 +70,12 @@ void main() async {
           );
 
           if (!context.mounted) return;
-          await initEnforcer(context, log);
+          await Future.any([
+            initEnforcer(context, log),
+            Future.delayed(const Duration(seconds: 2)),
+          ]);
           log.i(
-            'enforcer inited: ready to start server',
+            'enforcer inited or timed out after 2 seconds: proceeding to start server',
           );
 
           if (!context.mounted) return;
@@ -94,6 +98,9 @@ Future<void> initDependencies(Logger log, File logFile) async {
 
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
+
+  // Register the router
+  GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
 
   // Needed for sail_ui to work
   GetIt.I.registerLazySingleton<ClientSettings>(
