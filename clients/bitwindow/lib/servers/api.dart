@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:bitwindow/exceptions.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
@@ -15,7 +13,11 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 
 /// API to the drivechain server.
 abstract class API extends RPCConnection {
-  API({required super.conf});
+  API({
+    required super.conf,
+    required super.binaryName,
+    required super.logPath,
+  });
 
   WalletAPI get wallet;
   BitcoindAPI get bitcoind;
@@ -61,13 +63,12 @@ class APILive extends API {
   late final BitcoindAPI _bitcoind;
   late final DrivechainAPI _drivechain;
 
-  final File logFile;
-
   APILive({
     required String host,
     required int port,
-    required this.logFile,
     required super.conf,
+    required super.binaryName,
+    required super.logPath,
   }) {
     final channel = ClientChannel(
       host,
@@ -100,7 +101,7 @@ class APILive extends API {
       '--electrum.no-ssl',
       '--bitcoincore.rpcuser=${mainchainConf.username}',
       '--bitcoincore.rpcpassword=${mainchainConf.password}',
-      '--log.path=${logFile.path}',
+      '--log.path=$logPath',
     ];
   }
 

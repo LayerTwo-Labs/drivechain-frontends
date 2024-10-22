@@ -8,6 +8,8 @@ abstract class EthereumRPC extends SidechainRPC {
   // TODO: implement authed RPCs
   EthereumRPC({
     required super.conf,
+    required super.binaryName,
+    required super.logPath,
   }) : super(chain: EthereumSidechain());
 
   EthereumAddress? account;
@@ -18,7 +20,11 @@ abstract class EthereumRPC extends SidechainRPC {
 class EthereumRPCLive extends EthereumRPC {
   final sgweiPerSat = 1000000000;
 
-  EthereumRPCLive({required super.conf}) {
+  EthereumRPCLive({
+    required super.conf,
+    required super.binaryName,
+    required super.logPath,
+  }) {
     try {
       _setAndGetAccount();
     } catch (error) {

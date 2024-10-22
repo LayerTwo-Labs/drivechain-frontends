@@ -8,6 +8,8 @@ abstract class SidechainRPC extends RPCConnection {
   SidechainRPC({
     required super.conf,
     required this.chain,
+    required super.binaryName,
+    required super.logPath,
   });
 
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);

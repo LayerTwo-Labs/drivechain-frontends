@@ -14,7 +14,11 @@ class MockAPI extends API {
   @override
   late final DrivechainAPI drivechain = MockDrivechainAPI();
 
-  MockAPI({required super.conf});
+  MockAPI({
+    required super.conf,
+    required super.binaryName,
+    required super.logPath,
+  });
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {

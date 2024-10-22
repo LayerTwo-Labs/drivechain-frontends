@@ -3,7 +3,12 @@ import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
 class MockZCashRPC extends ZCashRPC {
-  MockZCashRPC({required super.conf});
+  MockZCashRPC()
+      : super(
+          conf: NodeConnectionSettings('./mocked.conf', 'mock mock', 1337, '', '', true),
+          binaryName: 'mock mock',
+          logPath: './mocked.log',
+        );
 
   @override
   Future<dynamic> callRAW(String method, [params]) async {

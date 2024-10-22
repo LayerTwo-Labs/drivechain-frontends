@@ -18,7 +18,12 @@ abstract class RPCConnection extends ChangeNotifier {
 
   RPCConnection({
     required this.conf,
+    required this.binaryName,
+    required this.logPath,
   });
+
+  final String binaryName;
+  final String logPath;
 
   /// Args to pass to the binary on startup.
   Future<List<String>> binaryArgs(

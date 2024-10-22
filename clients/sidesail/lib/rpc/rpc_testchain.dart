@@ -12,6 +12,8 @@ import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 abstract class TestchainRPC extends SidechainRPC {
   TestchainRPC({
     required super.conf,
+    required super.binaryName,
+    required super.logPath,
   }) : super(chain: TestSidechain());
 
   Future<int> mainBlockCount();
@@ -47,7 +49,11 @@ class TestchainRPCLive extends TestchainRPC {
     return client;
   }
 
-  TestchainRPCLive({required super.conf});
+  TestchainRPCLive({
+    required super.conf,
+    required super.binaryName,
+    required super.logPath,
+  });
 
   @override
   Future<(double, double)> getBalance() async {

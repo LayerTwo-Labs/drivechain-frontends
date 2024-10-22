@@ -3,7 +3,12 @@ import 'package:sidesail/rpc/models/active_sidechains.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 
 class MockMainchainRPC extends MainchainRPC {
-  MockMainchainRPC() : super(conf: NodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', '', true));
+  MockMainchainRPC()
+      : super(
+          conf: NodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', '', true),
+          binaryName: 'mocktown',
+          logPath: './mocked.log',
+        );
 
   @override
   Future<double> estimateFee() async {

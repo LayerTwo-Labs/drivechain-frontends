@@ -7,6 +7,8 @@ class MockSidechainRPC extends SidechainRPC {
       : super(
           conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
           chain: TestSidechain(),
+          binaryName: 'mock mock',
+          logPath: './mocked.log',
         );
 
   @override

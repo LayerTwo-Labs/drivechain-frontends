@@ -5,7 +5,11 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 
 /// API to the drivechain server.
 abstract class EnforcerRPC extends RPCConnection {
-  EnforcerRPC({required super.conf});
+  EnforcerRPC({
+    required super.conf,
+    required super.binaryName,
+    required super.logPath,
+  });
 
   ValidatorServiceClient get validator;
 }
@@ -14,7 +18,11 @@ class EnforcerLive extends EnforcerRPC {
   @override
   late final ValidatorServiceClient validator;
 
-  EnforcerLive({required super.conf}) {
+  EnforcerLive({
+    required super.conf,
+    required super.binaryName,
+    required super.logPath,
+  }) {
     final channel = ClientChannel(
       'localhost',
       port: 50051,
