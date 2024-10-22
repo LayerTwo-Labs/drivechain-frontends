@@ -3,8 +3,11 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/receive_page.dart';
 import 'package:bitwindow/pages/root_page.dart';
 import 'package:bitwindow/pages/send_page.dart';
+import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
+import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/transactions_page.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 part 'router.gr.dart';
 
@@ -58,6 +61,9 @@ class AppRouter extends RootStackRouter {
               page: SidechainsRoute.page,
             ),
           ],
+        ),
+        AutoRoute(
+          page: SailLogRoute.page,
         ),
       ];
 }
