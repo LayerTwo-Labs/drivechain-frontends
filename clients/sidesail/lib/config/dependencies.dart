@@ -56,7 +56,11 @@ Future<void> initDependencies(Sidechain chain) async {
   } catch (error) {
     // do nothing
   }
-  final mainchainRPC = await MainchainRPCLive.create(mainchainConf);
+  final mainchainRPC = await MainchainRPCLive.create(
+    mainchainConf,
+    ParentChain().binary,
+    ParentChain().type.logDir(),
+  );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
   );
@@ -103,7 +107,11 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
   if (chain.type == ChainType.testchain) {
     log.i('starting init testchain RPC');
 
-    final testchain = TestchainRPCLive(conf: conf);
+    final testchain = TestchainRPCLive(
+      conf: conf,
+      binaryName: TestSidechain().binary,
+      logPath: TestSidechain().type.logDir(),
+    );
     sidechain = testchain;
 
     if (!GetIt.I.isRegistered<TestchainRPC>()) {
@@ -118,6 +126,8 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
 
     final ethChain = EthereumRPCLive(
       conf: conf,
+      binaryName: EthereumSidechain().binary,
+      logPath: EthereumSidechain().type.logDir(),
     );
     sidechain = ethChain;
 
@@ -133,6 +143,8 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
 
     final zChain = ZcashRPCLive(
       conf: conf,
+      binaryName: ZCashSidechain().binary,
+      logPath: ZCashSidechain().type.logDir(),
     );
     sidechain = zChain;
 

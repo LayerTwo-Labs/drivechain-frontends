@@ -77,6 +77,8 @@ abstract class ZCashRPC extends SidechainRPC {
 
   ZCashRPC({
     required super.conf,
+    required super.binaryName,
+    required super.logPath,
   }) : super(chain: ZCashSidechain());
 
   @override
@@ -148,7 +150,11 @@ abstract class ZCashRPC extends SidechainRPC {
 }
 
 class ZcashRPCLive extends ZCashRPC {
-  ZcashRPCLive({required super.conf});
+  ZcashRPCLive({
+    required super.conf,
+    required super.binaryName,
+    required super.logPath,
+  });
 
   RPCClient _client() {
     final client = RPCClient(

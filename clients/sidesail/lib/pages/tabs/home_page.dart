@@ -8,7 +8,6 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/widgets/containers/daemon_connection_card.dart';
 import 'package:sidesail/widgets/containers/tabs/home/bottom_nav.dart';
 import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
 
@@ -166,13 +165,11 @@ class _HomePageState extends State<HomePage> {
               spacing: SailStyleValues.padding12,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: _proccessProvider.runningProcesses.entries.map((entry) {
-                return DaemonConnectionCard(
+                return ShutdownCard(
                   chain: Chain.fromBinary(entry.value.binary)!,
                   initializing: true,
-                  connected: false,
-                  errorMessage: 'with pid ${entry.value.pid}',
-                  restartDaemon: () => entry.value.cleanup(),
-                  infoMessage: null,
+                  message: 'with pid ${entry.value.pid}',
+                  forceCleanup: () => entry.value.cleanup(),
                 );
               }).toList(),
             ),
@@ -200,5 +197,58 @@ class _HomePageState extends State<HomePage> {
 
     await processesExited.future;
     return true;
+  }
+}
+
+class ShutdownCard extends StatelessWidget {
+  final Chain chain;
+  final String message;
+  final bool initializing;
+  final VoidCallback forceCleanup;
+
+  const ShutdownCard({
+    super.key,
+    required this.chain,
+    required this.initializing,
+    required this.message,
+    required this.forceCleanup,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return SizedBox(
+      width: 250,
+      child: SailBorder(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SailStyleValues.padding12,
+          vertical: SailStyleValues.padding08,
+        ),
+        child: SailColumn(
+          spacing: 0,
+          children: [
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.fromAsset(SailSVGAsset.iconGlobe, color: theme.colors.orangeLight),
+                SailText.primary13('${chain.name} daemon'),
+                Expanded(child: Container()),
+                SailScaleButton(
+                  onPressed: forceCleanup,
+                  child: InitializingDaemonSVG(
+                    animate: initializing,
+                  ),
+                ),
+              ],
+            ),
+            const SailSpacing(SailStyleValues.padding12),
+            SailText.secondary12(
+              message,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

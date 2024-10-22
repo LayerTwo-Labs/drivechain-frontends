@@ -8,7 +8,6 @@ import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
-import 'package:sidesail/widgets/containers/daemon_connection_card.dart';
 import 'package:stacked/stacked.dart';
 
 class BottomNav extends StatefulWidget {
@@ -146,18 +145,12 @@ class BottomNavViewModel extends BaseViewModel {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DaemonConnectionCard(
-                    chain: ParentChain(),
-                    initializing: _mainRPC.initializingBinary,
-                    connected: _mainRPC.connected,
-                    errorMessage: _mainRPC.connectionError,
+                    connection: _mainRPC,
                     restartDaemon: () => initMainchainBinary(context),
                     infoMessage: null,
                   ),
                   DaemonConnectionCard(
-                    chain: _sideRPC.rpc.chain,
-                    initializing: _sideRPC.rpc.initializingBinary,
-                    connected: _sideRPC.rpc.connected,
-                    errorMessage: _sideRPC.rpc.connectionError,
+                    connection: _sideRPC.rpc,
                     infoMessage: _mainRPC.inIBD ? 'Waiting for L1 initial block download to complete...' : null,
                     restartDaemon: () => initSidechainBinary(context),
                   ),

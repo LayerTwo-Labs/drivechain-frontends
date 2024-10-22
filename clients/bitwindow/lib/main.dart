@@ -124,11 +124,16 @@ Future<void> initDependencies(Logger log, File logFile) async {
       host: env(Environment.drivechainHost),
       port: env(Environment.drivechainPort),
       conf: mainchainConf,
-      logFile: File(serverLogFile),
+      binaryName: 'drivechain-server',
+      logPath: serverLogFile,
     ),
   );
 
-  final enforcer = EnforcerLive(conf: mainchainConf);
+  final enforcer = EnforcerLive(
+    conf: mainchainConf,
+    binaryName: 'bip300301-enforcer',
+    logPath: serverLogFile,
+  );
   GetIt.I.registerLazySingleton<EnforcerRPC>(
     () => enforcer,
   );
@@ -157,7 +162,11 @@ Future<void> initDependencies(Logger log, File logFile) async {
   );
   unawaited(sidechainProvider.fetch());
 
-  final mainchainRPC = await MainchainRPCLive.create(mainchainConf);
+  final mainchainRPC = await MainchainRPCLive.create(
+    mainchainConf,
+    ParentChain().binary,
+    serverLogFile,
+  );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
   );
@@ -195,8 +204,8 @@ Future<void> initServer(
   Logger log,
 ) async {
   final server = GetIt.I.get<API>();
-  final binary = 'drivechain-server';
 
+  final binary = 'drivechain-server';
   await server.initBinary(context, binary);
 
   log.i('server init: successfully started');
