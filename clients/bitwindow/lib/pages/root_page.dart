@@ -213,7 +213,7 @@ class _StatusBarState extends State<StatusBar> {
                     spacing: SailStyleValues.padding08,
                     children: [
                       SailSVG.icon(SailSVGAsset.iconSuccess),
-                      SailText.secondary12(formatBitcoin(balanceProvider.balance, symbol: 'BTC')),
+                      SailText.secondary12(formatBitcoin(satoshiToBTC(balanceProvider.balance), symbol: 'BTC')),
                     ],
                   ),
                 ),
@@ -225,7 +225,7 @@ class _StatusBarState extends State<StatusBar> {
                     spacing: SailStyleValues.padding08,
                     children: [
                       SailSVG.icon(SailSVGAsset.iconPending),
-                      SailText.secondary12(formatBitcoin(balanceProvider.pendingBalance, symbol: 'BTC')),
+                      SailText.secondary12(formatBitcoin(satoshiToBTC(balanceProvider.pendingBalance), symbol: 'BTC')),
                     ],
                   ),
                 ),
