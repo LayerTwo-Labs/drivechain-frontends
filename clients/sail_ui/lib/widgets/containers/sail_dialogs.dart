@@ -81,7 +81,7 @@ Future<T?> _baseDialogSimple<T>({
         SailText.primary20(title),
         const SailSpacing(SailStyleValues.padding08),
         SailText.secondary13(subtitle),
-        const SailSpacing(SailStyleValues.padding30),
+        const SailSpacing(SailStyleValues.padding32),
         DialogButtons(onPressed: onConfirm),
       ],
     ),

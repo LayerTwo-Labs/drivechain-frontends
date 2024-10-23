@@ -26,13 +26,13 @@ class QuestionContainer extends StatelessWidget {
           child: SailRawCard(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(SailStyleValues.padding15),
+                padding: const EdgeInsets.all(SailStyleValues.padding16),
                 child: SailColumn(
-                  spacing: SailStyleValues.padding30,
+                  spacing: SailStyleValues.padding32,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+                      padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
                       child: SailColumn(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,

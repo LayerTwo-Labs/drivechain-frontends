@@ -21,7 +21,7 @@ class DashboardActionModal extends StatelessWidget {
       backgroundColor: theme.colors.actionHeader,
       child: SailRawCard(
         child: SailColumn(
-          spacing: SailStyleValues.padding50,
+          spacing: SailStyleValues.padding64,
           mainAxisSize: MainAxisSize.min,
           children: [
             SailColumn(
@@ -33,8 +33,8 @@ class DashboardActionModal extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(
-                    left: SailStyleValues.padding15,
-                    top: SailStyleValues.padding15,
+                    left: SailStyleValues.padding16,
+                    top: SailStyleValues.padding16,
                   ),
                   child: ActionHeaderChip(title: title),
                 ),

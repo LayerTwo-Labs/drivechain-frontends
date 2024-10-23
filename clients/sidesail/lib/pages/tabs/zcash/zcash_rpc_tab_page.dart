@@ -23,7 +23,7 @@ class ZCashRPCTabPage extends StatelessWidget {
           title: 'RPC',
           subtitle: 'Send RPCs directly to the ZCash sidechain. Try typing in "getblockcount" in the input below.',
           body: Padding(
-            padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding50),
+            padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding64),
             child: Column(
               children: [
                 RPCWidget(

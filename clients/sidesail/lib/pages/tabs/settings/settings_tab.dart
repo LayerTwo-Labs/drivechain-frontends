@@ -29,7 +29,7 @@ class SettingsTabPage extends StatelessWidget {
         viewModelBuilder: () => NodeConnectionViewModel(),
         builder: ((context, model, child) {
           return SailColumn(
-            spacing: SailStyleValues.padding50,
+            spacing: SailStyleValues.padding64,
             children: [
               TweakNodeConnectionSettings(
                 name: model.sidechain.rpc.chain.name,
@@ -72,7 +72,7 @@ class SettingsTabPage extends StatelessWidget {
                               spacing: SailStyleValues.padding10,
                               children: [
                                 SailRow(
-                                  spacing: SailStyleValues.padding15,
+                                  spacing: SailStyleValues.padding16,
                                   children: [
                                     SailButton.primary(
                                       'Inter',

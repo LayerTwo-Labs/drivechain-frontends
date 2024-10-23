@@ -24,9 +24,9 @@ class OverviewPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ExperimentalBanner(),
-          SizedBox(height: SailStyleValues.padding15),
+          SizedBox(height: SailStyleValues.padding16),
           BalancesView(),
-          SizedBox(height: SailStyleValues.padding15),
+          SizedBox(height: SailStyleValues.padding16),
           TransactionsView(),
         ],
       ),
@@ -82,7 +82,7 @@ class BalancesView extends StatelessWidget {
                       'Balances',
                       bold: true,
                     ),
-                    const SizedBox(height: SailStyleValues.padding15),
+                    const SizedBox(height: SailStyleValues.padding16),
                     ConstrainedBox(
                       constraints: const BoxConstraints(minWidth: 150),
                       child: Row(
@@ -99,7 +99,7 @@ class BalancesView extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: SailStyleValues.padding15),
+                    const SizedBox(height: SailStyleValues.padding16),
                     ConstrainedBox(
                       constraints: const BoxConstraints(minWidth: 150),
                       child: Row(
@@ -149,7 +149,7 @@ class BalancesView extends StatelessWidget {
                         CommonCurrencies().usd,
                       ),
                     ),
-                    const SizedBox(height: SailStyleValues.padding15),
+                    const SizedBox(height: SailStyleValues.padding16),
                     // Sum of all balances converted to USD at current BTC price
                     SailText.primary13(
                       Money.fromNumWithCurrency(
@@ -204,7 +204,7 @@ class TransactionsView extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: SailStyleValues.padding15), // Add some space between the two tables
+                const SizedBox(width: SailStyleValues.padding16), // Add some space between the two tables
                 Flexible(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

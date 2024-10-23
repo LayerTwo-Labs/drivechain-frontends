@@ -15,7 +15,7 @@ class QtButton extends StatelessWidget {
     required this.onPressed,
     required this.child,
     this.padding = const EdgeInsets.symmetric(
-      horizontal: SailStyleValues.padding15,
+      horizontal: SailStyleValues.padding16,
       vertical: 0,
     ),
     this.large = false,

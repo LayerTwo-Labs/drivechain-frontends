@@ -24,7 +24,7 @@ class SidechainSendPage extends StatelessWidget {
         return SailPage(
           scrollable: true,
           body: Padding(
-            padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+            padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
             child: Column(
               children: [
                 DashboardGroup(
@@ -48,7 +48,7 @@ class SidechainSendPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SailSpacing(SailStyleValues.padding30),
+                const SailSpacing(SailStyleValues.padding32),
                 DashboardGroup(
                   title: 'Transactions',
                   widgetTrailing: SailText.secondary13(model.transactions.length.toString()),

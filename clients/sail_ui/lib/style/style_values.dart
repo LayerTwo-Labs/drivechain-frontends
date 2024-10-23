@@ -9,12 +9,12 @@ abstract class SailStyleValues {
   static const double padding08 = 8;
   static const double padding10 = 10;
   static const double padding12 = 12;
-  static const double padding15 = 15;
+  static const double padding16 = 16;
   static const double padding20 = 20;
   static const double padding25 = 25;
-  static const double padding30 = 30;
+  static const double padding32 = 32;
   static const double padding40 = 40;
-  static const double padding50 = 50;
+  static const double padding64 = 64;
 
   // ---------- ICON SIZES ----------
   static const iconSizePrimary = 14.0;

@@ -22,15 +22,15 @@ class SidechainExplorerTabPage extends StatelessWidget {
       builder: ((context, model, child) {
         return SailPage(
           body: SailColumn(
-            spacing: SailStyleValues.padding30,
+            spacing: SailStyleValues.padding32,
             children: [
               DashboardGroup(
                 title: 'Your installed chains',
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(SailStyleValues.padding30),
+                    padding: const EdgeInsets.all(SailStyleValues.padding32),
                     child: SailRow(
-                      spacing: SailStyleValues.padding30,
+                      spacing: SailStyleValues.padding32,
                       children: [
                         ChainOverviewCard(
                           chain: TestSidechain(),
