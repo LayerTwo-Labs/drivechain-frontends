@@ -200,7 +200,7 @@ Future<void> initEnforcer(
 ) async {
   final enforcer = GetIt.I.get<EnforcerRPC>();
 
-  final binary = 'bip300301-enforcer';
+  final binary = 'bip300301_enforcer';
   await enforcer.initBinary(context, binary);
 
   log.i('mainchain init: successfully started enforcer');
