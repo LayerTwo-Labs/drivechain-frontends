@@ -37,7 +37,7 @@ class RootPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: theme.colors.background,
           appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(kToolbarHeight),
+            preferredSize: const Size.fromHeight(80),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -55,40 +55,29 @@ class RootPage extends StatelessWidget {
                   return Row(
                     children: [
                       QtTab(
-                        icon: Icon(
-                          Icons.home,
-                          color: tabsRouter.activeIndex == 0 ? theme.colors.primary : theme.colors.text,
-                        ),
+                        icon: SailSVGAsset.iconHome,
                         label: 'Overview',
                         active: tabsRouter.activeIndex == 0,
                         onTap: () => tabsRouter.setActiveIndex(0),
                       ),
                       QtTab(
-                        icon: Icon(
-                          Icons.send,
-                          color: tabsRouter.activeIndex == 1 ? theme.colors.primary : theme.colors.text,
-                        ),
+                        icon: SailSVGAsset.iconSend,
                         label: 'Send',
                         active: tabsRouter.activeIndex == 1,
                         onTap: () => tabsRouter.setActiveIndex(1),
                       ),
                       QtTab(
-                        icon: Icon(
-                          Icons.qr_code,
-                          color: tabsRouter.activeIndex == 2 ? theme.colors.primary : theme.colors.text,
-                        ),
+                        icon: SailSVGAsset.iconReceive,
                         label: 'Receive',
                         active: tabsRouter.activeIndex == 2,
                         onTap: () => tabsRouter.setActiveIndex(2),
                       ),
                       QtTab(
-                        icon: Icon(
-                          Icons.list,
-                          color: tabsRouter.activeIndex == 3 ? theme.colors.primary : theme.colors.text,
-                        ),
+                        icon: SailSVGAsset.iconTransactions,
                         label: 'Transactions',
                         active: tabsRouter.activeIndex == 3,
                         onTap: () => tabsRouter.setActiveIndex(3),
+                        end: true,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -103,10 +92,7 @@ class RootPage extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4.0),
                             child: QtTab(
-                              icon: Icon(
-                                Icons.link,
-                                color: tabsRouter.activeIndex == 4 ? theme.colors.primary : theme.colors.text,
-                              ),
+                              icon: SailSVGAsset.iconSidechains,
                               label: 'Sidechains',
                               active: tabsRouter.activeIndex == 4,
                               onTap: () => tabsRouter.setActiveIndex(4),

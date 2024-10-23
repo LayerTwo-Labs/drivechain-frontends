@@ -3,8 +3,9 @@ import 'package:sail_ui/sail_ui.dart';
 
 class QtTab extends StatelessWidget {
   final String label;
-  final Widget icon;
+  final SailSVGAsset icon;
   final bool active;
+  final bool end;
   final VoidCallback onTap;
 
   const QtTab({
@@ -13,31 +14,59 @@ class QtTab extends StatelessWidget {
     required this.icon,
     required this.active,
     required this.onTap,
+    this.end = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.sailTheme;
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: SailScaleButton(
-        onPressed: onTap,
-        pressed: active,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 50),
-          padding: const EdgeInsets.all(8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              icon,
-              const SizedBox(width: 2),
-              SailText.primary12(
-                label,
-                color: active ? context.sailTheme.colors.primary : null,
+            color: active ? Colors.transparent : theme.colors.background,
+            border: Border(
+              left: BorderSide(
+                color: theme.colors.formFieldBorder,
+                width: 1,
               ),
-            ],
+              top: BorderSide(
+                color: active ? Colors.transparent : theme.colors.formFieldBorder,
+                width: 1,
+              ),
+              right: end
+                  ? BorderSide(
+                      color: theme.colors.formFieldBorder,
+                      width: 1,
+                    )
+                  : BorderSide.none,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: SailStyleValues.padding16,
+              horizontal: SailStyleValues.padding64,
+            ),
+            child: SailColumn(
+              mainAxisSize: MainAxisSize.max,
+              spacing: 0,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SailSVG.fromAsset(
+                  icon,
+                  width: 24,
+                  color: theme.colors.text,
+                ),
+                Expanded(child: Container()),
+                SailText.primary12(
+                  label,
+                ),
+              ],
+            ),
           ),
         ),
       ),
