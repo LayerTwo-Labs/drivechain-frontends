@@ -50,7 +50,7 @@ class _TopNavState extends State<TopNav> {
                       onTap: () {
                         tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
                       },
-                      icon: SailSVG.icon(SailSVGAsset.iconTabPeg),
+                      icon: SailSVGAsset.iconTabPeg,
                     ),
                     if (_sidechain.rpc.chain.type == ChainType.testchain)
                       QtTab(
@@ -59,7 +59,7 @@ class _TopNavState extends State<TopNav> {
                         onTap: () {
                           tabsRouter.setActiveIndex(Tabs.ParentChainWithdrawalExplorer.index);
                         },
-                        icon: SailSVG.icon(SailSVGAsset.iconTabWithdrawalExplorer),
+                        icon: SailSVGAsset.iconTabWithdrawalExplorer,
                       ),
                     if (_sidechain.rpc.chain.type == ChainType.testchain)
                       QtTab(
@@ -68,7 +68,7 @@ class _TopNavState extends State<TopNav> {
                         onTap: () {
                           tabsRouter.setActiveIndex(Tabs.ParentChainBMM.index);
                         },
-                        icon: SailSVG.icon(SailSVGAsset.iconTabBMM),
+                        icon: SailSVGAsset.iconTabBMM,
                       ),
                   ],
                 ),
@@ -128,7 +128,7 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.SidechainSend.index);
             },
-            icon: SailSVG.icon(SailSVGAsset.iconTabSidechainSend),
+            icon: SailSVGAsset.iconTabSidechainSend,
           ),
         ];
       case ChainType.ethereum:
@@ -139,7 +139,7 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.EthereumConsole.index);
             },
-            icon: SailSVG.icon(SailSVGAsset.iconTabConsole),
+            icon: SailSVGAsset.iconTabConsole,
           ),
         ];
 
@@ -151,7 +151,7 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashTransfer.index);
             },
-            icon: SailSVG.icon(SailSVGAsset.iconTabSidechainSend),
+            icon: SailSVGAsset.iconTabSidechainSend,
           ),
           QtTab(
             label: 'Shield/Deshield',
@@ -159,7 +159,7 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
             },
-            icon: SailSVG.icon(SailSVGAsset.iconTabZCashShieldDeshield),
+            icon: SailSVGAsset.iconTabZCashShieldDeshield,
           ),
           QtTab(
             label: 'Melt/Cast',
@@ -167,7 +167,7 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
             },
-            icon: SailSVG.icon(SailSVGAsset.iconTabZCashMeltCast),
+            icon: SailSVGAsset.iconTabZCashMeltCast,
           ),
           QtTab(
             label: 'Operation Statuses',
@@ -175,7 +175,7 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashOperationStatuses.index);
             },
-            icon: SailSVG.icon(SailSVGAsset.iconTabZCashOperationStatuses),
+            icon: SailSVGAsset.iconTabZCashOperationStatuses,
           ),
         ];
 
@@ -200,7 +200,7 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.TestchainConsole.index);
             },
-            icon: SailSVG.icon(SailSVGAsset.iconTabConsole),
+            icon: SailSVGAsset.iconTabConsole,
           ),
         ];
         break;
@@ -216,7 +216,7 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashConsole.index);
             },
-            icon: SailSVG.icon(SailSVGAsset.iconTabConsole),
+            icon: SailSVGAsset.iconTabConsole,
           ),
         ];
         break;
@@ -234,7 +234,7 @@ class _TopNavState extends State<TopNav> {
           // default to second to last route (node settings)
           tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
         },
-        icon: SailSVG.icon(SailSVGAsset.iconTabSettings),
+        icon: SailSVGAsset.iconTabSettings,
       ),
     ];
   }

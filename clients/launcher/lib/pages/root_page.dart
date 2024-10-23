@@ -39,10 +39,7 @@ class RootPage extends StatelessWidget {
                   return Row(
                     children: [
                       QtTab(
-                        icon: Icon(
-                          Icons.home,
-                          color: tabsRouter.activeIndex == 0 ? theme.colors.primary : theme.colors.text,
-                        ),
+                        icon: SailSVGAsset.iconHome,
                         label: 'Overview',
                         active: tabsRouter.activeIndex == 0,
                         onTap: () => tabsRouter.setActiveIndex(0),
