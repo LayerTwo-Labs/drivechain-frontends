@@ -17,7 +17,7 @@ class SailPadding extends StatelessWidget {
       padding: padding ??
           EdgeInsets.symmetric(
             horizontal: SailTheme.of(context).dense ? SailStyleValues.padding10 : SailStyleValues.padding20,
-            vertical: SailTheme.of(context).dense ? SailStyleValues.padding15 : SailStyleValues.padding25,
+            vertical: SailTheme.of(context).dense ? SailStyleValues.padding16 : SailStyleValues.padding25,
           ),
       child: child,
     );

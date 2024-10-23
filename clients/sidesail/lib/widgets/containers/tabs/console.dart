@@ -147,7 +147,7 @@ class RPCWidgetState extends State<RPCWidget> {
                     return Scaffold(
                       backgroundColor: theme.colors.background,
                       body: Padding(
-                        padding: const EdgeInsets.only(left: SailStyleValues.padding30),
+                        padding: const EdgeInsets.only(left: SailStyleValues.padding32),
                         child: SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
                           child: SailColumn(
@@ -202,7 +202,7 @@ class ResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding15,
+        vertical: SailStyleValues.padding16,
         horizontal: SailStyleValues.padding10,
       ),
       child: SailColumn(

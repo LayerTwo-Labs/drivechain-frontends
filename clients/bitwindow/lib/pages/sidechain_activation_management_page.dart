@@ -81,7 +81,7 @@ class SidechainActivationManagementView extends StatelessWidget {
             height: 150,
             child: ActiveSidechainsTable(blocks: model.activeSidechains),
           ),
-          const SizedBox(height: SailStyleValues.padding15),
+          const SizedBox(height: SailStyleValues.padding16),
           SailText.primary12('Pending Sidechain Proposals'),
           const SizedBox(height: SailStyleValues.padding08),
           Container(
@@ -97,7 +97,7 @@ class SidechainActivationManagementView extends StatelessWidget {
             height: 150,
             child: PendingSidechainProposalsTable(proposals: model.sidechainProposals),
           ),
-          const SizedBox(height: SailStyleValues.padding30),
+          const SizedBox(height: SailStyleValues.padding32),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -107,7 +107,7 @@ class SidechainActivationManagementView extends StatelessWidget {
                     onPressed: () => model.ack(context),
                     child: SailText.primary13('ACK'),
                   ),
-                  const SizedBox(width: SailStyleValues.padding15),
+                  const SizedBox(width: SailStyleValues.padding16),
                   QtButton(
                     onPressed: () => model.nack(context),
                     child: SailText.primary13('NACK'),
@@ -122,7 +122,7 @@ class SidechainActivationManagementView extends StatelessWidget {
                     },
                     child: SailText.primary13('Create Sidechain Proposal'),
                   ),
-                  const SizedBox(width: SailStyleValues.padding15),
+                  const SizedBox(width: SailStyleValues.padding16),
                   QtIconButton(
                     tooltip: 'What is this?',
                     icon: const Icon(Icons.question_mark_rounded, size: 13),

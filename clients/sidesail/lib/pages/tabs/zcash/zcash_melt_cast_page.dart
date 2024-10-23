@@ -64,7 +64,7 @@ class ZCashMeltCast extends StatelessWidget {
       viewModelBuilder: () => ZCashMeltCastViewModel(),
       builder: ((context, model, child) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+          padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
           child: SailColumn(
             spacing: 0,
             children: [
@@ -91,7 +91,7 @@ class ZCashMeltCast extends StatelessWidget {
                 children: [
                   Flexible(
                     child: SailColumn(
-                      spacing: SailStyleValues.padding30,
+                      spacing: SailStyleValues.padding32,
                       children: [
                         DashboardGroup(
                           title: 'Melt',
@@ -139,7 +139,7 @@ class ZCashMeltCast extends StatelessWidget {
                   ),
                   Flexible(
                     child: SailColumn(
-                      spacing: SailStyleValues.padding30,
+                      spacing: SailStyleValues.padding32,
                       children: [
                         DashboardGroup(
                           title: 'Cast',
@@ -192,7 +192,7 @@ class ZCashMeltCast extends StatelessWidget {
                   ),
                 ],
               ),
-              const SailSpacing(SailStyleValues.padding30),
+              const SailSpacing(SailStyleValues.padding32),
               DashboardGroup(
                 title: 'UTXOs',
                 widgetTrailing: SailText.secondary13(model.unshieldedUTXOs.length.toString()),

@@ -86,7 +86,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
               ),
             ),
           ),
-          const SizedBox(height: SailStyleValues.padding15),
+          const SizedBox(height: SailStyleValues.padding16),
           Center(
             child: QtButton(
               child: SailText.primary12('Add / Remove'),
@@ -137,7 +137,7 @@ class SelectableListTile extends StatelessWidget {
                 color: textColor,
               ),
             ),
-            const SailSpacing(SailStyleValues.padding15),
+            const SailSpacing(SailStyleValues.padding16),
             SizedBox(
               width: 120,
               child: SailText.primary13(
@@ -348,7 +348,7 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
               child: SailText.primary12('Deposit'),
             ),
             SailText.secondary12('The sidechain may also deduct a fee from your deposit.'),
-            const SizedBox(height: SailStyleValues.padding15),
+            const SizedBox(height: SailStyleValues.padding16),
             const QtSeparator(),
             SailText.primary13('Your Recent Deposits:'),
             Expanded(

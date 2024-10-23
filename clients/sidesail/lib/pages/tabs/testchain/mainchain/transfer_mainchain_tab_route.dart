@@ -28,12 +28,12 @@ class TransferMainchainTabPage extends StatelessWidget {
         return SailPage(
           body: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+              padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
               child: SailColumn(
-                spacing: SailStyleValues.padding30,
+                spacing: SailStyleValues.padding32,
                 children: [
                   SailColumn(
-                    spacing: SailStyleValues.padding30,
+                    spacing: SailStyleValues.padding32,
                     children: [
                       DashboardGroup(
                         title: 'Actions',

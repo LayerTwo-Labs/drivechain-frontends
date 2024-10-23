@@ -199,7 +199,7 @@ Future<CoreTransaction?> showAddressBookModal(BuildContext context) {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: SailStyleValues.padding25,
-              vertical: SailStyleValues.padding15,
+              vertical: SailStyleValues.padding16,
             ),
             child: Container(),
           ),

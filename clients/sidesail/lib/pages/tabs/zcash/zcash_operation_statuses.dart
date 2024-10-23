@@ -31,9 +31,9 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
             depositNudgeAction: () => tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index),
           ),
           body: Padding(
-            padding: const EdgeInsets.only(bottom: SailStyleValues.padding30),
+            padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
             child: SailColumn(
-              spacing: SailStyleValues.padding30,
+              spacing: SailStyleValues.padding32,
               children: [
                 DashboardGroup(
                   title: 'Operation statuses',

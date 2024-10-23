@@ -35,7 +35,7 @@ class SailLogPage extends StatelessWidget {
               }
             },
             child: Padding(
-              padding: const EdgeInsets.all(SailStyleValues.padding30),
+              padding: const EdgeInsets.all(SailStyleValues.padding32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

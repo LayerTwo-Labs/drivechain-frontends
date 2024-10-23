@@ -34,8 +34,8 @@ class LoadingIndicator extends StatelessWidget {
       builder: (context) {
         final theme = SailTheme.of(context);
         return SizedBox(
-          width: SailStyleValues.padding15,
-          height: SailStyleValues.padding15,
+          width: SailStyleValues.padding16,
+          height: SailStyleValues.padding16,
           child: Stack(
             children: [
               Center(

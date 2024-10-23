@@ -126,8 +126,8 @@ class SailButton extends StatelessWidget {
           onPressed: onPressed,
           loading: loading,
           padding: EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding15 / divideFactor,
-            horizontal: SailStyleValues.padding15 / divideFactor,
+            vertical: SailStyleValues.padding16 / divideFactor,
+            horizontal: SailStyleValues.padding16 / divideFactor,
           ),
           child: child,
         );

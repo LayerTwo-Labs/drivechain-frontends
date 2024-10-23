@@ -31,8 +31,8 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: SailStyleValues.padding30,
-                        vertical: SailStyleValues.padding15,
+                        horizontal: SailStyleValues.padding32,
+                        vertical: SailStyleValues.padding16,
                       ),
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 600),
@@ -66,7 +66,7 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SailSpacing(SailStyleValues.padding30),
+                const SailSpacing(SailStyleValues.padding32),
                 DashboardGroup(
                   title: 'Bundle history',
                   widgetTrailing: SailText.secondary13('${model.bundles.length} bundle(s)'),
@@ -81,7 +81,7 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
                           if (model.bundleCount == 0)
                             Center(
                               child: Padding(
-                                padding: const EdgeInsets.all(SailStyleValues.padding30),
+                                padding: const EdgeInsets.all(SailStyleValues.padding32),
                                 child: SailText.primary20('No withdrawal bundle'),
                               ),
                             ),

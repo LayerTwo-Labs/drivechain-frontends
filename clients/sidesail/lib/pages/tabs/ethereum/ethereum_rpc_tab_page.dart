@@ -55,7 +55,7 @@ class EthereumRPCTabPage extends StatelessWidget {
             ],
           ),
           body: Padding(
-            padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding50),
+            padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding64),
             child: RPCWidget(
               rpcMethods: ethRPCMethods,
             ),

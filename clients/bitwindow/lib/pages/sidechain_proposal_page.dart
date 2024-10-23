@@ -31,7 +31,7 @@ class SidechainProposalView extends StatelessWidget {
       builder: (context, model, child) {
         return SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(SailStyleValues.padding15),
+            padding: const EdgeInsets.all(SailStyleValues.padding16),
             child: Form(
               key: model.formKey,
               child: Column(
@@ -104,7 +104,7 @@ class SidechainProposalView extends StatelessWidget {
                   size: TextFieldSize.small,
                 ),
               ),
-              const SizedBox(width: SailStyleValues.padding15),
+              const SizedBox(width: SailStyleValues.padding16),
               Expanded(
                 flex: 3,
                 child: SailTextFormField(
@@ -135,7 +135,7 @@ class SidechainProposalView extends StatelessWidget {
             maxLines: 5,
             size: TextFieldSize.small,
           ),
-          const SizedBox(height: SailStyleValues.padding15),
+          const SizedBox(height: SailStyleValues.padding16),
           SailTextFormField(
             label: 'Version',
             hintText: '0',
@@ -145,7 +145,7 @@ class SidechainProposalView extends StatelessWidget {
             errorText: model.versionError,
             size: TextFieldSize.small,
           ),
-          const SizedBox(height: SailStyleValues.padding15),
+          const SizedBox(height: SailStyleValues.padding16),
           SailTextFormField(
             label: 'Release tarball hash (256 bits)',
             hintText: 'Gitian build tarball hash (Linux x86-64)',
@@ -154,7 +154,7 @@ class SidechainProposalView extends StatelessWidget {
             errorText: model.tarballHashError,
             size: TextFieldSize.small,
           ),
-          const SizedBox(height: SailStyleValues.padding15),
+          const SizedBox(height: SailStyleValues.padding16),
           SailTextFormField(
             label: 'Build commit hash (160 bits)',
             hintText: 'Gitian build commit hash',
@@ -181,7 +181,7 @@ class SidechainProposalView extends StatelessWidget {
               child: Stack(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(SailStyleValues.padding15),
+                    padding: const EdgeInsets.all(SailStyleValues.padding16),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,

@@ -81,7 +81,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                     ? Padding(
                         padding: const EdgeInsets.all(40),
                         child: SailColumn(
-                          spacing: SailStyleValues.padding15,
+                          spacing: SailStyleValues.padding16,
                           children: [
                             ConstrainedBox(
                               constraints: const BoxConstraints(

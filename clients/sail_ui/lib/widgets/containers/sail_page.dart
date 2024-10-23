@@ -66,12 +66,12 @@ class SailPage extends StatelessWidget {
                 spacing: 0,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(top: SailStyleValues.padding50),
+                    padding: const EdgeInsets.only(top: SailStyleValues.padding64),
                     child: SailText.primary24(title ?? ''),
                   ),
                   const SailSpacing(SailStyleValues.padding08),
                   SailText.secondary13(subtitle ?? ''),
-                  const SailSpacing(SailStyleValues.padding50),
+                  const SailSpacing(SailStyleValues.padding64),
                   body,
                 ],
               ),
@@ -107,7 +107,7 @@ Widget _withPadding(
   return Padding(
     padding: const EdgeInsets.only(
       bottom: SailStyleValues.padding20,
-      top: SailStyleValues.padding15,
+      top: SailStyleValues.padding16,
     ),
     child: child,
   );

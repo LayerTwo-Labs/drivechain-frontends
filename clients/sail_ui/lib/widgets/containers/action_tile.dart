@@ -27,7 +27,7 @@ class ActionTile extends StatelessWidget {
     return SailScaleButton(
       onPressed: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding15, horizontal: SailStyleValues.padding30),
+        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding16, horizontal: SailStyleValues.padding32),
         child: Row(
           children: [
             if (icon != null)

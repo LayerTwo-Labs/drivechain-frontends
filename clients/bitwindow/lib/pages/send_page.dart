@@ -115,7 +115,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
                 child: SailText.primary12('Pay To:'),
               ),
             ),
-            const SizedBox(width: SailStyleValues.padding15),
+            const SizedBox(width: SailStyleValues.padding16),
             Expanded(
               child: SailTextField(
                 controller: viewModel.addressController,
@@ -156,7 +156,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
             ),
           ],
         ),
-        const SizedBox(height: SailStyleValues.padding15),
+        const SizedBox(height: SailStyleValues.padding16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -169,7 +169,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
                 child: SailText.primary12('Amount:'),
               ),
             ),
-            const SizedBox(width: SailStyleValues.padding15),
+            const SizedBox(width: SailStyleValues.padding16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +181,7 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
                           controller: viewModel.amountController,
                         ),
                       ),
-                      const SizedBox(width: SailStyleValues.padding15),
+                      const SizedBox(width: SailStyleValues.padding16),
                       UnitDropdown(
                         value: viewModel.unit,
                         onChanged: viewModel.onUnitChanged,
@@ -189,11 +189,11 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: SailStyleValues.padding15),
+                  const SizedBox(height: SailStyleValues.padding16),
                   LayoutBuilder(
                     builder: (context, constraints) {
                       return Wrap(
-                        spacing: SailStyleValues.padding15,
+                        spacing: SailStyleValues.padding16,
                         runSpacing: SailStyleValues.padding08,
                         children: [
                           SailCheckbox(
@@ -241,7 +241,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
             ),
           ],
         ),
-        const SizedBox(height: SailStyleValues.padding15),
+        const SizedBox(height: SailStyleValues.padding16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -293,7 +293,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
             ),
           ],
         ),
-        const SizedBox(height: SailStyleValues.padding15),
+        const SizedBox(height: SailStyleValues.padding16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -333,7 +333,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
                               enabled: false,
                             ),
                           ),
-                          const SizedBox(width: SailStyleValues.padding15),
+                          const SizedBox(width: SailStyleValues.padding16),
                         ],
                       ),
                       const SizedBox(height: SailStyleValues.padding08),
@@ -344,7 +344,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
             ),
           ],
         ),
-        const SizedBox(height: SailStyleValues.padding15),
+        const SizedBox(height: SailStyleValues.padding16),
         SailCheckbox(
           value: viewModel.replaceByFee,
           onChanged: viewModel.setReplaceByFee,
