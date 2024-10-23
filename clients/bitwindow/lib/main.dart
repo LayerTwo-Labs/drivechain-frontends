@@ -64,19 +64,18 @@ void main() async {
       },
       initMethod: (context) async {
         try {
+          // first, set all binaries as initializing
+          mainchain.initializingBinary = true;
+          GetIt.I.get<EnforcerRPC>().initializingBinary = true;
+          GetIt.I.get<API>().initializingBinary = true;
+
           await initMainchainBinary(context, log, mainchain);
           log.i(
             'mainchain inited: ibd complete, ready to start enforcer',
           );
 
           if (!context.mounted) return;
-          await Future.any([
-            initEnforcer(context, log),
-            Future.delayed(const Duration(seconds: 2)),
-          ]);
-          log.i(
-            'enforcer inited or timed out after 2 seconds: proceeding to start server',
-          );
+          await initEnforcer(context, log);
 
           if (!context.mounted) return;
           await initServer(context, log);
@@ -201,7 +200,22 @@ Future<void> initEnforcer(
   final enforcer = GetIt.I.get<EnforcerRPC>();
 
   final binary = 'bip300301_enforcer';
-  await enforcer.initBinary(context, binary);
+  try {
+    await enforcer.initBinary(context, binary);
+  } catch (e) {
+    log.e('could not init enforcer: $e');
+  }
+
+  // return when the enforcer is connected, but always move on
+  // if 3 seconds have passed
+  await Future.any([
+    () async {
+      while (!enforcer.connected) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }(),
+    Future.delayed(const Duration(seconds: 3)),
+  ]);
 
   log.i('mainchain init: successfully started enforcer');
 }
@@ -214,6 +228,17 @@ Future<void> initServer(
 
   final binary = 'drivechain-server';
   await server.initBinary(context, binary);
+
+  // return when the server is connected, but always move on
+  // if 3 seconds have passed
+  await Future.any([
+    () async {
+      while (!server.connected) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }(),
+    Future.delayed(const Duration(seconds: 3)),
+  ]);
 
   log.i('server init: successfully started');
 }
