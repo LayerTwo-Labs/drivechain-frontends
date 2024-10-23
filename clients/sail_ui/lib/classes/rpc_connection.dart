@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -58,25 +59,24 @@ abstract class RPCConnection extends ChangeNotifier {
         return (connected, connectionError);
       }
     } catch (error) {
-      // Only update the error message if we're finished with binary init
-      if (!initializingBinary) {
-        String? newError = error.toString();
+      String? newError = error.toString();
 
-        if (newError.contains('Connection refused')) {
-          if (connectionError != null) {
-            // an error is already set, and we don't want to override it with
-            // a generic non-informative message!
-            newError = connectionError!;
-          } else {
-            // don't show a generic Connection refused as the first error
-            newError = null;
-          }
-        } else if (error is SocketException) {
+      if (error is GrpcError) {
+        // if it's a grpc error, we're talking to a binary that
+        // has a grpc server. That is initialized whenever it
+        // responds, so we know it's no longer initializing
+        newError = extractGRPCError(error);
+      } else if (!initializingBinary) {
+        // If it's not a grpc error however, we're probably talking
+        // to a bitcoin core based binary. That will return a bunch of
+        // uninteresting errors during initialization, such as "indexing blocks...",
+        // As long as it does that, we want to keep showing the orange spinner!
+
+        if (error is SocketException) {
           newError = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
         } else if (error is HttpException) {
-          // gotta parse out the error...
-
-          // Looks like this: SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
+          // Error looks like this, lets parse the interesting bits:
+          // SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
 
           newError = error.message;
           RegExp regExp = RegExp(r'\(([^)]+)\)');
@@ -85,16 +85,27 @@ abstract class RPCConnection extends ChangeNotifier {
             newError = match.group(1)!;
           }
         }
-
-        if (connectionError != newError) {
-          // we have a new error on our hands!
-          log.e('could not test connection: ${error.toString()}!');
-          notifyListeners();
-        }
-
-        connectionError = newError;
       }
+
+      if (newError.contains('Connection refused')) {
+        if (connectionError != null) {
+          // an error is already set, and we don't want to override it with
+          // a generic non-informative message!
+          newError = connectionError!;
+        } else {
+          // don't show a generic Connection refused as the first error
+          newError = null;
+        }
+      }
+
       connected = false;
+      if (connectionError != newError) {
+        // we have a new error on our hands!
+        log.e('could not test connection: ${newError!}!');
+        connectionError = newError;
+        initializingBinary = false;
+        notifyListeners();
+      }
     } finally {
       _testing = false;
     }
@@ -172,6 +183,11 @@ abstract class RPCConnection extends ChangeNotifier {
           return connected;
         }),
 
+        // A sad case: Binary is running, but not working for some reason
+        waitForBoolToBeTrue(() async {
+          return connectionError != null && !initializingBinary;
+        }),
+
         // Not so happy case: process exited
         // Throw an error, which causes the error message to be shown
         // in the daemon status chip
@@ -179,8 +195,8 @@ abstract class RPCConnection extends ChangeNotifier {
           final res = processes.exited(pid);
           return res != null;
         }).then(
-          (_) => {
-            throw processes.exited(pid)?.message ?? "'$binary' exited",
+          (_) {
+            throw processes.exited(pid)?.message ?? "'$binary' exited";
           },
         ),
 
@@ -288,4 +304,18 @@ class BlockchainInfo {
   Map<String, dynamic> toMap() => {
         'initialblockdownload': initialBlockDownload,
       };
+}
+
+String extractGRPCError(
+  Object error,
+) {
+  const messageIfUnknown = "We couldn't figure out exactly what went wrong. Reach out to the devs.";
+
+  if (error is GrpcError) {
+    return error.message ?? messageIfUnknown;
+  } else if (error is String) {
+    return error.toString();
+  } else {
+    return messageIfUnknown;
+  }
 }

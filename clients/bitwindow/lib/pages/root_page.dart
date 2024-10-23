@@ -289,13 +289,17 @@ class _StatusBarState extends State<StatusBar> {
                   ),
                   DaemonConnectionCard(
                     connection: model.enforcer,
-                    infoMessage: model.inIBD ? 'Waiting for L1 initial block download to complete...' : null,
+                    infoMessage: model.mainchainInitializing
+                        ? 'Waiting for mainchain to finish init'
+                        : model.inIBD
+                            ? 'Waiting for L1 initial block download to complete...'
+                            : null,
                     restartDaemon: () => model.initEnforcerBinary(context),
                     navigateToLogs: model.navigateToLogs,
                   ),
                   DaemonConnectionCard(
                     connection: model.server,
-                    infoMessage: model.inIBD ? 'Waiting for enforcer to start' : null,
+                    infoMessage: model.enforcerInitializing ? 'Waiting for enforcer to start' : null,
                     restartDaemon: () => model.initServerBinary(context),
                     navigateToLogs: model.navigateToLogs,
                   ),
