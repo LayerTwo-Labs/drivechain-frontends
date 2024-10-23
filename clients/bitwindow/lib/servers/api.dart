@@ -3,7 +3,6 @@ import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:bitwindow/gen/google/protobuf/empty.pb.dart';
 import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
-import 'package:bitwindow/util/error.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:grpc/grpc.dart';

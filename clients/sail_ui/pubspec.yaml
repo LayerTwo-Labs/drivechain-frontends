@@ -21,6 +21,7 @@ dependencies:
     intl: ^0.19.0
     crypto: ^3.0.6
     logger: ^2.4.0
+    grpc: ^4.0.1
     shared_preferences: ^2.3.2
     stacked: ^3.4.3
     auto_route: ^9.2.2
