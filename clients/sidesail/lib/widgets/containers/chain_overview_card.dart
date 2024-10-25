@@ -37,8 +37,8 @@ class ChainOverviewCard extends StatelessWidget {
               : null,
           borderRadius: inBottomNav ? BorderRadius.zero : null,
           padding: const EdgeInsets.symmetric(
-            horizontal: SailStyleValues.padding05,
-            vertical: SailStyleValues.padding05,
+            horizontal: SailStyleValues.padding04,
+            vertical: SailStyleValues.padding04,
           ),
           backgroundColor: highlighted ? theme.colors.actionHeader : null,
           child: SailColumn(
@@ -57,7 +57,7 @@ class ChainOverviewCard extends StatelessWidget {
                       child: SailText.primary12(chain.ticker, color: theme.colors.background),
                     ),
                     SailRow(
-                      spacing: SailStyleValues.padding05,
+                      spacing: SailStyleValues.padding04,
                       children: [
                         SailText.primary12(chain.name),
                         if (onPressed != null) SailSVG.icon(SailSVGAsset.iconArrow, height: 8),

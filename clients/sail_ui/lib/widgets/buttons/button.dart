@@ -100,7 +100,7 @@ class SailButton extends StatelessWidget {
           onPressed: onPressed,
           loading: loading,
           padding: EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding05 / divideFactor,
+            vertical: SailStyleValues.padding04 / divideFactor,
             horizontal: SailStyleValues.padding10 / divideFactor,
           ),
           child: child,
@@ -191,7 +191,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final disabled = widget.loading || widget.disabled || widget.onPressed == null;
-    final backgroundColor = widget.backgroundColor ?? theme.colors.chip;
+    final backgroundColor = widget.backgroundColor ?? theme.colors.background;
 
     // TODO: Actually use this
     Color textColor;
@@ -394,7 +394,7 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8.0),
-                color: theme.colors.backgroundSecondary,
+                color: theme.colors.background,
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),

@@ -17,7 +17,7 @@ class ActionHeaderChip extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          vertical: SailStyleValues.padding05,
+          vertical: SailStyleValues.padding04,
           horizontal: SailStyleValues.padding10,
         ),
         child: SailText.secondary12(title),
@@ -47,7 +47,7 @@ class DialogHeaderChip extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(
-          SailStyleValues.padding05,
+          SailStyleValues.padding04,
         ),
         child: SailRow(
           spacing: SailStyleValues.padding08,

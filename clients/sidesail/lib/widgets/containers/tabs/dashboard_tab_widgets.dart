@@ -234,7 +234,7 @@ class ReceiveAction extends StatelessWidget {
       ),
       builder: ((context, model, child) {
         return Padding(
-          padding: const EdgeInsets.only(left: SailStyleValues.padding05),
+          padding: const EdgeInsets.only(left: SailStyleValues.padding04),
           child: DashboardActionModal(
             customTitle ?? 'Receive on sidechain',
             endActionButton: SailButton.primary(

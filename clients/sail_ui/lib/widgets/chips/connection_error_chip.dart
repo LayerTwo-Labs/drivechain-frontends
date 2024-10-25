@@ -26,7 +26,7 @@ class ConnectionErrorChip extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              vertical: SailStyleValues.padding05,
+              vertical: SailStyleValues.padding04,
               horizontal: SailStyleValues.padding10,
             ),
             child: SailRow(

@@ -49,7 +49,7 @@ class _NavEntryState extends State<NavEntry> {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: SailStyleValues.padding08,
-              vertical: SailStyleValues.padding05,
+              vertical: SailStyleValues.padding04,
             ),
             child: SailRow(
               spacing: SailStyleValues.padding08,

@@ -39,7 +39,7 @@ class WithdrawalExplorerTabPage extends StatelessWidget {
                         child: SailTextField(
                           controller: model.searchController,
                           prefixIcon: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding05),
+                            padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
                             child: SailSVG.icon(SailSVGAsset.iconSearch),
                           ),
                           prefixIconConstraints: const BoxConstraints(maxHeight: 20),

@@ -612,7 +612,7 @@ class _TableRow extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           borderRadius:
-              hasHorizontalOverflow ? null : const BorderRadius.all(Radius.circular(SailStyleValues.padding05)),
+              hasHorizontalOverflow ? null : const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
           color: selected ? theme.colors.primary : backgroundColor,
         ),
         child: Row(

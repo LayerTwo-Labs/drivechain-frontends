@@ -5,7 +5,7 @@ abstract class SailStyleValues {
   static BorderRadius borderRadiusRegular = BorderRadius.circular(21);
   static BorderRadius borderRadiusButton = BorderRadius.circular(6);
 
-  static const double padding05 = 5;
+  static const double padding04 = 4;
   static const double padding08 = 8;
   static const double padding10 = 10;
   static const double padding12 = 12;
@@ -18,7 +18,7 @@ abstract class SailStyleValues {
 
   // ---------- ICON SIZES ----------
   static const iconSizePrimary = 14.0;
-
+  static const iconSizeSecondary = 12.0;
   // ---------- FONTS ----------
   static const lightWeight = FontWeight.w300;
   static const regularWeight = FontWeight.w400;
