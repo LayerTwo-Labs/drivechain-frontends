@@ -64,26 +64,6 @@ class SendPage extends StatelessWidget {
                       ],
                     ),
                     // Balance
-                    FutureBuilder(
-                      future: api.wallet.getBalance(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          final balance = formatBitcoin(
-                            satoshiToBTC(
-                              snapshot.data!.confirmedSatoshi.toInt() + snapshot.data!.pendingSatoshi.toInt(),
-                            ),
-                          );
-                          return SailText.primary12('Balance: $balance');
-                        } else if (snapshot.hasError) {
-                          return SailText.primary12(
-                            'Error: could not fetch balance',
-                            color: context.sailTheme.colors.error,
-                          );
-                        } else {
-                          return SailText.primary12('Balance: Loading...');
-                        }
-                      },
-                    ),
                   ],
                 ),
               ),
