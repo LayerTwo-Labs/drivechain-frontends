@@ -168,10 +168,11 @@ Future<void> initDependencies(Logger log, File logFile) async {
   );
   unawaited(sidechainProvider.fetch());
 
+  final mainchainLogDir = [ParentChain().type.datadir(), 'signet', 'debug.log'].join(Platform.pathSeparator);
   final mainchainRPC = await MainchainRPCLive.create(
     mainchainConf,
     ParentChain().binary,
-    serverLogFile,
+    mainchainLogDir,
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
