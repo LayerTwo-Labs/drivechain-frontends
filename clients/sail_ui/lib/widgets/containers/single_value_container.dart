@@ -34,7 +34,7 @@ class SingleValueContainer extends StatelessWidget {
       spacing: SailStyleValues.padding08,
       children: [
         if (prefixAction != null) prefixAction!,
-        if (prefixAction != null) const SailSpacing(SailStyleValues.padding05),
+        if (prefixAction != null) const SailSpacing(SailStyleValues.padding04),
         if (icon != null) icon!,
         if (label != null)
           Tooltip(

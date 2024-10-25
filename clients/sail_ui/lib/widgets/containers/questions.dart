@@ -36,7 +36,7 @@ class QuestionContainer extends StatelessWidget {
                       child: SailColumn(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: SailStyleValues.padding05,
+                        spacing: SailStyleValues.padding04,
                         trailingSpacing: true,
                         children: [
                           ActionHeaderChip(title: category),
@@ -45,7 +45,7 @@ class QuestionContainer extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(SailStyleValues.padding05),
+                      padding: const EdgeInsets.all(SailStyleValues.padding04),
                       child: SailRow(
                         spacing: SailStyleValues.padding10,
                         children: [

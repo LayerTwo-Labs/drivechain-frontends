@@ -29,7 +29,7 @@ class PegOutAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: SailStyleValues.padding05),
+      padding: const EdgeInsets.only(left: SailStyleValues.padding04),
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => PegOutViewModel(staticAddress: staticAddress),
         builder: ((context, model, child) {
@@ -229,7 +229,7 @@ class PegInAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: SailStyleValues.padding05),
+      padding: const EdgeInsets.only(left: SailStyleValues.padding04),
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => PegInViewModel(),
         builder: ((context, model, child) {
@@ -557,7 +557,7 @@ class WithdrawalExplorer extends StatelessWidget {
                       child: SailTextField(
                         controller: model.searchController,
                         prefixIcon: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding05),
+                          padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
                           child: SailSVG.icon(SailSVGAsset.iconSearch),
                         ),
                         prefixIconConstraints: const BoxConstraints(maxHeight: 20),

@@ -51,7 +51,7 @@ class SailTextFormField extends StatelessWidget {
             theme.dense ? SailStyleValues.padding08 : SailStyleValues.padding16,
           )
         : EdgeInsets.symmetric(
-            vertical: theme.dense ? SailStyleValues.padding05 : SailStyleValues.padding10,
+            vertical: theme.dense ? SailStyleValues.padding04 : SailStyleValues.padding10,
             horizontal: theme.dense ? SailStyleValues.padding10 : SailStyleValues.padding16,
           );
     final textSize = size == TextFieldSize.regular ? 15.0 : 12.0;

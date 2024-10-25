@@ -24,7 +24,7 @@ class _ErrorContainerState extends State<ErrorContainer> with TickerProviderStat
       child: QtContainer(
         child: SailColumn(
           mainAxisSize: MainAxisSize.min,
-          spacing: SailStyleValues.padding05,
+          spacing: SailStyleValues.padding04,
           children: [
             SailText.primary12(widget.error),
             if (widget.onRetry != null) ...{

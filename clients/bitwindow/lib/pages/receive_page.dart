@@ -43,7 +43,7 @@ class ReceivePage extends StatelessWidget {
                     Expanded(
                       child: QtContainer(
                         child: SailColumn(
-                          spacing: SailStyleValues.padding05,
+                          spacing: SailStyleValues.padding04,
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
