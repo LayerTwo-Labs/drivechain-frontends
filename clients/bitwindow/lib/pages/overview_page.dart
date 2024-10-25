@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:bitwindow/pages/transactions_page.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
@@ -19,15 +20,34 @@ class OverviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const QtPage(
+    return QtPage(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ExperimentalBanner(),
           SizedBox(height: SailStyleValues.padding16),
-          BalancesView(),
-          SizedBox(height: SailStyleValues.padding16),
-          TransactionsView(),
+          Expanded(
+            child: InlineTabBar(
+              tabs: [
+                TabItem(
+                  label: 'Overview',
+                  icon: SailSVGAsset.iconWallet,
+                  child: TransactionsView(),
+                ),
+                TabItem(
+                  label: 'Coin News',
+                  icon: SailSVGAsset.iconCoinnews,
+                  child: SailText.primary22('TODO: Make Coin News'),
+                ),
+                TabItem(
+                  label: 'Wallet Transactions',
+                  icon: SailSVGAsset.iconTransactions,
+                  child: TransactionsPage(),
+                ),
+              ],
+              initialIndex: 0,
+            ),
+          ),
         ],
       ),
     );
@@ -76,55 +96,6 @@ class ExperimentalBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class BalancesView extends StatelessWidget {
-  const BalancesView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => BalancesViewModel(),
-      builder: (context, model, child) {
-        if (model.hasErrorForKey('balance')) {
-          return ErrorContainer(
-            error: model.error('balance').toString(),
-          );
-        }
-        return Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    BitcoinPrice(
-                      money: Money.fromNumWithCurrency(
-                        50000,
-                        CommonCurrencies().usd,
-                      ),
-                    ),
-                    const SizedBox(height: SailStyleValues.padding16),
-                    // Sum of all balances converted to USD at current BTC price
-                    SailText.primary13(
-                      Money.fromNumWithCurrency(
-                        model.totalBalanceUSD,
-                        CommonCurrencies().usd,
-                      ).format('S###,###.##'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -381,7 +352,6 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         ];
       },
       rowCount: entries.length,
-      columnCount: 4,
       columnWidths: const [150, 100, 200, 100],
       headerDecoration: BoxDecoration(
         color: context.sailTheme.colors.formFieldBorder,
@@ -481,7 +451,6 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
         ];
       },
       rowCount: blocks.length,
-      columnCount: 3,
       columnWidths: const [150, 100, 200],
       headerDecoration: BoxDecoration(
         color: context.sailTheme.colors.formFieldBorder,

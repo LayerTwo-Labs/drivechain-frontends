@@ -8,7 +8,6 @@ class SailTable extends StatefulWidget {
     required this.headerBuilder,
     required this.rowBuilder,
     required this.rowCount,
-    required this.columnCount,
     required this.columnWidths,
     this.columnMinWidths,
     this.columnMaxWidths,
@@ -43,7 +42,6 @@ class SailTable extends StatefulWidget {
   final double defaultMinColumnWidth;
   final double defaultMaxColumnWidth;
   final int rowCount;
-  final int columnCount;
   final Color? backgroundColor;
   final Color? altBackgroundColor;
   final BoxDecoration? headerDecoration;
@@ -89,9 +87,15 @@ class _SailTableState extends State<SailTable> {
     _selectedId = widget.selectedRowId;
     _sortColumnIndex = widget.sortColumnIndex;
     _sortAscending = widget.sortAscending ?? true;
-    for (var width in widget.columnWidths) {
-      _widths.add(width);
-    }
+    _widths.addAll(widget.columnWidths);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        final parentWidth = context.size?.width ?? double.infinity;
+        if (parentWidth.isFinite) {
+          _resizeColumns(parentWidth, widget.columnWidths);
+        }
+      });
+    });
 
     _verticalController.addListener(_checkScrollPosition);
   }
@@ -101,6 +105,36 @@ class _SailTableState extends State<SailTable> {
     super.dispose();
     _horizontalController.dispose();
     _verticalController.dispose();
+  }
+
+  void _resizeColumns(double parentWidth, List<double> columnWidths) {
+    final totalWidth = columnWidths.fold(0.0, (sum, width) => sum + width);
+    if (totalWidth > parentWidth) {
+      _scaleColumnsToFit(parentWidth, columnWidths, totalWidth);
+    } else if (totalWidth < parentWidth) {
+      _expandColumnsToFill(parentWidth, columnWidths);
+    } else {
+      _widths.clear();
+      _widths.addAll(columnWidths);
+    }
+  }
+
+  void _scaleColumnsToFit(double parentWidth, List<double> columnWidths, double totalWidth) {
+    final scaleFactor = parentWidth / totalWidth;
+    _widths.clear();
+    for (var width in columnWidths) {
+      _widths.add(width * scaleFactor);
+    }
+  }
+
+  void _expandColumnsToFill(double parentWidth, List<double> columnWidths) {
+    final numColumns = columnWidths.length;
+    final extraWidth = parentWidth - columnWidths.fold(0.0, (sum, width) => sum + width);
+    final widthPerColumn = extraWidth / numColumns;
+    _widths.clear();
+    for (var width in columnWidths) {
+      _widths.add(width + widthPerColumn);
+    }
   }
 
   void _checkScrollPosition() {
@@ -134,14 +168,6 @@ class _SailTableState extends State<SailTable> {
       color: theme.colors.backgroundSecondary,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          double totalColumnSpace = constraints.maxWidth - horizontalRowPadding * 2;
-          bool hasHorizontalOverflow = _totalColumnWidths > totalColumnSpace;
-
-          double extraSpace = 0;
-          if (!hasHorizontalOverflow) {
-            extraSpace = totalColumnSpace - _totalColumnWidths;
-          }
-
           Widget innerListView;
 
           if (widget.shrinkWrap) {
@@ -158,10 +184,8 @@ class _SailTableState extends State<SailTable> {
                   height: widget.cellHeight,
                   selected: isSelected,
                   backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                  hasHorizontalOverflow: hasHorizontalOverflow,
                   horizontalRowPadding: horizontalRowPadding,
                   grid: widget.drawGrid,
-                  extraSpace: extraSpace,
                   drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
                   onPressed: () {
                     if (widget.selectableRows) {
@@ -189,7 +213,6 @@ class _SailTableState extends State<SailTable> {
               itemCount: widget.rowCount,
               controller: _verticalController,
               prototypeItem: SizedBox(
-                width: hasHorizontalOverflow ? _totalColumnWidths + horizontalRowPadding * 2 : constraints.maxWidth,
                 height: widget.cellHeight,
               ),
               itemBuilder: (context, row) {
@@ -203,10 +226,8 @@ class _SailTableState extends State<SailTable> {
                   height: widget.cellHeight,
                   selected: isSelected,
                   backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                  hasHorizontalOverflow: hasHorizontalOverflow,
                   horizontalRowPadding: horizontalRowPadding,
                   grid: widget.drawGrid,
-                  extraSpace: extraSpace,
                   drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
                   onPressed: () {
                     if (widget.selectableRows) {
@@ -244,6 +265,8 @@ class _SailTableState extends State<SailTable> {
             );
           }).toList();
 
+          double tableWidth = constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths;
+
           return Scrollbar(
             controller: _horizontalController,
             scrollbarOrientation: ScrollbarOrientation.bottom,
@@ -252,7 +275,7 @@ class _SailTableState extends State<SailTable> {
               scrollDirection: Axis.horizontal,
               physics: const ClampingScrollPhysics(),
               child: SizedBox(
-                width: hasHorizontalOverflow ? _totalColumnWidths + horizontalRowPadding * 2 : constraints.maxWidth,
+                width: tableWidth,
                 child: Column(
                   children: [
                     _TableHeader(
@@ -268,7 +291,6 @@ class _SailTableState extends State<SailTable> {
                       grid: widget.drawGrid,
                       resizableColumns: widget.resizableColumns,
                       horizontalRowPadding: horizontalRowPadding,
-                      extraSpace: extraSpace,
                       onStartResizeColumn: _onStartResizeColumn,
                       onEndResizeColumn: _onEndResizeColumn,
                       onResizedColumn: _onResizedColumn,
@@ -276,9 +298,7 @@ class _SailTableState extends State<SailTable> {
                     if (!widget.shrinkWrap)
                       Expanded(
                         child: ScrollConfiguration(
-                          behavior: ScrollConfiguration.of(context).copyWith(
-                            scrollbars: !hasHorizontalOverflow,
-                          ),
+                          behavior: ScrollConfiguration.of(context).copyWith(),
                           child: innerListView,
                         ),
                       ),
@@ -340,7 +360,6 @@ class _TableHeader extends StatelessWidget {
     required this.decoration,
     required this.grid,
     required this.resizableColumns,
-    required this.extraSpace,
     required this.onResizedColumn,
     required this.onStartResizeColumn,
     required this.onEndResizeColumn,
@@ -352,7 +371,6 @@ class _TableHeader extends StatelessWidget {
   final BoxDecoration? decoration;
   final bool grid;
   final bool resizableColumns;
-  final double extraSpace;
   final double horizontalRowPadding;
   final void Function(int column, double delta) onResizedColumn;
   final void Function(int column) onStartResizeColumn;
@@ -514,11 +532,9 @@ class _TableRow extends StatelessWidget {
     required this.cells,
     required this.onPressed,
     required this.selected,
-    required this.hasHorizontalOverflow,
     required this.widths,
     required this.height,
     required this.grid,
-    required this.extraSpace,
     required this.horizontalRowPadding,
     required this.drawBorder,
     this.backgroundColor,
@@ -527,12 +543,10 @@ class _TableRow extends StatelessWidget {
   final List<Widget> cells;
   final VoidCallback onPressed;
   final bool selected;
-  final bool hasHorizontalOverflow;
   final Color? backgroundColor;
   final List<double> widths;
   final double height;
   final bool grid;
-  final double extraSpace;
   final double horizontalRowPadding;
   final bool drawBorder;
 
@@ -571,15 +585,6 @@ class _TableRow extends StatelessWidget {
       i += 1;
     }
 
-    if (extraSpace > 0) {
-      cellWidgets.add(
-        SizedBox(
-          width: extraSpace,
-          height: height,
-        ),
-      );
-    }
-
     Widget contents;
 
     if (isWindows || grid) {
@@ -605,14 +610,13 @@ class _TableRow extends StatelessWidget {
     } else {
       contents = Container(
         margin: EdgeInsets.symmetric(
-          horizontal: hasHorizontalOverflow ? 0.0 : horizontalRowPadding,
+          horizontal: horizontalRowPadding,
         ),
         padding: EdgeInsets.symmetric(
-          horizontal: hasHorizontalOverflow ? horizontalRowPadding : 0.0,
+          horizontal: horizontalRowPadding,
         ),
         decoration: BoxDecoration(
-          borderRadius:
-              hasHorizontalOverflow ? null : const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
+          borderRadius: const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
           color: selected ? theme.colors.primary : backgroundColor,
         ),
         child: Row(
