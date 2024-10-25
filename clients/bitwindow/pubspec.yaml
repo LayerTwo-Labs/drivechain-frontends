@@ -52,6 +52,22 @@ flutter:
   assets:
     - assets/bin/
 
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: ./assets/fonts/Inter-ExtraLight.ttf
+          weight: 200
+        - asset: ./assets/fonts/Inter-Light.ttf
+          weight: 300
+        - asset: ./assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: ./assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: ./assets/fonts/Inter-Bold.ttf
+          weight: 600
+        - asset: ./assets/fonts/Inter-Black.ttf
+          weight: 700
+
 # Windows release stuff.
 # This currently relies on having a self-signed certificate
 # locally available, which must be changed before this is

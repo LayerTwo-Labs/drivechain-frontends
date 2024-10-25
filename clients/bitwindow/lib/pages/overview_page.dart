@@ -41,14 +41,40 @@ class ExperimentalBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4.0),
-        color: SailTheme.of(context).colors.orangeLight.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(6.0),
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            SailTheme.of(context).colors.orange.withOpacity(0.25),
+            SailTheme.of(context).colors.orangeLight.withOpacity(0.25),
+          ],
+        ),
+        border: Border.all(
+          color: SailTheme.of(context).colors.orange,
+          width: 1.0,
+        ),
       ),
       width: double.infinity,
-      padding: const EdgeInsets.all(4.0),
-      child: SailText.primary12(
-        'This is experimental sidechain software. Use at your own risk!',
-        bold: true,
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailSVG.fromAsset(SailSVGAsset.iconWarning),
+          const SailSpacing(SailStyleValues.padding08),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SailText.primary15('Warning', bold: true),
+                SailText.primary15(
+                  'This is experimental sidechain software. Use at your own risk!',
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -74,71 +100,6 @@ class BalancesView extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    SailText.primary13(
-                      'Balances',
-                      bold: true,
-                    ),
-                    const SizedBox(height: SailStyleValues.padding16),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 150),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          SailText.primary13('Available: '),
-                          SailText.primary13(
-                            formatBitcoin(
-                              satoshiToBTC(model.confirmedBalance),
-                            ),
-                            bold: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: SailStyleValues.padding16),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 150),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          SailText.primary13('Pending: '),
-                          SailText.primary13(
-                            formatBitcoin(
-                              satoshiToBTC(model.pendingBalance),
-                            ),
-                            bold: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24.0),
-                    const QtSeparator(width: 150),
-                    const SizedBox(height: 24.0),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 150),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          SailText.primary13('Total: '),
-                          SailText.primary13(
-                            formatBitcoin(
-                              satoshiToBTC(
-                                model.totalBalance,
-                              ),
-                            ),
-                            bold: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
