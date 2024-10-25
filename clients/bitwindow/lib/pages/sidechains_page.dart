@@ -391,7 +391,6 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
           ];
         },
         rowCount: deposits.length,
-        columnCount: 5,
         columnWidths: const [50, 100, 200, 200, 100],
         headerDecoration: BoxDecoration(
           color: context.sailTheme.colors.formFieldBorder,

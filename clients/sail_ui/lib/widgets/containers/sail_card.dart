@@ -15,7 +15,7 @@ class SailRawCard extends StatelessWidget {
     super.key,
     this.title,
     this.onPressed,
-    this.padding = false,
+    this.padding = true,
     required this.child,
     this.width = double.infinity,
     this.color,
@@ -30,17 +30,28 @@ class SailRawCard extends StatelessWidget {
     return SailShadow(
       shadowSize: shadowSize,
       child: Material(
-        borderRadius: borderRadius ?? SailStyleValues.borderRadiusRegular,
-        color: color ?? (theme.colors.actionHeader),
+        borderRadius: borderRadius ?? SailStyleValues.borderRadiusButton,
+        color: color ?? (theme.colors.backgroundSecondary),
         clipBehavior: Clip.hardEdge,
         child: SizedBox(
           width: width,
-          child: padding
-              ? Padding(
-                  padding: const EdgeInsets.all(SailStyleValues.padding20),
+          child: Padding(
+            padding: const EdgeInsets.all(SailStyleValues.padding16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (title != null)
+                  SailText.primary15(
+                    title!,
+                    bold: true,
+                  ),
+                Flexible(
                   child: child,
-                )
-              : child,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

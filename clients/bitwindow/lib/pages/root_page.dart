@@ -28,7 +28,6 @@ class RootPage extends StatelessWidget {
         OverviewRoute(),
         SendRoute(),
         ReceiveRoute(),
-        TransactionsRoute(),
         SidechainsRoute(),
       ],
       builder: (context, child, controller) {
@@ -72,15 +71,8 @@ class RootPage extends StatelessWidget {
                         active: tabsRouter.activeIndex == 2,
                         onTap: () => tabsRouter.setActiveIndex(2),
                       ),
-                      QtTab(
-                        icon: SailSVGAsset.iconTransactions,
-                        label: 'Transactions',
-                        active: tabsRouter.activeIndex == 3,
-                        onTap: () => tabsRouter.setActiveIndex(3),
-                        end: true,
-                      ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
                         child: DottedBorder(
                           strokeWidth: 0.5,
                           // only left and right border
@@ -90,12 +82,12 @@ class RootPage extends StatelessWidget {
                             ..moveTo(size.width, size.height)
                             ..lineTo(size.width, 0),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
                             child: QtTab(
                               icon: SailSVGAsset.iconSidechains,
                               label: 'Sidechains',
-                              active: tabsRouter.activeIndex == 4,
-                              onTap: () => tabsRouter.setActiveIndex(4),
+                              active: tabsRouter.activeIndex == 3,
+                              onTap: () => tabsRouter.setActiveIndex(3),
                             ),
                           ),
                         ),
