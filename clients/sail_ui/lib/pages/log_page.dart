@@ -39,12 +39,16 @@ class SailLogPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SailText.primary12(
+                    'Viewing logs at: $logPath',
+                  ),
+                  const SailSpacing(SailStyleValues.padding16),
                   SailButton.primary(
                     'Clear logs',
-                    size: ButtonSize.small,
+                    size: ButtonSize.regular,
                     onPressed: () => model.clearLog(),
                   ),
-                  const SailSpacing(16),
+                  const SailSpacing(SailStyleValues.padding16),
                   Expanded(
                     child: ListView.builder(
                       controller: model.scrollController,
