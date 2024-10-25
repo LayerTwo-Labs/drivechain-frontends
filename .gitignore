@@ -31,7 +31,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 build/
-clients/*/assets/*
+clients/*/assets/bin/*
 build-vars.env
 
 # Symbolication related
