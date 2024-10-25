@@ -86,58 +86,6 @@ class HomeRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [LogPage]
-class LogRoute extends PageRouteInfo<LogRouteArgs> {
-  LogRoute({
-    Key? key,
-    required String name,
-    required String logPath,
-    List<PageRouteInfo>? children,
-  }) : super(
-          LogRoute.name,
-          args: LogRouteArgs(
-            key: key,
-            name: name,
-            logPath: logPath,
-          ),
-          initialChildren: children,
-        );
-
-  static const String name = 'LogRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      final args = data.argsAs<LogRouteArgs>();
-      return LogPage(
-        key: args.key,
-        name: args.name,
-        logPath: args.logPath,
-      );
-    },
-  );
-}
-
-class LogRouteArgs {
-  const LogRouteArgs({
-    this.key,
-    required this.name,
-    required this.logPath,
-  });
-
-  final Key? key;
-
-  final String name;
-
-  final String logPath;
-
-  @override
-  String toString() {
-    return 'LogRouteArgs{key: $key, name: $name, logPath: $logPath}';
-  }
-}
-
-/// generated route for
 /// [SailTestPage]
 class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
   SailTestRoute({
