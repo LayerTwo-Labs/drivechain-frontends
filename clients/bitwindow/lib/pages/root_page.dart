@@ -181,62 +181,84 @@ class _StatusBarState extends State<StatusBar> {
         }
       },
       builder: ((context, model, child) {
-        return DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: Colors.grey,
+        return SizedBox(
+          height: 36,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Colors.grey,
+                ),
               ),
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Separator(
-                child: Tooltip(
+            child: SailRow(
+              mainAxisAlignment: MainAxisAlignment.end,
+              spacing: SailStyleValues.padding04,
+              leadingSpacing: true,
+              trailingSpacing: true,
+              children: [
+                SailSpacing(SailStyleValues.padding04),
+                Tooltip(
                   message: 'Confirmed balance',
                   child: SailRow(
                     spacing: SailStyleValues.padding08,
                     children: [
-                      SailSVG.icon(SailSVGAsset.iconSuccess),
+                      SailSVG.icon(
+                        SailSVGAsset.iconCoins,
+                        color: SailColorScheme.green,
+                        width: SailStyleValues.iconSizeSecondary,
+                        height: SailStyleValues.iconSizeSecondary,
+                      ),
                       SailText.secondary12(formatBitcoin(satoshiToBTC(balanceProvider.balance), symbol: 'BTC')),
                     ],
                   ),
                 ),
-              ),
-              Separator(
-                child: Tooltip(
+                const DividerDot(),
+                Tooltip(
                   message: 'Unconfirmed balance',
                   child: SailRow(
                     spacing: SailStyleValues.padding08,
                     children: [
-                      SailSVG.icon(SailSVGAsset.iconPending),
+                      SailSVG.icon(
+                        SailSVGAsset.iconCoins,
+                        width: SailStyleValues.iconSizeSecondary,
+                        height: SailStyleValues.iconSizeSecondary,
+                      ),
                       SailText.secondary12(formatBitcoin(satoshiToBTC(balanceProvider.pendingBalance), symbol: 'BTC')),
                     ],
                   ),
                 ),
-              ),
-              Expanded(child: Container()),
-              Separator(
-                child: SailText.primary12(
+                Expanded(child: Container()),
+                SailRawButton(
+                  onPressed: () => displayConnectionStatusDialog(context),
+                  disabled: false,
+                  loading: false,
+                  child: Tooltip(
+                    message: model.connectionStatus,
+                    child: SailSVG.fromAsset(
+                      SailSVGAsset.iconConnectionStatus,
+                      color: model.connectionColor,
+                    ),
+                  ),
+                ),
+                Tooltip(
+                  message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
+                  child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+                ),
+                const DividerDot(),
+                SailText.primary12(
                   '${formatWithThousandSpacers(blockchainProvider.blockchainInfo.blocks)} blocks',
                 ),
-              ),
-              Separator(
-                child: Tooltip(
+                const DividerDot(),
+                Tooltip(
                   message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
                   child: SailText.primary12(
                     formatTimeDifference(blockchainProvider.peers.length, 'peer'),
                   ),
                 ),
-              ),
-              Separator(
-                child: Tooltip(
-                  message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
-                  child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
-                ),
-              ),
-            ],
+                SailSpacing(SailStyleValues.padding04),
+              ],
+            ),
           ),
         );
       }),
@@ -352,22 +374,54 @@ class BottomNavViewModel extends BaseViewModel {
   Future<void> initMainchainBinary(BuildContext context) async {
     return mainchain.initBinary(
       context,
-      ParentChain().binary,
     );
   }
 
   Future<void> initEnforcerBinary(
     BuildContext context,
   ) async {
-    final binary = 'bip300301-enforcer';
-    await enforcer.initBinary(context, binary);
+    await enforcer.initBinary(context);
   }
 
   Future<void> initServerBinary(
     BuildContext context,
   ) async {
-    final binary = 'drivechain-server';
-    await server.initBinary(context, binary);
+    await server.initBinary(context);
+  }
+
+  Color get connectionColor {
+    if (mainchainConnected && enforcerConnected && serverConnected) {
+      return SailColorScheme.green;
+    }
+    if (!mainchainConnected || !serverConnected) {
+      return SailColorScheme.red;
+    }
+
+    // only the enforcer is not running
+    return SailColorScheme.orange;
+  }
+
+  String get connectionStatus {
+    if (mainchainConnected && enforcerConnected && serverConnected) {
+      return 'All binaries connected';
+    }
+
+    List<String> errors = [];
+    if (!mainchainConnected && mainchainError != null) {
+      errors.add('Mainchain: ${mainchainError!}');
+    }
+    if (!enforcerConnected && enforcerError != null) {
+      errors.add('Enforcer: ${enforcerError!}');
+    }
+    if (!serverConnected && serverError != null) {
+      errors.add('Server: ${serverError!}');
+    }
+
+    if (errors.length == 1) {
+      return errors.first;
+    } else {
+      return errors.join('\n');
+    }
   }
 
   void navigateToLogs(String name, String logPath) {
@@ -413,5 +467,14 @@ class Separator extends StatelessWidget {
       ),
       child: child,
     );
+  }
+}
+
+class DividerDot extends StatelessWidget {
+  const DividerDot({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailSVG.fromAsset(SailSVGAsset.dividerDot);
   }
 }

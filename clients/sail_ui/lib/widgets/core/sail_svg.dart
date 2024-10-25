@@ -48,6 +48,8 @@ enum SailSVGAsset {
   iconLightDarkMode,
 
   meltCastDiagram,
+
+  dividerDot,
 }
 
 /// If you don't want to overwrite the color of the svg, put it in here!
@@ -68,6 +70,7 @@ class SailSVG {
     bool isHighlighted = false,
     double? width,
     double? height,
+    Color? color,
   }) {
     return Builder(
       builder: (context) {
@@ -75,7 +78,7 @@ class SailSVG {
 
         return SailSVG.fromAsset(
           asset,
-          color: coloredAssets.contains(asset) ? null : (isHighlighted ? colors.primary : colors.icon),
+          color: color ?? (coloredAssets.contains(asset) ? null : (isHighlighted ? colors.primary : colors.icon)),
           width: width ?? SailStyleValues.iconSizePrimary,
           height: height ?? SailStyleValues.iconSizePrimary,
         );
@@ -184,6 +187,9 @@ extension AsAssetPath on SailSVGAsset {
 
       case SailSVGAsset.meltCastDiagram:
         return 'assets/pngs/meltcastdiagram.png';
+
+      case SailSVGAsset.dividerDot:
+        return 'assets/svgs/divider_dot.svg';
     }
   }
 }
