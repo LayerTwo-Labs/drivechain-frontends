@@ -122,10 +122,8 @@ class TransactionsView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SailText.primary13('Latest transactions:'),
-                      const SailSpacing(SailStyleValues.padding08),
-                      QtContainer(
-                        tight: true,
+                      SailRawCard(
+                        title: 'Latest transactions',
                         child: SizedBox(
                           height: 300,
                           child: LatestTransactionTable(
@@ -141,10 +139,8 @@ class TransactionsView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SailText.primary13('Latest blocks:'),
-                      const SailSpacing(SailStyleValues.padding08),
-                      QtContainer(
-                        tight: true,
+                      SailRawCard(
+                        title: 'Latest blocks',
                         child: SizedBox(
                           height: 300,
                           child: LatestBlocksTable(

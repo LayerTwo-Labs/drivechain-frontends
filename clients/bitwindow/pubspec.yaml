@@ -68,6 +68,41 @@ flutter:
         - asset: ./assets/fonts/Inter-Black.ttf
           weight: 700
 
+    - family: SourceCodePro
+      fonts:
+        - asset: ./assets/fonts/SourceCodePro-ExtraLight.ttf
+          weight: 200
+        - asset: ./assets/fonts/SourceCodePro-Light.ttf
+          weight: 300
+        - asset: ./assets/fonts/SourceCodePro-Regular.ttf
+          weight: 400
+        - asset: ./assets/fonts/SourceCodePro-Medium.ttf
+          weight: 500
+        - asset: ./assets/fonts/SourceCodePro-Bold.ttf
+          weight: 600
+        - asset: ./assets/fonts/SourceCodePro-Black.ttf
+          weight: 700
+
+        - asset: ./assets/fonts/SourceCodePro-ExtraLightItalic.ttf
+          style: italic
+          weight: 200
+        - asset: ./assets/fonts/SourceCodePro-LightItalic.ttf
+          style: italic
+          weight: 300
+        - asset: ./assets/fonts/SourceCodePro-Italic.ttf
+          style: italic
+          weight: 400
+        - asset: ./assets/fonts/SourceCodePro-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: ./assets/fonts/SourceCodePro-BoldItalic.ttf
+          style: italic
+          weight: 600
+        - asset: ./assets/fonts/SourceCodePro-BlackItalic.ttf
+          style: italic
+          weight: 600
+
+
 # Windows release stuff.
 # This currently relies on having a self-signed certificate
 # locally available, which must be changed before this is

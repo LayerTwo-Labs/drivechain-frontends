@@ -36,7 +36,11 @@ class SailRawCard extends StatelessWidget {
         child: SizedBox(
           width: width,
           child: Padding(
-            padding: const EdgeInsets.all(SailStyleValues.padding16),
+            padding: const EdgeInsets.only(
+              top: SailStyleValues.padding16,
+              left: SailStyleValues.padding16,
+              right: SailStyleValues.padding16,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -46,6 +50,7 @@ class SailRawCard extends StatelessWidget {
                     title!,
                     bold: true,
                   ),
+                const SailSpacing(SailStyleValues.padding16),
                 Flexible(
                   child: child,
                 ),

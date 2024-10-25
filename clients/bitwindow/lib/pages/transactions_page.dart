@@ -59,26 +59,27 @@ class _TransactionTableState extends State<TransactionTable> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!listEquals(entries, widget.entries)) {
-      entries = widget.entries;
-      onSort(sortColumn);
+      entries = List.from(widget.entries);
+      sortEntries();
     }
   }
 
   void onSort(String column) {
-    if (sortColumn == column) {
-      sortAscending = !sortAscending;
-    } else {
-      sortColumn = column;
-      sortAscending = true;
-    }
-    sortEntries();
-    setState(() {});
+    setState(() {
+      if (sortColumn == column) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
+      }
+      sortEntries();
+    });
   }
 
   void sortEntries() {
     entries.sort((a, b) {
-      dynamic aValue = '';
-      dynamic bValue = '';
+      dynamic aValue;
+      dynamic bValue;
 
       switch (sortColumn) {
         case 'conf':
@@ -143,11 +144,29 @@ class _TransactionTableState extends State<TransactionTable> {
                   rowBuilder: (context, row, selected) {
                     final entry = widget.entries[row];
                     return [
-                      SailTableCell(child: SailText.primary12(entry.confirmationTime.height.toString())),
-                      SailTableCell(child: SailText.primary12(entry.confirmationTime.timestamp.toDateTime().format())),
-                      SailTableCell(child: SailText.primary12(entry.txid)),
                       SailTableCell(
-                        child: SailText.primary12(formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt()))),
+                        child: SailText.primary12(
+                          entry.confirmationTime.height.toString(),
+                          monospace: true,
+                        ),
+                      ),
+                      SailTableCell(
+                        child: SailText.primary12(
+                          entry.confirmationTime.timestamp.toDateTime().format(),
+                          monospace: true,
+                        ),
+                      ),
+                      SailTableCell(
+                        child: SailText.primary12(
+                          entry.txid,
+                          monospace: true,
+                        ),
+                      ),
+                      SailTableCell(
+                        child: SailText.primary12(
+                          formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt())),
+                          monospace: true,
+                        ),
                       ),
                     ];
                   },
