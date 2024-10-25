@@ -21,7 +21,7 @@ class DaemonConnectionCard extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return SailScaleButton(
-      onPressed: navigateToLogs == null ? null : () => navigateToLogs!(connection.binaryName, connection.logPath),
+      onPressed: navigateToLogs == null ? null : () => navigateToLogs!(connection.binary, connection.logPath),
       child: SailBorder(
         padding: const EdgeInsets.symmetric(
           horizontal: SailStyleValues.padding12,
@@ -43,7 +43,7 @@ class DaemonConnectionCard extends StatelessWidget {
                               ? theme.colors.success
                               : theme.colors.error,
                 ),
-                SailText.primary13('${connection.binaryName} daemon'),
+                SailText.primary13('${connection.binary} daemon'),
                 Expanded(child: Container()),
                 SailScaleButton(
                   onPressed: restartDaemon,

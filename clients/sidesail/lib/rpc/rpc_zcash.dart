@@ -77,7 +77,7 @@ abstract class ZCashRPC extends SidechainRPC {
 
   ZCashRPC({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   }) : super(chain: ZCashSidechain());
 
@@ -95,8 +95,7 @@ abstract class ZCashRPC extends SidechainRPC {
 
   @override
   Future<void> initBinary(
-    BuildContext context,
-    String binary, {
+    BuildContext context, {
     List<String>? arg,
   }) async {
     final args = await binaryArgs(conf);
@@ -126,7 +125,7 @@ abstract class ZCashRPC extends SidechainRPC {
     }
 
     // after all assets are loaded properly, THEN init the zcash-binary
-    await super.initBinary(context, chain.binary, arg: args);
+    await super.initBinary(context, arg: args);
   }
 
   /// There's no account in the wallet out of the box. Calling this
@@ -152,7 +151,7 @@ abstract class ZCashRPC extends SidechainRPC {
 class ZcashRPCLive extends ZCashRPC {
   ZcashRPCLive({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   });
 

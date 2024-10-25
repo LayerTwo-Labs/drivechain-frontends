@@ -7,7 +7,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 abstract class EnforcerRPC extends RPCConnection {
   EnforcerRPC({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   });
 
@@ -20,7 +20,7 @@ class EnforcerLive extends EnforcerRPC {
 
   EnforcerLive({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   }) {
     final channel = ClientChannel(

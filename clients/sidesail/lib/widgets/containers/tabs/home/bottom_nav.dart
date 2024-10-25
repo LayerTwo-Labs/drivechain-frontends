@@ -187,7 +187,6 @@ class BottomNavViewModel extends BaseViewModel {
   Future<void> initMainchainBinary(BuildContext context) async {
     return _mainRPC.initBinary(
       context,
-      _mainRPC.chain.binary,
     );
   }
 
@@ -196,7 +195,6 @@ class BottomNavViewModel extends BaseViewModel {
   ) async {
     return _sideRPC.rpc.initBinary(
       context,
-      _sideRPC.rpc.chain.binary,
     );
   }
 }

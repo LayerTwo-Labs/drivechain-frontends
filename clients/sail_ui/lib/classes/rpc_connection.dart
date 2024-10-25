@@ -19,11 +19,11 @@ abstract class RPCConnection extends ChangeNotifier {
 
   RPCConnection({
     required this.conf,
-    required this.binaryName,
+    required this.binary,
     required this.logPath,
   });
 
-  final String binaryName;
+  final String binary;
   final String logPath;
 
   /// Args to pass to the binary on startup.
@@ -120,8 +120,7 @@ abstract class RPCConnection extends ChangeNotifier {
   int blockCount = 0;
 
   Future<void> initBinary(
-    BuildContext context,
-    String binary, {
+    BuildContext context, {
     List<String>? arg,
   }) async {
     final args = await binaryArgs(conf);

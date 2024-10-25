@@ -8,7 +8,7 @@ abstract class EthereumRPC extends SidechainRPC {
   // TODO: implement authed RPCs
   EthereumRPC({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   }) : super(chain: EthereumSidechain());
 
@@ -22,7 +22,7 @@ class EthereumRPCLive extends EthereumRPC {
 
   EthereumRPCLive({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   }) {
     try {
