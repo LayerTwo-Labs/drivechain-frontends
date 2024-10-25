@@ -42,6 +42,8 @@ enum SailSVGAsset {
   iconCoins,
   iconConnectionStatus,
   iconWarning,
+  iconWallet,
+  iconCoinnews,
 
   iconLightMode,
   iconDarkMode,
@@ -177,6 +179,10 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_connection_status.svg';
       case SailSVGAsset.iconWarning:
         return 'assets/svgs/icon_warning.svg';
+      case SailSVGAsset.iconWallet:
+        return 'assets/svgs/icon_wallet.svg';
+      case SailSVGAsset.iconCoinnews:
+        return 'assets/svgs/icon_coinnews.svg';
 
       case SailSVGAsset.iconLightMode:
         return 'assets/svgs/icon_light_mode.svg';
