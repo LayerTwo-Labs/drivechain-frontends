@@ -6,7 +6,7 @@ class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
       : super(
           conf: NodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', '', true),
-          binaryName: 'mocktown',
+          binary: 'mocktown',
           logPath: './mocked.log',
         );
 

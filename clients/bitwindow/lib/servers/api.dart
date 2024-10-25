@@ -14,7 +14,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 abstract class API extends RPCConnection {
   API({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   });
 
@@ -66,7 +66,7 @@ class APILive extends API {
     required String host,
     required int port,
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   }) {
     final channel = ClientChannel(

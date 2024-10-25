@@ -16,7 +16,7 @@ class MockAPI extends API {
 
   MockAPI({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   });
 

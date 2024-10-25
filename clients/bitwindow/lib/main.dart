@@ -130,14 +130,14 @@ Future<void> initDependencies(Logger log, File logFile) async {
       host: env(Environment.drivechainHost),
       port: env(Environment.drivechainPort),
       conf: mainchainConf,
-      binaryName: 'drivechain-server',
+      binary: 'drivechain-server',
       logPath: serverLogFile,
     ),
   );
 
   final enforcer = EnforcerLive(
     conf: mainchainConf,
-    binaryName: 'bip300301-enforcer',
+    binary: 'bip300301_enforcer',
     logPath: serverLogFile,
   );
   GetIt.I.registerLazySingleton<EnforcerRPC>(
@@ -185,7 +185,6 @@ Future<void> initMainchainBinary(
 ) async {
   await mainchain.initBinary(
     context,
-    ParentChain().binary,
   );
   log.i('mainchain init: started node, waiting for ibd');
   await mainchain.waitForIBD();
@@ -199,9 +198,8 @@ Future<void> initEnforcer(
 ) async {
   final enforcer = GetIt.I.get<EnforcerRPC>();
 
-  final binary = 'bip300301_enforcer';
   try {
-    await enforcer.initBinary(context, binary);
+    await enforcer.initBinary(context);
   } catch (e) {
     log.e('could not init enforcer: $e');
   }
@@ -226,8 +224,7 @@ Future<void> initServer(
 ) async {
   final server = GetIt.I.get<API>();
 
-  final binary = 'drivechain-server';
-  await server.initBinary(context, binary);
+  await server.initBinary(context);
 
   // return when the server is connected, but always move on
   // if 3 seconds have passed

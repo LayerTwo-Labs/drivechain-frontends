@@ -9,7 +9,7 @@ import 'package:sidesail/rpc/models/active_sidechains.dart';
 abstract class MainchainRPC extends RPCConnection {
   MainchainRPC({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   });
 
@@ -56,17 +56,17 @@ class MainchainRPCLive extends MainchainRPC {
   // https://stackoverflow.com/a/59304510
   MainchainRPCLive._create({
     required super.conf,
-    required super.binaryName,
+    required super.binary,
     required super.logPath,
   });
   static Future<MainchainRPCLive> create(
     NodeConnectionSettings conf,
-    String binaryName,
+    String binary,
     String logPath,
   ) async {
     final container = MainchainRPCLive._create(
       conf: conf,
-      binaryName: binaryName,
+      binary: binary,
       logPath: logPath,
     );
     await container.init();
