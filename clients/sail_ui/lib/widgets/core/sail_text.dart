@@ -186,16 +186,19 @@ class SailText {
     bool bold = false,
     bool italic = false,
     Color? color,
+    bool monospace = false,
   }) {
     return Builder(
       builder: (context) {
         final theme = SailTheme.of(context);
+
         return _Text(
           label: label,
           style: SailStyleValues.twelve.copyWith(
             color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.boldWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+            fontFamily: monospace ? 'SourceCodePro' : 'Inter',
           ),
           textAlign: textAlign,
         );

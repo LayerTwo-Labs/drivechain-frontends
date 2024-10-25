@@ -12,7 +12,6 @@ import 'package:bitwindow/servers/enforcer_rpc.dart';
 import 'package:bitwindow/servers/mainchain_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,9 +55,6 @@ void main() async {
           theme: ThemeData(
             visualDensity: VisualDensity.compact,
             fontFamily: 'Inter',
-            textTheme: GoogleFonts.interTightTextTheme(
-              GoogleFonts.sourceCodeProTextTheme(),
-            ),
           ),
         );
       },
