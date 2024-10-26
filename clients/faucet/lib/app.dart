@@ -184,7 +184,7 @@ class _FaucetPageState extends State<FaucetPage> {
                             await model._transactionsProvider.fetch();
                           }
                         },
-                        size: ButtonSize.large,
+                        size: ButtonSize.regular,
                         disabled:
                             model.isBusy || model.amountController.text == '' || model.addressController.text == '',
                         loading: model.isBusy,
