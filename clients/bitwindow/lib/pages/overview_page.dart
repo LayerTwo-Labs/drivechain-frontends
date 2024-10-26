@@ -124,7 +124,7 @@ class TransactionsView extends StatelessWidget {
                     children: [
                       SailRawCard(
                         bottomPadding: false,
-                        title: 'Latest transactions',
+                        title: 'Latest Transactions',
                         child: SizedBox(
                           height: 300,
                           child: LatestTransactionTable(
