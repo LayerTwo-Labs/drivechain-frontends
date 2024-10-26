@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-enum ButtonSize { small, regular, large }
+enum ButtonSize { small, regular }
 
 class SailButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -118,19 +118,6 @@ class SailButton extends StatelessWidget {
           ),
           child: child,
         );
-
-      case ButtonSize.large:
-        return SailRawButton(
-          disabled: disabled,
-          backgroundColor: backgroundColor,
-          onPressed: onPressed,
-          loading: loading,
-          padding: EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding16 / divideFactor,
-            horizontal: SailStyleValues.padding16 / divideFactor,
-          ),
-          child: child,
-        );
     }
   }
 }
@@ -236,21 +223,28 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   }
 }
 
+enum SailButtonStyle { primary, secondary }
+
 class SailScaleButton extends StatefulWidget {
   final VoidCallback? onPressed;
   final bool pressed;
   final Widget child;
+  final SailButtonStyle style;
+
   final bool disabled;
   final bool loading;
   final Color? color;
+  final Color? borderColor;
 
   const SailScaleButton({
     super.key,
     required this.onPressed,
     required this.child,
+    this.style = SailButtonStyle.primary,
     this.pressed = false,
     this.disabled = false,
     this.loading = false,
+    this.borderColor,
     this.color,
   });
 
@@ -299,6 +293,8 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
     await _scaleController.fling();
   }
 
+  bool get disabled => widget.disabled || widget.loading;
+
   void shrink() {
     if (widget.disabled) {
       return;
@@ -309,8 +305,15 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final backgroundColor =
+        widget.style == SailButtonStyle.secondary ? theme.colors.backgroundSecondary : theme.colors.text;
+
     Widget buttonContent = Listener(
       onPointerDown: (_) async {
+        if (disabled) {
+          return;
+        }
+
         setState(() {
           if (widget.pressed) {
             _isPressed = false;
@@ -324,6 +327,10 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
         _readyForFling = true;
       },
       onPointerUp: (_) async {
+        if (disabled) {
+          return;
+        }
+
         setState(() {
           if (widget.pressed) {
             _isPressed = true;
@@ -339,20 +346,24 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () async {
+          if (disabled) {
+            return;
+          }
+
           shrink();
           await HapticFeedback.lightImpact();
           await fling();
-          if (widget.disabled) {
-            return;
-          }
+
           widget.onPressed!();
         },
         child: InkWell(
+          mouseCursor: disabled ? SystemMouseCursors.forbidden : WidgetStateMouseCursor.clickable,
           borderRadius: SailStyleValues.borderRadiusButton,
           onTap: () {
-            if (widget.disabled) {
+            if (disabled) {
               return;
             }
+
             widget.onPressed!();
           },
           child: AnimatedBuilder(
@@ -360,7 +371,13 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
             builder: (context, child) {
               return Transform.scale(
                 scale: _scaleController.value,
-                child: widget.loading ? LoadingIndicator.insideButton() : widget.child,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Opacity(opacity: widget.loading ? 0.3 : 1, child: widget.child),
+                    if (widget.loading) Center(child: LoadingIndicator.insideButton()),
+                  ],
+                ),
               );
             },
           ),
@@ -376,7 +393,7 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
             borderRadius: BorderRadius.circular(8.0),
             boxShadow: [
               BoxShadow(
-                color: SailTheme.of(context).colors.shadow.withOpacity(0.5),
+                color: SailTheme.of(context).colors.textTertiary.withOpacity(0.5),
                 offset: const Offset(1.5, 1.5),
                 blurRadius: 0,
                 spreadRadius: 0,
@@ -394,7 +411,10 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8.0),
-                color: theme.colors.background,
+                color: widget.color ?? backgroundColor,
+                border: Border.all(
+                  color: widget.borderColor ?? Colors.transparent,
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
