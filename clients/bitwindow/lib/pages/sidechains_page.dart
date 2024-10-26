@@ -374,11 +374,11 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
       child: SailTable(
         getRowId: (index) => deposits[index].txid,
         headerBuilder: (context) => [
-          SailTableHeaderCell(child: SailText.primary12('SC #')),
-          SailTableHeaderCell(child: SailText.primary12('Amount')),
-          SailTableHeaderCell(child: SailText.primary12('Txid')),
-          SailTableHeaderCell(child: SailText.primary12('Address')),
-          SailTableHeaderCell(child: SailText.primary12('Visible on SC?')),
+          SailTableHeaderCell(name: 'SC #'),
+          SailTableHeaderCell(name: 'Amount'),
+          SailTableHeaderCell(name: 'Txid'),
+          SailTableHeaderCell(name: 'Address'),
+          SailTableHeaderCell(name: 'Visible on SC?'),
         ],
         rowBuilder: (context, row, selected) {
           final deposit = deposits[row];
@@ -392,9 +392,6 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
         },
         rowCount: deposits.length,
         columnWidths: const [50, 100, 200, 200, 100],
-        headerDecoration: BoxDecoration(
-          color: context.sailTheme.colors.formFieldBorder,
-        ),
         drawGrid: true,
       ),
     );

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-const _headerHeight = 24.0;
-
 class SailTable extends StatefulWidget {
   const SailTable({
     required this.headerBuilder,
@@ -11,8 +9,7 @@ class SailTable extends StatefulWidget {
     required this.columnWidths,
     this.columnMinWidths,
     this.columnMaxWidths,
-    this.defaultMinColumnWidth = 50,
-    this.defaultMaxColumnWidth = 200,
+    this.defaultMinColumnWidth = 80,
     this.backgroundColor,
     this.altBackgroundColor,
     this.headerDecoration,
@@ -40,7 +37,6 @@ class SailTable extends StatefulWidget {
   final List<double>? columnMinWidths;
   final List<double>? columnMaxWidths;
   final double defaultMinColumnWidth;
-  final double defaultMaxColumnWidth;
   final int rowCount;
   final Color? backgroundColor;
   final Color? altBackgroundColor;
@@ -254,7 +250,7 @@ class _SailTableState extends State<SailTable> {
                 isSorted: _sortColumnIndex == i,
                 isAscending: _sortAscending,
                 onSort: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
-                child: headerCell.child,
+                name: headerCell.name,
               );
             }
 
@@ -285,7 +281,7 @@ class _SailTableState extends State<SailTable> {
                             border: Border(
                               bottom: BorderSide(color: theme.colors.divider, width: 1),
                             ),
-                            color: theme.colors.background,
+                            color: theme.colors.backgroundSecondary,
                           ),
                       cells: header,
                       grid: widget.drawGrid,
@@ -339,14 +335,11 @@ class _SailTableState extends State<SailTable> {
     }
 
     var minWidth = widget.columnMinWidths?.elementAt(column) ?? widget.defaultMinColumnWidth;
-    var maxWidth = widget.columnMaxWidths?.elementAt(column) ?? widget.defaultMaxColumnWidth;
 
     setState(() {
       var width = _startColumnWidth + delta;
       if (width < minWidth) {
         width = minWidth;
-      } else if (width > maxWidth) {
-        width = maxWidth;
       }
       _widths[column] = width;
     });
@@ -403,12 +396,7 @@ class _TableHeader extends StatelessWidget {
       cellWidgets.add(
         SizedBox(
           width: width,
-          child: DefaultTextStyle(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: SailStyleValues.ten,
-            child: cell,
-          ),
+          child: cell,
         ),
       );
 
@@ -432,19 +420,11 @@ class _TableHeader extends StatelessWidget {
     }
 
     return Container(
-      decoration: decoration ??
-          BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: context.sailTheme.colors.divider,
-                width: 1.0,
-              ),
-            ),
-            color: context.sailTheme.colors.background,
-          ),
-      height: _headerHeight,
+      height: 48,
+      decoration: decoration,
       padding: EdgeInsets.symmetric(
         horizontal: horizontalRowPadding,
+        vertical: SailStyleValues.padding12,
       ),
       child: Row(
         children: cellWidgets,
@@ -684,7 +664,7 @@ class SailTableCell extends StatelessWidget {
 
 class SailTableHeaderCell extends StatelessWidget {
   const SailTableHeaderCell({
-    required this.child,
+    required this.name,
     this.alignment = Alignment.centerLeft,
     this.padding = const EdgeInsets.symmetric(horizontal: 8),
     this.onSort,
@@ -693,7 +673,7 @@ class SailTableHeaderCell extends StatelessWidget {
     super.key,
   });
 
-  final Widget child;
+  final String name;
   final Alignment alignment;
   final EdgeInsets padding;
   final VoidCallback? onSort;
@@ -702,17 +682,25 @@ class SailTableHeaderCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return GestureDetector(
       onTap: onSort,
       behavior: HitTestBehavior.opaque,
       child: Container(
         alignment: alignment,
         padding: padding,
-        child: Row(
+        child: SailRow(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
+          spacing: SailStyleValues.padding04,
           children: [
-            Flexible(child: child),
+            SailText.primary15(
+              name,
+              bold: true,
+              color: theme.colors.textSecondary.withOpacity(0.5),
+            ),
             if (isSorted)
               Icon(
                 isAscending ? Icons.arrow_upward : Icons.arrow_downward,

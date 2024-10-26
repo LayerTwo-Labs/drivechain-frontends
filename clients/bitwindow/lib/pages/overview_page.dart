@@ -123,6 +123,7 @@ class TransactionsView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SailRawCard(
+                        bottomPadding: false,
                         title: 'Latest transactions',
                         child: SizedBox(
                           height: 300,
@@ -141,6 +142,7 @@ class TransactionsView extends StatelessWidget {
                     children: [
                       SailRawCard(
                         title: 'Latest blocks',
+                        bottomPadding: false,
                         child: SizedBox(
                           height: 300,
                           child: LatestBlocksTable(
@@ -322,19 +324,19 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       getRowId: (index) => entries[index].txid,
       headerBuilder: (context) => [
         SailTableHeaderCell(
-          child: SailText.primary12('Time'),
+          name: 'Time',
           onSort: () => onSort('time'),
         ),
         SailTableHeaderCell(
-          child: SailText.primary12('sat/vB'),
+          name: 'sat/vB',
           onSort: () => onSort('fee'),
         ),
         SailTableHeaderCell(
-          child: SailText.primary12('TxID'),
+          name: 'TxID',
           onSort: () => onSort('txid'),
         ),
         SailTableHeaderCell(
-          child: SailText.primary12('Size'),
+          name: 'Size',
           onSort: () => onSort('size'),
         ),
       ],
@@ -349,9 +351,6 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       },
       rowCount: entries.length,
       columnWidths: const [150, 100, 200, 100],
-      headerDecoration: BoxDecoration(
-        color: context.sailTheme.colors.formFieldBorder,
-      ),
       drawGrid: true,
       sortColumnIndex: ['time', 'fee', 'txid', 'size'].indexOf(sortColumn),
       sortAscending: sortAscending,
@@ -434,9 +433,9 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
     return SailTable(
       getRowId: (index) => blocks[index].hash,
       headerBuilder: (context) => [
-        SailTableHeaderCell(child: SailText.primary12('Time')),
-        SailTableHeaderCell(child: SailText.primary12('Height')),
-        SailTableHeaderCell(child: SailText.primary12('Hash')),
+        SailTableHeaderCell(name: 'Time'),
+        SailTableHeaderCell(name: 'Height'),
+        SailTableHeaderCell(name: 'Hash'),
       ],
       rowBuilder: (context, row, selected) {
         final entry = blocks[row];
@@ -448,9 +447,6 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
       },
       rowCount: blocks.length,
       columnWidths: const [150, 100, 200],
-      headerDecoration: BoxDecoration(
-        color: context.sailTheme.colors.formFieldBorder,
-      ),
       drawGrid: true,
       sortColumnIndex: ['time', 'height', 'hash'].indexOf(sortColumn),
       sortAscending: sortAscending,

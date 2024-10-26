@@ -213,10 +213,10 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
     return SailTable(
       getRowId: (index) => blocks[index].slot.toString(),
       headerBuilder: (context) => [
-        SailTableHeaderCell(child: SailText.primary12('#')),
-        SailTableHeaderCell(child: SailText.primary12('Active')),
-        SailTableHeaderCell(child: SailText.primary12('Name')),
-        SailTableHeaderCell(child: SailText.primary12('CTIP TxID')),
+        SailTableHeaderCell(name: '#'),
+        SailTableHeaderCell(name: 'Active'),
+        SailTableHeaderCell(name: 'Name'),
+        SailTableHeaderCell(name: 'CTIP TxID'),
         //TODO: SailTableHeaderCell(child: SailText.primary12('CTIP Index')),
       ],
       rowBuilder: (context, row, selected) {
@@ -356,14 +356,14 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
     return SailTable(
       getRowId: (index) => widget.proposals[index].slot.toString(),
       headerBuilder: (context) => [
-        SailTableHeaderCell(child: SailText.primary12('Vote')),
-        SailTableHeaderCell(child: SailText.primary12('SC #')),
-        SailTableHeaderCell(child: SailText.primary12('Replacement')),
-        SailTableHeaderCell(child: SailText.primary12('Title')),
-        SailTableHeaderCell(child: SailText.primary12('Description')),
-        SailTableHeaderCell(child: SailText.primary12('Age')),
-        SailTableHeaderCell(child: SailText.primary12('Fails')),
-        SailTableHeaderCell(child: SailText.primary12('Hash')),
+        SailTableHeaderCell(name: 'Vote'),
+        SailTableHeaderCell(name: 'SC #'),
+        SailTableHeaderCell(name: 'Replacement'),
+        SailTableHeaderCell(name: 'Title'),
+        SailTableHeaderCell(name: 'Description'),
+        SailTableHeaderCell(name: 'Age'),
+        SailTableHeaderCell(name: 'Fails'),
+        SailTableHeaderCell(name: 'Hash'),
       ],
       rowBuilder: (context, row, selected) {
         final proposal = widget.proposals[row];
