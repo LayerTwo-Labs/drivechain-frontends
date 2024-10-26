@@ -9,7 +9,6 @@ import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
-import 'package:bitwindow/widgets/qt_button.dart';
 import 'package:bitwindow/widgets/qt_container.dart';
 import 'package:bitwindow/widgets/qt_icon_button.dart';
 import 'package:flutter/material.dart';
@@ -308,9 +307,9 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
             SailRow(
               spacing: SailStyleValues.padding08,
               children: [
-                SailText.primary13('Amount:'),
                 Expanded(
                   child: NumericField(
+                    label: 'Amount',
                     controller: viewModel.depositAmountController,
                     hintText: '0.00',
                   ),
@@ -325,9 +324,9 @@ class DepositView extends ViewModelWidget<SidechainsViewModel> {
             SailRow(
               spacing: SailStyleValues.padding08,
               children: [
-                SailText.primary13('Fee:'),
                 Expanded(
                   child: NumericField(
+                    label: 'Fee',
                     controller: viewModel.feeController,
                     hintText: '0.00',
                   ),

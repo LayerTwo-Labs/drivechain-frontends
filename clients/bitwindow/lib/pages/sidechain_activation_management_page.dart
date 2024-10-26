@@ -2,7 +2,6 @@ import 'package:auto_route/annotations.dart';
 import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
-import 'package:bitwindow/widgets/qt_button.dart';
 import 'package:bitwindow/widgets/qt_icon_button.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

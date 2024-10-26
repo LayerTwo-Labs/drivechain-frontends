@@ -50,7 +50,7 @@ class SailTextField extends StatelessWidget {
     final theme = SailTheme.of(context);
     final padding = size != TextFieldSize.regular
         ? EdgeInsets.all(
-            theme.dense ? SailStyleValues.padding08 : SailStyleValues.padding16,
+            theme.dense ? SailStyleValues.padding12 : SailStyleValues.padding16,
           )
         : EdgeInsets.symmetric(
             vertical: theme.dense ? SailStyleValues.padding08 : SailStyleValues.padding10,
@@ -66,20 +66,18 @@ class SailTextField extends StatelessWidget {
             padding: const EdgeInsets.only(
               left: 2,
             ),
-            child: SailText.secondary13(label!),
+            child: SailText.secondary15(label!),
           ),
         TextField(
           enabled: enabled,
           mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
           cursorColor: theme.colors.primary,
-          cursorHeight: textSize,
           controller: controller,
           focusNode: focusNode,
           onSubmitted: onSubmitted,
           readOnly: readOnly,
-          style: TextStyle(
+          style: SailStyleValues.fifteen.copyWith(
             color: SailTheme.of(context).colors.text,
-            fontSize: textSize,
           ),
           inputFormatters: [
             if (textFieldType == TextFieldType.number) FilteringTextInputFormatter.allow(RegExp(r'^\d+$')),
@@ -87,6 +85,7 @@ class SailTextField extends StatelessWidget {
           ],
           maxLines: maxLines,
           decoration: InputDecoration(
+            isDense: true, // This helps reduce the minimum height
             errorBorder: InputBorder.none,
             disabledBorder: InputBorder.none,
             enabledBorder: OutlineInputBorder(
@@ -120,9 +119,8 @@ class SailTextField extends StatelessWidget {
             filled: true,
             contentPadding: padding,
             hintText: hintText,
-            hintStyle: TextStyle(
+            hintStyle: SailStyleValues.fifteen.copyWith(
               color: SailTheme.of(context).colors.textTertiary,
-              fontSize: textSize,
             ),
           ),
         ),

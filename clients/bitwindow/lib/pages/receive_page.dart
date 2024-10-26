@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
-import 'package:bitwindow/widgets/qt_button.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';

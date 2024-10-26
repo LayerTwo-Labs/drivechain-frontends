@@ -103,6 +103,7 @@ class SailText {
     TextAlign? textAlign,
     bool bold = false,
     Color? color,
+    bool underline = false,
   }) {
     return Builder(
       builder: (context) {
@@ -112,6 +113,8 @@ class SailText {
           style: SailStyleValues.fifteen.copyWith(
             color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.boldWeight : null,
+            decoration: underline ? TextDecoration.underline : TextDecoration.none,
+            decorationColor: underline ? (color ?? theme.colors.text) : null,
           ),
           textAlign: textAlign,
         );

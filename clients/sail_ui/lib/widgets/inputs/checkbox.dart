@@ -35,7 +35,7 @@ class _SailCheckboxState extends State<SailCheckbox> {
       Color color;
 
       if (enabled) {
-        color = context.sailTheme.colors.primary;
+        color = context.sailTheme.colors.text;
         if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
       } else {
         color = context.sailTheme.colors.disabledBackground;
