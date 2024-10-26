@@ -71,7 +71,10 @@ String formatNumberWithSpace(int number) {
 class InitializingDaemonSVG extends StatefulWidget {
   final bool animate;
 
-  const InitializingDaemonSVG({super.key, required this.animate});
+  const InitializingDaemonSVG({
+    super.key,
+    required this.animate,
+  });
 
   @override
   State<InitializingDaemonSVG> createState() => _InitializingDaemonSVGState();

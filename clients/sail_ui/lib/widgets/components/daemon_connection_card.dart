@@ -20,52 +20,60 @@ class DaemonConnectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return SailScaleButton(
-      onPressed: navigateToLogs == null ? null : () => navigateToLogs!(connection.binary, connection.logPath),
-      child: SailBorder(
-        padding: const EdgeInsets.symmetric(
-          horizontal: SailStyleValues.padding12,
-          vertical: SailStyleValues.padding08,
-        ),
-        child: SailColumn(
-          spacing: 0,
-          children: [
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                SailSVG.fromAsset(
-                  SailSVGAsset.iconGlobe,
-                  color: infoMessage != null
-                      ? theme.colors.info
-                      : connection.initializingBinary
-                          ? theme.colors.orangeLight
-                          : connection.connected
-                              ? theme.colors.success
-                              : theme.colors.error,
-                ),
-                SailText.primary13('${connection.binary} daemon'),
-                Expanded(child: Container()),
-                SailScaleButton(
-                  onPressed: restartDaemon,
-                  child: InitializingDaemonSVG(
-                    animate: connection.initializingBinary,
-                  ),
-                ),
-              ],
+    return SailRawCard(
+      header: SailRow(
+        spacing: SailStyleValues.padding08,
+        children: [
+          SailText.primary15(
+            '${connection.binary} daemon',
+            bold: true,
+          ),
+          SailSVG.fromAsset(
+            SailSVGAsset.iconConnectionStatus,
+            color: infoMessage != null
+                ? theme.colors.info
+                : connection.initializingBinary
+                    ? theme.colors.orangeLight
+                    : connection.connected
+                        ? theme.colors.success
+                        : theme.colors.error,
+          ),
+          Expanded(child: Container()),
+          SailScaleButton(
+            onPressed: restartDaemon,
+            style: SailButtonStyle.secondary,
+            pressed: connection.initializingBinary,
+            child: InitializingDaemonSVG(
+              animate: connection.initializingBinary,
             ),
-            SailText.primary10('View logs', color: theme.colors.textSecondary),
-            const SailSpacing(SailStyleValues.padding12),
+          ),
+        ],
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        children: [
+          MouseRegion(
+            cursor: navigateToLogs == null ? MouseCursor.defer : SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: navigateToLogs == null ? null : () => navigateToLogs!(connection.binary, connection.logPath),
+              child: SailText.primary10(
+                'View logs',
+                color: theme.colors.textSecondary,
+                underline: true,
+              ),
+            ),
+          ),
+          if (infoMessage != null || connection.connectionError != null)
             SailText.secondary12(
               infoMessage ??
                   connection.connectionError ??
                   (connection.initializingBinary
                       ? 'Initializing...'
                       : connection.connected
-                          ? 'Connected'
+                          ? ''
                           : 'Unknown error occured'),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
