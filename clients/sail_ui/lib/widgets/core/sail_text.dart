@@ -276,6 +276,7 @@ class SailText {
     TextAlign? textAlign,
     bool bold = false,
     bool italic = false,
+    bool underline = false,
     Color? color,
   }) {
     return Builder(
@@ -287,6 +288,7 @@ class SailText {
             color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.boldWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+            decoration: underline ? TextDecoration.underline : TextDecoration.none,
           ),
           textAlign: textAlign,
         );

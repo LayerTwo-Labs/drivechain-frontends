@@ -119,7 +119,6 @@ class SailTextField extends StatelessWidget {
             fillColor: SailTheme.of(context).colors.backgroundSecondary,
             filled: true,
             contentPadding: padding,
-            isDense: theme.dense,
             hintText: hintText,
             hintStyle: TextStyle(
               color: SailTheme.of(context).colors.textTertiary,
