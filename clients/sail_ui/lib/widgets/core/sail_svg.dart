@@ -26,6 +26,7 @@ enum SailSVGAsset {
   iconClose,
   iconGlobe,
   iconExpand,
+  iconDropdown,
 
   iconHome,
   iconSend,
@@ -149,6 +150,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_globe.svg';
       case SailSVGAsset.iconExpand:
         return 'assets/svgs/icon_expand.svg';
+      case SailSVGAsset.iconDropdown:
+        return 'assets/svgs/icon_dropdown.svg';
 
       case SailSVGAsset.iconHome:
         return 'assets/svgs/icon_home.svg';

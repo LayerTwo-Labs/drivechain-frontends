@@ -4,8 +4,6 @@ import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/servers/api.dart';
-import 'package:bitwindow/widgets/qt_button.dart';
-import 'package:bitwindow/widgets/qt_container.dart';
 import 'package:bitwindow/widgets/qt_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -31,42 +29,7 @@ class SendPage extends StatelessWidget {
           return Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              const Expanded(
-                child: QtContainer(
-                  child: SendDetailsForm(),
-                ),
-              ),
-              const SizedBox(height: SailStyleValues.padding08),
-              const Expanded(
-                child: QtContainer(
-                  child: TransactionFeeForm(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(
-                  top: SailStyleValues.padding08,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        QtButton(
-                          onPressed: () => model.sendTransaction(context),
-                          child: SailText.primary12('Send'),
-                        ),
-                        const SizedBox(width: SailStyleValues.padding08),
-                        QtButton(
-                          onPressed: model.clearAll,
-                          child: SailText.primary12('Clear All'),
-                        ),
-                      ],
-                    ),
-                    // Balance
-                  ],
-                ),
-              ),
+              const SendDetailsForm(),
             ],
           );
         },
@@ -82,119 +45,119 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
 
   @override
   Widget build(BuildContext context, SendPageViewModel viewModel) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(
-                minWidth: _kLabelWidth,
+    return SailRawCard(
+      title: 'Send Bitcoin',
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: SailTextField(
+                  label: 'Pay To',
+                  controller: viewModel.addressController,
+                  hintText: 'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                  size: TextFieldSize.small,
+                ),
               ),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: SailText.primary12('Pay To:'),
+              const SizedBox(width: 4.0),
+              QtIconButton(
+                tooltip: 'Paste from clipboard',
+                onPressed: () async {
+                  if (SystemClipboard.instance != null) {
+                    await SystemClipboard.instance?.read().then((reader) async {
+                      if (reader.canProvide(Formats.plainText)) {
+                        final text = await reader.readValue(Formats.plainText);
+
+                        viewModel.addressController.text = text ?? viewModel.addressController.text;
+                      }
+                    });
+                  } else {
+                    showSnackBar(context, 'Clipboard not available');
+                  }
+                },
+                icon: Icon(
+                  Icons.content_paste_rounded,
+                  size: 20.0,
+                  color: context.sailTheme.colors.text,
+                ),
               ),
-            ),
-            const SizedBox(width: SailStyleValues.padding16),
-            Expanded(
-              child: SailTextField(
-                controller: viewModel.addressController,
-                hintText: 'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
-                size: TextFieldSize.small,
-              ),
-            ),
-            const SizedBox(width: 4.0),
-            QtIconButton(
-              tooltip: 'Paste from clipboard',
-              onPressed: () async {
-                if (SystemClipboard.instance != null) {
-                  await SystemClipboard.instance?.read().then((reader) async {
-                    if (reader.canProvide(Formats.plainText)) {
-                      final text = await reader.readValue(Formats.plainText);
-                      viewModel.addressController.text = text ?? viewModel.addressController.text;
-                    }
-                  });
-                } else {
-                  showSnackBar(context, 'Clipboard not available');
-                }
-              },
-              icon: Icon(
-                Icons.content_paste_rounded,
-                size: 20.0,
-                color: context.sailTheme.colors.text,
-              ),
-            ),
-            const SizedBox(width: 4.0),
-            QtIconButton(
-              tooltip: 'Clear',
-              onPressed: () => viewModel.clearAddress(),
-              icon: Icon(
-                Icons.cancel_outlined,
-                size: 20.0,
-                color: context.sailTheme.colors.text,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: SailStyleValues.padding16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(
-                minWidth: _kLabelWidth,
-              ),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: SailText.primary12('Amount:'),
-              ),
-            ),
-            const SizedBox(width: SailStyleValues.padding16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: NumericField(
-                          controller: viewModel.amountController,
+              const SizedBox(width: 4.0),
+            ],
+          ),
+          const SizedBox(height: SailStyleValues.padding16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    SailRow(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        Expanded(
+                          child: NumericField(
+                            label: 'Amount',
+                            controller: viewModel.amountController,
+                            suffixWidget: GestureDetector(
+                              onTap: viewModel.onUseAvailableBalance,
+                              child: SailText.primary15(
+                                'MAX',
+                                color: context.sailTheme.colors.orange,
+                                underline: true,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: SailStyleValues.padding16),
-                      UnitDropdown(
-                        value: viewModel.unit,
-                        onChanged: viewModel.onUnitChanged,
-                        enabled: false,
-                      ),
-                    ],
+                        SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            UnitDropdown(
+                              value: viewModel.unit,
+                              onChanged: viewModel.onUnitChanged,
+                              enabled: false,
+                            ),
+                            SailCheckbox(
+                              value: viewModel.subtractFee,
+                              onChanged: viewModel.onSubtractFeeChanged,
+                              label: 'Subtract fee from amount',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: SailStyleValues.padding16),
+                  ],
+                ),
+              ),
+              Expanded(child: Container()),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  QtButton(
+                    label: 'Send',
+                    onPressed: () => viewModel.sendTransaction(context),
+                    size: ButtonSize.small,
                   ),
-                  const SizedBox(height: SailStyleValues.padding16),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Wrap(
-                        spacing: SailStyleValues.padding16,
-                        runSpacing: SailStyleValues.padding08,
-                        children: [
-                          SailCheckbox(
-                            value: viewModel.subtractFee,
-                            onChanged: viewModel.onSubtractFeeChanged,
-                            label: 'Subtract fee from amount',
-                          ),
-                          QtButton(
-                            onPressed: viewModel.onUseAvailableBalance,
-                            child: SailText.primary12('Use available balance'),
-                          ),
-                        ],
-                      );
-                    },
+                  const SizedBox(width: SailStyleValues.padding08),
+                  QtButton(
+                    style: SailButtonStyle.secondary,
+                    label: 'Clear All',
+                    onPressed: viewModel.clearAll,
+                    size: ButtonSize.small,
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ],
+              // Balance
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -252,7 +215,6 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
                         SailText.primary12('Confirmation time target:'),
                         const SizedBox(width: 8.0),
                         SailDropdownButton(
-                          width: 200.0,
                           enabled: viewModel.feeType == 'recommended',
                           items: viewModel.confirmationTargets.map((target) {
                             return SailDropdownItem(
@@ -299,6 +261,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
                           Expanded(
                             flex: 2,
                             child: NumericField(
+                              label: 'Fee',
                               controller: viewModel.customFeeController,
                               hintText: 'Custom fee',
                               enabled: viewModel.feeType == 'custom' && !viewModel.useMinimumFee,
@@ -357,11 +320,14 @@ class UnitDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailDropdownButton(
-      width: 128.0,
       items: [
         SailDropdownItem(
           value: Unit.BTC,
           child: SailText.primary12('BTC'),
+        ),
+        SailDropdownItem(
+          value: Unit.sats,
+          child: SailText.primary12('SAT'),
         ),
       ],
       onChanged: onChanged,
@@ -375,14 +341,17 @@ class NumericField extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
   final ValueChanged<String>? onChanged;
+  final String label;
   final Function(String)? onEditingComplete;
   final Function(String)? onSubmitted;
   final String hintText;
   final bool enabled;
   final String? error;
+  final Widget? suffixWidget;
 
   const NumericField({
     super.key,
+    required this.label,
     this.controller,
     this.focusNode,
     this.onChanged,
@@ -391,6 +360,7 @@ class NumericField extends StatefulWidget {
     this.hintText = '0.00',
     this.enabled = true,
     this.error = '',
+    this.suffixWidget,
   });
 
   @override
@@ -412,13 +382,14 @@ class _NumericFieldState extends State<NumericField> {
   @override
   Widget build(BuildContext context) {
     return SailTextField(
+      label: widget.label,
       controller: _controller,
       hintText: widget.hintText,
       focusNode: _focusNode,
       textFieldType: TextFieldType.bitcoin,
       size: TextFieldSize.small,
-      dense: true,
       enabled: widget.enabled,
+      suffixWidget: widget.suffixWidget,
       onSubmitted: widget.onSubmitted != null ? (value) => widget.onSubmitted!(value) : null,
     );
   }

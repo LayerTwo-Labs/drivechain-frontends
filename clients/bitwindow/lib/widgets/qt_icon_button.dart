@@ -17,6 +17,7 @@ class QtIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final button = SailScaleButton(
+      style: SailButtonStyle.secondary,
       onPressed: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(

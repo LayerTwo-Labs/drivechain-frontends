@@ -109,7 +109,7 @@ class _TransactionTableState extends State<TransactionTable> {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailRawCard(
-          title: 'Transaction History',
+          title: 'Your Wallet Transaction History',
           bottomPadding: false,
           child: Column(
             children: [
