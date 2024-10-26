@@ -110,6 +110,7 @@ class _TransactionTableState extends State<TransactionTable> {
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailRawCard(
           title: 'Transaction History',
+          bottomPadding: false,
           child: Column(
             children: [
               Padding(
@@ -125,19 +126,19 @@ class _TransactionTableState extends State<TransactionTable> {
                   getRowId: (index) => widget.entries[index].txid,
                   headerBuilder: (context) => [
                     SailTableHeaderCell(
-                      child: SailText.primary12('Conf'),
+                      name: 'Conf',
                       onSort: () => onSort('conf'),
                     ),
                     SailTableHeaderCell(
-                      child: SailText.primary12('Date'),
+                      name: 'Date',
                       onSort: () => onSort('date'),
                     ),
                     SailTableHeaderCell(
-                      child: SailText.primary12('TxID'),
+                      name: 'TxID',
                       onSort: () => onSort('txid'),
                     ),
                     SailTableHeaderCell(
-                      child: SailText.primary12('Amount'),
+                      name: 'Amount',
                       onSort: () => onSort('amount'),
                     ),
                   ],
@@ -172,9 +173,6 @@ class _TransactionTableState extends State<TransactionTable> {
                   },
                   rowCount: widget.entries.length,
                   columnWidths: const [100, 150, 200, 150],
-                  headerDecoration: BoxDecoration(
-                    color: context.sailTheme.colors.formFieldBorder,
-                  ),
                   drawGrid: true,
                   sortColumnIndex: [
                     'conf',

@@ -276,7 +276,7 @@ class _StatusBarState extends State<StatusBar> {
             children: [
               const SailSpacing(SailStyleValues.padding08),
               if (!model.mainchainConnected || !model.enforcerConnected || !model.serverConnected)
-                SailText.secondary12("You use BitWindow without the enforcer, but it's not that interesting."),
+                SailText.secondary12("You can use BitWindow without the enforcer, but it's not that interesting."),
               SailColumn(
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +299,8 @@ class _StatusBarState extends State<StatusBar> {
                   ),
                   DaemonConnectionCard(
                     connection: model.server,
-                    infoMessage: model.enforcerInitializing ? 'Waiting for enforcer to start' : null,
+                    infoMessage:
+                        !model.serverConnected && model.enforcerInitializing ? 'Waiting for enforcer to start' : null,
                     restartDaemon: () => model.initServerBinary(context),
                     navigateToLogs: model.navigateToLogs,
                   ),
