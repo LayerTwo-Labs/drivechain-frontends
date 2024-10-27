@@ -2,15 +2,14 @@ import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
-import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/send_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
-import 'package:bitwindow/widgets/qt_container.dart';
 import 'package:bitwindow/widgets/qt_icon_button.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -24,28 +23,35 @@ class SidechainsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const QtPage(
-      child: SidechainsView(),
-    );
-  }
-}
+    return QtPage(
+      child: ViewModelBuilder.reactive(
+        viewModelBuilder: () => SidechainsViewModel(),
+        builder: (context, model, child) => LayoutBuilder(
+          builder: (context, constraints) {
+            final spacing = SailStyleValues.padding08;
+            final sidechainsWidth = max(400, constraints.maxWidth * 0.25);
+            final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
 
-class SidechainsView extends StatelessWidget {
-  const SidechainsView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => SidechainsViewModel(),
-      builder: (context, model, child) => Row(
-        children: [
-          if (model.hasErrorForKey('sidechain')) ...{
-            ErrorContainer(error: model.error('sidechain').toString()),
-          } else ...{
-            const Expanded(child: SidechainsList()),
+            return SailRow(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: spacing,
+              children: [
+                if (model.hasErrorForKey('sidechain')) ...{
+                  ErrorContainer(error: model.error('sidechain').toString()),
+                } else ...{
+                  SizedBox(
+                    width: sidechainsWidth.toDouble(),
+                    child: SidechainsList(),
+                  ),
+                },
+                SizedBox(
+                  width: depositsWidth,
+                  child: const DepositWithdrawView(),
+                ),
+              ],
+            );
           },
-          const Expanded(child: DepositView()),
-        ],
+        ),
       ),
     );
   }
@@ -56,39 +62,55 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return QtContainer(
+    return SailRawCard(
+      title: 'Sidechains',
       child: Column(
-        mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Container(
-              color: SailTheme.of(context).colors.backgroundSecondary,
-              child: ListView.builder(
-                itemCount: viewModel.sidechains.length,
-                itemBuilder: (context, index) {
-                  final sidechain = viewModel.sidechains[index];
-                  final textColor = sidechain == null
-                      ? SailTheme.of(context).colors.textSecondary
-                      : SailTheme.of(context).colors.text;
-
-                  return SelectableListTile(
-                    index: index,
-                    sidechain: sidechain,
-                    textColor: textColor,
-                    isSelected: viewModel.selectedIndex == index,
-                    onSelected: () {
-                      viewModel.toggleSelection(index);
-                    },
-                  );
-                },
-              ),
+            child: SailTable(
+              getRowId: (index) => index.toString(),
+              headerBuilder: (context) => [
+                SailTableHeaderCell(
+                  name: 'Slot',
+                  onSort: () => viewModel.sortSidechains('slot'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Name',
+                  onSort: () => viewModel.sortSidechains('name'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Amount',
+                  onSort: () => viewModel.sortSidechains('amount'),
+                ),
+              ],
+              rowBuilder: (context, row, selected) {
+                final sidechain = viewModel.sortedSidechains[row];
+                final textColor =
+                    sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
+                return [
+                  SailTableCell(child: SailText.primary13('$row:', color: textColor)),
+                  SailTableCell(child: SailText.primary13(sidechain?.info.title ?? '', color: textColor)),
+                  SailTableCell(
+                    child: SailText.primary13(
+                      formatBitcoin(satoshiToBTC(sidechain?.info.amountSatoshi.toInt() ?? 0)),
+                      color: textColor,
+                    ),
+                  ),
+                ];
+              },
+              rowCount: viewModel.sortedSidechains.length,
+              columnWidths: const [21, 150, 100],
+              backgroundColor: context.sailTheme.colors.backgroundSecondary,
+              sortAscending: viewModel.sortAscending,
+              sortColumnIndex: ['slot', 'name', 'amount'].indexOf(viewModel.sortColumn),
+              onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
             ),
           ),
           const SizedBox(height: SailStyleValues.padding16),
           Center(
             child: QtButton(
-              child: SailText.primary12('Add / Remove'),
+              label: 'Add / Remove',
               onPressed: () => showSidechainActivationManagementModal(context),
             ),
           ),
@@ -169,8 +191,61 @@ class SidechainsViewModel extends BaseViewModel {
     depositAmountController.addListener(notifyListeners);
     feeController.addListener(notifyListeners);
   }
-
   List<SidechainOverview?> get sidechains => sidechainProvider.sidechains;
+
+  List<SidechainOverview?> _sortedSidechains = [];
+
+  String sortColumn = 'index';
+  bool sortAscending = true;
+
+  List<SidechainOverview?> get sortedSidechains {
+    if (!listEquals(_sortedSidechains, sidechains)) {
+      _sortedSidechains = List<SidechainOverview?>.from(sidechains);
+      _sortEntries();
+    }
+    return _sortedSidechains;
+  }
+
+  void sortSidechains(String column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
+    _sortEntries();
+    notifyListeners();
+  }
+
+  void _sortEntries() {
+    _sortedSidechains.sort((a, b) {
+      if (a == null && b == null) return 0;
+      if (a == null) return sortAscending ? 1 : -1;
+      if (b == null) return sortAscending ? -1 : 1;
+
+      dynamic aValue;
+      dynamic bValue;
+
+      switch (sortColumn) {
+        case 'index':
+          aValue = sidechains.indexOf(a);
+          bValue = sidechains.indexOf(b);
+          break;
+        case 'amount':
+          aValue = a.info.amountSatoshi;
+          bValue = b.info.amountSatoshi;
+          break;
+        case 'title':
+          aValue = a.info.title;
+          bValue = b.info.title;
+          break;
+        default:
+          return 0;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
 
   int? _selectedIndex;
 
@@ -200,6 +275,59 @@ class SidechainsViewModel extends BaseViewModel {
   void incrementSelectedIndex() {
     _selectedIndex = min(254, (_selectedIndex ?? 0) + 1);
     notifyListeners();
+  }
+
+  List<ListSidechainDepositsResponse_SidechainDeposit> _sortedDeposits = [];
+  String depositSortColumn = 'amount';
+  bool depositSortAscending = true;
+
+  List<ListSidechainDepositsResponse_SidechainDeposit> get sortedDeposits {
+    if (!listEquals(_sortedDeposits, recentDeposits)) {
+      _sortedDeposits = List<ListSidechainDepositsResponse_SidechainDeposit>.from(recentDeposits);
+      _sortDeposits();
+    }
+    return _sortedDeposits;
+  }
+
+  void sortDeposits(String column) {
+    if (depositSortColumn == column) {
+      depositSortAscending = !depositSortAscending;
+    } else {
+      depositSortColumn = column;
+      depositSortAscending = true;
+    }
+    _sortDeposits();
+    notifyListeners();
+  }
+
+  void _sortDeposits() {
+    _sortedDeposits.sort((a, b) {
+      dynamic aValue;
+      dynamic bValue;
+
+      switch (depositSortColumn) {
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+        case 'address':
+          aValue = a.address;
+          bValue = b.address;
+          break;
+        case 'confirmations':
+          aValue = a.confirmations;
+          bValue = b.confirmations;
+          break;
+        default:
+          return 0;
+      }
+
+      return depositSortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
   }
 
   List<ListSidechainDepositsResponse_SidechainDeposit> get recentDeposits =>
@@ -262,137 +390,185 @@ class SidechainsViewModel extends BaseViewModel {
   }
 }
 
-class DepositView extends ViewModelWidget<SidechainsViewModel> {
-  const DepositView({super.key});
+class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
+  const DepositWithdrawView({super.key});
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return QtContainer(
-      child: SailPadding(
-        child: SailColumn(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailText.primary13('An address you own on the sidechain you are depositing to:'),
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                Expanded(
-                  child: SailTextField(
-                    controller: viewModel.addressController,
-                    hintText: 'Enter a sidechain address',
-                    size: TextFieldSize.small,
-                  ),
+    return Expanded(
+      child: InlineTabBar(
+        tabs: [
+          TabItem(
+            label: 'Create Deposits',
+            icon: SailSVGAsset.iconDeposit,
+            child: MakeDepositsView(),
+          ),
+          TabItem(
+            label: 'See Withdrawals',
+            icon: SailSVGAsset.iconWithdraw,
+            child: SailText.primary22('TODO: See Withdrawals'),
+          ),
+        ],
+        initialIndex: 0,
+      ),
+    );
+  }
+}
+
+class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
+  const MakeDepositsView({super.key});
+
+  @override
+  Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    return SailRawCard(
+      bottomPadding: false,
+      child: SailColumn(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: SailStyleValues.padding08,
+        children: [
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                flex: 2, // take up 2/3 of the space
+                child: SailTextField(
+                  label: 'Sidechain Deposit Address',
+                  controller: viewModel.addressController,
+                  hintText: 's${viewModel._selectedIndex ?? 0}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
+                  size: TextFieldSize.small,
                 ),
-                QtIconButton(
-                  tooltip: 'Paste from clipboard',
-                  onPressed: viewModel.pasteAddress,
-                  icon: Icon(
-                    Icons.content_paste_rounded,
-                    size: 20.0,
-                    color: context.sailTheme.colors.text,
-                  ),
+              ),
+              QtIconButton(
+                tooltip: 'Paste from clipboard',
+                onPressed: viewModel.pasteAddress,
+                icon: Icon(
+                  Icons.content_paste_rounded,
+                  size: 20.0,
+                  color: context.sailTheme.colors.text,
                 ),
-                QtIconButton(
-                  tooltip: 'Clear',
-                  onPressed: viewModel.clearAddress,
-                  icon: Icon(
-                    Icons.cancel_outlined,
-                    size: 20.0,
-                    color: context.sailTheme.colors.text,
-                  ),
+              ),
+              QtIconButton(
+                tooltip: 'Clear',
+                onPressed: viewModel.clearAddress,
+                icon: Icon(
+                  Icons.cancel_outlined,
+                  size: 20.0,
+                  color: context.sailTheme.colors.text,
                 ),
-              ],
+              ),
+              Expanded(
+                flex: 1, // This makes the remaining space take up 1/3
+                child: Container(),
+              ),
+            ],
+          ),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                flex: 2, // take up 2/3 of the space
+                child: NumericField(
+                  label: 'Deposit Amount',
+                  controller: viewModel.depositAmountController,
+                  hintText: '0.00',
+                ),
+              ),
+              UnitDropdown(
+                value: Unit.BTC,
+                onChanged: (_) => {},
+                enabled: false,
+              ),
+              Expanded(
+                child: Container(),
+              ),
+            ],
+          ),
+          SailPadding(
+            padding: EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
+            child: SailText.secondary13(
+              'The sidechain may also deduct a fee from your deposit.',
+              color: context.sailTheme.colors.textTertiary,
             ),
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                Expanded(
-                  child: NumericField(
-                    label: 'Amount',
-                    controller: viewModel.depositAmountController,
-                    hintText: '0.00',
-                  ),
-                ),
-                UnitDropdown(
-                  value: Unit.BTC,
-                  onChanged: (_) => {},
-                  enabled: false,
-                ),
-              ],
+          ),
+          QtButton(
+            label: 'Deposit',
+            disabled: viewModel.addressController.text == '' ||
+                viewModel.depositAmountController.text == '' ||
+                viewModel.feeController.text == '',
+            onPressed: () => viewModel.deposit(context),
+            loading: viewModel.isBusy,
+          ),
+          const SizedBox(height: SailStyleValues.padding16),
+          Expanded(
+            child: SailRawCard(
+              title: 'Your Recent Deposits',
+              shadowSize: ShadowSize.none,
+              padding: false,
+              child: RecentDepositsTable(),
             ),
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                Expanded(
-                  child: NumericField(
-                    label: 'Fee',
-                    controller: viewModel.feeController,
-                    hintText: '0.00',
-                  ),
-                ),
-                UnitDropdown(
-                  value: Unit.BTC,
-                  onChanged: (_) => {},
-                  enabled: false,
-                ),
-              ],
-            ),
-            QtButton(
-              disabled: viewModel.addressController.text == '' ||
-                  viewModel.depositAmountController.text == '' ||
-                  viewModel.feeController.text == '',
-              onPressed: () => viewModel.deposit(context),
-              loading: viewModel.isBusy,
-              child: SailText.primary12('Deposit'),
-            ),
-            SailText.secondary12('The sidechain may also deduct a fee from your deposit.'),
-            const SizedBox(height: SailStyleValues.padding16),
-            const QtSeparator(),
-            SailText.primary13('Your Recent Deposits:'),
-            Expanded(
-              child: RecentDepositsTable(deposits: viewModel.recentDeposits),
-            ),
-            SailText.secondary12('We have no way of knowing when/if your deposit will show up on the SC'),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
-  final List<ListSidechainDepositsResponse_SidechainDeposit> deposits;
-
-  const RecentDepositsTable({super.key, required this.deposits});
+  const RecentDepositsTable({super.key});
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return QtContainer(
-      tight: true,
-      child: SailTable(
-        getRowId: (index) => deposits[index].txid,
-        headerBuilder: (context) => [
-          SailTableHeaderCell(name: 'SC #'),
-          SailTableHeaderCell(name: 'Amount'),
-          SailTableHeaderCell(name: 'Txid'),
-          SailTableHeaderCell(name: 'Address'),
-          SailTableHeaderCell(name: 'Visible on SC?'),
-        ],
-        rowBuilder: (context, row, selected) {
-          final deposit = deposits[row];
-          return [
-            SailTableCell(child: SailText.primary12(viewModel._selectedIndex.toString())),
-            SailTableCell(child: SailText.primary12(deposit.amount.toString())),
-            SailTableCell(child: SailText.primary12(deposit.txid.toString())),
-            SailTableCell(child: SailText.primary12(deposit.address)),
-            SailTableCell(child: SailText.primary12(deposit.confirmations >= 2 ? 'Yes' : 'No')),
-          ];
-        },
-        rowCount: deposits.length,
-        columnWidths: const [50, 100, 200, 200, 100],
-        drawGrid: true,
-      ),
+    return SailTable(
+      getRowId: (index) => viewModel.sortedDeposits[index].txid,
+      headerBuilder: (context) => [
+        SailTableHeaderCell(
+          name: 'SC #',
+          onSort: () => viewModel.sortDeposits('sc'),
+        ),
+        SailTableHeaderCell(
+          name: 'Amount',
+          onSort: () => viewModel.sortDeposits('amount'),
+        ),
+        SailTableHeaderCell(
+          name: 'Txid',
+          onSort: () => viewModel.sortDeposits('txid'),
+        ),
+        SailTableHeaderCell(
+          name: 'Address',
+          onSort: () => viewModel.sortDeposits('address'),
+        ),
+        SailTableHeaderCell(
+          name: 'Visible on SC?',
+          onSort: () => viewModel.sortDeposits('confirmations'),
+        ),
+      ],
+      rowBuilder: (context, row, selected) {
+        final deposit = viewModel.sortedDeposits[row];
+        return [
+          SailTableCell(child: SailText.primary12(viewModel.selectedIndex.toString())),
+          SailTableCell(child: SailText.primary12(deposit.amount.toString())),
+          SailTableCell(child: SailText.primary12(deposit.txid)),
+          SailTableCell(child: SailText.primary12(deposit.address)),
+          SailTableCell(child: SailText.primary12(deposit.confirmations >= 2 ? 'Yes' : 'No')),
+        ];
+      },
+      rowCount: viewModel.sortedDeposits.length,
+      columnWidths: const [50, 100, 200, 200, 100],
+      drawGrid: true,
+      sortAscending: viewModel.depositSortAscending,
+      sortColumnIndex: ['sc', 'amount', 'txid', 'address', 'confirmations'].indexOf(viewModel.depositSortColumn),
+      onSort: (columnIndex, ascending) => viewModel.sortDeposits(viewModel.depositSortColumn),
     );
+  }
+}
+
+class MakeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
+  const MakeWithdrawalsView({super.key});
+
+  @override
+  Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    return SailText.primary22('TODO: Make Withdrawals');
   }
 }

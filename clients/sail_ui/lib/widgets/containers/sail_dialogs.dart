@@ -163,6 +163,7 @@ class DialogHeader extends StatelessWidget {
         Expanded(child: Container()),
         SailScaleButton(
           onPressed: onClose,
+          style: SailButtonStyle.secondary,
           child: SailSVG.icon(SailSVGAsset.iconClose),
         ),
       ],

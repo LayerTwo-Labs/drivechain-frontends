@@ -73,10 +73,6 @@ class _SailTableState extends State<SailTable> {
   int? _sortColumnIndex;
   bool _sortAscending = true;
 
-  double _horizontalRowPadding(BuildContext context) {
-    return context.isWindows || widget.drawGrid ? 0.0 : 8.0;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -158,7 +154,6 @@ class _SailTableState extends State<SailTable> {
     var altBgColor = widget.altBackgroundColor ?? themeAltColor;
 
     var isWindows = context.isWindows;
-    var horizontalRowPadding = _horizontalRowPadding(context);
 
     return Container(
       color: theme.colors.backgroundSecondary,
@@ -180,7 +175,6 @@ class _SailTableState extends State<SailTable> {
                   height: widget.cellHeight,
                   selected: isSelected,
                   backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                  horizontalRowPadding: horizontalRowPadding,
                   grid: widget.drawGrid,
                   drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
                   onPressed: () {
@@ -222,7 +216,6 @@ class _SailTableState extends State<SailTable> {
                   height: widget.cellHeight,
                   selected: isSelected,
                   backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                  horizontalRowPadding: horizontalRowPadding,
                   grid: widget.drawGrid,
                   drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
                   onPressed: () {
@@ -286,7 +279,6 @@ class _SailTableState extends State<SailTable> {
                       cells: header,
                       grid: widget.drawGrid,
                       resizableColumns: widget.resizableColumns,
-                      horizontalRowPadding: horizontalRowPadding,
                       onStartResizeColumn: _onStartResizeColumn,
                       onEndResizeColumn: _onEndResizeColumn,
                       onResizedColumn: _onResizedColumn,
@@ -356,7 +348,6 @@ class _TableHeader extends StatelessWidget {
     required this.onResizedColumn,
     required this.onStartResizeColumn,
     required this.onEndResizeColumn,
-    required this.horizontalRowPadding,
   });
 
   final List<Widget> cells;
@@ -364,7 +355,6 @@ class _TableHeader extends StatelessWidget {
   final BoxDecoration? decoration;
   final bool grid;
   final bool resizableColumns;
-  final double horizontalRowPadding;
   final void Function(int column, double delta) onResizedColumn;
   final void Function(int column) onStartResizeColumn;
   final void Function(int column) onEndResizeColumn;
@@ -423,7 +413,6 @@ class _TableHeader extends StatelessWidget {
       height: 48,
       decoration: decoration,
       padding: EdgeInsets.symmetric(
-        horizontal: horizontalRowPadding,
         vertical: SailStyleValues.padding12,
       ),
       child: Row(
@@ -515,7 +504,6 @@ class _TableRow extends StatelessWidget {
     required this.widths,
     required this.height,
     required this.grid,
-    required this.horizontalRowPadding,
     required this.drawBorder,
     this.backgroundColor,
   });
@@ -527,7 +515,6 @@ class _TableRow extends StatelessWidget {
   final List<double> widths;
   final double height;
   final bool grid;
-  final double horizontalRowPadding;
   final bool drawBorder;
 
   @override
@@ -568,10 +555,7 @@ class _TableRow extends StatelessWidget {
     Widget contents;
 
     if (isWindows || grid) {
-      contents = Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontalRowPadding,
-        ),
+      contents = DecoratedBox(
         decoration: BoxDecoration(
           color: selected ? theme.colors.primary : backgroundColor,
           border: drawBorder
@@ -589,12 +573,8 @@ class _TableRow extends StatelessWidget {
       );
     } else {
       contents = Container(
-        margin: EdgeInsets.symmetric(
-          horizontal: horizontalRowPadding,
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontalRowPadding,
-        ),
+        margin: EdgeInsets.symmetric(),
+        padding: EdgeInsets.symmetric(),
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
           color: selected ? theme.colors.primary : backgroundColor,
