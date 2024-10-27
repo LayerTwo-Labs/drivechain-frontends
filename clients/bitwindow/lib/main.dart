@@ -32,7 +32,7 @@ void main() async {
   const windowOptions = WindowOptions(
     minimumSize: Size(600, 700),
     titleBarStyle: TitleBarStyle.normal,
-    title: 'Drivechain (Bitcoin Core 0.16.99 + BIPs 300 and 301)', // TODO: Insert actual version number
+    title: 'Drivechain (Bitcoin Core)',
   );
 
   unawaited(

@@ -38,8 +38,6 @@ class SendPage extends StatelessWidget {
   }
 }
 
-const _kLabelWidth = 50.0;
-
 class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
   const SendDetailsForm({super.key});
 
@@ -99,12 +97,15 @@ class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
                           child: NumericField(
                             label: 'Amount',
                             controller: viewModel.amountController,
-                            suffixWidget: GestureDetector(
-                              onTap: viewModel.onUseAvailableBalance,
-                              child: SailText.primary15(
-                                'MAX',
-                                color: context.sailTheme.colors.orange,
-                                underline: true,
+                            suffixWidget: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: viewModel.onUseAvailableBalance,
+                                child: SailText.primary15(
+                                  'MAX',
+                                  color: context.sailTheme.colors.orange,
+                                  underline: true,
+                                ),
                               ),
                             ),
                           ),

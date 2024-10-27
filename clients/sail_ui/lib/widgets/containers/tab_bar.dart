@@ -45,7 +45,12 @@ class _InlineTabBarState extends State<InlineTabBar> {
                 ),
                 child: Row(
                   children: [
-                    SailSVG.fromAsset(widget.tabs[index].icon),
+                    SailSVG.fromAsset(
+                      widget.tabs[index].icon,
+                      color:
+                          isSelected ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.textTertiary,
+                      width: 18,
+                    ),
                     const SizedBox(width: SailStyleValues.padding08),
                     SailText.primary13(
                       widget.tabs[index].label,
@@ -60,9 +65,7 @@ class _InlineTabBarState extends State<InlineTabBar> {
           }),
         ),
         const SizedBox(height: SailStyleValues.padding08),
-        Flexible(
-          child: widget.tabs[_selectedIndex].child,
-        ),
+        Expanded(child: widget.tabs[_selectedIndex].child),
       ],
     );
   }

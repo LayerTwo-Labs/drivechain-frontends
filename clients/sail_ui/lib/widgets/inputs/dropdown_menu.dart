@@ -61,19 +61,17 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       },
       style: SailButtonStyle.secondary,
       disabled: !widget.enabled,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            currentItem,
-            SailSVG.fromAsset(
-              SailSVGAsset.iconDropdown,
-              color: theme.colors.textSecondary,
-            ),
-          ],
-        ),
+      child: SailRow(
+        spacing: SailStyleValues.padding08,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          currentItem,
+          SailSVG.fromAsset(
+            SailSVGAsset.iconDropdown,
+            color: theme.colors.textSecondary,
+          ),
+        ],
       ),
     );
   }
