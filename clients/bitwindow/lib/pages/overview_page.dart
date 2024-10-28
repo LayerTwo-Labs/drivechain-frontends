@@ -37,7 +37,7 @@ class OverviewPage extends StatelessWidget {
                 TabItem(
                   label: 'Coin News',
                   icon: SailSVGAsset.iconCoinnews,
-                  child: SailText.primary22('TODO: Make Coin News'),
+                  child: CoinNewsView(),
                 ),
                 TabItem(
                   label: 'Wallet Transactions',
@@ -455,4 +455,285 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
       },
     );
   }
+}
+
+class CoinNewsViewModel extends ChangeNotifier {
+  String leftRegion = 'US';
+  String rightRegion = 'Japan';
+  final List<CoinNewsEntry> leftEntries = [];
+  final List<CoinNewsEntry> rightEntries = [];
+
+  bool _sortAscending = true;
+  String _sortColumn = 'date';
+
+  void setLeftRegion(String region) {
+    leftRegion = region;
+    notifyListeners();
+  }
+
+  void setRightRegion(String region) {
+    rightRegion = region;
+    notifyListeners();
+  }
+
+  void sortEntries(String column) {
+    if (_sortColumn == column) {
+      _sortAscending = !_sortAscending;
+    } else {
+      _sortColumn = column;
+      _sortAscending = true;
+    }
+    notifyListeners();
+  }
+}
+
+class CoinNewsView extends StatelessWidget {
+  const CoinNewsView({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<CoinNewsViewModel>.reactive(
+      viewModelBuilder: () => CoinNewsViewModel(),
+      builder: (context, viewModel, child) {
+        return Expanded(
+          child: SailRawCard(
+            header: Padding(
+              padding: EdgeInsets.only(bottom: SailStyleValues.padding16),
+              child: SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  SailText.primary15(
+                    'Coin News',
+                    bold: true,
+                  ),
+                  Expanded(child: Container()),
+                  QtButton(
+                    label: 'Broadcast News',
+                    onPressed: () => displayBroadcastNewsDialog(context),
+                    size: ButtonSize.small,
+                  ),
+                ],
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailRawCard(
+                        bottomPadding: false,
+                        header: SailDropdownButton<String>(
+                          items: [
+                            SailDropdownItem(
+                              value: 'US',
+                              child: SailText.primary12('US Weekly'),
+                            ),
+                            SailDropdownItem(
+                              value: 'Japan',
+                              child: SailText.primary12('Japan Weekly'),
+                            ),
+                          ],
+                          onChanged: viewModel.setLeftRegion,
+                          value: viewModel.leftRegion,
+                        ),
+                        child: SizedBox(
+                          height: 300,
+                          child: CoinNewsTable(
+                            entries: viewModel.leftEntries,
+                            onSort: viewModel.sortEntries,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: SailStyleValues.padding16),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailRawCard(
+                        bottomPadding: false,
+                        header: SailDropdownButton<String>(
+                          items: [
+                            SailDropdownItem(
+                              value: 'Japan',
+                              child: SailText.primary12('Japan Weekly'),
+                            ),
+                            SailDropdownItem(
+                              value: 'US',
+                              child: SailText.primary12('US Weekly'),
+                            ),
+                          ],
+                          onChanged: viewModel.setRightRegion,
+                          value: viewModel.rightRegion,
+                        ),
+                        child: SizedBox(
+                          height: 300,
+                          child: CoinNewsTable(
+                            entries: viewModel.rightEntries,
+                            onSort: viewModel.sortEntries,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> displayBroadcastNewsDialog(BuildContext context) async {
+    await widgetDialog(
+      context: context,
+      action: 'Coin News',
+      dialogText: 'Broadcast New',
+      dialogType: DialogType.info,
+      maxWidth: 566,
+      child: BroadcastNewsView(),
+    );
+  }
+}
+
+class BroadcastNewsView extends StatelessWidget {
+  const BroadcastNewsView({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<BroadcastNewsViewModel>.reactive(
+      viewModelBuilder: () => BroadcastNewsViewModel(),
+      builder: (context, viewModel, child) {
+        return SailColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding16,
+          leadingSpacing: true,
+          children: [
+            SailDropdownButton<String>(
+              items: [
+                SailDropdownItem(
+                  value: 'US',
+                  child: SailText.primary12('US Weekly'),
+                ),
+                SailDropdownItem(
+                  value: 'Japan',
+                  child: SailText.primary12('Japan Weekly'),
+                ),
+              ],
+              onChanged: viewModel.setRegion,
+              value: viewModel.region,
+            ),
+            SailTextField(
+              label: 'Headline (max 64 characters)',
+              controller: viewModel.headlineController,
+              hintText: 'Enter a headline',
+              size: TextFieldSize.small,
+            ),
+            QtButton(
+              label: 'Broadcast',
+              onPressed: () => viewModel.broadcastNews(context),
+              size: ButtonSize.small,
+              disabled: viewModel.headlineController.text.isEmpty,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class BroadcastNewsViewModel extends BaseViewModel {
+  String _region = 'US';
+  String get region => _region;
+
+  final TextEditingController headlineController = TextEditingController();
+
+  BroadcastNewsViewModel() {
+    headlineController.addListener(notifyListeners);
+  }
+
+  void setRegion(String newRegion) {
+    _region = newRegion;
+    notifyListeners();
+  }
+
+  Future<void> broadcastNews(BuildContext context) async {
+    if (headlineController.text.isEmpty) {
+      return;
+    }
+
+    if (headlineController.text.length > 64) {
+      showSnackBar(context, 'Headline must be 64 characters or less');
+      return;
+    }
+
+    showSnackBar(context, 'TODO: Actually broadcast the news');
+  }
+
+  @override
+  void dispose() {
+    headlineController.removeListener(notifyListeners);
+    headlineController.dispose();
+    super.dispose();
+  }
+}
+
+class CoinNewsTable extends StatelessWidget {
+  final List<CoinNewsEntry> entries;
+  final Function(String) onSort;
+
+  const CoinNewsTable({
+    super.key,
+    required this.entries,
+    required this.onSort,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      getRowId: (index) => entries[index].id,
+      headerBuilder: (context) => [
+        SailTableHeaderCell(name: 'Fe'),
+        SailTableHeaderCell(name: 'Time'),
+        SailTableHeaderCell(name: 'Headline'),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = entries[row];
+        return [
+          SailTableCell(child: SailText.primary12(entry.fe.toString())),
+          SailTableCell(child: SailText.primary12(entry.time.format())),
+          SailTableCell(child: SailText.primary12(entry.headline)),
+        ];
+      },
+      rowCount: entries.length,
+      columnWidths: const [150, 200, 150],
+      drawGrid: true,
+      onSort: (columnIndex, ascending) {
+        onSort(['fe', 'time', 'headline'][columnIndex]);
+      },
+    );
+  }
+}
+
+class CoinNewsEntry {
+  final String id;
+  final num fe;
+  final DateTime time;
+  final String headline;
+
+  CoinNewsEntry({
+    required this.id,
+    required this.fe,
+    required this.time,
+    required this.headline,
+  });
 }
