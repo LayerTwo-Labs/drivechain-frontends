@@ -289,6 +289,15 @@ class SidechainsViewModel extends BaseViewModel {
     return _sortedDeposits;
   }
 
+// TODO: Implement withdrawals
+  List<ListSidechainDepositsResponse_SidechainDeposit> get sortedWithdrawals {
+    if (!listEquals(_sortedDeposits, recentDeposits)) {
+      _sortedDeposits = List<ListSidechainDepositsResponse_SidechainDeposit>.from(recentDeposits);
+      _sortDeposits();
+    }
+    return _sortedDeposits;
+  }
+
   void sortDeposits(String column) {
     if (depositSortColumn == column) {
       depositSortAscending = !depositSortAscending;
@@ -406,7 +415,7 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
           TabItem(
             label: 'See Withdrawals',
             icon: SailSVGAsset.iconWithdraw,
-            child: SailText.primary22('TODO: See Withdrawals'),
+            child: SeeWithdrawalsView(),
           ),
         ],
         initialIndex: 0,
@@ -515,6 +524,18 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
   }
 }
 
+class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
+  const SeeWithdrawalsView({super.key});
+
+  @override
+  Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    return SailRawCard(
+      bottomPadding: false,
+      child: RecentWithdrawalsTable(),
+    );
+  }
+}
+
 class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
   const RecentDepositsTable({super.key});
 
@@ -564,11 +585,57 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
   }
 }
 
-class MakeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
-  const MakeWithdrawalsView({super.key});
+class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
+  const RecentWithdrawalsTable({super.key});
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return SailText.primary22('TODO: Make Withdrawals');
+    return SailTable(
+      getRowId: (index) => viewModel.sortedWithdrawals[index].txid,
+      headerBuilder: (context) => [
+        SailTableHeaderCell(
+          name: 'SC #',
+          onSort: () => viewModel.sortDeposits('sc'),
+        ),
+        SailTableHeaderCell(
+          name: 'Age',
+          onSort: () => viewModel.sortDeposits('age'),
+        ),
+        SailTableHeaderCell(
+          name: 'Max Age',
+          onSort: () => viewModel.sortDeposits('maxage'),
+        ),
+        SailTableHeaderCell(
+          name: 'Acks',
+          onSort: () => viewModel.sortDeposits('acks'),
+        ),
+        SailTableHeaderCell(
+          name: 'Approved',
+          onSort: () => viewModel.sortDeposits('approved'),
+        ),
+        SailTableHeaderCell(
+          name: 'Withdrawal Hash',
+          onSort: () => viewModel.sortDeposits('withdrawalhash'),
+        ),
+      ],
+      rowBuilder: (context, row, selected) {
+        final withdrawal = viewModel.sortedWithdrawals[row];
+        return [
+          SailTableCell(child: SailText.primary12(viewModel.selectedIndex.toString())),
+          SailTableCell(child: SailText.primary12(withdrawal.amount.toString())),
+          SailTableCell(child: SailText.primary12(withdrawal.txid)),
+          SailTableCell(child: SailText.primary12(withdrawal.address)),
+          SailTableCell(child: SailText.primary12(withdrawal.confirmations >= 2 ? 'Yes' : 'No')),
+          SailTableCell(child: SailText.primary12(withdrawal.confirmations >= 2 ? 'Yes' : 'No')),
+        ];
+      },
+      rowCount: viewModel.sortedWithdrawals.length,
+      columnWidths: const [50, 100, 200, 200, 100, 200],
+      drawGrid: true,
+      sortAscending: viewModel.depositSortAscending,
+      sortColumnIndex:
+          ['sc', 'age', 'maxage', 'acks', 'approved', 'withdrawalhash'].indexOf(viewModel.depositSortColumn),
+      onSort: (columnIndex, ascending) => viewModel.sortDeposits(viewModel.depositSortColumn),
+    );
   }
 }
