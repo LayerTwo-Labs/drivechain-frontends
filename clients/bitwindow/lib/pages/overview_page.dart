@@ -1,10 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:bitwindow/pages/transactions_page.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
-import 'package:bitwindow/widgets/qt_container.dart';
 import 'package:bitwindow/widgets/qt_icon_button.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -21,34 +19,22 @@ class OverviewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return QtPage(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ExperimentalBanner(),
-          SizedBox(height: SailStyleValues.padding16),
-          Expanded(
-            child: InlineTabBar(
-              tabs: [
-                TabItem(
-                  label: 'Overview',
-                  icon: SailSVGAsset.iconWallet,
-                  child: TransactionsView(),
-                ),
-                TabItem(
-                  label: 'Coin News',
-                  icon: SailSVGAsset.iconCoinnews,
-                  child: CoinNewsView(),
-                ),
-                TabItem(
-                  label: 'Wallet Transactions',
-                  icon: SailSVGAsset.iconTransactions,
-                  child: TransactionsPage(),
-                ),
+      child: SingleChildScrollView(
+        child: SailColumn(
+          spacing: SailStyleValues.padding16,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ExperimentalBanner(),
+            SailColumn(
+              spacing: SailStyleValues.padding16,
+              children: [
+                CoinNewsView(),
+                TransactionsView(),
               ],
-              initialIndex: 0,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -113,49 +99,45 @@ class TransactionsView extends StatelessWidget {
             error: model.error('blockchain').toString(),
           );
         }
-        return Expanded(
-          child: QtContainer(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailRawCard(
-                        bottomPadding: false,
-                        title: 'Latest Transactions',
-                        child: SizedBox(
-                          height: 300,
-                          child: LatestTransactionTable(
-                            entries: model.unconfirmedTransactions,
-                          ),
-                        ),
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailRawCard(
+                    bottomPadding: false,
+                    title: 'Latest Transactions',
+                    child: SizedBox(
+                      height: 300,
+                      child: LatestTransactionTable(
+                        entries: model.unconfirmedTransactions,
                       ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: SailStyleValues.padding16), // Add some space between the two tables
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailRawCard(
-                        title: 'Latest blocks',
-                        bottomPadding: false,
-                        child: SizedBox(
-                          height: 300,
-                          child: LatestBlocksTable(
-                            blocks: model.recentBlocks,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(width: SailStyleValues.padding16), // Add some space between the two tables
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailRawCard(
+                    title: 'Latest blocks',
+                    bottomPadding: false,
+                    child: SizedBox(
+                      height: 300,
+                      child: LatestBlocksTable(
+                        blocks: model.recentBlocks,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
@@ -497,94 +479,89 @@ class CoinNewsView extends StatelessWidget {
     return ViewModelBuilder<CoinNewsViewModel>.reactive(
       viewModelBuilder: () => CoinNewsViewModel(),
       builder: (context, viewModel, child) {
-        return Expanded(
-          child: SailRawCard(
-            header: Padding(
-              padding: EdgeInsets.only(bottom: SailStyleValues.padding16),
-              child: SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  SailText.primary15(
-                    'Coin News',
-                    bold: true,
-                  ),
-                  Expanded(child: Container()),
-                  QtButton(
-                    label: 'Broadcast News',
-                    onPressed: () => displayBroadcastNewsDialog(context),
-                    size: ButtonSize.small,
-                  ),
-                ],
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        return SailRawCard(
+          header: Padding(
+            padding: EdgeInsets.only(bottom: SailStyleValues.padding16),
+            child: SailRow(
+              spacing: SailStyleValues.padding08,
               children: [
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailRawCard(
-                        bottomPadding: false,
-                        header: SailDropdownButton<String>(
-                          items: [
-                            SailDropdownItem(
-                              value: 'US',
-                              child: SailText.primary12('US Weekly'),
-                            ),
-                            SailDropdownItem(
-                              value: 'Japan',
-                              child: SailText.primary12('Japan Weekly'),
-                            ),
-                          ],
-                          onChanged: viewModel.setLeftRegion,
-                          value: viewModel.leftRegion,
-                        ),
-                        child: SizedBox(
-                          height: 300,
-                          child: CoinNewsTable(
-                            entries: viewModel.leftEntries,
-                            onSort: viewModel.sortEntries,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                SailText.primary15(
+                  'Coin News',
+                  bold: true,
                 ),
-                const SizedBox(width: SailStyleValues.padding16),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailRawCard(
-                        bottomPadding: false,
-                        header: SailDropdownButton<String>(
-                          items: [
-                            SailDropdownItem(
-                              value: 'Japan',
-                              child: SailText.primary12('Japan Weekly'),
-                            ),
-                            SailDropdownItem(
-                              value: 'US',
-                              child: SailText.primary12('US Weekly'),
-                            ),
-                          ],
-                          onChanged: viewModel.setRightRegion,
-                          value: viewModel.rightRegion,
-                        ),
-                        child: SizedBox(
-                          height: 300,
-                          child: CoinNewsTable(
-                            entries: viewModel.rightEntries,
-                            onSort: viewModel.sortEntries,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                Expanded(child: Container()),
+                QtButton(
+                  label: 'Broadcast News',
+                  onPressed: () => displayBroadcastNewsDialog(context),
+                  size: ButtonSize.small,
                 ),
               ],
             ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                child: SailColumn(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: SailStyleValues.padding16,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SailDropdownButton<String>(
+                      items: [
+                        SailDropdownItem(
+                          value: 'US',
+                          child: SailText.primary12('US Weekly'),
+                        ),
+                        SailDropdownItem(
+                          value: 'Japan',
+                          child: SailText.primary12('Japan Weekly'),
+                        ),
+                      ],
+                      onChanged: viewModel.setLeftRegion,
+                      value: viewModel.leftRegion,
+                    ),
+                    SizedBox(
+                      height: 300,
+                      child: CoinNewsTable(
+                        entries: viewModel.leftEntries,
+                        onSort: viewModel.sortEntries,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: SailStyleValues.padding16),
+              Flexible(
+                child: SailColumn(
+                  spacing: SailStyleValues.padding16,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SailDropdownButton<String>(
+                      items: [
+                        SailDropdownItem(
+                          value: 'Japan',
+                          child: SailText.primary12('Japan Weekly'),
+                        ),
+                        SailDropdownItem(
+                          value: 'US',
+                          child: SailText.primary12('US Weekly'),
+                        ),
+                      ],
+                      onChanged: viewModel.setRightRegion,
+                      value: viewModel.rightRegion,
+                    ),
+                    SizedBox(
+                      height: 300,
+                      child: CoinNewsTable(
+                        entries: viewModel.rightEntries,
+                        onSort: viewModel.sortEntries,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -594,10 +571,7 @@ class CoinNewsView extends StatelessWidget {
   Future<void> displayBroadcastNewsDialog(BuildContext context) async {
     await widgetDialog(
       context: context,
-      action: 'Coin News',
-      dialogText: 'Broadcast New',
-      dialogType: DialogType.info,
-      maxWidth: 566,
+      title: 'Broadcast News',
       child: BroadcastNewsView(),
     );
   }
@@ -616,6 +590,7 @@ class BroadcastNewsView extends StatelessWidget {
         return SailColumn(
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: SailStyleValues.padding16,
+          mainAxisSize: MainAxisSize.min,
           leadingSpacing: true,
           children: [
             SailDropdownButton<String>(

@@ -125,9 +125,7 @@ class BottomNavViewModel extends BaseViewModel {
   ) async {
     await widgetDialog(
       context: context,
-      action: 'Startup connection',
-      dialogText: 'Daemon status',
-      dialogType: DialogType.info,
+      title: 'Daemon status',
       maxWidth: 566,
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => BottomNavViewModel(navigateToSettings: navigateToSettings),

@@ -20,7 +20,7 @@ class SailShadow extends StatelessWidget {
     }
 
     final theme = SailTheme.of(context);
-    final blurRadius = shadowSize == ShadowSize.small ? 4.0 : 7.0;
+    final blurRadius = shadowSize == ShadowSize.small ? 10.0 : 7.0;
     final spreadRadius = shadowSize == ShadowSize.small ? 0.0 : 2.0;
 
     return Stack(
@@ -31,7 +31,7 @@ class SailShadow extends StatelessWidget {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: theme.colors.shadow,
+                  color: theme.colors.shadow.withOpacity(0.05), // Reduced opacity from 0.05 to 0.02
                   blurRadius: blurRadius,
                   spreadRadius: spreadRadius,
                 ),

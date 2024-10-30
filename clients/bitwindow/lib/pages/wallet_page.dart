@@ -1,23 +1,27 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/servers/api.dart';
+import 'package:bitwindow/widgets/error_container.dart';
 import 'package:bitwindow/widgets/qt_icon_button.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:stacked/stacked.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
 @RoutePage()
-class SendPage extends StatelessWidget {
+class WalletPage extends StatelessWidget {
   API get api => GetIt.I.get<API>();
 
-  const SendPage({super.key});
+  const WalletPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +30,27 @@ class SendPage extends StatelessWidget {
         viewModelBuilder: () => SendPageViewModel(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
-          return Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              const SendDetailsForm(),
-            ],
+          return Expanded(
+            child: InlineTabBar(
+              tabs: [
+                TabItem(
+                  label: 'Send',
+                  icon: SailSVGAsset.iconWallet,
+                  child: SendTab(),
+                ),
+                TabItem(
+                  label: 'Receive',
+                  icon: SailSVGAsset.iconCoinnews,
+                  child: ReceiveTab(),
+                ),
+                TabItem(
+                  label: 'Wallet Transactions',
+                  icon: SailSVGAsset.iconTransactions,
+                  child: TransactionsTab(),
+                ),
+              ],
+              initialIndex: 0,
+            ),
           );
         },
       ),
@@ -38,8 +58,8 @@ class SendPage extends StatelessWidget {
   }
 }
 
-class SendDetailsForm extends ViewModelWidget<SendPageViewModel> {
-  const SendDetailsForm({super.key});
+class SendTab extends ViewModelWidget<SendPageViewModel> {
+  const SendTab({super.key});
 
   @override
   Widget build(BuildContext context, SendPageViewModel viewModel) {
@@ -590,4 +610,358 @@ class SendPageViewModel extends BaseViewModel {
     replaceByFee = false;
     notifyListeners();
   }
+}
+
+class ReceiveTab extends StatelessWidget {
+  const ReceiveTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return QtPage(
+      child: ViewModelBuilder.reactive(
+        viewModelBuilder: () => ReceivePageViewModel(),
+        onViewModelReady: (model) => model.init(),
+        builder: (context, model, child) {
+          if (model.hasError) {
+            return ErrorContainer(
+              error: model.modelError.toString(),
+              onRetry: () => model.init(),
+            );
+          }
+          return Column(
+            children: [
+              SailRow(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                spacing: SailStyleValues.padding08,
+                children: [
+                  Expanded(
+                    child: SailRawCard(
+                      title: 'Receive Bitcoin',
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding16,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailRow(
+                            spacing: SailStyleValues.padding08,
+                            children: [
+                              Expanded(
+                                child: SailTextField(
+                                  controller: model.addressController,
+                                  hintText: 'A Drivechain address',
+                                  readOnly: true,
+                                ),
+                              ),
+                              CopyButton(
+                                text: model.addressController.text,
+                              ),
+                            ],
+                          ),
+                          QtButton(
+                            label: 'Generate new address',
+                            onPressed: model.generateNewAddress,
+                            loading: model.isBusy,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: SailRawCard(
+                      padding: true,
+                      child: QrImageView(
+                        padding: EdgeInsets.zero,
+                        eyeStyle: QrEyeStyle(
+                          color: theme.colors.text,
+                          eyeShape: QrEyeShape.square,
+                        ),
+                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                        data: model.addressController.text,
+                        version: QrVersions.auto,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Container()),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ReceivePageViewModel extends BaseViewModel {
+  final API api = GetIt.I.get<API>();
+
+  TextEditingController addressController = TextEditingController();
+
+  void init() {
+    generateNewAddress();
+  }
+
+  @override
+  void dispose() {
+    addressController.dispose();
+    super.dispose();
+  }
+
+  void generateNewAddress() async {
+    setBusy(true);
+    try {
+      final address = await api.wallet.getNewAddress();
+      addressController.text = address;
+    } catch (e) {
+      setError(e.toString());
+    } finally {
+      setBusy(false);
+    }
+  }
+}
+
+class TransactionsTab extends StatelessWidget {
+  const TransactionsTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return ViewModelBuilder<AddressMenuViewModel>.reactive(
+          viewModelBuilder: () => AddressMenuViewModel(),
+          builder: (context, model, child) {
+            return TransactionTable(
+              entries: model.entries,
+              searchWidget: SailTextField(
+                controller: model.searchController,
+                hintText: 'Enter address or transaction id to search',
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class TransactionTable extends StatefulWidget {
+  final List<Transaction> entries;
+  final Widget searchWidget;
+
+  const TransactionTable({
+    super.key,
+    required this.entries,
+    required this.searchWidget,
+  });
+
+  @override
+  State<TransactionTable> createState() => _TransactionTableState();
+}
+
+class _TransactionTableState extends State<TransactionTable> {
+  String sortColumn = 'conf';
+  bool sortAscending = true;
+  List<Transaction> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    entries = widget.entries;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!listEquals(entries, widget.entries)) {
+      entries = List.from(widget.entries);
+      sortEntries();
+    }
+  }
+
+  void onSort(String column) {
+    setState(() {
+      if (sortColumn == column) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
+      }
+      sortEntries();
+    });
+  }
+
+  void sortEntries() {
+    entries.sort((a, b) {
+      dynamic aValue;
+      dynamic bValue;
+
+      switch (sortColumn) {
+        case 'conf':
+          aValue = a.confirmationTime.height;
+          bValue = b.confirmationTime.height;
+          break;
+        case 'date':
+          aValue = a.confirmationTime.timestamp.seconds;
+          bValue = b.confirmationTime.timestamp.seconds;
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+        case 'amount':
+          aValue = a.receivedSatoshi;
+          bValue = b.receivedSatoshi;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return SailRawCard(
+          title: 'Your Wallet Transaction History',
+          bottomPadding: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: SailStyleValues.padding16,
+                ),
+                child: widget.searchWidget,
+              ),
+              SizedBox(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight - 116, // 116 is the height of the search widget and padding
+                child: SailTable(
+                  getRowId: (index) => widget.entries[index].txid,
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(
+                      name: 'Conf',
+                      onSort: () => onSort('conf'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Date',
+                      onSort: () => onSort('date'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'TxID',
+                      onSort: () => onSort('txid'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Amount',
+                      onSort: () => onSort('amount'),
+                    ),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final entry = widget.entries[row];
+                    return [
+                      SailTableCell(
+                        child: SailText.primary12(
+                          entry.confirmationTime.height.toString(),
+                          monospace: true,
+                        ),
+                      ),
+                      SailTableCell(
+                        child: SailText.primary12(
+                          entry.confirmationTime.timestamp.toDateTime().format(),
+                          monospace: true,
+                        ),
+                      ),
+                      SailTableCell(
+                        child: SailText.primary12(
+                          entry.txid,
+                          monospace: true,
+                        ),
+                      ),
+                      SailTableCell(
+                        child: SailText.primary12(
+                          formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt())),
+                          monospace: true,
+                        ),
+                      ),
+                    ];
+                  },
+                  rowCount: widget.entries.length,
+                  columnWidths: const [100, 150, 200, 150],
+                  drawGrid: true,
+                  sortColumnIndex: [
+                    'conf',
+                    'date',
+                    'txid',
+                    'amount',
+                  ].indexOf(sortColumn),
+                  sortAscending: sortAscending,
+                  onSort: (columnIndex, ascending) {
+                    onSort(['conf', 'date', 'txid', 'amount'][columnIndex]);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AddressMenuViewModel extends BaseViewModel {
+  final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
+  List<Transaction> get entries => _txProvider.walletTransactions
+      .where(
+        (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
+      )
+      // if empty, mock some data
+      .toList();
+
+  String sortColumn = 'conf';
+  bool sortAscending = true;
+
+  final TextEditingController searchController = TextEditingController();
+
+  AddressMenuViewModel() {
+    searchController.addListener(notifyListeners);
+  }
+
+  void onChoosePressed(BuildContext context) {
+    // TODO: Implement expansion logic
+  }
+}
+
+Future<CoreTransaction?> showAddressBookModal(BuildContext context) {
+  return showDialog<CoreTransaction>(
+    context: context,
+    builder: (BuildContext context) {
+      return Padding(
+        padding: EdgeInsets.all(
+          MediaQuery.of(context).size.width * 0.1,
+        ),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            side: BorderSide(
+              color: context.sailTheme.colors.formFieldBorder,
+              width: 1.0,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: SailStyleValues.padding25,
+              vertical: SailStyleValues.padding16,
+            ),
+            child: Container(),
+          ),
+        ),
+      );
+    },
+  );
 }

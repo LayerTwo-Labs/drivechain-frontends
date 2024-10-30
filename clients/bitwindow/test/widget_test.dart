@@ -6,7 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:bitwindow/main.dart';
-import 'package:bitwindow/pages/receive_page.dart';
+import 'package:bitwindow/pages/overview_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -22,7 +22,7 @@ void main() {
           maxHeight: 1200,
           maxWidth: 1000,
         ),
-        child: ReceivePage(),
+        child: CoinNewsView(),
       ),
     );
   });

@@ -29,25 +29,6 @@ class OverviewRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [ReceivePage]
-class ReceiveRoute extends PageRouteInfo<void> {
-  const ReceiveRoute({List<PageRouteInfo>? children})
-      : super(
-          ReceiveRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'ReceiveRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const ReceivePage();
-    },
-  );
-}
-
-/// generated route for
 /// [RootPage]
 class RootRoute extends PageRouteInfo<void> {
   const RootRoute({List<PageRouteInfo>? children})
@@ -62,25 +43,6 @@ class RootRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const RootPage();
-    },
-  );
-}
-
-/// generated route for
-/// [SendPage]
-class SendRoute extends PageRouteInfo<void> {
-  const SendRoute({List<PageRouteInfo>? children})
-      : super(
-          SendRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'SendRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const SendPage();
     },
   );
 }
@@ -143,20 +105,20 @@ class SidechainsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [TransactionsPage]
-class TransactionsRoute extends PageRouteInfo<void> {
-  const TransactionsRoute({List<PageRouteInfo>? children})
+/// [WalletPage]
+class WalletRoute extends PageRouteInfo<void> {
+  const WalletRoute({List<PageRouteInfo>? children})
       : super(
-          TransactionsRoute.name,
+          WalletRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'TransactionsRoute';
+  static const String name = 'WalletRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const TransactionsPage();
+      return const WalletPage();
     },
   );
 }
