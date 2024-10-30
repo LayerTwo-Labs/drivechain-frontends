@@ -5,7 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   flutter_platform_alert
   irondash_engine_context
-  screen_retriever
+  screen_retriever_windows
   super_native_extensions
   window_manager
 )
