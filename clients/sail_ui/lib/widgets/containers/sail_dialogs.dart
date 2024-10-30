@@ -22,10 +22,8 @@ Future<T?> infoDialog<T>({
 }) async {
   return await _baseDialogSimple(
     context: context,
-    action: action,
     title: title,
     subtitle: subtitle,
-    dialogType: DialogType.info,
     onConfirm: onConfirm,
   );
 }
@@ -38,10 +36,8 @@ Future<T?> successDialog<T>({
 }) async {
   return await _baseDialogSimple(
     context: context,
-    action: action,
     title: title,
     subtitle: subtitle,
-    dialogType: DialogType.success,
     onConfirm: null,
   );
 }
@@ -54,34 +50,31 @@ Future<T?> errorDialog<T>({
 }) async {
   return await _baseDialogSimple(
     context: context,
-    action: action,
     title: title,
     subtitle: subtitle,
-    dialogType: DialogType.error,
     onConfirm: null,
   );
 }
 
 Future<T?> _baseDialogSimple<T>({
   required BuildContext context,
-  required String action,
   required String title,
   required String subtitle,
-  required DialogType dialogType,
   required VoidCallback? onConfirm,
 }) async {
+  final theme = SailTheme.of(context);
+
   return widgetDialog(
     context: context,
-    action: action,
-    dialogType: dialogType,
+    title: title,
     child: SailColumn(
-      spacing: 0,
+      spacing: SailStyleValues.padding12,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        const SailSpacing(SailStyleValues.padding12),
-        SailText.primary20(title),
-        const SailSpacing(SailStyleValues.padding08),
-        SailText.secondary13(subtitle),
-        const SailSpacing(SailStyleValues.padding32),
+        SailText.primary10(
+          subtitle,
+          color: theme.colors.textSecondary,
+        ),
         DialogButtons(onPressed: onConfirm),
       ],
     ),
@@ -89,12 +82,11 @@ Future<T?> _baseDialogSimple<T>({
 }
 
 Future<T?> widgetDialog<T>({
+  required String title,
   required BuildContext context,
-  required String action,
-  required DialogType dialogType,
   required Widget child,
+  String? subtitle,
   double maxWidth = 640,
-  String? dialogText,
 }) async {
   final theme = SailTheme.of(context);
 
@@ -107,26 +99,14 @@ Future<T?> widgetDialog<T>({
           maxWidth: maxWidth,
         ),
         child: SailRawCard(
-          child: Padding(
-            padding: const EdgeInsets.all(
-              SailStyleValues.padding12,
-            ),
-            child: SailColumn(
-              spacing: 0,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DialogHeader(
-                  action: action,
-                  dialogType: dialogType,
-                  dialogText: dialogText,
-                  onClose: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  },
-                ),
-                child,
-              ],
-            ),
+          header: DialogHeader(
+            title: title,
+            subtitle: subtitle,
+            onClose: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
           ),
+          child: child,
         ),
       ),
     ),
@@ -136,30 +116,39 @@ Future<T?> widgetDialog<T>({
 enum DialogType { info, error, success }
 
 class DialogHeader extends StatelessWidget {
-  final DialogType dialogType;
-  final String action;
   final VoidCallback onClose;
-  final String? dialogText;
+  final String title;
+  final String? subtitle;
 
   const DialogHeader({
     super.key,
-    required this.dialogType,
-    required this.action,
     required this.onClose,
-    this.dialogText,
+    required this.title,
+    this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return SailRow(
       spacing: SailStyleValues.padding08,
       children: [
-        DialogHeaderChip(
-          action: action,
-          dialogType: dialogType,
+        SailColumn(
+          spacing: 0,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailText.primary15(
+              title,
+              bold: true,
+            ),
+            if (subtitle != null)
+              SailText.primary10(
+                subtitle!,
+                color: theme.colors.textSecondary,
+              ),
+          ],
         ),
-        SailSVG.fromAsset(SailSVGAsset.iconArrowForward),
-        SailText.primary12(dialogText ?? textForType(dialogType)),
         Expanded(child: Container()),
         SailScaleButton(
           onPressed: onClose,
@@ -168,17 +157,6 @@ class DialogHeader extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String textForType(DialogType dialogType) {
-    switch (dialogType) {
-      case DialogType.info:
-        return 'Confirm action';
-      case DialogType.error:
-        return 'Error';
-      case DialogType.success:
-        return 'Success';
-    }
   }
 }
 

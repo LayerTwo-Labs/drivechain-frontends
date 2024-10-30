@@ -24,7 +24,7 @@ class SailRawCard extends StatelessWidget {
     this.width = double.infinity,
     this.color,
     this.borderRadius,
-    this.shadowSize = ShadowSize.regular,
+    this.shadowSize = ShadowSize.small,
   }) : assert(!(header != null && title != null), 'Cannot set both title and header');
 
   @override

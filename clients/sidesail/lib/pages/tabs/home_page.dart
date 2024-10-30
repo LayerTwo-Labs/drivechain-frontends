@@ -151,9 +151,8 @@ class _HomePageState extends State<HomePage> {
     unawaited(
       widgetDialog(
         context: context,
-        action: 'Shutdown status',
-        dialogText: 'Shutting down nodes...',
-        dialogType: DialogType.info,
+        title: 'Shutdown status',
+        subtitle: 'Shutting down nodes...',
         maxWidth: 536,
         child: SailColumn(
           spacing: SailStyleValues.padding20,

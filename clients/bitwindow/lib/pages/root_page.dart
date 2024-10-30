@@ -26,8 +26,7 @@ class RootPage extends StatelessWidget {
       animatePageTransition: false,
       routes: const [
         OverviewRoute(),
-        SendRoute(),
-        ReceiveRoute(),
+        WalletRoute(),
         SidechainsRoute(),
       ],
       builder: (context, child, controller) {
@@ -61,15 +60,9 @@ class RootPage extends StatelessWidget {
                       ),
                       QtTab(
                         icon: SailSVGAsset.iconSend,
-                        label: 'Send',
+                        label: 'Send/Receive',
                         active: tabsRouter.activeIndex == 1,
                         onTap: () => tabsRouter.setActiveIndex(1),
-                      ),
-                      QtTab(
-                        icon: SailSVGAsset.iconReceive,
-                        label: 'Receive',
-                        active: tabsRouter.activeIndex == 2,
-                        onTap: () => tabsRouter.setActiveIndex(2),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
@@ -86,8 +79,8 @@ class RootPage extends StatelessWidget {
                             child: QtTab(
                               icon: SailSVGAsset.iconSidechains,
                               label: 'Sidechains',
-                              active: tabsRouter.activeIndex == 3,
-                              onTap: () => tabsRouter.setActiveIndex(3),
+                              active: tabsRouter.activeIndex == 2,
+                              onTap: () => tabsRouter.setActiveIndex(2),
                             ),
                           ),
                         ),
@@ -262,10 +255,8 @@ class _StatusBarState extends State<StatusBar> {
   ) async {
     await widgetDialog(
       context: context,
-      action: 'Startup connection',
-      dialogText: 'Daemon status',
-      dialogType: DialogType.info,
-      maxWidth: 566,
+      title: 'Daemon Status',
+      subtitle: "You can use BitWindow without the enforcer, but it's not that interesting.",
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => BottomNavViewModel(),
         builder: ((context, model, child) {
@@ -273,39 +264,39 @@ class _StatusBarState extends State<StatusBar> {
             spacing: SailStyleValues.padding20,
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const SailSpacing(SailStyleValues.padding08),
               if (!model.mainchainConnected || !model.enforcerConnected || !model.serverConnected)
-                SailText.secondary12("You can use BitWindow without the enforcer, but it's not that interesting."),
-              SailColumn(
-                spacing: SailStyleValues.padding12,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DaemonConnectionCard(
-                    connection: model.mainchain,
-                    restartDaemon: () => model.initMainchainBinary(context),
-                    infoMessage: null,
-                    navigateToLogs: model.navigateToLogs,
-                  ),
-                  DaemonConnectionCard(
-                    connection: model.enforcer,
-                    infoMessage: model.mainchainInitializing
-                        ? 'Waiting for mainchain to finish init'
-                        : model.inIBD
-                            ? 'Waiting for L1 initial block download to complete...'
-                            : null,
-                    restartDaemon: () => model.initEnforcerBinary(context),
-                    navigateToLogs: model.navigateToLogs,
-                  ),
-                  DaemonConnectionCard(
-                    connection: model.server,
-                    infoMessage:
-                        !model.serverConnected && model.enforcerInitializing ? 'Waiting for enforcer to start' : null,
-                    restartDaemon: () => model.initServerBinary(context),
-                    navigateToLogs: model.navigateToLogs,
-                  ),
-                ],
-              ),
+                SailColumn(
+                  spacing: SailStyleValues.padding12,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DaemonConnectionCard(
+                      connection: model.mainchain,
+                      restartDaemon: () => model.initMainchainBinary(context),
+                      infoMessage: null,
+                      navigateToLogs: model.navigateToLogs,
+                    ),
+                    DaemonConnectionCard(
+                      connection: model.enforcer,
+                      infoMessage: model.mainchainInitializing
+                          ? 'Waiting for mainchain to finish init'
+                          : model.inIBD
+                              ? 'Waiting for L1 initial block download to complete...'
+                              : null,
+                      restartDaemon: () => model.initEnforcerBinary(context),
+                      navigateToLogs: model.navigateToLogs,
+                    ),
+                    DaemonConnectionCard(
+                      connection: model.server,
+                      infoMessage:
+                          !model.serverConnected && model.enforcerInitializing ? 'Waiting for enforcer to start' : null,
+                      restartDaemon: () => model.initServerBinary(context),
+                      navigateToLogs: model.navigateToLogs,
+                    ),
+                  ],
+                ),
             ],
           );
         }),

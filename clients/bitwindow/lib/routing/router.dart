@@ -1,12 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/overview_page.dart';
-import 'package:bitwindow/pages/receive_page.dart';
 import 'package:bitwindow/pages/root_page.dart';
-import 'package:bitwindow/pages/send_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
-import 'package:bitwindow/pages/transactions_page.dart';
+import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 part 'router.gr.dart';
@@ -45,16 +43,8 @@ class AppRouter extends RootStackRouter {
               page: OverviewRoute.page,
             ),
             AutoRoute(
-              path: 'send',
-              page: SendRoute.page,
-            ),
-            AutoRoute(
-              path: 'receive',
-              page: ReceiveRoute.page,
-            ),
-            AutoRoute(
-              path: 'transactions',
-              page: TransactionsRoute.page,
+              path: 'wallet',
+              page: WalletRoute.page,
             ),
             AutoRoute(
               path: 'sidechains',
