@@ -1,8 +1,0 @@
-build:
-    go build -o faucet-backend .
-
-lint: 
-    golangci-lint run ./...
-
-gen:
-    buf generate

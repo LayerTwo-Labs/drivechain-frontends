@@ -1,0 +1,20 @@
+# For details on buf.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-yaml
+version: v2
+modules:
+  - path: proto
+    name: buf.build/layertwo-labs/faucet-backend
+deps:
+  - buf.build/bitcoin/bitcoind
+  - buf.build/bufbuild/protovalidate
+
+lint:
+  rpc_allow_google_protobuf_empty_requests: true
+  rpc_allow_google_protobuf_empty_responses: true
+
+  use:
+    - DEFAULT
+
+breaking:
+  use:
+    - FILE
+
