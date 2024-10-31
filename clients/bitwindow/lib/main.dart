@@ -123,8 +123,8 @@ Future<void> initDependencies(Logger log, File logFile) async {
   log.i('logging server logs to: $serverLogFile');
   GetIt.I.registerLazySingleton<API>(
     () => APILive(
-      host: env(Environment.drivechainHost),
-      port: env(Environment.drivechainPort),
+      host: env(Environment.bitwindowdHost),
+      port: env(Environment.bitwindowdPort),
       conf: mainchainConf,
       binary: 'bitwindowd',
       logPath: serverLogFile,

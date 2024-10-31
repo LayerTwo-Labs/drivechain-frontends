@@ -13,17 +13,17 @@ class Variable<T> {
 
 class Environment {
   // Define the environment variables here
-  static const drivechainHost = Variable(
-    'BITWINDOW_HOST',
-    String.fromEnvironment('BITWINDOW_HOST', defaultValue: 'localhost'),
+  static const bitwindowdHost = Variable(
+    'BITWINDOWD_HOST',
+    String.fromEnvironment('BITWINDOWD_HOST', defaultValue: 'localhost'),
   );
-  static const drivechainPort = Variable(
-    'BITWINDOW_PORT',
-    int.fromEnvironment('BITWINDOW_PORT', defaultValue: 8080),
+  static const bitwindowdPort = Variable(
+    'BITWINDOWD_PORT',
+    int.fromEnvironment('BITWINDOWD_PORT', defaultValue: 8080),
   );
 
   static Future<Directory> datadir() async {
-    final fromEnv = Platform.environment['BITWINDOW_DATADIR'] ?? const String.fromEnvironment('BITWINDOW_DATADIR');
+    final fromEnv = Platform.environment['BITWINDOWD_DATADIR'] ?? const String.fromEnvironment('BITWINDOWD_DATADIR');
     if (fromEnv.isNotEmpty) {
       final dir = Directory(fromEnv);
       return dir;
@@ -32,8 +32,8 @@ class Environment {
     return await getApplicationSupportDirectory();
   }
 
-  static bool consoleLog = Platform.environment['BITWINDOW_LOG_CONSOLE']?.isNotEmpty ?? false;
-  static bool fileLog = Platform.environment['BITWINDOW_LOG_FILE']?.isNotEmpty ?? false;
+  static bool consoleLog = Platform.environment['BITWINDOWD_LOG_CONSOLE']?.isNotEmpty ?? false;
+  static bool fileLog = Platform.environment['BITWINDOWD_LOG_FILE']?.isNotEmpty ?? false;
 
   const Environment._();
 
@@ -48,8 +48,8 @@ class Environment {
   }
 
   static void validateAtRuntime() {
-    _validate<String>(drivechainHost, (v) => v.isNotEmpty);
-    _validate<int>(drivechainPort, (v) => v > 0 && v < 65536);
+    _validate<String>(bitwindowdHost, (v) => v.isNotEmpty);
+    _validate<int>(bitwindowdPort, (v) => v > 0 && v < 65536);
     // Add more validations for other variables if needed
   }
 }
