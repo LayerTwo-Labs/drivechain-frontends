@@ -66,7 +66,7 @@ class ExperimentalBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailSVG.fromAsset(SailSVGAsset.iconWarning),
+          SailSVG.fromAsset(SailSVGAsset.iconWarning, color: SailTheme.of(context).colors.text),
           const SailSpacing(SailStyleValues.padding08),
           Expanded(
             child: Column(
@@ -677,7 +677,7 @@ class CoinNewsTable extends StatelessWidget {
     return SailTable(
       getRowId: (index) => entries[index].id,
       headerBuilder: (context) => [
-        SailTableHeaderCell(name: 'Fe'),
+        SailTableHeaderCell(name: 'Fee'),
         SailTableHeaderCell(name: 'Time'),
         SailTableHeaderCell(name: 'Headline'),
       ],

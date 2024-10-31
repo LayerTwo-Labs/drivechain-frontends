@@ -679,7 +679,7 @@ class SailTableHeaderCell extends StatelessWidget {
             SailText.primary15(
               name,
               bold: true,
-              color: theme.colors.textSecondary.withOpacity(0.5),
+              color: theme.colors.textSecondary.withOpacity(0.7),
             ),
             if (isSorted)
               Icon(

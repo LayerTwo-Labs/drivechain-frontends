@@ -21,6 +21,7 @@ class DaemonConnectionCard extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return SailRawCard(
+      secondary: true,
       header: SailRow(
         spacing: SailStyleValues.padding08,
         children: [
