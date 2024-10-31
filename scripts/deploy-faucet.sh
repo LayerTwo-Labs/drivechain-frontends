@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-set -e 
+set -e
 
-cd faucet-backend/
-docker build -t faucet-backend .
-cd ../
+cd servers/faucet/
+docker build -t faucet .
+cd ../../
 docker compose --file docker-compose.faucet.yml up -d --force-recreate
 
 cd ./clients/faucet
