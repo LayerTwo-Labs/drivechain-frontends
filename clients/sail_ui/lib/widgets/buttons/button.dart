@@ -305,8 +305,7 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final backgroundColor =
-        widget.style == SailButtonStyle.secondary ? theme.colors.backgroundSecondary : theme.colors.text;
+    final backgroundColor = widget.style == SailButtonStyle.secondary ? theme.colors.background : theme.colors.text;
 
     Widget buttonContent = Listener(
       onPointerDown: (_) async {
@@ -490,8 +489,8 @@ class QtButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
-    final backgroundColor = this.backgroundColor ??
-        (style == SailButtonStyle.secondary ? theme.colors.backgroundSecondary : theme.colors.text);
+    final backgroundColor =
+        this.backgroundColor ?? (style == SailButtonStyle.secondary ? theme.colors.background : theme.colors.text);
     final foregroundColor = style == SailButtonStyle.secondary ? theme.colors.text : theme.colors.backgroundSecondary;
 
     final buttonPadding = padding ??

@@ -40,7 +40,8 @@ class _InlineTabBarState extends State<InlineTabBar> {
                   horizontal: SailStyleValues.padding12,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : context.sailTheme.colors.background,
+                  color:
+                      isSelected ? context.sailTheme.colors.backgroundSecondary : context.sailTheme.colors.background,
                   borderRadius: BorderRadius.circular(SailStyleValues.padding04),
                 ),
                 child: Row(

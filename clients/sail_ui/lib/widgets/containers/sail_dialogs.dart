@@ -93,7 +93,7 @@ Future<T?> widgetDialog<T>({
   return showThemedDialog(
     context: context,
     builder: (context) => Dialog(
-      backgroundColor: theme.colors.actionHeader,
+      backgroundColor: theme.colors.backgroundSecondary,
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: maxWidth,

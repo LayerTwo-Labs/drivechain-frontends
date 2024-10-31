@@ -12,7 +12,7 @@ class SailRawCard extends StatelessWidget {
   final Color? color;
   final BorderRadius? borderRadius;
   final ShadowSize shadowSize;
-
+  final bool secondary;
   const SailRawCard({
     super.key,
     this.title,
@@ -25,6 +25,7 @@ class SailRawCard extends StatelessWidget {
     this.color,
     this.borderRadius,
     this.shadowSize = ShadowSize.small,
+    this.secondary = false,
   }) : assert(!(header != null && title != null), 'Cannot set both title and header');
 
   @override
@@ -35,7 +36,7 @@ class SailRawCard extends StatelessWidget {
       shadowSize: shadowSize,
       child: Material(
         borderRadius: borderRadius ?? SailStyleValues.borderRadiusButton,
-        color: color ?? (theme.colors.backgroundSecondary),
+        color: color ?? (secondary ? theme.colors.background : theme.colors.backgroundSecondary),
         clipBehavior: Clip.hardEdge,
         child: SizedBox(
           width: width,
