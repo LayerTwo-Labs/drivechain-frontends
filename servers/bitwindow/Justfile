@@ -1,5 +1,5 @@
 build-go:
-    go build -o ./bin/drivechain-server .
+    go build -o ./bin/bitwindowd .
 
 build: build-bdk-cli build-enforcer build-go
 

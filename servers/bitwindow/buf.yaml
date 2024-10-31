@@ -13,4 +13,4 @@ breaking:
 
 modules:
   - path: proto
-    name: buf.build/layertwo-labs/drivechain-server
+    name: buf.build/layertwo-labs/bitwindowd

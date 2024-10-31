@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	pb "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/cusf/mainchain/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/drivechain-server/gen/cusf/mainchain/v1/mainchainv1connect"
+	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"

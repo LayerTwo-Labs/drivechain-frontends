@@ -1,4 +1,4 @@
-module github.com/LayerTwo-Labs/sidesail/drivechain-server
+module github.com/LayerTwo-Labs/sidesail/servers/bitwindow
 
 go 1.23
 

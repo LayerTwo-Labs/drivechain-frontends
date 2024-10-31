@@ -126,7 +126,7 @@ Future<void> initDependencies(Logger log, File logFile) async {
       host: env(Environment.drivechainHost),
       port: env(Environment.drivechainPort),
       conf: mainchainConf,
-      binary: 'drivechain-server',
+      binary: 'bitwindowd',
       logPath: serverLogFile,
     ),
   );

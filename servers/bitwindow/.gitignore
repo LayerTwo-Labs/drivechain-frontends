@@ -1,4 +1,4 @@
-drivechain-server
+bitwindowd
 bin/
 .crates*
 /*.mdb

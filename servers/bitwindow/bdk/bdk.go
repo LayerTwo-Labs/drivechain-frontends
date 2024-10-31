@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/dir"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
