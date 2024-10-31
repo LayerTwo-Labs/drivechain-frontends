@@ -3,11 +3,9 @@ import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
-import 'package:bitwindow/widgets/qt_icon_button.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:money2/money2.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:stacked/stacked.dart';
@@ -201,30 +199,6 @@ class QtSeparator extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class BitcoinPrice extends StatelessWidget {
-  final Money money;
-
-  const BitcoinPrice({super.key, required this.money});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SailText.primary13(
-          '${money.format('S###,###.##')}/BTC',
-        ),
-        const SizedBox(width: 8.0),
-        QtIconButton(
-          onPressed: () {
-            showSnackBar(context, 'Not implemented');
-          },
-          icon: Icon(Icons.settings),
-        ),
-      ],
     );
   }
 }
