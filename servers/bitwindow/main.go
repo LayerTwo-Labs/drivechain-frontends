@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/bdk"
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/dial"
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/dir"
-	"github.com/LayerTwo-Labs/sidesail/drivechain-server/server"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/bdk"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dial"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/server"
 	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
@@ -52,8 +52,8 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
-	const appName = "drivechain-server"
-	datadir, err := dir.GetDataDir(appName)
+	const binaryName = "bitwindowd"
+	datadir, err := dir.GetDataDir(binaryName)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get data dir")
 		return err

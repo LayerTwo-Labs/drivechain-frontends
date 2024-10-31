@@ -4,7 +4,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: github.com/LayerTwo-Labs/sidesail/drivechain-server/gen
+      value: github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen
 
 plugins:
   # Base types for Go. Generates message and enum types.

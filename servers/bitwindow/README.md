@@ -40,7 +40,7 @@ $ ./enforcer/bin/bip300301_enforcer \
 #
 # The same Electrum server also powers the mempool instance
 # at https://drivechain.ngu-tek.no.
-$ ./bin/drivechain-server \
+$ ./bin/bitwindowd \
   --electrum.host=drivechain.live:50001 \
   --electrum.no-ssl \
   --bitcoincore.rpcuser=user \
