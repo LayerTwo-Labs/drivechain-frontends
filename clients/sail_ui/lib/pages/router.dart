@@ -4,7 +4,7 @@ import 'package:sail_ui/pages/router.gr.dart';
 @AutoRouterConfig(replaceInRouteName: 'Screen|Page,Route')
 class AppRouter extends RootStackRouter {
   @override
-  RouteType get defaultRouteType => RouteType.material(); //.cupertino, .adaptive ..etc
+  RouteType get defaultRouteType => RouteType.cupertino(); //.cupertino, .adaptive ..etc
 
   @override
   List<AutoRoute> get routes => [

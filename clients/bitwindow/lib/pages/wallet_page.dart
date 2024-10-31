@@ -6,7 +6,6 @@ import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
-import 'package:bitwindow/widgets/qt_icon_button.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -315,103 +314,6 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
           label: 'Request Replace-By-Fee',
         ),
       ],
-    );
-  }
-}
-
-enum Unit {
-  BTC,
-  mBTC,
-  uBTC,
-  sats,
-}
-
-class UnitDropdown extends StatelessWidget {
-  final Unit value;
-  final Function(Unit) onChanged;
-  final bool enabled;
-
-  const UnitDropdown({
-    super.key,
-    required this.value,
-    required this.onChanged,
-    this.enabled = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SailDropdownButton(
-      items: [
-        SailDropdownItem(
-          value: Unit.BTC,
-          child: SailText.primary12('BTC'),
-        ),
-        SailDropdownItem(
-          value: Unit.sats,
-          child: SailText.primary12('SAT'),
-        ),
-      ],
-      onChanged: onChanged,
-      value: value,
-      enabled: enabled,
-    );
-  }
-}
-
-class NumericField extends StatefulWidget {
-  final TextEditingController? controller;
-  final FocusNode? focusNode;
-  final ValueChanged<String>? onChanged;
-  final String label;
-  final Function(String)? onEditingComplete;
-  final Function(String)? onSubmitted;
-  final String hintText;
-  final bool enabled;
-  final String? error;
-  final Widget? suffixWidget;
-
-  const NumericField({
-    super.key,
-    required this.label,
-    this.controller,
-    this.focusNode,
-    this.onChanged,
-    this.onEditingComplete,
-    this.onSubmitted,
-    this.hintText = '0.00',
-    this.enabled = true,
-    this.error = '',
-    this.suffixWidget,
-  });
-
-  @override
-  State<NumericField> createState() => _NumericFieldState();
-}
-
-class _NumericFieldState extends State<NumericField> {
-  late TextEditingController _controller = TextEditingController(text: '0.00');
-  late FocusNode _focusNode;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = widget.controller ?? TextEditingController(text: '0.00');
-    _focusNode = widget.focusNode ?? FocusNode();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SailTextField(
-      label: widget.label,
-      controller: _controller,
-      hintText: widget.hintText,
-      focusNode: _focusNode,
-      textFieldType: TextFieldType.bitcoin,
-      size: TextFieldSize.small,
-      enabled: widget.enabled,
-      suffixWidget: widget.suffixWidget,
-      onSubmitted: widget.onSubmitted != null ? (value) => widget.onSubmitted!(value) : null,
     );
   }
 }
