@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/faucet-backend/server"
+	"github.com/LayerTwo-Labs/sidesail/servers/faucet/server"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
