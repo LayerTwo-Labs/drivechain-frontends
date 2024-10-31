@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	faucetv1 "github.com/LayerTwo-Labs/sidesail/faucet-backend/gen/faucet/v1"
-	"github.com/LayerTwo-Labs/sidesail/faucet-backend/gen/faucet/v1/faucetv1connect"
-	faucet_ip "github.com/LayerTwo-Labs/sidesail/faucet-backend/ip"
+	faucetv1 "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1"
+	"github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1/faucetv1connect"
+	faucet_ip "github.com/LayerTwo-Labs/sidesail/servers/faucet/ip"
 	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"

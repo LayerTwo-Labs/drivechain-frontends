@@ -1,5 +1,5 @@
 build:
-    go build -o faucet-backend .
+    go build -o faucetd .
 
 lint: 
     golangci-lint run ./...
