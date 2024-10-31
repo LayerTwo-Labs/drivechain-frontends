@@ -32,7 +32,7 @@ void main() async {
   const windowOptions = WindowOptions(
     minimumSize: Size(600, 700),
     titleBarStyle: TitleBarStyle.normal,
-    title: 'Drivechain (Bitcoin Core)',
+    title: 'Bitcoin Core + CUSF BIP 300/301 Activator',
   );
 
   unawaited(
