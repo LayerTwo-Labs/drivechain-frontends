@@ -11,9 +11,9 @@
             "type": "dart",
             "toolArgs": [
                 "--dart-define",
-                "DRIVECHAIN_HOST=localhost",
+                "BITWINDOWD_HOST=localhost",
                 "--dart-define",
-                "DRIVECHAIN_PORT=8080"
+                "BITWINDOWD_PORT=8080"
             ]
         },
         {
@@ -24,9 +24,9 @@
             "flutterMode": "profile",
             "toolArgs": [
                 "--dart-define",
-                "DRIVECHAIN_HOST=localhost",
+                "BITWINDOWD_HOST=localhost",
                 "--dart-define",
-                "DRIVECHAIN_PORT=8080"
+                "BITWINDOWD_PORT=8080"
             ]
         },
         {
@@ -37,9 +37,9 @@
             "flutterMode": "release",
             "toolArgs": [
                 "--dart-define",
-                "DRIVECHAIN_HOST=localhost",
+                "BITWINDOWD_HOST=localhost",
                 "--dart-define",
-                "DRIVECHAIN_PORT=8080"
+                "BITWINDOWD_PORT=8080"
             ]
         },
         {
