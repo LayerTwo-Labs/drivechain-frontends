@@ -4,12 +4,12 @@ on:
   pull_request:
     branches: [master]
     paths:
-      - 'faucet-backend/**'
+      - 'servers/faucet/**'
       - '.github/workflows/**'
 
 defaults:
   run:
-    working-directory: faucet-backend
+    working-directory: servers/faucet
 
 jobs:
   go-lint:
@@ -25,7 +25,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          working-directory: faucet-backend
+          working-directory: servers/faucet
           version: latest
 
   go-build:
