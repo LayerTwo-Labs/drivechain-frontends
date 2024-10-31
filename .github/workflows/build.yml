@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
     paths:
-      - 'drivechain-server/**'
+      - 'servers/**'
       - 'clients/scripts/**'
       - 'clients/bitwindow/**'
       - 'clients/sidesail/**'
@@ -12,7 +12,7 @@ on:
   pull_request:
     branches: [master]
     paths:
-      - 'drivechain-server/**'
+      - 'servers/**'
       - 'clients/scripts/**'
       - 'clients/bitwindow/**'
       - 'clients/sidesail/**'

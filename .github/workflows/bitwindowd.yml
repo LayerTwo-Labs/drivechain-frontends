@@ -4,12 +4,12 @@ on:
   pull_request:
     branches: [master]
     paths:
-      - 'drivechain-server/**'
+      - 'servers/**'
       - '.github/workflows/**'
 
 defaults:
   run:
-    working-directory: drivechain-server
+    working-directory: servers/bitwindow
 
 jobs:
   lint:
@@ -19,7 +19,7 @@ jobs:
       - uses: bufbuild/buf-setup-action@v1.36.0
       - uses: bufbuild/buf-lint-action@v1.1.1
         with:
-          input: drivechain-server
+          input: servers/bitwindow
 
       - name: verify Proto files are formatted correctly
         run: buf format --exit-code proto
@@ -37,7 +37,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          working-directory: drivechain-server
+          working-directory: servers/bitwindow
           version: latest
 
   go-build:
@@ -48,7 +48,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: drivechain-server
+        working-directory: servers/bitwindow
     steps:
       - uses: extractions/setup-just@v1
       - uses: actions/checkout@v4
@@ -68,15 +68,15 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: bdk-cli${{ runner.os == 'Windows' && '.exe' || '' }}-${{ runner.os }}
-          path: drivechain-server/bin
+          path: servers/bitwindow/bin
           if-no-files-found: error
 
-      - name: Build drivechain-server
+      - name: Build bitwindowd
         run: |
           just build-go
-          mv bin/drivechain-server bin/drivechain-server-${{ runner.os }}
+          mv bin/bitwindowd bin/bitwindowd-${{ runner.os }}
       - uses: actions/upload-artifact@v4
         with:
-          name: drivechain-server-${{ runner.os }}
-          path: drivechain-server/bin
+          name: bitwindowd-${{ runner.os }}
+          path: servers/bitwindow/bin
           if-no-files-found: error
