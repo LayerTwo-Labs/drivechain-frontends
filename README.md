@@ -1,6 +1,9 @@
 A collection of various Drivechain-related applications.
 
-- [SideSail](packages/sidesail/README.md)
-- [Faucet frontend](packages/faucet/README.md)
-- [Faucet backend](faucet-backend/README.md)
-- [Drivechain server](drivechain-server/README.md)
+- [SideSail](clients/sidesail/README.md)
+
+- [Faucet frontend](clients/faucet/README.md)
+- [Faucet server](servers/faucet/README.md)
+
+- [Bitwindow frontend](clients/bitwindow/README.md)
+- [Bitwindow server](servers/bitwindow/README.md)

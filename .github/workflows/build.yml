@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
       - uses: extractions/setup-just@v1
-      # Setup go for building drivechain-server
+      # Setup go for building bitwindowd
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"

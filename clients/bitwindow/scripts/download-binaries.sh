@@ -116,24 +116,24 @@ fi
 echo Going back to $old_cwd
 cd $old_cwd
 
-cd ../../drivechain-server
+cd ../../servers/bitwindow
 server_cwd=$(pwd)
 
-# Build bdk-cli and drivechain-server
-echo "Building bdk-cli and drivechain-server in $server_cwd"
+# Build bdk-cli and bitwindowd
+echo "Building bdk-cli and bitwindowd in $server_cwd"
 
 # Build bdk-cli
 echo "Building bdk-cli"
 just build-bdk-cli
 
-# Build drivechain-server
-echo "Building drivechain-server"
+# Build bitwindowd
+echo "Building bitwindowd"
 just build-go
 
 # Move the necessary binaries to the assets directory
-mv bin/drivechain-server $assets_dir/
+mv bin/bitwindowd $assets_dir/
 
-echo "drivechain-server with embedded bdk-cli have been built and moved to $assets_dir"
+echo "bitwindowd with embedded bdk-cli have been built and moved to $assets_dir"
 
 echo Going back to $old_cwd
 cd $old_cwd
