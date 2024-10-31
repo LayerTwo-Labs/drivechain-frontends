@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:faucet/routing/router.dart';
 import 'package:flutter/material.dart';
-import 'package:launcher/routing/router.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 
@@ -12,8 +12,8 @@ class RootPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AutoTabsRouter.tabBar(
       animatePageTransition: false,
-      routes: const [
-        OverviewRoute(),
+      routes: [
+        FaucetRoute(),
       ],
       builder: (context, child, controller) {
         final theme = SailTheme.of(context);
@@ -40,7 +40,7 @@ class RootPage extends StatelessWidget {
                     children: [
                       QtTab(
                         icon: SailSVGAsset.iconHome,
-                        label: 'Overview',
+                        label: 'Faucet',
                         active: tabsRouter.activeIndex == 0,
                         onTap: () => tabsRouter.setActiveIndex(0),
                       ),
