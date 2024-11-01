@@ -10,8 +10,10 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/bdk"
+	database "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dial"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
+	bitcoind_engine "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/engines"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/server"
 	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -73,6 +75,16 @@ func realMain(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("logger initialized successfully")
 
+	log.Debug().
+		Msgf("initiating database")
+
+	db, err := database.New(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("init database")
+		return err
+	}
+	defer db.Close()
+
 	proxy, err := startCoreProxy(ctx, conf)
 	if err != nil {
 		log.Error().Err(err).Msg("start core proxy")
@@ -127,6 +139,9 @@ func realMain(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	bitcoinEngine := bitcoind_engine.New(proxy, db)
+	go bitcoinEngine.Run(ctx)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 

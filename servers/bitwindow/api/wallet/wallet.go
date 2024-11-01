@@ -299,6 +299,8 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("invalid deposit address: %w", err)
 	}
 
+	// TODO: Use enforcer
+
 	amount, err := btcutil.NewAmount(c.Msg.Amount)
 	if err != nil || amount < 0 {
 		return nil, fmt.Errorf("invalid amount, must be a BTC-amount greater than zero")
