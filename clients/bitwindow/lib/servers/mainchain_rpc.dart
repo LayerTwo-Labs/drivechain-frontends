@@ -29,7 +29,6 @@ class MainchainRPCLive extends MainchainRPC {
       username: conf.username,
       password: conf.password,
       useSSL: false,
-      debug: true,
     );
 
     // Completely empty client, with no retry logic.

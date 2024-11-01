@@ -65,8 +65,15 @@ func (p *Parser) Run(ctx context.Context) error {
 }
 
 func (p *Parser) handleTick(ctx context.Context) {
+	if err := p.detectChainDeletion(ctx); err != nil {
+		zerolog.Ctx(ctx).Error().
+			Err(err).
+			Msgf("bitcoind_engine/parser: could not detect chain deletion")
+		return
+	}
+
 	// Get latest processed height
-	lastProcessed, lastProcessedHash, err := p.latestProcessedHeight(ctx)
+	lastProcessedHeight, lastProcessedHash, err := p.latestProcessedHeight(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().
 			Err(err).
@@ -83,58 +90,67 @@ func (p *Parser) handleTick(ctx context.Context) {
 		return
 	}
 
-	if lastProcessed == currentHeight && lastProcessedHash != currentHash {
-		// probably some sort of reorg, process the block again!
-		// doesnt handle deep reorgs, but thats okay
-		lastProcessed--
+	if lastProcessedHeight == currentHeight && lastProcessedHash != currentHash {
+		// probably some sort of reorg, process the last 20 blocks again!
+		// doesnt handle very deep reorgs, but thats okay
+		lastProcessedHeight -= 20
 	}
 
 	// Process all new blocks
-	for height := lastProcessed + 1; height <= currentHeight; height++ {
-		zerolog.Ctx(ctx).Info().
-			Int32("last_processed", lastProcessed).
-			Int32("current", currentHeight).
-			Int32("height", height).
-			Msgf("bitcoind_engine/parser: processing block")
+	for height := lastProcessedHeight + 1; height <= currentHeight; height++ {
+		if err := p.processBlock(ctx, height); err != nil {
+			zerolog.Ctx(ctx).Error().
+				Err(err).
+				Msgf("bitcoind_engine/parser: could not process block %d", height)
+			continue
+		}
+	}
+}
 
-		block, err := p.getBlock(ctx, height)
+func (p *Parser) processBlock(ctx context.Context, height int32) error {
+	zerolog.Ctx(ctx).Info().
+		Int32("height", height).
+		Msgf("bitcoind_engine/parser: processing block")
+
+	block, err := p.getBlock(ctx, height)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().
+			Err(err).
+			Msgf("bitcoind_engine/parser: could not get block at height %d", height)
+		return err
+	}
+
+	// Process each transaction in the block
+	for _, tx := range block.Txids {
+		rawTx, err := p.getRawTransaction(ctx, tx)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().
 				Err(err).
-				Msgf("bitcoind_engine/parser: could not get block at height %d", height)
-			continue
+				Msgf("bitcoind_engine/parser: could not get transaction %s", tx)
+			return err
 		}
 
-		// Process each transaction in the block
-		for _, tx := range block.Txids {
-			rawTx, err := p.getRawTransaction(ctx, tx)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().
-					Err(err).
-					Msgf("bitcoind_engine/parser: could not get transaction %s", tx)
-				continue
-			}
-
-			if err := p.findAndPersistOPReturns(ctx, tx, rawTx, height); err != nil {
-				zerolog.Ctx(ctx).Error().
-					Err(err).
-					Msgf("bitcoind_engine/parser: could not find and persist op returns for tx %s", tx)
-				continue
-			}
-		}
-
-		// Mark block as processed
-		if err := p.markBlockProcessed(ctx, height, block.Hash); err != nil {
+		if err := p.findAndPersistOPReturns(ctx, tx, rawTx, height); err != nil {
 			zerolog.Ctx(ctx).Error().
 				Err(err).
-				Msgf("bitcoind_engine/parser: could not mark block %d as processed", height)
-			continue
+				Msgf("bitcoind_engine/parser: could not find and persist op returns for tx %s", tx)
+			return err
 		}
-
-		zerolog.Ctx(ctx).Info().
-			Int32("height", height).
-			Msgf("bitcoind_engine/parser: processed block")
 	}
+
+	// Mark block as processed
+	if err := p.markBlockProcessed(ctx, height, block.Hash); err != nil {
+		zerolog.Ctx(ctx).Error().
+			Err(err).
+			Msgf("bitcoind_engine/parser: could not mark block %d as processed", height)
+		return err
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Int32("height", height).
+		Msgf("bitcoind_engine/parser: processed block")
+
+	return nil
 }
 
 func (p *Parser) latestProcessedHeight(ctx context.Context) (int32, string, error) {
@@ -197,27 +213,41 @@ func (p *Parser) findAndPersistOPReturns(ctx context.Context, txid string, tx *c
 		return fmt.Errorf("could not decode raw transaction: %w", err)
 	}
 
-	// Skip if this is a coinbase transaction
-	if len(decodedTx.MsgTx().TxIn) > 0 && decodedTx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000" {
-		fmt.Printf("%+v\n", decodedTx.MsgTx().TxIn[0])
+	isCoinbase := len(decodedTx.MsgTx().TxIn) > 0 && decodedTx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
+	// every coinbase transaction has a OP_RETURN output we don't care about
+	if isCoinbase && len(decodedTx.MsgTx().TxOut) == 2 {
 		zerolog.Ctx(ctx).Info().
 			Str("txid", txid).
 			Int32("height", height).
-			Msgf("bitcoind_engine/parser: skipping coinbase transaction")
+			Msgf("bitcoind_engine/parser: skipping coinbase transaction with no extra outputs")
 
 		return nil
 	}
 
 	for vout, txout := range decodedTx.MsgTx().TxOut {
-		if len(txout.PkScript) > 0 && txout.PkScript[0] == txscript.OP_RETURN {
+		if len(txout.PkScript) < 2 {
+			continue
+		}
+
+		isOPReturn := txout.PkScript[0] == txscript.OP_RETURN
+		isCoinbaseReturn := isOPReturn && txout.PkScript[1] == txscript.OP_DATA_36
+		if isCoinbaseReturn {
 			zerolog.Ctx(ctx).Info().
 				Str("txid", txid).
 				Int32("height", height).
-				Str("data", hex.EncodeToString(txout.PkScript[1:])).
+				Msgf("bitcoind_engine/parser: skipping coinbase OP_RETURN")
+			continue
+		}
+
+		if isOPReturn {
+			data := txout.PkScript[1:]
+			zerolog.Ctx(ctx).Info().
+				Str("txid", txid).
+				Int32("height", height).
+				Str("hex", hex.EncodeToString(data)).
+				Str("string", string(data)).
 				Msgf("bitcoind_engine/parser: found op_return")
 
-			// This is an OP_RETURN output
-			data := txout.PkScript[1:]
 			if err := p.persistOPReturn(ctx, height, txid, int32(vout), data); err != nil {
 				return fmt.Errorf("could not persist op_return: %w", err)
 			}
@@ -232,8 +262,8 @@ func (p *Parser) persistOPReturn(ctx context.Context, height int32, txid string,
 		INSERT INTO op_returns (
 			txid,
 			vout,
-			op_return_data
-			height,
+			op_return_data,
+			height
 		) VALUES (?, ?, ?, ?)
 		ON CONFLICT (txid, vout) DO UPDATE SET
 			op_return_data = excluded.op_return_data
@@ -247,11 +277,51 @@ func (p *Parser) persistOPReturn(ctx context.Context, height int32, txid string,
 
 func (p *Parser) markBlockProcessed(ctx context.Context, height int32, hash string) error {
 	_, err := p.db.ExecContext(ctx, `
-		INSERT INTO processed_blocks (height, block_hash) 
+		REPLACE INTO processed_blocks (height, block_hash) 
 		VALUES (?, ?)
 	`, height, hash)
 	if err != nil {
 		return fmt.Errorf("mark block processed: %w", err)
+	}
+	return nil
+}
+
+// detectChainDeletion checks if the hash of block at height 1 differs
+// from whats in our database. If so, it wipes everything in processed_blocks,
+// to force a re-sync.
+func (p *Parser) detectChainDeletion(ctx context.Context) error {
+	// Get block at height 1 to check for chain switch
+	block1, err := p.getBlock(ctx, 1)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().
+			Err(err).
+			Msgf("bitcoind_engine/parser: could not get block at height 1")
+		return fmt.Errorf("detect chain deletion: %w", err)
+	}
+
+	// Check if we need to reprocess everything due to chain switch
+	var savedBlock1Hash string
+	err = p.db.QueryRowContext(ctx, `SELECT block_hash FROM processed_blocks WHERE height = 1`).Scan(&savedBlock1Hash)
+	if err != nil && err != sql.ErrNoRows {
+		zerolog.Ctx(ctx).Error().
+			Err(err).
+			Msgf("bitcoind_engine/parser: could not get saved block 1 hash")
+		return fmt.Errorf("detect chain deletion: %w", err)
+	}
+
+	if savedBlock1Hash != "" && savedBlock1Hash != block1.Hash {
+		zerolog.Ctx(ctx).Info().
+			Msgf("bitcoind_engine/parser: detected chain switch, reprocessing all blocks")
+		return p.wipeProcessedBlocks(ctx)
+	}
+
+	return nil
+}
+
+func (p *Parser) wipeProcessedBlocks(ctx context.Context) error {
+	_, err := p.db.ExecContext(ctx, `DELETE FROM processed_blocks`)
+	if err != nil {
+		return fmt.Errorf("wipe processed blocks: %w", err)
 	}
 	return nil
 }

@@ -29,27 +29,25 @@ class WalletPage extends StatelessWidget {
         viewModelBuilder: () => SendPageViewModel(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
-          return Expanded(
-            child: InlineTabBar(
-              tabs: [
-                TabItem(
-                  label: 'Send',
-                  icon: SailSVGAsset.iconWallet,
-                  child: SendTab(),
-                ),
-                TabItem(
-                  label: 'Receive',
-                  icon: SailSVGAsset.iconCoinnews,
-                  child: ReceiveTab(),
-                ),
-                TabItem(
-                  label: 'Wallet Transactions',
-                  icon: SailSVGAsset.iconTransactions,
-                  child: TransactionsTab(),
-                ),
-              ],
-              initialIndex: 0,
-            ),
+          return InlineTabBar(
+            tabs: [
+              TabItem(
+                label: 'Send',
+                icon: SailSVGAsset.iconWallet,
+                child: SendTab(),
+              ),
+              TabItem(
+                label: 'Receive',
+                icon: SailSVGAsset.iconCoinnews,
+                child: ReceiveTab(),
+              ),
+              TabItem(
+                label: 'Wallet Transactions',
+                icon: SailSVGAsset.iconTransactions,
+                child: TransactionsTab(),
+              ),
+            ],
+            initialIndex: 0,
           );
         },
       ),
