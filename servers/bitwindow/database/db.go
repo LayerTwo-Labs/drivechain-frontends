@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"path/filepath"
 
@@ -37,45 +36,5 @@ func New(ctx context.Context) (*sql.DB, error) {
 		return nil, fmt.Errorf("could not run migrations: %v", err)
 	}
 
-	if err := readOPReturns(ctx, db); err != nil {
-		return nil, fmt.Errorf("could not read op_returns: %v", err)
-	}
-
 	return db, nil
-}
-func readOPReturns(ctx context.Context, db *sql.DB) error {
-	rows, err := db.QueryContext(ctx, `
-		SELECT txid, vout, height, op_return_data 
-		FROM op_returns
-		ORDER BY created_at DESC
-	`)
-	if err != nil {
-		return fmt.Errorf("could not query op_returns: %w", err)
-	}
-	defer rows.Close()
-
-	log := zerolog.Ctx(ctx)
-	log.Info().Msg("listing all op_returns:")
-
-	for rows.Next() {
-		var txid string
-		var vout int32
-		var data []byte
-
-		if err := rows.Scan(&txid, &vout, &data); err != nil {
-			return fmt.Errorf("could not scan row: %w", err)
-		}
-
-		log.Info().
-			Str("txid", txid).
-			Int32("vout", vout).
-			Str("data", hex.EncodeToString(data)).
-			Msg("found persisted op_return")
-	}
-
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("could not iterate rows: %w", err)
-	}
-
-	return nil
 }
