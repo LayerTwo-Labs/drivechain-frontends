@@ -18,6 +18,5 @@ func ScriptSidechainDeposit(slot uint8) ([]byte, error) {
 // ScriptSidechainDeposit.
 // This script tags along with BIP300-M5: https://en.bitcoin.it/wiki/BIP_0300
 func ScriptDepositAddress(depositAddress string) ([]byte, error) {
-
 	return txscript.NewScriptBuilder().AddOp(txscript.OP_RETURN).AddData([]byte(depositAddress)).Script()
 }

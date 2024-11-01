@@ -6,7 +6,7 @@ toolchain go1.23.0
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20240930061304-04a85a797185
+	github.com/barebitcoin/btc-buf v0.0.0-20241101085802-e30add2562df
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/btcsuite/btcd/btcutil/psbt v1.1.9
 	github.com/google/go-cmp v0.6.0 // indirect
@@ -45,3 +45,5 @@ require (
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 )
+
+require github.com/mattn/go-sqlite3 v1.14.24
