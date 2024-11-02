@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -300,10 +299,10 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
-          SailTableCell(child: SailText.primary12(entry.time.toDateTime().format())),
-          SailTableCell(child: SailText.primary12(entry.feeSatoshi.toString())),
-          SailTableCell(child: SailText.primary12(entry.txid)),
-          SailTableCell(child: SailText.primary12(entry.virtualSize.toString())),
+          SailTableCell(value: entry.time.toDateTime().format()),
+          SailTableCell(value: entry.feeSatoshi.toString()),
+          SailTableCell(value: entry.txid),
+          SailTableCell(value: entry.virtualSize.toString()),
         ];
       },
       rowCount: entries.length,
@@ -397,9 +396,9 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
       rowBuilder: (context, row, selected) {
         final entry = blocks[row];
         return [
-          SailTableCell(child: SailText.primary12(entry.blockTime.toDateTime().format())),
-          SailTableCell(child: SailText.primary12(entry.blockHeight.toString())),
-          SailTableCell(child: SailText.primary12(entry.hash)),
+          SailTableCell(value: entry.blockTime.toDateTime().format()),
+          SailTableCell(value: entry.blockHeight.toString()),
+          SailTableCell(value: entry.hash),
         ];
       },
       rowCount: blocks.length,
@@ -482,8 +481,9 @@ class CoinNewsView extends StatelessWidget {
               ],
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: SailRow(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            spacing: SailStyleValues.padding16,
             children: [
               Flexible(
                 child: SailColumn(
@@ -505,17 +505,18 @@ class CoinNewsView extends StatelessWidget {
                       onChanged: viewModel.setLeftRegion,
                       value: viewModel.leftRegion,
                     ),
-                    SizedBox(
-                      height: 300,
-                      child: CoinNewsTable(
-                        entries: viewModel.leftEntries,
-                        onSort: viewModel.sortEntries,
+                    QtContainer(
+                      child: SizedBox(
+                        height: 300,
+                        child: CoinNewsTable(
+                          entries: viewModel.leftEntries,
+                          onSort: viewModel.sortEntries,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: SailStyleValues.padding16),
               Flexible(
                 child: SailColumn(
                   spacing: SailStyleValues.padding16,
@@ -535,11 +536,13 @@ class CoinNewsView extends StatelessWidget {
                       onChanged: viewModel.setRightRegion,
                       value: viewModel.rightRegion,
                     ),
-                    SizedBox(
-                      height: 300,
-                      child: CoinNewsTable(
-                        entries: viewModel.rightEntries,
-                        onSort: viewModel.sortEntries,
+                    QtContainer(
+                      child: SizedBox(
+                        height: 300,
+                        child: CoinNewsTable(
+                          entries: viewModel.rightEntries,
+                          onSort: viewModel.sortEntries,
+                        ),
                       ),
                     ),
                   ],
@@ -676,9 +679,9 @@ class CoinNewsTable extends StatelessWidget {
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
-          SailTableCell(child: SailText.primary12(entry.fe.toString())),
-          SailTableCell(child: SailText.primary12(entry.time.format())),
-          SailTableCell(child: SailText.primary12(entry.headline)),
+          SailTableCell(value: entry.fe.toString()),
+          SailTableCell(value: entry.time.format()),
+          SailTableCell(value: entry.headline),
         ];
       },
       rowCount: entries.length,
@@ -811,10 +814,10 @@ class GraffittiTable extends StatelessWidget {
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
-          SailTableCell(child: SailText.primary12(formatBitcoin(satoshiToBTC(entry.feeSatoshi.toInt())))),
-          SailTableCell(child: SailText.primary12(entry.message)),
-          SailTableCell(child: SailText.primary12(entry.createTime.toDateTime().toLocal().format())),
-          SailTableCell(child: SailText.primary12(entry.height.toString())),
+          SailTableCell(value: formatBitcoin(satoshiToBTC(entry.feeSatoshi.toInt()))),
+          SailTableCell(value: entry.message),
+          SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),
+          SailTableCell(value: entry.height.toString()),
         ];
       },
       rowCount: entries.length,
