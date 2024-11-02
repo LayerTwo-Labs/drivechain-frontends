@@ -164,13 +164,6 @@ func (w *Wallet) execWallet(ctx context.Context, args ...string) ([]byte, error)
 		return nil, err
 	}
 
-	compacted := bytes.NewBuffer(nil)
-	// Sensitive stuff! Avoid logging the  response
-	if err := json.Compact(compacted, res); err != nil {
-		// Revert back to non-compacted
-		compacted = bytes.NewBuffer(res)
-	}
-
 	return res, nil
 }
 

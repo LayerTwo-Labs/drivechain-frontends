@@ -81,7 +81,7 @@ func realMain(ctx context.Context) error {
 	db, err := database.New(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("init database")
-		return err
+		return fmt.Errorf("init database: %w", err)
 	}
 	defer db.Close()
 
@@ -141,11 +141,13 @@ func realMain(ctx context.Context) error {
 	}
 
 	bitcoinEngine := bitcoind_engine.New(proxy, db)
-	go bitcoinEngine.Run(ctx)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
 	errs := make(chan error)
+	go func() {
+		errs <- bitcoinEngine.Run(ctx)
+	}()
 	go func() {
 		errs <- srv.Serve(ctx, conf.APIHost)
 	}()
