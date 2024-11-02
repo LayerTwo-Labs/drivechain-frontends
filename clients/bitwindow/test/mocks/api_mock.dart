@@ -1,5 +1,6 @@
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:bitwindow/servers/api.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
@@ -13,6 +14,9 @@ class MockAPI extends API {
 
   @override
   late final DrivechainAPI drivechain = MockDrivechainAPI();
+
+  @override
+  late final MiscAPI misc = MockMiscAPI();
 
   MockAPI({
     required super.conf,
@@ -108,6 +112,13 @@ class MockDrivechainAPI implements DrivechainAPI {
 
   @override
   Future<List<SidechainProposal>> listSidechainProposals() async {
+    return [];
+  }
+}
+
+class MockMiscAPI implements MiscAPI {
+  @override
+  Future<List<OPReturn>> listOPReturns() async {
     return [];
   }
 }

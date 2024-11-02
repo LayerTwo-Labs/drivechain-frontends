@@ -100,7 +100,21 @@ class MockMainchainRPC extends MainchainRPC {
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    return BlockchainInfo(initialBlockDownload: false, blockHeight: 0);
+    return BlockchainInfo(
+      difficulty: 0,
+      time: 0,
+      medianTime: 0,
+      verificationProgress: 0,
+      chainWork: '',
+      sizeOnDisk: 0,
+      pruned: false,
+      warnings: [],
+      chain: chain.name,
+      initialBlockDownload: false,
+      blocks: 0,
+      headers: 0,
+      bestBlockHash: '',
+    );
   }
 
   @override

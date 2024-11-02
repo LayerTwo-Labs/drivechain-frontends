@@ -2,6 +2,7 @@ import 'package:bitwindow/exceptions.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:bitwindow/gen/google/protobuf/empty.pb.dart';
+import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
@@ -21,6 +22,7 @@ abstract class API extends RPCConnection {
   WalletAPI get wallet;
   BitcoindAPI get bitcoind;
   DrivechainAPI get drivechain;
+  MiscAPI get misc;
 }
 
 abstract class WalletAPI {
@@ -53,15 +55,20 @@ abstract class DrivechainAPI {
   Future<List<SidechainProposal>> listSidechainProposals();
 }
 
+abstract class MiscAPI {
+  Future<List<OPReturn>> listOPReturns();
+}
+
 class APILive extends API {
   late final DrivechainServiceClient _client;
   late final BitcoindServiceClient _bitcoindClient;
   late final WalletServiceClient _walletClient;
+  late final MiscServiceClient _miscClient;
 
   late final WalletAPI _wallet;
   late final BitcoindAPI _bitcoind;
   late final DrivechainAPI _drivechain;
-
+  late final MiscAPI _misc;
   APILive({
     required String host,
     required int port,
@@ -80,10 +87,12 @@ class APILive extends API {
     _client = DrivechainServiceClient(channel);
     _bitcoindClient = BitcoindServiceClient(channel);
     _walletClient = WalletServiceClient(channel);
+    _miscClient = MiscServiceClient(channel);
 
     _wallet = _WalletAPILive(_walletClient);
     _bitcoind = _BitcoindAPILive(_bitcoindClient);
     _drivechain = _DrivechainAPILive(_client);
+    _misc = _MiscAPILive(_miscClient);
   }
 
   @override
@@ -92,6 +101,8 @@ class APILive extends API {
   BitcoindAPI get bitcoind => _bitcoind;
   @override
   DrivechainAPI get drivechain => _drivechain;
+  @override
+  MiscAPI get misc => _misc;
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
@@ -300,6 +311,25 @@ class _DrivechainAPILive implements DrivechainAPI {
       final error = 'could not list sidechain proposals: ${extractGRPCError(e)}';
       log.e(error);
       throw DrivechainException(error);
+    }
+  }
+}
+
+class _MiscAPILive implements MiscAPI {
+  final MiscServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _MiscAPILive(this._client);
+
+  @override
+  Future<List<OPReturn>> listOPReturns() async {
+    try {
+      final response = await _client.listOPReturn(Empty());
+      return response.opReturns;
+    } catch (e) {
+      final error = 'could not list op returns: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
     }
   }
 }

@@ -14,7 +14,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/timestamp.pb.dart' as $4;
+import '../../google/protobuf/timestamp.pb.dart' as $5;
 
 class ListRecentBlocksRequest extends $pb.GeneratedMessage {
   factory ListRecentBlocksRequest({
@@ -68,7 +68,7 @@ class ListRecentBlocksRequest extends $pb.GeneratedMessage {
 
 class ListRecentBlocksResponse_RecentBlock extends $pb.GeneratedMessage {
   factory ListRecentBlocksResponse_RecentBlock({
-    $4.Timestamp? blockTime,
+    $5.Timestamp? blockTime,
     $core.int? blockHeight,
     $core.String? hash,
   }) {
@@ -89,7 +89,7 @@ class ListRecentBlocksResponse_RecentBlock extends $pb.GeneratedMessage {
   factory ListRecentBlocksResponse_RecentBlock.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListRecentBlocksResponse.RecentBlock', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
-    ..aOM<$4.Timestamp>(1, _omitFieldNames ? '' : 'blockTime', subBuilder: $4.Timestamp.create)
+    ..aOM<$5.Timestamp>(1, _omitFieldNames ? '' : 'blockTime', subBuilder: $5.Timestamp.create)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'blockHeight', $pb.PbFieldType.OU3)
     ..aOS(3, _omitFieldNames ? '' : 'hash')
     ..hasRequiredFields = false
@@ -117,15 +117,15 @@ class ListRecentBlocksResponse_RecentBlock extends $pb.GeneratedMessage {
   static ListRecentBlocksResponse_RecentBlock? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.Timestamp get blockTime => $_getN(0);
+  $5.Timestamp get blockTime => $_getN(0);
   @$pb.TagNumber(1)
-  set blockTime($4.Timestamp v) { setField(1, v); }
+  set blockTime($5.Timestamp v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockTime() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockTime() => clearField(1);
   @$pb.TagNumber(1)
-  $4.Timestamp ensureBlockTime() => $_ensure(0);
+  $5.Timestamp ensureBlockTime() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $core.int get blockHeight => $_getIZ(1);
@@ -288,7 +288,7 @@ class UnconfirmedTransaction extends $pb.GeneratedMessage {
   factory UnconfirmedTransaction({
     $core.int? virtualSize,
     $core.int? weight,
-    $4.Timestamp? time,
+    $5.Timestamp? time,
     $core.String? txid,
     $fixnum.Int64? feeSatoshi,
   }) {
@@ -317,7 +317,7 @@ class UnconfirmedTransaction extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnconfirmedTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'virtualSize', $pb.PbFieldType.OU3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'weight', $pb.PbFieldType.OU3)
-    ..aOM<$4.Timestamp>(3, _omitFieldNames ? '' : 'time', subBuilder: $4.Timestamp.create)
+    ..aOM<$5.Timestamp>(3, _omitFieldNames ? '' : 'time', subBuilder: $5.Timestamp.create)
     ..aOS(4, _omitFieldNames ? '' : 'txid')
     ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'feeSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false
@@ -363,15 +363,15 @@ class UnconfirmedTransaction extends $pb.GeneratedMessage {
   void clearWeight() => clearField(2);
 
   @$pb.TagNumber(3)
-  $4.Timestamp get time => $_getN(2);
+  $5.Timestamp get time => $_getN(2);
   @$pb.TagNumber(3)
-  set time($4.Timestamp v) { setField(3, v); }
+  set time($5.Timestamp v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasTime() => $_has(2);
   @$pb.TagNumber(3)
   void clearTime() => clearField(3);
   @$pb.TagNumber(3)
-  $4.Timestamp ensureTime() => $_ensure(2);
+  $5.Timestamp ensureTime() => $_ensure(2);
 
   @$pb.TagNumber(4)
   $core.String get txid => $_getSZ(3);
