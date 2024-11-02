@@ -84,7 +84,6 @@ func getBdkCliPath(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	zerolog.Ctx(context.Background()).Trace().Str("path", bdkCliPath).Msg("returning bdk-cli path")
 	return bdkCliPath, nil
 }
 
@@ -153,7 +152,6 @@ func (w *Wallet) exec(ctx context.Context, args ...string) ([]byte, error) {
 }
 
 func (w *Wallet) execWallet(ctx context.Context, args ...string) ([]byte, error) {
-	start := time.Now()
 
 	res, err := w.exec(ctx, slices.Concat(
 		[]string{
@@ -172,16 +170,6 @@ func (w *Wallet) execWallet(ctx context.Context, args ...string) ([]byte, error)
 		// Revert back to non-compacted
 		compacted = bytes.NewBuffer(res)
 	}
-
-	command := lo.FirstOrEmpty(lo.Filter(args, func(arg string, idx int) bool {
-		return !strings.HasPrefix(arg, "-")
-	}))
-
-	zerolog.Ctx(ctx).Trace().
-		Stringer("duration", time.Since(start)).
-		Msgf("bdk-cli wallet %s: %s",
-			command, compacted.String(),
-		)
 
 	return res, nil
 }
@@ -251,12 +239,6 @@ func (w *Wallet) GetBalance(ctx context.Context) (*Balance, error) {
 		return nil, err
 	}
 
-	zerolog.Ctx(ctx).Info().
-		Float64("confirmed", parsed.Satoshi.Confirmed.ToBTC()).
-		Float64("immature", parsed.Satoshi.Immature.ToBTC()).
-		Float64("trusted_pending", parsed.Satoshi.TrustedPending.ToBTC()).
-		Float64("untrusted_pending", parsed.Satoshi.UntrustedPending.ToBTC()).
-		Msg("got balance")
 	return &parsed.Satoshi, nil
 }
 

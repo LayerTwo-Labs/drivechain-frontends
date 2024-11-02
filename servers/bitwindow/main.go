@@ -29,7 +29,7 @@ func main() {
 
 	logger := zerolog.
 		New(zerolog.NewConsoleWriter()).
-		Level(zerolog.TraceLevel)
+		Level(zerolog.InfoLevel)
 
 	zerolog.DefaultContextLogger = &logger
 
@@ -182,7 +182,7 @@ func initFileLogger(conf Config) (func(), error) {
 		With().
 		Timestamp().
 		Logger().
-		Level(zerolog.TraceLevel)
+		Level(zerolog.InfoLevel)
 	zerolog.DefaultContextLogger = &logger
 
 	log.Info().Str("file", logFile.Name()).Msg("logging to file")
