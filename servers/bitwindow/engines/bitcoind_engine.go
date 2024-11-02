@@ -39,7 +39,6 @@ type Parser struct {
 //
 // Should be started in a goroutine.
 func (p *Parser) Run(ctx context.Context) error {
-	// Check every other second. We wouldn't wanna miss a nice rate, now would we
 	alertTicker := time.NewTicker(2 * time.Second)
 	defer alertTicker.Stop()
 
@@ -59,28 +58,28 @@ func (p *Parser) Run(ctx context.Context) error {
 				continue
 			}
 
+			// nolint:ineffassign
 			processing = true
-			p.handleTick(ctx)
+			if err := p.handleTick(ctx); err != nil {
+				zerolog.Ctx(ctx).Error().
+					Err(err).
+					Msgf("bitcoind_engine/parser: could not handle tick")
+				return err
+			}
 			processing = false
 		}
 	}
 }
 
-func (p *Parser) handleTick(ctx context.Context) {
+func (p *Parser) handleTick(ctx context.Context) error {
 	if err := p.detectChainDeletion(ctx); err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not detect chain deletion")
-		return
+		return fmt.Errorf("detect chain deletion: %w", err)
 	}
 
 	// Get latest processed height
 	lastProcessedHeight, lastProcessedHash, err := blocks.LatestProcessedHeight(ctx, p.db)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not get latest processed height")
-		return
+		return fmt.Errorf("get latest processed height: %w", err)
 	}
 
 	// Get current blockchain height
@@ -89,7 +88,7 @@ func (p *Parser) handleTick(ctx context.Context) {
 		zerolog.Ctx(ctx).Error().
 			Err(err).
 			Msgf("bitcoind_engine/parser: could not get current height")
-		return
+		return nil
 	}
 
 	if lastProcessedHeight == currentHeight && lastProcessedHash != currentHash {
@@ -107,6 +106,8 @@ func (p *Parser) handleTick(ctx context.Context) {
 			continue
 		}
 	}
+
+	return nil
 }
 
 func (p *Parser) processBlock(ctx context.Context, height int32) error {
