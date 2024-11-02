@@ -16,36 +16,36 @@ import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
-import 'wallet.pb.dart' as $3;
+import 'wallet.pb.dart' as $4;
 
 export 'wallet.pb.dart';
 
 @$pb.GrpcServiceName('wallet.v1.WalletService')
 class WalletServiceClient extends $grpc.Client {
-  static final _$sendTransaction = $grpc.ClientMethod<$3.SendTransactionRequest, $3.SendTransactionResponse>(
+  static final _$sendTransaction = $grpc.ClientMethod<$4.SendTransactionRequest, $4.SendTransactionResponse>(
       '/wallet.v1.WalletService/SendTransaction',
-      ($3.SendTransactionRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.SendTransactionResponse.fromBuffer(value));
-  static final _$getBalance = $grpc.ClientMethod<$1.Empty, $3.GetBalanceResponse>(
+      ($4.SendTransactionRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $4.SendTransactionResponse.fromBuffer(value));
+  static final _$getBalance = $grpc.ClientMethod<$1.Empty, $4.GetBalanceResponse>(
       '/wallet.v1.WalletService/GetBalance',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.GetBalanceResponse.fromBuffer(value));
-  static final _$getNewAddress = $grpc.ClientMethod<$1.Empty, $3.GetNewAddressResponse>(
+      ($core.List<$core.int> value) => $4.GetBalanceResponse.fromBuffer(value));
+  static final _$getNewAddress = $grpc.ClientMethod<$1.Empty, $4.GetNewAddressResponse>(
       '/wallet.v1.WalletService/GetNewAddress',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.GetNewAddressResponse.fromBuffer(value));
-  static final _$listTransactions = $grpc.ClientMethod<$1.Empty, $3.ListTransactionsResponse>(
+      ($core.List<$core.int> value) => $4.GetNewAddressResponse.fromBuffer(value));
+  static final _$listTransactions = $grpc.ClientMethod<$1.Empty, $4.ListTransactionsResponse>(
       '/wallet.v1.WalletService/ListTransactions',
       ($1.Empty value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.ListTransactionsResponse.fromBuffer(value));
-  static final _$listSidechainDeposits = $grpc.ClientMethod<$3.ListSidechainDepositsRequest, $3.ListSidechainDepositsResponse>(
+      ($core.List<$core.int> value) => $4.ListTransactionsResponse.fromBuffer(value));
+  static final _$listSidechainDeposits = $grpc.ClientMethod<$4.ListSidechainDepositsRequest, $4.ListSidechainDepositsResponse>(
       '/wallet.v1.WalletService/ListSidechainDeposits',
-      ($3.ListSidechainDepositsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.ListSidechainDepositsResponse.fromBuffer(value));
-  static final _$createSidechainDeposit = $grpc.ClientMethod<$3.CreateSidechainDepositRequest, $3.CreateSidechainDepositResponse>(
+      ($4.ListSidechainDepositsRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $4.ListSidechainDepositsResponse.fromBuffer(value));
+  static final _$createSidechainDeposit = $grpc.ClientMethod<$4.CreateSidechainDepositRequest, $4.CreateSidechainDepositResponse>(
       '/wallet.v1.WalletService/CreateSidechainDeposit',
-      ($3.CreateSidechainDepositRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $3.CreateSidechainDepositResponse.fromBuffer(value));
+      ($4.CreateSidechainDepositRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $4.CreateSidechainDepositResponse.fromBuffer(value));
 
   WalletServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -53,27 +53,27 @@ class WalletServiceClient extends $grpc.Client {
       : super(channel, options: options,
         interceptors: interceptors);
 
-  $grpc.ResponseFuture<$3.SendTransactionResponse> sendTransaction($3.SendTransactionRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$4.SendTransactionResponse> sendTransaction($4.SendTransactionRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$sendTransaction, request, options: options);
   }
 
-  $grpc.ResponseFuture<$3.GetBalanceResponse> getBalance($1.Empty request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$4.GetBalanceResponse> getBalance($1.Empty request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getBalance, request, options: options);
   }
 
-  $grpc.ResponseFuture<$3.GetNewAddressResponse> getNewAddress($1.Empty request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$4.GetNewAddressResponse> getNewAddress($1.Empty request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getNewAddress, request, options: options);
   }
 
-  $grpc.ResponseFuture<$3.ListTransactionsResponse> listTransactions($1.Empty request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$4.ListTransactionsResponse> listTransactions($1.Empty request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listTransactions, request, options: options);
   }
 
-  $grpc.ResponseFuture<$3.ListSidechainDepositsResponse> listSidechainDeposits($3.ListSidechainDepositsRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$4.ListSidechainDepositsResponse> listSidechainDeposits($4.ListSidechainDepositsRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listSidechainDeposits, request, options: options);
   }
 
-  $grpc.ResponseFuture<$3.CreateSidechainDepositResponse> createSidechainDeposit($3.CreateSidechainDepositRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$4.CreateSidechainDepositResponse> createSidechainDeposit($4.CreateSidechainDepositRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$createSidechainDeposit, request, options: options);
   }
 }
@@ -83,78 +83,78 @@ abstract class WalletServiceBase extends $grpc.Service {
   $core.String get $name => 'wallet.v1.WalletService';
 
   WalletServiceBase() {
-    $addMethod($grpc.ServiceMethod<$3.SendTransactionRequest, $3.SendTransactionResponse>(
+    $addMethod($grpc.ServiceMethod<$4.SendTransactionRequest, $4.SendTransactionResponse>(
         'SendTransaction',
         sendTransaction_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $3.SendTransactionRequest.fromBuffer(value),
-        ($3.SendTransactionResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$1.Empty, $3.GetBalanceResponse>(
+        ($core.List<$core.int> value) => $4.SendTransactionRequest.fromBuffer(value),
+        ($4.SendTransactionResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.Empty, $4.GetBalanceResponse>(
         'GetBalance',
         getBalance_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($3.GetBalanceResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$1.Empty, $3.GetNewAddressResponse>(
+        ($4.GetBalanceResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.Empty, $4.GetNewAddressResponse>(
         'GetNewAddress',
         getNewAddress_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($3.GetNewAddressResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$1.Empty, $3.ListTransactionsResponse>(
+        ($4.GetNewAddressResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.Empty, $4.ListTransactionsResponse>(
         'ListTransactions',
         listTransactions_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
-        ($3.ListTransactionsResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$3.ListSidechainDepositsRequest, $3.ListSidechainDepositsResponse>(
+        ($4.ListTransactionsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$4.ListSidechainDepositsRequest, $4.ListSidechainDepositsResponse>(
         'ListSidechainDeposits',
         listSidechainDeposits_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $3.ListSidechainDepositsRequest.fromBuffer(value),
-        ($3.ListSidechainDepositsResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$3.CreateSidechainDepositRequest, $3.CreateSidechainDepositResponse>(
+        ($core.List<$core.int> value) => $4.ListSidechainDepositsRequest.fromBuffer(value),
+        ($4.ListSidechainDepositsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$4.CreateSidechainDepositRequest, $4.CreateSidechainDepositResponse>(
         'CreateSidechainDeposit',
         createSidechainDeposit_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $3.CreateSidechainDepositRequest.fromBuffer(value),
-        ($3.CreateSidechainDepositResponse value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) => $4.CreateSidechainDepositRequest.fromBuffer(value),
+        ($4.CreateSidechainDepositResponse value) => value.writeToBuffer()));
   }
 
-  $async.Future<$3.SendTransactionResponse> sendTransaction_Pre($grpc.ServiceCall call, $async.Future<$3.SendTransactionRequest> request) async {
+  $async.Future<$4.SendTransactionResponse> sendTransaction_Pre($grpc.ServiceCall call, $async.Future<$4.SendTransactionRequest> request) async {
     return sendTransaction(call, await request);
   }
 
-  $async.Future<$3.GetBalanceResponse> getBalance_Pre($grpc.ServiceCall call, $async.Future<$1.Empty> request) async {
+  $async.Future<$4.GetBalanceResponse> getBalance_Pre($grpc.ServiceCall call, $async.Future<$1.Empty> request) async {
     return getBalance(call, await request);
   }
 
-  $async.Future<$3.GetNewAddressResponse> getNewAddress_Pre($grpc.ServiceCall call, $async.Future<$1.Empty> request) async {
+  $async.Future<$4.GetNewAddressResponse> getNewAddress_Pre($grpc.ServiceCall call, $async.Future<$1.Empty> request) async {
     return getNewAddress(call, await request);
   }
 
-  $async.Future<$3.ListTransactionsResponse> listTransactions_Pre($grpc.ServiceCall call, $async.Future<$1.Empty> request) async {
+  $async.Future<$4.ListTransactionsResponse> listTransactions_Pre($grpc.ServiceCall call, $async.Future<$1.Empty> request) async {
     return listTransactions(call, await request);
   }
 
-  $async.Future<$3.ListSidechainDepositsResponse> listSidechainDeposits_Pre($grpc.ServiceCall call, $async.Future<$3.ListSidechainDepositsRequest> request) async {
+  $async.Future<$4.ListSidechainDepositsResponse> listSidechainDeposits_Pre($grpc.ServiceCall call, $async.Future<$4.ListSidechainDepositsRequest> request) async {
     return listSidechainDeposits(call, await request);
   }
 
-  $async.Future<$3.CreateSidechainDepositResponse> createSidechainDeposit_Pre($grpc.ServiceCall call, $async.Future<$3.CreateSidechainDepositRequest> request) async {
+  $async.Future<$4.CreateSidechainDepositResponse> createSidechainDeposit_Pre($grpc.ServiceCall call, $async.Future<$4.CreateSidechainDepositRequest> request) async {
     return createSidechainDeposit(call, await request);
   }
 
-  $async.Future<$3.SendTransactionResponse> sendTransaction($grpc.ServiceCall call, $3.SendTransactionRequest request);
-  $async.Future<$3.GetBalanceResponse> getBalance($grpc.ServiceCall call, $1.Empty request);
-  $async.Future<$3.GetNewAddressResponse> getNewAddress($grpc.ServiceCall call, $1.Empty request);
-  $async.Future<$3.ListTransactionsResponse> listTransactions($grpc.ServiceCall call, $1.Empty request);
-  $async.Future<$3.ListSidechainDepositsResponse> listSidechainDeposits($grpc.ServiceCall call, $3.ListSidechainDepositsRequest request);
-  $async.Future<$3.CreateSidechainDepositResponse> createSidechainDeposit($grpc.ServiceCall call, $3.CreateSidechainDepositRequest request);
+  $async.Future<$4.SendTransactionResponse> sendTransaction($grpc.ServiceCall call, $4.SendTransactionRequest request);
+  $async.Future<$4.GetBalanceResponse> getBalance($grpc.ServiceCall call, $1.Empty request);
+  $async.Future<$4.GetNewAddressResponse> getNewAddress($grpc.ServiceCall call, $1.Empty request);
+  $async.Future<$4.ListTransactionsResponse> listTransactions($grpc.ServiceCall call, $1.Empty request);
+  $async.Future<$4.ListSidechainDepositsResponse> listSidechainDeposits($grpc.ServiceCall call, $4.ListSidechainDepositsRequest request);
+  $async.Future<$4.CreateSidechainDepositResponse> createSidechainDeposit($grpc.ServiceCall call, $4.CreateSidechainDepositRequest request);
 }

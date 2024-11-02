@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/google/protobuf/timestamp.pb.dart';
+import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:bitwindow/servers/api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -16,6 +17,7 @@ class BlockchainProvider extends ChangeNotifier {
   List<ListRecentBlocksResponse_RecentBlock> recentBlocks = [];
   List<UnconfirmedTransaction> unconfirmedTXs = [];
   GetBlockchainInfoResponse blockchainInfo = GetBlockchainInfoResponse();
+  List<OPReturn> opReturns = [];
 
   // computed field go here
   Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.first.blockTime : null;
@@ -45,12 +47,14 @@ class BlockchainProvider extends ChangeNotifier {
       final newTXs = await api.bitcoind.listUnconfirmedTransactions();
       final newBlockchainInfo = await api.bitcoind.getBlockchainInfo();
       final newRecentBlocks = await api.bitcoind.listRecentBlocks();
+      final newOPReturns = await api.misc.listOPReturns();
 
-      if (_dataHasChanged(newPeers, newTXs, newBlockchainInfo, newRecentBlocks)) {
+      if (_dataHasChanged(newPeers, newTXs, newBlockchainInfo, newRecentBlocks, newOPReturns)) {
         peers = newPeers;
         unconfirmedTXs = newTXs;
         blockchainInfo = newBlockchainInfo;
         recentBlocks = newRecentBlocks;
+        opReturns = newOPReturns;
         error = null;
         notifyListeners();
       }
@@ -67,6 +71,7 @@ class BlockchainProvider extends ChangeNotifier {
     List<UnconfirmedTransaction> newTXs,
     GetBlockchainInfoResponse newBlockchainInfo,
     List<ListRecentBlocksResponse_RecentBlock> newRecentBlocks,
+    List<OPReturn> newOPReturns,
   ) {
     if (!listEquals(peers, newPeers)) {
       return true;
@@ -81,6 +86,10 @@ class BlockchainProvider extends ChangeNotifier {
     }
 
     if (blockchainInfo.toProto3Json() != newBlockchainInfo.toProto3Json()) {
+      return true;
+    }
+
+    if (!listEquals(opReturns, newOPReturns)) {
       return true;
     }
 

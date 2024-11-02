@@ -181,7 +181,21 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   Future<BlockchainInfo> getBlockchainInfo() async {
-    return BlockchainInfo(initialBlockDownload: false, blockHeight: 68);
+    return BlockchainInfo(
+      chain: chain.name,
+      initialBlockDownload: false,
+      blocks: 68,
+      headers: 68,
+      bestBlockHash: '',
+      difficulty: 0,
+      time: 0,
+      medianTime: 0,
+      verificationProgress: 0,
+      chainWork: '',
+      sizeOnDisk: 0,
+      pruned: false,
+      warnings: [],
+    );
   }
 }
 

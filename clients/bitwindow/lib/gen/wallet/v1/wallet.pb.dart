@@ -14,7 +14,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/timestamp.pb.dart' as $4;
+import '../../google/protobuf/timestamp.pb.dart' as $5;
 
 class GetNewAddressResponse extends $pb.GeneratedMessage {
   factory GetNewAddressResponse({
@@ -317,7 +317,7 @@ class ListTransactionsResponse extends $pb.GeneratedMessage {
 class Confirmation extends $pb.GeneratedMessage {
   factory Confirmation({
     $core.int? height,
-    $4.Timestamp? timestamp,
+    $5.Timestamp? timestamp,
   }) {
     final $result = create();
     if (height != null) {
@@ -334,7 +334,7 @@ class Confirmation extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Confirmation', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'height', $pb.PbFieldType.OU3)
-    ..aOM<$4.Timestamp>(2, _omitFieldNames ? '' : 'timestamp', subBuilder: $4.Timestamp.create)
+    ..aOM<$5.Timestamp>(2, _omitFieldNames ? '' : 'timestamp', subBuilder: $5.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -369,15 +369,15 @@ class Confirmation extends $pb.GeneratedMessage {
   void clearHeight() => clearField(1);
 
   @$pb.TagNumber(2)
-  $4.Timestamp get timestamp => $_getN(1);
+  $5.Timestamp get timestamp => $_getN(1);
   @$pb.TagNumber(2)
-  set timestamp($4.Timestamp v) { setField(2, v); }
+  set timestamp($5.Timestamp v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasTimestamp() => $_has(1);
   @$pb.TagNumber(2)
   void clearTimestamp() => clearField(2);
   @$pb.TagNumber(2)
-  $4.Timestamp ensureTimestamp() => $_ensure(1);
+  $5.Timestamp ensureTimestamp() => $_ensure(1);
 }
 
 class Transaction extends $pb.GeneratedMessage {

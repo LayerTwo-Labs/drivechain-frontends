@@ -88,7 +88,7 @@ class MainchainRPCLive extends MainchainRPC {
         final info = await getBlockchainInfo();
         // if block height is 0, the node might have not synced headers yet, and believe
         // height 1 is the current best height
-        inIBD = info.initialBlockDownload || info.blockHeight <= 1;
+        inIBD = info.initialBlockDownload || info.blocks <= 1;
       } catch (error) {
         // probably just cant connect, and is in bootup-phase, which is okay
       } finally {

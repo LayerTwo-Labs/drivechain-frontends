@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
@@ -464,10 +465,19 @@ class CoinNewsView extends StatelessWidget {
                   bold: true,
                 ),
                 Expanded(child: Container()),
+                Opacity(
+                  opacity: 0,
+                  child: QtButton(
+                    label: 'Broadcast News',
+                    onPressed: () => displayBroadcastNewsDialog(context),
+                    size: ButtonSize.small,
+                  ),
+                ),
                 QtButton(
-                  label: 'Broadcast News',
-                  onPressed: () => displayBroadcastNewsDialog(context),
+                  label: 'Graffitti Explorer',
+                  onPressed: () => displayGraffittiExplorerDialog(context),
                   size: ButtonSize.small,
+                  style: SailButtonStyle.secondary,
                 ),
               ],
             ),
@@ -547,6 +557,14 @@ class CoinNewsView extends StatelessWidget {
       context: context,
       title: 'Broadcast News',
       child: BroadcastNewsView(),
+    );
+  }
+
+  Future<void> displayGraffittiExplorerDialog(BuildContext context) async {
+    await widgetDialog(
+      context: context,
+      title: 'Graffitti Explorer',
+      child: GraffittiExplorerView(),
     );
   }
 }
@@ -685,4 +703,125 @@ class CoinNewsEntry {
     required this.time,
     required this.headline,
   });
+}
+
+class GraffittiExplorerView extends StatelessWidget {
+  const GraffittiExplorerView({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<GraffittiExplorerViewModel>.reactive(
+      viewModelBuilder: () => GraffittiExplorerViewModel(),
+      builder: (context, viewModel, child) {
+        return SizedBox(
+          height: 300,
+          child: GraffittiTable(
+            entries: viewModel.entries,
+            onSort: viewModel.onSort,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class GraffittiExplorerViewModel extends BaseViewModel {
+  final BlockchainProvider _blockchainProvider = GetIt.I.get<BlockchainProvider>();
+
+  String _sortColumn = 'time';
+  bool _sortAscending = true;
+  List<OPReturn> get entries => _blockchainProvider.opReturns;
+
+  GraffittiExplorerViewModel() {
+    _blockchainProvider.fetch();
+    _blockchainProvider.addListener(notifyListeners);
+  }
+
+  void onSort(String column) {
+    if (_sortColumn == column) {
+      _sortAscending = !_sortAscending;
+    } else {
+      _sortColumn = column;
+      _sortAscending = true;
+    }
+    _sortEntries();
+    notifyListeners();
+  }
+
+  void _sortEntries() {
+    entries.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (_sortColumn) {
+        case 'fee':
+          aValue = a.feeSatoshi.toInt();
+          bValue = b.feeSatoshi.toInt();
+          break;
+        case 'message':
+          aValue = a.message;
+          bValue = b.message;
+          break;
+        case 'time':
+          aValue = a.createTime.toDateTime().millisecondsSinceEpoch;
+          bValue = b.createTime.toDateTime().millisecondsSinceEpoch;
+          break;
+        case 'height':
+          aValue = a.height;
+          bValue = b.height;
+          break;
+      }
+
+      return _sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  void dispose() {
+    _blockchainProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+class GraffittiTable extends StatelessWidget {
+  final List<OPReturn> entries;
+  final Function(String) onSort;
+
+  const GraffittiTable({
+    super.key,
+    required this.entries,
+    required this.onSort,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return SailTable(
+      backgroundColor: theme.colors.backgroundSecondary,
+      getRowId: (index) => entries[index].id,
+      headerBuilder: (context) => [
+        SailTableHeaderCell(name: 'Fee', onSort: () => onSort('fee')),
+        SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
+        SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
+        SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = entries[row];
+        return [
+          SailTableCell(child: SailText.primary12(formatBitcoin(satoshiToBTC(entry.feeSatoshi.toInt())))),
+          SailTableCell(child: SailText.primary12(entry.message)),
+          SailTableCell(child: SailText.primary12(entry.createTime.toDateTime().toLocal().format())),
+          SailTableCell(child: SailText.primary12(entry.height.toString())),
+        ];
+      },
+      rowCount: entries.length,
+      columnWidths: const [150, 200, 250, 150],
+      onSort: (columnIndex, ascending) {
+        onSort(['fee', 'message', 'time', 'height'][columnIndex]);
+      },
+    );
+  }
 }

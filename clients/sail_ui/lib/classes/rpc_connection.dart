@@ -280,20 +280,51 @@ Future<void> waitForBoolToBeTrue(
 }
 
 class BlockchainInfo {
-  // indicates whether the chain is currently downloading the chain
-  // for the first time
+  final String chain;
+  final int blocks;
+  final int headers;
+  final String bestBlockHash;
+  final double difficulty;
+  final int time;
+  final int medianTime;
+  final double verificationProgress;
   final bool initialBlockDownload;
-  final int blockHeight;
+  final String chainWork;
+  final int sizeOnDisk;
+  final bool pruned;
+  final List<String> warnings;
 
   BlockchainInfo({
+    required this.chain,
+    required this.blocks,
+    required this.headers,
+    required this.bestBlockHash,
+    required this.difficulty,
+    required this.time,
+    required this.medianTime,
+    required this.verificationProgress,
     required this.initialBlockDownload,
-    required this.blockHeight,
+    required this.chainWork,
+    required this.sizeOnDisk,
+    required this.pruned,
+    required this.warnings,
   });
 
   factory BlockchainInfo.fromMap(Map<String, dynamic> map) {
     return BlockchainInfo(
-      initialBlockDownload: map['initialblockdownload'] ?? '',
-      blockHeight: map['blocks'] ?? 0,
+      chain: map['chain'] ?? '',
+      blocks: map['blocks'] ?? 0,
+      headers: map['headers'] ?? 0,
+      bestBlockHash: map['bestblockhash'] ?? '',
+      difficulty: (map['difficulty'] ?? 0.0).toDouble(),
+      time: map['time'] ?? 0,
+      medianTime: map['mediantime'] ?? 0,
+      verificationProgress: (map['verificationprogress'] ?? 0.0).toDouble(),
+      initialBlockDownload: map['initialblockdownload'] ?? false,
+      chainWork: map['chainwork'] ?? '',
+      sizeOnDisk: map['size_on_disk'] ?? 0,
+      pruned: map['pruned'] ?? false,
+      warnings: List<String>.from(map['warnings'] ?? []),
     );
   }
 
@@ -301,7 +332,19 @@ class BlockchainInfo {
   String toJson() => jsonEncode(toMap());
 
   Map<String, dynamic> toMap() => {
+        'chain': chain,
+        'blocks': blocks,
+        'headers': headers,
+        'bestblockhash': bestBlockHash,
+        'difficulty': difficulty,
+        'time': time,
+        'mediantime': medianTime,
+        'verificationprogress': verificationProgress,
         'initialblockdownload': initialBlockDownload,
+        'chainwork': chainWork,
+        'size_on_disk': sizeOnDisk,
+        'pruned': pruned,
+        'warnings': warnings,
       };
 }
 
