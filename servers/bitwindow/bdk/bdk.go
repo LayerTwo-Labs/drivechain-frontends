@@ -184,7 +184,6 @@ func (w *Wallet) Sync(ctx context.Context) error {
 		return err
 	}
 
-	zerolog.Ctx(ctx).Info().Msg("successfully synced wallet")
 	return nil
 }
 

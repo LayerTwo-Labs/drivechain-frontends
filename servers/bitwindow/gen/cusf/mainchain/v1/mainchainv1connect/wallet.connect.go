@@ -47,6 +47,9 @@ const (
 	// WalletServiceCreateNewAddressProcedure is the fully-qualified name of the WalletService's
 	// CreateNewAddress RPC.
 	WalletServiceCreateNewAddressProcedure = "/cusf.mainchain.v1.WalletService/CreateNewAddress"
+	// WalletServiceCreateSidechainProposalProcedure is the fully-qualified name of the WalletService's
+	// CreateSidechainProposal RPC.
+	WalletServiceCreateSidechainProposalProcedure = "/cusf.mainchain.v1.WalletService/CreateSidechainProposal"
 	// WalletServiceGenerateBlocksProcedure is the fully-qualified name of the WalletService's
 	// GenerateBlocks RPC.
 	WalletServiceGenerateBlocksProcedure = "/cusf.mainchain.v1.WalletService/GenerateBlocks"
@@ -59,6 +62,7 @@ var (
 	walletServiceCreateBmmCriticalDataTransactionMethodDescriptor = walletServiceServiceDescriptor.Methods().ByName("CreateBmmCriticalDataTransaction")
 	walletServiceCreateDepositTransactionMethodDescriptor         = walletServiceServiceDescriptor.Methods().ByName("CreateDepositTransaction")
 	walletServiceCreateNewAddressMethodDescriptor                 = walletServiceServiceDescriptor.Methods().ByName("CreateNewAddress")
+	walletServiceCreateSidechainProposalMethodDescriptor          = walletServiceServiceDescriptor.Methods().ByName("CreateSidechainProposal")
 	walletServiceGenerateBlocksMethodDescriptor                   = walletServiceServiceDescriptor.Methods().ByName("GenerateBlocks")
 )
 
@@ -68,6 +72,13 @@ type WalletServiceClient interface {
 	CreateBmmCriticalDataTransaction(context.Context, *connect.Request[v1.CreateBmmCriticalDataTransactionRequest]) (*connect.Response[v1.CreateBmmCriticalDataTransactionResponse], error)
 	CreateDepositTransaction(context.Context, *connect.Request[v1.CreateDepositTransactionRequest]) (*connect.Response[v1.CreateDepositTransactionResponse], error)
 	CreateNewAddress(context.Context, *connect.Request[v1.CreateNewAddressRequest]) (*connect.Response[v1.CreateNewAddressResponse], error)
+	// Create a new sidechain proposal (M1 in BIP300) and persist to the local
+	// database for further processing.
+	// Sidechain proposals must be included in the coinbase transaction of a
+	// newly mined block, so this proposal is not active until the wallet has
+	// been able to generate a new block.
+	// Returns a stream of (non-)confirmation events for the sidechain proposal.
+	CreateSidechainProposal(context.Context, *connect.Request[v1.CreateSidechainProposalRequest]) (*connect.ServerStreamForClient[v1.CreateSidechainProposalResponse], error)
 	// Regtest only
 	GenerateBlocks(context.Context, *connect.Request[v1.GenerateBlocksRequest]) (*connect.Response[v1.GenerateBlocksResponse], error)
 }
@@ -106,6 +117,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceCreateNewAddressMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		createSidechainProposal: connect.NewClient[v1.CreateSidechainProposalRequest, v1.CreateSidechainProposalResponse](
+			httpClient,
+			baseURL+WalletServiceCreateSidechainProposalProcedure,
+			connect.WithSchema(walletServiceCreateSidechainProposalMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 		generateBlocks: connect.NewClient[v1.GenerateBlocksRequest, v1.GenerateBlocksResponse](
 			httpClient,
 			baseURL+WalletServiceGenerateBlocksProcedure,
@@ -121,6 +138,7 @@ type walletServiceClient struct {
 	createBmmCriticalDataTransaction *connect.Client[v1.CreateBmmCriticalDataTransactionRequest, v1.CreateBmmCriticalDataTransactionResponse]
 	createDepositTransaction         *connect.Client[v1.CreateDepositTransactionRequest, v1.CreateDepositTransactionResponse]
 	createNewAddress                 *connect.Client[v1.CreateNewAddressRequest, v1.CreateNewAddressResponse]
+	createSidechainProposal          *connect.Client[v1.CreateSidechainProposalRequest, v1.CreateSidechainProposalResponse]
 	generateBlocks                   *connect.Client[v1.GenerateBlocksRequest, v1.GenerateBlocksResponse]
 }
 
@@ -145,6 +163,11 @@ func (c *walletServiceClient) CreateNewAddress(ctx context.Context, req *connect
 	return c.createNewAddress.CallUnary(ctx, req)
 }
 
+// CreateSidechainProposal calls cusf.mainchain.v1.WalletService.CreateSidechainProposal.
+func (c *walletServiceClient) CreateSidechainProposal(ctx context.Context, req *connect.Request[v1.CreateSidechainProposalRequest]) (*connect.ServerStreamForClient[v1.CreateSidechainProposalResponse], error) {
+	return c.createSidechainProposal.CallServerStream(ctx, req)
+}
+
 // GenerateBlocks calls cusf.mainchain.v1.WalletService.GenerateBlocks.
 func (c *walletServiceClient) GenerateBlocks(ctx context.Context, req *connect.Request[v1.GenerateBlocksRequest]) (*connect.Response[v1.GenerateBlocksResponse], error) {
 	return c.generateBlocks.CallUnary(ctx, req)
@@ -156,6 +179,13 @@ type WalletServiceHandler interface {
 	CreateBmmCriticalDataTransaction(context.Context, *connect.Request[v1.CreateBmmCriticalDataTransactionRequest]) (*connect.Response[v1.CreateBmmCriticalDataTransactionResponse], error)
 	CreateDepositTransaction(context.Context, *connect.Request[v1.CreateDepositTransactionRequest]) (*connect.Response[v1.CreateDepositTransactionResponse], error)
 	CreateNewAddress(context.Context, *connect.Request[v1.CreateNewAddressRequest]) (*connect.Response[v1.CreateNewAddressResponse], error)
+	// Create a new sidechain proposal (M1 in BIP300) and persist to the local
+	// database for further processing.
+	// Sidechain proposals must be included in the coinbase transaction of a
+	// newly mined block, so this proposal is not active until the wallet has
+	// been able to generate a new block.
+	// Returns a stream of (non-)confirmation events for the sidechain proposal.
+	CreateSidechainProposal(context.Context, *connect.Request[v1.CreateSidechainProposalRequest], *connect.ServerStream[v1.CreateSidechainProposalResponse]) error
 	// Regtest only
 	GenerateBlocks(context.Context, *connect.Request[v1.GenerateBlocksRequest]) (*connect.Response[v1.GenerateBlocksResponse], error)
 }
@@ -190,6 +220,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceCreateNewAddressMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceCreateSidechainProposalHandler := connect.NewServerStreamHandler(
+		WalletServiceCreateSidechainProposalProcedure,
+		svc.CreateSidechainProposal,
+		connect.WithSchema(walletServiceCreateSidechainProposalMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletServiceGenerateBlocksHandler := connect.NewUnaryHandler(
 		WalletServiceGenerateBlocksProcedure,
 		svc.GenerateBlocks,
@@ -206,6 +242,8 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceCreateDepositTransactionHandler.ServeHTTP(w, r)
 		case WalletServiceCreateNewAddressProcedure:
 			walletServiceCreateNewAddressHandler.ServeHTTP(w, r)
+		case WalletServiceCreateSidechainProposalProcedure:
+			walletServiceCreateSidechainProposalHandler.ServeHTTP(w, r)
 		case WalletServiceGenerateBlocksProcedure:
 			walletServiceGenerateBlocksHandler.ServeHTTP(w, r)
 		default:
@@ -231,6 +269,10 @@ func (UnimplementedWalletServiceHandler) CreateDepositTransaction(context.Contex
 
 func (UnimplementedWalletServiceHandler) CreateNewAddress(context.Context, *connect.Request[v1.CreateNewAddressRequest]) (*connect.Response[v1.CreateNewAddressResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.CreateNewAddress is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) CreateSidechainProposal(context.Context, *connect.Request[v1.CreateSidechainProposalRequest], *connect.ServerStream[v1.CreateSidechainProposalResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.CreateSidechainProposal is not implemented"))
 }
 
 func (UnimplementedWalletServiceHandler) GenerateBlocks(context.Context, *connect.Request[v1.GenerateBlocksRequest]) (*connect.Response[v1.GenerateBlocksResponse], error) {

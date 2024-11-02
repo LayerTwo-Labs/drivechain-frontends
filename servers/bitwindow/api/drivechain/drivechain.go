@@ -42,20 +42,14 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 
 	return connect.NewResponse(&pb.ListSidechainProposalsResponse{
 		Proposals: lo.Map(sidechainProposals.Msg.SidechainProposals, func(proposal *validatorpb.GetSidechainProposalsResponse_SidechainProposal, _ int) *pb.SidechainProposal {
-			// TODO: I have no idea what the data hash looks like yet, needs to test this with real data
-			dataHash, err := chainhash.NewHash([]byte(proposal.DataHash.Hex.Value))
-			if err != nil {
-				dataHash, _ = chainhash.NewHashFromStr("deadbeef")
-				zerolog.Ctx(ctx).Error().Err(err).Msg("could not create hash")
-			}
 
 			return &pb.SidechainProposal{
-				Slot:           proposal.SidechainNumber,
-				Data:           proposal.Data.Value,
-				DataHash:       dataHash.String(),
-				VoteCount:      proposal.VoteCount,
-				ProposalHeight: proposal.ProposalHeight,
-				ProposalAge:    proposal.ProposalAge,
+				Slot:           proposal.SidechainNumber.Value,
+				Data:           []byte(proposal.Description.Hex.Value),
+				DataHash:       proposal.DescriptionSha256DHash.Hex.Value,
+				VoteCount:      proposal.VoteCount.Value,
+				ProposalHeight: proposal.ProposalHeight.Value,
+				ProposalAge:    proposal.ProposalAge.Value,
 			}
 		}),
 	}), nil
@@ -72,10 +66,10 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Msg.Sidechains))
 	for _, sidechain := range sidechains.Msg.Sidechains {
 		ctipResponse, err := s.enforcer.GetCtip(ctx, connect.NewRequest(
-			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber)},
+			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber.Value)},
 		))
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Uint32("sidechain", sidechain.SidechainNumber).Msg("failed to get ctip")
+			zerolog.Ctx(ctx).Error().Err(err).Uint32("sidechain", sidechain.SidechainNumber.Value).Msg("failed to get ctip")
 			continue
 		}
 
@@ -86,14 +80,13 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 			continue
 		}
 
-		decodedData := string(sidechain.Data.Value)
 		sidechainList = append(sidechainList, &pb.ListSidechainsResponse_Sidechain{
-			Title:         decodedData, // TODO: Decode and fill in correctly
-			Description:   decodedData, // TODO: Decode and fill in correctly
+			Title:         sidechain.Description.String(),
+			Description:   sidechain.Description.String(),
 			Nversion:      uint32(ctipResponse.Msg.Ctip.SequenceNumber),
-			Hashid1:       decodedData, // TODO: Decode and fill in correctly
-			Hashid2:       decodedData, // TODO: Decode and fill in correctly
-			Slot:          int32(sidechain.SidechainNumber),
+			Hashid1:       sidechain.Description.String(),
+			Hashid2:       sidechain.Description.String(),
+			Slot:          int32(sidechain.SidechainNumber.Value),
 			AmountSatoshi: int64(ctipResponse.Msg.Ctip.Value),
 			ChaintipTxid:  txidHash.String(),
 			ChaintipVout:  uint32(ctipResponse.Msg.Ctip.Vout),

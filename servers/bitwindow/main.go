@@ -135,7 +135,7 @@ func realMain(ctx context.Context) error {
 	log.Debug().
 		Msgf("initiating electrum connection at %s", wallet.Electrum)
 
-	srv, err := server.New(ctx, proxy, wallet, enforcer)
+	srv, err := server.New(ctx, proxy, wallet, enforcer, db)
 	if err != nil {
 		return err
 	}
