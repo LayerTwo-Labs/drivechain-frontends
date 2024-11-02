@@ -1,8 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:launcher/models/chain_config.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
 class OverviewPage extends StatelessWidget {

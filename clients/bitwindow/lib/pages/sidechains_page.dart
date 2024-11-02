@@ -11,7 +11,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:stacked/stacked.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
@@ -87,13 +86,13 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                 final textColor =
                     sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
                 return [
-                  SailTableCell(child: SailText.primary13('$row:', color: textColor)),
-                  SailTableCell(child: SailText.primary13(sidechain?.info.title ?? '', color: textColor)),
+                  SailTableCell(value: '$row:', textColor: textColor),
+                  SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
                   SailTableCell(
-                    child: SailText.primary13(
-                      formatBitcoin(satoshiToBTC(sidechain?.info.amountSatoshi.toInt() ?? 0)),
-                      color: textColor,
+                    value: formatBitcoin(
+                      satoshiToBTC(sidechain?.info.amountSatoshi.toInt() ?? 0),
                     ),
+                    textColor: textColor,
                   ),
                 ];
               },
@@ -566,11 +565,11 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
       rowBuilder: (context, row, selected) {
         final deposit = viewModel.sortedDeposits[row];
         return [
-          SailTableCell(child: SailText.primary12(viewModel.selectedIndex.toString())),
-          SailTableCell(child: SailText.primary12(deposit.amount.toString())),
-          SailTableCell(child: SailText.primary12(deposit.txid)),
-          SailTableCell(child: SailText.primary12(deposit.address)),
-          SailTableCell(child: SailText.primary12(deposit.confirmations >= 2 ? 'Yes' : 'No')),
+          SailTableCell(value: viewModel.selectedIndex.toString()),
+          SailTableCell(value: deposit.amount.toString()),
+          SailTableCell(value: deposit.txid),
+          SailTableCell(value: deposit.address),
+          SailTableCell(value: deposit.confirmations >= 2 ? 'Yes' : 'No'),
         ];
       },
       rowCount: viewModel.sortedDeposits.length,
@@ -619,12 +618,12 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
       rowBuilder: (context, row, selected) {
         final withdrawal = viewModel.sortedWithdrawals[row];
         return [
-          SailTableCell(child: SailText.primary12(viewModel.selectedIndex.toString())),
-          SailTableCell(child: SailText.primary12(withdrawal.amount.toString())),
-          SailTableCell(child: SailText.primary12(withdrawal.txid)),
-          SailTableCell(child: SailText.primary12(withdrawal.address)),
-          SailTableCell(child: SailText.primary12(withdrawal.confirmations >= 2 ? 'Yes' : 'No')),
-          SailTableCell(child: SailText.primary12(withdrawal.confirmations >= 2 ? 'Yes' : 'No')),
+          SailTableCell(value: viewModel.selectedIndex.toString()),
+          SailTableCell(value: withdrawal.amount.toString()),
+          SailTableCell(value: withdrawal.txid),
+          SailTableCell(value: withdrawal.address),
+          SailTableCell(value: withdrawal.confirmations >= 2 ? 'Yes' : 'No'),
+          SailTableCell(value: withdrawal.confirmations >= 2 ? 'Yes' : 'No'),
         ];
       },
       rowCount: viewModel.sortedWithdrawals.length,

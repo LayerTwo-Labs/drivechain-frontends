@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:stacked/stacked.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
@@ -356,11 +355,11 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
-          SailTableCell(child: SailText.primary12(entry.time.format())),
-          SailTableCell(child: SailText.primary12(entry.amount.toString())),
-          SailTableCell(child: SailText.primary12(entry.category)),
-          SailTableCell(child: SailText.primary12(entry.confirmations.toString())),
-          SailTableCell(child: SailText.primary12(entry.txid)),
+          SailTableCell(value: entry.time.format()),
+          SailTableCell(value: entry.amount.toString()),
+          SailTableCell(value: entry.category),
+          SailTableCell(value: entry.confirmations.toString()),
+          SailTableCell(value: entry.txid),
         ];
       },
       rowCount: entries.length,

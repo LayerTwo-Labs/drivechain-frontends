@@ -12,7 +12,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:stacked/stacked.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
@@ -765,28 +764,20 @@ class _TransactionTableState extends State<TransactionTable> {
                     final entry = widget.entries[row];
                     return [
                       SailTableCell(
-                        child: SailText.primary12(
-                          entry.confirmationTime.height.toString(),
-                          monospace: true,
-                        ),
+                        value: entry.confirmationTime.height.toString(),
+                        monospace: true,
                       ),
                       SailTableCell(
-                        child: SailText.primary12(
-                          entry.confirmationTime.timestamp.toDateTime().format(),
-                          monospace: true,
-                        ),
+                        value: entry.confirmationTime.timestamp.toDateTime().format(),
+                        monospace: true,
                       ),
                       SailTableCell(
-                        child: SailText.primary12(
-                          entry.txid,
-                          monospace: true,
-                        ),
+                        value: entry.txid,
+                        monospace: true,
                       ),
                       SailTableCell(
-                        child: SailText.primary12(
-                          formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt())),
-                          monospace: true,
-                        ),
+                        value: formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt())),
+                        monospace: true,
                       ),
                     ];
                   },

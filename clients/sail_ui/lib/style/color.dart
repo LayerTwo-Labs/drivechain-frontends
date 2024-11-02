@@ -61,7 +61,7 @@ class SailColor {
       backgroundActionModal: SailColorScheme.greyMiddle,
       formField: SailColorScheme.whiteDark,
       formFieldBorder: SailColorScheme.greyMiddle,
-      divider: SailColorScheme.greyLight.withOpacity(0.2),
+      divider: SailColorScheme.greyLight,
       shadow: SailColorScheme.black.withOpacity(0.21),
       text: SailColorScheme.black,
       textSecondary: SailColorScheme.blackLighter,

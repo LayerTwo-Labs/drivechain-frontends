@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SailTable extends StatefulWidget {
@@ -517,6 +518,23 @@ class _TableRow extends StatelessWidget {
   final bool grid;
   final bool drawBorder;
 
+  void _showContextMenu(BuildContext context, Offset position, String value) {
+    showSailMenu(
+      context: context,
+      preferredAnchorPoint: position,
+      menu: SailMenu(
+        items: [
+          SailMenuItem(
+            onSelected: () {
+              Clipboard.setData(ClipboardData(text: value));
+            },
+            child: SailText.primary12('Copy value'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -525,27 +543,41 @@ class _TableRow extends StatelessWidget {
     var cellWidgets = <Widget>[];
     int i = 0;
     for (var cell in cells) {
+      final String? cellValue = cell is SailTableCell ? cell.value : null;
+
       cellWidgets.add(
-        Container(
-          decoration: grid
-              ? BoxDecoration(
-                  border: Border(
-                    right: BorderSide(
-                      color: theme.colors.divider,
-                      width: 1.0,
-                    ),
-                  ),
-                )
-              : null,
+        SizedBox(
           width: widths[i],
           height: height,
-          child: DefaultTextStyle(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: selected ? Colors.white : null,
+          child: MouseRegion(
+            cursor: cellValue != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapDown:
+                  cellValue != null ? (details) => _showContextMenu(context, details.globalPosition, cellValue) : null,
+              child: Container(
+                decoration: grid
+                    ? BoxDecoration(
+                        border: Border(
+                          right: BorderSide(
+                            color: theme.colors.divider,
+                            width: 1.0,
+                          ),
+                        ),
+                      )
+                    : null,
+                width: double.infinity,
+                height: double.infinity,
+                child: DefaultTextStyle(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: selected ? Colors.white : null,
+                  ),
+                  child: cell,
+                ),
+              ),
             ),
-            child: cell,
           ),
         ),
       );
@@ -595,19 +627,23 @@ class _TableRow extends StatelessWidget {
 
 class SailTableCell extends StatelessWidget {
   const SailTableCell({
-    required this.child,
+    required this.value,
     this.alignment = Alignment.centerLeft,
     this.padding = const EdgeInsets.symmetric(horizontal: 8),
     this.plainIconTheme,
     this.selectedIconTheme,
+    this.textColor,
+    this.monospace = false,
     super.key,
   });
 
-  final Widget child;
+  final String value;
   final Alignment alignment;
   final EdgeInsets padding;
   final IconThemeData? plainIconTheme;
   final IconThemeData? selectedIconTheme;
+  final Color? textColor;
+  final bool monospace;
 
   @override
   Widget build(BuildContext context) {
@@ -636,7 +672,11 @@ class SailTableCell extends StatelessWidget {
       padding: padding,
       child: IconTheme(
         data: iconTheme,
-        child: child,
+        child: SailText.primary12(
+          value,
+          color: textColor,
+          monospace: monospace,
+        ),
       ),
     );
   }

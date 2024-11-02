@@ -33,6 +33,8 @@ export './widgets/components/utxo.dart';
 export './widgets/containers/action_tile.dart';
 export './widgets/containers/expandable_list_entry.dart';
 export './widgets/containers/notification.dart';
+export './widgets/containers/qt_container.dart';
+export './widgets/containers/qt_page.dart';
 export './widgets/containers/questions.dart';
 export './widgets/containers/sail_border.dart';
 export './widgets/containers/sail_card.dart';

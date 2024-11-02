@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/containers/qt_page.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -222,12 +221,10 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
         // drivechain-qt and might not be available in the API.
         final sidechain = blocks[row];
         return [
-          SailTableCell(child: SailText.primary12('${sidechain.slot}')),
-          SailTableCell(child: SailText.primary12('Yes')),
-          SailTableCell(child: SailText.primary12(sidechain.title)),
-          SailTableCell(
-            child: SailText.primary12(sidechain.chaintipTxid.isEmpty ? 'N/A' : sidechain.chaintipTxid),
-          ),
+          SailTableCell(value: '${sidechain.slot}'),
+          SailTableCell(value: 'Yes'),
+          SailTableCell(value: sidechain.title),
+          SailTableCell(value: sidechain.chaintipTxid.isEmpty ? 'N/A' : sidechain.chaintipTxid),
           //TODO: SailTableCell(child: SailText.primary12('TODO')),
         ];
       },
@@ -368,14 +365,14 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
         // TODO: Revise the data, it's not yet clear what is what. The columns is taken straight from
         // drivechain-qt and might not be available in the API.
         return [
-          SailTableCell(child: SailText.primary12(proposal.voteCount.toString())),
-          SailTableCell(child: SailText.primary12(proposal.slot.toString())),
-          SailTableCell(child: SailText.primary12('Replacement')),
-          SailTableCell(child: SailText.primary12(proposal.data.toString())),
-          SailTableCell(child: SailText.primary12('Description')),
-          SailTableCell(child: SailText.primary12(proposal.proposalAge.toString())),
-          SailTableCell(child: SailText.primary12(proposal.proposalHeight.toString())),
-          SailTableCell(child: SailText.primary12(proposal.dataHash)),
+          SailTableCell(value: proposal.voteCount.toString()),
+          SailTableCell(value: proposal.slot.toString()),
+          SailTableCell(value: 'Replacement'),
+          SailTableCell(value: proposal.data.toString()),
+          SailTableCell(value: 'Description'),
+          SailTableCell(value: proposal.proposalAge.toString()),
+          SailTableCell(value: proposal.proposalHeight.toString()),
+          SailTableCell(value: proposal.dataHash),
         ];
       },
       rowCount: widget.proposals.length,
