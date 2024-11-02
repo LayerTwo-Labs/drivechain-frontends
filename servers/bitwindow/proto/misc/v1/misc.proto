@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package misc.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service MiscService {
+  rpc ListOPReturn(google.protobuf.Empty) returns (ListOPReturnResponse);
+}
+
+message ListOPReturnResponse {
+  repeated OPReturn op_returns = 1;
+}
+
+message OPReturn {
+  string id = 1;
+  string message = 2;
+  string txid = 3;
+  int32 vout = 4;
+  optional int32 height = 5;
+  int64 fee_satoshi = 6;
+
+  google.protobuf.Timestamp create_time = 7;
+}
