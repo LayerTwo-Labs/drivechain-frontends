@@ -567,6 +567,7 @@ class CoinNewsView extends StatelessWidget {
     await widgetDialog(
       context: context,
       title: 'Graffitti Explorer',
+      maxWidth: MediaQuery.of(context).size.width - 100,
       child: GraffittiExplorerView(),
     );
   }
@@ -719,7 +720,7 @@ class GraffittiExplorerView extends StatelessWidget {
       viewModelBuilder: () => GraffittiExplorerViewModel(),
       builder: (context, viewModel, child) {
         return SizedBox(
-          height: 300,
+          height: 500,
           child: GraffittiTable(
             entries: viewModel.entries,
             onSort: viewModel.onSort,

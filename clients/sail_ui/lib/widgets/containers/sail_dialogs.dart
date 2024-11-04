@@ -86,7 +86,7 @@ Future<T?> widgetDialog<T>({
   required BuildContext context,
   required Widget child,
   String? subtitle,
-  double maxWidth = 640,
+  double maxWidth = 740,
 }) async {
   final theme = SailTheme.of(context);
 
