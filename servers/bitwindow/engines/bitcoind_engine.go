@@ -117,36 +117,22 @@ func (p *Parser) processBlock(ctx context.Context, height int32) error {
 
 	block, err := p.getBlock(ctx, height)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not get block at height %d", height)
-		return err
+		return fmt.Errorf("get block: %w", err)
 	}
 
-	// Process each transaction in the block
 	for _, tx := range block.Txids {
 		rawTx, err := p.getRawTransaction(ctx, tx)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().
-				Err(err).
-				Msgf("bitcoind_engine/parser: could not get transaction %s", tx)
-			return err
+			return fmt.Errorf("get raw transaction: %w", err)
 		}
 
 		if err := p.findAndPersistOPReturns(ctx, tx, rawTx, block); err != nil {
-			zerolog.Ctx(ctx).Error().
-				Err(err).
-				Msgf("bitcoind_engine/parser: could not find and persist op returns for tx %s", tx)
-			return err
+			return fmt.Errorf("find and persist op returns: %w", err)
 		}
 	}
 
-	// Mark block as processed
 	if err := blocks.MarkBlockProcessed(ctx, p.db, height, block.Hash); err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not mark block %d as processed", height)
-		return err
+		return fmt.Errorf("mark block processed: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().
