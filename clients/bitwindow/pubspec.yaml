@@ -22,7 +22,7 @@ dependencies:
   qr_flutter: ^4.1.0
   cupertino_icons: ^1.0.8
   grpc: ^4.0.1
-  path_provider: ^2.1.4
+  path_provider: ^2.1.5
   sail_ui:
     path: ../sail_ui
   logger: ^2.4.0
