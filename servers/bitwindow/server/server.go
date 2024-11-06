@@ -18,7 +18,6 @@ import (
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/drivechain"
 	api_misc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/misc"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/wallet"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/bdk"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1/bitcoindv1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1/drivechainv1connect"
@@ -33,7 +32,8 @@ import (
 
 // New creates a new Server with interceptors applied.
 func New(
-	ctx context.Context, bitcoind *server.Bitcoind, wallet *bdk.Wallet, enforcer validatorrpc.ValidatorServiceClient,
+	ctx context.Context, bitcoind *server.Bitcoind,
+	wallet validatorrpc.WalletServiceClient, enforcer validatorrpc.ValidatorServiceClient,
 	database *sql.DB,
 ) (*Server, error) {
 	mux := http.NewServeMux()
@@ -47,7 +47,7 @@ func New(
 	))
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, wallet, bitcoind, enforcer, drivechainClient,
+		ctx, bitcoind, wallet, enforcer, drivechainClient,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		bitcoind, database,

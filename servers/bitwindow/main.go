@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/bdk"
 	database "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dial"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
@@ -97,7 +96,7 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
-	enforcer, err := dial.Enforcer(ctx, conf.EnforcerHost)
+	enforcer, wallet, err := dial.Enforcer(ctx, conf.EnforcerHost)
 	if err != nil {
 		log.Error().Err(err).Msg("connect to enforcer")
 		// enforcer does not work right now, but we still want to test
@@ -105,35 +104,6 @@ func realMain(ctx context.Context) error {
 	}
 
 	log.Info().Msgf("blockchain info: %s", info.Msg.String())
-
-	electrumProtocol := "ssl"
-	if conf.ElectrumNoSSL {
-		electrumProtocol = "tcp"
-	}
-
-	const network = "signet"
-	wallet, err := bdk.NewWallet(
-		ctx, network,
-		fmt.Sprintf("%s://%s", electrumProtocol, conf.ElectrumHost),
-		conf.Passphrase, conf.XPrivOverride,
-	)
-	if err != nil {
-		return err
-	}
-
-	if conf.DescriptorPrint {
-		log.Info().
-			Str("descriptor", wallet.Descriptor).
-			Msg("bdk: descriptor is")
-	}
-
-	// Verify the wallet is wired together correctly
-	if err := wallet.Sync(ctx); err != nil {
-		return fmt.Errorf("initial wallet sync: %w", err)
-	}
-
-	log.Debug().
-		Msgf("initiating electrum connection at %s", wallet.Electrum)
 
 	srv, err := server.New(ctx, proxy, wallet, enforcer, db)
 	if err != nil {
