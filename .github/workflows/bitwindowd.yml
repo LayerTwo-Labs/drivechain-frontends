@@ -61,16 +61,6 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Build bdk-cli
-        run: |
-          just build-bdk-cli
-          mv bin/bdk-cli${{ runner.os == 'Windows' && '.exe' || '' }} bin/bdk-cli${{ runner.os == 'Windows' && '.exe' || '' }}-${{ runner.os }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bdk-cli${{ runner.os == 'Windows' && '.exe' || '' }}-${{ runner.os }}
-          path: servers/bitwindow/bin
-          if-no-files-found: error
-
       - name: Build bitwindowd
         run: |
           just build-go
