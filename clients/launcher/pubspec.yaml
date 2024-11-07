@@ -1,6 +1,6 @@
 name: launcher
 description: "A launcher for Drivechain"
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
 version: 0.0.1
 
@@ -11,6 +11,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  dart_coin_rpc:
+    git:
+      url: https://github.com/barebitcoin/dart_coin_rpc.git
+      # master, as of 08.06.2024
+      ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
+  dio: ^5.7.0
   stacked: ^3.4.3
   qr_flutter: ^4.1.0
   cupertino_icons: ^1.0.8
@@ -29,15 +35,68 @@ dependencies:
   money2: ^5.3.0
   super_clipboard: ^0.8.24
   window_manager: ^0.4.3
+  synchronized: ^3.3.0+3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^5.0.0
   auto_route_generator: ^9.0.0
-  build_runner: ^2.4.12
+  build_runner: ^2.4.13
 
 flutter:
   uses-material-design: true
+
   assets:
     - assets/chain_config.json
+    - assets/fonts/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Inter-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Black.ttf
+          weight: 700
+
+    - family: SourceCodePro
+      fonts:
+        - asset: assets/fonts/SourceCodePro-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/SourceCodePro-Light.ttf
+          weight: 300
+        - asset: assets/fonts/SourceCodePro-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/SourceCodePro-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/SourceCodePro-Bold.ttf
+          weight: 600
+        - asset: assets/fonts/SourceCodePro-Black.ttf
+          weight: 700
+        - asset: assets/fonts/SourceCodePro-ExtraLightItalic.ttf
+          style: italic
+          weight: 200
+        - asset: assets/fonts/SourceCodePro-LightItalic.ttf
+          style: italic
+          weight: 300
+        - asset: assets/fonts/SourceCodePro-Italic.ttf
+          style: italic
+          weight: 400
+        - asset: assets/fonts/SourceCodePro-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/SourceCodePro-BoldItalic.ttf
+          style: italic
+          weight: 600
+        - asset: assets/fonts/SourceCodePro-BlackItalic.ttf
+          style: italic
+          weight: 600
