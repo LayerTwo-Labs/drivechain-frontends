@@ -48,19 +48,19 @@ class RootPage extends StatelessWidget {
                         onTap: () => tabsRouter.setActiveIndex(0),
                       ),
                       QtTab(
-                        icon: SailSVGAsset.iconSend,
+                        icon: SailSVGAsset.iconWallet,
                         label: 'Wallets',
                         active: tabsRouter.activeIndex == 1,
                         onTap: () => tabsRouter.setActiveIndex(1),
                       ),
                       QtTab(
-                        icon: SailSVGAsset.iconSidechains,
+                        icon: SailSVGAsset.iconTabTools,
                         label: 'Tools',
                         active: tabsRouter.activeIndex == 2,
                         onTap: () => tabsRouter.setActiveIndex(2),
                       ),
                       QtTab(
-                        icon: SailSVGAsset.iconSend,
+                        icon: SailSVGAsset.iconTabSettings,
                         label: 'Settings',
                         active: tabsRouter.activeIndex == 3,
                         onTap: () => tabsRouter.setActiveIndex(3),
