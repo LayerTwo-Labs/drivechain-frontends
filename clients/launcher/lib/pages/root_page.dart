@@ -14,6 +14,9 @@ class RootPage extends StatelessWidget {
       animatePageTransition: false,
       routes: const [
         OverviewRoute(),
+        WalletsRoute(),
+        ToolsRoute(),
+        SettingsRoute(),
       ],
       builder: (context, child, controller) {
         final theme = SailTheme.of(context);
@@ -43,6 +46,24 @@ class RootPage extends StatelessWidget {
                         label: 'Overview',
                         active: tabsRouter.activeIndex == 0,
                         onTap: () => tabsRouter.setActiveIndex(0),
+                      ),
+                      QtTab(
+                        icon: SailSVGAsset.iconSend,
+                        label: 'Wallets',
+                        active: tabsRouter.activeIndex == 1,
+                        onTap: () => tabsRouter.setActiveIndex(1),
+                      ),
+                      QtTab(
+                        icon: SailSVGAsset.iconSidechains,
+                        label: 'Tools',
+                        active: tabsRouter.activeIndex == 2,
+                        onTap: () => tabsRouter.setActiveIndex(2),
+                      ),
+                      QtTab(
+                        icon: SailSVGAsset.iconSend,
+                        label: 'Settings',
+                        active: tabsRouter.activeIndex == 3,
+                        onTap: () => tabsRouter.setActiveIndex(3),
                       ),
                       Expanded(child: Container()),
                       const ToggleThemeButton(),
