@@ -120,11 +120,7 @@ cd ../../servers/bitwindow
 server_cwd=$(pwd)
 
 # Build bdk-cli and bitwindowd
-echo "Building bdk-cli and bitwindowd in $server_cwd"
-
-# Build bdk-cli
-echo "Building bdk-cli"
-just build-bdk-cli
+echo "Building bitwindowd in $server_cwd"
 
 # Build bitwindowd
 echo "Building bitwindowd"
