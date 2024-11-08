@@ -3,8 +3,8 @@ import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -27,8 +27,8 @@ class OverviewPage extends StatelessWidget {
             SailColumn(
               spacing: SailStyleValues.padding16,
               children: [
-                CoinNewsView(),
                 TransactionsView(),
+                CoinNewsView(),
               ],
             ),
           ],
@@ -89,14 +89,15 @@ class TransactionsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<BalancesViewModel>.reactive(
-      viewModelBuilder: () => BalancesViewModel(),
+    return ViewModelBuilder<TransactionsViewModel>.reactive(
+      viewModelBuilder: () => TransactionsViewModel(),
       builder: (context, model, child) {
         if (model.hasErrorForKey('blockchain')) {
           return ErrorContainer(
             error: model.error('blockchain').toString(),
           );
         }
+
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -110,7 +111,7 @@ class TransactionsView extends StatelessWidget {
                     child: SizedBox(
                       height: 300,
                       child: LatestTransactionTable(
-                        entries: model.unconfirmedTransactions,
+                        entries: model.recentTransactions,
                       ),
                     ),
                   ),
@@ -142,11 +143,10 @@ class TransactionsView extends StatelessWidget {
   }
 }
 
-class BalancesViewModel extends BaseViewModel {
+class TransactionsViewModel extends BaseViewModel {
   final BlockchainProvider blockchainProvider = GetIt.I.get<BlockchainProvider>();
   final BalanceProvider balanceProvider = GetIt.I.get<BalanceProvider>();
-
-  BalancesViewModel() {
+  TransactionsViewModel() {
     balanceProvider.addListener(notifyListeners);
     blockchainProvider.addListener(notifyListeners);
   }
@@ -160,13 +160,8 @@ class BalancesViewModel extends BaseViewModel {
     }
   }
 
-  int get confirmedBalance => balanceProvider.balance;
-  int get pendingBalance => balanceProvider.pendingBalance;
-  int get totalBalance => balanceProvider.balance + balanceProvider.pendingBalance;
-  double get totalBalanceUSD => (satoshiToBTC(totalBalance) * 50000);
-
-  List<ListRecentBlocksResponse_RecentBlock> get recentBlocks => blockchainProvider.recentBlocks;
-  List<UnconfirmedTransaction> get unconfirmedTransactions => blockchainProvider.unconfirmedTXs;
+  List<Block> get recentBlocks => blockchainProvider.recentBlocks;
+  List<RecentTransaction> get recentTransactions => blockchainProvider.recentTransactions;
 }
 
 class QtSeparator extends StatelessWidget {
@@ -204,7 +199,7 @@ class QtSeparator extends StatelessWidget {
 }
 
 class LatestTransactionTable extends StatefulWidget {
-  final List<UnconfirmedTransaction> entries;
+  final List<RecentTransaction> entries;
 
   const LatestTransactionTable({
     super.key,
@@ -218,21 +213,16 @@ class LatestTransactionTable extends StatefulWidget {
 class _LatestTransactionTableState extends State<LatestTransactionTable> {
   String sortColumn = 'time';
   bool sortAscending = true;
-  List<UnconfirmedTransaction> entries = [];
 
   @override
   void initState() {
     super.initState();
-    entries = widget.entries;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!listEquals(entries, widget.entries)) {
-      entries = widget.entries;
-      onSort(sortColumn);
-    }
+    onSort(sortColumn);
   }
 
   void onSort(String column) {
@@ -247,7 +237,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
   }
 
   void sortEntries() {
-    entries.sort((a, b) {
+    widget.entries.sort((a, b) {
       dynamic aValue = '';
       dynamic bValue = '';
 
@@ -277,14 +267,14 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
   @override
   Widget build(BuildContext context) {
     return SailTable(
-      getRowId: (index) => entries[index].txid,
+      getRowId: (index) => widget.entries[index].txid,
       headerBuilder: (context) => [
         SailTableHeaderCell(
           name: 'Time',
           onSort: () => onSort('time'),
         ),
         SailTableHeaderCell(
-          name: 'sat/vB',
+          name: 'Fee',
           onSort: () => onSort('fee'),
         ),
         SailTableHeaderCell(
@@ -295,30 +285,35 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           name: 'Size',
           onSort: () => onSort('size'),
         ),
+        SailTableHeaderCell(
+          name: 'Height',
+          onSort: () => onSort('block'),
+        ),
       ],
       rowBuilder: (context, row, selected) {
-        final entry = entries[row];
+        final entry = widget.entries[row];
         return [
           SailTableCell(value: entry.time.toDateTime().format()),
           SailTableCell(value: entry.feeSatoshi.toString()),
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
+          SailTableCell(value: entry.confirmedInBlock.blockHeight.toString()),
         ];
       },
-      rowCount: entries.length,
-      columnWidths: const [150, 100, 200, 100],
+      rowCount: widget.entries.length,
+      columnWidths: const [150, 50, 200, 100, 70],
       drawGrid: true,
-      sortColumnIndex: ['time', 'fee', 'txid', 'size'].indexOf(sortColumn),
+      sortColumnIndex: ['time', 'fee', 'txid', 'size', 'height'].indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {
-        onSort(['time', 'fee', 'txid', 'size'][columnIndex]);
+        onSort(['time', 'fee', 'txid', 'size', 'height'][columnIndex]);
       },
     );
   }
 }
 
 class LatestBlocksTable extends StatefulWidget {
-  final List<ListRecentBlocksResponse_RecentBlock> blocks;
+  final List<Block> blocks;
 
   const LatestBlocksTable({
     super.key,
@@ -332,21 +327,16 @@ class LatestBlocksTable extends StatefulWidget {
 class _LatestBlocksTableState extends State<LatestBlocksTable> {
   String sortColumn = 'time';
   bool sortAscending = true;
-  List<ListRecentBlocksResponse_RecentBlock> blocks = [];
 
   @override
   void initState() {
     super.initState();
-    blocks = widget.blocks;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!listEquals(blocks, widget.blocks)) {
-      blocks = widget.blocks;
-      onSort(sortColumn);
-    }
+    onSort(sortColumn);
   }
 
   void onSort(String column) {
@@ -361,7 +351,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
   }
 
   void sortEntries() {
-    blocks.sort((a, b) {
+    widget.blocks.sort((a, b) {
       dynamic aValue = '';
       dynamic bValue = '';
 
@@ -387,21 +377,21 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
   @override
   Widget build(BuildContext context) {
     return SailTable(
-      getRowId: (index) => blocks[index].hash,
+      getRowId: (index) => widget.blocks[index].hash,
       headerBuilder: (context) => [
         SailTableHeaderCell(name: 'Time'),
         SailTableHeaderCell(name: 'Height'),
-        SailTableHeaderCell(name: 'Hash'),
+        SailTableHeaderCell(name: 'Block Hash'),
       ],
       rowBuilder: (context, row, selected) {
-        final entry = blocks[row];
+        final entry = widget.blocks[row];
         return [
           SailTableCell(value: entry.blockTime.toDateTime().format()),
           SailTableCell(value: entry.blockHeight.toString()),
           SailTableCell(value: entry.hash),
         ];
       },
-      rowCount: blocks.length,
+      rowCount: widget.blocks.length,
       columnWidths: const [150, 100, 200],
       drawGrid: true,
       sortColumnIndex: ['time', 'height', 'hash'].indexOf(sortColumn),
@@ -658,6 +648,80 @@ class BroadcastNewsViewModel extends BaseViewModel {
   }
 }
 
+class NewGraffittiView extends StatelessWidget {
+  const NewGraffittiView({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<NewGraffittiViewModel>.reactive(
+      viewModelBuilder: () => NewGraffittiViewModel(),
+      builder: (context, viewModel, child) {
+        return SailColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding16,
+          mainAxisSize: MainAxisSize.min,
+          leadingSpacing: true,
+          children: [
+            SailTextField(
+              label: 'Message (max 80 characters)',
+              controller: viewModel.messageController,
+              hintText: 'Enter a message',
+              size: TextFieldSize.small,
+            ),
+            QtButton(
+              label: 'Broadcast',
+              onPressed: () => viewModel.createGraffitti(context),
+              size: ButtonSize.small,
+              disabled: viewModel.messageController.text.isEmpty,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class NewGraffittiViewModel extends BaseViewModel {
+  final TextEditingController messageController = TextEditingController();
+  final API _api = GetIt.I<API>();
+
+  NewGraffittiViewModel() {
+    messageController.addListener(notifyListeners);
+  }
+
+  Future<void> createGraffitti(BuildContext context) async {
+    if (messageController.text.isEmpty) {
+      return;
+    }
+
+    try {
+      final address = await _api.wallet.getNewAddress();
+      final _ = await _api.wallet.sendTransaction(
+        address,
+        10000,
+        opReturnMessage: messageController.text,
+      );
+
+      if (!context.mounted) return;
+
+      showSnackBar(context, 'graffiti broadcast successfully!');
+      messageController.clear();
+    } catch (e) {
+      if (!context.mounted) return;
+      showSnackBar(context, 'could not broadcast graffiti: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    messageController.removeListener(notifyListeners);
+    messageController.dispose();
+    super.dispose();
+  }
+}
+
 class CoinNewsTable extends StatelessWidget {
   final List<CoinNewsEntry> entries;
   final Function(String) onSort;
@@ -719,14 +783,35 @@ class GraffittiExplorerView extends StatelessWidget {
     return ViewModelBuilder<GraffittiExplorerViewModel>.reactive(
       viewModelBuilder: () => GraffittiExplorerViewModel(),
       builder: (context, viewModel, child) {
-        return SizedBox(
-          height: 500,
-          child: GraffittiTable(
-            entries: viewModel.entries,
-            onSort: viewModel.onSort,
-          ),
+        return SailColumn(
+          spacing: SailStyleValues.padding16,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          leadingSpacing: true,
+          children: [
+            // add button here, that opens ANOTHER dialog, where you can enter a message.
+            QtButton(
+              label: 'New Graffitti',
+              onPressed: () => newGraffittiDialog(context),
+              size: ButtonSize.small,
+            ),
+            SizedBox(
+              height: 500,
+              child: GraffittiTable(
+                entries: viewModel.entries,
+                onSort: viewModel.onSort,
+              ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Future<void> newGraffittiDialog(BuildContext context) async {
+    await widgetDialog(
+      context: context,
+      title: 'New Graffitti',
+      child: NewGraffittiView(),
     );
   }
 }

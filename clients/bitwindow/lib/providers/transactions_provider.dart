@@ -14,7 +14,7 @@ class TransactionProvider extends ChangeNotifier {
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
-  List<Transaction> walletTransactions = [];
+  List<WalletTransaction> walletTransactions = [];
   bool initialized = false;
   String? error;
 
@@ -51,7 +51,7 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   bool _dataHasChanged(
-    List<Transaction> newTXs,
+    List<WalletTransaction> newTXs,
   ) {
     return !listEquals(walletTransactions, newTXs);
   }

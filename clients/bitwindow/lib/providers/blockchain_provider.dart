@@ -14,8 +14,8 @@ class BlockchainProvider extends ChangeNotifier {
 
   // raw data go here
   List<Peer> peers = [];
-  List<ListRecentBlocksResponse_RecentBlock> recentBlocks = [];
-  List<UnconfirmedTransaction> unconfirmedTXs = [];
+  List<Block> recentBlocks = [];
+  List<RecentTransaction> recentTransactions = [];
   GetBlockchainInfoResponse blockchainInfo = GetBlockchainInfoResponse();
   List<OPReturn> opReturns = [];
 
@@ -44,14 +44,14 @@ class BlockchainProvider extends ChangeNotifier {
 
     try {
       final newPeers = await api.bitcoind.listPeers();
-      final newTXs = await api.bitcoind.listUnconfirmedTransactions();
+      final newTXs = await api.bitcoind.listRecentTransactions();
       final newBlockchainInfo = await api.bitcoind.getBlockchainInfo();
       final newRecentBlocks = await api.bitcoind.listRecentBlocks();
       final newOPReturns = await api.misc.listOPReturns();
 
       if (_dataHasChanged(newPeers, newTXs, newBlockchainInfo, newRecentBlocks, newOPReturns)) {
         peers = newPeers;
-        unconfirmedTXs = newTXs;
+        recentTransactions = newTXs;
         blockchainInfo = newBlockchainInfo;
         recentBlocks = newRecentBlocks;
         opReturns = newOPReturns;
@@ -68,16 +68,16 @@ class BlockchainProvider extends ChangeNotifier {
 
   bool _dataHasChanged(
     List<Peer> newPeers,
-    List<UnconfirmedTransaction> newTXs,
+    List<RecentTransaction> newTXs,
     GetBlockchainInfoResponse newBlockchainInfo,
-    List<ListRecentBlocksResponse_RecentBlock> newRecentBlocks,
+    List<Block> newRecentBlocks,
     List<OPReturn> newOPReturns,
   ) {
     if (!listEquals(peers, newPeers)) {
       return true;
     }
 
-    if (!listEquals(unconfirmedTXs, newTXs)) {
+    if (!listEquals(recentTransactions, newTXs)) {
       return true;
     }
 
@@ -97,7 +97,7 @@ class BlockchainProvider extends ChangeNotifier {
   }
 
   void _startFetchTimer() {
-    _fetchTimer = Timer.periodic(const Duration(seconds: 10), (_) => fetch());
+    _fetchTimer = Timer.periodic(const Duration(seconds: 5), (_) => fetch());
   }
 
   @override

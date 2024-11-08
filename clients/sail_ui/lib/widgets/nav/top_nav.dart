@@ -27,20 +27,20 @@ class QtTab extends StatelessWidget {
         onTap: onTap,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: active ? Colors.transparent : theme.colors.background,
+            color: active ? theme.colors.backgroundSecondary : Colors.transparent,
             border: Border(
               left: BorderSide(
                 color: theme.colors.formFieldBorder,
-                width: 1,
+                width: 2,
               ),
               top: BorderSide(
                 color: active ? Colors.transparent : theme.colors.formFieldBorder,
-                width: 1,
+                width: 2,
               ),
               right: end
                   ? BorderSide(
                       color: theme.colors.formFieldBorder,
-                      width: 1,
+                      width: 2,
                     )
                   : BorderSide.none,
             ),

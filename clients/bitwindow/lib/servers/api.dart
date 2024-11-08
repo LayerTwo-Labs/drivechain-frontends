@@ -29,13 +29,13 @@ abstract class WalletAPI {
   // pure bitcoind wallet stuff here
   Future<String> sendTransaction(
     String destination,
-    int amountSatoshi, [
+    int amountSatoshi, {
     double? btcPerKvB,
-    bool replaceByFee,
-  ]);
+    String? opReturnMessage,
+  });
   Future<GetBalanceResponse> getBalance();
   Future<String> getNewAddress();
-  Future<List<Transaction>> listTransactions();
+  Future<List<WalletTransaction>> listTransactions();
 
   // drivechain wallet stuff here
   Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
@@ -44,8 +44,8 @@ abstract class WalletAPI {
 
 abstract class BitcoindAPI {
   Future<List<Peer>> listPeers();
-  Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions();
-  Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks();
+  Future<List<RecentTransaction>> listRecentTransactions();
+  Future<List<Block>> listRecentBlocks();
   Future<GetBlockchainInfoResponse> getBlockchainInfo();
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
 }
@@ -107,8 +107,6 @@ class APILive extends API {
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     return [
-      '--electrum.host=drivechain.live:50001',
-      '--electrum.no-ssl',
       '--bitcoincore.rpcuser=${mainchainConf.username}',
       '--bitcoincore.rpcpassword=${mainchainConf.password}',
       '--log.path=$logPath',
@@ -135,15 +133,15 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<String> sendTransaction(
     String destination,
-    int amountSatoshi, [
+    int amountSatoshi, {
     double? btcPerKvB,
-    bool replaceByFee = false,
-  ]) async {
+    String? opReturnMessage,
+  }) async {
     try {
       final request = SendTransactionRequest(
         destinations: {destination: Int64(amountSatoshi)},
         feeRate: btcPerKvB,
-        rbf: replaceByFee,
+        opReturnMessage: opReturnMessage,
       );
 
       final response = await _client.sendTransaction(request);
@@ -179,7 +177,7 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<List<Transaction>> listTransactions() async {
+  Future<List<WalletTransaction>> listTransactions() async {
     try {
       final response = await _client.listTransactions(Empty());
       return response.transactions;
@@ -227,11 +225,10 @@ class _BitcoindAPILive implements BitcoindAPI {
   _BitcoindAPILive(this._client);
 
   @override
-  Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {
+  Future<List<RecentTransaction>> listRecentTransactions() async {
     try {
-      final response =
-          await _client.listUnconfirmedTransactions(ListUnconfirmedTransactionsRequest()..count = Int64(20));
-      return response.unconfirmedTransactions;
+      final response = await _client.listRecentTransactions(ListRecentTransactionsRequest()..count = Int64(20));
+      return response.transactions;
     } catch (e) {
       final error = 'could not list unconfirmed transactions: ${extractGRPCError(e)}';
       log.e(error);
@@ -240,7 +237,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
+  Future<List<Block>> listRecentBlocks() async {
     try {
       final response = await _client.listRecentBlocks(ListRecentBlocksRequest()..count = Int64(20));
       return response.recentBlocks;

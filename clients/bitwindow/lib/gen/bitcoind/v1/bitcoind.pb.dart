@@ -66,8 +66,8 @@ class ListRecentBlocksRequest extends $pb.GeneratedMessage {
   void clearCount() => clearField(1);
 }
 
-class ListRecentBlocksResponse_RecentBlock extends $pb.GeneratedMessage {
-  factory ListRecentBlocksResponse_RecentBlock({
+class Block extends $pb.GeneratedMessage {
+  factory Block({
     $5.Timestamp? blockTime,
     $core.int? blockHeight,
     $core.String? hash,
@@ -84,11 +84,11 @@ class ListRecentBlocksResponse_RecentBlock extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  ListRecentBlocksResponse_RecentBlock._() : super();
-  factory ListRecentBlocksResponse_RecentBlock.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListRecentBlocksResponse_RecentBlock.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  Block._() : super();
+  factory Block.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Block.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListRecentBlocksResponse.RecentBlock', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Block', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
     ..aOM<$5.Timestamp>(1, _omitFieldNames ? '' : 'blockTime', subBuilder: $5.Timestamp.create)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'blockHeight', $pb.PbFieldType.OU3)
     ..aOS(3, _omitFieldNames ? '' : 'hash')
@@ -99,22 +99,22 @@ class ListRecentBlocksResponse_RecentBlock extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  ListRecentBlocksResponse_RecentBlock clone() => ListRecentBlocksResponse_RecentBlock()..mergeFromMessage(this);
+  Block clone() => Block()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ListRecentBlocksResponse_RecentBlock copyWith(void Function(ListRecentBlocksResponse_RecentBlock) updates) => super.copyWith((message) => updates(message as ListRecentBlocksResponse_RecentBlock)) as ListRecentBlocksResponse_RecentBlock;
+  Block copyWith(void Function(Block) updates) => super.copyWith((message) => updates(message as Block)) as Block;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ListRecentBlocksResponse_RecentBlock create() => ListRecentBlocksResponse_RecentBlock._();
-  ListRecentBlocksResponse_RecentBlock createEmptyInstance() => create();
-  static $pb.PbList<ListRecentBlocksResponse_RecentBlock> createRepeated() => $pb.PbList<ListRecentBlocksResponse_RecentBlock>();
+  static Block create() => Block._();
+  Block createEmptyInstance() => create();
+  static $pb.PbList<Block> createRepeated() => $pb.PbList<Block>();
   @$core.pragma('dart2js:noInline')
-  static ListRecentBlocksResponse_RecentBlock getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListRecentBlocksResponse_RecentBlock>(create);
-  static ListRecentBlocksResponse_RecentBlock? _defaultInstance;
+  static Block getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Block>(create);
+  static Block? _defaultInstance;
 
   @$pb.TagNumber(1)
   $5.Timestamp get blockTime => $_getN(0);
@@ -148,7 +148,7 @@ class ListRecentBlocksResponse_RecentBlock extends $pb.GeneratedMessage {
 
 class ListRecentBlocksResponse extends $pb.GeneratedMessage {
   factory ListRecentBlocksResponse({
-    $core.Iterable<ListRecentBlocksResponse_RecentBlock>? recentBlocks,
+    $core.Iterable<Block>? recentBlocks,
   }) {
     final $result = create();
     if (recentBlocks != null) {
@@ -161,7 +161,7 @@ class ListRecentBlocksResponse extends $pb.GeneratedMessage {
   factory ListRecentBlocksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListRecentBlocksResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
-    ..pc<ListRecentBlocksResponse_RecentBlock>(4, _omitFieldNames ? '' : 'recentBlocks', $pb.PbFieldType.PM, subBuilder: ListRecentBlocksResponse_RecentBlock.create)
+    ..pc<Block>(4, _omitFieldNames ? '' : 'recentBlocks', $pb.PbFieldType.PM, subBuilder: Block.create)
     ..hasRequiredFields = false
   ;
 
@@ -187,11 +187,11 @@ class ListRecentBlocksResponse extends $pb.GeneratedMessage {
   static ListRecentBlocksResponse? _defaultInstance;
 
   @$pb.TagNumber(4)
-  $core.List<ListRecentBlocksResponse_RecentBlock> get recentBlocks => $_getList(0);
+  $core.List<Block> get recentBlocks => $_getList(0);
 }
 
-class ListUnconfirmedTransactionsRequest extends $pb.GeneratedMessage {
-  factory ListUnconfirmedTransactionsRequest({
+class ListRecentTransactionsRequest extends $pb.GeneratedMessage {
+  factory ListRecentTransactionsRequest({
     $fixnum.Int64? count,
   }) {
     final $result = create();
@@ -200,11 +200,11 @@ class ListUnconfirmedTransactionsRequest extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  ListUnconfirmedTransactionsRequest._() : super();
-  factory ListUnconfirmedTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListUnconfirmedTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  ListRecentTransactionsRequest._() : super();
+  factory ListRecentTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListRecentTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnconfirmedTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListRecentTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'count')
     ..hasRequiredFields = false
   ;
@@ -213,22 +213,22 @@ class ListUnconfirmedTransactionsRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  ListUnconfirmedTransactionsRequest clone() => ListUnconfirmedTransactionsRequest()..mergeFromMessage(this);
+  ListRecentTransactionsRequest clone() => ListRecentTransactionsRequest()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ListUnconfirmedTransactionsRequest copyWith(void Function(ListUnconfirmedTransactionsRequest) updates) => super.copyWith((message) => updates(message as ListUnconfirmedTransactionsRequest)) as ListUnconfirmedTransactionsRequest;
+  ListRecentTransactionsRequest copyWith(void Function(ListRecentTransactionsRequest) updates) => super.copyWith((message) => updates(message as ListRecentTransactionsRequest)) as ListRecentTransactionsRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ListUnconfirmedTransactionsRequest create() => ListUnconfirmedTransactionsRequest._();
-  ListUnconfirmedTransactionsRequest createEmptyInstance() => create();
-  static $pb.PbList<ListUnconfirmedTransactionsRequest> createRepeated() => $pb.PbList<ListUnconfirmedTransactionsRequest>();
+  static ListRecentTransactionsRequest create() => ListRecentTransactionsRequest._();
+  ListRecentTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListRecentTransactionsRequest> createRepeated() => $pb.PbList<ListRecentTransactionsRequest>();
   @$core.pragma('dart2js:noInline')
-  static ListUnconfirmedTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnconfirmedTransactionsRequest>(create);
-  static ListUnconfirmedTransactionsRequest? _defaultInstance;
+  static ListRecentTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListRecentTransactionsRequest>(create);
+  static ListRecentTransactionsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $fixnum.Int64 get count => $_getI64(0);
@@ -240,22 +240,22 @@ class ListUnconfirmedTransactionsRequest extends $pb.GeneratedMessage {
   void clearCount() => clearField(1);
 }
 
-class ListUnconfirmedTransactionsResponse extends $pb.GeneratedMessage {
-  factory ListUnconfirmedTransactionsResponse({
-    $core.Iterable<UnconfirmedTransaction>? unconfirmedTransactions,
+class ListRecentTransactionsResponse extends $pb.GeneratedMessage {
+  factory ListRecentTransactionsResponse({
+    $core.Iterable<RecentTransaction>? transactions,
   }) {
     final $result = create();
-    if (unconfirmedTransactions != null) {
-      $result.unconfirmedTransactions.addAll(unconfirmedTransactions);
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
     }
     return $result;
   }
-  ListUnconfirmedTransactionsResponse._() : super();
-  factory ListUnconfirmedTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListUnconfirmedTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  ListRecentTransactionsResponse._() : super();
+  factory ListRecentTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListRecentTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnconfirmedTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
-    ..pc<UnconfirmedTransaction>(1, _omitFieldNames ? '' : 'unconfirmedTransactions', $pb.PbFieldType.PM, subBuilder: UnconfirmedTransaction.create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListRecentTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
+    ..pc<RecentTransaction>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: RecentTransaction.create)
     ..hasRequiredFields = false
   ;
 
@@ -263,41 +263,38 @@ class ListUnconfirmedTransactionsResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  ListUnconfirmedTransactionsResponse clone() => ListUnconfirmedTransactionsResponse()..mergeFromMessage(this);
+  ListRecentTransactionsResponse clone() => ListRecentTransactionsResponse()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  ListUnconfirmedTransactionsResponse copyWith(void Function(ListUnconfirmedTransactionsResponse) updates) => super.copyWith((message) => updates(message as ListUnconfirmedTransactionsResponse)) as ListUnconfirmedTransactionsResponse;
+  ListRecentTransactionsResponse copyWith(void Function(ListRecentTransactionsResponse) updates) => super.copyWith((message) => updates(message as ListRecentTransactionsResponse)) as ListRecentTransactionsResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ListUnconfirmedTransactionsResponse create() => ListUnconfirmedTransactionsResponse._();
-  ListUnconfirmedTransactionsResponse createEmptyInstance() => create();
-  static $pb.PbList<ListUnconfirmedTransactionsResponse> createRepeated() => $pb.PbList<ListUnconfirmedTransactionsResponse>();
+  static ListRecentTransactionsResponse create() => ListRecentTransactionsResponse._();
+  ListRecentTransactionsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListRecentTransactionsResponse> createRepeated() => $pb.PbList<ListRecentTransactionsResponse>();
   @$core.pragma('dart2js:noInline')
-  static ListUnconfirmedTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnconfirmedTransactionsResponse>(create);
-  static ListUnconfirmedTransactionsResponse? _defaultInstance;
+  static ListRecentTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListRecentTransactionsResponse>(create);
+  static ListRecentTransactionsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<UnconfirmedTransaction> get unconfirmedTransactions => $_getList(0);
+  $core.List<RecentTransaction> get transactions => $_getList(0);
 }
 
-class UnconfirmedTransaction extends $pb.GeneratedMessage {
-  factory UnconfirmedTransaction({
+class RecentTransaction extends $pb.GeneratedMessage {
+  factory RecentTransaction({
     $core.int? virtualSize,
-    $core.int? weight,
     $5.Timestamp? time,
     $core.String? txid,
     $fixnum.Int64? feeSatoshi,
+    Block? confirmedInBlock,
   }) {
     final $result = create();
     if (virtualSize != null) {
       $result.virtualSize = virtualSize;
-    }
-    if (weight != null) {
-      $result.weight = weight;
     }
     if (time != null) {
       $result.time = time;
@@ -308,18 +305,21 @@ class UnconfirmedTransaction extends $pb.GeneratedMessage {
     if (feeSatoshi != null) {
       $result.feeSatoshi = feeSatoshi;
     }
+    if (confirmedInBlock != null) {
+      $result.confirmedInBlock = confirmedInBlock;
+    }
     return $result;
   }
-  UnconfirmedTransaction._() : super();
-  factory UnconfirmedTransaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UnconfirmedTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  RecentTransaction._() : super();
+  factory RecentTransaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RecentTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnconfirmedTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RecentTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'virtualSize', $pb.PbFieldType.OU3)
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'weight', $pb.PbFieldType.OU3)
-    ..aOM<$5.Timestamp>(3, _omitFieldNames ? '' : 'time', subBuilder: $5.Timestamp.create)
-    ..aOS(4, _omitFieldNames ? '' : 'txid')
-    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'feeSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOM<$5.Timestamp>(2, _omitFieldNames ? '' : 'time', subBuilder: $5.Timestamp.create)
+    ..aOS(3, _omitFieldNames ? '' : 'txid')
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'feeSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOM<Block>(5, _omitFieldNames ? '' : 'confirmedInBlock', subBuilder: Block.create)
     ..hasRequiredFields = false
   ;
 
@@ -327,22 +327,22 @@ class UnconfirmedTransaction extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  UnconfirmedTransaction clone() => UnconfirmedTransaction()..mergeFromMessage(this);
+  RecentTransaction clone() => RecentTransaction()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  UnconfirmedTransaction copyWith(void Function(UnconfirmedTransaction) updates) => super.copyWith((message) => updates(message as UnconfirmedTransaction)) as UnconfirmedTransaction;
+  RecentTransaction copyWith(void Function(RecentTransaction) updates) => super.copyWith((message) => updates(message as RecentTransaction)) as RecentTransaction;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static UnconfirmedTransaction create() => UnconfirmedTransaction._();
-  UnconfirmedTransaction createEmptyInstance() => create();
-  static $pb.PbList<UnconfirmedTransaction> createRepeated() => $pb.PbList<UnconfirmedTransaction>();
+  static RecentTransaction create() => RecentTransaction._();
+  RecentTransaction createEmptyInstance() => create();
+  static $pb.PbList<RecentTransaction> createRepeated() => $pb.PbList<RecentTransaction>();
   @$core.pragma('dart2js:noInline')
-  static UnconfirmedTransaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnconfirmedTransaction>(create);
-  static UnconfirmedTransaction? _defaultInstance;
+  static RecentTransaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RecentTransaction>(create);
+  static RecentTransaction? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.int get virtualSize => $_getIZ(0);
@@ -354,42 +354,44 @@ class UnconfirmedTransaction extends $pb.GeneratedMessage {
   void clearVirtualSize() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.int get weight => $_getIZ(1);
+  $5.Timestamp get time => $_getN(1);
   @$pb.TagNumber(2)
-  set weight($core.int v) { $_setUnsignedInt32(1, v); }
+  set time($5.Timestamp v) { setField(2, v); }
   @$pb.TagNumber(2)
-  $core.bool hasWeight() => $_has(1);
+  $core.bool hasTime() => $_has(1);
   @$pb.TagNumber(2)
-  void clearWeight() => clearField(2);
+  void clearTime() => clearField(2);
+  @$pb.TagNumber(2)
+  $5.Timestamp ensureTime() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $5.Timestamp get time => $_getN(2);
+  $core.String get txid => $_getSZ(2);
   @$pb.TagNumber(3)
-  set time($5.Timestamp v) { setField(3, v); }
+  set txid($core.String v) { $_setString(2, v); }
   @$pb.TagNumber(3)
-  $core.bool hasTime() => $_has(2);
+  $core.bool hasTxid() => $_has(2);
   @$pb.TagNumber(3)
-  void clearTime() => clearField(3);
-  @$pb.TagNumber(3)
-  $5.Timestamp ensureTime() => $_ensure(2);
+  void clearTxid() => clearField(3);
 
   @$pb.TagNumber(4)
-  $core.String get txid => $_getSZ(3);
+  $fixnum.Int64 get feeSatoshi => $_getI64(3);
   @$pb.TagNumber(4)
-  set txid($core.String v) { $_setString(3, v); }
+  set feeSatoshi($fixnum.Int64 v) { $_setInt64(3, v); }
   @$pb.TagNumber(4)
-  $core.bool hasTxid() => $_has(3);
+  $core.bool hasFeeSatoshi() => $_has(3);
   @$pb.TagNumber(4)
-  void clearTxid() => clearField(4);
+  void clearFeeSatoshi() => clearField(4);
 
   @$pb.TagNumber(5)
-  $fixnum.Int64 get feeSatoshi => $_getI64(4);
+  Block get confirmedInBlock => $_getN(4);
   @$pb.TagNumber(5)
-  set feeSatoshi($fixnum.Int64 v) { $_setInt64(4, v); }
+  set confirmedInBlock(Block v) { setField(5, v); }
   @$pb.TagNumber(5)
-  $core.bool hasFeeSatoshi() => $_has(4);
+  $core.bool hasConfirmedInBlock() => $_has(4);
   @$pb.TagNumber(5)
-  void clearFeeSatoshi() => clearField(5);
+  void clearConfirmedInBlock() => clearField(5);
+  @$pb.TagNumber(5)
+  Block ensureConfirmedInBlock() => $_ensure(4);
 }
 
 class GetBlockchainInfoResponse extends $pb.GeneratedMessage {

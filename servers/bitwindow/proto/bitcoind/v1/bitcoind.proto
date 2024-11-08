@@ -6,9 +6,8 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service BitcoindService {
-  // The "latest transactions" list in the first tab of Drivechain-QT is actually
-  // a list of unconfirmed transactions!
-  rpc ListUnconfirmedTransactions(ListUnconfirmedTransactionsRequest) returns (ListUnconfirmedTransactionsResponse);
+  // Lists the ten most recent transactions, both confirmed and unconfirmed.
+  rpc ListRecentTransactions(ListRecentTransactionsRequest) returns (ListRecentTransactionsResponse);
 
   // Lists the ten most recent blocks, lightly populated with data.
   rpc ListRecentBlocks(ListRecentBlocksRequest) returns (ListRecentBlocksResponse);
@@ -27,40 +26,30 @@ message ListRecentBlocksRequest {
   int64 count = 1;
 }
 
-message ListRecentBlocksResponse {
-  message RecentBlock {
-    google.protobuf.Timestamp block_time = 1;
-    uint32 block_height = 2;
-    string hash = 3;
-  }
-
-  repeated RecentBlock recent_blocks = 4;
+message Block {
+  google.protobuf.Timestamp block_time = 1;
+  uint32 block_height = 2;
+  string hash = 3;
 }
 
-message ListUnconfirmedTransactionsRequest {
+message ListRecentBlocksResponse {
+  repeated Block recent_blocks = 4;
+}
+
+message ListRecentTransactionsRequest {
   int64 count = 1;
 }
 
-message ListUnconfirmedTransactionsResponse {
-  repeated UnconfirmedTransaction unconfirmed_transactions = 1;
+message ListRecentTransactionsResponse {
+  repeated RecentTransaction transactions = 1;
 }
 
-message UnconfirmedTransaction {
+message RecentTransaction {
   uint32 virtual_size = 1;
-  uint32 weight = 2;
-  google.protobuf.Timestamp time = 3;
-  string txid = 4;
-  uint64 fee_satoshi = 5;
-
-  // is_bmm_request and is_critical_data_request both
-  // pertain to BMM (BIP301). Hearing chatter that the
-  // new CUSF approach might actually do away with BMM
-  // entirely? Holding off on that for a little while.
-
-  // BMM = blind merged mining
-  // bool is_bmm_request = 6;
-
-  // bool is_critical_data_request = 7;
+  google.protobuf.Timestamp time = 2;
+  string txid = 3;
+  uint64 fee_satoshi = 4;
+  optional Block confirmed_in_block = 5;
 }
 
 message GetBlockchainInfoResponse {

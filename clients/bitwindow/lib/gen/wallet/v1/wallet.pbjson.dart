@@ -33,9 +33,12 @@ const SendTransactionRequest$json = {
   '2': [
     {'1': 'destinations', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.SendTransactionRequest.DestinationsEntry', '10': 'destinations'},
     {'1': 'fee_rate', '3': 2, '4': 1, '5': 1, '10': 'feeRate'},
-    {'1': 'rbf', '3': 3, '4': 1, '5': 8, '10': 'rbf'},
+    {'1': 'op_return_message', '3': 3, '4': 1, '5': 9, '9': 0, '10': 'opReturnMessage', '17': true},
   ],
   '3': [SendTransactionRequest_DestinationsEntry$json],
+  '8': [
+    {'1': '_op_return_message'},
+  ],
 };
 
 @$core.Deprecated('Use sendTransactionRequestDescriptor instead')
@@ -52,9 +55,9 @@ const SendTransactionRequest_DestinationsEntry$json = {
 final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64Decode(
     'ChZTZW5kVHJhbnNhY3Rpb25SZXF1ZXN0ElcKDGRlc3RpbmF0aW9ucxgBIAMoCzIzLndhbGxldC'
     '52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZXN0LkRlc3RpbmF0aW9uc0VudHJ5UgxkZXN0aW5hdGlv'
-    'bnMSGQoIZmVlX3JhdGUYAiABKAFSB2ZlZVJhdGUSEAoDcmJmGAMgASgIUgNyYmYaPwoRRGVzdG'
-    'luYXRpb25zRW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKARSBXZhbHVlOgI4'
-    'AQ==');
+    'bnMSGQoIZmVlX3JhdGUYAiABKAFSB2ZlZVJhdGUSLwoRb3BfcmV0dXJuX21lc3NhZ2UYAyABKA'
+    'lIAFIPb3BSZXR1cm5NZXNzYWdliAEBGj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEo'
+    'CVIDa2V5EhQKBXZhbHVlGAIgASgEUgV2YWx1ZToCOAFCFAoSX29wX3JldHVybl9tZXNzYWdl');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {
@@ -86,14 +89,14 @@ final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode
 const ListTransactionsResponse$json = {
   '1': 'ListTransactionsResponse',
   '2': [
-    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.Transaction', '10': 'transactions'},
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.WalletTransaction', '10': 'transactions'},
   ],
 };
 
 /// Descriptor for `ListTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listTransactionsResponseDescriptor = $convert.base64Decode(
-    'ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USOgoMdHJhbnNhY3Rpb25zGAEgAygLMhYud2FsbG'
-    'V0LnYxLlRyYW5zYWN0aW9uUgx0cmFuc2FjdGlvbnM=');
+    'ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USQAoMdHJhbnNhY3Rpb25zGAEgAygLMhwud2FsbG'
+    'V0LnYxLldhbGxldFRyYW5zYWN0aW9uUgx0cmFuc2FjdGlvbnM=');
 
 @$core.Deprecated('Use confirmationDescriptor instead')
 const Confirmation$json = {
@@ -109,9 +112,9 @@ final $typed_data.Uint8List confirmationDescriptor = $convert.base64Decode(
     'CgxDb25maXJtYXRpb24SFgoGaGVpZ2h0GAEgASgNUgZoZWlnaHQSOAoJdGltZXN0YW1wGAIgAS'
     'gLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJdGltZXN0YW1w');
 
-@$core.Deprecated('Use transactionDescriptor instead')
-const Transaction$json = {
-  '1': 'Transaction',
+@$core.Deprecated('Use walletTransactionDescriptor instead')
+const WalletTransaction$json = {
+  '1': 'WalletTransaction',
   '2': [
     {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
     {'1': 'fee_satoshi', '3': 2, '4': 1, '5': 4, '10': 'feeSatoshi'},
@@ -121,12 +124,12 @@ const Transaction$json = {
   ],
 };
 
-/// Descriptor for `Transaction`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List transactionDescriptor = $convert.base64Decode(
-    'CgtUcmFuc2FjdGlvbhISCgR0eGlkGAEgASgJUgR0eGlkEh8KC2ZlZV9zYXRvc2hpGAIgASgEUg'
-    'pmZWVTYXRvc2hpEikKEHJlY2VpdmVkX3NhdG9zaGkYAyABKARSD3JlY2VpdmVkU2F0b3NoaRIh'
-    'CgxzZW50X3NhdG9zaGkYBCABKARSC3NlbnRTYXRvc2hpEkQKEWNvbmZpcm1hdGlvbl90aW1lGA'
-    'UgASgLMhcud2FsbGV0LnYxLkNvbmZpcm1hdGlvblIQY29uZmlybWF0aW9uVGltZQ==');
+/// Descriptor for `WalletTransaction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
+    'ChFXYWxsZXRUcmFuc2FjdGlvbhISCgR0eGlkGAEgASgJUgR0eGlkEh8KC2ZlZV9zYXRvc2hpGA'
+    'IgASgEUgpmZWVTYXRvc2hpEikKEHJlY2VpdmVkX3NhdG9zaGkYAyABKARSD3JlY2VpdmVkU2F0'
+    'b3NoaRIhCgxzZW50X3NhdG9zaGkYBCABKARSC3NlbnRTYXRvc2hpEkQKEWNvbmZpcm1hdGlvbl'
+    '90aW1lGAUgASgLMhcud2FsbGV0LnYxLkNvbmZpcm1hdGlvblIQY29uZmlybWF0aW9uVGltZQ==');
 
 @$core.Deprecated('Use listSidechainDepositsRequestDescriptor instead')
 const ListSidechainDepositsRequest$json = {

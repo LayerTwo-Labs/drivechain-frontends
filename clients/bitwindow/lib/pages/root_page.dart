@@ -8,7 +8,6 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/servers/enforcer_rpc.dart';
 import 'package:bitwindow/servers/mainchain_rpc.dart';
-import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -38,14 +37,7 @@ class RootPage extends StatelessWidget {
             preferredSize: const Size.fromHeight(80),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.colors.background,
-                    theme.colors.backgroundSecondary,
-                  ],
-                ),
+                color: theme.colors.background,
               ),
               child: Builder(
                 builder: (context) {
@@ -64,26 +56,12 @@ class RootPage extends StatelessWidget {
                         active: tabsRouter.activeIndex == 1,
                         onTap: () => tabsRouter.setActiveIndex(1),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
-                        child: DottedBorder(
-                          strokeWidth: 0.5,
-                          // only left and right border
-                          customPath: (size) => Path()
-                            ..moveTo(0, 0)
-                            ..lineTo(0, size.height)
-                            ..moveTo(size.width, size.height)
-                            ..lineTo(size.width, 0),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
-                            child: QtTab(
-                              icon: SailSVGAsset.iconSidechains,
-                              label: 'Sidechains',
-                              active: tabsRouter.activeIndex == 2,
-                              onTap: () => tabsRouter.setActiveIndex(2),
-                            ),
-                          ),
-                        ),
+                      QtTab(
+                        icon: SailSVGAsset.iconSidechains,
+                        label: 'Sidechains',
+                        active: tabsRouter.activeIndex == 2,
+                        onTap: () => tabsRouter.setActiveIndex(2),
+                        end: true,
                       ),
                       Expanded(child: Container()),
                       const ToggleThemeButton(),
@@ -267,36 +245,35 @@ class _StatusBarState extends State<StatusBar> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SailSpacing(SailStyleValues.padding08),
-              if (!model.mainchainConnected || !model.enforcerConnected || !model.serverConnected)
-                SailColumn(
-                  spacing: SailStyleValues.padding12,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DaemonConnectionCard(
-                      connection: model.mainchain,
-                      restartDaemon: () => model.initMainchainBinary(context),
-                      infoMessage: null,
-                      navigateToLogs: model.navigateToLogs,
-                    ),
-                    DaemonConnectionCard(
-                      connection: model.enforcer,
-                      infoMessage: model.mainchainInitializing
-                          ? 'Waiting for mainchain to finish init'
-                          : model.inIBD
-                              ? 'Waiting for L1 initial block download to complete...'
-                              : null,
-                      restartDaemon: () => model.initEnforcerBinary(context),
-                      navigateToLogs: model.navigateToLogs,
-                    ),
-                    DaemonConnectionCard(
-                      connection: model.server,
-                      infoMessage:
-                          !model.serverConnected && model.enforcerInitializing ? 'Waiting for enforcer to start' : null,
-                      restartDaemon: () => model.initServerBinary(context),
-                      navigateToLogs: model.navigateToLogs,
-                    ),
-                  ],
-                ),
+              SailColumn(
+                spacing: SailStyleValues.padding12,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DaemonConnectionCard(
+                    connection: model.mainchain,
+                    restartDaemon: () => model.initMainchainBinary(context),
+                    infoMessage: null,
+                    navigateToLogs: model.navigateToLogs,
+                  ),
+                  DaemonConnectionCard(
+                    connection: model.enforcer,
+                    infoMessage: model.mainchainInitializing
+                        ? 'Waiting for mainchain to finish init'
+                        : model.inIBD
+                            ? 'Waiting for L1 initial block download to complete...'
+                            : null,
+                    restartDaemon: () => model.initEnforcerBinary(context),
+                    navigateToLogs: model.navigateToLogs,
+                  ),
+                  DaemonConnectionCard(
+                    connection: model.server,
+                    infoMessage:
+                        !model.serverConnected && model.enforcerInitializing ? 'Waiting for enforcer to start' : null,
+                    restartDaemon: () => model.initServerBinary(context),
+                    navigateToLogs: model.navigateToLogs,
+                  ),
+                ],
+              ),
             ],
           );
         }),
@@ -316,7 +293,7 @@ String formatTimeDifference(int value, String unit) {
   return '$value $unit${value == 1 ? '' : 's'}';
 }
 
-extension on ListRecentBlocksResponse_RecentBlock {
+extension on Block {
   String toPretty() {
     return 'Block $blockHeight\nBlockTime=${blockTime.toDateTime().format()}\nHash=$hash';
   }
