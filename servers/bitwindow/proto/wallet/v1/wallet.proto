@@ -30,8 +30,8 @@ message SendTransactionRequest {
   // rate is used by asking Core for an estimate.
   double fee_rate = 2;
 
-  // Whether to activate replace by fee for this transaction
-  bool rbf = 3;
+  // Message to include as an OP_RETURN output
+  optional string op_return_message = 3;
 }
 
 message SendTransactionResponse {
@@ -45,7 +45,7 @@ message GetBalanceResponse {
 }
 
 message ListTransactionsResponse {
-  repeated Transaction transactions = 1;
+  repeated WalletTransaction transactions = 1;
 }
 
 message Confirmation {
@@ -53,7 +53,7 @@ message Confirmation {
   google.protobuf.Timestamp timestamp = 2;
 }
 
-message Transaction {
+message WalletTransaction {
   string txid = 1;
 
   uint64 fee_satoshi = 2;

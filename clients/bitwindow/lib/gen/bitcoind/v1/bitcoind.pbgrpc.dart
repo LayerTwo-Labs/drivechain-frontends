@@ -22,10 +22,10 @@ export 'bitcoind.pb.dart';
 
 @$pb.GrpcServiceName('bitcoind.v1.BitcoindService')
 class BitcoindServiceClient extends $grpc.Client {
-  static final _$listUnconfirmedTransactions = $grpc.ClientMethod<$0.ListUnconfirmedTransactionsRequest, $0.ListUnconfirmedTransactionsResponse>(
-      '/bitcoind.v1.BitcoindService/ListUnconfirmedTransactions',
-      ($0.ListUnconfirmedTransactionsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListUnconfirmedTransactionsResponse.fromBuffer(value));
+  static final _$listRecentTransactions = $grpc.ClientMethod<$0.ListRecentTransactionsRequest, $0.ListRecentTransactionsResponse>(
+      '/bitcoind.v1.BitcoindService/ListRecentTransactions',
+      ($0.ListRecentTransactionsRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.ListRecentTransactionsResponse.fromBuffer(value));
   static final _$listRecentBlocks = $grpc.ClientMethod<$0.ListRecentBlocksRequest, $0.ListRecentBlocksResponse>(
       '/bitcoind.v1.BitcoindService/ListRecentBlocks',
       ($0.ListRecentBlocksRequest value) => value.writeToBuffer(),
@@ -49,8 +49,8 @@ class BitcoindServiceClient extends $grpc.Client {
       : super(channel, options: options,
         interceptors: interceptors);
 
-  $grpc.ResponseFuture<$0.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions($0.ListUnconfirmedTransactionsRequest request, {$grpc.CallOptions? options}) {
-    return $createUnaryCall(_$listUnconfirmedTransactions, request, options: options);
+  $grpc.ResponseFuture<$0.ListRecentTransactionsResponse> listRecentTransactions($0.ListRecentTransactionsRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$listRecentTransactions, request, options: options);
   }
 
   $grpc.ResponseFuture<$0.ListRecentBlocksResponse> listRecentBlocks($0.ListRecentBlocksRequest request, {$grpc.CallOptions? options}) {
@@ -75,13 +75,13 @@ abstract class BitcoindServiceBase extends $grpc.Service {
   $core.String get $name => 'bitcoind.v1.BitcoindService';
 
   BitcoindServiceBase() {
-    $addMethod($grpc.ServiceMethod<$0.ListUnconfirmedTransactionsRequest, $0.ListUnconfirmedTransactionsResponse>(
-        'ListUnconfirmedTransactions',
-        listUnconfirmedTransactions_Pre,
+    $addMethod($grpc.ServiceMethod<$0.ListRecentTransactionsRequest, $0.ListRecentTransactionsResponse>(
+        'ListRecentTransactions',
+        listRecentTransactions_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.ListUnconfirmedTransactionsRequest.fromBuffer(value),
-        ($0.ListUnconfirmedTransactionsResponse value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) => $0.ListRecentTransactionsRequest.fromBuffer(value),
+        ($0.ListRecentTransactionsResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ListRecentBlocksRequest, $0.ListRecentBlocksResponse>(
         'ListRecentBlocks',
         listRecentBlocks_Pre,
@@ -112,8 +112,8 @@ abstract class BitcoindServiceBase extends $grpc.Service {
         ($0.EstimateSmartFeeResponse value) => value.writeToBuffer()));
   }
 
-  $async.Future<$0.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.ListUnconfirmedTransactionsRequest> request) async {
-    return listUnconfirmedTransactions(call, await request);
+  $async.Future<$0.ListRecentTransactionsResponse> listRecentTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.ListRecentTransactionsRequest> request) async {
+    return listRecentTransactions(call, await request);
   }
 
   $async.Future<$0.ListRecentBlocksResponse> listRecentBlocks_Pre($grpc.ServiceCall call, $async.Future<$0.ListRecentBlocksRequest> request) async {
@@ -132,7 +132,7 @@ abstract class BitcoindServiceBase extends $grpc.Service {
     return estimateSmartFee(call, await request);
   }
 
-  $async.Future<$0.ListUnconfirmedTransactionsResponse> listUnconfirmedTransactions($grpc.ServiceCall call, $0.ListUnconfirmedTransactionsRequest request);
+  $async.Future<$0.ListRecentTransactionsResponse> listRecentTransactions($grpc.ServiceCall call, $0.ListRecentTransactionsRequest request);
   $async.Future<$0.ListRecentBlocksResponse> listRecentBlocks($grpc.ServiceCall call, $0.ListRecentBlocksRequest request);
   $async.Future<$0.GetBlockchainInfoResponse> getBlockchainInfo($grpc.ServiceCall call, $1.Empty request);
   $async.Future<$0.ListPeersResponse> listPeers($grpc.ServiceCall call, $1.Empty request);
