@@ -1,7 +1,7 @@
 build-go:
     go build -o ./bin/bitwindowd .
 
-build: build-bdk-cli build-enforcer build-go
+build: build-enforcer build-go
 
 clean:
     rm -rf ./bin
@@ -19,29 +19,6 @@ gen-server:
 
 gen-enforcer:
     buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
-
-build-bdk-cli:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [ ! -f "./bdk/bin/bdk-cli" ]; then
-        echo "Building bdk-cli..."
-        mkdir -p ./bdk/bin
-        mkdir -p ./bin
-        if ! command -v rustc &> /dev/null; then
-            echo "Error: Rust is not installed. Please install Rust and try again."
-            exit 1
-        fi
-        cargo install \
-        --git https://github.com/bitcoindevkit/bdk-cli.git \
-        --tag v0.27.1 \
-        --root ./bdk \
-        --no-default-features \
-        --features=key-value-db,compiler,electrum
-        echo "bdk-cli has been built to ./bdk/bin/bdk-cli"
-        cp ./bdk/bin/bdk-cli ./bin/bdk-cli
-    else
-        echo "bdk-cli already exists, skipping build"
-    fi
 
 build-enforcer:
     #!/usr/bin/env bash
