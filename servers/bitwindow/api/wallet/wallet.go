@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/drivechain"
@@ -61,28 +62,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 	log := zerolog.Ctx(ctx)
 
-	if c.Msg.FeeRate == 0 {
-		log.Debug().Msgf("send tx: received no fee rate, querying bitcoin core")
-
-		estimate, err := s.bitcoind.EstimateSmartFee(ctx, connect.NewRequest(&corepb.EstimateSmartFeeRequest{
-			ConfTarget:   2,
-			EstimateMode: corepb.EstimateSmartFeeRequest_ESTIMATE_MODE_ECONOMICAL,
-		}))
-		if err != nil {
-			return nil, err
-		}
-
-		c.Msg.FeeRate = estimate.Msg.FeeRate
-
-		log.Info().Msgf("send tx: determined fee rate: %f", c.Msg.FeeRate)
-
-		if c.Msg.FeeRate <= 0 {
-			log.Info().Msgf("send tx: fee rate estimate empty, using default: %f", c.Msg.FeeRate)
-			c.Msg.FeeRate = 0.00021
-		}
-
-	}
-
 	destinations := make(map[string]uint64)
 	for address, amount := range c.Msg.Destinations {
 		const dustLimit = 546
@@ -96,17 +75,35 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		destinations[address] = uint64(amount)
 	}
 
-	btcPerByte, err := btcutil.NewAmount(c.Msg.FeeRate / 1000)
-	if err != nil {
-		return nil, err
+	var feeRate *validatorpb.SendTransactionRequest_FeeRate
+	if c.Msg.FeeRate != 0 {
+		btcPerByte, err := btcutil.NewAmount(c.Msg.FeeRate / 1000)
+		if err != nil {
+			return nil, err
+		}
+		satoshiPerVByte := uint64(btcPerByte.ToUnit(btcutil.AmountSatoshi))
+		feeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: satoshiPerVByte},
+		}
 	}
-	satoshiPerVByte := uint64(btcPerByte.ToUnit(btcutil.AmountSatoshi))
+
+	// encode the message as hex!
+	var message *commonv1.Hex
+	if c.Msg.OpReturnMessage != nil {
+		// must actually be hex encoded
+		hexString := *c.Msg.OpReturnMessage
+		if !strings.HasPrefix(hexString, "0x") {
+			// a raw message. Encode it!
+			hexString = string(*c.Msg.OpReturnMessage)
+		}
+
+		message = &commonv1.Hex{Hex: &wrapperspb.StringValue{Value: hexString}}
+	}
 
 	created, err := s.wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
-		Destinations: destinations,
-		FeeRate: &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: satoshiPerVByte},
-		},
+		Destinations:    destinations,
+		FeeRate:         feeRate,
+		OpReturnMessage: message,
 	}))
 	if err != nil {
 		return nil, err
@@ -115,7 +112,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	log.Info().Msgf("send tx: broadcast transaction: %s", created.Msg.Txid)
 
 	return connect.NewResponse(&pb.SendTransactionResponse{
-		Txid: created.Msg.Txid.String(),
+		Txid: created.Msg.Txid.Hex.String(),
 	}), nil
 
 }
@@ -154,7 +151,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 	}
 
 	res := &pb.ListTransactionsResponse{
-		Transactions: lo.Map(txs.Msg.Transactions, func(tx *validatorpb.WalletTransaction, idx int) *pb.Transaction {
+		Transactions: lo.Map(txs.Msg.Transactions, func(tx *validatorpb.WalletTransaction, idx int) *pb.WalletTransaction {
 			var confirmation *pb.Confirmation
 			if tx.ConfirmationInfo != nil {
 				confirmation = &pb.Confirmation{
@@ -162,8 +159,8 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 					Timestamp: &timestamppb.Timestamp{Seconds: tx.ConfirmationInfo.Timestamp.Seconds},
 				}
 			}
-			return &pb.Transaction{
-				Txid:             tx.Txid.String(),
+			return &pb.WalletTransaction{
+				Txid:             tx.Txid.Hex.String(),
 				FeeSatoshi:       tx.FeeSats,
 				ReceivedSatoshi:  tx.ReceivedSats,
 				SentSatoshi:      tx.SentSats,
@@ -252,6 +249,6 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	}
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
-		Txid: created.Msg.Txid.String(),
+		Txid: created.Msg.Txid.Hex.String(),
 	}), nil
 }
