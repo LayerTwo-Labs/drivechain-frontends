@@ -12,7 +12,6 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
 )
@@ -34,7 +33,6 @@ func Enforcer(ctx context.Context, url string) (
 		connect.WithGRPC(),
 	)
 	var tip *connect.Response[pb.GetChainInfoResponse]
-	var blockHash *chainhash.Hash
 	var err error
 	for attempt := range 3 {
 		tip, err = client.GetChainInfo(ctx, connect.NewRequest(&pb.GetChainInfoRequest{}))
@@ -59,7 +57,6 @@ func Enforcer(ctx context.Context, url string) (
 	zerolog.Ctx(ctx).Debug().
 		Stringer("duration", time.Since(start)).
 		Str("url", url).
-		Str("tip", blockHash.String()).
 		Msg("connected to enforcer")
 
 	walletClient := rpc.NewWalletServiceClient(

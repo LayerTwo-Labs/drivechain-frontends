@@ -74,7 +74,7 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		}
 
 		// Decode the txid using chainhash.NewHashFromStr
-		txidHash, err := chainhash.NewHashFromStr(string(ctipResponse.Msg.Ctip.Txid.String()))
+		txidHash, err := chainhash.NewHashFromStr(string(ctipResponse.Msg.Ctip.Txid.Hex.String()))
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to decode txid")
 			continue
