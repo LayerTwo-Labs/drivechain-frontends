@@ -401,22 +401,20 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return Expanded(
-      child: InlineTabBar(
-        tabs: [
-          TabItem(
-            label: 'Create Deposits',
-            icon: SailSVGAsset.iconDeposit,
-            child: MakeDepositsView(),
-          ),
-          TabItem(
-            label: 'See Withdrawals',
-            icon: SailSVGAsset.iconWithdraw,
-            child: SeeWithdrawalsView(),
-          ),
-        ],
-        initialIndex: 0,
-      ),
+    return InlineTabBar(
+      tabs: [
+        TabItem(
+          label: 'Create Deposits',
+          icon: SailSVGAsset.iconDeposit,
+          child: MakeDepositsView(),
+        ),
+        TabItem(
+          label: 'See Withdrawals',
+          icon: SailSVGAsset.iconWithdraw,
+          child: SeeWithdrawalsView(),
+        ),
+      ],
+      initialIndex: 0,
     );
   }
 }

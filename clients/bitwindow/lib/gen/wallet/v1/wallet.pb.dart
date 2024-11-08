@@ -84,7 +84,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest({
     $core.Map<$core.String, $fixnum.Int64>? destinations,
     $core.double? feeRate,
-    $core.bool? rbf,
+    $core.String? opReturnMessage,
   }) {
     final $result = create();
     if (destinations != null) {
@@ -93,8 +93,8 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (feeRate != null) {
       $result.feeRate = feeRate;
     }
-    if (rbf != null) {
-      $result.rbf = rbf;
+    if (opReturnMessage != null) {
+      $result.opReturnMessage = opReturnMessage;
     }
     return $result;
   }
@@ -105,7 +105,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..m<$core.String, $fixnum.Int64>(1, _omitFieldNames ? '' : 'destinations', entryClassName: 'SendTransactionRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OU6, packageName: const $pb.PackageName('wallet.v1'))
     ..a<$core.double>(2, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
-    ..aOB(3, _omitFieldNames ? '' : 'rbf')
+    ..aOS(3, _omitFieldNames ? '' : 'opReturnMessage')
     ..hasRequiredFields = false
   ;
 
@@ -145,15 +145,15 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearFeeRate() => clearField(2);
 
-  /// Whether to activate replace by fee for this transaction
+  /// Message to include as an OP_RETURN output
   @$pb.TagNumber(3)
-  $core.bool get rbf => $_getBF(2);
+  $core.String get opReturnMessage => $_getSZ(2);
   @$pb.TagNumber(3)
-  set rbf($core.bool v) { $_setBool(2, v); }
+  set opReturnMessage($core.String v) { $_setString(2, v); }
   @$pb.TagNumber(3)
-  $core.bool hasRbf() => $_has(2);
+  $core.bool hasOpReturnMessage() => $_has(2);
   @$pb.TagNumber(3)
-  void clearRbf() => clearField(3);
+  void clearOpReturnMessage() => clearField(3);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -272,7 +272,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
 
 class ListTransactionsResponse extends $pb.GeneratedMessage {
   factory ListTransactionsResponse({
-    $core.Iterable<Transaction>? transactions,
+    $core.Iterable<WalletTransaction>? transactions,
   }) {
     final $result = create();
     if (transactions != null) {
@@ -285,7 +285,7 @@ class ListTransactionsResponse extends $pb.GeneratedMessage {
   factory ListTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..pc<Transaction>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: Transaction.create)
+    ..pc<WalletTransaction>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: WalletTransaction.create)
     ..hasRequiredFields = false
   ;
 
@@ -311,7 +311,7 @@ class ListTransactionsResponse extends $pb.GeneratedMessage {
   static ListTransactionsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<Transaction> get transactions => $_getList(0);
+  $core.List<WalletTransaction> get transactions => $_getList(0);
 }
 
 class Confirmation extends $pb.GeneratedMessage {
@@ -380,8 +380,8 @@ class Confirmation extends $pb.GeneratedMessage {
   $5.Timestamp ensureTimestamp() => $_ensure(1);
 }
 
-class Transaction extends $pb.GeneratedMessage {
-  factory Transaction({
+class WalletTransaction extends $pb.GeneratedMessage {
+  factory WalletTransaction({
     $core.String? txid,
     $fixnum.Int64? feeSatoshi,
     $fixnum.Int64? receivedSatoshi,
@@ -406,11 +406,11 @@ class Transaction extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  Transaction._() : super();
-  factory Transaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Transaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  WalletTransaction._() : super();
+  factory WalletTransaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WalletTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Transaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WalletTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'feeSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'receivedSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
@@ -423,22 +423,22 @@ class Transaction extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  Transaction clone() => Transaction()..mergeFromMessage(this);
+  WalletTransaction clone() => WalletTransaction()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  Transaction copyWith(void Function(Transaction) updates) => super.copyWith((message) => updates(message as Transaction)) as Transaction;
+  WalletTransaction copyWith(void Function(WalletTransaction) updates) => super.copyWith((message) => updates(message as WalletTransaction)) as WalletTransaction;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static Transaction create() => Transaction._();
-  Transaction createEmptyInstance() => create();
-  static $pb.PbList<Transaction> createRepeated() => $pb.PbList<Transaction>();
+  static WalletTransaction create() => WalletTransaction._();
+  WalletTransaction createEmptyInstance() => create();
+  static $pb.PbList<WalletTransaction> createRepeated() => $pb.PbList<WalletTransaction>();
   @$core.pragma('dart2js:noInline')
-  static Transaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Transaction>(create);
-  static Transaction? _defaultInstance;
+  static WalletTransaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WalletTransaction>(create);
+  static WalletTransaction? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);

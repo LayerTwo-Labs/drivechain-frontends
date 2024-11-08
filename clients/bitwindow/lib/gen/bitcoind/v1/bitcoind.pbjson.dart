@@ -25,18 +25,9 @@ const ListRecentBlocksRequest$json = {
 final $typed_data.Uint8List listRecentBlocksRequestDescriptor = $convert.base64Decode(
     'ChdMaXN0UmVjZW50QmxvY2tzUmVxdWVzdBIUCgVjb3VudBgBIAEoA1IFY291bnQ=');
 
-@$core.Deprecated('Use listRecentBlocksResponseDescriptor instead')
-const ListRecentBlocksResponse$json = {
-  '1': 'ListRecentBlocksResponse',
-  '2': [
-    {'1': 'recent_blocks', '3': 4, '4': 3, '5': 11, '6': '.bitcoind.v1.ListRecentBlocksResponse.RecentBlock', '10': 'recentBlocks'},
-  ],
-  '3': [ListRecentBlocksResponse_RecentBlock$json],
-};
-
-@$core.Deprecated('Use listRecentBlocksResponseDescriptor instead')
-const ListRecentBlocksResponse_RecentBlock$json = {
-  '1': 'RecentBlock',
+@$core.Deprecated('Use blockDescriptor instead')
+const Block$json = {
+  '1': 'Block',
   '2': [
     {'1': 'block_time', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'blockTime'},
     {'1': 'block_height', '3': 2, '4': 1, '5': 13, '10': 'blockHeight'},
@@ -44,59 +35,72 @@ const ListRecentBlocksResponse_RecentBlock$json = {
   ],
 };
 
+/// Descriptor for `Block`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List blockDescriptor = $convert.base64Decode(
+    'CgVCbG9jaxI5CgpibG9ja190aW1lGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcF'
+    'IJYmxvY2tUaW1lEiEKDGJsb2NrX2hlaWdodBgCIAEoDVILYmxvY2tIZWlnaHQSEgoEaGFzaBgD'
+    'IAEoCVIEaGFzaA==');
+
+@$core.Deprecated('Use listRecentBlocksResponseDescriptor instead')
+const ListRecentBlocksResponse$json = {
+  '1': 'ListRecentBlocksResponse',
+  '2': [
+    {'1': 'recent_blocks', '3': 4, '4': 3, '5': 11, '6': '.bitcoind.v1.Block', '10': 'recentBlocks'},
+  ],
+};
+
 /// Descriptor for `ListRecentBlocksResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listRecentBlocksResponseDescriptor = $convert.base64Decode(
-    'ChhMaXN0UmVjZW50QmxvY2tzUmVzcG9uc2USVgoNcmVjZW50X2Jsb2NrcxgEIAMoCzIxLmJpdG'
-    'NvaW5kLnYxLkxpc3RSZWNlbnRCbG9ja3NSZXNwb25zZS5SZWNlbnRCbG9ja1IMcmVjZW50Qmxv'
-    'Y2tzGn8KC1JlY2VudEJsb2NrEjkKCmJsb2NrX3RpbWUYASABKAsyGi5nb29nbGUucHJvdG9idW'
-    'YuVGltZXN0YW1wUglibG9ja1RpbWUSIQoMYmxvY2tfaGVpZ2h0GAIgASgNUgtibG9ja0hlaWdo'
-    'dBISCgRoYXNoGAMgASgJUgRoYXNo');
+    'ChhMaXN0UmVjZW50QmxvY2tzUmVzcG9uc2USNwoNcmVjZW50X2Jsb2NrcxgEIAMoCzISLmJpdG'
+    'NvaW5kLnYxLkJsb2NrUgxyZWNlbnRCbG9ja3M=');
 
-@$core.Deprecated('Use listUnconfirmedTransactionsRequestDescriptor instead')
-const ListUnconfirmedTransactionsRequest$json = {
-  '1': 'ListUnconfirmedTransactionsRequest',
+@$core.Deprecated('Use listRecentTransactionsRequestDescriptor instead')
+const ListRecentTransactionsRequest$json = {
+  '1': 'ListRecentTransactionsRequest',
   '2': [
     {'1': 'count', '3': 1, '4': 1, '5': 3, '10': 'count'},
   ],
 };
 
-/// Descriptor for `ListUnconfirmedTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listUnconfirmedTransactionsRequestDescriptor = $convert.base64Decode(
-    'CiJMaXN0VW5jb25maXJtZWRUcmFuc2FjdGlvbnNSZXF1ZXN0EhQKBWNvdW50GAEgASgDUgVjb3'
-    'VudA==');
+/// Descriptor for `ListRecentTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listRecentTransactionsRequestDescriptor = $convert.base64Decode(
+    'Ch1MaXN0UmVjZW50VHJhbnNhY3Rpb25zUmVxdWVzdBIUCgVjb3VudBgBIAEoA1IFY291bnQ=');
 
-@$core.Deprecated('Use listUnconfirmedTransactionsResponseDescriptor instead')
-const ListUnconfirmedTransactionsResponse$json = {
-  '1': 'ListUnconfirmedTransactionsResponse',
+@$core.Deprecated('Use listRecentTransactionsResponseDescriptor instead')
+const ListRecentTransactionsResponse$json = {
+  '1': 'ListRecentTransactionsResponse',
   '2': [
-    {'1': 'unconfirmed_transactions', '3': 1, '4': 3, '5': 11, '6': '.bitcoind.v1.UnconfirmedTransaction', '10': 'unconfirmedTransactions'},
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.bitcoind.v1.RecentTransaction', '10': 'transactions'},
   ],
 };
 
-/// Descriptor for `ListUnconfirmedTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listUnconfirmedTransactionsResponseDescriptor = $convert.base64Decode(
-    'CiNMaXN0VW5jb25maXJtZWRUcmFuc2FjdGlvbnNSZXNwb25zZRJeChh1bmNvbmZpcm1lZF90cm'
-    'Fuc2FjdGlvbnMYASADKAsyIy5iaXRjb2luZC52MS5VbmNvbmZpcm1lZFRyYW5zYWN0aW9uUhd1'
-    'bmNvbmZpcm1lZFRyYW5zYWN0aW9ucw==');
+/// Descriptor for `ListRecentTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listRecentTransactionsResponseDescriptor = $convert.base64Decode(
+    'Ch5MaXN0UmVjZW50VHJhbnNhY3Rpb25zUmVzcG9uc2USQgoMdHJhbnNhY3Rpb25zGAEgAygLMh'
+    '4uYml0Y29pbmQudjEuUmVjZW50VHJhbnNhY3Rpb25SDHRyYW5zYWN0aW9ucw==');
 
-@$core.Deprecated('Use unconfirmedTransactionDescriptor instead')
-const UnconfirmedTransaction$json = {
-  '1': 'UnconfirmedTransaction',
+@$core.Deprecated('Use recentTransactionDescriptor instead')
+const RecentTransaction$json = {
+  '1': 'RecentTransaction',
   '2': [
     {'1': 'virtual_size', '3': 1, '4': 1, '5': 13, '10': 'virtualSize'},
-    {'1': 'weight', '3': 2, '4': 1, '5': 13, '10': 'weight'},
-    {'1': 'time', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'time'},
-    {'1': 'txid', '3': 4, '4': 1, '5': 9, '10': 'txid'},
-    {'1': 'fee_satoshi', '3': 5, '4': 1, '5': 4, '10': 'feeSatoshi'},
+    {'1': 'time', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'time'},
+    {'1': 'txid', '3': 3, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'fee_satoshi', '3': 4, '4': 1, '5': 4, '10': 'feeSatoshi'},
+    {'1': 'confirmed_in_block', '3': 5, '4': 1, '5': 11, '6': '.bitcoind.v1.Block', '9': 0, '10': 'confirmedInBlock', '17': true},
+  ],
+  '8': [
+    {'1': '_confirmed_in_block'},
   ],
 };
 
-/// Descriptor for `UnconfirmedTransaction`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unconfirmedTransactionDescriptor = $convert.base64Decode(
-    'ChZVbmNvbmZpcm1lZFRyYW5zYWN0aW9uEiEKDHZpcnR1YWxfc2l6ZRgBIAEoDVILdmlydHVhbF'
-    'NpemUSFgoGd2VpZ2h0GAIgASgNUgZ3ZWlnaHQSLgoEdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90'
-    'b2J1Zi5UaW1lc3RhbXBSBHRpbWUSEgoEdHhpZBgEIAEoCVIEdHhpZBIfCgtmZWVfc2F0b3NoaR'
-    'gFIAEoBFIKZmVlU2F0b3NoaQ==');
+/// Descriptor for `RecentTransaction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recentTransactionDescriptor = $convert.base64Decode(
+    'ChFSZWNlbnRUcmFuc2FjdGlvbhIhCgx2aXJ0dWFsX3NpemUYASABKA1SC3ZpcnR1YWxTaXplEi'
+    '4KBHRpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgR0aW1lEhIKBHR4aWQY'
+    'AyABKAlSBHR4aWQSHwoLZmVlX3NhdG9zaGkYBCABKARSCmZlZVNhdG9zaGkSRQoSY29uZmlybW'
+    'VkX2luX2Jsb2NrGAUgASgLMhIuYml0Y29pbmQudjEuQmxvY2tIAFIQY29uZmlybWVkSW5CbG9j'
+    'a4gBAUIVChNfY29uZmlybWVkX2luX2Jsb2Nr');
 
 @$core.Deprecated('Use getBlockchainInfoResponseDescriptor instead')
 const GetBlockchainInfoResponse$json = {

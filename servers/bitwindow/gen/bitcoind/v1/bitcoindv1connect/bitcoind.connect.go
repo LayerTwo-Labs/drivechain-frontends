@@ -34,9 +34,9 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BitcoindServiceListUnconfirmedTransactionsProcedure is the fully-qualified name of the
-	// BitcoindService's ListUnconfirmedTransactions RPC.
-	BitcoindServiceListUnconfirmedTransactionsProcedure = "/bitcoind.v1.BitcoindService/ListUnconfirmedTransactions"
+	// BitcoindServiceListRecentTransactionsProcedure is the fully-qualified name of the
+	// BitcoindService's ListRecentTransactions RPC.
+	BitcoindServiceListRecentTransactionsProcedure = "/bitcoind.v1.BitcoindService/ListRecentTransactions"
 	// BitcoindServiceListRecentBlocksProcedure is the fully-qualified name of the BitcoindService's
 	// ListRecentBlocks RPC.
 	BitcoindServiceListRecentBlocksProcedure = "/bitcoind.v1.BitcoindService/ListRecentBlocks"
@@ -53,19 +53,18 @@ const (
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	bitcoindServiceServiceDescriptor                           = v1.File_bitcoind_v1_bitcoind_proto.Services().ByName("BitcoindService")
-	bitcoindServiceListUnconfirmedTransactionsMethodDescriptor = bitcoindServiceServiceDescriptor.Methods().ByName("ListUnconfirmedTransactions")
-	bitcoindServiceListRecentBlocksMethodDescriptor            = bitcoindServiceServiceDescriptor.Methods().ByName("ListRecentBlocks")
-	bitcoindServiceGetBlockchainInfoMethodDescriptor           = bitcoindServiceServiceDescriptor.Methods().ByName("GetBlockchainInfo")
-	bitcoindServiceListPeersMethodDescriptor                   = bitcoindServiceServiceDescriptor.Methods().ByName("ListPeers")
-	bitcoindServiceEstimateSmartFeeMethodDescriptor            = bitcoindServiceServiceDescriptor.Methods().ByName("EstimateSmartFee")
+	bitcoindServiceServiceDescriptor                      = v1.File_bitcoind_v1_bitcoind_proto.Services().ByName("BitcoindService")
+	bitcoindServiceListRecentTransactionsMethodDescriptor = bitcoindServiceServiceDescriptor.Methods().ByName("ListRecentTransactions")
+	bitcoindServiceListRecentBlocksMethodDescriptor       = bitcoindServiceServiceDescriptor.Methods().ByName("ListRecentBlocks")
+	bitcoindServiceGetBlockchainInfoMethodDescriptor      = bitcoindServiceServiceDescriptor.Methods().ByName("GetBlockchainInfo")
+	bitcoindServiceListPeersMethodDescriptor              = bitcoindServiceServiceDescriptor.Methods().ByName("ListPeers")
+	bitcoindServiceEstimateSmartFeeMethodDescriptor       = bitcoindServiceServiceDescriptor.Methods().ByName("EstimateSmartFee")
 )
 
 // BitcoindServiceClient is a client for the bitcoind.v1.BitcoindService service.
 type BitcoindServiceClient interface {
-	// The "latest transactions" list in the first tab of Drivechain-QT is actually
-	// a list of unconfirmed transactions!
-	ListUnconfirmedTransactions(context.Context, *connect.Request[v1.ListUnconfirmedTransactionsRequest]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
+	// Lists the ten most recent transactions, both confirmed and unconfirmed.
+	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
 	// Lists the ten most recent blocks, lightly populated with data.
 	ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error)
 	// Get basic blockchain info like height, last block time, peers etc.
@@ -86,10 +85,10 @@ type BitcoindServiceClient interface {
 func NewBitcoindServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BitcoindServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &bitcoindServiceClient{
-		listUnconfirmedTransactions: connect.NewClient[v1.ListUnconfirmedTransactionsRequest, v1.ListUnconfirmedTransactionsResponse](
+		listRecentTransactions: connect.NewClient[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse](
 			httpClient,
-			baseURL+BitcoindServiceListUnconfirmedTransactionsProcedure,
-			connect.WithSchema(bitcoindServiceListUnconfirmedTransactionsMethodDescriptor),
+			baseURL+BitcoindServiceListRecentTransactionsProcedure,
+			connect.WithSchema(bitcoindServiceListRecentTransactionsMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		listRecentBlocks: connect.NewClient[v1.ListRecentBlocksRequest, v1.ListRecentBlocksResponse](
@@ -121,16 +120,16 @@ func NewBitcoindServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // bitcoindServiceClient implements BitcoindServiceClient.
 type bitcoindServiceClient struct {
-	listUnconfirmedTransactions *connect.Client[v1.ListUnconfirmedTransactionsRequest, v1.ListUnconfirmedTransactionsResponse]
-	listRecentBlocks            *connect.Client[v1.ListRecentBlocksRequest, v1.ListRecentBlocksResponse]
-	getBlockchainInfo           *connect.Client[emptypb.Empty, v1.GetBlockchainInfoResponse]
-	listPeers                   *connect.Client[emptypb.Empty, v1.ListPeersResponse]
-	estimateSmartFee            *connect.Client[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse]
+	listRecentTransactions *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
+	listRecentBlocks       *connect.Client[v1.ListRecentBlocksRequest, v1.ListRecentBlocksResponse]
+	getBlockchainInfo      *connect.Client[emptypb.Empty, v1.GetBlockchainInfoResponse]
+	listPeers              *connect.Client[emptypb.Empty, v1.ListPeersResponse]
+	estimateSmartFee       *connect.Client[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse]
 }
 
-// ListUnconfirmedTransactions calls bitcoind.v1.BitcoindService.ListUnconfirmedTransactions.
-func (c *bitcoindServiceClient) ListUnconfirmedTransactions(ctx context.Context, req *connect.Request[v1.ListUnconfirmedTransactionsRequest]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error) {
-	return c.listUnconfirmedTransactions.CallUnary(ctx, req)
+// ListRecentTransactions calls bitcoind.v1.BitcoindService.ListRecentTransactions.
+func (c *bitcoindServiceClient) ListRecentTransactions(ctx context.Context, req *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error) {
+	return c.listRecentTransactions.CallUnary(ctx, req)
 }
 
 // ListRecentBlocks calls bitcoind.v1.BitcoindService.ListRecentBlocks.
@@ -155,9 +154,8 @@ func (c *bitcoindServiceClient) EstimateSmartFee(ctx context.Context, req *conne
 
 // BitcoindServiceHandler is an implementation of the bitcoind.v1.BitcoindService service.
 type BitcoindServiceHandler interface {
-	// The "latest transactions" list in the first tab of Drivechain-QT is actually
-	// a list of unconfirmed transactions!
-	ListUnconfirmedTransactions(context.Context, *connect.Request[v1.ListUnconfirmedTransactionsRequest]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error)
+	// Lists the ten most recent transactions, both confirmed and unconfirmed.
+	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
 	// Lists the ten most recent blocks, lightly populated with data.
 	ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error)
 	// Get basic blockchain info like height, last block time, peers etc.
@@ -174,10 +172,10 @@ type BitcoindServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	bitcoindServiceListUnconfirmedTransactionsHandler := connect.NewUnaryHandler(
-		BitcoindServiceListUnconfirmedTransactionsProcedure,
-		svc.ListUnconfirmedTransactions,
-		connect.WithSchema(bitcoindServiceListUnconfirmedTransactionsMethodDescriptor),
+	bitcoindServiceListRecentTransactionsHandler := connect.NewUnaryHandler(
+		BitcoindServiceListRecentTransactionsProcedure,
+		svc.ListRecentTransactions,
+		connect.WithSchema(bitcoindServiceListRecentTransactionsMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitcoindServiceListRecentBlocksHandler := connect.NewUnaryHandler(
@@ -206,8 +204,8 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 	)
 	return "/bitcoind.v1.BitcoindService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case BitcoindServiceListUnconfirmedTransactionsProcedure:
-			bitcoindServiceListUnconfirmedTransactionsHandler.ServeHTTP(w, r)
+		case BitcoindServiceListRecentTransactionsProcedure:
+			bitcoindServiceListRecentTransactionsHandler.ServeHTTP(w, r)
 		case BitcoindServiceListRecentBlocksProcedure:
 			bitcoindServiceListRecentBlocksHandler.ServeHTTP(w, r)
 		case BitcoindServiceGetBlockchainInfoProcedure:
@@ -225,8 +223,8 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 // UnimplementedBitcoindServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBitcoindServiceHandler struct{}
 
-func (UnimplementedBitcoindServiceHandler) ListUnconfirmedTransactions(context.Context, *connect.Request[v1.ListUnconfirmedTransactionsRequest]) (*connect.Response[v1.ListUnconfirmedTransactionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ListUnconfirmedTransactions is not implemented"))
+func (UnimplementedBitcoindServiceHandler) ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ListRecentTransactions is not implemented"))
 }
 
 func (UnimplementedBitcoindServiceHandler) ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error) {

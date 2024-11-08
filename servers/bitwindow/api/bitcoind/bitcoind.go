@@ -56,7 +56,7 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, err
 	}
 
-	p := pool.NewWithResults[*pb.ListRecentBlocksResponse_RecentBlock]().
+	p := pool.NewWithResults[*pb.Block]().
 		WithContext(ctx).
 		WithCancelOnError().
 		WithFirstError()
@@ -66,7 +66,7 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 	}
 
 	for i := range c.Msg.Count {
-		p.Go(func(ctx context.Context) (*pb.ListRecentBlocksResponse_RecentBlock, error) {
+		p.Go(func(ctx context.Context) (*pb.Block, error) {
 			height := info.Msg.Blocks - uint32(i)
 			hash, err := s.bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
 				Height: height,
@@ -83,7 +83,7 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 				return nil, fmt.Errorf("get block %s: %w", hash.Msg.Hash, err)
 			}
 
-			return &pb.ListRecentBlocksResponse_RecentBlock{
+			return &pb.Block{
 				BlockTime:   block.Msg.Time,
 				BlockHeight: block.Msg.Height,
 				Hash:        block.Msg.Hash,
@@ -96,7 +96,7 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, err
 	}
 
-	slices.SortFunc(blocks, func(a, b *pb.ListRecentBlocksResponse_RecentBlock) int {
+	slices.SortFunc(blocks, func(a, b *pb.Block) int {
 		return -cmp.Compare(a.BlockHeight, b.BlockHeight)
 	})
 
@@ -105,46 +105,156 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 	}), nil
 }
 
-// ListUnconfirmedTransactions implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) ListUnconfirmedTransactions(ctx context.Context, c *connect.Request[pb.ListUnconfirmedTransactionsRequest]) (*connect.Response[pb.ListUnconfirmedTransactionsResponse], error) {
-	res, err := s.bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
+// ListRecentTransactions implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[pb.ListRecentTransactionsRequest]) (*connect.Response[pb.ListRecentTransactionsResponse], error) {
+	// First get mempool transactions
+	mempoolRes, err := s.bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
 		Verbose: true,
 	}))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get mempool: %w", err)
 	}
 
-	var out []*pb.UnconfirmedTransaction
+	var transactions []*pb.RecentTransaction
 
-	for txid, tx := range res.Msg.Transactions {
+	// Add mempool transactions
+	for txid, tx := range mempoolRes.Msg.Transactions {
 		fee, err := btcutil.NewAmount(tx.Fees.Base)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not parse fee: %w", err)
 		}
 
-		out = append(out, &pb.UnconfirmedTransaction{
-			VirtualSize: tx.VirtualSize,
-			Weight:      tx.Weight,
-			Time:        tx.Time,
-			Txid:        txid,
-			FeeSatoshi:  uint64(fee),
+		transactions = append(transactions, &pb.RecentTransaction{
+			VirtualSize:      tx.VirtualSize,
+			Time:             tx.Time,
+			Txid:             txid,
+			FeeSatoshi:       uint64(fee),
+			ConfirmedInBlock: nil,
 		})
 	}
+	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("could not get blockchain info: %w", err)
+	}
 
-	slices.SortFunc(out, func(a, b *pb.UnconfirmedTransaction) int {
+	// Get block at latest height
+	blockHashRes, err := s.bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+		Hash:      info.Msg.BestBlockHash,
+		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("could not get block at height %d: %w", info.Msg.Blocks, err)
+	}
+
+	// Extract transactions from the 100 most recent blocks
+	currentHash := blockHashRes.Msg.Hash
+	for i := 0; i < 100 && currentHash != ""; i++ {
+		blockRes, err := s.bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+			Hash:      currentHash,
+			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO, // Get full transaction details
+		}))
+		if err != nil {
+			return nil, fmt.Errorf("could not get block: %w", err)
+		}
+		for _, txid := range blockRes.Msg.Txids {
+			// Get full transaction details
+			txRes, err := s.bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+				Txid: txid,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("could not get transaction %s: %w", txid, err)
+			}
+
+			recentTx, isCoinbase, err := s.recentTransactionFromRaw(ctx, txRes.Msg.Tx.Data)
+			if err != nil {
+				return nil, fmt.Errorf("could not get recent transaction: %w", err)
+			}
+
+			if isCoinbase {
+				continue
+			}
+
+			transactions = append(transactions, &pb.RecentTransaction{
+				Time:        blockRes.Msg.Time,
+				Txid:        txid,
+				FeeSatoshi:  recentTx.FeeSatoshi,
+				VirtualSize: recentTx.VirtualSize,
+				ConfirmedInBlock: &pb.Block{
+					BlockTime:   blockRes.Msg.Time,
+					BlockHeight: blockRes.Msg.Height,
+					Hash:        currentHash,
+				},
+			})
+		}
+
+		currentHash = blockRes.Msg.PreviousBlockHash
+	}
+
+	// Sort by time, newest first
+	slices.SortFunc(transactions, func(a, b *pb.RecentTransaction) int {
 		return cmp.Compare(b.Time.AsTime().Unix(), a.Time.AsTime().Unix())
 	})
 
+	// Limit to requested count
+	count := int64(100)
 	if c.Msg.Count > 0 {
-		if c.Msg.Count > int64(len(out)) {
-			c.Msg.Count = int64(len(out))
-		}
-		out = out[:c.Msg.Count]
+		count = c.Msg.Count
+	}
+	if count > int64(len(transactions)) {
+		count = int64(len(transactions))
+	}
+	transactions = transactions[:count]
+
+	return connect.NewResponse(&pb.ListRecentTransactionsResponse{
+		Transactions: transactions,
+	}), nil
+}
+func (s *Server) recentTransactionFromRaw(ctx context.Context, data []byte) (*pb.RecentTransaction, bool, error) {
+	tx, err := btcutil.NewTxFromBytes(data)
+	if err != nil {
+		return nil, false, fmt.Errorf("could not decode transaction hex: %w", err)
 	}
 
-	return connect.NewResponse(&pb.ListUnconfirmedTransactionsResponse{
-		UnconfirmedTransactions: out,
-	}), nil
+	// Check if coinbase, and skip input calculation if so
+	isCoinbase := len(tx.MsgTx().TxIn) > 0 && tx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
+	var fee int64
+	if !isCoinbase {
+		// Calculate total input value by looking up value of each input transaction
+		var totalIn int64
+		for _, txIn := range tx.MsgTx().TxIn {
+			prevTxRes, err := s.bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+				Txid: txIn.PreviousOutPoint.Hash.String(),
+			}))
+			if err != nil {
+				return nil, false, fmt.Errorf("could not get input transaction %s: %w", txIn.PreviousOutPoint.Hash.String(), err)
+			}
+
+			prevTx, err := btcutil.NewTxFromBytes(prevTxRes.Msg.Tx.Data)
+			if err != nil {
+				return nil, false, fmt.Errorf("could not decode input transaction: %w", err)
+			}
+
+			totalIn += prevTx.MsgTx().TxOut[txIn.PreviousOutPoint.Index].Value
+		}
+
+		// Calculate total output value
+		var totalOut int64
+		for _, txOut := range tx.MsgTx().TxOut {
+			totalOut += txOut.Value
+		}
+
+		// Calculate fee as the difference between inputs and outputs
+		fee = totalIn - totalOut
+		if fee < 0 {
+			return nil, false, fmt.Errorf("could not calculate fee: negative fee %d", fee)
+		}
+	}
+
+	return &pb.RecentTransaction{
+		VirtualSize: uint32(tx.MsgTx().SerializeSize()),
+		Txid:        tx.Hash().String(),
+		FeeSatoshi:  uint64(fee),
+	}, isCoinbase, nil
 }
 
 // GetBlockchainInfo implements drivechainv1connect.DrivechainServiceHandler.

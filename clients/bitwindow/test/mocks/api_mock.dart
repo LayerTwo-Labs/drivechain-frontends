@@ -44,10 +44,10 @@ class MockWalletAPI implements WalletAPI {
   @override
   Future<String> sendTransaction(
     String destination,
-    int amountSatoshi, [
+    int amountSatoshi, {
     double? btcPerKvB,
-    bool replaceByFee = false,
-  ]) async {
+    String? opReturnMessage,
+  }) async {
     return 'mock_txid';
   }
 
@@ -62,7 +62,7 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<List<Transaction>> listTransactions() async {
+  Future<List<WalletTransaction>> listTransactions() async {
     return [];
   }
 
@@ -84,12 +84,12 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<List<UnconfirmedTransaction>> listUnconfirmedTransactions() async {
+  Future<List<RecentTransaction>> listRecentTransactions() async {
     return [];
   }
 
   @override
-  Future<List<ListRecentBlocksResponse_RecentBlock>> listRecentBlocks() async {
+  Future<List<Block>> listRecentBlocks() async {
     return [];
   }
 

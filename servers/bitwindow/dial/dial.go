@@ -12,17 +12,18 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
 )
 
-// Enforcer creates a CUSF enforcer (validator) client.
-func Enforcer(ctx context.Context, url string) (rpc.ValidatorServiceClient, error) {
+// Enforcer creates a CUSF enforcer (validator & wallet) client.
+func Enforcer(ctx context.Context, url string) (
+	rpc.ValidatorServiceClient, rpc.WalletServiceClient, error,
+) {
 	start := time.Now()
 
 	if url == "" {
-		return nil, errors.New("empty validator url")
+		return nil, nil, errors.New("empty validator url")
 	}
 
 	// Use the provided context directly with grpc.NewClient
@@ -31,38 +32,45 @@ func Enforcer(ctx context.Context, url string) (rpc.ValidatorServiceClient, erro
 		fmt.Sprintf("http://%s", url),
 		connect.WithGRPC(),
 	)
-	var tip *connect.Response[pb.GetChainTipResponse]
-	var blockHash *chainhash.Hash
+	var tip *connect.Response[pb.GetChainInfoResponse]
 	var err error
 	for attempt := range 3 {
-		tip, err = client.GetChainTip(ctx, connect.NewRequest(&pb.GetChainTipRequest{}))
+		tip, err = client.GetChainInfo(ctx, connect.NewRequest(&pb.GetChainInfoRequest{}))
 		if err == nil {
-			blockHash, err = chainhash.NewHash([]byte(tip.Msg.BlockHeaderInfo.BlockHash.Hex.Value))
-			if err == nil {
-				break
-			}
+			break
 		}
 
 		sleepDuration := time.Second * time.Duration(attempt+1)
 		zerolog.Ctx(ctx).Info().
 			Int("attempt", attempt+1).
+			Str("network", tip.Msg.Network.String()).
 			Err(err).
-			Msgf("failed to get chain tip. trying again in %s", sleepDuration)
+			Msgf("failed to get chain info. trying again in %s", sleepDuration)
 		if attempt < 4 {
 			time.Sleep(sleepDuration)
 		}
 	}
 	if err != nil {
-		return client, fmt.Errorf("get mainchain tip and parse blockhash after 3 attempts: %w", err)
+		return nil, nil, fmt.Errorf("get chain info after 3 attempts: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Debug().
 		Stringer("duration", time.Since(start)).
 		Str("url", url).
-		Str("tip", blockHash.String()).
 		Msg("connected to enforcer")
 
-	return client, nil
+	walletClient := rpc.NewWalletServiceClient(
+		newInsecureClient(),
+		fmt.Sprintf("http://%s", url),
+		connect.WithGRPC(),
+	)
+
+	_, err = walletClient.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+	if err != nil {
+		return nil, nil, fmt.Errorf("get balance: %w", err)
+	}
+
+	return client, walletClient, nil
 }
 
 // https://connectrpc.com/docs/go/deployment/#h2c

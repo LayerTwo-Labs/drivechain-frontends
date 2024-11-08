@@ -305,11 +305,6 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
           ],
         ),
         const SizedBox(height: SailStyleValues.padding16),
-        SailCheckbox(
-          value: viewModel.replaceByFee,
-          onChanged: viewModel.setReplaceByFee,
-          label: 'Request Replace-By-Fee',
-        ),
       ],
     );
   }
@@ -329,7 +324,6 @@ class SendPageViewModel extends BaseViewModel {
   String feeType = 'recommended';
   int confirmationTarget = 2;
   bool useMinimumFee = false;
-  bool replaceByFee = false;
   Unit feeUnit = Unit.BTC;
   EstimateSmartFeeResponse feeEstimate = EstimateSmartFeeResponse();
 
@@ -433,10 +427,9 @@ class SendPageViewModel extends BaseViewModel {
         btcToSatoshi(
           double.parse(amountController.text) - (subtractFee ? feeRate : 0),
         ),
-        feeType == 'recommended' ? feeRate : double.parse(customFeeController.text),
-        replaceByFee,
+        btcPerKvB: feeType == 'recommended' ? feeRate : double.parse(customFeeController.text),
       );
-      Logger().d('Sent transaction: txid=$txid ');
+      Logger().d('Sent transaction: txid=$txid');
       if (context.mounted) {
         showSnackBar(context, 'Sent in txid=$txid');
       }
@@ -457,11 +450,6 @@ class SendPageViewModel extends BaseViewModel {
     if (useMinimumFee) {
       customFeeController.text = '10.00'; // Set to minimum fee
     }
-    notifyListeners();
-  }
-
-  void setReplaceByFee(bool? value) {
-    replaceByFee = value ?? false;
     notifyListeners();
   }
 
@@ -506,7 +494,6 @@ class SendPageViewModel extends BaseViewModel {
     feeType = 'recommended';
     confirmationTarget = 2;
     useMinimumFee = false;
-    replaceByFee = false;
     notifyListeners();
   }
 }
@@ -649,7 +636,7 @@ class TransactionsTab extends StatelessWidget {
 }
 
 class TransactionTable extends StatefulWidget {
-  final List<Transaction> entries;
+  final List<WalletTransaction> entries;
   final Widget searchWidget;
 
   const TransactionTable({
@@ -665,7 +652,7 @@ class TransactionTable extends StatefulWidget {
 class _TransactionTableState extends State<TransactionTable> {
   String sortColumn = 'conf';
   bool sortAscending = true;
-  List<Transaction> entries = [];
+  List<WalletTransaction> entries = [];
 
   @override
   void initState() {
@@ -806,7 +793,7 @@ class _TransactionTableState extends State<TransactionTable> {
 
 class AddressMenuViewModel extends BaseViewModel {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
-  List<Transaction> get entries => _txProvider.walletTransactions
+  List<WalletTransaction> get entries => _txProvider.walletTransactions
       .where(
         (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
       )
