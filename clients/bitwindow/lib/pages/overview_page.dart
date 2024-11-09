@@ -297,7 +297,9 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           SailTableCell(value: entry.feeSatoshi.toString()),
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
-          SailTableCell(value: entry.confirmedInBlock.blockHeight.toString()),
+          SailTableCell(
+            value: entry.confirmedInBlock.blockHeight == 0 ? '-' : entry.confirmedInBlock.blockHeight.toString(),
+          ),
         ];
       },
       rowCount: widget.entries.length,
@@ -894,6 +896,7 @@ class GraffittiTable extends StatelessWidget {
       headerBuilder: (context) => [
         SailTableHeaderCell(name: 'Fee', onSort: () => onSort('fee')),
         SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
+        SailTableHeaderCell(name: 'TXID', onSort: () => onSort('txid')),
         SailTableHeaderCell(name: 'Time', onSort: () => onSort('time')),
         SailTableHeaderCell(name: 'Height', onSort: () => onSort('height')),
       ],
@@ -902,12 +905,13 @@ class GraffittiTable extends StatelessWidget {
         return [
           SailTableCell(value: formatBitcoin(satoshiToBTC(entry.feeSatoshi.toInt()))),
           SailTableCell(value: entry.message),
+          SailTableCell(value: entry.txid),
           SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),
-          SailTableCell(value: entry.height.toString()),
+          SailTableCell(value: entry.height == 0 ? '-' : entry.height.toString()),
         ];
       },
       rowCount: entries.length,
-      columnWidths: const [150, 200, 250, 150],
+      columnWidths: const [100, 200, 250, 150, 100],
       onSort: (columnIndex, ascending) {
         onSort(['fee', 'message', 'time', 'height'][columnIndex]);
       },
