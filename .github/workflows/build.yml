@@ -162,41 +162,31 @@ jobs:
           if-no-files-found: error
           path: clients/${{ matrix.client }}/release/*
 
-  upload-artifacts-to-releases-drivechain-info:
-    name: Upload artifacts to releases.drivechain.info
-    runs-on: ubuntu-latest
-    needs: build
-    defaults:
-      run:
-        working-directory: clients
-    # avoid uploading on PRs
-    # prettier-ignore
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'LayerTwo-Labs'
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Rename and move artifacts
-        working-directory: .
+      - name: Prepare release binary
+        if: github.ref == 'refs/heads/master'
         run: |
-          # Testchain
-          mv sidesail-binaries-macOS-testchain/testsail-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-testchain/testsail-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip 
-          mv sidesail-binaries-Windows-testchain/testsail-win64.zip L2-S0-TestSail-latest-x86_64-pc-windows-msvc.zip
-          # ZCash
-          mv sidesail-binaries-macOS-zcash/zsail-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-zcash/zsail-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip 
-          # Ethereum
-          mv sidesail-binaries-macOS-ethereum/ethsail-osx64.zip L2-S6-EthSail-latest-x86_64-apple-darwin.zip 
-          mv sidesail-binaries-Linux-ethereum/ethsail-x86_64-linux-gnu.zip L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip
-          mv sidesail-binaries-Windows-ethereum/ethsail-win64.zip L2-S6-EthSail-latest-x86_64-pc-windows-msvc.zip
-
+          # TestSail
+          mv sidesail-binaries-macOS-testchain/testsail-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip 2>/dev/null || true
+          mv sidesail-binaries-Linux-testchain/testsail-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip 2>/dev/null || true
+          mv sidesail-binaries-Windows-testchain/testsail-win64.zip L2-S0-TestSail-latest-x86_64-pc-windows-msvc.zip 2>/dev/null || true
+          
+          # ZSail
+          mv sidesail-binaries-macOS-zcash/zsail-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip 2>/dev/null || true
+          mv sidesail-binaries-Linux-zcash/zsail-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip 2>/dev/null || true
+          mv sidesail-binaries-Windows-zcash/zsail-win64.zip L2-S5-ZSail-latest-x86_64-pc-windows-msvc.zip 2>/dev/null || true
+          
+          # EthSail
+          mv sidesail-binaries-macOS-ethereum/ethsail-osx64.zip L2-S6-EthSail-latest-x86_64-apple-darwin.zip 2>/dev/null || true
+          mv sidesail-binaries-Linux-ethereum/ethsail-x86_64-linux-gnu.zip L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip 2>/dev/null || true
+          mv sidesail-binaries-Windows-ethereum/ethsail-win64.zip L2-S6-EthSail-latest-x86_64-pc-windows-msvc.zip 2>/dev/null || true
+          
           # BitWindow
-          mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip
-          mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip
-          mv bitwindow-binaries-Windows/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip
+          mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip 2>/dev/null || true
+          mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip 2>/dev/null || true
+          mv bitwindow-binaries-Windows/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip 2>/dev/null || true
 
-      - name: Upload artifacts to releases.drivechain.info
+      - name: Upload to releases.drivechain.info
+        if: github.ref == 'refs/heads/master'
         uses: cross-the-world/ssh-scp-ssh-pipelines@latest
         with:
           host: 45.33.96.47
