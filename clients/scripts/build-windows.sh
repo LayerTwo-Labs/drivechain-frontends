@@ -21,11 +21,11 @@ cd $client_dir
 # nice with the Flutter caches. Do a proper clean
 # before building.
 clean_cmd="flutter clean"
-build_cmd="flutter build --verbose windows --dart-define-from-file=build-vars.env"
+build_cmd="flutter build windows --dart-define-from-file=build-vars.env"
 
-powershell.exe -Command "& {$clean_cmd; $build_cmd; exit \$LASTEXITCODE}"
+powershell.exe -Command "& {$clean_cmd; $build_cmd; exit}"
 
 zip_name=$lower_app_name-win64.zip
 mkdir -p release
 
-powershell.exe -Command "Compress-Archive -Force build\windows\x64\x64\Release\* release/$zip_name"
+powershell.exe -Command "Compress-Archive -Force build\windows\x64\runner\Release\* release/$zip_name"
