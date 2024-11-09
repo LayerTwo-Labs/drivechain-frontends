@@ -42,6 +42,9 @@ func (p *Parser) Run(ctx context.Context) error {
 	alertTicker := time.NewTicker(2 * time.Second)
 	defer alertTicker.Stop()
 
+	mempoolTicker := time.NewTicker(1 * time.Second)
+	defer mempoolTicker.Stop()
+
 	zerolog.Ctx(ctx).Info().
 		Msgf("bitcoind_engine/parser: starting parser ticker")
 
@@ -60,18 +63,26 @@ func (p *Parser) Run(ctx context.Context) error {
 
 			// nolint:ineffassign
 			processing = true
-			if err := p.handleTick(ctx); err != nil {
+			if err := p.handleBlockTick(ctx); err != nil {
 				zerolog.Ctx(ctx).Error().
 					Err(err).
 					Msgf("bitcoind_engine/parser: could not handle tick")
 				return err
 			}
 			processing = false
+
+		case <-mempoolTicker.C:
+			if err := p.handleMempoolTick(ctx); err != nil {
+				zerolog.Ctx(ctx).Error().
+					Err(err).
+					Msgf("bitcoind_engine/parser: could not handle mempool tick")
+				return err
+			}
 		}
 	}
 }
 
-func (p *Parser) handleTick(ctx context.Context) error {
+func (p *Parser) handleBlockTick(ctx context.Context) error {
 	if err := p.detectChainDeletion(ctx); err != nil {
 		return fmt.Errorf("detect chain deletion: %w", err)
 	}
@@ -110,6 +121,36 @@ func (p *Parser) handleTick(ctx context.Context) error {
 	return nil
 }
 
+func (p *Parser) handleMempoolTick(ctx context.Context) error {
+	mempoolRes, err := p.bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
+		Verbose: true,
+	}))
+	if err != nil {
+		return fmt.Errorf("could not get mempool: %w", err)
+	}
+
+	for txid, tx := range mempoolRes.Msg.Transactions {
+		if err := p.opReturnForTXID(ctx, txid, nil, tx.Time.AsTime()); err != nil {
+			return fmt.Errorf("find op return for txid: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (p *Parser) opReturnForTXID(ctx context.Context, txid string, height *int32, createdAt time.Time) error {
+	rawTx, err := p.getRawTransaction(ctx, txid)
+	if err != nil {
+		return fmt.Errorf("get raw transaction: %w", err)
+	}
+
+	if err := p.findAndPersistOPReturns(ctx, rawTx, height, createdAt); err != nil {
+		return fmt.Errorf("find and persist op returns: %w", err)
+	}
+
+	return nil
+}
+
 func (p *Parser) processBlock(ctx context.Context, height int32) error {
 	zerolog.Ctx(ctx).Info().
 		Int32("height", height).
@@ -120,14 +161,9 @@ func (p *Parser) processBlock(ctx context.Context, height int32) error {
 		return fmt.Errorf("get block: %w", err)
 	}
 
-	for _, tx := range block.Txids {
-		rawTx, err := p.getRawTransaction(ctx, tx)
-		if err != nil {
-			return fmt.Errorf("get raw transaction: %w", err)
-		}
-
-		if err := p.findAndPersistOPReturns(ctx, tx, rawTx, block); err != nil {
-			return fmt.Errorf("find and persist op returns: %w", err)
+	for _, txid := range block.Txids {
+		if err := p.opReturnForTXID(ctx, txid, &height, block.Time.AsTime()); err != nil {
+			return fmt.Errorf("process block: %w", err)
 		}
 	}
 
@@ -178,20 +214,22 @@ func (p *Parser) getRawTransaction(ctx context.Context, txid string) (*corepb.Ra
 	return resp.Msg.Tx, nil
 }
 
+// finds all OP_RETURN outputs for a specific tx, and persists them to the database
 func (p *Parser) findAndPersistOPReturns(
-	ctx context.Context, txid string, tx *corepb.RawTransaction, block *corepb.GetBlockResponse,
+	ctx context.Context, tx *corepb.RawTransaction, height *int32,
+	createdAt time.Time,
 ) error {
 	decodedTx, err := btcutil.NewTxFromBytes(tx.Data)
 	if err != nil {
 		return fmt.Errorf("could not decode raw transaction: %w", err)
 	}
+	txid := decodedTx.MsgTx().TxID()
 
 	isCoinbase := len(decodedTx.MsgTx().TxIn) > 0 && decodedTx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
 	// every coinbase transaction has a OP_RETURN output we don't care about
 	if isCoinbase && len(decodedTx.MsgTx().TxOut) == 2 {
 		zerolog.Ctx(ctx).Info().
 			Str("txid", txid).
-			Int32("height", int32(block.Height)).
 			Msgf("bitcoind_engine/parser: skipping coinbase transaction with no extra outputs")
 
 		return nil
@@ -207,7 +245,6 @@ func (p *Parser) findAndPersistOPReturns(
 		if isCoinbaseReturn {
 			zerolog.Ctx(ctx).Info().
 				Str("txid", txid).
-				Int32("height", int32(block.Height)).
 				Msgf("bitcoind_engine/parser: skipping coinbase OP_RETURN")
 			continue
 		}
@@ -245,11 +282,9 @@ func (p *Parser) findAndPersistOPReturns(
 				Str("data_hex", hex.EncodeToString(data)).
 				Str("data", opreturns.OPReturnToReadable(data)).
 				Str("txid", txid).
-				Int32("height", int32(block.Height)).
 				Msgf("bitcoind_engine/parser: found op_return")
 
-			height := int32(block.Height)
-			if err := opreturns.Persist(ctx, p.db, &height, txid, int32(vout), data, fee, block.Time.AsTime()); err != nil {
+			if err := opreturns.Persist(ctx, p.db, height, txid, int32(vout), data, fee, createdAt); err != nil {
 				return err
 			}
 		}
