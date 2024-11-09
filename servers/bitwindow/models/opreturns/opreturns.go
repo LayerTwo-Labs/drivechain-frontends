@@ -10,8 +10,8 @@ import (
 )
 
 func Persist(
-	ctx context.Context, db *sql.DB, height *int32, txid string, vout int32, data []byte,
-	feeSatoshi int64, createdAt time.Time,
+	ctx context.Context, db *sql.DB, height *int32, txid string, vout int32,
+	data []byte, feeSatoshi int64, createdAt time.Time,
 ) error {
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO op_returns (
@@ -48,6 +48,7 @@ func Select(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT id, txid, vout, op_return_data, fee_satoshi, height, created_at
 		FROM op_returns
+		ORDER BY created_at DESC
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("could not query op_returns: %w", err)
