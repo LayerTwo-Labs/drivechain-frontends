@@ -54,44 +54,49 @@ class ProcessProvider extends ChangeNotifier {
     List<String> args,
     Future<void> Function() cleanup,
   ) async {
-    if (Platform.isWindows) {
+    if (Platform.isWindows && !binary.endsWith('.exe')) {
       binary = '$binary.exe';
     }
-    // We're NOT looking up here based on platform and architecture. That is instead
-    // handled at app bundling time, where it's up the person/process cutting the
-    // release to place the appropriate binaries in the correct place.
-    final binResource = await DefaultAssetBundle.of(context).load(
-      // Assets don't operate with platform path separators, just /
-      'assets/bin/$binary',
-    );
 
-    final temp = await getTemporaryDirectory();
+    File file;
+    if (File(binary).existsSync()) {
+      // The file exists at the full path, just reference it and later run it directly
+      file = File(binary);
+    } else {
+      // We have received a raw binary, expected to be present in the asset bundle
+      // Attempt to load it from there, and write it to a temp directory we can run
+      // it from.
 
-    final ts = DateTime.now();
-    // Add a random element to the file path. Windows doesn't like
-    // it when two processes open the same file...
-    final randDir = Directory(
-      filePath([
-        temp.path,
-        // Add a random element to the file path. Windows doesn't like
-        // it when two processes open the same file...
-        ts.millisecondsSinceEpoch.toString(),
-      ]),
-    );
-    await randDir.create();
+      final binResource = await DefaultAssetBundle.of(context).load(
+        // Assets don't operate with platform path separators, just /
+        'assets/bin/$binary',
+      );
 
-    final file = File(
-      filePath([
-        randDir.path,
-        binary,
-      ]),
-    );
+      final temp = await getTemporaryDirectory();
+      final ts = DateTime.now();
+      final randDir = Directory(
+        filePath([
+          temp.path,
+          // Add a random element to the file path. Windows doesn't like
+          // it when two processes open the same file...
+          ts.millisecondsSinceEpoch.toString(),
+        ]),
+      );
+      await randDir.create();
 
-    // Have to convert the ByteData -> List<int>. https://stackoverflow.com/a/50121777
-    final buffer = binResource.buffer;
-    await file.writeAsBytes(
-      buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
-    );
+      file = File(
+        filePath([
+          randDir.path,
+          binary,
+        ]),
+      );
+
+      // Have to convert the ByteData -> List<int>. https://stackoverflow.com/a/50121777
+      final buffer = binResource.buffer;
+      await file.writeAsBytes(
+        buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
+      );
+    }
 
     // Windows doesn't do executable permissions, apparently
     if (!Platform.isWindows) {
@@ -107,7 +112,7 @@ class ProcessProvider extends ChangeNotifier {
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
     );
     runningProcesses[process.pid] = SailProcess(
-      binary: binary,
+      binary: binary.split(Platform.pathSeparator).last,
       pid: process.pid,
       cleanup: cleanup,
     );
