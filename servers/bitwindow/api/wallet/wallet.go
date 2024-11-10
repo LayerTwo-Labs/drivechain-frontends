@@ -151,7 +151,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 			}
 			return &pb.WalletTransaction{
 				Txid:             tx.Txid.Hex.String(),
-				FeeSatoshi:       tx.FeeSats,
+				FeeSats:          tx.FeeSats,
 				ReceivedSatoshi:  tx.ReceivedSats,
 				SentSatoshi:      tx.SentSats,
 				ConfirmationTime: confirmation,
