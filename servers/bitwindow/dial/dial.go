@@ -43,7 +43,6 @@ func Enforcer(ctx context.Context, url string) (
 		sleepDuration := time.Second * time.Duration(attempt+1)
 		zerolog.Ctx(ctx).Info().
 			Int("attempt", attempt+1).
-			Str("network", tip.Msg.Network.String()).
 			Err(err).
 			Msgf("failed to get chain info. trying again in %s", sleepDuration)
 		if attempt < 4 {
@@ -54,9 +53,10 @@ func Enforcer(ctx context.Context, url string) (
 		return nil, nil, fmt.Errorf("get chain info after 3 attempts: %w", err)
 	}
 
-	zerolog.Ctx(ctx).Debug().
+	zerolog.Ctx(ctx).Info().
 		Stringer("duration", time.Since(start)).
 		Str("url", url).
+		Str("network", tip.Msg.Network.String()).
 		Msg("connected to enforcer")
 
 	walletClient := rpc.NewWalletServiceClient(
