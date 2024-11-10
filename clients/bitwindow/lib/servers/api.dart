@@ -57,6 +57,10 @@ abstract class DrivechainAPI {
 
 abstract class MiscAPI {
   Future<List<OPReturn>> listOPReturns();
+  Future<List<CoinNews>> listCoinNews();
+  Future<List<Topic>> listTopics();
+  Future<CreateTopicResponse> createTopic(String topic, String name);
+  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline);
 }
 
 class APILive extends API {
@@ -325,6 +329,62 @@ class _MiscAPILive implements MiscAPI {
       return response.opReturns;
     } catch (e) {
       final error = 'could not list op returns: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline) async {
+    try {
+      final response = await _client.broadcastNews(
+        BroadcastNewsRequest()
+          ..topic = topic
+          ..headline = headline,
+      );
+      return response;
+    } catch (e) {
+      final error = 'could not broadcast news: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<CreateTopicResponse> createTopic(String topic, String name) async {
+    try {
+      final response = await _client.createTopic(
+        CreateTopicRequest()
+          ..topic = topic
+          ..name = name,
+      );
+      return response;
+    } catch (e) {
+      final error = 'could not create topic: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<List<CoinNews>> listCoinNews() async {
+    try {
+      final response = await _client.listCoinNews(ListCoinNewsRequest());
+      return response.coinNews;
+    } catch (e) {
+      final error = 'could not list coin news: ${extractGRPCError(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<List<Topic>> listTopics() async {
+    try {
+      final response = await _client.listTopics(Empty());
+      return response.topics;
+    } catch (e) {
+      final error = 'could not list topics: ${extractGRPCError(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
