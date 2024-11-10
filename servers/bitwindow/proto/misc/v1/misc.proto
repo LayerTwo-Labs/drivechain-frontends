@@ -7,6 +7,10 @@ import "google/protobuf/timestamp.proto";
 
 service MiscService {
   rpc ListOPReturn(google.protobuf.Empty) returns (ListOPReturnResponse);
+  rpc BroadcastNews(BroadcastNewsRequest) returns (BroadcastNewsResponse);
+  rpc CreateTopic(CreateTopicRequest) returns (CreateTopicResponse);
+  rpc ListTopics(google.protobuf.Empty) returns (ListTopicsResponse);
+  rpc ListCoinNews(ListCoinNewsRequest) returns (ListCoinNewsResponse);
 }
 
 message ListOPReturnResponse {
@@ -14,7 +18,7 @@ message ListOPReturnResponse {
 }
 
 message OPReturn {
-  string id = 1;
+  int64 id = 1;
   string message = 2;
   string txid = 3;
   int32 vout = 4;
@@ -22,4 +26,54 @@ message OPReturn {
   int64 fee_satoshi = 6;
 
   google.protobuf.Timestamp create_time = 7;
+}
+
+message BroadcastNewsRequest {
+  string topic = 1;
+  string headline = 2;
+  string content = 3;
+}
+
+message BroadcastNewsResponse {
+  string txid = 1;
+}
+
+message CreateTopicRequest {
+  string topic = 1;
+  string name = 2;
+}
+
+message CreateTopicResponse {
+  string txid = 1;
+}
+
+message Topic {
+  int64 id = 1;
+  string topic = 2;
+  string name = 3;
+
+  google.protobuf.Timestamp create_time = 4;
+}
+
+message ListTopicsResponse {
+  repeated Topic topics = 1;
+}
+
+message ListCoinNewsRequest {
+  // if set, only return news for this topic
+  optional string topic = 1;
+}
+
+message CoinNews {
+  int64 id = 1;
+  string topic = 2;
+  string headline = 3;
+  string content = 4;
+  int64 fee_sats = 5;
+
+  google.protobuf.Timestamp create_time = 6;
+}
+
+message ListCoinNewsResponse {
+  repeated CoinNews coin_news = 1;
 }

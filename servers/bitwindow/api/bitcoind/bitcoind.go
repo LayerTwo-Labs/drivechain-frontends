@@ -12,7 +12,6 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -263,14 +262,6 @@ func (s *Server) GetBlockchainInfo(ctx context.Context, c *connect.Request[empty
 	if err != nil {
 		return nil, err
 	}
-
-	zerolog.Ctx(ctx).Info().
-		Str("chain", info.Msg.Chain).
-		Int64("blocks", int64(info.Msg.Blocks)).
-		Int64("headers", int64(info.Msg.Headers)).
-		Str("bestBlockHash", info.Msg.BestBlockHash).
-		Bool("initialBlockDownload", info.Msg.InitialBlockDownload).
-		Msg("got blockchain info")
 
 	return connect.NewResponse(&pb.GetBlockchainInfoResponse{
 		Chain:                info.Msg.Chain,
