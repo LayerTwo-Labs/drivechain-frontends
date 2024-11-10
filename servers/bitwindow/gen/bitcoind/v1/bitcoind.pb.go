@@ -271,7 +271,7 @@ type RecentTransaction struct {
 	VirtualSize      uint32                 `protobuf:"varint,1,opt,name=virtual_size,json=virtualSize,proto3" json:"virtual_size,omitempty"`
 	Time             *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=time,proto3" json:"time,omitempty"`
 	Txid             string                 `protobuf:"bytes,3,opt,name=txid,proto3" json:"txid,omitempty"`
-	FeeSatoshi       uint64                 `protobuf:"varint,4,opt,name=fee_satoshi,json=feeSatoshi,proto3" json:"fee_satoshi,omitempty"`
+	FeeSats       uint64                 `protobuf:"varint,4,opt,name=fee_sats,json=feeSatoshi,proto3" json:"fee_sats,omitempty"`
 	ConfirmedInBlock *Block                 `protobuf:"bytes,5,opt,name=confirmed_in_block,json=confirmedInBlock,proto3,oneof" json:"confirmed_in_block,omitempty"`
 }
 
@@ -326,9 +326,9 @@ func (x *RecentTransaction) GetTxid() string {
 	return ""
 }
 
-func (x *RecentTransaction) GetFeeSatoshi() uint64 {
+func (x *RecentTransaction) GetFeeSats() uint64 {
 	if x != nil {
-		return x.FeeSatoshi
+		return x.FeeSats
 	}
 	return 0
 }

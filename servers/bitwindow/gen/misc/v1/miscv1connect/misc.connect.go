@@ -37,17 +37,35 @@ const (
 	// MiscServiceListOPReturnProcedure is the fully-qualified name of the MiscService's ListOPReturn
 	// RPC.
 	MiscServiceListOPReturnProcedure = "/misc.v1.MiscService/ListOPReturn"
+	// MiscServiceBroadcastNewsProcedure is the fully-qualified name of the MiscService's BroadcastNews
+	// RPC.
+	MiscServiceBroadcastNewsProcedure = "/misc.v1.MiscService/BroadcastNews"
+	// MiscServiceCreateTopicProcedure is the fully-qualified name of the MiscService's CreateTopic RPC.
+	MiscServiceCreateTopicProcedure = "/misc.v1.MiscService/CreateTopic"
+	// MiscServiceListTopicsProcedure is the fully-qualified name of the MiscService's ListTopics RPC.
+	MiscServiceListTopicsProcedure = "/misc.v1.MiscService/ListTopics"
+	// MiscServiceListCoinNewsProcedure is the fully-qualified name of the MiscService's ListCoinNews
+	// RPC.
+	MiscServiceListCoinNewsProcedure = "/misc.v1.MiscService/ListCoinNews"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	miscServiceServiceDescriptor            = v1.File_misc_v1_misc_proto.Services().ByName("MiscService")
-	miscServiceListOPReturnMethodDescriptor = miscServiceServiceDescriptor.Methods().ByName("ListOPReturn")
+	miscServiceServiceDescriptor             = v1.File_misc_v1_misc_proto.Services().ByName("MiscService")
+	miscServiceListOPReturnMethodDescriptor  = miscServiceServiceDescriptor.Methods().ByName("ListOPReturn")
+	miscServiceBroadcastNewsMethodDescriptor = miscServiceServiceDescriptor.Methods().ByName("BroadcastNews")
+	miscServiceCreateTopicMethodDescriptor   = miscServiceServiceDescriptor.Methods().ByName("CreateTopic")
+	miscServiceListTopicsMethodDescriptor    = miscServiceServiceDescriptor.Methods().ByName("ListTopics")
+	miscServiceListCoinNewsMethodDescriptor  = miscServiceServiceDescriptor.Methods().ByName("ListCoinNews")
 )
 
 // MiscServiceClient is a client for the misc.v1.MiscService service.
 type MiscServiceClient interface {
 	ListOPReturn(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error)
+	BroadcastNews(context.Context, *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error)
+	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
+	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
+	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
 }
 
 // NewMiscServiceClient constructs a client for the misc.v1.MiscService service. By default, it uses
@@ -66,12 +84,40 @@ func NewMiscServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(miscServiceListOPReturnMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		broadcastNews: connect.NewClient[v1.BroadcastNewsRequest, v1.BroadcastNewsResponse](
+			httpClient,
+			baseURL+MiscServiceBroadcastNewsProcedure,
+			connect.WithSchema(miscServiceBroadcastNewsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		createTopic: connect.NewClient[v1.CreateTopicRequest, v1.CreateTopicResponse](
+			httpClient,
+			baseURL+MiscServiceCreateTopicProcedure,
+			connect.WithSchema(miscServiceCreateTopicMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		listTopics: connect.NewClient[emptypb.Empty, v1.ListTopicsResponse](
+			httpClient,
+			baseURL+MiscServiceListTopicsProcedure,
+			connect.WithSchema(miscServiceListTopicsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		listCoinNews: connect.NewClient[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse](
+			httpClient,
+			baseURL+MiscServiceListCoinNewsProcedure,
+			connect.WithSchema(miscServiceListCoinNewsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // miscServiceClient implements MiscServiceClient.
 type miscServiceClient struct {
-	listOPReturn *connect.Client[emptypb.Empty, v1.ListOPReturnResponse]
+	listOPReturn  *connect.Client[emptypb.Empty, v1.ListOPReturnResponse]
+	broadcastNews *connect.Client[v1.BroadcastNewsRequest, v1.BroadcastNewsResponse]
+	createTopic   *connect.Client[v1.CreateTopicRequest, v1.CreateTopicResponse]
+	listTopics    *connect.Client[emptypb.Empty, v1.ListTopicsResponse]
+	listCoinNews  *connect.Client[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse]
 }
 
 // ListOPReturn calls misc.v1.MiscService.ListOPReturn.
@@ -79,9 +125,33 @@ func (c *miscServiceClient) ListOPReturn(ctx context.Context, req *connect.Reque
 	return c.listOPReturn.CallUnary(ctx, req)
 }
 
+// BroadcastNews calls misc.v1.MiscService.BroadcastNews.
+func (c *miscServiceClient) BroadcastNews(ctx context.Context, req *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error) {
+	return c.broadcastNews.CallUnary(ctx, req)
+}
+
+// CreateTopic calls misc.v1.MiscService.CreateTopic.
+func (c *miscServiceClient) CreateTopic(ctx context.Context, req *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error) {
+	return c.createTopic.CallUnary(ctx, req)
+}
+
+// ListTopics calls misc.v1.MiscService.ListTopics.
+func (c *miscServiceClient) ListTopics(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error) {
+	return c.listTopics.CallUnary(ctx, req)
+}
+
+// ListCoinNews calls misc.v1.MiscService.ListCoinNews.
+func (c *miscServiceClient) ListCoinNews(ctx context.Context, req *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error) {
+	return c.listCoinNews.CallUnary(ctx, req)
+}
+
 // MiscServiceHandler is an implementation of the misc.v1.MiscService service.
 type MiscServiceHandler interface {
 	ListOPReturn(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error)
+	BroadcastNews(context.Context, *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error)
+	CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error)
+	ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error)
+	ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error)
 }
 
 // NewMiscServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -96,10 +166,42 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(miscServiceListOPReturnMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	miscServiceBroadcastNewsHandler := connect.NewUnaryHandler(
+		MiscServiceBroadcastNewsProcedure,
+		svc.BroadcastNews,
+		connect.WithSchema(miscServiceBroadcastNewsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	miscServiceCreateTopicHandler := connect.NewUnaryHandler(
+		MiscServiceCreateTopicProcedure,
+		svc.CreateTopic,
+		connect.WithSchema(miscServiceCreateTopicMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	miscServiceListTopicsHandler := connect.NewUnaryHandler(
+		MiscServiceListTopicsProcedure,
+		svc.ListTopics,
+		connect.WithSchema(miscServiceListTopicsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	miscServiceListCoinNewsHandler := connect.NewUnaryHandler(
+		MiscServiceListCoinNewsProcedure,
+		svc.ListCoinNews,
+		connect.WithSchema(miscServiceListCoinNewsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/misc.v1.MiscService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MiscServiceListOPReturnProcedure:
 			miscServiceListOPReturnHandler.ServeHTTP(w, r)
+		case MiscServiceBroadcastNewsProcedure:
+			miscServiceBroadcastNewsHandler.ServeHTTP(w, r)
+		case MiscServiceCreateTopicProcedure:
+			miscServiceCreateTopicHandler.ServeHTTP(w, r)
+		case MiscServiceListTopicsProcedure:
+			miscServiceListTopicsHandler.ServeHTTP(w, r)
+		case MiscServiceListCoinNewsProcedure:
+			miscServiceListCoinNewsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -111,4 +213,20 @@ type UnimplementedMiscServiceHandler struct{}
 
 func (UnimplementedMiscServiceHandler) ListOPReturn(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListOPReturn is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) BroadcastNews(context.Context, *connect.Request[v1.BroadcastNewsRequest]) (*connect.Response[v1.BroadcastNewsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.BroadcastNews is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) CreateTopic(context.Context, *connect.Request[v1.CreateTopicRequest]) (*connect.Response[v1.CreateTopicResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.CreateTopic is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) ListTopics(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTopicsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListTopics is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) ListCoinNews(context.Context, *connect.Request[v1.ListCoinNewsRequest]) (*connect.Response[v1.ListCoinNewsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListCoinNews is not implemented"))
 }

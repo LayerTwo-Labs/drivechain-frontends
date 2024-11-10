@@ -342,7 +342,7 @@ type WalletTransaction struct {
 	unknownFields protoimpl.UnknownFields
 
 	Txid             string        `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
-	FeeSatoshi       uint64        `protobuf:"varint,2,opt,name=fee_satoshi,json=feeSatoshi,proto3" json:"fee_satoshi,omitempty"`
+	FeeSats       uint64        `protobuf:"varint,2,opt,name=fee_sats,json=feeSatoshi,proto3" json:"fee_sats,omitempty"`
 	ReceivedSatoshi  uint64        `protobuf:"varint,3,opt,name=received_satoshi,json=receivedSatoshi,proto3" json:"received_satoshi,omitempty"`
 	SentSatoshi      uint64        `protobuf:"varint,4,opt,name=sent_satoshi,json=sentSatoshi,proto3" json:"sent_satoshi,omitempty"`
 	ConfirmationTime *Confirmation `protobuf:"bytes,5,opt,name=confirmation_time,json=confirmationTime,proto3" json:"confirmation_time,omitempty"`
@@ -385,9 +385,9 @@ func (x *WalletTransaction) GetTxid() string {
 	return ""
 }
 
-func (x *WalletTransaction) GetFeeSatoshi() uint64 {
+func (x *WalletTransaction) GetFeeSats() uint64 {
 	if x != nil {
-		return x.FeeSatoshi
+		return x.FeeSats
 	}
 	return 0
 }

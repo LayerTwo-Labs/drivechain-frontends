@@ -50,7 +50,7 @@ func New(
 		ctx, bitcoind, wallet, enforcer, drivechainClient,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
-		bitcoind, database,
+		database, bitcoind, wallet,
 	)))
 
 	return srv, nil
