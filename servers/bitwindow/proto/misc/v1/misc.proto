@@ -23,7 +23,7 @@ message OPReturn {
   string txid = 3;
   int32 vout = 4;
   optional int32 height = 5;
-  int64 fee_satoshi = 6;
+  int64 fee_sats = 6;
 
   google.protobuf.Timestamp create_time = 7;
 }
@@ -31,7 +31,6 @@ message OPReturn {
 message BroadcastNewsRequest {
   string topic = 1;
   string headline = 2;
-  string content = 3;
 }
 
 message BroadcastNewsResponse {

@@ -127,7 +127,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 			VirtualSize:      tx.VirtualSize,
 			Time:             tx.Time,
 			Txid:             txid,
-			FeeSatoshi:       uint64(fee),
+			FeeSats:          uint64(fee),
 			ConfirmedInBlock: nil,
 		})
 	}
@@ -176,7 +176,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 			transactions = append(transactions, &pb.RecentTransaction{
 				Time:        blockRes.Msg.Time,
 				Txid:        txid,
-				FeeSatoshi:  recentTx.FeeSatoshi,
+				FeeSats:     recentTx.FeeSats,
 				VirtualSize: recentTx.VirtualSize,
 				ConfirmedInBlock: &pb.Block{
 					BlockTime:   blockRes.Msg.Time,
@@ -252,7 +252,7 @@ func (s *Server) recentTransactionFromRaw(ctx context.Context, data []byte) (*pb
 	return &pb.RecentTransaction{
 		VirtualSize: uint32(tx.MsgTx().SerializeSize()),
 		Txid:        tx.Hash().String(),
-		FeeSatoshi:  uint64(fee),
+		FeeSats:     uint64(fee),
 	}, isCoinbase, nil
 }
 

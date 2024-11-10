@@ -56,7 +56,7 @@ message Confirmation {
 message WalletTransaction {
   string txid = 1;
 
-  uint64 fee_satoshi = 2;
+  uint64 fee_sats = 2;
   uint64 received_satoshi = 3;
   uint64 sent_satoshi = 4;
 

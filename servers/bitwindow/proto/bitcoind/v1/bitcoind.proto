@@ -48,7 +48,7 @@ message RecentTransaction {
   uint32 virtual_size = 1;
   google.protobuf.Timestamp time = 2;
   string txid = 3;
-  uint64 fee_satoshi = 4;
+  uint64 fee_sats = 4;
   optional Block confirmed_in_block = 5;
 }
 
