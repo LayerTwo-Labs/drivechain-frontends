@@ -3,8 +3,10 @@ import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -406,21 +408,35 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
 }
 
 class CoinNewsViewModel extends ChangeNotifier {
-  String leftRegion = 'US';
-  String rightRegion = 'Japan';
-  final List<CoinNewsEntry> leftEntries = [];
-  final List<CoinNewsEntry> rightEntries = [];
+  final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
+  List<CoinNews> get leftEntries => _newsProvider.news.where((news) => news.topic == leftTopic.topic).toList();
+  List<CoinNews> get rightEntries => _newsProvider.news.where((news) => news.topic == rightTopic.topic).toList();
+
+  List<Topic> get topics => _newsProvider.topics;
 
   bool _sortAscending = true;
   String _sortColumn = 'date';
 
-  void setLeftRegion(String region) {
-    leftRegion = region;
+  Topic get _defaultLeftTopic => topics[0]; // US Weekly topic
+  Topic get _defaultRightTopic => topics[1]; // Japan Weekly topic
+
+  Topic? _leftTopic;
+  Topic? _rightTopic;
+
+  Topic get leftTopic => _leftTopic ?? _defaultLeftTopic;
+  Topic get rightTopic => _rightTopic ?? _defaultRightTopic;
+
+  CoinNewsViewModel() {
+    _newsProvider.addListener(notifyListeners);
+  }
+
+  void setLeftTopic(Topic topic) {
+    _leftTopic = topic;
     notifyListeners();
   }
 
-  void setRightRegion(String region) {
-    rightRegion = region;
+  void setRightTopic(Topic topic) {
+    _rightTopic = topic;
     notifyListeners();
   }
 
@@ -456,13 +472,16 @@ class CoinNewsView extends StatelessWidget {
                   bold: true,
                 ),
                 Expanded(child: Container()),
-                Opacity(
-                  opacity: 0,
-                  child: QtButton(
-                    label: 'Broadcast News',
-                    onPressed: () => displayBroadcastNewsDialog(context),
-                    size: ButtonSize.small,
-                  ),
+                QtButton(
+                  label: 'Broadcast News',
+                  onPressed: () => displayBroadcastNewsDialog(context),
+                  size: ButtonSize.small,
+                ),
+                QtButton(
+                  label: 'Create Topic',
+                  onPressed: () => displayCreateTopicDialog(context),
+                  size: ButtonSize.small,
+                  style: SailButtonStyle.secondary,
                 ),
                 QtButton(
                   label: 'Graffitti Explorer',
@@ -483,19 +502,17 @@ class CoinNewsView extends StatelessWidget {
                   spacing: SailStyleValues.padding16,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SailDropdownButton<String>(
+                    SailDropdownButton<Topic>(
                       items: [
-                        SailDropdownItem(
-                          value: 'US',
-                          child: SailText.primary12('US Weekly'),
-                        ),
-                        SailDropdownItem(
-                          value: 'Japan',
-                          child: SailText.primary12('Japan Weekly'),
+                        ...viewModel.topics.map(
+                          (topic) => SailDropdownItem(
+                            value: topic,
+                            child: SailText.primary12(topic.name),
+                          ),
                         ),
                       ],
-                      onChanged: viewModel.setLeftRegion,
-                      value: viewModel.leftRegion,
+                      onChanged: viewModel.setLeftTopic,
+                      value: viewModel.leftTopic,
                     ),
                     QtContainer(
                       child: SizedBox(
@@ -514,19 +531,17 @@ class CoinNewsView extends StatelessWidget {
                   spacing: SailStyleValues.padding16,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SailDropdownButton<String>(
+                    SailDropdownButton<Topic>(
                       items: [
-                        SailDropdownItem(
-                          value: 'Japan',
-                          child: SailText.primary12('Japan Weekly'),
-                        ),
-                        SailDropdownItem(
-                          value: 'US',
-                          child: SailText.primary12('US Weekly'),
+                        ...viewModel.topics.map(
+                          (topic) => SailDropdownItem(
+                            value: topic,
+                            child: SailText.primary12(topic.name),
+                          ),
                         ),
                       ],
-                      onChanged: viewModel.setRightRegion,
-                      value: viewModel.rightRegion,
+                      onChanged: viewModel.setRightTopic,
+                      value: viewModel.rightTopic,
                     ),
                     QtContainer(
                       child: SizedBox(
@@ -552,6 +567,14 @@ class CoinNewsView extends StatelessWidget {
       context: context,
       title: 'Broadcast News',
       child: BroadcastNewsView(),
+    );
+  }
+
+  Future<void> displayCreateTopicDialog(BuildContext context) async {
+    await widgetDialog(
+      context: context,
+      title: 'Create Topic',
+      child: CreateTopicView(),
     );
   }
 
@@ -581,22 +604,20 @@ class BroadcastNewsView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           leadingSpacing: true,
           children: [
-            SailDropdownButton<String>(
+            SailDropdownButton<Topic>(
               items: [
-                SailDropdownItem(
-                  value: 'US',
-                  child: SailText.primary12('US Weekly'),
-                ),
-                SailDropdownItem(
-                  value: 'Japan',
-                  child: SailText.primary12('Japan Weekly'),
+                ...viewModel.topics.map(
+                  (topic) => SailDropdownItem(
+                    value: topic,
+                    child: SailText.primary12(topic.name),
+                  ),
                 ),
               ],
-              onChanged: viewModel.setRegion,
-              value: viewModel.region,
+              onChanged: viewModel.setTopic,
+              value: viewModel.topic,
             ),
             SailTextField(
-              label: 'Headline (max 64 characters)',
+              label: 'Headline (max 72 characters)',
               controller: viewModel.headlineController,
               hintText: 'Enter a headline',
               size: TextFieldSize.small,
@@ -605,7 +626,7 @@ class BroadcastNewsView extends StatelessWidget {
               label: 'Broadcast',
               onPressed: () => viewModel.broadcastNews(context),
               size: ButtonSize.small,
-              disabled: viewModel.headlineController.text.isEmpty,
+              disabled: viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 72,
             ),
           ],
         );
@@ -615,17 +636,28 @@ class BroadcastNewsView extends StatelessWidget {
 }
 
 class BroadcastNewsViewModel extends BaseViewModel {
-  String _region = 'US';
-  String get region => _region;
+  final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
+  final API _api = GetIt.I.get<API>();
 
-  final TextEditingController headlineController = TextEditingController();
+  late Topic topic;
+
+  List<Topic> get topics => _newsProvider.topics;
 
   BroadcastNewsViewModel() {
+    topic = topics.isNotEmpty
+        ? topics[0]
+        : Topic(
+            id: Int64(1),
+            topic: 'US',
+            name: 'US Weekly',
+          );
     headlineController.addListener(notifyListeners);
   }
 
-  void setRegion(String newRegion) {
-    _region = newRegion;
+  final TextEditingController headlineController = TextEditingController();
+
+  void setTopic(Topic newTopic) {
+    topic = newTopic;
     notifyListeners();
   }
 
@@ -639,13 +671,113 @@ class BroadcastNewsViewModel extends BaseViewModel {
       return;
     }
 
-    showSnackBar(context, 'TODO: Actually broadcast the news');
+    try {
+      await _api.misc.broadcastNews(topic.topic, headlineController.text);
+      showSnackBar(context, 'news broadcast successfully!');
+    } catch (e) {
+      showSnackBar(context, 'could not broadcast news: $e');
+    }
   }
 
   @override
   void dispose() {
     headlineController.removeListener(notifyListeners);
     headlineController.dispose();
+    super.dispose();
+  }
+}
+
+class CreateTopicView extends StatelessWidget {
+  const CreateTopicView({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder<CreateTopicViewModel>.reactive(
+      viewModelBuilder: () => CreateTopicViewModel(),
+      builder: (context, viewModel, child) {
+        return SailColumn(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: SailStyleValues.padding16,
+          mainAxisSize: MainAxisSize.min,
+          leadingSpacing: true,
+          children: [
+            SailTextField(
+              label: 'Identifier (exactly 8 hex characters)',
+              controller: viewModel.identifierController,
+              hintText: 'Enter a hex-identifier',
+              size: TextFieldSize.small,
+            ),
+            SailTextField(
+              label: 'Name (max 20 characters)',
+              controller: viewModel.nameController,
+              hintText: 'Enter a name (e.g. "US Weekly")',
+              size: TextFieldSize.small,
+            ),
+            QtButton(
+              label: 'Create',
+              onPressed: () => viewModel.createTopic(context),
+              size: ButtonSize.small,
+              disabled: viewModel.identifierController.text.isEmpty ||
+                  viewModel.nameController.text.isEmpty ||
+                  viewModel.identifierController.text.length != 8,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class CreateTopicViewModel extends BaseViewModel {
+  final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
+  final API _api = GetIt.I.get<API>();
+
+  late Topic topic;
+
+  List<Topic> get topics => _newsProvider.topics;
+
+  final TextEditingController identifierController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+
+  CreateTopicViewModel() {
+    identifierController.addListener(notifyListeners);
+    nameController.addListener(notifyListeners);
+  }
+
+  Future<void> createTopic(BuildContext context) async {
+    if (identifierController.text.isEmpty || nameController.text.isEmpty) {
+      return;
+    }
+    if (identifierController.text.length != 8) {
+      showSnackBar(context, 'identifier must be exactly 8 characters');
+      return;
+    }
+    final hexRegex = RegExp(r'^[0-9A-Fa-f]+$');
+    if (!hexRegex.hasMatch(identifierController.text)) {
+      showSnackBar(context, 'identifier must contain only valid hex characters (0-9, A-F)');
+      return;
+    }
+    if (nameController.text.length > 20) {
+      showSnackBar(context, 'name must be 20 characters or less');
+      return;
+    }
+
+    try {
+      await _api.misc.createTopic(identifierController.text, nameController.text);
+      showSnackBar(context, 'topic created successfully!');
+    } catch (e) {
+      showSnackBar(context, 'could not create topic: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    identifierController.removeListener(notifyListeners);
+    identifierController.dispose();
+    nameController.removeListener(notifyListeners);
+    nameController.dispose();
     super.dispose();
   }
 }
@@ -725,7 +857,7 @@ class NewGraffittiViewModel extends BaseViewModel {
 }
 
 class CoinNewsTable extends StatelessWidget {
-  final List<CoinNewsEntry> entries;
+  final List<CoinNews> entries;
   final Function(String) onSort;
 
   const CoinNewsTable({
@@ -737,7 +869,7 @@ class CoinNewsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailTable(
-      getRowId: (index) => entries[index].id,
+      getRowId: (index) => entries[index].id.toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(name: 'Fee'),
         SailTableHeaderCell(name: 'Time'),
@@ -746,8 +878,8 @@ class CoinNewsTable extends StatelessWidget {
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
-          SailTableCell(value: entry.fe.toString()),
-          SailTableCell(value: entry.time.format()),
+          SailTableCell(value: entry.feeSats.toString()),
+          SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),
           SailTableCell(value: entry.headline),
         ];
       },
@@ -759,20 +891,6 @@ class CoinNewsTable extends StatelessWidget {
       },
     );
   }
-}
-
-class CoinNewsEntry {
-  final String id;
-  final num fe;
-  final DateTime time;
-  final String headline;
-
-  CoinNewsEntry({
-    required this.id,
-    required this.fe,
-    required this.time,
-    required this.headline,
-  });
 }
 
 class GraffittiExplorerView extends StatelessWidget {
@@ -848,8 +966,8 @@ class GraffittiExplorerViewModel extends BaseViewModel {
 
       switch (_sortColumn) {
         case 'fee':
-          aValue = a.feeSatoshi.toInt();
-          bValue = b.feeSatoshi.toInt();
+          aValue = a.feeSats.toInt();
+          bValue = b.feeSats.toInt();
           break;
         case 'message':
           aValue = a.message;
@@ -892,7 +1010,7 @@ class GraffittiTable extends StatelessWidget {
 
     return SailTable(
       backgroundColor: theme.colors.backgroundSecondary,
-      getRowId: (index) => entries[index].id,
+      getRowId: (index) => entries[index].id.toString(),
       headerBuilder: (context) => [
         SailTableHeaderCell(name: 'Fee', onSort: () => onSort('fee')),
         SailTableHeaderCell(name: 'Message', onSort: () => onSort('message')),
@@ -903,7 +1021,7 @@ class GraffittiTable extends StatelessWidget {
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
-          SailTableCell(value: formatBitcoin(satoshiToBTC(entry.feeSatoshi.toInt()))),
+          SailTableCell(value: formatBitcoin(satoshiToBTC(entry.feeSats.toInt()))),
           SailTableCell(value: entry.message),
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.createTime.toDateTime().toLocal().format()),

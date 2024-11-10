@@ -121,4 +121,24 @@ class MockMiscAPI implements MiscAPI {
   Future<List<OPReturn>> listOPReturns() async {
     return [];
   }
+
+  @override
+  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline) async {
+    return BroadcastNewsResponse();
+  }
+
+  @override
+  Future<CreateTopicResponse> createTopic(String topic, String name) async {
+    return CreateTopicResponse();
+  }
+
+  @override
+  Future<List<CoinNews>> listCoinNews() async {
+    return [];
+  }
+
+  @override
+  Future<List<Topic>> listTopics() async {
+    return [];
+  }
 }
