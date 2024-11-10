@@ -46,7 +46,7 @@ func (p *Parser) Run(ctx context.Context) error {
 	defer mempoolTicker.Stop()
 
 	zerolog.Ctx(ctx).Info().
-		Msgf("bitcoind_engine/parser: starting parser ticker")
+		Msgf("bitcoind_engine/parser: started parser ticker")
 
 	processing := false
 	for {
@@ -144,8 +144,52 @@ func (p *Parser) opReturnForTXID(ctx context.Context, txid string, height *int32
 		return fmt.Errorf("get raw transaction: %w", err)
 	}
 
-	if err := p.findAndPersistOPReturns(ctx, rawTx, height, createdAt); err != nil {
+	opReturns, err := p.findOPReturns(ctx, rawTx, height, createdAt)
+	if err != nil {
 		return fmt.Errorf("find and persist op returns: %w", err)
+	}
+
+	if err := p.persistOPReturns(ctx, opReturns); err != nil {
+		return fmt.Errorf("persist op returns: %w", err)
+	}
+
+	if err := p.handleCreateTopics(ctx, opReturns); err != nil {
+		return fmt.Errorf("handle create topics: %w", err)
+	}
+
+	return nil
+}
+
+func (p *Parser) persistOPReturns(ctx context.Context, opReturns []opreturns.OPReturn) error {
+	for _, opReturn := range opReturns {
+		if err := opreturns.Persist(ctx, p.db, opReturn.Height, opReturn.TxID, opReturn.Vout, opReturn.Data, opReturn.FeeSats, opReturn.CreatedAt); err != nil {
+			return fmt.Errorf("persist op return: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (p *Parser) handleCreateTopics(ctx context.Context, opReturns []opreturns.OPReturn) error {
+	for _, opReturn := range opReturns {
+		if opreturns.IsCreateTopic(opReturn.Data) {
+			zerolog.Ctx(ctx).Info().
+				Str("txid", opReturn.TxID).
+				Msgf("bitcoind_engine/parser: found create topic")
+
+			name, err := opreturns.NameFromCreateTopic(opReturn.Data)
+			if err != nil {
+				return fmt.Errorf("extract name from create topic: %w", err)
+			}
+
+			if err := opreturns.CreateTopic(ctx, p.db, string(opReturn.Data[:8]), name, opReturn.TxID); err != nil {
+				return fmt.Errorf("create topic: %w", err)
+			}
+
+			zerolog.Ctx(ctx).Info().
+				Str("txid", opReturn.TxID).
+				Msgf("bitcoind_engine/parser: created topic")
+		}
 	}
 
 	return nil
@@ -171,7 +215,7 @@ func (p *Parser) processBlock(ctx context.Context, height int32) error {
 		return fmt.Errorf("mark block processed: %w", err)
 	}
 
-	zerolog.Ctx(ctx).Info().
+	zerolog.Ctx(ctx).Trace().
 		Int32("height", height).
 		Msgf("bitcoind_engine/parser: processed block")
 
@@ -214,14 +258,14 @@ func (p *Parser) getRawTransaction(ctx context.Context, txid string) (*corepb.Ra
 	return resp.Msg.Tx, nil
 }
 
-// finds all OP_RETURN outputs for a specific tx, and persists them to the database
-func (p *Parser) findAndPersistOPReturns(
+// finds all OP_RETURN outputs for a specific tx
+func (p *Parser) findOPReturns(
 	ctx context.Context, tx *corepb.RawTransaction, height *int32,
 	createdAt time.Time,
-) error {
+) ([]opreturns.OPReturn, error) {
 	decodedTx, err := btcutil.NewTxFromBytes(tx.Data)
 	if err != nil {
-		return fmt.Errorf("could not decode raw transaction: %w", err)
+		return nil, fmt.Errorf("could not decode raw transaction: %w", err)
 	}
 	txid := decodedTx.MsgTx().TxID()
 
@@ -232,9 +276,10 @@ func (p *Parser) findAndPersistOPReturns(
 			Str("txid", txid).
 			Msgf("bitcoind_engine/parser: skipping coinbase transaction with no extra outputs")
 
-		return nil
+		return nil, nil
 	}
 
+	var opReturns []opreturns.OPReturn
 	for vout, txout := range decodedTx.MsgTx().TxOut {
 		if len(txout.PkScript) < 2 {
 			continue
@@ -259,11 +304,11 @@ func (p *Parser) findAndPersistOPReturns(
 				// Get the previous transaction to find the output amount
 				prevTx, err := p.getRawTransaction(ctx, txin.PreviousOutPoint.Hash.String())
 				if err != nil {
-					return fmt.Errorf("could not get previous transaction: %w", err)
+					return nil, fmt.Errorf("could not get previous transaction: %w", err)
 				}
 				prevDecodedTx, err := btcutil.NewTxFromBytes(prevTx.Data)
 				if err != nil {
-					return fmt.Errorf("could not decode previous transaction: %w", err)
+					return nil, fmt.Errorf("could not decode previous transaction: %w", err)
 				}
 				inputSum += prevDecodedTx.MsgTx().TxOut[txin.PreviousOutPoint.Index].Value
 			}
@@ -284,13 +329,18 @@ func (p *Parser) findAndPersistOPReturns(
 				Str("txid", txid).
 				Msgf("bitcoind_engine/parser: found op_return")
 
-			if err := opreturns.Persist(ctx, p.db, height, txid, int32(vout), data, fee, createdAt); err != nil {
-				return err
-			}
+			opReturns = append(opReturns, opreturns.OPReturn{
+				TxID:      txid,
+				Data:      txout.PkScript[2:],
+				FeeSats:   fee,
+				Vout:      int32(vout),
+				Height:    height,
+				CreatedAt: createdAt,
+			})
 		}
 	}
 
-	return nil
+	return opReturns, nil
 }
 
 // detectChainDeletion checks if the hash of block at height 1 differs
