@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/drivechain"
@@ -86,24 +85,16 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: satoshiPerVByte},
 		}
 	}
-
 	// encode the message as hex!
-	var message *commonv1.Hex
+	var message string
 	if c.Msg.OpReturnMessage != nil {
-		// must actually be hex encoded
-		hexString := *c.Msg.OpReturnMessage
-		if !strings.HasPrefix(hexString, "0x") {
-			// a raw message. Encode it!
-			hexString = string(*c.Msg.OpReturnMessage)
-		}
-
-		message = &commonv1.Hex{Hex: &wrapperspb.StringValue{Value: hexString}}
+		message = string(*c.Msg.OpReturnMessage)
 	}
 
 	created, err := s.wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
 		Destinations:    destinations,
 		FeeRate:         feeRate,
-		OpReturnMessage: message,
+		OpReturnMessage: []byte(message),
 	}))
 	if err != nil {
 		return nil, err
@@ -114,7 +105,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	return connect.NewResponse(&pb.SendTransactionResponse{
 		Txid: created.Msg.Txid.Hex.String(),
 	}), nil
-
 }
 
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
