@@ -605,10 +605,10 @@ packages:
     dependency: "direct main"
     description:
       name: money2
-      sha256: "9a71b32cfa26dff236330de8da04bf9f3851cc5ee9fcae6930b6cedefd68bb92"
+      sha256: cea51e7cb93548cfaab4b4b4c61cb0faf21d3eb719110bbb76877f63f1da8011
       url: "https://pub.dev"
     source: hosted
-    version: "5.3.0"
+    version: "5.4.0"
   nested:
     dependency: transitive
     description:
