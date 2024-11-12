@@ -13,7 +13,7 @@ platform=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
 case "$platform" in 
     "windows")
-    version_postfix=w64-mingw32
+    version_postfix=w64-msvc
     enforcer_version_postfix=pc-windows-gnu
     bin_name_postfix=.exe
     unpack_cmd="unzip"
