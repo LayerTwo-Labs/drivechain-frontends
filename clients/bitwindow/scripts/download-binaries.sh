@@ -69,9 +69,14 @@ if ! test -f $assets_dir/$drivechain; then
     echo unpacking: $unpack_cmd $drivechain_file
     $unpack_cmd $drivechain_file
 
+    drivechain_path="L1-bitcoin-patched-latest-x86_64-$version_postfix"
+    if [ "$platform" = "windows" ]; then
+        drivechain_path="$drivechain_path/Release"
+    fi
+
     for file in $drivechain $drivechain_cli; do 
-        mv L1-bitcoin-patched-latest-x86_64-$version_postfix/$file $assets_dir/$file
-        chmod +x $assets_dir/$file
+        mv "$drivechain_path/$file" "$assets_dir/$file"
+        chmod +x "$assets_dir/$file"
     done
 fi 
 enforcer=bip300301_enforcer$bin_name_postfix
