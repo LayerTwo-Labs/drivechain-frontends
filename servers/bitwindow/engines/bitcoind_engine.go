@@ -84,7 +84,10 @@ func (p *Parser) Run(ctx context.Context) error {
 
 func (p *Parser) handleBlockTick(ctx context.Context) error {
 	if err := p.detectChainDeletion(ctx); err != nil {
-		return fmt.Errorf("detect chain deletion: %w", err)
+		zerolog.Ctx(ctx).Error().
+			Err(err).
+			Msgf("bitcoind_engine/parser: could not detect chain deletion")
+		return nil
 	}
 
 	// Get latest processed height
