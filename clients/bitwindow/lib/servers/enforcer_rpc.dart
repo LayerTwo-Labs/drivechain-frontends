@@ -36,10 +36,15 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
+    var host = mainchainConf.host;
+    if (host == 'localhost') {
+      host = '0.0.0.0';
+    }
+
     return [
       '--node-rpc-pass=${mainchainConf.password}',
       '--node-rpc-user=${mainchainConf.username}',
-      '--node-rpc-addr=${mainchainConf.host}:${mainchainConf.port}',
+      '--node-rpc-addr=$host:${mainchainConf.port}',
       '--node-zmq-addr-sequence=tcp://0.0.0.0:29000',
       '--enable-wallet',
     ];
