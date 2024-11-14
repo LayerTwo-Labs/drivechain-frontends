@@ -99,8 +99,6 @@ func realMain(ctx context.Context) error {
 	enforcer, wallet, err := dial.Enforcer(ctx, conf.EnforcerHost)
 	if err != nil {
 		log.Error().Err(err).Msg("connect to enforcer")
-		// enforcer does not work right now, but we still want to test
-		// the rest of the server
 	}
 
 	log.Info().Msgf("blockchain info: %s", info.Msg.String())

@@ -32,25 +32,12 @@ func Enforcer(ctx context.Context, url string) (
 		fmt.Sprintf("http://%s", url),
 		connect.WithGRPC(),
 	)
-	var tip *connect.Response[pb.GetChainInfoResponse]
-	var err error
-	for attempt := range 3 {
-		tip, err = client.GetChainInfo(ctx, connect.NewRequest(&pb.GetChainInfoRequest{}))
-		if err == nil {
-			break
-		}
-
-		sleepDuration := time.Second * time.Duration(attempt+1)
-		zerolog.Ctx(ctx).Info().
-			Int("attempt", attempt+1).
-			Err(err).
-			Msgf("failed to get chain info. trying again in %s", sleepDuration)
-		if attempt < 4 {
-			time.Sleep(sleepDuration)
-		}
-	}
+	tip, err := client.GetChainInfo(ctx, connect.NewRequest(&pb.GetChainInfoRequest{}))
 	if err != nil {
-		return nil, nil, fmt.Errorf("get chain info after 3 attempts: %w", err)
+		zerolog.Ctx(ctx).Info().
+			Err(err).
+			Msg("failed to get chain info")
+		return nil, nil, fmt.Errorf("get chain info: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().
