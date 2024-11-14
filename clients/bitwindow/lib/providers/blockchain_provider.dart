@@ -45,14 +45,12 @@ class BlockchainProvider extends ChangeNotifier {
     try {
       final newPeers = await api.bitcoind.listPeers();
       final newTXs = await api.bitcoind.listRecentTransactions();
-      final newBlockchainInfo = await api.bitcoind.getBlockchainInfo();
       final newRecentBlocks = await api.bitcoind.listRecentBlocks();
       final newOPReturns = await api.misc.listOPReturns();
 
-      if (_dataHasChanged(newPeers, newTXs, newBlockchainInfo, newRecentBlocks, newOPReturns)) {
+      if (_dataHasChanged(newPeers, newTXs, newRecentBlocks, newOPReturns)) {
         peers = newPeers;
         recentTransactions = newTXs;
-        blockchainInfo = newBlockchainInfo;
         recentBlocks = newRecentBlocks;
         opReturns = newOPReturns;
         error = null;
@@ -69,7 +67,6 @@ class BlockchainProvider extends ChangeNotifier {
   bool _dataHasChanged(
     List<Peer> newPeers,
     List<RecentTransaction> newTXs,
-    GetBlockchainInfoResponse newBlockchainInfo,
     List<Block> newRecentBlocks,
     List<OPReturn> newOPReturns,
   ) {
@@ -85,10 +82,6 @@ class BlockchainProvider extends ChangeNotifier {
       return true;
     }
 
-    if (blockchainInfo.toProto3Json() != newBlockchainInfo.toProto3Json()) {
-      return true;
-    }
-
     if (!listEquals(opReturns, newOPReturns)) {
       return true;
     }
@@ -96,8 +89,17 @@ class BlockchainProvider extends ChangeNotifier {
     return false;
   }
 
+  void _fetchBlockchainInfo() async {
+    final newBlockchainInfo = await api.bitcoind.getBlockchainInfo();
+    blockchainInfo = newBlockchainInfo;
+    notifyListeners();
+  }
+
   void _startFetchTimer() {
-    _fetchTimer = Timer.periodic(const Duration(seconds: 5), (_) => fetch());
+    _fetchTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      fetch();
+      _fetchBlockchainInfo();
+    });
   }
 
   @override
