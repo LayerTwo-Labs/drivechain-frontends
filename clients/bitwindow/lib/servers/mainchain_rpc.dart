@@ -70,9 +70,8 @@ class MainchainRPCLive extends MainchainRPC {
     while (inIBD) {
       try {
         final info = await getBlockchainInfo();
-        // if block height is 0, the node might have not synced headers yet, and believe
-        // height 1 is the current best height
-        inIBD = (info.initialBlockDownload || info.headers <= 1) && (info.headers > 0 && info.blocks != info.headers);
+        // if block height is small, the node have probably not synced headers yet
+        inIBD = info.blocks <= 10;
 
         // Log height every 10 seconds
         if (DateTime.now().difference(lastLogTime).inSeconds >= 10) {

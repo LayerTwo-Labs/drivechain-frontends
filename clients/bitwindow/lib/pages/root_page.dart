@@ -234,7 +234,8 @@ class _StatusBarState extends State<StatusBar> {
     await widgetDialog(
       context: context,
       title: 'Daemon Status',
-      subtitle: "You can use BitWindow without the enforcer, but it's not that interesting.",
+      subtitle:
+          "You can use BitWindow without the enforcer, but it's not that interesting because the wallet does not work.",
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => BottomNavViewModel(),
         builder: ((context, model, child) {

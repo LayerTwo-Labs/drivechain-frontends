@@ -170,9 +170,12 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.i('init binaries: waiting for $binary connection');
 
-    await _startConnectionTimer();
-    // zcash can take a long time. initial sync as well
-    const timeout = Duration(seconds: 5 * 60);
+    await startConnectionTimer();
+    var timeout = Duration(seconds: 3);
+    if (binary == 'zsided') {
+      // zcash can take a long time. initial sync as well
+      timeout = Duration(seconds: 5 * 60);
+    }
     try {
       await Future.any([
         // Happy case: able to connect. we start a poller at the
@@ -231,9 +234,9 @@ abstract class RPCConnection extends ChangeNotifier {
 
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the connection drops/begins
-  Timer? _connectionTimer;
-  Future<void> _startConnectionTimer() async {
-    _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+  Timer? connectionTimer;
+  Future<void> startConnectionTimer() async {
+    connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();
     });
   }
@@ -241,7 +244,7 @@ abstract class RPCConnection extends ChangeNotifier {
   @override
   void dispose() {
     super.dispose();
-    _connectionTimer?.cancel();
+    connectionTimer?.cancel();
   }
 }
 
