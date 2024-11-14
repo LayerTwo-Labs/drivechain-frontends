@@ -28,13 +28,12 @@ var _ rpc.WalletServiceHandler = new(Server)
 // New creates a new Server and starts the balance update loop
 func New(
 	ctx context.Context, bitcoind *coreproxy.Bitcoind, wallet validatorrpc.WalletServiceClient,
-	enforcer validatorrpc.ValidatorServiceClient, drivechain drivechainrpc.DrivechainServiceClient,
+	drivechain drivechainrpc.DrivechainServiceClient,
 
 ) *Server {
 	s := &Server{
 		bitcoind:   bitcoind,
 		wallet:     wallet,
-		enforcer:   enforcer,
 		drivechain: drivechain,
 	}
 	return s
@@ -43,12 +42,15 @@ func New(
 type Server struct {
 	bitcoind   *coreproxy.Bitcoind
 	wallet     validatorrpc.WalletServiceClient
-	enforcer   validatorrpc.ValidatorServiceClient
 	drivechain drivechainrpc.DrivechainServiceClient
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
+	if s.wallet == nil {
+		return nil, errors.New("wallet not connected")
+	}
+
 	if len(c.Msg.Destinations) == 0 {
 		err := errors.New("must provide at least one destination")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -109,6 +111,10 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNewAddressResponse], error) {
+	if s.wallet == nil {
+		return nil, errors.New("wallet not connected")
+	}
+
 	address, err := s.wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
 	if err != nil {
 		return nil, err
@@ -121,6 +127,9 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.E
 
 // GetBalance implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBalanceResponse], error) {
+	if s.wallet == nil {
+		return nil, errors.New("wallet not connected")
+	}
 
 	balance, err := s.wallet.GetBalance(ctx, connect.NewRequest(&validatorpb.GetBalanceRequest{}))
 	if err != nil {
@@ -135,6 +144,10 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empt
 
 // ListTransactions implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListTransactionsResponse], error) {
+	if s.wallet == nil {
+		return nil, errors.New("wallet not connected")
+	}
+
 	txs, err := s.wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
 	if err != nil {
 		return nil, err
@@ -164,6 +177,9 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
+	if s.wallet == nil {
+		return nil, errors.New("wallet not connected")
+	}
 
 	// TODO: Call ListSidechainDeposits with the CUSF-wallet here
 	type Deposit struct {
@@ -213,6 +229,10 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	if s.wallet == nil {
+		return nil, errors.New("wallet not connected")
+	}
+
 	slot, depositAddress, _, err := drivechain.DecodeDepositAddress(c.Msg.Destination)
 	if err != nil {
 		return nil, fmt.Errorf("invalid deposit address: %w", err)

@@ -2,6 +2,7 @@ package api_drivechain
 
 import (
 	"context"
+	"errors"
 
 	"connectrpc.com/connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
@@ -35,6 +36,10 @@ type Server struct {
 
 // ListSidechainProposals implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[pb.ListSidechainProposalsRequest]) (*connect.Response[pb.ListSidechainProposalsResponse], error) {
+	if s.enforcer == nil {
+		return nil, errors.New("enforcer not connected")
+	}
+
 	sidechainProposals, err := s.enforcer.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
 	if err != nil {
 		return nil, err
@@ -57,6 +62,10 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 
 // ListSidechains implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
+	if s.enforcer == nil {
+		return nil, errors.New("enforcer not connected")
+	}
+
 	sidechains, err := s.enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
 	if err != nil {
 		return nil, err
