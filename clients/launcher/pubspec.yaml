@@ -23,7 +23,7 @@ dependencies:
   grpc: ^4.0.1
   sail_ui:
     path: ../sail_ui
-  logger: ^2.4.0
+  logger: ^2.5.0
   google_fonts: ^6.2.1
   auto_route: ^9.2.2
   fixnum: ^1.1.1
