@@ -126,7 +126,6 @@ class BottomNavViewModel extends BaseViewModel {
     await widgetDialog(
       context: context,
       title: 'Daemon status',
-      maxWidth: 566,
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => BottomNavViewModel(navigateToSettings: navigateToSettings),
         builder: ((context, model, child) {
@@ -134,25 +133,20 @@ class BottomNavViewModel extends BaseViewModel {
             spacing: SailStyleValues.padding20,
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const SailSpacing(SailStyleValues.padding08),
               if (!_mainRPC.connected || !_sideRPC.rpc.connected)
                 SailText.secondary12('You cannot use ${_sideRPC.rpc.chain.name} until nodes are connected'),
-              SailRow(
-                spacing: SailStyleValues.padding12,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DaemonConnectionCard(
-                    connection: _mainRPC,
-                    restartDaemon: () => initMainchainBinary(context),
-                    infoMessage: null,
-                  ),
-                  DaemonConnectionCard(
-                    connection: _sideRPC.rpc,
-                    infoMessage: _mainRPC.inIBD ? 'Waiting for L1 initial block download to complete...' : null,
-                    restartDaemon: () => initSidechainBinary(context),
-                  ),
-                ],
+              DaemonConnectionCard(
+                connection: _mainRPC,
+                restartDaemon: () => initMainchainBinary(context),
+                infoMessage: null,
+              ),
+              DaemonConnectionCard(
+                connection: _sideRPC.rpc,
+                infoMessage: _mainRPC.inIBD ? 'Waiting for L1 initial block download to complete...' : null,
+                restartDaemon: () => initSidechainBinary(context),
               ),
               const SailSpacing(SailStyleValues.padding10),
               SailRow(

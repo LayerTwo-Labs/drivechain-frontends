@@ -673,6 +673,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
 
     try {
       await _api.misc.broadcastNews(topic.topic, headlineController.text);
+      if (!context.mounted) return;
       showSnackBar(context, 'news broadcast successfully!');
     } catch (e) {
       showSnackBar(context, 'could not broadcast news: $e');
@@ -766,6 +767,7 @@ class CreateTopicViewModel extends BaseViewModel {
 
     try {
       await _api.misc.createTopic(identifierController.text, nameController.text);
+      if (!context.mounted) return;
       showSnackBar(context, 'topic created successfully!');
     } catch (e) {
       showSnackBar(context, 'could not create topic: $e');
