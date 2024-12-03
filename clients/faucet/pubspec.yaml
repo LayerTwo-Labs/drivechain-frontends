@@ -22,7 +22,7 @@ dependencies:
   get_it: ^7.7.0
   logger: ^2.3.0
   http: ^1.2.1
-  intl: ^0.19.0
+  intl: ^0.20.1
   shared_preferences: ^2.2.3
   protobuf: ^3.1.0
   meta: ^1.15.0
