@@ -109,26 +109,31 @@ class _HomePageState extends State<HomePage> {
         homeIndex: Tabs.ParentChainPeg.index,
         routes: routes,
         builder: (context, children, tabsRouter) {
-          return TopNav(
-            child: Stack(
-              children: [
-                children[tabsRouter.activeIndex],
-                ValueListenableBuilder<List<Widget>>(
-                  valueListenable: notificationsNotifier,
-                  builder: (context, val, child) {
-                    return Positioned(
-                      bottom: 10,
-                      right: 10,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: val,
-                      ),
-                    );
+          return Scaffold(
+            backgroundColor: theme.colors.background,
+            appBar: PreferredSize(
+              preferredSize: const Size.fromHeight(80),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colors.background,
+                ),
+                child: Builder(
+                  builder: (context) {
+                    final tabsRouter = AutoTabsRouter.of(context);
+                    return TopNav(tabsRouter: tabsRouter);
                   },
                 ),
-                BottomNav(
-                  navigateToSettings: () => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
+              ),
+            ),
+            body: Column(
+              children: [
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Colors.grey,
                 ),
+                Expanded(child: children[tabsRouter.activeIndex]),
+                BottomNav(navigateToSettings: () => tabsRouter.setActiveIndex(Tabs.SettingsHome.index)),
               ],
             ),
           );
@@ -153,7 +158,6 @@ class _HomePageState extends State<HomePage> {
         context: context,
         title: 'Shutdown status',
         subtitle: 'Shutting down nodes...',
-        maxWidth: 536,
         child: SailColumn(
           spacing: SailStyleValues.padding20,
           mainAxisAlignment: MainAxisAlignment.start,

@@ -10,11 +10,11 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:stacked/stacked.dart';
 
 class TopNav extends StatefulWidget {
-  final Widget child;
+  final auto_router.TabsRouter tabsRouter;
 
   const TopNav({
     super.key,
-    required this.child,
+    required this.tabsRouter,
   });
 
   @override
@@ -26,88 +26,60 @@ class _TopNavState extends State<TopNav> {
 
   @override
   Widget build(BuildContext context) {
-    final tabsRouter = auto_router.AutoTabsRouter.of(context);
     final theme = SailTheme.of(context);
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => TopNavViewModel(),
       fireOnViewModelReadyOnce: true,
       builder: ((context, model, child) {
-        final sidechainNav = _navForSidechain(_sidechain.rpc.chain, model, tabsRouter);
-        final trailingSidechainNav = _navForSidechainTrailing(_sidechain.rpc.chain, model, tabsRouter);
+        final sidechainNav = _navForSidechain(_sidechain.rpc.chain, model, widget.tabsRouter);
+        final trailingSidechainNav = _navForSidechainTrailing(_sidechain.rpc.chain, model, widget.tabsRouter);
 
-        return Column(
+        return SailRow(
+          spacing: 0,
           children: [
-            SailRow(
-              spacing: 0,
+            Row(
               children: [
-                NavContainer(
-                  title: 'Parent Chain',
-                  subs: [
-                    QtTab(
-                      label: 'Deposit/Withdraw',
-                      active: tabsRouter.activeIndex == Tabs.ParentChainPeg.index,
-                      onTap: () {
-                        tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
-                      },
-                      icon: SailSVGAsset.iconTabPeg,
-                    ),
-                    if (_sidechain.rpc.chain.type == ChainType.testchain)
-                      QtTab(
-                        label: 'Withdrawal Explorer',
-                        active: tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
-                        onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.ParentChainWithdrawalExplorer.index);
-                        },
-                        icon: SailSVGAsset.iconTabWithdrawalExplorer,
-                      ),
-                    if (_sidechain.rpc.chain.type == ChainType.testchain)
-                      QtTab(
-                        label: 'Blind Merged Mining',
-                        active: tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
-                        onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.ParentChainBMM.index);
-                        },
-                        icon: SailSVGAsset.iconTabBMM,
-                      ),
-                  ],
+                QtTab(
+                  label: 'Deposit/Withdraw',
+                  active: widget.tabsRouter.activeIndex == Tabs.ParentChainPeg.index,
+                  onTap: () {
+                    widget.tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+                  },
+                  icon: SailSVGAsset.iconTabPeg,
                 ),
-                SizedBox(
-                  height: 50,
-                  child: VerticalDivider(
-                    width: 1,
-                    thickness: 1,
-                    color: theme.colors.icon.withOpacity(0.2),
+                if (_sidechain.rpc.chain.type == ChainType.testchain)
+                  QtTab(
+                    label: 'Withdrawal Explorer',
+                    active: widget.tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
+                    onTap: () {
+                      widget.tabsRouter.setActiveIndex(Tabs.ParentChainWithdrawalExplorer.index);
+                    },
+                    icon: SailSVGAsset.iconTabWithdrawalExplorer,
                   ),
-                ),
-                NavContainer(
-                  title: 'Sidechain',
-                  subs: sidechainNav,
-                ),
-                SizedBox(
-                  height: 50,
-                  child: VerticalDivider(
-                    width: 1,
-                    thickness: 1,
-                    color: theme.colors.icon.withOpacity(0.2),
+                if (_sidechain.rpc.chain.type == ChainType.testchain)
+                  QtTab(
+                    label: 'Blind Merged Mining',
+                    active: widget.tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
+                    onTap: () {
+                      widget.tabsRouter.setActiveIndex(Tabs.ParentChainBMM.index);
+                    },
+                    icon: SailSVGAsset.iconTabBMM,
                   ),
-                ),
-                NavContainer(
-                  title: 'General',
-                  subs: trailingSidechainNav,
-                ),
-                Expanded(child: Container()),
-                const ToggleThemeButton(),
               ],
             ),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: theme.colors.divider,
+            SizedBox(
+              height: 50,
+              child: VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: theme.colors.icon.withOpacity(0.2),
+              ),
             ),
-            Expanded(
-              child: widget.child,
-            ),
+            ...sidechainNav,
+            ...trailingSidechainNav,
+            Expanded(child: Container()),
+            const ToggleThemeButton(),
           ],
         );
       }),
