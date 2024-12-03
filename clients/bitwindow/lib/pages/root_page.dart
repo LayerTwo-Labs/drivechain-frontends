@@ -209,6 +209,18 @@ class _StatusBarState extends State<StatusBar> {
                   child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
                 ),
                 const DividerDot(),
+                if (blockchainProvider.blockchainInfo.initialBlockDownload &&
+                    blockchainProvider.blockchainInfo.blocks != blockchainProvider.blockchainInfo.headers)
+                  Tooltip(
+                    message:
+                        'Current height: ${blockchainProvider.blockchainInfo.blocks}\nHeader height: ${blockchainProvider.blockchainInfo.headers}',
+                    child: SailText.primary12(
+                      'Downloading blocks (${blockchainProvider.verificationProgress}%)',
+                    ),
+                  ),
+                if (blockchainProvider.blockchainInfo.initialBlockDownload &&
+                    blockchainProvider.blockchainInfo.blocks != blockchainProvider.blockchainInfo.headers)
+                  const DividerDot(),
                 SailText.primary12(
                   '${formatWithThousandSpacers(blockchainProvider.blockchainInfo.blocks)} blocks',
                 ),
