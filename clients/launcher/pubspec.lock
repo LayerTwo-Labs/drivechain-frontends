@@ -202,14 +202,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.6"
-  decimal:
-    dependency: transitive
-    description:
-      name: decimal
-      sha256: "4140a688f9e443e2f4de3a1162387bf25e1ac6d51e24c9da263f245210f41440"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.2"
   device_info_plus:
     dependency: transitive
     description:
@@ -282,14 +274,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
-  fixed:
-    dependency: transitive
-    description:
-      name: fixed
-      sha256: "1a5cc7fa9f449b9ffa9177c7be96b236d54988fdd4de0ff1fd673ff6f55cc6d9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.2.0"
   fixnum:
     dependency: "direct main"
     description:
@@ -363,10 +347,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_svg
-      sha256: "578bd8c508144fdaffd4f77b8ef2d8c523602275cd697cc3db284dbd762ef4ce"
+      sha256: "54900a1a1243f3c4a5506d853a2b5c2dbc38d5f27e52a52618a8054401431123"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.14"
+    version: "2.0.16"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -477,10 +461,10 @@ packages:
     dependency: transitive
     description:
       name: intl
-      sha256: d6f56758b7d3014a48af9701c085700aac781a92a87a62b1333b46d8879661cf
+      sha256: "00f33b908655e606b86d2ade4710a231b802eec6f11e87e4ea3783fd72077a50"
       url: "https://pub.dev"
     source: hosted
-    version: "0.19.0"
+    version: "0.20.1"
   io:
     dependency: transitive
     description:
@@ -601,14 +585,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
-  money2:
-    dependency: "direct main"
-    description:
-      name: money2
-      sha256: fdf95399154fa18690137d81c150e582a9990b2f8b3d8bab1548a4e9e0091b85
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.4.4"
   nested:
     dependency: transitive
     description:
@@ -785,14 +761,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
-  rational:
-    dependency: transitive
-    description:
-      name: rational
-      sha256: cb808fb6f1a839e6fc5f7d8cb3b0a10e1db48b3be102de73938c627f0b636336
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.3"
   sail_ui:
     dependency: "direct main"
     description:
