@@ -21,6 +21,7 @@ class BlockchainProvider extends ChangeNotifier {
 
   // computed field go here
   Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.first.blockTime : null;
+  String get verificationProgress => ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
 
   bool _isFetching = false;
   Timer? _fetchTimer;
