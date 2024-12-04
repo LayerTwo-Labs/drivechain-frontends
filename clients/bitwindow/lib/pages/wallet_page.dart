@@ -61,6 +61,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
   Widget build(BuildContext context, SendPageViewModel viewModel) {
     return SailRawCard(
       title: 'Send Bitcoin',
+      subtitle: 'Send bitcoin to bitcoin-addresses. No sidechains involved.',
       child: Column(
         children: [
           Row(
@@ -527,6 +528,7 @@ class ReceiveTab extends StatelessWidget {
                   Expanded(
                     child: SailRawCard(
                       title: 'Receive Bitcoin',
+                      subtitle: 'Receive bitcoin to your bitcoin-wallet. No sidechains involved.',
                       child: SailColumn(
                         spacing: SailStyleValues.padding16,
                         mainAxisSize: MainAxisSize.min,
@@ -714,7 +716,9 @@ class _TransactionTableState extends State<TransactionTable> {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailRawCard(
-          title: 'Your Wallet Transaction History',
+          title: 'Wallet Transaction History',
+          subtitle:
+              'List of transactions for your bitcoin-wallet. Contains send, receive and sidechain-interaction transactions.',
           bottomPadding: false,
           child: Column(
             children: [
