@@ -61,6 +61,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     return SailRawCard(
       title: 'Sidechains',
+      subtitle: 'List of sidechains and their current status',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -508,6 +509,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
           Expanded(
             child: SailRawCard(
               title: 'Your Recent Deposits',
+              subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
               shadowSize: ShadowSize.none,
               padding: false,
               child: RecentDepositsTable(),

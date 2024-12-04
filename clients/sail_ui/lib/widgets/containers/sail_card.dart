@@ -3,6 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 class SailRawCard extends StatelessWidget {
   final String? title;
+  final String? subtitle;
   final Widget? header;
   final VoidCallback? onPressed;
   final bool padding;
@@ -16,6 +17,7 @@ class SailRawCard extends StatelessWidget {
   const SailRawCard({
     super.key,
     this.title,
+    this.subtitle,
     this.header,
     this.onPressed,
     this.padding = true,
@@ -31,6 +33,10 @@ class SailRawCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+
+    if ((title != null) != (subtitle != null)) {
+      throw ArgumentError('Title and subtitle must be set together. Got title: $title and subtitle: $subtitle');
+    }
 
     return SailShadow(
       shadowSize: shadowSize,
@@ -55,9 +61,9 @@ class SailRawCard extends StatelessWidget {
               children: [
                 if (header != null) header!,
                 if (title != null)
-                  SailText.primary15(
-                    title!,
-                    bold: true,
+                  CardHeader(
+                    title: title!,
+                    subtitle: subtitle,
                   ),
                 if (title != null) const SailSpacing(SailStyleValues.padding16),
                 Flexible(

@@ -110,6 +110,7 @@ class TransactionsView extends StatelessWidget {
                   SailRawCard(
                     bottomPadding: false,
                     title: 'Latest Transactions',
+                    subtitle: 'View the latest transactions on the sidechain',
                     child: SizedBox(
                       height: 300,
                       child: LatestTransactionTable(
@@ -126,7 +127,8 @@ class TransactionsView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SailRawCard(
-                    title: 'Latest blocks',
+                    title: 'Latest Blocks',
+                    subtitle: 'View the latest blocks on the blockchain',
                     bottomPadding: false,
                     child: SizedBox(
                       height: 300,
@@ -467,9 +469,9 @@ class CoinNewsView extends StatelessWidget {
             child: SailRow(
               spacing: SailStyleValues.padding08,
               children: [
-                SailText.primary15(
-                  'Coin News',
-                  bold: true,
+                CardHeader(
+                  title: 'Coin News',
+                  subtitle: 'Stay up-to-date on the latest world developments',
                 ),
                 Expanded(child: Container()),
                 QtButton(
@@ -566,6 +568,7 @@ class CoinNewsView extends StatelessWidget {
     await widgetDialog(
       context: context,
       title: 'Broadcast News',
+      subtitle: 'Broadcast News to the whole world, in the list you prefer.',
       child: BroadcastNewsView(),
     );
   }
@@ -574,6 +577,7 @@ class CoinNewsView extends StatelessWidget {
     await widgetDialog(
       context: context,
       title: 'Create Topic',
+      subtitle: 'Create a new topic, that you and others can subscribe to, and post news for.',
       child: CreateTopicView(),
     );
   }
@@ -582,6 +586,7 @@ class CoinNewsView extends StatelessWidget {
     await widgetDialog(
       context: context,
       title: 'Graffitti Explorer',
+      subtitle: 'List all previous OP_RETURN messages found in the blockchain.',
       maxWidth: MediaQuery.of(context).size.width - 100,
       child: GraffittiExplorerView(),
     );
@@ -916,8 +921,7 @@ class GraffittiExplorerView extends StatelessWidget {
               onPressed: () => newGraffittiDialog(context),
               size: ButtonSize.small,
             ),
-            SizedBox(
-              height: 500,
+            Expanded(
               child: GraffittiTable(
                 entries: viewModel.entries,
                 onSort: viewModel.onSort,

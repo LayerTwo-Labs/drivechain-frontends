@@ -113,6 +113,38 @@ Future<T?> widgetDialog<T>({
   );
 }
 
+class CardHeader extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+
+  const CardHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return SailColumn(
+      spacing: 0,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SailText.primary20(
+          title,
+          bold: true,
+        ),
+        if (subtitle != null)
+          SailText.primary12(
+            subtitle!,
+            color: theme.colors.textTertiary,
+          ),
+      ],
+    );
+  }
+}
+
 enum DialogType { info, error, success }
 
 class DialogHeader extends StatelessWidget {
@@ -129,26 +161,10 @@ class DialogHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
     return SailRow(
       spacing: SailStyleValues.padding08,
       children: [
-        SailColumn(
-          spacing: 0,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailText.primary15(
-              title,
-              bold: true,
-            ),
-            if (subtitle != null)
-              SailText.primary10(
-                subtitle!,
-                color: theme.colors.textSecondary,
-              ),
-          ],
-        ),
+        CardHeader(title: title, subtitle: subtitle),
         Expanded(child: Container()),
         SailScaleButton(
           onPressed: onClose,
