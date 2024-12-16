@@ -26,7 +26,7 @@ dependencies:
     stacked: ^3.4.3
     auto_route: ^9.2.2
     get_it: ^8.0.3
-    collection: ^1.18.0
+    collection: ^1.19.0
     path_provider: ^2.1.5
     synchronized: ^3.3.0+3
 
