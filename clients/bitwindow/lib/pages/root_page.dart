@@ -27,6 +27,7 @@ class RootPage extends StatelessWidget {
         OverviewRoute(),
         WalletRoute(),
         SidechainsRoute(),
+        ToolsRoute(),
       ],
       builder: (context, child, controller) {
         final theme = SailTheme.of(context);
@@ -61,6 +62,12 @@ class RootPage extends StatelessWidget {
                         label: 'Sidechains',
                         active: tabsRouter.activeIndex == 2,
                         onTap: () => tabsRouter.setActiveIndex(2),
+                      ),
+                      QtTab(
+                        icon: SailSVGAsset.iconCoins,
+                        label: 'Tools',
+                        active: tabsRouter.activeIndex == 3,
+                        onTap: () => tabsRouter.setActiveIndex(3),
                         end: true,
                       ),
                       Expanded(child: Container()),

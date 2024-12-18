@@ -5,6 +5,7 @@ import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
+import 'package:bitwindow/pages/tools_page.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 part 'router.gr.dart';
@@ -49,6 +50,10 @@ class AppRouter extends RootStackRouter {
             AutoRoute(
               path: 'sidechains',
               page: SidechainsRoute.page,
+            ),
+            AutoRoute(
+              path: 'tools',
+              page: ToolsRoute.page,
             ),
           ],
         ),
