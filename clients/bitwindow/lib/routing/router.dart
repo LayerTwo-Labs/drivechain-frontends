@@ -5,7 +5,10 @@ import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
-import 'package:bitwindow/pages/tools_page.dart';
+import 'package:bitwindow/pages/tools/tools_page.dart';
+import 'package:bitwindow/pages/tools/hash_calculator_page.dart';
+import 'package:bitwindow/pages/tools/multisig_lounge_page.dart';
+import 'package:bitwindow/pages/tools/proof_of_funds_page.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 part 'router.gr.dart';
@@ -19,8 +22,8 @@ part 'router.gr.dart';
 *  $ dart run build_runner watch
 *  if you want the generator to run one time and exit, use
 *  $ dart run build_runner build  --delete-conflicting-outputs
-
 */
+
 @AutoRouterConfig(replaceInRouteName: 'Page,Route')
 class AppRouter extends RootStackRouter {
   @override
@@ -54,6 +57,21 @@ class AppRouter extends RootStackRouter {
             AutoRoute(
               path: 'tools',
               page: ToolsRoute.page,
+              children: [
+                AutoRoute(
+                  path: 'hash-calculator',
+                  page: HashCalculatorRoute.page,
+                  initial: true,
+                ),
+                AutoRoute(
+                  path: 'multisig-lounge',
+                  page: MultisigLoungeRoute.page,
+                ),
+                AutoRoute(
+                  path: 'proof-of-funds',
+                  page: ProofOfFundsRoute.page,
+                ),
+              ],
             ),
           ],
         ),

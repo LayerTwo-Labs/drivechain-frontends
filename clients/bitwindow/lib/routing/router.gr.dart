@@ -10,6 +10,44 @@
 part of 'router.dart';
 
 /// generated route for
+/// [HashCalculatorPage]
+class HashCalculatorRoute extends PageRouteInfo<void> {
+  const HashCalculatorRoute({List<PageRouteInfo>? children})
+      : super(
+          HashCalculatorRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'HashCalculatorRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const HashCalculatorPage();
+    },
+  );
+}
+
+/// generated route for
+/// [MultisigLoungePage]
+class MultisigLoungeRoute extends PageRouteInfo<void> {
+  const MultisigLoungeRoute({List<PageRouteInfo>? children})
+      : super(
+          MultisigLoungeRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'MultisigLoungeRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const MultisigLoungePage();
+    },
+  );
+}
+
+/// generated route for
 /// [OverviewPage]
 class OverviewRoute extends PageRouteInfo<void> {
   const OverviewRoute({List<PageRouteInfo>? children})
@@ -24,6 +62,25 @@ class OverviewRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const OverviewPage();
+    },
+  );
+}
+
+/// generated route for
+/// [ProofOfFundsPage]
+class ProofOfFundsRoute extends PageRouteInfo<void> {
+  const ProofOfFundsRoute({List<PageRouteInfo>? children})
+      : super(
+          ProofOfFundsRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ProofOfFundsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ProofOfFundsPage();
     },
   );
 }
