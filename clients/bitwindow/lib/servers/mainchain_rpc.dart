@@ -16,6 +16,10 @@ abstract class MainchainRPC extends RPCConnection {
 
   Future<void> waitForIBD();
 
+  Future<List<UTXO>> listUnspent();
+  Future<String> signMessage(String address, String message);
+  Future<bool> verifyMessage(String address, String signature, String message);
+
   final chain = ParentChain();
 
   bool inIBD = true;
@@ -73,41 +77,55 @@ class MainchainRPCLive extends MainchainRPC {
         // if block height is small, the node have probably not synced headers yet
         inIBD = info.blocks <= 10;
 
-        // Log height every 10 seconds
-        if (DateTime.now().difference(lastLogTime).inSeconds >= 10) {
-          log.i('Current block height: ${info.blocks}');
-          lastLogTime = DateTime.now();
+        if (inIBD) {
+          final now = DateTime.now();
+          if (now.difference(lastLogTime).inSeconds >= 5) {
+            log.i('mainchain init: still in IBD, block height: ${info.blocks}');
+            lastLogTime = now;
+          }
         }
-      } catch (error) {
-        // probably just cant connect, and is in bootup-phase, which is okay
-      } finally {
-        // retry querying blockchain info until chain is finished syncing
-        await Future.delayed(const Duration(seconds: 1));
+      } catch (e) {
+        log.e('mainchain init: could not get blockchain info', error: e);
       }
+
+      await Future.delayed(const Duration(milliseconds: 100));
     }
-
-    log.i('mainchain init: initial block download finished');
-
-    notifyListeners();
-
-    // ibd is done, and mainchain has successfully started
   }
 
   @override
   Future<void> waitForIBD() async {
-    int lastLoggedThousand = 0;
     while (inIBD) {
-      try {
-        final info = await getBlockchainInfo();
-        int currentThousand = (info.blocks / 1000).floor();
-        if (currentThousand > lastLoggedThousand) {
-          log.w('Synced ${info.blocks} blocks');
-          lastLoggedThousand = currentThousand;
-        }
-      } finally {
-        await Future.delayed(const Duration(seconds: 1));
-      }
+      await Future.delayed(const Duration(milliseconds: 100));
     }
+  }
+
+  @override
+  Future<List<UTXO>> listUnspent() async {
+    final response = await _client().call('listunspent');
+    return (response as List).map((utxo) => UTXO.fromMap(utxo)).toList();
+  }
+
+  @override
+  Future<String> signMessage(String address, String message) async {
+    final response = await _client().call('signmessage', [address, message]);
+    return response as String;
+  }
+
+  @override
+  Future<bool> verifyMessage(String address, String signature, String message) async {
+    final response = await _client().call('verifymessage', [address, signature, message]);
+    return response as bool;
+  }
+
+  @override
+  Future<int> ping() async {
+    final info = await getBlockchainInfo();
+    return info.blocks;
+  }
+
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    final response = await _client().call('getblockchaininfo');
+    return BlockchainInfo.fromMap(response);
   }
 
   @override
@@ -150,16 +168,5 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<void> stop() async {
     await _client().call('stop');
-  }
-
-  @override
-  Future<int> ping() async {
-    final blockHeight = await _client().call('getblockcount') as int;
-    return blockHeight;
-  }
-
-  Future<BlockchainInfo> getBlockchainInfo() async {
-    final confirmedFut = await _client().call('getblockchaininfo');
-    return BlockchainInfo.fromMap(confirmedFut);
   }
 }

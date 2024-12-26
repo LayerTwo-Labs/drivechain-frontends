@@ -17,6 +17,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
+import 'services/menu_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +57,14 @@ void main() async {
           theme: ThemeData(
             visualDensity: VisualDensity.compact,
             fontFamily: 'Inter',
+            brightness: Brightness.dark,
           ),
+          darkTheme: ThemeData(
+            visualDensity: VisualDensity.compact,
+            fontFamily: 'Inter',
+            brightness: Brightness.dark,
+          ),
+          themeMode: ThemeMode.dark,
         );
       },
       initMethod: (context) async {
@@ -180,6 +188,9 @@ Future<void> initDependencies(Logger log, File logFile) async {
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
   );
+
+  // Initialize menu service for native menu bar integration
+  GetIt.I.registerSingleton<MenuService>(MenuService());
 }
 
 Future<void> initMainchainBinary(

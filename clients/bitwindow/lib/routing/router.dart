@@ -54,26 +54,19 @@ class AppRouter extends RootStackRouter {
               path: 'sidechains',
               page: SidechainsRoute.page,
             ),
-            AutoRoute(
-              path: 'tools',
-              page: ToolsRoute.page,
-              children: [
-                AutoRoute(
-                  path: 'hash-calculator',
-                  page: HashCalculatorRoute.page,
-                  initial: true,
-                ),
-                AutoRoute(
-                  path: 'multisig-lounge',
-                  page: MultisigLoungeRoute.page,
-                ),
-                AutoRoute(
-                  path: 'proof-of-funds',
-                  page: ProofOfFundsRoute.page,
-                ),
-              ],
-            ),
           ],
+        ),
+        AutoRoute(
+          path: '/tools/hash-calculator',
+          page: HashCalculatorRoute.page,
+        ),
+        AutoRoute(
+          path: '/tools/multisig-lounge',
+          page: MultisigLoungeRoute.page,
+        ),
+        AutoRoute(
+          path: '/tools/proof-of-funds',
+          page: ProofOfFundsRoute.page,
         ),
         AutoRoute(
           page: SailLogRoute.page,

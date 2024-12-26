@@ -14,6 +14,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:stacked/stacked.dart';
+import 'package:bitwindow/services/menu_service.dart';
 
 @RoutePage()
 class RootPage extends StatelessWidget {
@@ -21,16 +22,18 @@ class RootPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final menuService = GetIt.I.get<MenuService>();
+
     return AutoTabsRouter.tabBar(
       animatePageTransition: false,
       routes: const [
         OverviewRoute(),
         WalletRoute(),
         SidechainsRoute(),
-        ToolsRoute(),
       ],
       builder: (context, child, controller) {
-        final theme = SailTheme.of(context);
+        final tabsRouter = AutoTabsRouter.of(context);
 
         return Scaffold(
           backgroundColor: theme.colors.background,
@@ -42,7 +45,6 @@ class RootPage extends StatelessWidget {
               ),
               child: Builder(
                 builder: (context) {
-                  final tabsRouter = AutoTabsRouter.of(context);
                   return Row(
                     children: [
                       QtTab(
@@ -52,8 +54,8 @@ class RootPage extends StatelessWidget {
                         onTap: () => tabsRouter.setActiveIndex(0),
                       ),
                       QtTab(
-                        icon: SailSVGAsset.iconSend,
-                        label: 'Send/Receive',
+                        icon: SailSVGAsset.iconWallet,
+                        label: 'Wallet',
                         active: tabsRouter.activeIndex == 1,
                         onTap: () => tabsRouter.setActiveIndex(1),
                       ),
@@ -62,16 +64,13 @@ class RootPage extends StatelessWidget {
                         label: 'Sidechains',
                         active: tabsRouter.activeIndex == 2,
                         onTap: () => tabsRouter.setActiveIndex(2),
-                      ),
-                      QtTab(
-                        icon: SailSVGAsset.iconCoins,
-                        label: 'Tools',
-                        active: tabsRouter.activeIndex == 3,
-                        onTap: () => tabsRouter.setActiveIndex(3),
                         end: true,
                       ),
                       Expanded(child: Container()),
-                      const ToggleThemeButton(),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: menuService.buildToolsMenu(context),
+                      ),
                     ],
                   );
                 },
@@ -459,3 +458,4 @@ class DividerDot extends StatelessWidget {
     return SailSVG.fromAsset(SailSVGAsset.dividerDot);
   }
 }
+
