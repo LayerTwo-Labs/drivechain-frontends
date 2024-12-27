@@ -133,13 +133,12 @@ class HashCalculatorViewModel extends BaseViewModel {
 
     return [
       HashSection(
-        'Hash160',
+        'SHA256',
         HashOutput(
-          hexEncode(hash160(dataBytes)),
-          hexToBinStr(hexEncode(hash160(dataBytes))),
-          isBitcoinChecksum: true
+          hexEncode(crypto.sha256.convert(dataBytes).bytes),
+          hexToBinStr(hexEncode(crypto.sha256.convert(dataBytes).bytes))
         ),
-        bitcoinUsage: 'Used in P2PKH addresses for converting public keys to Bitcoin addresses'
+        bitcoinUsage: 'Used in the first step of Hash160, HMAC for message signing, and various internal Bitcoin operations'
       ),
       HashSection(
         'SHA256D',
@@ -151,21 +150,30 @@ class HashCalculatorViewModel extends BaseViewModel {
         bitcoinUsage: 'Used in block hashing, transaction IDs, and P2SH address generation'
       ),
       HashSection(
-        'SHA256',
-        HashOutput(
-          hexEncode(crypto.sha256.convert(dataBytes).bytes),
-          hexToBinStr(hexEncode(crypto.sha256.convert(dataBytes).bytes))
-        ),
-        bitcoinUsage: 'Used in the first step of Hash160, HMAC for message signing, and various internal Bitcoin operations'
-      ),
-      HashSection(
         'SHA512',
         HashOutput(
           hexEncode(crypto.sha512.convert(dataBytes).bytes),
           hexToBinStr(hexEncode(crypto.sha512.convert(dataBytes).bytes))
         ),
         bitcoinUsage: 'Used in BIP32 hierarchical deterministic wallet key derivation'
-      )
+      ),
+      HashSection(
+        'RIPEMD160',
+        HashOutput(
+          hexEncode(RIPEMD160Digest().process(Uint8List.fromList(dataBytes))),
+          hexToBinStr(hexEncode(RIPEMD160Digest().process(Uint8List.fromList(dataBytes))))
+        ),
+        bitcoinUsage: 'Used as the second step in Hash160 to create Bitcoin addresses'
+      ),
+      HashSection(
+        'Hash160',
+        HashOutput(
+          hexEncode(hash160(dataBytes)),
+          hexToBinStr(hexEncode(hash160(dataBytes))),
+          isBitcoinChecksum: true
+        ),
+        bitcoinUsage: 'Used in P2PKH addresses for converting public keys to Bitcoin addresses'
+      ),
     ];
   }
 
@@ -202,12 +210,12 @@ Bin:
 $binStr''';
   }
 
-  String? getHmacOutput() {
+  HashOutput getHmacSha256() {
     final keyStr = hmacKeyController.text;
     final dataStr = hmacMessageController.text;
 
     if (keyStr.isEmpty || dataStr.isEmpty || (hmacIsHexMode && hmacInvalidHex)) {
-      return null;
+      return HashOutput('', '');
     }
 
     List<int> keyBytes = hmacIsHexMode ? hexDecode(keyStr) : utf8.encode(keyStr);
@@ -218,18 +226,37 @@ $binStr''';
     var sha256HmacHex = hexEncode(sha256HmacRes);
     var sha256HmacBin = hexToBinStr(sha256HmacHex);
 
+    return HashOutput(sha256HmacHex, sha256HmacBin);
+  }
+
+  HashOutput getHmacSha512() {
+    final keyStr = hmacKeyController.text;
+    final dataStr = hmacMessageController.text;
+
+    if (keyStr.isEmpty || dataStr.isEmpty || (hmacIsHexMode && hmacInvalidHex)) {
+      return HashOutput('', '');
+    }
+
+    List<int> keyBytes = hmacIsHexMode ? hexDecode(keyStr) : utf8.encode(keyStr);
+    List<int> dataBytes = hmacIsHexMode ? hexDecode(dataStr) : utf8.encode(dataStr);
+
     var hmacSha512 = crypto.Hmac(crypto.sha512, keyBytes);
     var sha512HmacRes = hmacSha512.convert(dataBytes).bytes;
     var sha512HmacHex = hexEncode(sha512HmacRes);
     var sha512HmacBin = hexToBinStr(sha512HmacHex);
 
-    return '''HMAC-SHA256:
-$sha256HmacHex
-$sha256HmacBin
+    return HashOutput(sha512HmacHex, sha512HmacBin);
+  }
 
-HMAC-SHA512:
-$sha512HmacHex
-$sha512HmacBin''';
+  String? getHmacOutput() {
+    final keyStr = hmacKeyController.text;
+    final dataStr = hmacMessageController.text;
+
+    if (keyStr.isEmpty || dataStr.isEmpty || (hmacIsHexMode && hmacInvalidHex)) {
+      return null;
+    }
+
+    return 'valid';
   }
 
   void _updateBasicOutput() {

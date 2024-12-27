@@ -21,7 +21,7 @@ class MenuService {
   Future<void> openHashCalculator(BuildContext context) async {
     await widgetDialog(
       context: context,
-      title: 'Crypto Tools',
+      title: 'Tools',
       child: const HashCalculatorPage(),
     );
   }
@@ -33,7 +33,7 @@ class MenuService {
   Future<void> openProofOfFunds(BuildContext context) async {
     await widgetDialog(
       context: context,
-      title: 'Crypto Tools',
+      title: 'Tools',
       child: const ProofOfFundsPage(),
     );
   }

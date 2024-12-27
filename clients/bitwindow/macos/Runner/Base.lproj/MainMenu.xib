@@ -323,6 +323,31 @@
                         </items>
                     </menu>
                 </menuItem>
+                <menuItem title="Tools" id="tools-menu">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <menu key="submenu" title="Tools" id="tools-submenu">
+                        <items>
+                            <menuItem title="Hash Calculator" id="hash-calc">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="openHashCalculator:" target="Voe-Tx-rLC" id="hash-calc-action"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Multisig Lounge" id="multisig">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="openMultisigLounge:" target="Voe-Tx-rLC" id="multisig-action"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Proof of Funds" id="proof-funds">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="openProofOfFunds:" target="Voe-Tx-rLC" id="proof-funds-action"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
                 <menuItem title="Help" id="EPT-qC-fAb">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Help" systemMenu="help" id="rJ0-wn-3NY"/>
