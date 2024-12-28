@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:launcher/services/service_provider.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:launcher/routing/router.dart';
@@ -68,4 +69,7 @@ Future<void> initDependencies(Logger log) async {
       log: log,
     ),
   );
+
+  // Initialize our services
+  await ServiceProvider.initialize();
 }
