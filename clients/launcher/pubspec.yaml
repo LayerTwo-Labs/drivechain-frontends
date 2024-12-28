@@ -17,6 +17,8 @@ dependencies:
       # master, as of 08.06.2024
       ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
   dio: ^5.7.0
+  archive: ^3.4.10
+  path: ^1.8.3
   stacked: ^3.4.3
   qr_flutter: ^4.1.0
   cupertino_icons: ^1.0.8
