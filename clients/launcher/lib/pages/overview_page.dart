@@ -38,7 +38,8 @@ class _OverviewPageState extends State<OverviewPage> {
               builder: (context, statusSnapshot) {
                 final l1Chains = _configService.configs.chains
                     .where((chain) => chain.chainType == 0)
-                    .toList();
+                    .toList()
+                  ..sort((a, b) => a.slot.compareTo(b.slot));
                 final l2Chains = _configService.configs.chains
                     .where((chain) => chain.chainType == 1)
                     .toList();
