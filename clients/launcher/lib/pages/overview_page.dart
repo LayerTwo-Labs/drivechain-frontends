@@ -32,76 +32,79 @@ class _OverviewPageState extends State<OverviewPage> {
     return QtPage(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                SailButton.primary(
-                  'Download All',
-                  onPressed: () => _downloadManager.downloadAllComponents(),
-                  size: ButtonSize.regular,
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: StreamBuilder<Map<String, DownloadProgress>>(
               stream: _downloadManager.statusStream,
               builder: (context, statusSnapshot) {
-                return ListView.builder(
-                  itemCount: _configService.configs.chains.length,
-                  itemBuilder: (context, index) {
-                    final chain = _configService.configs.chains[index];
-                    final status = statusSnapshot.data?[chain.id];
-                    
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
-                      ),
-                      child: SailRawCard(
-                        padding: true,
+                final l1Chains = _configService.configs.chains
+                    .where((chain) => chain.chainType == 0)
+                    .toList();
+                final l2Chains = _configService.configs.chains
+                    .where((chain) => chain.chainType == 1)
+                    .toList();
+
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                SailText.primary24(chain.displayName),
-                                _buildStatusIndicator(status),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            SailText.secondary13('ID: ${chain.id}'),
-                            SailText.secondary13('Version: ${chain.version}'),
-                            SailText.secondary13(
-                              'Type: ${chain.chainType == 0 ? "L1" : "L2"}',
-                            ),
-                            SailText.secondary13('Slot: ${chain.slot}'),
-                            const SizedBox(height: 10),
-                            SailText.secondary13(chain.description),
-                            if (chain.repoUrl.isNotEmpty) ...[
-                              const SizedBox(height: 10),
-                              SailText.secondary13('Repo: ${chain.repoUrl}'),
-                            ],
+                            SailText.primary24("Layer 1"),
                             const SizedBox(height: 16),
-                            _buildProgressIndicator(status),
-                            if (status?.error != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: SailText.secondary13(
-                                  status!.error!,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            const SizedBox(height: 10),
-                            _buildActionButton(chain.id, status),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final availableWidth = constraints.maxWidth;
+                                final cardWidth = availableWidth >= 900 
+                                    ? (availableWidth - (3 * 16)) / 4  // 4 cards with 16px spacing
+                                    : (availableWidth - 16) / 2;       // 2 cards with 16px spacing
+                                
+                                return Wrap(
+                                  spacing: 16.0,
+                                  runSpacing: 16.0,
+                                  children: l1Chains.map((chain) {
+                                    final status = statusSnapshot.data?[chain.id];
+                                    return SizedBox(
+                                      width: cardWidth,
+                                      child: SailRawCard(
+                                        padding: true,
+                                        child: _buildChainContent(chain, status),
+                                      ),
+                                    );
+                                  }).toList(),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 32),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SailText.primary24("Layer 2"),
+                            const SizedBox(height: 16),
+                            ...l2Chains.map((chain) {
+                        final status = statusSnapshot.data?[chain.id];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0,
+                            vertical: 8.0,
+                          ),
+                          child: SailRawCard(
+                            padding: true,
+                            child: _buildChainContent(chain, status),
+                          ),
+                        );
+                            }).toList(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
@@ -178,5 +181,45 @@ class _OverviewPageState extends State<OverviewPage> {
     }
 
     return const SizedBox();
+  }
+
+  Widget _buildChainContent(ChainConfig chain, DownloadProgress? status) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: SailText.primary24(
+                chain.displayName,
+                textAlign: TextAlign.left,
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildStatusIndicator(status),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          child: SailText.secondary13(
+            chain.description,
+            textAlign: TextAlign.left,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildProgressIndicator(status),
+        if (status?.error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: SailText.secondary13(
+              status!.error!,
+              color: Colors.red,
+            ),
+          ),
+        const SizedBox(height: 8),
+        _buildActionButton(chain.id, status),
+      ],
+    );
   }
 }
