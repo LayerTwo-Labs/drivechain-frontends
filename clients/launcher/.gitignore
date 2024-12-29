@@ -42,7 +42,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Project specific
-flutter_port_reference/
-windowmanagerdocs.md
-docs/
+# # Project specific
+# flutter_port_reference/
+# windowmanagerdocs.md
+# docs/
