@@ -45,49 +45,6 @@
           "slot": 0
       },
       {
-          "id": "enforcer",
-          "version": "0.1.0",
-          "display_name": "BIP300301 Enforcer",
-          "description": "Manages drivechain validation rules",
-          "repo_url": "",
-          "directories": {
-              "base": {
-                  "linux": "downloads/l1",
-                  "darwin": "downloads/l1",
-                  "win32": "downloads/l1"
-              },
-              "wallet": ""
-          },
-          "download": {
-              "base_url": "https://releases.drivechain.info/",
-              "files": {
-                  "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
-                  "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
-              },
-              "sizes": {
-                  "linux": 0,
-                  "darwin": 0,
-                  "win32": 0
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu/bip300301_enforcer-0.1.0-x86_64-unknown-linux-gnu",
-              "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin/bip300301_enforcer-0.1.0-x86_64-apple-darwin",
-              "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.exe/bip300301_enforcer-0.1.0-x86_64-pc-windows-gnu.exe"
-          },
-          "network": {
-              "port": 0
-          },
-          "chain_type": 0,
-          "slot": 1
-      },
-      {
           "id": "bitcoin",
           "version": "latest",
           "display_name": "Bitcoin Core (Patched)",
@@ -126,6 +83,49 @@
           },
           "network": {
               "port": 8332
+          },
+          "chain_type": 0,
+          "slot": 1
+      },
+      {
+          "id": "enforcer",
+          "version": "0.1.0",
+          "display_name": "BIP300301 Enforcer",
+          "description": "Manages drivechain validation rules",
+          "repo_url": "",
+          "directories": {
+              "base": {
+                  "linux": "downloads/l1",
+                  "darwin": "downloads/l1",
+                  "win32": "downloads/l1"
+              },
+              "wallet": ""
+          },
+          "download": {
+              "base_url": "https://releases.drivechain.info/",
+              "files": {
+                  "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
+                  "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
+                  "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
+              },
+              "sizes": {
+                  "linux": 0,
+                  "darwin": 0,
+                  "win32": 0
+              },
+              "hashes": {
+                  "linux": "",
+                  "darwin": "",
+                  "win32": ""
+              }
+          },
+          "binary": {
+              "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu/bip300301_enforcer-0.1.0-x86_64-unknown-linux-gnu",
+              "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin/bip300301_enforcer-0.1.0-x86_64-apple-darwin",
+              "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.exe/bip300301_enforcer-0.1.0-x86_64-pc-windows-gnu.exe"
+          },
+          "network": {
+              "port": 0
           },
           "chain_type": 0,
           "slot": 2
