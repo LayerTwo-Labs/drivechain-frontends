@@ -5,6 +5,7 @@ import 'package:launcher/services/configuration_service.dart';
 import 'package:launcher/services/download_manager.dart';
 import 'package:launcher/services/resource_downloader.dart';
 import 'package:launcher/services/service_provider.dart';
+import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/buttons/button.dart';
 
@@ -189,13 +190,21 @@ class _OverviewPageState extends State<OverviewPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
+            Expanded(
               child: SailText.primary24(
                 chain.displayName,
                 textAlign: TextAlign.left,
               ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings, color: Colors.white, size: 20),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => ChainSettingsModal(chain: chain),
+                );
+              },
             ),
             const SizedBox(width: 8),
             _buildStatusIndicator(status),
