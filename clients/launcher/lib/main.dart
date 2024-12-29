@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:launcher/widgets/update_modal.dart';
 import 'package:launcher/services/service_provider.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -39,6 +40,7 @@ void main() async {
           routerDelegate: router.delegate(),
           routeInformationParser: router.defaultRouteParser(),
           title: 'Drivechain Launcher',
+          builder: (context, child) => child ?? const SizedBox(),
           theme: ThemeData(
             visualDensity: VisualDensity.compact,
             fontFamily: 'Inter',
