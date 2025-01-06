@@ -216,7 +216,7 @@ Future<void> initEnforcer(
         await Future.delayed(const Duration(milliseconds: 100));
       }
     }(),
-    Future.delayed(const Duration(seconds: 3)),
+    Future.delayed(const Duration(seconds: 60)),
   ]);
 
   log.i('mainchain init: successfully started enforcer');
@@ -238,7 +238,7 @@ Future<void> initServer(
         await Future.delayed(const Duration(milliseconds: 100));
       }
     }(),
-    Future.delayed(const Duration(seconds: 3)),
+    Future.delayed(const Duration(seconds: 60)),
   ]);
 
   log.i('server init: successfully started');

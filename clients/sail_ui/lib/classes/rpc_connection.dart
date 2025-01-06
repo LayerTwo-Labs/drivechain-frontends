@@ -171,7 +171,7 @@ abstract class RPCConnection extends ChangeNotifier {
     log.i('init binaries: waiting for $binary connection');
 
     await startConnectionTimer();
-    var timeout = Duration(seconds: 3);
+    var timeout = Duration(seconds: 60);
     if (binary == 'zsided') {
       // zcash can take a long time. initial sync as well
       timeout = Duration(seconds: 5 * 60);
