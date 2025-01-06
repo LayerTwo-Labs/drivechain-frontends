@@ -129,6 +129,7 @@ class MainchainRPCLive extends MainchainRPC {
       '-addnode=drivechain.live:8383',
       '-signetblocktime=60',
       '-signetchallenge=00141f61d57873d70d28bd28b3c9f9d6bf818b5a0d6a',
+      '-acceptnonstdtxn',
       '-listen',
       '-rpcbind=0.0.0.0',
       '-rpcallowip=0.0.0.0/0',
