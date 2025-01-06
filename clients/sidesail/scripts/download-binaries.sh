@@ -92,7 +92,7 @@ if ! test -f $assets_dir/$drivechain; then
     # releasing for. 
     drivechain_file=L1-Mainchain-latest-x86_64-$version_postfix.zip
 
-    curl --fail -O $RELEASES/$drivechain_file
+    curl --fail -O $RELEASES/old-pre-cusf/$drivechain_file
 
     echo unpacking: $unpack_cmd $drivechain_file
     $unpack_cmd $drivechain_file
@@ -111,7 +111,7 @@ if ! test -f $assets_dir/$sidechain; then
     # Only fetch binaries for the specific sidechain we're interested in
     sidechain_file=L2-S$sidechain_slot-$sidechain_file_name-x86_64-$version_postfix
 
-    curl --fail -O $RELEASES/$sidechain_file.zip
+    curl --fail -O $RELEASES/old-pre-cusf/$sidechain_file.zip
     $unpack_cmd $sidechain_file.zip
 
     mv $sidechain_file/$sidechain $assets_dir/$sidechain
