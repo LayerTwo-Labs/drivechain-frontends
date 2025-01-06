@@ -22,7 +22,7 @@ dependencies:
     crypto: ^3.0.6
     logger: ^2.5.0
     grpc: ^4.0.1
-    shared_preferences: ^2.3.3
+    shared_preferences: ^2.3.5
     stacked: ^3.4.3
     auto_route: ^9.2.2
     get_it: ^7.7.0
