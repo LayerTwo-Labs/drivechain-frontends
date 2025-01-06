@@ -24,8 +24,6 @@ extension ThemeStringer on SailThemeValues {
         return 'light';
       case SailThemeValues.system:
         return 'system';
-      default:
-        return 'unknown';
     }
   }
 }
