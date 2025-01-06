@@ -13,6 +13,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dial"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
 	bitcoind_engine "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/engines"
+	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/server"
 	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -95,13 +96,13 @@ func realMain(ctx context.Context) error {
 		log.Error().Err(err).Msg("get blockchain info")
 		return err
 	}
+	log.Info().Msgf("blockchain info: %s", info.Msg.String())
 
-	enforcer, wallet, err := dial.Enforcer(ctx, conf.EnforcerHost)
+	enforcer, wallet, err := connectEnforcerWithRetry(ctx, conf.EnforcerHost)
 	if err != nil {
 		log.Error().Err(err).Msg("connect to enforcer")
+		return err
 	}
-
-	log.Info().Msgf("blockchain info: %s", info.Msg.String())
 
 	srv, err := server.New(ctx, proxy, wallet, enforcer, db)
 	if err != nil {
@@ -175,4 +176,33 @@ func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, erro
 	}
 
 	return core, nil
+}
+
+// connectEnforcerWithRetry attempts to connect to the enforcer for up to 1 minute
+func connectEnforcerWithRetry(ctx context.Context, host string) (rpc.ValidatorServiceClient, rpc.WalletServiceClient, error) {
+	var enforcer rpc.ValidatorServiceClient
+	var wallet rpc.WalletServiceClient
+
+	timeout := time.After(1 * time.Minute)
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			log.Warn().Msg("could not connect to enforcer after 1 minute, continuing without enforcer")
+			return nil, nil, nil
+		case <-ticker.C:
+			var err error
+			enforcer, wallet, err = dial.Enforcer(ctx, host)
+			if err != nil {
+				log.Debug().Err(err).Msg("could not connect to enforcer, retrying")
+				continue
+			}
+			log.Info().Msg("successfully connected to enforcer")
+			return enforcer, wallet, nil
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		}
+	}
 }
