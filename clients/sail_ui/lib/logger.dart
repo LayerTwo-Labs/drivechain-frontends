@@ -6,7 +6,7 @@ import 'package:logger/logger.dart';
 LogPrinter _printer() {
   if (!kReleaseMode) {
     return PrettyPrinter(
-      printTime: true,
+      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
       printEmojis: false,
     );
   }
