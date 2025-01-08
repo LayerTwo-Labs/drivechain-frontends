@@ -35,16 +35,23 @@ class NodeConnectionSettings extends ChangeNotifier {
       usernameController.text != fileUsername ||
       passwordController.text != filePassword;
 
+  // Add a map to store arbitrary config values
+  final Map<String, String> configValues = {};
+
   NodeConnectionSettings(
     String path,
     String host,
     int port,
     String username,
     String password,
-    bool localNetwork,
-  ) {
+    bool localNetwork, [
+    Map<String, String>? additionalConfig,
+  ]) {
     _setFileValues(path, host, port, username, password);
     isLocalNetwork = localNetwork;
+    if (additionalConfig != null) {
+      configValues.addAll(additionalConfig);
+    }
 
     configPathController.text = path;
     hostController.text = host;
@@ -127,7 +134,54 @@ class NodeConnectionSettings extends ChangeNotifier {
   }
 
   static NodeConnectionSettings empty() {
-    return NodeConnectionSettings('', '', 0, '', '', false);
+    return NodeConnectionSettings('', '', 0, '', '', false, {});
+  }
+
+  // Add method to get config value
+  String? getConfigValue(String key) => configValues[key];
+
+  // Add method to set config value
+  void setConfigValue(String key, String value) {
+    configValues[key] = value;
+    notifyListeners();
+  }
+
+  // Add method to read all values from conf file
+  void readConfigFromFile(List<String> lines) {
+    configValues.clear();
+    for (final line in lines) {
+      if (line.startsWith('#') || !line.contains('=')) continue;
+
+      final parts = line.split('=');
+      if (parts.length != 2) continue;
+
+      final key = parts[0].trim();
+      final value = parts[1].trim();
+
+      // Handle special cases
+      switch (key) {
+        case 'rpcuser':
+          usernameController.text = value;
+          break;
+        case 'rpcpassword':
+          passwordController.text = value;
+          break;
+        case 'rpcport':
+          portController.text = value;
+          break;
+        default:
+          configValues[key] = value;
+      }
+    }
+    notifyListeners();
+  }
+
+  List<String> getConfigArgs() {
+    final args = <String>[];
+    configValues.forEach((key, value) {
+      args.add('-$key=$value');
+    });
+    return args;
   }
 }
 

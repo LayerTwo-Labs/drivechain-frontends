@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:collection/collection.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -72,18 +71,25 @@ Future<NodeConnectionSettings> readRPCConfig(
   }
 
   if (await conf.exists()) {
-    log.t('rpc: reading conf file at $conf');
-
+    log.d('rpc: reading conf file at $conf');
     final confContent = await conf.readAsString();
     final lines = confContent.split('\n').map((e) => e.trim()).toList();
 
-    username = _configValue(lines, 'rpcuser') ?? 'user';
-    password = _configValue(lines, 'rpcpassword') ?? 'password';
+    // Create settings with basic values
+    final settings = NodeConnectionSettings(
+      conf.path,
+      'localhost',
+      chain.rpcPort,
+      'user',
+      'password',
+      network == 'regtest',
+    );
 
-    final rawPort = _configValue(lines, 'rpcport');
-    if (rawPort != null) {
-      port = int.parse(rawPort);
-    }
+    // Read all config values, overwrite
+    // default 'host' 'port' 'user' 'password' if set
+    settings.readConfigFromFile(lines);
+
+    return settings;
   }
 
   if (password == null || username == null) {
@@ -105,19 +111,13 @@ Future<NodeConnectionSettings> readRPCConfig(
   );
 }
 
-String? _configValue(List<String> config, String key) {
-  final line = config.firstWhereOrNull((element) => element.split('=').first == key);
-  return line?.split('=').lastOrNull;
-}
-
-List<String> bitcoinCoreBinaryArgs(
-  NodeConnectionSettings conf,
-) {
+List<String> bitcoinCoreBinaryArgs(NodeConnectionSettings conf) {
   return [
     conf.isLocalNetwork ? '-regtest' : '',
     '-rpcuser=${conf.username}',
     '-rpcpassword=${conf.password}',
     '-rpcport=${conf.port}',
+    ...conf.getConfigArgs(), // Add all additional config values
   ]
       // important: empty strings trip up the binary
       .where((arg) => arg.isNotEmpty)
