@@ -126,7 +126,7 @@ class MainchainRPCLive extends MainchainRPC {
       '-datadir=$dataDir',
       '-signet',
       '-server',
-      '-addnode=drivechain.live:8383',
+      '-addnode=172.105.148.135:38333',
       '-signetblocktime=60',
       '-signetchallenge=00141f61d57873d70d28bd28b3c9f9d6bf818b5a0d6a',
       '-acceptnonstdtxn',
@@ -140,12 +140,18 @@ class MainchainRPCLive extends MainchainRPC {
       '-zmqpubsequence=tcp://0.0.0.0:29000',
     ];
 
+    // Only add sidechain args that aren't already in baseArgs
+    final extraArgs = sidechainArgs.where((arg) {
+      final paramName = arg.split('=')[0];
+      return !baseArgs.any((baseArg) => baseArg.startsWith(paramName));
+    }).toList();
+
     // Check if the data directory exists before starting the node
     if (!await Directory(dataDir).exists()) {
       log.e('Data directory "$dataDir" does not exist. Please create it manually.');
     }
 
-    return [...baseArgs, ...sidechainArgs];
+    return [...baseArgs, ...extraArgs];
   }
 
   @override
