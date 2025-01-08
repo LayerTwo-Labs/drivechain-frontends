@@ -47,6 +47,7 @@ class EnforcerLive extends EnforcerRPC {
       '--node-rpc-addr=$host:${mainchainConf.port}',
       '--node-zmq-addr-sequence=tcp://0.0.0.0:29000',
       '--enable-wallet',
+      '--wallet-auto-create',
     ];
   }
 
