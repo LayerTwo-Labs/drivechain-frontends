@@ -117,6 +117,7 @@ Future<void> initDependencies(Logger log, File logFile) async {
     final network = 'signet';
     mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'bitcoin.conf', ParentChain(), network);
   } catch (error) {
+    log.e('could not read mainchain conf: $error');
     // do nothing
   }
 
@@ -209,7 +210,7 @@ Future<void> initEnforcer(
   }
 
   // return when the enforcer is connected, but always move on
-  // if 3 seconds have passed
+  // if 60 seconds have passed
   await Future.any([
     () async {
       while (!enforcer.connected) {
@@ -231,7 +232,7 @@ Future<void> initServer(
   await server.initBinary(context);
 
   // return when the server is connected, but always move on
-  // if 3 seconds have passed
+  // if 60 seconds have passed
   await Future.any([
     () async {
       while (!server.connected) {
