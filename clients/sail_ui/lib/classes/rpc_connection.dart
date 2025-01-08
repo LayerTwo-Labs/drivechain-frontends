@@ -17,14 +17,15 @@ import 'package:sail_ui/sail_ui.dart';
 abstract class RPCConnection extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
+  NodeConnectionSettings conf;
+  final String binary;
+  final String logPath;
+
   RPCConnection({
     required this.conf,
     required this.binary,
     required this.logPath,
   });
-
-  final String binary;
-  final String logPath;
 
   /// Args to pass to the binary on startup.
   Future<List<String>> binaryArgs(
@@ -114,7 +115,6 @@ abstract class RPCConnection extends ChangeNotifier {
   }
 
   // values for tracking connection state, and error (if any)
-  NodeConnectionSettings conf;
   String? connectionError;
   bool connected = false;
   int blockCount = 0;
