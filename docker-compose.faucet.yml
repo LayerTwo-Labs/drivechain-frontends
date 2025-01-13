@@ -1,12 +1,20 @@
 name: drivechain-faucet
 
-services: 
-  backend: 
+services:
+  backend:
     ports: [8082:8082]
     networks: [drivechain]
 
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/listclaims"]
+      test:
+        - "CMD"
+        - "curl"
+        - "-X"
+        - "POST"
+        - "-H"
+        - "Content-Type: application/json"
+        - "--fail"
+        - "http://0.0.0.0:8082/faucet.v1.FaucetService/ListClaims"
 
     image: faucet-backend
     restart: unless-stopped
@@ -14,7 +22,7 @@ services:
       context: ./faucet-backend
       platforms: [linux/amd64]
 
-    command: 
+    command:
       - faucet-backend
       - --bitcoincore.host=mainchain:38332
       - --bitcoincore.rpcuser=user
@@ -23,5 +31,5 @@ services:
 
 networks:
   drivechain:
-    name: drivechain-network          
+    name: drivechain-network
     external: true
