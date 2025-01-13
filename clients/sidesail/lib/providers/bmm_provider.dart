@@ -32,7 +32,6 @@ class BMMProvider extends ChangeNotifier {
       // BMM attempts are always for the /next/ block height
       sidechainBlockHeight: currentBlockCount + 1,
 
-      // TODO: fetch mainchain block by TXID to get a correct number
       mainchainBlockHeight: await _rpc.mainBlockCount(),
     );
 

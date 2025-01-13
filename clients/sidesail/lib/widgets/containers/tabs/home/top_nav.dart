@@ -73,7 +73,7 @@ class _TopNavState extends State<TopNav> {
               child: VerticalDivider(
                 width: 1,
                 thickness: 1,
-                color: theme.colors.icon.withOpacity(0.2),
+                color: theme.colors.icon.withValues(alpha: 0.2),
               ),
             ),
             ...sidechainNav,

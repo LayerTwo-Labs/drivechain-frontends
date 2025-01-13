@@ -23,7 +23,7 @@ abstract class TestchainRPC extends SidechainRPC {
   /// Returns null if there's no current bundle
   Future<WithdrawalBundle?> mainCurrentWithdrawalBundle();
 
-  // TODO: such a mess that this takes in a status...
+  // such a mess that this takes in a status...
   // This is because the status isn't explicitly returned anywhere, but rather
   // deduced by where you got the bundle hash from.
   // testchain-cli getwithdrawalbundleinfo => pending
@@ -230,7 +230,7 @@ class TestchainRPCLive extends TestchainRPC {
     final rawNextBundle = await _client().call('listnextbundlewithdrawals') as List<dynamic>;
 
     return FutureWithdrawalBundle(
-      cumulativeWeight: 0, // TODO: not sure how to obtain this
+      cumulativeWeight: 0,
       withdrawals: rawNextBundle
           .map(
             (withdrawal) => Withdrawal(

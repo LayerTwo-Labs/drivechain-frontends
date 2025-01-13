@@ -305,11 +305,9 @@ class SidechainProposalViewModel extends BaseViewModel {
     isProposing = true;
     notifyListeners();
 
-    // TODO: Implement the actual API call to propose the sidechain
     return showSnackBar(context, 'Propose sidechain not implemented');
     /*
     try {
-      // TODO: Implement the actual API call to propose the sidechain
       await Future.delayed(const Duration(seconds: 2)); // Simulating API call
 
       // If successful, close the modal

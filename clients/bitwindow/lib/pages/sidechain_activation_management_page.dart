@@ -43,12 +43,10 @@ class SidechainActivationManagementViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  // TODO: Implement the actual API call to ACK the sidechain
   void ack(BuildContext context) {
     showSnackBar(context, 'ACK not implemented');
   }
 
-  // TODO: Implement the actual API call to NACK the sidechain
   void nack(BuildContext context) {
     showSnackBar(context, 'NACK not implemented');
   }
@@ -214,18 +212,14 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
         SailTableHeaderCell(name: 'Active'),
         SailTableHeaderCell(name: 'Name'),
         SailTableHeaderCell(name: 'CTIP TxID'),
-        //TODO: SailTableHeaderCell(child: SailText.primary12('CTIP Index')),
       ],
       rowBuilder: (context, row, selected) {
-        // TODO: Revise the data, it's not yet clear what is what. The columns is taken straight from
-        // drivechain-qt and might not be available in the API.
         final sidechain = blocks[row];
         return [
           SailTableCell(value: '${sidechain.slot}'),
           SailTableCell(value: 'Yes'),
           SailTableCell(value: sidechain.title),
           SailTableCell(value: sidechain.chaintipTxid.isEmpty ? 'N/A' : sidechain.chaintipTxid),
-          //TODO: SailTableCell(child: SailText.primary12('TODO')),
         ];
       },
       rowCount: blocks.length,
@@ -362,8 +356,6 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
       ],
       rowBuilder: (context, row, selected) {
         final proposal = widget.proposals[row];
-        // TODO: Revise the data, it's not yet clear what is what. The columns is taken straight from
-        // drivechain-qt and might not be available in the API.
         return [
           SailTableCell(value: proposal.voteCount.toString()),
           SailTableCell(value: proposal.slot.toString()),

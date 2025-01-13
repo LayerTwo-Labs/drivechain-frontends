@@ -139,7 +139,7 @@ class SelectableListTile extends StatelessWidget {
     return GestureDetector(
       onTap: onSelected,
       child: Container(
-        color: isSelected ? context.sailTheme.colors.primary.withOpacity(0.5) : Colors.transparent,
+        color: isSelected ? context.sailTheme.colors.primary.withValues(alpha: 0.5) : Colors.transparent,
         child: Row(
           children: [
             SizedBox(
@@ -287,7 +287,6 @@ class SidechainsViewModel extends BaseViewModel {
     return _sortedDeposits;
   }
 
-// TODO: Implement withdrawals
   List<ListSidechainDepositsResponse_SidechainDeposit> get sortedWithdrawals {
     if (!listEquals(_sortedDeposits, recentDeposits)) {
       _sortedDeposits = List<ListSidechainDepositsResponse_SidechainDeposit>.from(recentDeposits);

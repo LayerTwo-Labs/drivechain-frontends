@@ -813,9 +813,7 @@ class AddressMenuViewModel extends BaseViewModel {
     searchController.addListener(notifyListeners);
   }
 
-  void onChoosePressed(BuildContext context) {
-    // TODO: Implement expansion logic
-  }
+  void onChoosePressed(BuildContext context) {}
 }
 
 Future<CoreTransaction?> showAddressBookModal(BuildContext context) {

@@ -595,7 +595,6 @@ class WithdrawalExplorer extends StatelessWidget {
                     children: [
                       ...[
                         if (!model.hasDoneInitialFetch) LoadingIndicator.overlay(),
-                        // TODO: proper no bundle view
                         if (model.bundleCount == 0)
                           Center(
                             child: Padding(
@@ -679,7 +678,6 @@ class WithdrawalBundleViewViewModel extends BaseViewModel {
       return votesCurrentBundle ?? 0;
     }
 
-    // TODO; return 0 zero here?
     throw 'received hash for unknown bundle: $hash';
   }
 

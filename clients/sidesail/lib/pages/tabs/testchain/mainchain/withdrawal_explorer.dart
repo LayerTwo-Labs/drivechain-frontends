@@ -162,7 +162,6 @@ class WithdrawalBundleTabPageViewModel extends BaseViewModel {
       return votesCurrentBundle ?? 0;
     }
 
-    // TODO; return 0 zero here?
     throw 'received hash for unknown bundle: $hash';
   }
 
