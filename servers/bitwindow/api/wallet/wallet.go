@@ -2,6 +2,7 @@ package api_wallet
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -87,19 +88,24 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: satoshiPerVByte},
 		}
 	}
-	// encode the message as hex!
-	var message string
+
+	// Prepare OP_RETURN message if provided
+	var opReturnMessage *commonv1.Hex
 	if c.Msg.OpReturnMessage != nil {
-		message = string(*c.Msg.OpReturnMessage)
+		opReturnMessage = &commonv1.Hex{
+			Hex: &wrapperspb.StringValue{
+				Value: hex.EncodeToString([]byte(*c.Msg.OpReturnMessage)),
+			},
+		}
 	}
 
 	created, err := s.wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
 		Destinations:    destinations,
 		FeeRate:         feeRate,
-		OpReturnMessage: []byte(message),
+		OpReturnMessage: opReturnMessage,
 	}))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not send transaction: %w", err)
 	}
 
 	log.Info().Msgf("send tx: broadcast transaction: %s", created.Msg.Txid)

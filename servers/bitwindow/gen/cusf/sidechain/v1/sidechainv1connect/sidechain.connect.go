@@ -49,15 +49,6 @@ const (
 	SidechainServiceSubscribeEventsProcedure = "/cusf.sidechain.v1.SidechainService/SubscribeEvents"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	sidechainServiceServiceDescriptor                 = v1.File_cusf_sidechain_v1_sidechain_proto.Services().ByName("SidechainService")
-	sidechainServiceGetMempoolTxsMethodDescriptor     = sidechainServiceServiceDescriptor.Methods().ByName("GetMempoolTxs")
-	sidechainServiceGetUtxosMethodDescriptor          = sidechainServiceServiceDescriptor.Methods().ByName("GetUtxos")
-	sidechainServiceSubmitTransactionMethodDescriptor = sidechainServiceServiceDescriptor.Methods().ByName("SubmitTransaction")
-	sidechainServiceSubscribeEventsMethodDescriptor   = sidechainServiceServiceDescriptor.Methods().ByName("SubscribeEvents")
-)
-
 // SidechainServiceClient is a client for the cusf.sidechain.v1.SidechainService service.
 type SidechainServiceClient interface {
 	GetMempoolTxs(context.Context, *connect.Request[v1.GetMempoolTxsRequest]) (*connect.Response[v1.GetMempoolTxsResponse], error)
@@ -75,29 +66,30 @@ type SidechainServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewSidechainServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) SidechainServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	sidechainServiceMethods := v1.File_cusf_sidechain_v1_sidechain_proto.Services().ByName("SidechainService").Methods()
 	return &sidechainServiceClient{
 		getMempoolTxs: connect.NewClient[v1.GetMempoolTxsRequest, v1.GetMempoolTxsResponse](
 			httpClient,
 			baseURL+SidechainServiceGetMempoolTxsProcedure,
-			connect.WithSchema(sidechainServiceGetMempoolTxsMethodDescriptor),
+			connect.WithSchema(sidechainServiceMethods.ByName("GetMempoolTxs")),
 			connect.WithClientOptions(opts...),
 		),
 		getUtxos: connect.NewClient[v1.GetUtxosRequest, v1.GetUtxosResponse](
 			httpClient,
 			baseURL+SidechainServiceGetUtxosProcedure,
-			connect.WithSchema(sidechainServiceGetUtxosMethodDescriptor),
+			connect.WithSchema(sidechainServiceMethods.ByName("GetUtxos")),
 			connect.WithClientOptions(opts...),
 		),
 		submitTransaction: connect.NewClient[v1.SubmitTransactionRequest, v1.SubmitTransactionResponse](
 			httpClient,
 			baseURL+SidechainServiceSubmitTransactionProcedure,
-			connect.WithSchema(sidechainServiceSubmitTransactionMethodDescriptor),
+			connect.WithSchema(sidechainServiceMethods.ByName("SubmitTransaction")),
 			connect.WithClientOptions(opts...),
 		),
 		subscribeEvents: connect.NewClient[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse](
 			httpClient,
 			baseURL+SidechainServiceSubscribeEventsProcedure,
-			connect.WithSchema(sidechainServiceSubscribeEventsMethodDescriptor),
+			connect.WithSchema(sidechainServiceMethods.ByName("SubscribeEvents")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -145,28 +137,29 @@ type SidechainServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewSidechainServiceHandler(svc SidechainServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	sidechainServiceMethods := v1.File_cusf_sidechain_v1_sidechain_proto.Services().ByName("SidechainService").Methods()
 	sidechainServiceGetMempoolTxsHandler := connect.NewUnaryHandler(
 		SidechainServiceGetMempoolTxsProcedure,
 		svc.GetMempoolTxs,
-		connect.WithSchema(sidechainServiceGetMempoolTxsMethodDescriptor),
+		connect.WithSchema(sidechainServiceMethods.ByName("GetMempoolTxs")),
 		connect.WithHandlerOptions(opts...),
 	)
 	sidechainServiceGetUtxosHandler := connect.NewUnaryHandler(
 		SidechainServiceGetUtxosProcedure,
 		svc.GetUtxos,
-		connect.WithSchema(sidechainServiceGetUtxosMethodDescriptor),
+		connect.WithSchema(sidechainServiceMethods.ByName("GetUtxos")),
 		connect.WithHandlerOptions(opts...),
 	)
 	sidechainServiceSubmitTransactionHandler := connect.NewUnaryHandler(
 		SidechainServiceSubmitTransactionProcedure,
 		svc.SubmitTransaction,
-		connect.WithSchema(sidechainServiceSubmitTransactionMethodDescriptor),
+		connect.WithSchema(sidechainServiceMethods.ByName("SubmitTransaction")),
 		connect.WithHandlerOptions(opts...),
 	)
 	sidechainServiceSubscribeEventsHandler := connect.NewServerStreamHandler(
 		SidechainServiceSubscribeEventsProcedure,
 		svc.SubscribeEvents,
-		connect.WithSchema(sidechainServiceSubscribeEventsMethodDescriptor),
+		connect.WithSchema(sidechainServiceMethods.ByName("SubscribeEvents")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/cusf.sidechain.v1.SidechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

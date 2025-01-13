@@ -32,136 +32,156 @@ final $typed_data.Uint8List networkDescriptor = $convert.base64Decode(
     'ITCg9ORVRXT1JLX01BSU5ORVQQAhITCg9ORVRXT1JLX1JFR1RFU1QQAxISCg5ORVRXT1JLX1NJ'
     'R05FVBAEEhMKD05FVFdPUktfVEVTVE5FVBAF');
 
-@$core.Deprecated('Use withdrawalBundleEventTypeDescriptor instead')
-const WithdrawalBundleEventType$json = {
-  '1': 'WithdrawalBundleEventType',
-  '2': [
-    {'1': 'WITHDRAWAL_BUNDLE_EVENT_TYPE_UNSPECIFIED', '2': 0},
-    {'1': 'WITHDRAWAL_BUNDLE_EVENT_TYPE_SUBMITTED', '2': 1},
-    {'1': 'WITHDRAWAL_BUNDLE_EVENT_TYPE_FAILED', '2': 2},
-    {'1': 'WITHDRAWAL_BUNDLE_EVENT_TYPE_SUCCEDED', '2': 3},
-  ],
-};
-
-/// Descriptor for `WithdrawalBundleEventType`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List withdrawalBundleEventTypeDescriptor = $convert.base64Decode(
-    'ChlXaXRoZHJhd2FsQnVuZGxlRXZlbnRUeXBlEiwKKFdJVEhEUkFXQUxfQlVORExFX0VWRU5UX1'
-    'RZUEVfVU5TUEVDSUZJRUQQABIqCiZXSVRIRFJBV0FMX0JVTkRMRV9FVkVOVF9UWVBFX1NVQk1J'
-    'VFRFRBABEicKI1dJVEhEUkFXQUxfQlVORExFX0VWRU5UX1RZUEVfRkFJTEVEEAISKQolV0lUSE'
-    'RSQVdBTF9CVU5ETEVfRVZFTlRfVFlQRV9TVUNDRURFRBAD');
-
 @$core.Deprecated('Use blockHeaderInfoDescriptor instead')
 const BlockHeaderInfo$json = {
   '1': 'BlockHeaderInfo',
   '2': [
-    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '10': 'blockHash'},
-    {'1': 'prev_block_hash', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '10': 'prevBlockHash'},
+    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
+    {'1': 'prev_block_hash', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'prevBlockHash'},
     {'1': 'height', '3': 3, '4': 1, '5': 13, '10': 'height'},
-    {'1': 'work', '3': 4, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'work'},
+    {'1': 'work', '3': 4, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'work'},
   ],
 };
 
 /// Descriptor for `BlockHeaderInfo`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List blockHeaderInfoDescriptor = $convert.base64Decode(
-    'Cg9CbG9ja0hlYWRlckluZm8SPAoKYmxvY2tfaGFzaBgBIAEoCzIdLmN1c2YubWFpbmNoYWluLn'
-    'YxLlJldmVyc2VIZXhSCWJsb2NrSGFzaBJFCg9wcmV2X2Jsb2NrX2hhc2gYAiABKAsyHS5jdXNm'
-    'Lm1haW5jaGFpbi52MS5SZXZlcnNlSGV4Ug1wcmV2QmxvY2tIYXNoEhYKBmhlaWdodBgDIAEoDV'
-    'IGaGVpZ2h0EjMKBHdvcmsYBCABKAsyHy5jdXNmLm1haW5jaGFpbi52MS5Db25zZW5zdXNIZXhS'
-    'BHdvcms=');
-
-@$core.Deprecated('Use outPointDescriptor instead')
-const OutPoint$json = {
-  '1': 'OutPoint',
-  '2': [
-    {'1': 'txid', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'txid'},
-    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
-  ],
-};
-
-/// Descriptor for `OutPoint`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List outPointDescriptor = $convert.base64Decode(
-    'CghPdXRQb2ludBIzCgR0eGlkGAEgASgLMh8uY3VzZi5tYWluY2hhaW4udjEuQ29uc2Vuc3VzSG'
-    'V4UgR0eGlkEhIKBHZvdXQYAiABKA1SBHZvdXQ=');
-
-@$core.Deprecated('Use outputDescriptor instead')
-const Output$json = {
-  '1': 'Output',
-  '2': [
-    {'1': 'address', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'address'},
-    {'1': 'value_sats', '3': 3, '4': 1, '5': 4, '10': 'valueSats'},
-  ],
-};
-
-/// Descriptor for `Output`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List outputDescriptor = $convert.base64Decode(
-    'CgZPdXRwdXQSOQoHYWRkcmVzcxgCIAEoCzIfLmN1c2YubWFpbmNoYWluLnYxLkNvbnNlbnN1c0'
-    'hleFIHYWRkcmVzcxIdCgp2YWx1ZV9zYXRzGAMgASgEUgl2YWx1ZVNhdHM=');
+    'Cg9CbG9ja0hlYWRlckluZm8SOQoKYmxvY2tfaGFzaBgBIAEoCzIaLmN1c2YuY29tbW9uLnYxLl'
+    'JldmVyc2VIZXhSCWJsb2NrSGFzaBJCCg9wcmV2X2Jsb2NrX2hhc2gYAiABKAsyGi5jdXNmLmNv'
+    'bW1vbi52MS5SZXZlcnNlSGV4Ug1wcmV2QmxvY2tIYXNoEhYKBmhlaWdodBgDIAEoDVIGaGVpZ2'
+    'h0EjAKBHdvcmsYBCABKAsyHC5jdXNmLmNvbW1vbi52MS5Db25zZW5zdXNIZXhSBHdvcms=');
 
 @$core.Deprecated('Use depositDescriptor instead')
 const Deposit$json = {
   '1': 'Deposit',
   '2': [
-    {'1': 'sequence_number', '3': 1, '4': 1, '5': 4, '10': 'sequenceNumber'},
+    {'1': 'sequence_number', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt64Value', '10': 'sequenceNumber'},
     {'1': 'outpoint', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.OutPoint', '10': 'outpoint'},
-    {'1': 'output', '3': 3, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.Output', '10': 'output'},
+    {'1': 'output', '3': 3, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.Deposit.Output', '10': 'output'},
+  ],
+  '3': [Deposit_Output$json],
+};
+
+@$core.Deprecated('Use depositDescriptor instead')
+const Deposit_Output$json = {
+  '1': 'Output',
+  '2': [
+    {'1': 'address', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.Hex', '10': 'address'},
+    {'1': 'value_sats', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.UInt64Value', '10': 'valueSats'},
   ],
 };
 
 /// Descriptor for `Deposit`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List depositDescriptor = $convert.base64Decode(
-    'CgdEZXBvc2l0EicKD3NlcXVlbmNlX251bWJlchgBIAEoBFIOc2VxdWVuY2VOdW1iZXISNwoIb3'
-    'V0cG9pbnQYAiABKAsyGy5jdXNmLm1haW5jaGFpbi52MS5PdXRQb2ludFIIb3V0cG9pbnQSMQoG'
-    'b3V0cHV0GAMgASgLMhkuY3VzZi5tYWluY2hhaW4udjEuT3V0cHV0UgZvdXRwdXQ=');
+    'CgdEZXBvc2l0EkUKD3NlcXVlbmNlX251bWJlchgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW'
+    '50NjRWYWx1ZVIOc2VxdWVuY2VOdW1iZXISNwoIb3V0cG9pbnQYAiABKAsyGy5jdXNmLm1haW5j'
+    'aGFpbi52MS5PdXRQb2ludFIIb3V0cG9pbnQSOQoGb3V0cHV0GAMgASgLMiEuY3VzZi5tYWluY2'
+    'hhaW4udjEuRGVwb3NpdC5PdXRwdXRSBm91dHB1dBp0CgZPdXRwdXQSLQoHYWRkcmVzcxgCIAEo'
+    'CzITLmN1c2YuY29tbW9uLnYxLkhleFIHYWRkcmVzcxI7Cgp2YWx1ZV9zYXRzGAMgASgLMhwuZ2'
+    '9vZ2xlLnByb3RvYnVmLlVJbnQ2NFZhbHVlUgl2YWx1ZVNhdHM=');
 
 @$core.Deprecated('Use withdrawalBundleEventDescriptor instead')
 const WithdrawalBundleEvent$json = {
   '1': 'WithdrawalBundleEvent',
   '2': [
-    {'1': 'm6id', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'm6id'},
-    {'1': 'withdrawal_bundle_event_type', '3': 2, '4': 1, '5': 14, '6': '.cusf.mainchain.v1.WithdrawalBundleEventType', '10': 'withdrawalBundleEventType'},
+    {'1': 'm6id', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'm6id'},
+    {'1': 'event', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.WithdrawalBundleEvent.Event', '10': 'event'},
   ],
+  '3': [WithdrawalBundleEvent_Event$json],
+};
+
+@$core.Deprecated('Use withdrawalBundleEventDescriptor instead')
+const WithdrawalBundleEvent_Event$json = {
+  '1': 'Event',
+  '2': [
+    {'1': 'failed', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.WithdrawalBundleEvent.Event.Failed', '9': 0, '10': 'failed'},
+    {'1': 'succeeded', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded', '9': 0, '10': 'succeeded'},
+    {'1': 'submitted', '3': 3, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.WithdrawalBundleEvent.Event.Submitted', '9': 0, '10': 'submitted'},
+  ],
+  '3': [WithdrawalBundleEvent_Event_Failed$json, WithdrawalBundleEvent_Event_Succeeded$json, WithdrawalBundleEvent_Event_Submitted$json],
+  '8': [
+    {'1': 'event'},
+  ],
+};
+
+@$core.Deprecated('Use withdrawalBundleEventDescriptor instead')
+const WithdrawalBundleEvent_Event_Failed$json = {
+  '1': 'Failed',
+};
+
+@$core.Deprecated('Use withdrawalBundleEventDescriptor instead')
+const WithdrawalBundleEvent_Event_Succeeded$json = {
+  '1': 'Succeeded',
+  '2': [
+    {'1': 'sequence_number', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt64Value', '10': 'sequenceNumber'},
+    {'1': 'transaction', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'transaction'},
+  ],
+};
+
+@$core.Deprecated('Use withdrawalBundleEventDescriptor instead')
+const WithdrawalBundleEvent_Event_Submitted$json = {
+  '1': 'Submitted',
 };
 
 /// Descriptor for `WithdrawalBundleEvent`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List withdrawalBundleEventDescriptor = $convert.base64Decode(
-    'ChVXaXRoZHJhd2FsQnVuZGxlRXZlbnQSMwoEbTZpZBgBIAEoCzIfLmN1c2YubWFpbmNoYWluLn'
-    'YxLkNvbnNlbnN1c0hleFIEbTZpZBJtChx3aXRoZHJhd2FsX2J1bmRsZV9ldmVudF90eXBlGAIg'
-    'ASgOMiwuY3VzZi5tYWluY2hhaW4udjEuV2l0aGRyYXdhbEJ1bmRsZUV2ZW50VHlwZVIZd2l0aG'
-    'RyYXdhbEJ1bmRsZUV2ZW50VHlwZQ==');
+    'ChVXaXRoZHJhd2FsQnVuZGxlRXZlbnQSMAoEbTZpZBgBIAEoCzIcLmN1c2YuY29tbW9uLnYxLk'
+    'NvbnNlbnN1c0hleFIEbTZpZBJECgVldmVudBgCIAEoCzIuLmN1c2YubWFpbmNoYWluLnYxLldp'
+    'dGhkcmF3YWxCdW5kbGVFdmVudC5FdmVudFIFZXZlbnQawQMKBUV2ZW50Ek8KBmZhaWxlZBgBIA'
+    'EoCzI1LmN1c2YubWFpbmNoYWluLnYxLldpdGhkcmF3YWxCdW5kbGVFdmVudC5FdmVudC5GYWls'
+    'ZWRIAFIGZmFpbGVkElgKCXN1Y2NlZWRlZBgCIAEoCzI4LmN1c2YubWFpbmNoYWluLnYxLldpdG'
+    'hkcmF3YWxCdW5kbGVFdmVudC5FdmVudC5TdWNjZWVkZWRIAFIJc3VjY2VlZGVkElgKCXN1Ym1p'
+    'dHRlZBgDIAEoCzI4LmN1c2YubWFpbmNoYWluLnYxLldpdGhkcmF3YWxCdW5kbGVFdmVudC5Fdm'
+    'VudC5TdWJtaXR0ZWRIAFIJc3VibWl0dGVkGggKBkZhaWxlZBqSAQoJU3VjY2VlZGVkEkUKD3Nl'
+    'cXVlbmNlX251bWJlchgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50NjRWYWx1ZVIOc2VxdW'
+    'VuY2VOdW1iZXISPgoLdHJhbnNhY3Rpb24YAiABKAsyHC5jdXNmLmNvbW1vbi52MS5Db25zZW5z'
+    'dXNIZXhSC3RyYW5zYWN0aW9uGgsKCVN1Ym1pdHRlZEIHCgVldmVudA==');
 
 @$core.Deprecated('Use blockInfoDescriptor instead')
 const BlockInfo$json = {
   '1': 'BlockInfo',
   '2': [
-    {'1': 'deposits', '3': 1, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.Deposit', '10': 'deposits'},
-    {'1': 'withdrawal_bundle_events', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.WithdrawalBundleEvent', '10': 'withdrawalBundleEvents'},
-    {'1': 'bmm_commitment', '3': 3, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '9': 0, '10': 'bmmCommitment', '17': true},
+    {'1': 'bmm_commitment', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '9': 0, '10': 'bmmCommitment', '17': true},
+    {'1': 'events', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.BlockInfo.Event', '10': 'events'},
   ],
+  '3': [BlockInfo_Event$json],
   '8': [
     {'1': '_bmm_commitment'},
   ],
 };
 
+@$core.Deprecated('Use blockInfoDescriptor instead')
+const BlockInfo_Event$json = {
+  '1': 'Event',
+  '2': [
+    {'1': 'deposit', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.Deposit', '9': 0, '10': 'deposit'},
+    {'1': 'withdrawal_bundle', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.WithdrawalBundleEvent', '9': 0, '10': 'withdrawalBundle'},
+  ],
+  '8': [
+    {'1': 'event'},
+  ],
+};
+
 /// Descriptor for `BlockInfo`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List blockInfoDescriptor = $convert.base64Decode(
-    'CglCbG9ja0luZm8SNgoIZGVwb3NpdHMYASADKAsyGi5jdXNmLm1haW5jaGFpbi52MS5EZXBvc2'
-    'l0UghkZXBvc2l0cxJiChh3aXRoZHJhd2FsX2J1bmRsZV9ldmVudHMYAiADKAsyKC5jdXNmLm1h'
-    'aW5jaGFpbi52MS5XaXRoZHJhd2FsQnVuZGxlRXZlbnRSFndpdGhkcmF3YWxCdW5kbGVFdmVudH'
-    'MSSwoOYm1tX2NvbW1pdG1lbnQYAyABKAsyHy5jdXNmLm1haW5jaGFpbi52MS5Db25zZW5zdXNI'
-    'ZXhIAFINYm1tQ29tbWl0bWVudIgBAUIRCg9fYm1tX2NvbW1pdG1lbnQ=');
+    'CglCbG9ja0luZm8SSAoOYm1tX2NvbW1pdG1lbnQYASABKAsyHC5jdXNmLmNvbW1vbi52MS5Db2'
+    '5zZW5zdXNIZXhIAFINYm1tQ29tbWl0bWVudIgBARI6CgZldmVudHMYAiADKAsyIi5jdXNmLm1h'
+    'aW5jaGFpbi52MS5CbG9ja0luZm8uRXZlbnRSBmV2ZW50cxqhAQoFRXZlbnQSNgoHZGVwb3NpdB'
+    'gBIAEoCzIaLmN1c2YubWFpbmNoYWluLnYxLkRlcG9zaXRIAFIHZGVwb3NpdBJXChF3aXRoZHJh'
+    'd2FsX2J1bmRsZRgCIAEoCzIoLmN1c2YubWFpbmNoYWluLnYxLldpdGhkcmF3YWxCdW5kbGVFdm'
+    'VudEgAUhB3aXRoZHJhd2FsQnVuZGxlQgcKBWV2ZW50QhEKD19ibW1fY29tbWl0bWVudA==');
 
 @$core.Deprecated('Use getBlockHeaderInfoRequestDescriptor instead')
 const GetBlockHeaderInfoRequest$json = {
   '1': 'GetBlockHeaderInfoRequest',
   '2': [
-    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '10': 'blockHash'},
+    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
   ],
 };
 
 /// Descriptor for `GetBlockHeaderInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockHeaderInfoRequestDescriptor = $convert.base64Decode(
-    'ChlHZXRCbG9ja0hlYWRlckluZm9SZXF1ZXN0EjwKCmJsb2NrX2hhc2gYASABKAsyHS5jdXNmLm'
-    '1haW5jaGFpbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2g=');
+    'ChlHZXRCbG9ja0hlYWRlckluZm9SZXF1ZXN0EjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLm'
+    'NvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2g=');
 
 @$core.Deprecated('Use getBlockHeaderInfoResponseDescriptor instead')
 const GetBlockHeaderInfoResponse$json = {
@@ -180,16 +200,16 @@ final $typed_data.Uint8List getBlockHeaderInfoResponseDescriptor = $convert.base
 const GetBlockInfoRequest$json = {
   '1': 'GetBlockInfoRequest',
   '2': [
-    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '10': 'blockHash'},
+    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
     {'1': 'sidechain_id', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainId'},
   ],
 };
 
 /// Descriptor for `GetBlockInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockInfoRequestDescriptor = $convert.base64Decode(
-    'ChNHZXRCbG9ja0luZm9SZXF1ZXN0EjwKCmJsb2NrX2hhc2gYASABKAsyHS5jdXNmLm1haW5jaG'
-    'Fpbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSPwoMc2lkZWNoYWluX2lkGAIgASgLMhwuZ29v'
-    'Z2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZA==');
+    'ChNHZXRCbG9ja0luZm9SZXF1ZXN0EjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLmNvbW1vbi'
+    '52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSPwoMc2lkZWNoYWluX2lkGAIgASgLMhwuZ29vZ2xl'
+    'LnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZA==');
 
 @$core.Deprecated('Use getBlockInfoResponseDescriptor instead')
 const GetBlockInfoResponse$json = {
@@ -210,16 +230,16 @@ final $typed_data.Uint8List getBlockInfoResponseDescriptor = $convert.base64Deco
 const GetBmmHStarCommitmentRequest$json = {
   '1': 'GetBmmHStarCommitmentRequest',
   '2': [
-    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '10': 'blockHash'},
+    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
     {'1': 'sidechain_id', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainId'},
   ],
 };
 
 /// Descriptor for `GetBmmHStarCommitmentRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBmmHStarCommitmentRequestDescriptor = $convert.base64Decode(
-    'ChxHZXRCbW1IU3RhckNvbW1pdG1lbnRSZXF1ZXN0EjwKCmJsb2NrX2hhc2gYASABKAsyHS5jdX'
-    'NmLm1haW5jaGFpbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSPwoMc2lkZWNoYWluX2lkGAIg'
-    'ASgLMhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZA==');
+    'ChxHZXRCbW1IU3RhckNvbW1pdG1lbnRSZXF1ZXN0EjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdX'
+    'NmLmNvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSPwoMc2lkZWNoYWluX2lkGAIgASgL'
+    'MhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZA==');
 
 @$core.Deprecated('Use getBmmHStarCommitmentResponseDescriptor instead')
 const GetBmmHStarCommitmentResponse$json = {
@@ -238,7 +258,7 @@ const GetBmmHStarCommitmentResponse$json = {
 const GetBmmHStarCommitmentResponse_BlockNotFoundError$json = {
   '1': 'BlockNotFoundError',
   '2': [
-    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '10': 'blockHash'},
+    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
   ],
 };
 
@@ -246,7 +266,7 @@ const GetBmmHStarCommitmentResponse_BlockNotFoundError$json = {
 const GetBmmHStarCommitmentResponse_Commitment$json = {
   '1': 'Commitment',
   '2': [
-    {'1': 'commitment', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '9': 0, '10': 'commitment', '17': true},
+    {'1': 'commitment', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '9': 0, '10': 'commitment', '17': true},
   ],
   '8': [
     {'1': '_commitment'},
@@ -259,10 +279,10 @@ final $typed_data.Uint8List getBmmHStarCommitmentResponseDescriptor = $convert.b
     'syQy5jdXNmLm1haW5jaGFpbi52MS5HZXRCbW1IU3RhckNvbW1pdG1lbnRSZXNwb25zZS5CbG9j'
     'a05vdEZvdW5kRXJyb3JIAFINYmxvY2tOb3RGb3VuZBJdCgpjb21taXRtZW50GAIgASgLMjsuY3'
     'VzZi5tYWluY2hhaW4udjEuR2V0Qm1tSFN0YXJDb21taXRtZW50UmVzcG9uc2UuQ29tbWl0bWVu'
-    'dEgAUgpjb21taXRtZW50GlIKEkJsb2NrTm90Rm91bmRFcnJvchI8CgpibG9ja19oYXNoGAEgAS'
-    'gLMh0uY3VzZi5tYWluY2hhaW4udjEuUmV2ZXJzZUhleFIJYmxvY2tIYXNoGmEKCkNvbW1pdG1l'
-    'bnQSRAoKY29tbWl0bWVudBgBIAEoCzIfLmN1c2YubWFpbmNoYWluLnYxLkNvbnNlbnN1c0hleE'
-    'gAUgpjb21taXRtZW50iAEBQg0KC19jb21taXRtZW50QggKBnJlc3VsdA==');
+    'dEgAUgpjb21taXRtZW50Gk8KEkJsb2NrTm90Rm91bmRFcnJvchI5CgpibG9ja19oYXNoGAEgAS'
+    'gLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIJYmxvY2tIYXNoGl4KCkNvbW1pdG1lbnQS'
+    'QQoKY29tbWl0bWVudBgBIAEoCzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleEgAUgpjb2'
+    '1taXRtZW50iAEBQg0KC19jb21taXRtZW50QggKBnJlc3VsdA==');
 
 @$core.Deprecated('Use getChainInfoRequestDescriptor instead')
 const GetChainInfoRequest$json = {
@@ -325,7 +345,7 @@ const GetCoinbasePSBTRequest_ProposeSidechain$json = {
   '1': 'ProposeSidechain',
   '2': [
     {'1': 'sidechain_number', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainNumber'},
-    {'1': 'data', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'data'},
+    {'1': 'data', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'data'},
   ],
 };
 
@@ -334,7 +354,7 @@ const GetCoinbasePSBTRequest_AckSidechain$json = {
   '1': 'AckSidechain',
   '2': [
     {'1': 'sidechain_number', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainNumber'},
-    {'1': 'data_hash', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'dataHash'},
+    {'1': 'data_hash', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'dataHash'},
   ],
 };
 
@@ -343,7 +363,7 @@ const GetCoinbasePSBTRequest_ProposeBundle$json = {
   '1': 'ProposeBundle',
   '2': [
     {'1': 'sidechain_number', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainNumber'},
-    {'1': 'bundle_txid', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'bundleTxid'},
+    {'1': 'bundle_txid', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'bundleTxid'},
   ],
 };
 
@@ -388,35 +408,35 @@ final $typed_data.Uint8List getCoinbasePSBTRequestDescriptor = $convert.base64De
     'YWlucxJgCg9wcm9wb3NlX2J1bmRsZXMYAyADKAsyNy5jdXNmLm1haW5jaGFpbi52MS5HZXRDb2'
     'luYmFzZVBTQlRSZXF1ZXN0LlByb3Bvc2VCdW5kbGVSDnByb3Bvc2VCdW5kbGVzElUKC2Fja19i'
     'dW5kbGVzGAQgASgLMjQuY3VzZi5tYWluY2hhaW4udjEuR2V0Q29pbmJhc2VQU0JUUmVxdWVzdC'
-    '5BY2tCdW5kbGVzUgphY2tCdW5kbGVzGpABChBQcm9wb3NlU2lkZWNoYWluEkcKEHNpZGVjaGFp'
+    '5BY2tCdW5kbGVzUgphY2tCdW5kbGVzGo0BChBQcm9wb3NlU2lkZWNoYWluEkcKEHNpZGVjaGFp'
     'bl9udW1iZXIYASABKAsyHC5nb29nbGUucHJvdG9idWYuVUludDMyVmFsdWVSD3NpZGVjaGFpbk'
-    '51bWJlchIzCgRkYXRhGAIgASgLMh8uY3VzZi5tYWluY2hhaW4udjEuQ29uc2Vuc3VzSGV4UgRk'
-    'YXRhGpUBCgxBY2tTaWRlY2hhaW4SRwoQc2lkZWNoYWluX251bWJlchgBIAEoCzIcLmdvb2dsZS'
-    '5wcm90b2J1Zi5VSW50MzJWYWx1ZVIPc2lkZWNoYWluTnVtYmVyEjwKCWRhdGFfaGFzaBgCIAEo'
-    'CzIfLmN1c2YubWFpbmNoYWluLnYxLkNvbnNlbnN1c0hleFIIZGF0YUhhc2gamgEKDVByb3Bvc2'
-    'VCdW5kbGUSRwoQc2lkZWNoYWluX251bWJlchgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50'
-    'MzJWYWx1ZVIPc2lkZWNoYWluTnVtYmVyEkAKC2J1bmRsZV90eGlkGAIgASgLMh8uY3VzZi5tYW'
-    'luY2hhaW4udjEuQ29uc2Vuc3VzSGV4UgpidW5kbGVUeGlkGpMDCgpBY2tCdW5kbGVzEm4KD3Jl'
-    'cGVhdF9wcmV2aW91cxgBIAEoCzJDLmN1c2YubWFpbmNoYWluLnYxLkdldENvaW5iYXNlUFNCVF'
-    'JlcXVlc3QuQWNrQnVuZGxlcy5SZXBlYXRQcmV2aW91c0gAUg5yZXBlYXRQcmV2aW91cxJmCg1s'
-    'ZWFkaW5nX2J5XzUwGAIgASgLMkAuY3VzZi5tYWluY2hhaW4udjEuR2V0Q29pbmJhc2VQU0JUUm'
-    'VxdWVzdC5BY2tCdW5kbGVzLkxlYWRpbmdCeTUwSABSC2xlYWRpbmdCeTUwElgKB3Vwdm90ZXMY'
-    'AyABKAsyPC5jdXNmLm1haW5jaGFpbi52MS5HZXRDb2luYmFzZVBTQlRSZXF1ZXN0LkFja0J1bm'
-    'RsZXMuVXB2b3Rlc0gAUgd1cHZvdGVzGhAKDlJlcGVhdFByZXZpb3VzGg0KC0xlYWRpbmdCeTUw'
-    'GiMKB1Vwdm90ZXMSGAoHdXB2b3RlcxgBIAMoDVIHdXB2b3Rlc0INCgthY2tfYnVuZGxlcw==');
+    '51bWJlchIwCgRkYXRhGAIgASgLMhwuY3VzZi5jb21tb24udjEuQ29uc2Vuc3VzSGV4UgRkYXRh'
+    'GpIBCgxBY2tTaWRlY2hhaW4SRwoQc2lkZWNoYWluX251bWJlchgBIAEoCzIcLmdvb2dsZS5wcm'
+    '90b2J1Zi5VSW50MzJWYWx1ZVIPc2lkZWNoYWluTnVtYmVyEjkKCWRhdGFfaGFzaBgCIAEoCzIc'
+    'LmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleFIIZGF0YUhhc2galQEKDVByb3Bvc2VCdW5kbG'
+    'USRwoQc2lkZWNoYWluX251bWJlchgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1'
+    'ZVIPc2lkZWNoYWluTnVtYmVyEjsKC2J1bmRsZV90eGlkGAIgASgLMhouY3VzZi5jb21tb24udj'
+    'EuUmV2ZXJzZUhleFIKYnVuZGxlVHhpZBqTAwoKQWNrQnVuZGxlcxJuCg9yZXBlYXRfcHJldmlv'
+    'dXMYASABKAsyQy5jdXNmLm1haW5jaGFpbi52MS5HZXRDb2luYmFzZVBTQlRSZXF1ZXN0LkFja0'
+    'J1bmRsZXMuUmVwZWF0UHJldmlvdXNIAFIOcmVwZWF0UHJldmlvdXMSZgoNbGVhZGluZ19ieV81'
+    'MBgCIAEoCzJALmN1c2YubWFpbmNoYWluLnYxLkdldENvaW5iYXNlUFNCVFJlcXVlc3QuQWNrQn'
+    'VuZGxlcy5MZWFkaW5nQnk1MEgAUgtsZWFkaW5nQnk1MBJYCgd1cHZvdGVzGAMgASgLMjwuY3Vz'
+    'Zi5tYWluY2hhaW4udjEuR2V0Q29pbmJhc2VQU0JUUmVxdWVzdC5BY2tCdW5kbGVzLlVwdm90ZX'
+    'NIAFIHdXB2b3RlcxoQCg5SZXBlYXRQcmV2aW91cxoNCgtMZWFkaW5nQnk1MBojCgdVcHZvdGVz'
+    'EhgKB3Vwdm90ZXMYASADKA1SB3Vwdm90ZXNCDQoLYWNrX2J1bmRsZXM=');
 
 @$core.Deprecated('Use getCoinbasePSBTResponseDescriptor instead')
 const GetCoinbasePSBTResponse$json = {
   '1': 'GetCoinbasePSBTResponse',
   '2': [
-    {'1': 'psbt', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'psbt'},
+    {'1': 'psbt', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'psbt'},
   ],
 };
 
 /// Descriptor for `GetCoinbasePSBTResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getCoinbasePSBTResponseDescriptor = $convert.base64Decode(
-    'ChdHZXRDb2luYmFzZVBTQlRSZXNwb25zZRIzCgRwc2J0GAEgASgLMh8uY3VzZi5tYWluY2hhaW'
-    '4udjEuQ29uc2Vuc3VzSGV4UgRwc2J0');
+    'ChdHZXRDb2luYmFzZVBTQlRSZXNwb25zZRIwCgRwc2J0GAEgASgLMhwuY3VzZi5jb21tb24udj'
+    'EuQ29uc2Vuc3VzSGV4UgRwc2J0');
 
 @$core.Deprecated('Use getCtipRequestDescriptor instead')
 const GetCtipRequest$json = {
@@ -447,7 +467,7 @@ const GetCtipResponse$json = {
 const GetCtipResponse_Ctip$json = {
   '1': 'Ctip',
   '2': [
-    {'1': 'txid', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'txid'},
+    {'1': 'txid', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'txid'},
     {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
     {'1': 'value', '3': 3, '4': 1, '5': 4, '10': 'value'},
     {'1': 'sequence_number', '3': 4, '4': 1, '5': 4, '10': 'sequenceNumber'},
@@ -457,10 +477,10 @@ const GetCtipResponse_Ctip$json = {
 /// Descriptor for `GetCtipResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getCtipResponseDescriptor = $convert.base64Decode(
     'Cg9HZXRDdGlwUmVzcG9uc2USQAoEY3RpcBgBIAEoCzInLmN1c2YubWFpbmNoYWluLnYxLkdldE'
-    'N0aXBSZXNwb25zZS5DdGlwSABSBGN0aXCIAQEajgEKBEN0aXASMwoEdHhpZBgBIAEoCzIfLmN1'
-    'c2YubWFpbmNoYWluLnYxLkNvbnNlbnN1c0hleFIEdHhpZBISCgR2b3V0GAIgASgNUgR2b3V0Eh'
-    'QKBXZhbHVlGAMgASgEUgV2YWx1ZRInCg9zZXF1ZW5jZV9udW1iZXIYBCABKARSDnNlcXVlbmNl'
-    'TnVtYmVyQgcKBV9jdGlw');
+    'N0aXBSZXNwb25zZS5DdGlwSABSBGN0aXCIAQEaiQEKBEN0aXASLgoEdHhpZBgBIAEoCzIaLmN1'
+    'c2YuY29tbW9uLnYxLlJldmVyc2VIZXhSBHR4aWQSEgoEdm91dBgCIAEoDVIEdm91dBIUCgV2YW'
+    'x1ZRgDIAEoBFIFdmFsdWUSJwoPc2VxdWVuY2VfbnVtYmVyGAQgASgEUg5zZXF1ZW5jZU51bWJl'
+    'ckIHCgVfY3RpcA==');
 
 @$core.Deprecated('Use getSidechainProposalsRequestDescriptor instead')
 const GetSidechainProposalsRequest$json = {
@@ -484,12 +504,16 @@ const GetSidechainProposalsResponse$json = {
 const GetSidechainProposalsResponse_SidechainProposal$json = {
   '1': 'SidechainProposal',
   '2': [
-    {'1': 'sidechain_number', '3': 1, '4': 1, '5': 13, '10': 'sidechainNumber'},
-    {'1': 'data', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.BytesValue', '10': 'data'},
-    {'1': 'data_hash', '3': 3, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ConsensusHex', '10': 'dataHash'},
-    {'1': 'vote_count', '3': 4, '4': 1, '5': 13, '10': 'voteCount'},
-    {'1': 'proposal_height', '3': 5, '4': 1, '5': 13, '10': 'proposalHeight'},
-    {'1': 'proposal_age', '3': 6, '4': 1, '5': 13, '10': 'proposalAge'},
+    {'1': 'sidechain_number', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainNumber'},
+    {'1': 'description', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'description'},
+    {'1': 'declaration', '3': 7, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.SidechainDeclaration', '9': 0, '10': 'declaration', '17': true},
+    {'1': 'description_sha256d_hash', '3': 3, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'descriptionSha256dHash'},
+    {'1': 'vote_count', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'voteCount'},
+    {'1': 'proposal_height', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'proposalHeight'},
+    {'1': 'proposal_age', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'proposalAge'},
+  ],
+  '8': [
+    {'1': '_declaration'},
   ],
 };
 
@@ -497,12 +521,17 @@ const GetSidechainProposalsResponse_SidechainProposal$json = {
 final $typed_data.Uint8List getSidechainProposalsResponseDescriptor = $convert.base64Decode(
     'Ch1HZXRTaWRlY2hhaW5Qcm9wb3NhbHNSZXNwb25zZRJzChNzaWRlY2hhaW5fcHJvcG9zYWxzGA'
     'EgAygLMkIuY3VzZi5tYWluY2hhaW4udjEuR2V0U2lkZWNoYWluUHJvcG9zYWxzUmVzcG9uc2Uu'
-    'U2lkZWNoYWluUHJvcG9zYWxSEnNpZGVjaGFpblByb3Bvc2FscxqYAgoRU2lkZWNoYWluUHJvcG'
-    '9zYWwSKQoQc2lkZWNoYWluX251bWJlchgBIAEoDVIPc2lkZWNoYWluTnVtYmVyEi8KBGRhdGEY'
-    'AiABKAsyGy5nb29nbGUucHJvdG9idWYuQnl0ZXNWYWx1ZVIEZGF0YRI8CglkYXRhX2hhc2gYAy'
-    'ABKAsyHy5jdXNmLm1haW5jaGFpbi52MS5Db25zZW5zdXNIZXhSCGRhdGFIYXNoEh0KCnZvdGVf'
-    'Y291bnQYBCABKA1SCXZvdGVDb3VudBInCg9wcm9wb3NhbF9oZWlnaHQYBSABKA1SDnByb3Bvc2'
-    'FsSGVpZ2h0EiEKDHByb3Bvc2FsX2FnZRgGIAEoDVILcHJvcG9zYWxBZ2U=');
+    'U2lkZWNoYWluUHJvcG9zYWxSEnNpZGVjaGFpblByb3Bvc2FscxqXBAoRU2lkZWNoYWluUHJvcG'
+    '9zYWwSRwoQc2lkZWNoYWluX251bWJlchgBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJW'
+    'YWx1ZVIPc2lkZWNoYWluTnVtYmVyEj4KC2Rlc2NyaXB0aW9uGAIgASgLMhwuY3VzZi5jb21tb2'
+    '4udjEuQ29uc2Vuc3VzSGV4UgtkZXNjcmlwdGlvbhJOCgtkZWNsYXJhdGlvbhgHIAEoCzInLmN1'
+    'c2YubWFpbmNoYWluLnYxLlNpZGVjaGFpbkRlY2xhcmF0aW9uSABSC2RlY2xhcmF0aW9uiAEBEl'
+    'QKGGRlc2NyaXB0aW9uX3NoYTI1NmRfaGFzaBgDIAEoCzIaLmN1c2YuY29tbW9uLnYxLlJldmVy'
+    'c2VIZXhSFmRlc2NyaXB0aW9uU2hhMjU2ZEhhc2gSOwoKdm90ZV9jb3VudBgEIAEoCzIcLmdvb2'
+    'dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZVIJdm90ZUNvdW50EkUKD3Byb3Bvc2FsX2hlaWdodBgF'
+    'IAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZVIOcHJvcG9zYWxIZWlnaHQSPwoMcH'
+    'JvcG9zYWxfYWdlGAYgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtwcm9wb3Nh'
+    'bEFnZUIOCgxfZGVjbGFyYXRpb24=');
 
 @$core.Deprecated('Use getSidechainsRequestDescriptor instead')
 const GetSidechainsRequest$json = {
@@ -526,11 +555,11 @@ const GetSidechainsResponse$json = {
 const GetSidechainsResponse_SidechainInfo$json = {
   '1': 'SidechainInfo',
   '2': [
-    {'1': 'sidechain_number', '3': 1, '4': 1, '5': 13, '10': 'sidechainNumber'},
-    {'1': 'data', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.BytesValue', '10': 'data'},
-    {'1': 'vote_count', '3': 3, '4': 1, '5': 13, '10': 'voteCount'},
-    {'1': 'proposal_height', '3': 4, '4': 1, '5': 13, '10': 'proposalHeight'},
-    {'1': 'activation_height', '3': 5, '4': 1, '5': 13, '10': 'activationHeight'},
+    {'1': 'sidechain_number', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainNumber'},
+    {'1': 'description', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '10': 'description'},
+    {'1': 'vote_count', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'voteCount'},
+    {'1': 'proposal_height', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'proposalHeight'},
+    {'1': 'activation_height', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'activationHeight'},
   ],
 };
 
@@ -538,19 +567,21 @@ const GetSidechainsResponse_SidechainInfo$json = {
 final $typed_data.Uint8List getSidechainsResponseDescriptor = $convert.base64Decode(
     'ChVHZXRTaWRlY2hhaW5zUmVzcG9uc2USVgoKc2lkZWNoYWlucxgBIAMoCzI2LmN1c2YubWFpbm'
     'NoYWluLnYxLkdldFNpZGVjaGFpbnNSZXNwb25zZS5TaWRlY2hhaW5JbmZvUgpzaWRlY2hhaW5z'
-    'GuABCg1TaWRlY2hhaW5JbmZvEikKEHNpZGVjaGFpbl9udW1iZXIYASABKA1SD3NpZGVjaGFpbk'
-    '51bWJlchIvCgRkYXRhGAIgASgLMhsuZ29vZ2xlLnByb3RvYnVmLkJ5dGVzVmFsdWVSBGRhdGES'
-    'HQoKdm90ZV9jb3VudBgDIAEoDVIJdm90ZUNvdW50EicKD3Byb3Bvc2FsX2hlaWdodBgEIAEoDV'
-    'IOcHJvcG9zYWxIZWlnaHQSKwoRYWN0aXZhdGlvbl9oZWlnaHQYBSABKA1SEGFjdGl2YXRpb25I'
-    'ZWlnaHQ=');
+    'GucCCg1TaWRlY2hhaW5JbmZvEkcKEHNpZGVjaGFpbl9udW1iZXIYASABKAsyHC5nb29nbGUucH'
+    'JvdG9idWYuVUludDMyVmFsdWVSD3NpZGVjaGFpbk51bWJlchI+CgtkZXNjcmlwdGlvbhgCIAEo'
+    'CzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleFILZGVzY3JpcHRpb24SOwoKdm90ZV9jb3'
+    'VudBgDIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZVIJdm90ZUNvdW50EkUKD3By'
+    'b3Bvc2FsX2hlaWdodBgEIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZVIOcHJvcG'
+    '9zYWxIZWlnaHQSSQoRYWN0aXZhdGlvbl9oZWlnaHQYBSABKAsyHC5nb29nbGUucHJvdG9idWYu'
+    'VUludDMyVmFsdWVSEGFjdGl2YXRpb25IZWlnaHQ=');
 
 @$core.Deprecated('Use getTwoWayPegDataRequestDescriptor instead')
 const GetTwoWayPegDataRequest$json = {
   '1': 'GetTwoWayPegDataRequest',
   '2': [
     {'1': 'sidechain_id', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainId'},
-    {'1': 'start_block_hash', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '9': 0, '10': 'startBlockHash', '17': true},
-    {'1': 'end_block_hash', '3': 3, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '10': 'endBlockHash'},
+    {'1': 'start_block_hash', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '9': 0, '10': 'startBlockHash', '17': true},
+    {'1': 'end_block_hash', '3': 3, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'endBlockHash'},
   ],
   '8': [
     {'1': '_start_block_hash'},
@@ -560,10 +591,10 @@ const GetTwoWayPegDataRequest$json = {
 /// Descriptor for `GetTwoWayPegDataRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getTwoWayPegDataRequestDescriptor = $convert.base64Decode(
     'ChdHZXRUd29XYXlQZWdEYXRhUmVxdWVzdBI/CgxzaWRlY2hhaW5faWQYASABKAsyHC5nb29nbG'
-    'UucHJvdG9idWYuVUludDMyVmFsdWVSC3NpZGVjaGFpbklkEkwKEHN0YXJ0X2Jsb2NrX2hhc2gY'
-    'AiABKAsyHS5jdXNmLm1haW5jaGFpbi52MS5SZXZlcnNlSGV4SABSDnN0YXJ0QmxvY2tIYXNoiA'
-    'EBEkMKDmVuZF9ibG9ja19oYXNoGAMgASgLMh0uY3VzZi5tYWluY2hhaW4udjEuUmV2ZXJzZUhl'
-    'eFIMZW5kQmxvY2tIYXNoQhMKEV9zdGFydF9ibG9ja19oYXNo');
+    'UucHJvdG9idWYuVUludDMyVmFsdWVSC3NpZGVjaGFpbklkEkkKEHN0YXJ0X2Jsb2NrX2hhc2gY'
+    'AiABKAsyGi5jdXNmLmNvbW1vbi52MS5SZXZlcnNlSGV4SABSDnN0YXJ0QmxvY2tIYXNoiAEBEk'
+    'AKDmVuZF9ibG9ja19oYXNoGAMgASgLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIMZW5k'
+    'QmxvY2tIYXNoQhMKEV9zdGFydF9ibG9ja19oYXNo');
 
 @$core.Deprecated('Use getTwoWayPegDataResponseDescriptor instead')
 const GetTwoWayPegDataResponse$json = {
@@ -639,21 +670,20 @@ const SubscribeEventsResponse_Event_ConnectBlock$json = {
 const SubscribeEventsResponse_Event_DisconnectBlock$json = {
   '1': 'DisconnectBlock',
   '2': [
-    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.ReverseHex', '10': 'blockHash'},
+    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
   ],
 };
 
 /// Descriptor for `SubscribeEventsResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List subscribeEventsResponseDescriptor = $convert.base64Decode(
     'ChdTdWJzY3JpYmVFdmVudHNSZXNwb25zZRJGCgVldmVudBgBIAEoCzIwLmN1c2YubWFpbmNoYW'
-    'luLnYxLlN1YnNjcmliZUV2ZW50c1Jlc3BvbnNlLkV2ZW50UgVldmVudBrJAwoFRXZlbnQSZAoN'
+    'luLnYxLlN1YnNjcmliZUV2ZW50c1Jlc3BvbnNlLkV2ZW50UgVldmVudBrGAwoFRXZlbnQSZAoN'
     'Y29ubmVjdF9ibG9jaxgBIAEoCzI9LmN1c2YubWFpbmNoYWluLnYxLlN1YnNjcmliZUV2ZW50c1'
     'Jlc3BvbnNlLkV2ZW50LkNvbm5lY3RCbG9ja0gAUgxjb25uZWN0QmxvY2sSbQoQZGlzY29ubmVj'
     'dF9ibG9jaxgCIAEoCzJALmN1c2YubWFpbmNoYWluLnYxLlN1YnNjcmliZUV2ZW50c1Jlc3Bvbn'
     'NlLkV2ZW50LkRpc2Nvbm5lY3RCbG9ja0gAUg9kaXNjb25uZWN0QmxvY2sakAEKDENvbm5lY3RC'
     'bG9jaxJDCgtoZWFkZXJfaW5mbxgBIAEoCzIiLmN1c2YubWFpbmNoYWluLnYxLkJsb2NrSGVhZG'
     'VySW5mb1IKaGVhZGVySW5mbxI7CgpibG9ja19pbmZvGAIgASgLMhwuY3VzZi5tYWluY2hhaW4u'
-    'djEuQmxvY2tJbmZvUglibG9ja0luZm8aTwoPRGlzY29ubmVjdEJsb2NrEjwKCmJsb2NrX2hhc2'
-    'gYASABKAsyHS5jdXNmLm1haW5jaGFpbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2hCBwoFZXZl'
-    'bnQ=');
+    'djEuQmxvY2tJbmZvUglibG9ja0luZm8aTAoPRGlzY29ubmVjdEJsb2NrEjkKCmJsb2NrX2hhc2'
+    'gYASABKAsyGi5jdXNmLmNvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2hCBwoFZXZlbnQ=');
 

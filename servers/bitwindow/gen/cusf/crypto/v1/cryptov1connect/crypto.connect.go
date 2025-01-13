@@ -51,16 +51,6 @@ const (
 	CryptoServiceSecp256K1VerifyProcedure = "/cusf.crypto.v1.CryptoService/Secp256k1Verify"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	cryptoServiceServiceDescriptor                             = v1.File_cusf_crypto_v1_crypto_proto.Services().ByName("CryptoService")
-	cryptoServiceHmacSha512MethodDescriptor                    = cryptoServiceServiceDescriptor.Methods().ByName("HmacSha512")
-	cryptoServiceRipemd160MethodDescriptor                     = cryptoServiceServiceDescriptor.Methods().ByName("Ripemd160")
-	cryptoServiceSecp256K1SecretKeyToPublicKeyMethodDescriptor = cryptoServiceServiceDescriptor.Methods().ByName("Secp256k1SecretKeyToPublicKey")
-	cryptoServiceSecp256K1SignMethodDescriptor                 = cryptoServiceServiceDescriptor.Methods().ByName("Secp256k1Sign")
-	cryptoServiceSecp256K1VerifyMethodDescriptor               = cryptoServiceServiceDescriptor.Methods().ByName("Secp256k1Verify")
-)
-
 // CryptoServiceClient is a client for the cusf.crypto.v1.CryptoService service.
 type CryptoServiceClient interface {
 	HmacSha512(context.Context, *connect.Request[v1.HmacSha512Request]) (*connect.Response[v1.HmacSha512Response], error)
@@ -79,35 +69,36 @@ type CryptoServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewCryptoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) CryptoServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	cryptoServiceMethods := v1.File_cusf_crypto_v1_crypto_proto.Services().ByName("CryptoService").Methods()
 	return &cryptoServiceClient{
 		hmacSha512: connect.NewClient[v1.HmacSha512Request, v1.HmacSha512Response](
 			httpClient,
 			baseURL+CryptoServiceHmacSha512Procedure,
-			connect.WithSchema(cryptoServiceHmacSha512MethodDescriptor),
+			connect.WithSchema(cryptoServiceMethods.ByName("HmacSha512")),
 			connect.WithClientOptions(opts...),
 		),
 		ripemd160: connect.NewClient[v1.Ripemd160Request, v1.Ripemd160Response](
 			httpClient,
 			baseURL+CryptoServiceRipemd160Procedure,
-			connect.WithSchema(cryptoServiceRipemd160MethodDescriptor),
+			connect.WithSchema(cryptoServiceMethods.ByName("Ripemd160")),
 			connect.WithClientOptions(opts...),
 		),
 		secp256K1SecretKeyToPublicKey: connect.NewClient[v1.Secp256K1SecretKeyToPublicKeyRequest, v1.Secp256K1SecretKeyToPublicKeyResponse](
 			httpClient,
 			baseURL+CryptoServiceSecp256K1SecretKeyToPublicKeyProcedure,
-			connect.WithSchema(cryptoServiceSecp256K1SecretKeyToPublicKeyMethodDescriptor),
+			connect.WithSchema(cryptoServiceMethods.ByName("Secp256k1SecretKeyToPublicKey")),
 			connect.WithClientOptions(opts...),
 		),
 		secp256K1Sign: connect.NewClient[v1.Secp256K1SignRequest, v1.Secp256K1SignResponse](
 			httpClient,
 			baseURL+CryptoServiceSecp256K1SignProcedure,
-			connect.WithSchema(cryptoServiceSecp256K1SignMethodDescriptor),
+			connect.WithSchema(cryptoServiceMethods.ByName("Secp256k1Sign")),
 			connect.WithClientOptions(opts...),
 		),
 		secp256K1Verify: connect.NewClient[v1.Secp256K1VerifyRequest, v1.Secp256K1VerifyResponse](
 			httpClient,
 			baseURL+CryptoServiceSecp256K1VerifyProcedure,
-			connect.WithSchema(cryptoServiceSecp256K1VerifyMethodDescriptor),
+			connect.WithSchema(cryptoServiceMethods.ByName("Secp256k1Verify")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -162,34 +153,35 @@ type CryptoServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewCryptoServiceHandler(svc CryptoServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	cryptoServiceMethods := v1.File_cusf_crypto_v1_crypto_proto.Services().ByName("CryptoService").Methods()
 	cryptoServiceHmacSha512Handler := connect.NewUnaryHandler(
 		CryptoServiceHmacSha512Procedure,
 		svc.HmacSha512,
-		connect.WithSchema(cryptoServiceHmacSha512MethodDescriptor),
+		connect.WithSchema(cryptoServiceMethods.ByName("HmacSha512")),
 		connect.WithHandlerOptions(opts...),
 	)
 	cryptoServiceRipemd160Handler := connect.NewUnaryHandler(
 		CryptoServiceRipemd160Procedure,
 		svc.Ripemd160,
-		connect.WithSchema(cryptoServiceRipemd160MethodDescriptor),
+		connect.WithSchema(cryptoServiceMethods.ByName("Ripemd160")),
 		connect.WithHandlerOptions(opts...),
 	)
 	cryptoServiceSecp256K1SecretKeyToPublicKeyHandler := connect.NewUnaryHandler(
 		CryptoServiceSecp256K1SecretKeyToPublicKeyProcedure,
 		svc.Secp256K1SecretKeyToPublicKey,
-		connect.WithSchema(cryptoServiceSecp256K1SecretKeyToPublicKeyMethodDescriptor),
+		connect.WithSchema(cryptoServiceMethods.ByName("Secp256k1SecretKeyToPublicKey")),
 		connect.WithHandlerOptions(opts...),
 	)
 	cryptoServiceSecp256K1SignHandler := connect.NewUnaryHandler(
 		CryptoServiceSecp256K1SignProcedure,
 		svc.Secp256K1Sign,
-		connect.WithSchema(cryptoServiceSecp256K1SignMethodDescriptor),
+		connect.WithSchema(cryptoServiceMethods.ByName("Secp256k1Sign")),
 		connect.WithHandlerOptions(opts...),
 	)
 	cryptoServiceSecp256K1VerifyHandler := connect.NewUnaryHandler(
 		CryptoServiceSecp256K1VerifyProcedure,
 		svc.Secp256K1Verify,
-		connect.WithSchema(cryptoServiceSecp256K1VerifyMethodDescriptor),
+		connect.WithSchema(cryptoServiceMethods.ByName("Secp256k1Verify")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/cusf.crypto.v1.CryptoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

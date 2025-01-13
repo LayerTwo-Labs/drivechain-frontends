@@ -14,18 +14,19 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../../google/protobuf/wrappers.pb.dart' as $3;
-import 'common.pb.dart' as $4;
+import '../../../google/protobuf/wrappers.pb.dart' as $4;
+import '../../common/v1/common.pb.dart' as $5;
+import 'common.pb.dart' as $6;
 import 'validator.pbenum.dart';
 
 export 'validator.pbenum.dart';
 
 class BlockHeaderInfo extends $pb.GeneratedMessage {
   factory BlockHeaderInfo({
-    $4.ReverseHex? blockHash,
-    $4.ReverseHex? prevBlockHash,
+    $5.ReverseHex? blockHash,
+    $5.ReverseHex? prevBlockHash,
     $core.int? height,
-    $4.ConsensusHex? work,
+    $5.ConsensusHex? work,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -47,10 +48,10 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
   factory BlockHeaderInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BlockHeaderInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $4.ReverseHex.create)
-    ..aOM<$4.ReverseHex>(2, _omitFieldNames ? '' : 'prevBlockHash', subBuilder: $4.ReverseHex.create)
+    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
+    ..aOM<$5.ReverseHex>(2, _omitFieldNames ? '' : 'prevBlockHash', subBuilder: $5.ReverseHex.create)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'height', $pb.PbFieldType.OU3)
-    ..aOM<$4.ConsensusHex>(4, _omitFieldNames ? '' : 'work', subBuilder: $4.ConsensusHex.create)
+    ..aOM<$5.ConsensusHex>(4, _omitFieldNames ? '' : 'work', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -76,26 +77,26 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
   static BlockHeaderInfo? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ReverseHex get blockHash => $_getN(0);
+  $5.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($4.ReverseHex v) { setField(1, v); }
+  set blockHash($5.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ReverseHex ensureBlockHash() => $_ensure(0);
+  $5.ReverseHex ensureBlockHash() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.ReverseHex get prevBlockHash => $_getN(1);
+  $5.ReverseHex get prevBlockHash => $_getN(1);
   @$pb.TagNumber(2)
-  set prevBlockHash($4.ReverseHex v) { setField(2, v); }
+  set prevBlockHash($5.ReverseHex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasPrevBlockHash() => $_has(1);
   @$pb.TagNumber(2)
   void clearPrevBlockHash() => clearField(2);
   @$pb.TagNumber(2)
-  $4.ReverseHex ensurePrevBlockHash() => $_ensure(1);
+  $5.ReverseHex ensurePrevBlockHash() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $core.int get height => $_getIZ(2);
@@ -108,87 +109,21 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
 
   /// Total work as a uint256, little-endian
   @$pb.TagNumber(4)
-  $4.ConsensusHex get work => $_getN(3);
+  $5.ConsensusHex get work => $_getN(3);
   @$pb.TagNumber(4)
-  set work($4.ConsensusHex v) { setField(4, v); }
+  set work($5.ConsensusHex v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasWork() => $_has(3);
   @$pb.TagNumber(4)
   void clearWork() => clearField(4);
   @$pb.TagNumber(4)
-  $4.ConsensusHex ensureWork() => $_ensure(3);
+  $5.ConsensusHex ensureWork() => $_ensure(3);
 }
 
-class OutPoint extends $pb.GeneratedMessage {
-  factory OutPoint({
-    $4.ConsensusHex? txid,
-    $core.int? vout,
-  }) {
-    final $result = create();
-    if (txid != null) {
-      $result.txid = txid;
-    }
-    if (vout != null) {
-      $result.vout = vout;
-    }
-    return $result;
-  }
-  OutPoint._() : super();
-  factory OutPoint.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory OutPoint.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'OutPoint', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ConsensusHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $4.ConsensusHex.create)
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  OutPoint clone() => OutPoint()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  OutPoint copyWith(void Function(OutPoint) updates) => super.copyWith((message) => updates(message as OutPoint)) as OutPoint;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static OutPoint create() => OutPoint._();
-  OutPoint createEmptyInstance() => create();
-  static $pb.PbList<OutPoint> createRepeated() => $pb.PbList<OutPoint>();
-  @$core.pragma('dart2js:noInline')
-  static OutPoint getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<OutPoint>(create);
-  static OutPoint? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $4.ConsensusHex get txid => $_getN(0);
-  @$pb.TagNumber(1)
-  set txid($4.ConsensusHex v) { setField(1, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasTxid() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
-  @$pb.TagNumber(1)
-  $4.ConsensusHex ensureTxid() => $_ensure(0);
-
-  @$pb.TagNumber(2)
-  $core.int get vout => $_getIZ(1);
-  @$pb.TagNumber(2)
-  set vout($core.int v) { $_setUnsignedInt32(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasVout() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearVout() => clearField(2);
-}
-
-class Output extends $pb.GeneratedMessage {
-  factory Output({
-    $4.ConsensusHex? address,
-    $fixnum.Int64? valueSats,
+class Deposit_Output extends $pb.GeneratedMessage {
+  factory Deposit_Output({
+    $5.Hex? address,
+    $4.UInt64Value? valueSats,
   }) {
     final $result = create();
     if (address != null) {
@@ -199,13 +134,13 @@ class Output extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  Output._() : super();
-  factory Output.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Output.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  Deposit_Output._() : super();
+  factory Deposit_Output.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Deposit_Output.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Output', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ConsensusHex>(2, _omitFieldNames ? '' : 'address', subBuilder: $4.ConsensusHex.create)
-    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Deposit.Output', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$5.Hex>(2, _omitFieldNames ? '' : 'address', subBuilder: $5.Hex.create)
+    ..aOM<$4.UInt64Value>(3, _omitFieldNames ? '' : 'valueSats', subBuilder: $4.UInt64Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -213,49 +148,51 @@ class Output extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  Output clone() => Output()..mergeFromMessage(this);
+  Deposit_Output clone() => Deposit_Output()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  Output copyWith(void Function(Output) updates) => super.copyWith((message) => updates(message as Output)) as Output;
+  Deposit_Output copyWith(void Function(Deposit_Output) updates) => super.copyWith((message) => updates(message as Deposit_Output)) as Deposit_Output;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static Output create() => Output._();
-  Output createEmptyInstance() => create();
-  static $pb.PbList<Output> createRepeated() => $pb.PbList<Output>();
+  static Deposit_Output create() => Deposit_Output._();
+  Deposit_Output createEmptyInstance() => create();
+  static $pb.PbList<Deposit_Output> createRepeated() => $pb.PbList<Deposit_Output>();
   @$core.pragma('dart2js:noInline')
-  static Output getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Output>(create);
-  static Output? _defaultInstance;
+  static Deposit_Output getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Deposit_Output>(create);
+  static Deposit_Output? _defaultInstance;
 
   @$pb.TagNumber(2)
-  $4.ConsensusHex get address => $_getN(0);
+  $5.Hex get address => $_getN(0);
   @$pb.TagNumber(2)
-  set address($4.ConsensusHex v) { setField(2, v); }
+  set address($5.Hex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasAddress() => $_has(0);
   @$pb.TagNumber(2)
   void clearAddress() => clearField(2);
   @$pb.TagNumber(2)
-  $4.ConsensusHex ensureAddress() => $_ensure(0);
+  $5.Hex ensureAddress() => $_ensure(0);
 
   @$pb.TagNumber(3)
-  $fixnum.Int64 get valueSats => $_getI64(1);
+  $4.UInt64Value get valueSats => $_getN(1);
   @$pb.TagNumber(3)
-  set valueSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  set valueSats($4.UInt64Value v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasValueSats() => $_has(1);
   @$pb.TagNumber(3)
   void clearValueSats() => clearField(3);
+  @$pb.TagNumber(3)
+  $4.UInt64Value ensureValueSats() => $_ensure(1);
 }
 
 class Deposit extends $pb.GeneratedMessage {
   factory Deposit({
-    $fixnum.Int64? sequenceNumber,
-    OutPoint? outpoint,
-    Output? output,
+    $4.UInt64Value? sequenceNumber,
+    $6.OutPoint? outpoint,
+    Deposit_Output? output,
   }) {
     final $result = create();
     if (sequenceNumber != null) {
@@ -274,9 +211,9 @@ class Deposit extends $pb.GeneratedMessage {
   factory Deposit.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Deposit', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'sequenceNumber', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOM<OutPoint>(2, _omitFieldNames ? '' : 'outpoint', subBuilder: OutPoint.create)
-    ..aOM<Output>(3, _omitFieldNames ? '' : 'output', subBuilder: Output.create)
+    ..aOM<$4.UInt64Value>(1, _omitFieldNames ? '' : 'sequenceNumber', subBuilder: $4.UInt64Value.create)
+    ..aOM<$6.OutPoint>(2, _omitFieldNames ? '' : 'outpoint', subBuilder: $6.OutPoint.create)
+    ..aOM<Deposit_Output>(3, _omitFieldNames ? '' : 'output', subBuilder: Deposit_Output.create)
     ..hasRequiredFields = false
   ;
 
@@ -302,48 +239,283 @@ class Deposit extends $pb.GeneratedMessage {
   static Deposit? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $fixnum.Int64 get sequenceNumber => $_getI64(0);
+  $4.UInt64Value get sequenceNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sequenceNumber($fixnum.Int64 v) { $_setInt64(0, v); }
+  set sequenceNumber($4.UInt64Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSequenceNumber() => $_has(0);
   @$pb.TagNumber(1)
   void clearSequenceNumber() => clearField(1);
+  @$pb.TagNumber(1)
+  $4.UInt64Value ensureSequenceNumber() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  OutPoint get outpoint => $_getN(1);
+  $6.OutPoint get outpoint => $_getN(1);
   @$pb.TagNumber(2)
-  set outpoint(OutPoint v) { setField(2, v); }
+  set outpoint($6.OutPoint v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasOutpoint() => $_has(1);
   @$pb.TagNumber(2)
   void clearOutpoint() => clearField(2);
   @$pb.TagNumber(2)
-  OutPoint ensureOutpoint() => $_ensure(1);
+  $6.OutPoint ensureOutpoint() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  Output get output => $_getN(2);
+  Deposit_Output get output => $_getN(2);
   @$pb.TagNumber(3)
-  set output(Output v) { setField(3, v); }
+  set output(Deposit_Output v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasOutput() => $_has(2);
   @$pb.TagNumber(3)
   void clearOutput() => clearField(3);
   @$pb.TagNumber(3)
-  Output ensureOutput() => $_ensure(2);
+  Deposit_Output ensureOutput() => $_ensure(2);
+}
+
+class WithdrawalBundleEvent_Event_Failed extends $pb.GeneratedMessage {
+  factory WithdrawalBundleEvent_Event_Failed() => create();
+  WithdrawalBundleEvent_Event_Failed._() : super();
+  factory WithdrawalBundleEvent_Event_Failed.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WithdrawalBundleEvent_Event_Failed.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WithdrawalBundleEvent.Event.Failed', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundleEvent_Event_Failed clone() => WithdrawalBundleEvent_Event_Failed()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundleEvent_Event_Failed copyWith(void Function(WithdrawalBundleEvent_Event_Failed) updates) => super.copyWith((message) => updates(message as WithdrawalBundleEvent_Event_Failed)) as WithdrawalBundleEvent_Event_Failed;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundleEvent_Event_Failed create() => WithdrawalBundleEvent_Event_Failed._();
+  WithdrawalBundleEvent_Event_Failed createEmptyInstance() => create();
+  static $pb.PbList<WithdrawalBundleEvent_Event_Failed> createRepeated() => $pb.PbList<WithdrawalBundleEvent_Event_Failed>();
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundleEvent_Event_Failed getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WithdrawalBundleEvent_Event_Failed>(create);
+  static WithdrawalBundleEvent_Event_Failed? _defaultInstance;
+}
+
+class WithdrawalBundleEvent_Event_Succeeded extends $pb.GeneratedMessage {
+  factory WithdrawalBundleEvent_Event_Succeeded({
+    $4.UInt64Value? sequenceNumber,
+    $5.ConsensusHex? transaction,
+  }) {
+    final $result = create();
+    if (sequenceNumber != null) {
+      $result.sequenceNumber = sequenceNumber;
+    }
+    if (transaction != null) {
+      $result.transaction = transaction;
+    }
+    return $result;
+  }
+  WithdrawalBundleEvent_Event_Succeeded._() : super();
+  factory WithdrawalBundleEvent_Event_Succeeded.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WithdrawalBundleEvent_Event_Succeeded.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WithdrawalBundleEvent.Event.Succeeded', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$4.UInt64Value>(1, _omitFieldNames ? '' : 'sequenceNumber', subBuilder: $4.UInt64Value.create)
+    ..aOM<$5.ConsensusHex>(2, _omitFieldNames ? '' : 'transaction', subBuilder: $5.ConsensusHex.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundleEvent_Event_Succeeded clone() => WithdrawalBundleEvent_Event_Succeeded()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundleEvent_Event_Succeeded copyWith(void Function(WithdrawalBundleEvent_Event_Succeeded) updates) => super.copyWith((message) => updates(message as WithdrawalBundleEvent_Event_Succeeded)) as WithdrawalBundleEvent_Event_Succeeded;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundleEvent_Event_Succeeded create() => WithdrawalBundleEvent_Event_Succeeded._();
+  WithdrawalBundleEvent_Event_Succeeded createEmptyInstance() => create();
+  static $pb.PbList<WithdrawalBundleEvent_Event_Succeeded> createRepeated() => $pb.PbList<WithdrawalBundleEvent_Event_Succeeded>();
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundleEvent_Event_Succeeded getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WithdrawalBundleEvent_Event_Succeeded>(create);
+  static WithdrawalBundleEvent_Event_Succeeded? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $4.UInt64Value get sequenceNumber => $_getN(0);
+  @$pb.TagNumber(1)
+  set sequenceNumber($4.UInt64Value v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSequenceNumber() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSequenceNumber() => clearField(1);
+  @$pb.TagNumber(1)
+  $4.UInt64Value ensureSequenceNumber() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $5.ConsensusHex get transaction => $_getN(1);
+  @$pb.TagNumber(2)
+  set transaction($5.ConsensusHex v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTransaction() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTransaction() => clearField(2);
+  @$pb.TagNumber(2)
+  $5.ConsensusHex ensureTransaction() => $_ensure(1);
+}
+
+class WithdrawalBundleEvent_Event_Submitted extends $pb.GeneratedMessage {
+  factory WithdrawalBundleEvent_Event_Submitted() => create();
+  WithdrawalBundleEvent_Event_Submitted._() : super();
+  factory WithdrawalBundleEvent_Event_Submitted.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WithdrawalBundleEvent_Event_Submitted.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WithdrawalBundleEvent.Event.Submitted', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundleEvent_Event_Submitted clone() => WithdrawalBundleEvent_Event_Submitted()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundleEvent_Event_Submitted copyWith(void Function(WithdrawalBundleEvent_Event_Submitted) updates) => super.copyWith((message) => updates(message as WithdrawalBundleEvent_Event_Submitted)) as WithdrawalBundleEvent_Event_Submitted;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundleEvent_Event_Submitted create() => WithdrawalBundleEvent_Event_Submitted._();
+  WithdrawalBundleEvent_Event_Submitted createEmptyInstance() => create();
+  static $pb.PbList<WithdrawalBundleEvent_Event_Submitted> createRepeated() => $pb.PbList<WithdrawalBundleEvent_Event_Submitted>();
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundleEvent_Event_Submitted getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WithdrawalBundleEvent_Event_Submitted>(create);
+  static WithdrawalBundleEvent_Event_Submitted? _defaultInstance;
+}
+
+enum WithdrawalBundleEvent_Event_Event {
+  failed, 
+  succeeded, 
+  submitted, 
+  notSet
+}
+
+class WithdrawalBundleEvent_Event extends $pb.GeneratedMessage {
+  factory WithdrawalBundleEvent_Event({
+    WithdrawalBundleEvent_Event_Failed? failed,
+    WithdrawalBundleEvent_Event_Succeeded? succeeded,
+    WithdrawalBundleEvent_Event_Submitted? submitted,
+  }) {
+    final $result = create();
+    if (failed != null) {
+      $result.failed = failed;
+    }
+    if (succeeded != null) {
+      $result.succeeded = succeeded;
+    }
+    if (submitted != null) {
+      $result.submitted = submitted;
+    }
+    return $result;
+  }
+  WithdrawalBundleEvent_Event._() : super();
+  factory WithdrawalBundleEvent_Event.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WithdrawalBundleEvent_Event.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static const $core.Map<$core.int, WithdrawalBundleEvent_Event_Event> _WithdrawalBundleEvent_Event_EventByTag = {
+    1 : WithdrawalBundleEvent_Event_Event.failed,
+    2 : WithdrawalBundleEvent_Event_Event.succeeded,
+    3 : WithdrawalBundleEvent_Event_Event.submitted,
+    0 : WithdrawalBundleEvent_Event_Event.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WithdrawalBundleEvent.Event', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..oo(0, [1, 2, 3])
+    ..aOM<WithdrawalBundleEvent_Event_Failed>(1, _omitFieldNames ? '' : 'failed', subBuilder: WithdrawalBundleEvent_Event_Failed.create)
+    ..aOM<WithdrawalBundleEvent_Event_Succeeded>(2, _omitFieldNames ? '' : 'succeeded', subBuilder: WithdrawalBundleEvent_Event_Succeeded.create)
+    ..aOM<WithdrawalBundleEvent_Event_Submitted>(3, _omitFieldNames ? '' : 'submitted', subBuilder: WithdrawalBundleEvent_Event_Submitted.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundleEvent_Event clone() => WithdrawalBundleEvent_Event()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WithdrawalBundleEvent_Event copyWith(void Function(WithdrawalBundleEvent_Event) updates) => super.copyWith((message) => updates(message as WithdrawalBundleEvent_Event)) as WithdrawalBundleEvent_Event;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundleEvent_Event create() => WithdrawalBundleEvent_Event._();
+  WithdrawalBundleEvent_Event createEmptyInstance() => create();
+  static $pb.PbList<WithdrawalBundleEvent_Event> createRepeated() => $pb.PbList<WithdrawalBundleEvent_Event>();
+  @$core.pragma('dart2js:noInline')
+  static WithdrawalBundleEvent_Event getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WithdrawalBundleEvent_Event>(create);
+  static WithdrawalBundleEvent_Event? _defaultInstance;
+
+  WithdrawalBundleEvent_Event_Event whichEvent() => _WithdrawalBundleEvent_Event_EventByTag[$_whichOneof(0)]!;
+  void clearEvent() => clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  WithdrawalBundleEvent_Event_Failed get failed => $_getN(0);
+  @$pb.TagNumber(1)
+  set failed(WithdrawalBundleEvent_Event_Failed v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFailed() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFailed() => clearField(1);
+  @$pb.TagNumber(1)
+  WithdrawalBundleEvent_Event_Failed ensureFailed() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  WithdrawalBundleEvent_Event_Succeeded get succeeded => $_getN(1);
+  @$pb.TagNumber(2)
+  set succeeded(WithdrawalBundleEvent_Event_Succeeded v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSucceeded() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSucceeded() => clearField(2);
+  @$pb.TagNumber(2)
+  WithdrawalBundleEvent_Event_Succeeded ensureSucceeded() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  WithdrawalBundleEvent_Event_Submitted get submitted => $_getN(2);
+  @$pb.TagNumber(3)
+  set submitted(WithdrawalBundleEvent_Event_Submitted v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSubmitted() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSubmitted() => clearField(3);
+  @$pb.TagNumber(3)
+  WithdrawalBundleEvent_Event_Submitted ensureSubmitted() => $_ensure(2);
 }
 
 class WithdrawalBundleEvent extends $pb.GeneratedMessage {
   factory WithdrawalBundleEvent({
-    $4.ConsensusHex? m6id,
-    WithdrawalBundleEventType? withdrawalBundleEventType,
+    $5.ConsensusHex? m6id,
+    WithdrawalBundleEvent_Event? event,
   }) {
     final $result = create();
     if (m6id != null) {
       $result.m6id = m6id;
     }
-    if (withdrawalBundleEventType != null) {
-      $result.withdrawalBundleEventType = withdrawalBundleEventType;
+    if (event != null) {
+      $result.event = event;
     }
     return $result;
   }
@@ -352,8 +524,8 @@ class WithdrawalBundleEvent extends $pb.GeneratedMessage {
   factory WithdrawalBundleEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WithdrawalBundleEvent', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ConsensusHex>(1, _omitFieldNames ? '' : 'm6id', subBuilder: $4.ConsensusHex.create)
-    ..e<WithdrawalBundleEventType>(2, _omitFieldNames ? '' : 'withdrawalBundleEventType', $pb.PbFieldType.OE, defaultOrMaker: WithdrawalBundleEventType.WITHDRAWAL_BUNDLE_EVENT_TYPE_UNSPECIFIED, valueOf: WithdrawalBundleEventType.valueOf, enumValues: WithdrawalBundleEventType.values)
+    ..aOM<$5.ConsensusHex>(1, _omitFieldNames ? '' : 'm6id', subBuilder: $5.ConsensusHex.create)
+    ..aOM<WithdrawalBundleEvent_Event>(2, _omitFieldNames ? '' : 'event', subBuilder: WithdrawalBundleEvent_Event.create)
     ..hasRequiredFields = false
   ;
 
@@ -379,42 +551,123 @@ class WithdrawalBundleEvent extends $pb.GeneratedMessage {
   static WithdrawalBundleEvent? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ConsensusHex get m6id => $_getN(0);
+  $5.ConsensusHex get m6id => $_getN(0);
   @$pb.TagNumber(1)
-  set m6id($4.ConsensusHex v) { setField(1, v); }
+  set m6id($5.ConsensusHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasM6id() => $_has(0);
   @$pb.TagNumber(1)
   void clearM6id() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ConsensusHex ensureM6id() => $_ensure(0);
+  $5.ConsensusHex ensureM6id() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  WithdrawalBundleEventType get withdrawalBundleEventType => $_getN(1);
+  WithdrawalBundleEvent_Event get event => $_getN(1);
   @$pb.TagNumber(2)
-  set withdrawalBundleEventType(WithdrawalBundleEventType v) { setField(2, v); }
+  set event(WithdrawalBundleEvent_Event v) { setField(2, v); }
   @$pb.TagNumber(2)
-  $core.bool hasWithdrawalBundleEventType() => $_has(1);
+  $core.bool hasEvent() => $_has(1);
   @$pb.TagNumber(2)
-  void clearWithdrawalBundleEventType() => clearField(2);
+  void clearEvent() => clearField(2);
+  @$pb.TagNumber(2)
+  WithdrawalBundleEvent_Event ensureEvent() => $_ensure(1);
+}
+
+enum BlockInfo_Event_Event {
+  deposit, 
+  withdrawalBundle, 
+  notSet
+}
+
+class BlockInfo_Event extends $pb.GeneratedMessage {
+  factory BlockInfo_Event({
+    Deposit? deposit,
+    WithdrawalBundleEvent? withdrawalBundle,
+  }) {
+    final $result = create();
+    if (deposit != null) {
+      $result.deposit = deposit;
+    }
+    if (withdrawalBundle != null) {
+      $result.withdrawalBundle = withdrawalBundle;
+    }
+    return $result;
+  }
+  BlockInfo_Event._() : super();
+  factory BlockInfo_Event.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BlockInfo_Event.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static const $core.Map<$core.int, BlockInfo_Event_Event> _BlockInfo_Event_EventByTag = {
+    1 : BlockInfo_Event_Event.deposit,
+    2 : BlockInfo_Event_Event.withdrawalBundle,
+    0 : BlockInfo_Event_Event.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BlockInfo.Event', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<Deposit>(1, _omitFieldNames ? '' : 'deposit', subBuilder: Deposit.create)
+    ..aOM<WithdrawalBundleEvent>(2, _omitFieldNames ? '' : 'withdrawalBundle', subBuilder: WithdrawalBundleEvent.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BlockInfo_Event clone() => BlockInfo_Event()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BlockInfo_Event copyWith(void Function(BlockInfo_Event) updates) => super.copyWith((message) => updates(message as BlockInfo_Event)) as BlockInfo_Event;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BlockInfo_Event create() => BlockInfo_Event._();
+  BlockInfo_Event createEmptyInstance() => create();
+  static $pb.PbList<BlockInfo_Event> createRepeated() => $pb.PbList<BlockInfo_Event>();
+  @$core.pragma('dart2js:noInline')
+  static BlockInfo_Event getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BlockInfo_Event>(create);
+  static BlockInfo_Event? _defaultInstance;
+
+  BlockInfo_Event_Event whichEvent() => _BlockInfo_Event_EventByTag[$_whichOneof(0)]!;
+  void clearEvent() => clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  Deposit get deposit => $_getN(0);
+  @$pb.TagNumber(1)
+  set deposit(Deposit v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDeposit() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeposit() => clearField(1);
+  @$pb.TagNumber(1)
+  Deposit ensureDeposit() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  WithdrawalBundleEvent get withdrawalBundle => $_getN(1);
+  @$pb.TagNumber(2)
+  set withdrawalBundle(WithdrawalBundleEvent v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWithdrawalBundle() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWithdrawalBundle() => clearField(2);
+  @$pb.TagNumber(2)
+  WithdrawalBundleEvent ensureWithdrawalBundle() => $_ensure(1);
 }
 
 /// Specific to an individual sidechain slot
 class BlockInfo extends $pb.GeneratedMessage {
   factory BlockInfo({
-    $core.Iterable<Deposit>? deposits,
-    $core.Iterable<WithdrawalBundleEvent>? withdrawalBundleEvents,
-    $4.ConsensusHex? bmmCommitment,
+    $5.ConsensusHex? bmmCommitment,
+    $core.Iterable<BlockInfo_Event>? events,
   }) {
     final $result = create();
-    if (deposits != null) {
-      $result.deposits.addAll(deposits);
-    }
-    if (withdrawalBundleEvents != null) {
-      $result.withdrawalBundleEvents.addAll(withdrawalBundleEvents);
-    }
     if (bmmCommitment != null) {
       $result.bmmCommitment = bmmCommitment;
+    }
+    if (events != null) {
+      $result.events.addAll(events);
     }
     return $result;
   }
@@ -423,9 +676,8 @@ class BlockInfo extends $pb.GeneratedMessage {
   factory BlockInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BlockInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..pc<Deposit>(1, _omitFieldNames ? '' : 'deposits', $pb.PbFieldType.PM, subBuilder: Deposit.create)
-    ..pc<WithdrawalBundleEvent>(2, _omitFieldNames ? '' : 'withdrawalBundleEvents', $pb.PbFieldType.PM, subBuilder: WithdrawalBundleEvent.create)
-    ..aOM<$4.ConsensusHex>(3, _omitFieldNames ? '' : 'bmmCommitment', subBuilder: $4.ConsensusHex.create)
+    ..aOM<$5.ConsensusHex>(1, _omitFieldNames ? '' : 'bmmCommitment', subBuilder: $5.ConsensusHex.create)
+    ..pc<BlockInfo_Event>(2, _omitFieldNames ? '' : 'events', $pb.PbFieldType.PM, subBuilder: BlockInfo_Event.create)
     ..hasRequiredFields = false
   ;
 
@@ -450,27 +702,26 @@ class BlockInfo extends $pb.GeneratedMessage {
   static BlockInfo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BlockInfo>(create);
   static BlockInfo? _defaultInstance;
 
+  /// repeated Deposit deposits = 1;
+  /// repeated WithdrawalBundleEvent withdrawal_bundle_events = 2;
   @$pb.TagNumber(1)
-  $core.List<Deposit> get deposits => $_getList(0);
+  $5.ConsensusHex get bmmCommitment => $_getN(0);
+  @$pb.TagNumber(1)
+  set bmmCommitment($5.ConsensusHex v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBmmCommitment() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBmmCommitment() => clearField(1);
+  @$pb.TagNumber(1)
+  $5.ConsensusHex ensureBmmCommitment() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $core.List<WithdrawalBundleEvent> get withdrawalBundleEvents => $_getList(1);
-
-  @$pb.TagNumber(3)
-  $4.ConsensusHex get bmmCommitment => $_getN(2);
-  @$pb.TagNumber(3)
-  set bmmCommitment($4.ConsensusHex v) { setField(3, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasBmmCommitment() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearBmmCommitment() => clearField(3);
-  @$pb.TagNumber(3)
-  $4.ConsensusHex ensureBmmCommitment() => $_ensure(2);
+  $core.List<BlockInfo_Event> get events => $_getList(1);
 }
 
 class GetBlockHeaderInfoRequest extends $pb.GeneratedMessage {
   factory GetBlockHeaderInfoRequest({
-    $4.ReverseHex? blockHash,
+    $5.ReverseHex? blockHash,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -483,7 +734,7 @@ class GetBlockHeaderInfoRequest extends $pb.GeneratedMessage {
   factory GetBlockHeaderInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockHeaderInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $4.ReverseHex.create)
+    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -509,15 +760,15 @@ class GetBlockHeaderInfoRequest extends $pb.GeneratedMessage {
   static GetBlockHeaderInfoRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ReverseHex get blockHash => $_getN(0);
+  $5.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($4.ReverseHex v) { setField(1, v); }
+  set blockHash($5.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ReverseHex ensureBlockHash() => $_ensure(0);
+  $5.ReverseHex ensureBlockHash() => $_ensure(0);
 }
 
 class GetBlockHeaderInfoResponse extends $pb.GeneratedMessage {
@@ -574,8 +825,8 @@ class GetBlockHeaderInfoResponse extends $pb.GeneratedMessage {
 
 class GetBlockInfoRequest extends $pb.GeneratedMessage {
   factory GetBlockInfoRequest({
-    $4.ReverseHex? blockHash,
-    $3.UInt32Value? sidechainId,
+    $5.ReverseHex? blockHash,
+    $4.UInt32Value? sidechainId,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -591,8 +842,8 @@ class GetBlockInfoRequest extends $pb.GeneratedMessage {
   factory GetBlockInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $4.ReverseHex.create)
-    ..aOM<$3.UInt32Value>(2, _omitFieldNames ? '' : 'sidechainId', subBuilder: $3.UInt32Value.create)
+    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
+    ..aOM<$4.UInt32Value>(2, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -617,27 +868,29 @@ class GetBlockInfoRequest extends $pb.GeneratedMessage {
   static GetBlockInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBlockInfoRequest>(create);
   static GetBlockInfoRequest? _defaultInstance;
 
+  /// The block to fetch information about.
   @$pb.TagNumber(1)
-  $4.ReverseHex get blockHash => $_getN(0);
+  $5.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($4.ReverseHex v) { setField(1, v); }
+  set blockHash($5.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ReverseHex ensureBlockHash() => $_ensure(0);
+  $5.ReverseHex ensureBlockHash() => $_ensure(0);
 
+  /// The sidechain to filter for events relating to.
   @$pb.TagNumber(2)
-  $3.UInt32Value get sidechainId => $_getN(1);
+  $4.UInt32Value get sidechainId => $_getN(1);
   @$pb.TagNumber(2)
-  set sidechainId($3.UInt32Value v) { setField(2, v); }
+  set sidechainId($4.UInt32Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasSidechainId() => $_has(1);
   @$pb.TagNumber(2)
   void clearSidechainId() => clearField(2);
   @$pb.TagNumber(2)
-  $3.UInt32Value ensureSidechainId() => $_ensure(1);
+  $4.UInt32Value ensureSidechainId() => $_ensure(1);
 }
 
 class GetBlockInfoResponse extends $pb.GeneratedMessage {
@@ -685,6 +938,7 @@ class GetBlockInfoResponse extends $pb.GeneratedMessage {
   static GetBlockInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBlockInfoResponse>(create);
   static GetBlockInfoResponse? _defaultInstance;
 
+  /// Information about the block itself.
   @$pb.TagNumber(1)
   BlockHeaderInfo get headerInfo => $_getN(0);
   @$pb.TagNumber(1)
@@ -696,6 +950,8 @@ class GetBlockInfoResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   BlockHeaderInfo ensureHeaderInfo() => $_ensure(0);
 
+  /// Information about the block, filtered for events relating to
+  /// a specific sidechain.
   @$pb.TagNumber(2)
   BlockInfo get blockInfo => $_getN(1);
   @$pb.TagNumber(2)
@@ -710,8 +966,8 @@ class GetBlockInfoResponse extends $pb.GeneratedMessage {
 
 class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {
   factory GetBmmHStarCommitmentRequest({
-    $4.ReverseHex? blockHash,
-    $3.UInt32Value? sidechainId,
+    $5.ReverseHex? blockHash,
+    $4.UInt32Value? sidechainId,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -727,8 +983,8 @@ class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {
   factory GetBmmHStarCommitmentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBmmHStarCommitmentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $4.ReverseHex.create)
-    ..aOM<$3.UInt32Value>(2, _omitFieldNames ? '' : 'sidechainId', subBuilder: $3.UInt32Value.create)
+    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
+    ..aOM<$4.UInt32Value>(2, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -754,31 +1010,31 @@ class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {
   static GetBmmHStarCommitmentRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ReverseHex get blockHash => $_getN(0);
+  $5.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($4.ReverseHex v) { setField(1, v); }
+  set blockHash($5.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ReverseHex ensureBlockHash() => $_ensure(0);
+  $5.ReverseHex ensureBlockHash() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $3.UInt32Value get sidechainId => $_getN(1);
+  $4.UInt32Value get sidechainId => $_getN(1);
   @$pb.TagNumber(2)
-  set sidechainId($3.UInt32Value v) { setField(2, v); }
+  set sidechainId($4.UInt32Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasSidechainId() => $_has(1);
   @$pb.TagNumber(2)
   void clearSidechainId() => clearField(2);
   @$pb.TagNumber(2)
-  $3.UInt32Value ensureSidechainId() => $_ensure(1);
+  $4.UInt32Value ensureSidechainId() => $_ensure(1);
 }
 
 class GetBmmHStarCommitmentResponse_BlockNotFoundError extends $pb.GeneratedMessage {
   factory GetBmmHStarCommitmentResponse_BlockNotFoundError({
-    $4.ReverseHex? blockHash,
+    $5.ReverseHex? blockHash,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -791,7 +1047,7 @@ class GetBmmHStarCommitmentResponse_BlockNotFoundError extends $pb.GeneratedMess
   factory GetBmmHStarCommitmentResponse_BlockNotFoundError.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBmmHStarCommitmentResponse.BlockNotFoundError', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $4.ReverseHex.create)
+    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -817,20 +1073,20 @@ class GetBmmHStarCommitmentResponse_BlockNotFoundError extends $pb.GeneratedMess
   static GetBmmHStarCommitmentResponse_BlockNotFoundError? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ReverseHex get blockHash => $_getN(0);
+  $5.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($4.ReverseHex v) { setField(1, v); }
+  set blockHash($5.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ReverseHex ensureBlockHash() => $_ensure(0);
+  $5.ReverseHex ensureBlockHash() => $_ensure(0);
 }
 
 class GetBmmHStarCommitmentResponse_Commitment extends $pb.GeneratedMessage {
   factory GetBmmHStarCommitmentResponse_Commitment({
-    $4.ConsensusHex? commitment,
+    $5.ConsensusHex? commitment,
   }) {
     final $result = create();
     if (commitment != null) {
@@ -843,7 +1099,7 @@ class GetBmmHStarCommitmentResponse_Commitment extends $pb.GeneratedMessage {
   factory GetBmmHStarCommitmentResponse_Commitment.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBmmHStarCommitmentResponse.Commitment', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ConsensusHex>(1, _omitFieldNames ? '' : 'commitment', subBuilder: $4.ConsensusHex.create)
+    ..aOM<$5.ConsensusHex>(1, _omitFieldNames ? '' : 'commitment', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -869,15 +1125,15 @@ class GetBmmHStarCommitmentResponse_Commitment extends $pb.GeneratedMessage {
   static GetBmmHStarCommitmentResponse_Commitment? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ConsensusHex get commitment => $_getN(0);
+  $5.ConsensusHex get commitment => $_getN(0);
   @$pb.TagNumber(1)
-  set commitment($4.ConsensusHex v) { setField(1, v); }
+  set commitment($5.ConsensusHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasCommitment() => $_has(0);
   @$pb.TagNumber(1)
   void clearCommitment() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ConsensusHex ensureCommitment() => $_ensure(0);
+  $5.ConsensusHex ensureCommitment() => $_ensure(0);
 }
 
 enum GetBmmHStarCommitmentResponse_Result {
@@ -1131,8 +1387,8 @@ class GetChainTipResponse extends $pb.GeneratedMessage {
 
 class GetCoinbasePSBTRequest_ProposeSidechain extends $pb.GeneratedMessage {
   factory GetCoinbasePSBTRequest_ProposeSidechain({
-    $3.UInt32Value? sidechainNumber,
-    $4.ConsensusHex? data,
+    $4.UInt32Value? sidechainNumber,
+    $5.ConsensusHex? data,
   }) {
     final $result = create();
     if (sidechainNumber != null) {
@@ -1148,8 +1404,8 @@ class GetCoinbasePSBTRequest_ProposeSidechain extends $pb.GeneratedMessage {
   factory GetCoinbasePSBTRequest_ProposeSidechain.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoinbasePSBTRequest.ProposeSidechain', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$3.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $3.UInt32Value.create)
-    ..aOM<$4.ConsensusHex>(2, _omitFieldNames ? '' : 'data', subBuilder: $4.ConsensusHex.create)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $4.UInt32Value.create)
+    ..aOM<$5.ConsensusHex>(2, _omitFieldNames ? '' : 'data', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -1175,32 +1431,32 @@ class GetCoinbasePSBTRequest_ProposeSidechain extends $pb.GeneratedMessage {
   static GetCoinbasePSBTRequest_ProposeSidechain? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $3.UInt32Value get sidechainNumber => $_getN(0);
+  $4.UInt32Value get sidechainNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainNumber($3.UInt32Value v) { setField(1, v); }
+  set sidechainNumber($4.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainNumber() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainNumber() => clearField(1);
   @$pb.TagNumber(1)
-  $3.UInt32Value ensureSidechainNumber() => $_ensure(0);
+  $4.UInt32Value ensureSidechainNumber() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.ConsensusHex get data => $_getN(1);
+  $5.ConsensusHex get data => $_getN(1);
   @$pb.TagNumber(2)
-  set data($4.ConsensusHex v) { setField(2, v); }
+  set data($5.ConsensusHex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasData() => $_has(1);
   @$pb.TagNumber(2)
   void clearData() => clearField(2);
   @$pb.TagNumber(2)
-  $4.ConsensusHex ensureData() => $_ensure(1);
+  $5.ConsensusHex ensureData() => $_ensure(1);
 }
 
 class GetCoinbasePSBTRequest_AckSidechain extends $pb.GeneratedMessage {
   factory GetCoinbasePSBTRequest_AckSidechain({
-    $3.UInt32Value? sidechainNumber,
-    $4.ConsensusHex? dataHash,
+    $4.UInt32Value? sidechainNumber,
+    $5.ConsensusHex? dataHash,
   }) {
     final $result = create();
     if (sidechainNumber != null) {
@@ -1216,8 +1472,8 @@ class GetCoinbasePSBTRequest_AckSidechain extends $pb.GeneratedMessage {
   factory GetCoinbasePSBTRequest_AckSidechain.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoinbasePSBTRequest.AckSidechain', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$3.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $3.UInt32Value.create)
-    ..aOM<$4.ConsensusHex>(2, _omitFieldNames ? '' : 'dataHash', subBuilder: $4.ConsensusHex.create)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $4.UInt32Value.create)
+    ..aOM<$5.ConsensusHex>(2, _omitFieldNames ? '' : 'dataHash', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -1243,32 +1499,32 @@ class GetCoinbasePSBTRequest_AckSidechain extends $pb.GeneratedMessage {
   static GetCoinbasePSBTRequest_AckSidechain? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $3.UInt32Value get sidechainNumber => $_getN(0);
+  $4.UInt32Value get sidechainNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainNumber($3.UInt32Value v) { setField(1, v); }
+  set sidechainNumber($4.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainNumber() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainNumber() => clearField(1);
   @$pb.TagNumber(1)
-  $3.UInt32Value ensureSidechainNumber() => $_ensure(0);
+  $4.UInt32Value ensureSidechainNumber() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.ConsensusHex get dataHash => $_getN(1);
+  $5.ConsensusHex get dataHash => $_getN(1);
   @$pb.TagNumber(2)
-  set dataHash($4.ConsensusHex v) { setField(2, v); }
+  set dataHash($5.ConsensusHex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasDataHash() => $_has(1);
   @$pb.TagNumber(2)
   void clearDataHash() => clearField(2);
   @$pb.TagNumber(2)
-  $4.ConsensusHex ensureDataHash() => $_ensure(1);
+  $5.ConsensusHex ensureDataHash() => $_ensure(1);
 }
 
 class GetCoinbasePSBTRequest_ProposeBundle extends $pb.GeneratedMessage {
   factory GetCoinbasePSBTRequest_ProposeBundle({
-    $3.UInt32Value? sidechainNumber,
-    $4.ConsensusHex? bundleTxid,
+    $4.UInt32Value? sidechainNumber,
+    $5.ReverseHex? bundleTxid,
   }) {
     final $result = create();
     if (sidechainNumber != null) {
@@ -1284,8 +1540,8 @@ class GetCoinbasePSBTRequest_ProposeBundle extends $pb.GeneratedMessage {
   factory GetCoinbasePSBTRequest_ProposeBundle.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoinbasePSBTRequest.ProposeBundle', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$3.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $3.UInt32Value.create)
-    ..aOM<$4.ConsensusHex>(2, _omitFieldNames ? '' : 'bundleTxid', subBuilder: $4.ConsensusHex.create)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $4.UInt32Value.create)
+    ..aOM<$5.ReverseHex>(2, _omitFieldNames ? '' : 'bundleTxid', subBuilder: $5.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -1311,26 +1567,26 @@ class GetCoinbasePSBTRequest_ProposeBundle extends $pb.GeneratedMessage {
   static GetCoinbasePSBTRequest_ProposeBundle? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $3.UInt32Value get sidechainNumber => $_getN(0);
+  $4.UInt32Value get sidechainNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainNumber($3.UInt32Value v) { setField(1, v); }
+  set sidechainNumber($4.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainNumber() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainNumber() => clearField(1);
   @$pb.TagNumber(1)
-  $3.UInt32Value ensureSidechainNumber() => $_ensure(0);
+  $4.UInt32Value ensureSidechainNumber() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.ConsensusHex get bundleTxid => $_getN(1);
+  $5.ReverseHex get bundleTxid => $_getN(1);
   @$pb.TagNumber(2)
-  set bundleTxid($4.ConsensusHex v) { setField(2, v); }
+  set bundleTxid($5.ReverseHex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasBundleTxid() => $_has(1);
   @$pb.TagNumber(2)
   void clearBundleTxid() => clearField(2);
   @$pb.TagNumber(2)
-  $4.ConsensusHex ensureBundleTxid() => $_ensure(1);
+  $5.ReverseHex ensureBundleTxid() => $_ensure(1);
 }
 
 class GetCoinbasePSBTRequest_AckBundles_RepeatPrevious extends $pb.GeneratedMessage {
@@ -1620,7 +1876,7 @@ class GetCoinbasePSBTRequest extends $pb.GeneratedMessage {
 
 class GetCoinbasePSBTResponse extends $pb.GeneratedMessage {
   factory GetCoinbasePSBTResponse({
-    $4.ConsensusHex? psbt,
+    $5.ConsensusHex? psbt,
   }) {
     final $result = create();
     if (psbt != null) {
@@ -1633,7 +1889,7 @@ class GetCoinbasePSBTResponse extends $pb.GeneratedMessage {
   factory GetCoinbasePSBTResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCoinbasePSBTResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ConsensusHex>(1, _omitFieldNames ? '' : 'psbt', subBuilder: $4.ConsensusHex.create)
+    ..aOM<$5.ConsensusHex>(1, _omitFieldNames ? '' : 'psbt', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -1659,20 +1915,20 @@ class GetCoinbasePSBTResponse extends $pb.GeneratedMessage {
   static GetCoinbasePSBTResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ConsensusHex get psbt => $_getN(0);
+  $5.ConsensusHex get psbt => $_getN(0);
   @$pb.TagNumber(1)
-  set psbt($4.ConsensusHex v) { setField(1, v); }
+  set psbt($5.ConsensusHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasPsbt() => $_has(0);
   @$pb.TagNumber(1)
   void clearPsbt() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ConsensusHex ensurePsbt() => $_ensure(0);
+  $5.ConsensusHex ensurePsbt() => $_ensure(0);
 }
 
 class GetCtipRequest extends $pb.GeneratedMessage {
   factory GetCtipRequest({
-    $3.UInt32Value? sidechainNumber,
+    $4.UInt32Value? sidechainNumber,
   }) {
     final $result = create();
     if (sidechainNumber != null) {
@@ -1685,7 +1941,7 @@ class GetCtipRequest extends $pb.GeneratedMessage {
   factory GetCtipRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCtipRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$3.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $3.UInt32Value.create)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $4.UInt32Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -1711,20 +1967,20 @@ class GetCtipRequest extends $pb.GeneratedMessage {
   static GetCtipRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $3.UInt32Value get sidechainNumber => $_getN(0);
+  $4.UInt32Value get sidechainNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainNumber($3.UInt32Value v) { setField(1, v); }
+  set sidechainNumber($4.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainNumber() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainNumber() => clearField(1);
   @$pb.TagNumber(1)
-  $3.UInt32Value ensureSidechainNumber() => $_ensure(0);
+  $4.UInt32Value ensureSidechainNumber() => $_ensure(0);
 }
 
 class GetCtipResponse_Ctip extends $pb.GeneratedMessage {
   factory GetCtipResponse_Ctip({
-    $4.ConsensusHex? txid,
+    $5.ReverseHex? txid,
     $core.int? vout,
     $fixnum.Int64? value,
     $fixnum.Int64? sequenceNumber,
@@ -1749,7 +2005,7 @@ class GetCtipResponse_Ctip extends $pb.GeneratedMessage {
   factory GetCtipResponse_Ctip.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCtipResponse.Ctip', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ConsensusHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $4.ConsensusHex.create)
+    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $5.ReverseHex.create)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'sequenceNumber', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
@@ -1778,15 +2034,15 @@ class GetCtipResponse_Ctip extends $pb.GeneratedMessage {
   static GetCtipResponse_Ctip? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ConsensusHex get txid => $_getN(0);
+  $5.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($4.ConsensusHex v) { setField(1, v); }
+  set txid($5.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ConsensusHex ensureTxid() => $_ensure(0);
+  $5.ReverseHex ensureTxid() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $core.int get vout => $_getIZ(1);
@@ -1902,22 +2158,23 @@ class GetSidechainProposalsRequest extends $pb.GeneratedMessage {
 
 class GetSidechainProposalsResponse_SidechainProposal extends $pb.GeneratedMessage {
   factory GetSidechainProposalsResponse_SidechainProposal({
-    $core.int? sidechainNumber,
-    $3.BytesValue? data,
-    $4.ConsensusHex? dataHash,
-    $core.int? voteCount,
-    $core.int? proposalHeight,
-    $core.int? proposalAge,
+    $4.UInt32Value? sidechainNumber,
+    $5.ConsensusHex? description,
+    $5.ReverseHex? descriptionSha256dHash,
+    $4.UInt32Value? voteCount,
+    $4.UInt32Value? proposalHeight,
+    $4.UInt32Value? proposalAge,
+    $6.SidechainDeclaration? declaration,
   }) {
     final $result = create();
     if (sidechainNumber != null) {
       $result.sidechainNumber = sidechainNumber;
     }
-    if (data != null) {
-      $result.data = data;
+    if (description != null) {
+      $result.description = description;
     }
-    if (dataHash != null) {
-      $result.dataHash = dataHash;
+    if (descriptionSha256dHash != null) {
+      $result.descriptionSha256dHash = descriptionSha256dHash;
     }
     if (voteCount != null) {
       $result.voteCount = voteCount;
@@ -1928,6 +2185,9 @@ class GetSidechainProposalsResponse_SidechainProposal extends $pb.GeneratedMessa
     if (proposalAge != null) {
       $result.proposalAge = proposalAge;
     }
+    if (declaration != null) {
+      $result.declaration = declaration;
+    }
     return $result;
   }
   GetSidechainProposalsResponse_SidechainProposal._() : super();
@@ -1935,12 +2195,13 @@ class GetSidechainProposalsResponse_SidechainProposal extends $pb.GeneratedMessa
   factory GetSidechainProposalsResponse_SidechainProposal.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainProposalsResponse.SidechainProposal', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'sidechainNumber', $pb.PbFieldType.OU3)
-    ..aOM<$3.BytesValue>(2, _omitFieldNames ? '' : 'data', subBuilder: $3.BytesValue.create)
-    ..aOM<$4.ConsensusHex>(3, _omitFieldNames ? '' : 'dataHash', subBuilder: $4.ConsensusHex.create)
-    ..a<$core.int>(4, _omitFieldNames ? '' : 'voteCount', $pb.PbFieldType.OU3)
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'proposalHeight', $pb.PbFieldType.OU3)
-    ..a<$core.int>(6, _omitFieldNames ? '' : 'proposalAge', $pb.PbFieldType.OU3)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $4.UInt32Value.create)
+    ..aOM<$5.ConsensusHex>(2, _omitFieldNames ? '' : 'description', subBuilder: $5.ConsensusHex.create)
+    ..aOM<$5.ReverseHex>(3, _omitFieldNames ? '' : 'descriptionSha256dHash', subBuilder: $5.ReverseHex.create)
+    ..aOM<$4.UInt32Value>(4, _omitFieldNames ? '' : 'voteCount', subBuilder: $4.UInt32Value.create)
+    ..aOM<$4.UInt32Value>(5, _omitFieldNames ? '' : 'proposalHeight', subBuilder: $4.UInt32Value.create)
+    ..aOM<$4.UInt32Value>(6, _omitFieldNames ? '' : 'proposalAge', subBuilder: $4.UInt32Value.create)
+    ..aOM<$6.SidechainDeclaration>(7, _omitFieldNames ? '' : 'declaration', subBuilder: $6.SidechainDeclaration.create)
     ..hasRequiredFields = false
   ;
 
@@ -1966,62 +2227,84 @@ class GetSidechainProposalsResponse_SidechainProposal extends $pb.GeneratedMessa
   static GetSidechainProposalsResponse_SidechainProposal? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.int get sidechainNumber => $_getIZ(0);
+  $4.UInt32Value get sidechainNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainNumber($core.int v) { $_setUnsignedInt32(0, v); }
+  set sidechainNumber($4.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainNumber() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainNumber() => clearField(1);
+  @$pb.TagNumber(1)
+  $4.UInt32Value ensureSidechainNumber() => $_ensure(0);
 
+  /// Raw sidechain proposal description
   @$pb.TagNumber(2)
-  $3.BytesValue get data => $_getN(1);
+  $5.ConsensusHex get description => $_getN(1);
   @$pb.TagNumber(2)
-  set data($3.BytesValue v) { setField(2, v); }
+  set description($5.ConsensusHex v) { setField(2, v); }
   @$pb.TagNumber(2)
-  $core.bool hasData() => $_has(1);
+  $core.bool hasDescription() => $_has(1);
   @$pb.TagNumber(2)
-  void clearData() => clearField(2);
+  void clearDescription() => clearField(2);
   @$pb.TagNumber(2)
-  $3.BytesValue ensureData() => $_ensure(1);
+  $5.ConsensusHex ensureDescription() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $4.ConsensusHex get dataHash => $_getN(2);
+  $5.ReverseHex get descriptionSha256dHash => $_getN(2);
   @$pb.TagNumber(3)
-  set dataHash($4.ConsensusHex v) { setField(3, v); }
+  set descriptionSha256dHash($5.ReverseHex v) { setField(3, v); }
   @$pb.TagNumber(3)
-  $core.bool hasDataHash() => $_has(2);
+  $core.bool hasDescriptionSha256dHash() => $_has(2);
   @$pb.TagNumber(3)
-  void clearDataHash() => clearField(3);
+  void clearDescriptionSha256dHash() => clearField(3);
   @$pb.TagNumber(3)
-  $4.ConsensusHex ensureDataHash() => $_ensure(2);
+  $5.ReverseHex ensureDescriptionSha256dHash() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $core.int get voteCount => $_getIZ(3);
+  $4.UInt32Value get voteCount => $_getN(3);
   @$pb.TagNumber(4)
-  set voteCount($core.int v) { $_setUnsignedInt32(3, v); }
+  set voteCount($4.UInt32Value v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasVoteCount() => $_has(3);
   @$pb.TagNumber(4)
   void clearVoteCount() => clearField(4);
+  @$pb.TagNumber(4)
+  $4.UInt32Value ensureVoteCount() => $_ensure(3);
 
   @$pb.TagNumber(5)
-  $core.int get proposalHeight => $_getIZ(4);
+  $4.UInt32Value get proposalHeight => $_getN(4);
   @$pb.TagNumber(5)
-  set proposalHeight($core.int v) { $_setUnsignedInt32(4, v); }
+  set proposalHeight($4.UInt32Value v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasProposalHeight() => $_has(4);
   @$pb.TagNumber(5)
   void clearProposalHeight() => clearField(5);
+  @$pb.TagNumber(5)
+  $4.UInt32Value ensureProposalHeight() => $_ensure(4);
 
   @$pb.TagNumber(6)
-  $core.int get proposalAge => $_getIZ(5);
+  $4.UInt32Value get proposalAge => $_getN(5);
   @$pb.TagNumber(6)
-  set proposalAge($core.int v) { $_setUnsignedInt32(5, v); }
+  set proposalAge($4.UInt32Value v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasProposalAge() => $_has(5);
   @$pb.TagNumber(6)
   void clearProposalAge() => clearField(6);
+  @$pb.TagNumber(6)
+  $4.UInt32Value ensureProposalAge() => $_ensure(5);
+
+  /// Sidechain data, as declared in the M1 proposal.
+  /// Might be nil, if the proposal uses an unknown version.
+  @$pb.TagNumber(7)
+  $6.SidechainDeclaration get declaration => $_getN(6);
+  @$pb.TagNumber(7)
+  set declaration($6.SidechainDeclaration v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasDeclaration() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDeclaration() => clearField(7);
+  @$pb.TagNumber(7)
+  $6.SidechainDeclaration ensureDeclaration() => $_ensure(6);
 }
 
 class GetSidechainProposalsResponse extends $pb.GeneratedMessage {
@@ -2102,18 +2385,18 @@ class GetSidechainsRequest extends $pb.GeneratedMessage {
 
 class GetSidechainsResponse_SidechainInfo extends $pb.GeneratedMessage {
   factory GetSidechainsResponse_SidechainInfo({
-    $core.int? sidechainNumber,
-    $3.BytesValue? data,
-    $core.int? voteCount,
-    $core.int? proposalHeight,
-    $core.int? activationHeight,
+    $4.UInt32Value? sidechainNumber,
+    $5.ConsensusHex? description,
+    $4.UInt32Value? voteCount,
+    $4.UInt32Value? proposalHeight,
+    $4.UInt32Value? activationHeight,
   }) {
     final $result = create();
     if (sidechainNumber != null) {
       $result.sidechainNumber = sidechainNumber;
     }
-    if (data != null) {
-      $result.data = data;
+    if (description != null) {
+      $result.description = description;
     }
     if (voteCount != null) {
       $result.voteCount = voteCount;
@@ -2131,11 +2414,11 @@ class GetSidechainsResponse_SidechainInfo extends $pb.GeneratedMessage {
   factory GetSidechainsResponse_SidechainInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainsResponse.SidechainInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'sidechainNumber', $pb.PbFieldType.OU3)
-    ..aOM<$3.BytesValue>(2, _omitFieldNames ? '' : 'data', subBuilder: $3.BytesValue.create)
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'voteCount', $pb.PbFieldType.OU3)
-    ..a<$core.int>(4, _omitFieldNames ? '' : 'proposalHeight', $pb.PbFieldType.OU3)
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'activationHeight', $pb.PbFieldType.OU3)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $4.UInt32Value.create)
+    ..aOM<$5.ConsensusHex>(2, _omitFieldNames ? '' : 'description', subBuilder: $5.ConsensusHex.create)
+    ..aOM<$4.UInt32Value>(3, _omitFieldNames ? '' : 'voteCount', subBuilder: $4.UInt32Value.create)
+    ..aOM<$4.UInt32Value>(4, _omitFieldNames ? '' : 'proposalHeight', subBuilder: $4.UInt32Value.create)
+    ..aOM<$4.UInt32Value>(5, _omitFieldNames ? '' : 'activationHeight', subBuilder: $4.UInt32Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -2161,51 +2444,59 @@ class GetSidechainsResponse_SidechainInfo extends $pb.GeneratedMessage {
   static GetSidechainsResponse_SidechainInfo? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.int get sidechainNumber => $_getIZ(0);
+  $4.UInt32Value get sidechainNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainNumber($core.int v) { $_setUnsignedInt32(0, v); }
+  set sidechainNumber($4.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainNumber() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainNumber() => clearField(1);
+  @$pb.TagNumber(1)
+  $4.UInt32Value ensureSidechainNumber() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $3.BytesValue get data => $_getN(1);
+  $5.ConsensusHex get description => $_getN(1);
   @$pb.TagNumber(2)
-  set data($3.BytesValue v) { setField(2, v); }
+  set description($5.ConsensusHex v) { setField(2, v); }
   @$pb.TagNumber(2)
-  $core.bool hasData() => $_has(1);
+  $core.bool hasDescription() => $_has(1);
   @$pb.TagNumber(2)
-  void clearData() => clearField(2);
+  void clearDescription() => clearField(2);
   @$pb.TagNumber(2)
-  $3.BytesValue ensureData() => $_ensure(1);
+  $5.ConsensusHex ensureDescription() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $core.int get voteCount => $_getIZ(2);
+  $4.UInt32Value get voteCount => $_getN(2);
   @$pb.TagNumber(3)
-  set voteCount($core.int v) { $_setUnsignedInt32(2, v); }
+  set voteCount($4.UInt32Value v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasVoteCount() => $_has(2);
   @$pb.TagNumber(3)
   void clearVoteCount() => clearField(3);
+  @$pb.TagNumber(3)
+  $4.UInt32Value ensureVoteCount() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $core.int get proposalHeight => $_getIZ(3);
+  $4.UInt32Value get proposalHeight => $_getN(3);
   @$pb.TagNumber(4)
-  set proposalHeight($core.int v) { $_setUnsignedInt32(3, v); }
+  set proposalHeight($4.UInt32Value v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasProposalHeight() => $_has(3);
   @$pb.TagNumber(4)
   void clearProposalHeight() => clearField(4);
+  @$pb.TagNumber(4)
+  $4.UInt32Value ensureProposalHeight() => $_ensure(3);
 
   @$pb.TagNumber(5)
-  $core.int get activationHeight => $_getIZ(4);
+  $4.UInt32Value get activationHeight => $_getN(4);
   @$pb.TagNumber(5)
-  set activationHeight($core.int v) { $_setUnsignedInt32(4, v); }
+  set activationHeight($4.UInt32Value v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasActivationHeight() => $_has(4);
   @$pb.TagNumber(5)
   void clearActivationHeight() => clearField(5);
+  @$pb.TagNumber(5)
+  $4.UInt32Value ensureActivationHeight() => $_ensure(4);
 }
 
 class GetSidechainsResponse extends $pb.GeneratedMessage {
@@ -2254,9 +2545,9 @@ class GetSidechainsResponse extends $pb.GeneratedMessage {
 
 class GetTwoWayPegDataRequest extends $pb.GeneratedMessage {
   factory GetTwoWayPegDataRequest({
-    $3.UInt32Value? sidechainId,
-    $4.ReverseHex? startBlockHash,
-    $4.ReverseHex? endBlockHash,
+    $4.UInt32Value? sidechainId,
+    $5.ReverseHex? startBlockHash,
+    $5.ReverseHex? endBlockHash,
   }) {
     final $result = create();
     if (sidechainId != null) {
@@ -2275,9 +2566,9 @@ class GetTwoWayPegDataRequest extends $pb.GeneratedMessage {
   factory GetTwoWayPegDataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetTwoWayPegDataRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$3.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $3.UInt32Value.create)
-    ..aOM<$4.ReverseHex>(2, _omitFieldNames ? '' : 'startBlockHash', subBuilder: $4.ReverseHex.create)
-    ..aOM<$4.ReverseHex>(3, _omitFieldNames ? '' : 'endBlockHash', subBuilder: $4.ReverseHex.create)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
+    ..aOM<$5.ReverseHex>(2, _omitFieldNames ? '' : 'startBlockHash', subBuilder: $5.ReverseHex.create)
+    ..aOM<$5.ReverseHex>(3, _omitFieldNames ? '' : 'endBlockHash', subBuilder: $5.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -2303,37 +2594,37 @@ class GetTwoWayPegDataRequest extends $pb.GeneratedMessage {
   static GetTwoWayPegDataRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $3.UInt32Value get sidechainId => $_getN(0);
+  $4.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($3.UInt32Value v) { setField(1, v); }
+  set sidechainId($4.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
-  $3.UInt32Value ensureSidechainId() => $_ensure(0);
+  $4.UInt32Value ensureSidechainId() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.ReverseHex get startBlockHash => $_getN(1);
+  $5.ReverseHex get startBlockHash => $_getN(1);
   @$pb.TagNumber(2)
-  set startBlockHash($4.ReverseHex v) { setField(2, v); }
+  set startBlockHash($5.ReverseHex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasStartBlockHash() => $_has(1);
   @$pb.TagNumber(2)
   void clearStartBlockHash() => clearField(2);
   @$pb.TagNumber(2)
-  $4.ReverseHex ensureStartBlockHash() => $_ensure(1);
+  $5.ReverseHex ensureStartBlockHash() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $4.ReverseHex get endBlockHash => $_getN(2);
+  $5.ReverseHex get endBlockHash => $_getN(2);
   @$pb.TagNumber(3)
-  set endBlockHash($4.ReverseHex v) { setField(3, v); }
+  set endBlockHash($5.ReverseHex v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasEndBlockHash() => $_has(2);
   @$pb.TagNumber(3)
   void clearEndBlockHash() => clearField(3);
   @$pb.TagNumber(3)
-  $4.ReverseHex ensureEndBlockHash() => $_ensure(2);
+  $5.ReverseHex ensureEndBlockHash() => $_ensure(2);
 }
 
 class GetTwoWayPegDataResponse_ResponseItem extends $pb.GeneratedMessage {
@@ -2450,7 +2741,7 @@ class GetTwoWayPegDataResponse extends $pb.GeneratedMessage {
 
 class SubscribeEventsRequest extends $pb.GeneratedMessage {
   factory SubscribeEventsRequest({
-    $3.UInt32Value? sidechainId,
+    $4.UInt32Value? sidechainId,
   }) {
     final $result = create();
     if (sidechainId != null) {
@@ -2463,7 +2754,7 @@ class SubscribeEventsRequest extends $pb.GeneratedMessage {
   factory SubscribeEventsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SubscribeEventsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$3.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $3.UInt32Value.create)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -2489,15 +2780,15 @@ class SubscribeEventsRequest extends $pb.GeneratedMessage {
   static SubscribeEventsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $3.UInt32Value get sidechainId => $_getN(0);
+  $4.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($3.UInt32Value v) { setField(1, v); }
+  set sidechainId($4.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
-  $3.UInt32Value ensureSidechainId() => $_ensure(0);
+  $4.UInt32Value ensureSidechainId() => $_ensure(0);
 }
 
 class SubscribeEventsResponse_Event_ConnectBlock extends $pb.GeneratedMessage {
@@ -2570,7 +2861,7 @@ class SubscribeEventsResponse_Event_ConnectBlock extends $pb.GeneratedMessage {
 
 class SubscribeEventsResponse_Event_DisconnectBlock extends $pb.GeneratedMessage {
   factory SubscribeEventsResponse_Event_DisconnectBlock({
-    $4.ReverseHex? blockHash,
+    $5.ReverseHex? blockHash,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -2583,7 +2874,7 @@ class SubscribeEventsResponse_Event_DisconnectBlock extends $pb.GeneratedMessage
   factory SubscribeEventsResponse_Event_DisconnectBlock.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SubscribeEventsResponse.Event.DisconnectBlock', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $4.ReverseHex.create)
+    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -2609,15 +2900,15 @@ class SubscribeEventsResponse_Event_DisconnectBlock extends $pb.GeneratedMessage
   static SubscribeEventsResponse_Event_DisconnectBlock? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.ReverseHex get blockHash => $_getN(0);
+  $5.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($4.ReverseHex v) { setField(1, v); }
+  set blockHash($5.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $4.ReverseHex ensureBlockHash() => $_ensure(0);
+  $5.ReverseHex ensureBlockHash() => $_ensure(0);
 }
 
 enum SubscribeEventsResponse_Event_Event {
