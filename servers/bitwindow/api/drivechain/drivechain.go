@@ -97,9 +97,56 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 			continue
 		}
 
+		// First byte is length (80)
+		if len(descBytes) < 1 {
+			zerolog.Ctx(ctx).Error().Msg("description too short")
+			continue
+		}
+		totalLen := int(descBytes[0])
+		if totalLen != 80 {
+			zerolog.Ctx(ctx).Error().Msgf("unsupported length: %d", totalLen)
+			continue
+		}
+		descBytes = descBytes[1:] // Skip length byte
+
+		// Parse the description bytes according to format:
+		// <VERSION_0><TITLE_LENGTH><TITLE_UTF8_BYTES><DESCRIPTION_UTF8_BYTES><HASH_1><HASH_2>
+		if len(descBytes) < 2 { // Need at least version and title length
+			zerolog.Ctx(ctx).Error().Msg("description too short")
+			continue
+		}
+
+		version := descBytes[0]
+		if version != 0 {
+			zerolog.Ctx(ctx).Error().Msgf("unsupported version: %d", version)
+			continue
+		}
+
+		titleLen := int(descBytes[1])
+		if len(descBytes) < 2+titleLen {
+			zerolog.Ctx(ctx).Error().Msg("description too short for title")
+			continue
+		}
+		title := string(descBytes[2 : 2+titleLen])
+
+		// Description is the remaining bytes before the hashes
+		// Total length is 80, minus:
+		// - 1 byte version
+		// - 1 byte title length
+		// - titleLen bytes title
+		// - 32 bytes hash1
+		// - 20 bytes hash2
+		descLen := 80 - (1 + 1 + titleLen + 32 + 20)
+		if descLen < 0 {
+			zerolog.Ctx(ctx).Error().Msg("invalid description length")
+			continue
+		}
+
+		description := string(descBytes[2+titleLen : 2+titleLen+descLen])
+
 		sidechainList = append(sidechainList, &pb.ListSidechainsResponse_Sidechain{
-			Title:         string(descBytes),
-			Description:   string(descBytes),
+			Title:         title,
+			Description:   description,
 			Nversion:      uint32(ctipResponse.Msg.Ctip.SequenceNumber),
 			Hashid1:       sidechain.Description.Hex.Value,
 			Hashid2:       sidechain.Description.Hex.Value,
