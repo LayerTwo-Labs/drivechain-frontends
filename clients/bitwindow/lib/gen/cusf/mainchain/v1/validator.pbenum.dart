@@ -36,24 +36,5 @@ class Network extends $pb.ProtobufEnum {
   const Network._($core.int v, $core.String n) : super(v, n);
 }
 
-class WithdrawalBundleEventType extends $pb.ProtobufEnum {
-  static const WithdrawalBundleEventType WITHDRAWAL_BUNDLE_EVENT_TYPE_UNSPECIFIED = WithdrawalBundleEventType._(0, _omitEnumNames ? '' : 'WITHDRAWAL_BUNDLE_EVENT_TYPE_UNSPECIFIED');
-  static const WithdrawalBundleEventType WITHDRAWAL_BUNDLE_EVENT_TYPE_SUBMITTED = WithdrawalBundleEventType._(1, _omitEnumNames ? '' : 'WITHDRAWAL_BUNDLE_EVENT_TYPE_SUBMITTED');
-  static const WithdrawalBundleEventType WITHDRAWAL_BUNDLE_EVENT_TYPE_FAILED = WithdrawalBundleEventType._(2, _omitEnumNames ? '' : 'WITHDRAWAL_BUNDLE_EVENT_TYPE_FAILED');
-  static const WithdrawalBundleEventType WITHDRAWAL_BUNDLE_EVENT_TYPE_SUCCEDED = WithdrawalBundleEventType._(3, _omitEnumNames ? '' : 'WITHDRAWAL_BUNDLE_EVENT_TYPE_SUCCEDED');
-
-  static const $core.List<WithdrawalBundleEventType> values = <WithdrawalBundleEventType> [
-    WITHDRAWAL_BUNDLE_EVENT_TYPE_UNSPECIFIED,
-    WITHDRAWAL_BUNDLE_EVENT_TYPE_SUBMITTED,
-    WITHDRAWAL_BUNDLE_EVENT_TYPE_FAILED,
-    WITHDRAWAL_BUNDLE_EVENT_TYPE_SUCCEDED,
-  ];
-
-  static final $core.Map<$core.int, WithdrawalBundleEventType> _byValue = $pb.ProtobufEnum.initByValue(values);
-  static WithdrawalBundleEventType? valueOf($core.int value) => _byValue[value];
-
-  const WithdrawalBundleEventType._($core.int v, $core.String n) : super(v, n);
-}
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

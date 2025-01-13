@@ -70,22 +70,6 @@ const (
 	ValidatorServiceSubscribeEventsProcedure = "/cusf.mainchain.v1.ValidatorService/SubscribeEvents"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	validatorServiceServiceDescriptor                     = v1.File_cusf_mainchain_v1_validator_proto.Services().ByName("ValidatorService")
-	validatorServiceGetBlockHeaderInfoMethodDescriptor    = validatorServiceServiceDescriptor.Methods().ByName("GetBlockHeaderInfo")
-	validatorServiceGetBlockInfoMethodDescriptor          = validatorServiceServiceDescriptor.Methods().ByName("GetBlockInfo")
-	validatorServiceGetBmmHStarCommitmentMethodDescriptor = validatorServiceServiceDescriptor.Methods().ByName("GetBmmHStarCommitment")
-	validatorServiceGetChainInfoMethodDescriptor          = validatorServiceServiceDescriptor.Methods().ByName("GetChainInfo")
-	validatorServiceGetChainTipMethodDescriptor           = validatorServiceServiceDescriptor.Methods().ByName("GetChainTip")
-	validatorServiceGetCoinbasePSBTMethodDescriptor       = validatorServiceServiceDescriptor.Methods().ByName("GetCoinbasePSBT")
-	validatorServiceGetCtipMethodDescriptor               = validatorServiceServiceDescriptor.Methods().ByName("GetCtip")
-	validatorServiceGetSidechainProposalsMethodDescriptor = validatorServiceServiceDescriptor.Methods().ByName("GetSidechainProposals")
-	validatorServiceGetSidechainsMethodDescriptor         = validatorServiceServiceDescriptor.Methods().ByName("GetSidechains")
-	validatorServiceGetTwoWayPegDataMethodDescriptor      = validatorServiceServiceDescriptor.Methods().ByName("GetTwoWayPegData")
-	validatorServiceSubscribeEventsMethodDescriptor       = validatorServiceServiceDescriptor.Methods().ByName("SubscribeEvents")
-)
-
 // ValidatorServiceClient is a client for the cusf.mainchain.v1.ValidatorService service.
 type ValidatorServiceClient interface {
 	// Fetches information about a specific mainchain block header.
@@ -113,71 +97,72 @@ type ValidatorServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewValidatorServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ValidatorServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	validatorServiceMethods := v1.File_cusf_mainchain_v1_validator_proto.Services().ByName("ValidatorService").Methods()
 	return &validatorServiceClient{
 		getBlockHeaderInfo: connect.NewClient[v1.GetBlockHeaderInfoRequest, v1.GetBlockHeaderInfoResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetBlockHeaderInfoProcedure,
-			connect.WithSchema(validatorServiceGetBlockHeaderInfoMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetBlockHeaderInfo")),
 			connect.WithClientOptions(opts...),
 		),
 		getBlockInfo: connect.NewClient[v1.GetBlockInfoRequest, v1.GetBlockInfoResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetBlockInfoProcedure,
-			connect.WithSchema(validatorServiceGetBlockInfoMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetBlockInfo")),
 			connect.WithClientOptions(opts...),
 		),
 		getBmmHStarCommitment: connect.NewClient[v1.GetBmmHStarCommitmentRequest, v1.GetBmmHStarCommitmentResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetBmmHStarCommitmentProcedure,
-			connect.WithSchema(validatorServiceGetBmmHStarCommitmentMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetBmmHStarCommitment")),
 			connect.WithClientOptions(opts...),
 		),
 		getChainInfo: connect.NewClient[v1.GetChainInfoRequest, v1.GetChainInfoResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetChainInfoProcedure,
-			connect.WithSchema(validatorServiceGetChainInfoMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetChainInfo")),
 			connect.WithClientOptions(opts...),
 		),
 		getChainTip: connect.NewClient[v1.GetChainTipRequest, v1.GetChainTipResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetChainTipProcedure,
-			connect.WithSchema(validatorServiceGetChainTipMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetChainTip")),
 			connect.WithClientOptions(opts...),
 		),
 		getCoinbasePSBT: connect.NewClient[v1.GetCoinbasePSBTRequest, v1.GetCoinbasePSBTResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetCoinbasePSBTProcedure,
-			connect.WithSchema(validatorServiceGetCoinbasePSBTMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetCoinbasePSBT")),
 			connect.WithClientOptions(opts...),
 		),
 		getCtip: connect.NewClient[v1.GetCtipRequest, v1.GetCtipResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetCtipProcedure,
-			connect.WithSchema(validatorServiceGetCtipMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetCtip")),
 			connect.WithClientOptions(opts...),
 		),
 		getSidechainProposals: connect.NewClient[v1.GetSidechainProposalsRequest, v1.GetSidechainProposalsResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetSidechainProposalsProcedure,
-			connect.WithSchema(validatorServiceGetSidechainProposalsMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetSidechainProposals")),
 			connect.WithClientOptions(opts...),
 		),
 		getSidechains: connect.NewClient[v1.GetSidechainsRequest, v1.GetSidechainsResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetSidechainsProcedure,
-			connect.WithSchema(validatorServiceGetSidechainsMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetSidechains")),
 			connect.WithClientOptions(opts...),
 		),
 		getTwoWayPegData: connect.NewClient[v1.GetTwoWayPegDataRequest, v1.GetTwoWayPegDataResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetTwoWayPegDataProcedure,
-			connect.WithSchema(validatorServiceGetTwoWayPegDataMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("GetTwoWayPegData")),
 			connect.WithClientOptions(opts...),
 		),
 		subscribeEvents: connect.NewClient[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse](
 			httpClient,
 			baseURL+ValidatorServiceSubscribeEventsProcedure,
-			connect.WithSchema(validatorServiceSubscribeEventsMethodDescriptor),
+			connect.WithSchema(validatorServiceMethods.ByName("SubscribeEvents")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -277,70 +262,71 @@ type ValidatorServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	validatorServiceMethods := v1.File_cusf_mainchain_v1_validator_proto.Services().ByName("ValidatorService").Methods()
 	validatorServiceGetBlockHeaderInfoHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetBlockHeaderInfoProcedure,
 		svc.GetBlockHeaderInfo,
-		connect.WithSchema(validatorServiceGetBlockHeaderInfoMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetBlockHeaderInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetBlockInfoHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetBlockInfoProcedure,
 		svc.GetBlockInfo,
-		connect.WithSchema(validatorServiceGetBlockInfoMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetBlockInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetBmmHStarCommitmentHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetBmmHStarCommitmentProcedure,
 		svc.GetBmmHStarCommitment,
-		connect.WithSchema(validatorServiceGetBmmHStarCommitmentMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetBmmHStarCommitment")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetChainInfoHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetChainInfoProcedure,
 		svc.GetChainInfo,
-		connect.WithSchema(validatorServiceGetChainInfoMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetChainInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetChainTipHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetChainTipProcedure,
 		svc.GetChainTip,
-		connect.WithSchema(validatorServiceGetChainTipMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetChainTip")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetCoinbasePSBTHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetCoinbasePSBTProcedure,
 		svc.GetCoinbasePSBT,
-		connect.WithSchema(validatorServiceGetCoinbasePSBTMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetCoinbasePSBT")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetCtipHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetCtipProcedure,
 		svc.GetCtip,
-		connect.WithSchema(validatorServiceGetCtipMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetCtip")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetSidechainProposalsHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetSidechainProposalsProcedure,
 		svc.GetSidechainProposals,
-		connect.WithSchema(validatorServiceGetSidechainProposalsMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetSidechainProposals")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetSidechainsHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetSidechainsProcedure,
 		svc.GetSidechains,
-		connect.WithSchema(validatorServiceGetSidechainsMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetSidechains")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceGetTwoWayPegDataHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetTwoWayPegDataProcedure,
 		svc.GetTwoWayPegData,
-		connect.WithSchema(validatorServiceGetTwoWayPegDataMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("GetTwoWayPegData")),
 		connect.WithHandlerOptions(opts...),
 	)
 	validatorServiceSubscribeEventsHandler := connect.NewServerStreamHandler(
 		ValidatorServiceSubscribeEventsProcedure,
 		svc.SubscribeEvents,
-		connect.WithSchema(validatorServiceSubscribeEventsMethodDescriptor),
+		connect.WithSchema(validatorServiceMethods.ByName("SubscribeEvents")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/cusf.mainchain.v1.ValidatorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

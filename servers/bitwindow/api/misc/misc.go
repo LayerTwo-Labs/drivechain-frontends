@@ -3,11 +3,13 @@ package api_misc
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 
 	"connectrpc.com/connect"
+	commonv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	miscv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/misc/v1"
@@ -18,6 +20,7 @@ import (
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ rpc.MiscServiceHandler = new(Server)
@@ -88,13 +91,16 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	if !exists {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic does not exist"))
 	}
-
 	// Format the OP_RETURN message: <topic> <headline> <message>
 	message := []byte(req.Msg.Topic + req.Msg.Headline)
 
 	resp, err := s.wallet.SendTransaction(ctx,
 		connect.NewRequest(&validatorpb.SendTransactionRequest{
-			OpReturnMessage: message,
+			OpReturnMessage: &commonv1.Hex{
+				Hex: &wrapperspb.StringValue{
+					Value: hex.EncodeToString(message),
+				},
+			},
 		}))
 	if err != nil {
 		return nil, fmt.Errorf("could not broadcast news: %w", err)
@@ -134,7 +140,6 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	if exists {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic already exists"))
 	}
-
 	// Format the 'create topic' OP_RETURN message: <topic>new<title>
 	var message strings.Builder
 	message.WriteString(req.Msg.Topic)
@@ -144,7 +149,11 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	// Send the transaction
 	resp, err := s.wallet.SendTransaction(ctx,
 		connect.NewRequest(&validatorpb.SendTransactionRequest{
-			OpReturnMessage: []byte(message.String()),
+			OpReturnMessage: &commonv1.Hex{
+				Hex: &wrapperspb.StringValue{
+					Value: hex.EncodeToString([]byte(message.String())),
+				},
+			},
 		}))
 	if err != nil {
 		return nil, fmt.Errorf("could not broadcast topic creation: %w", err)
