@@ -6,3 +6,9 @@ gen:
 
 gen-enforcer:
     buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
+
+clean:
+    rm assets/bin/*
+
+download:
+    bash scripts/download-binaries.sh macos

@@ -52,8 +52,8 @@ class ExperimentalBanner extends StatelessWidget {
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
           colors: [
-            SailTheme.of(context).colors.orange.withOpacity(0.25),
-            SailTheme.of(context).colors.orangeLight.withOpacity(0.25),
+            SailTheme.of(context).colors.orange.withValues(alpha: 0.25),
+            SailTheme.of(context).colors.orangeLight.withValues(alpha: 0.25),
           ],
         ),
         border: Border.all(
@@ -191,7 +191,7 @@ class QtSeparator extends StatelessWidget {
             stops: const [0.0, 0.35, 0.36, 1.0],
             colors: [
               Colors.grey,
-              Colors.grey.withOpacity(0.3),
+              Colors.grey.withValues(alpha: 0.3),
               Colors.white,
               Colors.white,
             ],
@@ -251,8 +251,8 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           bValue = b.time.toDateTime().millisecondsSinceEpoch;
           break;
         case 'fee':
-          aValue = a.feeSatoshi;
-          bValue = b.feeSatoshi;
+          aValue = a.feeSats;
+          bValue = b.feeSats;
           break;
         case 'txid':
           aValue = a.txid;
@@ -298,7 +298,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         final entry = widget.entries[row];
         return [
           SailTableCell(value: entry.time.toDateTime().format()),
-          SailTableCell(value: entry.feeSatoshi.toString()),
+          SailTableCell(value: entry.feeSats.toString()),
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
           SailTableCell(

@@ -18,7 +18,7 @@ class QtContainer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(0.0),
       decoration: BoxDecoration(
-        border: Border.all(color: context.sailTheme.colors.text.withOpacity(0.21)),
+        border: Border.all(color: context.sailTheme.colors.text.withValues(alpha: 0.21)),
         color: color,
       ),
       child: child,

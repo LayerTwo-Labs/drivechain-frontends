@@ -5,7 +5,6 @@ import 'package:web3dart/json_rpc.dart' as jsonrpc;
 import 'package:web3dart/web3dart.dart';
 
 abstract class EthereumRPC extends SidechainRPC {
-  // TODO: implement authed RPCs
   EthereumRPC({
     required super.conf,
     required super.binary,
@@ -108,7 +107,6 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   Future<List<CoreTransaction>> listTransactions() async {
-    // TODO: Implement listtransactions
     return List.empty();
   }
 
@@ -165,7 +163,6 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
-    // TODO: implement sideSend
     throw UnimplementedError();
   }
 
@@ -176,7 +173,6 @@ class EthereumRPCLive extends EthereumRPC {
 
   @override
   Future<String> getSideAddress() {
-    // TODO: implement getSideAddress
     throw UnimplementedError();
   }
 

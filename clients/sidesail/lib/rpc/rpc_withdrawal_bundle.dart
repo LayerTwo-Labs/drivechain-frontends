@@ -68,7 +68,6 @@ class Withdrawal {
   final int amountSatoshi;
   final String address;
 
-  // TODO: what even is this? From testchain codebase:  Hash of transaction minus the serialization output
   // No clue what the user can use this for.
   final String hashBlindTx;
   final String refundDestination;

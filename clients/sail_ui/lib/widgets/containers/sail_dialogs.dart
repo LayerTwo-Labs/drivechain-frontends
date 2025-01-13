@@ -8,7 +8,7 @@ Future<T?> showThemedDialog<T>({
   final theme = SailTheme.of(context);
   return await showDialog(
     context: context,
-    barrierColor: theme.colors.background.withOpacity(0.4),
+    barrierColor: theme.colors.background.withValues(alpha: 0.4),
     builder: builder,
   );
 }

@@ -142,8 +142,8 @@ class SailTextButton extends StatelessWidget {
         borderRadius: SailStyleValues.borderRadiusButton,
         onTap: onPressed,
         highlightColor: Colors.transparent,
-        focusColor: theme.colors.backgroundActionModal.withOpacity(0.1),
-        hoverColor: theme.colors.backgroundActionModal.withOpacity(0.1),
+        focusColor: theme.colors.backgroundActionModal.withValues(alpha: 0.1),
+        hoverColor: theme.colors.backgroundActionModal.withValues(alpha: 0.1),
         splashColor: Colors.transparent,
         child: SailText.secondary12(label, bold: true),
       ),
@@ -180,7 +180,6 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
     final disabled = widget.loading || widget.disabled || widget.onPressed == null;
     final backgroundColor = widget.backgroundColor ?? theme.colors.background;
 
-    // TODO: Actually use this
     Color textColor;
     if (!disabled && widget.onPressed != null) {
       textColor = SailTheme.of(context).colors.textTertiary;
@@ -392,7 +391,7 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
             borderRadius: BorderRadius.circular(8.0),
             boxShadow: [
               BoxShadow(
-                color: SailTheme.of(context).colors.textTertiary.withOpacity(0.5),
+                color: SailTheme.of(context).colors.textTertiary.withValues(alpha: 0.5),
                 offset: const Offset(1.5, 1.5),
                 blurRadius: 0,
                 spreadRadius: 0,

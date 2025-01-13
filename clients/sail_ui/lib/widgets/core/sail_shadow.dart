@@ -31,7 +31,7 @@ class SailShadow extends StatelessWidget {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: theme.colors.shadow.withOpacity(0.05), // Reduced opacity from 0.05 to 0.02
+                  color: theme.colors.shadow.withValues(alpha: 0.05), // Reduced opacity from 0.05 to 0.02
                   blurRadius: blurRadius,
                   spreadRadius: spreadRadius,
                 ),
