@@ -2,6 +2,7 @@ package api_drivechain
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 
 	"connectrpc.com/connect"
@@ -83,18 +84,25 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		}
 
 		// Decode the txid using chainhash.NewHashFromStr
-		txidHash, err := chainhash.NewHashFromStr(string(ctipResponse.Msg.Ctip.Txid.Hex.String()))
+		txidHash, err := chainhash.NewHashFromStr(ctipResponse.Msg.Ctip.Txid.Hex.Value)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to decode txid")
+			zerolog.Ctx(ctx).Error().Err(err).Msgf("failed to decode txid: %s", ctipResponse.Msg.Ctip.Txid.Hex.Value)
+			continue
+		}
+
+		// Decode the hex string description
+		descBytes, err := hex.DecodeString(sidechain.Description.Hex.Value)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not decode sidechain description hex")
 			continue
 		}
 
 		sidechainList = append(sidechainList, &pb.ListSidechainsResponse_Sidechain{
-			Title:         sidechain.Description.String(),
-			Description:   sidechain.Description.String(),
+			Title:         string(descBytes),
+			Description:   string(descBytes),
 			Nversion:      uint32(ctipResponse.Msg.Ctip.SequenceNumber),
-			Hashid1:       sidechain.Description.String(),
-			Hashid2:       sidechain.Description.String(),
+			Hashid1:       sidechain.Description.Hex.Value,
+			Hashid2:       sidechain.Description.Hex.Value,
 			Slot:          int32(sidechain.SidechainNumber.Value),
 			AmountSatoshi: int64(ctipResponse.Msg.Ctip.Value),
 			ChaintipTxid:  txidHash.String(),
