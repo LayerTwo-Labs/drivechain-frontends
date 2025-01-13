@@ -111,7 +111,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	log.Info().Msgf("send tx: broadcast transaction: %s", created.Msg.Txid)
 
 	return connect.NewResponse(&pb.SendTransactionResponse{
-		Txid: created.Msg.Txid.Hex.String(),
+		Txid: created.Msg.Txid.Hex.Value,
 	}), nil
 }
 
@@ -169,7 +169,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 				}
 			}
 			return &pb.WalletTransaction{
-				Txid:             tx.Txid.Hex.String(),
+				Txid:             tx.Txid.Hex.Value,
 				FeeSats:          tx.FeeSats,
 				ReceivedSatoshi:  tx.ReceivedSats,
 				SentSatoshi:      tx.SentSats,
@@ -194,15 +194,9 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 	}
 	deposits := []Deposit{}
 
-	transactions, err := s.bitcoind.ListTransactions(ctx, &connect.Request[corepb.ListTransactionsRequest]{
-		Msg: &corepb.ListTransactionsRequest{},
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list transactions: %w", err))
-	}
-
+	var transactions corepb.ListTransactionsResponse
 	var response pb.ListSidechainDepositsResponse
-	for _, tx := range transactions.Msg.Transactions {
+	for _, tx := range transactions.Transactions {
 		if tx.Amount != 0 {
 			continue
 		}
@@ -265,6 +259,6 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	}
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
-		Txid: created.Msg.Txid.Hex.String(),
+		Txid: created.Msg.Txid.Hex.Value,
 	}), nil
 }
