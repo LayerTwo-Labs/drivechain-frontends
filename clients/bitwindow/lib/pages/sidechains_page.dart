@@ -78,31 +78,34 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                   onSort: () => viewModel.sortSidechains('name'),
                 ),
                 SailTableHeaderCell(
-                  name: 'Amount',
-                  onSort: () => viewModel.sortSidechains('amount'),
+                  name: 'Balance',
+                  onSort: () => viewModel.sortSidechains('balance'),
                 ),
               ],
               rowBuilder: (context, row, selected) {
-                final sidechain = viewModel.sortedSidechains[row];
+                final slot = row; // This is now the slot number (0-254)
+                final sidechain = viewModel.sidechains[slot];
                 final textColor =
                     sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
                 return [
-                  SailTableCell(value: '$row:', textColor: textColor),
+                  SailTableCell(value: '$slot:', textColor: textColor),
                   SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
                   SailTableCell(
                     value: formatBitcoin(
-                      satoshiToBTC(sidechain?.info.amountSatoshi.toInt() ?? 0),
+                      satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0),
                     ),
                     textColor: textColor,
                   ),
                 ];
               },
-              rowCount: viewModel.sortedSidechains.length,
+              rowCount: 255, // Show all possible slots
               columnWidths: const [21, 150, 100],
               backgroundColor: context.sailTheme.colors.backgroundSecondary,
               sortAscending: viewModel.sortAscending,
-              sortColumnIndex: ['slot', 'name', 'amount'].indexOf(viewModel.sortColumn),
+              sortColumnIndex: ['slot', 'name', 'balance'].indexOf(viewModel.sortColumn),
               onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
+              selectedRowId: viewModel.selectedIndex?.toString(),
+              onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
             ),
           ),
           const SizedBox(height: SailStyleValues.padding16),
@@ -160,7 +163,7 @@ class SelectableListTile extends StatelessWidget {
             SizedBox(
               width: 120,
               child: SailText.primary13(
-                sidechain == null ? '' : formatBitcoin(satoshiToBTC(sidechain!.info.amountSatoshi.toInt())),
+                sidechain == null ? '' : formatBitcoin(satoshiToBTC(sidechain!.info.balanceSatoshi.toInt())),
                 color: textColor,
                 textAlign: TextAlign.left,
               ),
@@ -229,9 +232,9 @@ class SidechainsViewModel extends BaseViewModel {
           aValue = sidechains.indexOf(a);
           bValue = sidechains.indexOf(b);
           break;
-        case 'amount':
-          aValue = a.info.amountSatoshi;
-          bValue = b.info.amountSatoshi;
+        case 'balance':
+          aValue = a.info.balanceSatoshi;
+          bValue = b.info.balanceSatoshi;
           break;
         case 'title':
           aValue = a.info.title;
