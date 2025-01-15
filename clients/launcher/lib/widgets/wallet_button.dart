@@ -15,7 +15,7 @@ class _TokenListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
@@ -28,7 +28,7 @@ class _TokenListItem extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: theme.colors.primary.withOpacity(0.1),
+              color: theme.colors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
@@ -103,7 +103,7 @@ class _WalletButtonState extends State<WalletButton> {
                               SailSVGAsset.iconClose,
                               color: theme.colors.text,
                             );
-                          }
+                          },
                         ),
                       ),
                     ],
@@ -136,7 +136,7 @@ class _WalletButtonState extends State<WalletButton> {
                                         SailSVGAsset.iconSend,
                                         color: theme.colors.background,
                                       );
-                                    }
+                                    },
                                   ),
                                   const SizedBox(width: 8),
                                   SailText.background12('Send'),
@@ -159,7 +159,7 @@ class _WalletButtonState extends State<WalletButton> {
                                         SailSVGAsset.iconReceive,
                                         color: theme.colors.background,
                                       );
-                                    }
+                                    },
                                   ),
                                   const SizedBox(width: 8),
                                   SailText.background12('Receive'),
@@ -178,7 +178,7 @@ class _WalletButtonState extends State<WalletButton> {
                   length: 3,
                   child: Column(
                     children: [
-                      Container(
+                      DecoratedBox(
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
@@ -287,7 +287,7 @@ class _WalletButtonState extends State<WalletButton> {
                               SailSVGAsset.iconCopy,
                               color: theme.colors.text,
                             );
-                          }
+                          },
                         ),
                       ),
                     ],
@@ -341,7 +341,7 @@ class _WalletButtonState extends State<WalletButton> {
                   height: 20,
                   color: theme.colors.text,
                 );
-              }
+              },
             ),
           ),
         ),

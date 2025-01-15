@@ -43,18 +43,18 @@ class ChainConfig {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'version': version,
-    'display_name': displayName,
-    'description': description,
-    'repo_url': repoUrl,
-    'directories': directories.toJson(),
-    'download': download.toJson(),
-    'binary': binary,
-    'network': network.toJson(),
-    'chain_type': chainType,
-    'slot': slot,
-  };
+        'id': id,
+        'version': version,
+        'display_name': displayName,
+        'description': description,
+        'repo_url': repoUrl,
+        'directories': directories.toJson(),
+        'download': download.toJson(),
+        'binary': binary,
+        'network': network.toJson(),
+        'chain_type': chainType,
+        'slot': slot,
+      };
 }
 
 /// Configuration for component directories
@@ -75,9 +75,9 @@ class DirectoryConfig {
   }
 
   Map<String, dynamic> toJson() => {
-    'base': base,
-    'wallet': wallet,
-  };
+        'base': base,
+        'wallet': wallet,
+      };
 }
 
 /// Configuration for component downloads
@@ -104,11 +104,11 @@ class DownloadConfig {
   }
 
   Map<String, dynamic> toJson() => {
-    'base_url': baseUrl,
-    'files': files,
-    'sizes': sizes,
-    'hashes': hashes,
-  };
+        'base_url': baseUrl,
+        'files': files,
+        'sizes': sizes,
+        'hashes': hashes,
+      };
 }
 
 /// Configuration for network settings
@@ -126,8 +126,8 @@ class NetworkConfig {
   }
 
   Map<String, dynamic> toJson() => {
-    'port': port,
-  };
+        'port': port,
+      };
 }
 
 /// Root configuration containing all chain configs
@@ -143,14 +143,12 @@ class ChainConfigs {
   factory ChainConfigs.fromJson(Map<String, dynamic> json) {
     return ChainConfigs(
       schemaVersion: json['schema_version'] as String,
-      chains: (json['chains'] as List)
-          .map((e) => ChainConfig.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      chains: (json['chains'] as List).map((e) => ChainConfig.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'schema_version': schemaVersion,
-    'chains': chains.map((e) => e.toJson()).toList(),
-  };
+        'schema_version': schemaVersion,
+        'chains': chains.map((e) => e.toJson()).toList(),
+      };
 }
