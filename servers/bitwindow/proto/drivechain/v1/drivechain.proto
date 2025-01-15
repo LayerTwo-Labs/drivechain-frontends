@@ -16,10 +16,15 @@ message ListSidechainsResponse {
     uint32 nversion = 3;
     string hashid1 = 4;
     string hashid2 = 5;
-    int32 slot = 6;
-    int64 amount_satoshi = 7;
-    string chaintip_txid = 8;
-    uint32 chaintip_vout = 9;
+    uint32 slot = 6;
+    uint32 vote_count = 7;
+    uint32 proposal_height = 8;
+    uint32 activation_height = 9;
+    string description_hex = 10;
+
+    int64 balance_satoshi = 11;
+    string chaintip_txid = 12;
+    uint32 chaintip_vout = 13;
   }
 
   repeated Sidechain sidechains = 1;
