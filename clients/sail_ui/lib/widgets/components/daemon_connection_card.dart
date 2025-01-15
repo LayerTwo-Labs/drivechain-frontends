@@ -5,6 +5,7 @@ class DaemonConnectionCard extends StatelessWidget {
   final void Function(String name, String logPath)? navigateToLogs;
   final RPCConnection connection;
   final VoidCallback restartDaemon;
+  final VoidCallback? deleteFunction;
 
   final String? infoMessage;
 
@@ -13,6 +14,7 @@ class DaemonConnectionCard extends StatelessWidget {
     required this.connection,
     required this.infoMessage,
     required this.restartDaemon,
+    this.deleteFunction,
     this.navigateToLogs,
   });
 
@@ -48,6 +50,13 @@ class DaemonConnectionCard extends StatelessWidget {
               animate: connection.initializingBinary,
             ),
           ),
+          if (deleteFunction != null)
+            SailScaleButton(
+              onPressed: deleteFunction,
+              style: SailButtonStyle.secondary,
+              pressed: false,
+              child: SailSVG.fromAsset(SailSVGAsset.iconDelete, width: 18),
+            ),
         ],
       ),
       child: SailColumn(
