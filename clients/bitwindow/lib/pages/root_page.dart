@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
@@ -349,6 +350,52 @@ class BottomNavViewModel extends BaseViewModel {
     return mainchain.initBinary(
       context,
     );
+  }
+
+  Future<void> deleteMainchainBlocks(BuildContext context) async {
+    try {
+      final datadir = mainchain.chain.type.datadir();
+      final signetDir = filePath([datadir, 'signet']);
+
+      // List of files/directories to delete
+      final toDelete = [
+        'blocks',
+        'chainstate',
+        'indexes',
+        'banlist.json',
+        'bitcoind.pid',
+        'debug.log',
+        'fee_estimates.dat',
+        'mempool.dat',
+        'peers.dat',
+        'settings.json',
+      ];
+
+      for (final item in toDelete) {
+        final path = filePath([signetDir, item]);
+        final entity = File(path);
+        if (await entity.exists()) {
+          await entity.delete(recursive: true);
+        } else {
+          final dir = Directory(path);
+          if (await dir.exists()) {
+            await dir.delete(recursive: true);
+          }
+        }
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully deleted blockchain data')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete blockchain data: $e')),
+        );
+      }
+    }
   }
 
   Future<void> initEnforcerBinary(
