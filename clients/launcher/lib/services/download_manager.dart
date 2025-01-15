@@ -1,26 +1,25 @@
 import 'dart:async';
 import 'package:get_it/get_it.dart';
-import '../models/chain_config.dart';
-import 'configuration_service.dart';
-import 'resource_downloader.dart';
+import 'package:launcher/services/configuration_service.dart';
+import 'package:launcher/services/resource_downloader.dart';
 
 /// Manages the overall download process for all components
 class DownloadManager {
   final ConfigurationService _configService;
   final ResourceDownloader _downloader;
-  
+
   // Stream controller for overall download status
   final _statusController = StreamController<Map<String, DownloadProgress>>.broadcast();
   Stream<Map<String, DownloadProgress>> get statusStream => _statusController.stream;
-  
+
   // Track status of all components
   final Map<String, DownloadProgress> _componentStatus = {};
 
   DownloadManager({
     ConfigurationService? configService,
     ResourceDownloader? downloader,
-  }) : _configService = configService ?? GetIt.I<ConfigurationService>(),
-       _downloader = downloader ?? ResourceDownloader() {
+  })  : _configService = configService ?? GetIt.I<ConfigurationService>(),
+        _downloader = downloader ?? ResourceDownloader() {
     // Listen to individual download progress updates
     _downloader.progressStream.listen(_handleProgressUpdate);
   }
@@ -40,7 +39,7 @@ class DownloadManager {
   /// Download all required components
   Future<bool> downloadAllComponents() async {
     bool success = true;
-    
+
     // Download L1 components first
     final l1Chains = _configService.getL1Chains();
     for (final chain in l1Chains) {
@@ -49,7 +48,7 @@ class DownloadManager {
         break;
       }
     }
-    
+
     // Then download L2 components if L1 was successful
     if (success) {
       final l2Chains = _configService.getL2Chains();
@@ -60,7 +59,7 @@ class DownloadManager {
         }
       }
     }
-    
+
     return success;
   }
 
@@ -76,14 +75,14 @@ class DownloadManager {
       _emitStatus();
       return false;
     }
-    
+
     return await _downloader.downloadComponent(config);
   }
 
   /// Check if all required components are downloaded
   Future<bool> verifyAllComponents() async {
     bool allValid = true;
-    
+
     for (final chain in _configService.configs.chains) {
       final binaryPath = _configService.getBinaryPath(chain.id);
       if (binaryPath == null) {
@@ -95,12 +94,12 @@ class DownloadManager {
         );
         continue;
       }
-      
+
       if (!await _verifyComponent(chain.id, binaryPath)) {
         allValid = false;
       }
     }
-    
+
     _emitStatus();
     return allValid;
   }
@@ -117,7 +116,7 @@ class DownloadManager {
       _emitStatus();
       return false;
     }
-    
+
     return await _verifyComponent(componentId, binaryPath);
   }
 

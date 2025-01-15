@@ -7,7 +7,6 @@ import 'package:launcher/services/resource_downloader.dart';
 import 'package:launcher/services/service_provider.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/buttons/button.dart';
 
 @RoutePage()
 class OverviewPage extends StatefulWidget {
@@ -37,13 +36,9 @@ class _OverviewPageState extends State<OverviewPage> {
             child: StreamBuilder<Map<String, DownloadProgress>>(
               stream: _downloadManager.statusStream,
               builder: (context, statusSnapshot) {
-                final l1Chains = _configService.configs.chains
-                    .where((chain) => chain.chainType == 0)
-                    .toList()
+                final l1Chains = _configService.configs.chains.where((chain) => chain.chainType == 0).toList()
                   ..sort((a, b) => a.slot.compareTo(b.slot));
-                final l2Chains = _configService.configs.chains
-                    .where((chain) => chain.chainType == 1)
-                    .toList();
+                final l2Chains = _configService.configs.chains.where((chain) => chain.chainType == 1).toList();
 
                 return SingleChildScrollView(
                   child: Column(
@@ -53,15 +48,15 @@ class _OverviewPageState extends State<OverviewPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SailText.primary24("Layer 1"),
+                            SailText.primary24('Layer 1'),
                             const SizedBox(height: 16),
                             LayoutBuilder(
                               builder: (context, constraints) {
                                 final availableWidth = constraints.maxWidth;
-                                final cardWidth = availableWidth >= 900 
-                                    ? (availableWidth - (3 * 16)) / 4  // 4 cards with 16px spacing
-                                    : (availableWidth - 16) / 2;       // 2 cards with 16px spacing
-                                
+                                final cardWidth = availableWidth >= 900
+                                    ? (availableWidth - (3 * 16)) / 4 // 4 cards with 16px spacing
+                                    : (availableWidth - 16) / 2; // 2 cards with 16px spacing
+
                                 return Wrap(
                                   spacing: 16.0,
                                   runSpacing: 16.0,
@@ -87,21 +82,21 @@ class _OverviewPageState extends State<OverviewPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SailText.primary24("Layer 2"),
+                            SailText.primary24('Layer 2'),
                             const SizedBox(height: 16),
                             ...l2Chains.map((chain) {
-                        final status = statusSnapshot.data?[chain.id];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical: 8.0,
-                          ),
-                          child: SailRawCard(
-                            padding: true,
-                            child: _buildChainContent(chain, status),
-                          ),
-                        );
-                            }).toList(),
+                              final status = statusSnapshot.data?[chain.id];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0,
+                                  vertical: 8.0,
+                                ),
+                                child: SailRawCard(
+                                  padding: true,
+                                  child: _buildChainContent(chain, status),
+                                ),
+                              );
+                            }),
                           ],
                         ),
                       ),
@@ -122,9 +117,7 @@ class _OverviewPageState extends State<OverviewPage> {
     final color = switch (status.status) {
       DownloadStatus.completed => Colors.green,
       DownloadStatus.failed => Colors.red,
-      DownloadStatus.downloading || 
-      DownloadStatus.extracting || 
-      DownloadStatus.verifying => Colors.blue,
+      DownloadStatus.downloading || DownloadStatus.extracting || DownloadStatus.verifying => Colors.blue,
       _ => Colors.grey,
     };
 

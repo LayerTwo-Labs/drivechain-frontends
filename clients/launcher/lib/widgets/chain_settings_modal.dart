@@ -63,20 +63,14 @@ class ChainSettingsModal extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             _buildInfoRow('Version', chain.version),
-            if (chain.repoUrl.isNotEmpty) 
-              _buildInfoRow('Repository', chain.repoUrl),
+            if (chain.repoUrl.isNotEmpty) _buildInfoRow('Repository', chain.repoUrl),
             _buildInfoRow('Network Port', chain.network.port.toString()),
-            _buildInfoRow('Chain Type', 
-              chain.chainType == 0 ? 'Layer 1' : 'Layer 2'),
+            _buildInfoRow('Chain Type', chain.chainType == 0 ? 'Layer 1' : 'Layer 2'),
             _buildInfoRow('Chain Slot', chain.slot.toString()),
-            if (baseDir != null)
-              _buildInfoRow('Installation Directory', baseDir),
-            if (binary != null)
-              _buildInfoRow('Binary Path', binary),
-            if (downloadFile != null)
-              _buildInfoRow('Download File', downloadFile),
-            if (chain.directories.wallet.isNotEmpty)
-              _buildInfoRow('Wallet Path', chain.directories.wallet),
+            if (baseDir != null) _buildInfoRow('Installation Directory', baseDir),
+            if (binary != null) _buildInfoRow('Binary Path', binary),
+            if (downloadFile != null) _buildInfoRow('Download File', downloadFile),
+            if (chain.directories.wallet.isNotEmpty) _buildInfoRow('Wallet Path', chain.directories.wallet),
             const SizedBox(height: 24),
             if (baseDir != null)
               Center(

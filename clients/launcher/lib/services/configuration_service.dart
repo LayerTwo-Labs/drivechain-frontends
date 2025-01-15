@@ -2,16 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
-import '../models/chain_config.dart';
+import 'package:launcher/models/chain_config.dart';
 
 /// Service responsible for loading and managing chain configurations
 class ConfigurationService {
   late ChainConfigs _configs;
   final String _baseDir;
-  
+
   ChainConfigs get configs => _configs;
-  
-  ConfigurationService({String? baseDir}) : _baseDir = baseDir ?? _defaultBaseDir;
+
+  ConfigurationService({
+    String? baseDir,
+  }) : _baseDir = baseDir ?? _defaultBaseDir;
 
   // Get the default base directory based on platform
   static String get _defaultBaseDir {
@@ -39,10 +41,10 @@ class ConfigurationService {
     final jsonString = await rootBundle.loadString('assets/chain_config.json');
     final jsonData = json.decode(jsonString) as Map<String, dynamic>;
     _configs = ChainConfigs.fromJson(jsonData);
-    
+
     // Ensure base directory exists
     await Directory(_baseDir).create(recursive: true);
-    
+
     // Initialize component directories
     await _initializeDirectories();
   }
@@ -86,9 +88,9 @@ class ConfigurationService {
     final platform = _getPlatformKey();
     final baseDir = config.directories.base[platform];
     final binary = config.binary[platform];
-    
+
     if (baseDir == null || binary == null) return null;
-    
+
     return path.join(_baseDir, baseDir, binary);
   }
 
@@ -100,7 +102,7 @@ class ConfigurationService {
     final platform = _getPlatformKey();
     final baseDir = config.directories.base[platform];
     if (baseDir == null) return null;
-    
+
     return path.join(_baseDir, baseDir);
   }
 
@@ -112,17 +114,23 @@ class ConfigurationService {
     final platform = _getPlatformKey();
     final baseDir = config.directories.base[platform];
     final walletPath = config.directories.wallet;
-    
+
     if (baseDir == null || walletPath.isEmpty) return null;
-    
+
     return path.join(_baseDir, baseDir, walletPath);
   }
 
   /// Gets the platform-specific key used in config
   String _getPlatformKey() {
-    if (Platform.isWindows) return 'win32';
-    if (Platform.isMacOS) return 'darwin';
-    if (Platform.isLinux) return 'linux';
+    if (Platform.isWindows) {
+      return 'win32';
+    }
+    if (Platform.isMacOS) {
+      return 'darwin';
+    }
+    if (Platform.isLinux) {
+      return 'linux';
+    }
     throw Exception('Unsupported platform');
   }
 }
