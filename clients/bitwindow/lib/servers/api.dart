@@ -39,7 +39,7 @@ abstract class WalletAPI {
 
   // drivechain wallet stuff here
   Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
-  Future<String> createSidechainDeposit(String destination, double amount, double fee);
+  Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee);
 }
 
 abstract class BitcoindAPI {
@@ -205,10 +205,11 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<String> createSidechainDeposit(String destination, double amount, double fee) async {
+  Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee) async {
     try {
       final response = await _client.createSidechainDeposit(
         CreateSidechainDepositRequest()
+          ..slot = Int64(slot)
           ..destination = destination
           ..amount = amount
           ..fee = fee,

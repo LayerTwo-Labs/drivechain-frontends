@@ -369,6 +369,7 @@ class SidechainsViewModel extends BaseViewModel {
     try {
       setBusy(true);
       await api.wallet.createSidechainDeposit(
+        _selectedIndex ?? 254,
         addressController.text,
         double.parse(depositAmountController.text),
         double.parse(feeController.text),
