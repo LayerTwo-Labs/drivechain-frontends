@@ -652,7 +652,7 @@ class TransactionTable extends StatefulWidget {
 }
 
 class _TransactionTableState extends State<TransactionTable> {
-  String sortColumn = 'conf';
+  String sortColumn = 'height';
   bool sortAscending = true;
   List<WalletTransaction> entries = [];
 
@@ -689,7 +689,7 @@ class _TransactionTableState extends State<TransactionTable> {
       dynamic bValue;
 
       switch (sortColumn) {
-        case 'conf':
+        case 'height':
           aValue = a.confirmationTime.height;
           bValue = b.confirmationTime.height;
           break;
@@ -735,8 +735,8 @@ class _TransactionTableState extends State<TransactionTable> {
                   getRowId: (index) => widget.entries[index].txid,
                   headerBuilder: (context) => [
                     SailTableHeaderCell(
-                      name: 'Conf',
-                      onSort: () => onSort('conf'),
+                      name: 'Conf Height',
+                      onSort: () => onSort('height'),
                     ),
                     SailTableHeaderCell(
                       name: 'Date',
@@ -755,7 +755,9 @@ class _TransactionTableState extends State<TransactionTable> {
                     final entry = widget.entries[row];
                     return [
                       SailTableCell(
-                        value: entry.confirmationTime.height.toString(),
+                        value: entry.confirmationTime.height == 0
+                            ? 'Unconfirmed'
+                            : entry.confirmationTime.height.toString(),
                         monospace: true,
                       ),
                       SailTableCell(
@@ -776,14 +778,14 @@ class _TransactionTableState extends State<TransactionTable> {
                   columnWidths: const [100, 150, 200, 150],
                   drawGrid: true,
                   sortColumnIndex: [
-                    'conf',
+                    'height',
                     'date',
                     'txid',
                     'amount',
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['conf', 'date', 'txid', 'amount'][columnIndex]);
+                    onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
                   },
                 ),
               ),
@@ -804,16 +806,22 @@ class AddressMenuViewModel extends BaseViewModel {
       // if empty, mock some data
       .toList();
 
-  String sortColumn = 'conf';
+  String sortColumn = 'height';
   bool sortAscending = true;
 
   final TextEditingController searchController = TextEditingController();
 
   AddressMenuViewModel() {
     searchController.addListener(notifyListeners);
+    _txProvider.addListener(notifyListeners);
   }
 
-  void onChoosePressed(BuildContext context) {}
+  @override
+  void dispose() {
+    searchController.removeListener(notifyListeners);
+    _txProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
 }
 
 Future<CoreTransaction?> showAddressBookModal(BuildContext context) {
