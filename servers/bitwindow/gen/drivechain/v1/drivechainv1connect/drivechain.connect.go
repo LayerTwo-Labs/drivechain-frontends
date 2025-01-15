@@ -41,13 +41,6 @@ const (
 	DrivechainServiceListSidechainProposalsProcedure = "/drivechain.v1.DrivechainService/ListSidechainProposals"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	drivechainServiceServiceDescriptor                      = v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService")
-	drivechainServiceListSidechainsMethodDescriptor         = drivechainServiceServiceDescriptor.Methods().ByName("ListSidechains")
-	drivechainServiceListSidechainProposalsMethodDescriptor = drivechainServiceServiceDescriptor.Methods().ByName("ListSidechainProposals")
-)
-
 // DrivechainServiceClient is a client for the drivechain.v1.DrivechainService service.
 type DrivechainServiceClient interface {
 	ListSidechains(context.Context, *connect.Request[v1.ListSidechainsRequest]) (*connect.Response[v1.ListSidechainsResponse], error)
@@ -63,17 +56,18 @@ type DrivechainServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewDrivechainServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DrivechainServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	drivechainServiceMethods := v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods()
 	return &drivechainServiceClient{
 		listSidechains: connect.NewClient[v1.ListSidechainsRequest, v1.ListSidechainsResponse](
 			httpClient,
 			baseURL+DrivechainServiceListSidechainsProcedure,
-			connect.WithSchema(drivechainServiceListSidechainsMethodDescriptor),
+			connect.WithSchema(drivechainServiceMethods.ByName("ListSidechains")),
 			connect.WithClientOptions(opts...),
 		),
 		listSidechainProposals: connect.NewClient[v1.ListSidechainProposalsRequest, v1.ListSidechainProposalsResponse](
 			httpClient,
 			baseURL+DrivechainServiceListSidechainProposalsProcedure,
-			connect.WithSchema(drivechainServiceListSidechainProposalsMethodDescriptor),
+			connect.WithSchema(drivechainServiceMethods.ByName("ListSidechainProposals")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -107,16 +101,17 @@ type DrivechainServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewDrivechainServiceHandler(svc DrivechainServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	drivechainServiceMethods := v1.File_drivechain_v1_drivechain_proto.Services().ByName("DrivechainService").Methods()
 	drivechainServiceListSidechainsHandler := connect.NewUnaryHandler(
 		DrivechainServiceListSidechainsProcedure,
 		svc.ListSidechains,
-		connect.WithSchema(drivechainServiceListSidechainsMethodDescriptor),
+		connect.WithSchema(drivechainServiceMethods.ByName("ListSidechains")),
 		connect.WithHandlerOptions(opts...),
 	)
 	drivechainServiceListSidechainProposalsHandler := connect.NewUnaryHandler(
 		DrivechainServiceListSidechainProposalsProcedure,
 		svc.ListSidechainProposals,
-		connect.WithSchema(drivechainServiceListSidechainProposalsMethodDescriptor),
+		connect.WithSchema(drivechainServiceMethods.ByName("ListSidechainProposals")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/drivechain.v1.DrivechainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
