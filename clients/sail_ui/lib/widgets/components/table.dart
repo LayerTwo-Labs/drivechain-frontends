@@ -181,9 +181,9 @@ class _SailTableState extends State<SailTable> {
                   onPressed: () {
                     if (widget.selectableRows) {
                       setState(() {
-                        _selectedId = rowId;
+                        _selectedId = _selectedId == rowId ? null : rowId;
                       });
-                      widget.onSelectedRow?.call(rowId);
+                      widget.onSelectedRow?.call(_selectedId);
                     }
                   },
                 ),
@@ -222,9 +222,9 @@ class _SailTableState extends State<SailTable> {
                   onPressed: () {
                     if (widget.selectableRows) {
                       setState(() {
-                        _selectedId = rowId;
+                        _selectedId = _selectedId == rowId ? null : rowId;
                       });
-                      widget.onSelectedRow?.call(rowId);
+                      widget.onSelectedRow?.call(_selectedId);
                     }
                   },
                 );

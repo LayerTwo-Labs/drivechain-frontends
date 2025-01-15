@@ -122,15 +122,18 @@ class ProcessProvider extends ChangeNotifier {
     // Capture stdout and stderr
     final stdoutController = StreamController<String>();
     final stderrController = StreamController<String>();
-
     process.stdout.transform(utf8.decoder).listen((data) {
       stdoutController.add(data);
-      log.d('$binary: $data');
+      if (!isSpam(data)) {
+        log.d('$binary: $data');
+      }
     });
 
     process.stderr.transform(utf8.decoder).listen((data) {
       stderrController.add(data);
-      log.e('$binary: $data');
+      if (!isSpam(data)) {
+        log.e('$binary: $data');
+      }
     });
 
     // Store the streams for later access
@@ -210,4 +213,12 @@ class ProcessProvider extends ChangeNotifier {
       Process.killPid(process.pid, ProcessSignal.sigterm);
     }
   }
+}
+
+bool isSpam(String data) {
+  if (data.contains('tower_http') && data.contains('registry')) {
+    return true;
+  }
+
+  return false;
 }

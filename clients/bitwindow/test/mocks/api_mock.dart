@@ -72,7 +72,7 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
-  Future<String> createSidechainDeposit(String destination, double amount, double fee) async {
+  Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee) async {
     return 'mock_deposit_txid';
   }
 }
