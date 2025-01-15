@@ -176,16 +176,18 @@ final $typed_data.Uint8List listSidechainDepositsResponseDescriptor = $convert.b
 const CreateSidechainDepositRequest$json = {
   '1': 'CreateSidechainDepositRequest',
   '2': [
-    {'1': 'destination', '3': 1, '4': 1, '5': 9, '10': 'destination'},
-    {'1': 'amount', '3': 2, '4': 1, '5': 1, '10': 'amount'},
-    {'1': 'fee', '3': 3, '4': 1, '5': 1, '10': 'fee'},
+    {'1': 'slot', '3': 1, '4': 1, '5': 3, '10': 'slot'},
+    {'1': 'destination', '3': 2, '4': 1, '5': 9, '10': 'destination'},
+    {'1': 'amount', '3': 3, '4': 1, '5': 1, '10': 'amount'},
+    {'1': 'fee', '3': 4, '4': 1, '5': 1, '10': 'fee'},
   ],
 };
 
 /// Descriptor for `CreateSidechainDepositRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createSidechainDepositRequestDescriptor = $convert.base64Decode(
-    'Ch1DcmVhdGVTaWRlY2hhaW5EZXBvc2l0UmVxdWVzdBIgCgtkZXN0aW5hdGlvbhgBIAEoCVILZG'
-    'VzdGluYXRpb24SFgoGYW1vdW50GAIgASgBUgZhbW91bnQSEAoDZmVlGAMgASgBUgNmZWU=');
+    'Ch1DcmVhdGVTaWRlY2hhaW5EZXBvc2l0UmVxdWVzdBISCgRzbG90GAEgASgDUgRzbG90EiAKC2'
+    'Rlc3RpbmF0aW9uGAIgASgJUgtkZXN0aW5hdGlvbhIWCgZhbW91bnQYAyABKAFSBmFtb3VudBIQ'
+    'CgNmZWUYBCABKAFSA2ZlZQ==');
 
 @$core.Deprecated('Use createSidechainDepositResponseDescriptor instead')
 const CreateSidechainDepositResponse$json = {

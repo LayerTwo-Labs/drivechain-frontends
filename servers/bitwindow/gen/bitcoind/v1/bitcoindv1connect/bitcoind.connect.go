@@ -51,16 +51,6 @@ const (
 	BitcoindServiceEstimateSmartFeeProcedure = "/bitcoind.v1.BitcoindService/EstimateSmartFee"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	bitcoindServiceServiceDescriptor                      = v1.File_bitcoind_v1_bitcoind_proto.Services().ByName("BitcoindService")
-	bitcoindServiceListRecentTransactionsMethodDescriptor = bitcoindServiceServiceDescriptor.Methods().ByName("ListRecentTransactions")
-	bitcoindServiceListRecentBlocksMethodDescriptor       = bitcoindServiceServiceDescriptor.Methods().ByName("ListRecentBlocks")
-	bitcoindServiceGetBlockchainInfoMethodDescriptor      = bitcoindServiceServiceDescriptor.Methods().ByName("GetBlockchainInfo")
-	bitcoindServiceListPeersMethodDescriptor              = bitcoindServiceServiceDescriptor.Methods().ByName("ListPeers")
-	bitcoindServiceEstimateSmartFeeMethodDescriptor       = bitcoindServiceServiceDescriptor.Methods().ByName("EstimateSmartFee")
-)
-
 // BitcoindServiceClient is a client for the bitcoind.v1.BitcoindService service.
 type BitcoindServiceClient interface {
 	// Lists the ten most recent transactions, both confirmed and unconfirmed.
@@ -84,35 +74,36 @@ type BitcoindServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewBitcoindServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BitcoindServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	bitcoindServiceMethods := v1.File_bitcoind_v1_bitcoind_proto.Services().ByName("BitcoindService").Methods()
 	return &bitcoindServiceClient{
 		listRecentTransactions: connect.NewClient[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse](
 			httpClient,
 			baseURL+BitcoindServiceListRecentTransactionsProcedure,
-			connect.WithSchema(bitcoindServiceListRecentTransactionsMethodDescriptor),
+			connect.WithSchema(bitcoindServiceMethods.ByName("ListRecentTransactions")),
 			connect.WithClientOptions(opts...),
 		),
 		listRecentBlocks: connect.NewClient[v1.ListRecentBlocksRequest, v1.ListRecentBlocksResponse](
 			httpClient,
 			baseURL+BitcoindServiceListRecentBlocksProcedure,
-			connect.WithSchema(bitcoindServiceListRecentBlocksMethodDescriptor),
+			connect.WithSchema(bitcoindServiceMethods.ByName("ListRecentBlocks")),
 			connect.WithClientOptions(opts...),
 		),
 		getBlockchainInfo: connect.NewClient[emptypb.Empty, v1.GetBlockchainInfoResponse](
 			httpClient,
 			baseURL+BitcoindServiceGetBlockchainInfoProcedure,
-			connect.WithSchema(bitcoindServiceGetBlockchainInfoMethodDescriptor),
+			connect.WithSchema(bitcoindServiceMethods.ByName("GetBlockchainInfo")),
 			connect.WithClientOptions(opts...),
 		),
 		listPeers: connect.NewClient[emptypb.Empty, v1.ListPeersResponse](
 			httpClient,
 			baseURL+BitcoindServiceListPeersProcedure,
-			connect.WithSchema(bitcoindServiceListPeersMethodDescriptor),
+			connect.WithSchema(bitcoindServiceMethods.ByName("ListPeers")),
 			connect.WithClientOptions(opts...),
 		),
 		estimateSmartFee: connect.NewClient[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse](
 			httpClient,
 			baseURL+BitcoindServiceEstimateSmartFeeProcedure,
-			connect.WithSchema(bitcoindServiceEstimateSmartFeeMethodDescriptor),
+			connect.WithSchema(bitcoindServiceMethods.ByName("EstimateSmartFee")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -172,34 +163,35 @@ type BitcoindServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	bitcoindServiceMethods := v1.File_bitcoind_v1_bitcoind_proto.Services().ByName("BitcoindService").Methods()
 	bitcoindServiceListRecentTransactionsHandler := connect.NewUnaryHandler(
 		BitcoindServiceListRecentTransactionsProcedure,
 		svc.ListRecentTransactions,
-		connect.WithSchema(bitcoindServiceListRecentTransactionsMethodDescriptor),
+		connect.WithSchema(bitcoindServiceMethods.ByName("ListRecentTransactions")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitcoindServiceListRecentBlocksHandler := connect.NewUnaryHandler(
 		BitcoindServiceListRecentBlocksProcedure,
 		svc.ListRecentBlocks,
-		connect.WithSchema(bitcoindServiceListRecentBlocksMethodDescriptor),
+		connect.WithSchema(bitcoindServiceMethods.ByName("ListRecentBlocks")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitcoindServiceGetBlockchainInfoHandler := connect.NewUnaryHandler(
 		BitcoindServiceGetBlockchainInfoProcedure,
 		svc.GetBlockchainInfo,
-		connect.WithSchema(bitcoindServiceGetBlockchainInfoMethodDescriptor),
+		connect.WithSchema(bitcoindServiceMethods.ByName("GetBlockchainInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitcoindServiceListPeersHandler := connect.NewUnaryHandler(
 		BitcoindServiceListPeersProcedure,
 		svc.ListPeers,
-		connect.WithSchema(bitcoindServiceListPeersMethodDescriptor),
+		connect.WithSchema(bitcoindServiceMethods.ByName("ListPeers")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitcoindServiceEstimateSmartFeeHandler := connect.NewUnaryHandler(
 		BitcoindServiceEstimateSmartFeeProcedure,
 		svc.EstimateSmartFee,
-		connect.WithSchema(bitcoindServiceEstimateSmartFeeMethodDescriptor),
+		connect.WithSchema(bitcoindServiceMethods.ByName("EstimateSmartFee")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/bitcoind.v1.BitcoindService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

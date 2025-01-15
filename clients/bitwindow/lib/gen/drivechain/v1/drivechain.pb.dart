@@ -54,7 +54,11 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
     $core.String? hashid1,
     $core.String? hashid2,
     $core.int? slot,
-    $fixnum.Int64? amountSatoshi,
+    $core.int? voteCount,
+    $core.int? proposalHeight,
+    $core.int? activationHeight,
+    $core.String? descriptionHex,
+    $fixnum.Int64? balanceSatoshi,
     $core.String? chaintipTxid,
     $core.int? chaintipVout,
   }) {
@@ -77,8 +81,20 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
     if (slot != null) {
       $result.slot = slot;
     }
-    if (amountSatoshi != null) {
-      $result.amountSatoshi = amountSatoshi;
+    if (voteCount != null) {
+      $result.voteCount = voteCount;
+    }
+    if (proposalHeight != null) {
+      $result.proposalHeight = proposalHeight;
+    }
+    if (activationHeight != null) {
+      $result.activationHeight = activationHeight;
+    }
+    if (descriptionHex != null) {
+      $result.descriptionHex = descriptionHex;
+    }
+    if (balanceSatoshi != null) {
+      $result.balanceSatoshi = balanceSatoshi;
     }
     if (chaintipTxid != null) {
       $result.chaintipTxid = chaintipTxid;
@@ -98,10 +114,14 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
     ..a<$core.int>(3, _omitFieldNames ? '' : 'nversion', $pb.PbFieldType.OU3)
     ..aOS(4, _omitFieldNames ? '' : 'hashid1')
     ..aOS(5, _omitFieldNames ? '' : 'hashid2')
-    ..a<$core.int>(6, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.O3)
-    ..aInt64(7, _omitFieldNames ? '' : 'amountSatoshi')
-    ..aOS(8, _omitFieldNames ? '' : 'chaintipTxid')
-    ..a<$core.int>(9, _omitFieldNames ? '' : 'chaintipVout', $pb.PbFieldType.OU3)
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.OU3)
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'voteCount', $pb.PbFieldType.OU3)
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'proposalHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'activationHeight', $pb.PbFieldType.OU3)
+    ..aOS(10, _omitFieldNames ? '' : 'descriptionHex')
+    ..aInt64(11, _omitFieldNames ? '' : 'balanceSatoshi')
+    ..aOS(12, _omitFieldNames ? '' : 'chaintipTxid')
+    ..a<$core.int>(13, _omitFieldNames ? '' : 'chaintipVout', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -174,38 +194,74 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.int get slot => $_getIZ(5);
   @$pb.TagNumber(6)
-  set slot($core.int v) { $_setSignedInt32(5, v); }
+  set slot($core.int v) { $_setUnsignedInt32(5, v); }
   @$pb.TagNumber(6)
   $core.bool hasSlot() => $_has(5);
   @$pb.TagNumber(6)
   void clearSlot() => clearField(6);
 
   @$pb.TagNumber(7)
-  $fixnum.Int64 get amountSatoshi => $_getI64(6);
+  $core.int get voteCount => $_getIZ(6);
   @$pb.TagNumber(7)
-  set amountSatoshi($fixnum.Int64 v) { $_setInt64(6, v); }
+  set voteCount($core.int v) { $_setUnsignedInt32(6, v); }
   @$pb.TagNumber(7)
-  $core.bool hasAmountSatoshi() => $_has(6);
+  $core.bool hasVoteCount() => $_has(6);
   @$pb.TagNumber(7)
-  void clearAmountSatoshi() => clearField(7);
+  void clearVoteCount() => clearField(7);
 
   @$pb.TagNumber(8)
-  $core.String get chaintipTxid => $_getSZ(7);
+  $core.int get proposalHeight => $_getIZ(7);
   @$pb.TagNumber(8)
-  set chaintipTxid($core.String v) { $_setString(7, v); }
+  set proposalHeight($core.int v) { $_setUnsignedInt32(7, v); }
   @$pb.TagNumber(8)
-  $core.bool hasChaintipTxid() => $_has(7);
+  $core.bool hasProposalHeight() => $_has(7);
   @$pb.TagNumber(8)
-  void clearChaintipTxid() => clearField(8);
+  void clearProposalHeight() => clearField(8);
 
   @$pb.TagNumber(9)
-  $core.int get chaintipVout => $_getIZ(8);
+  $core.int get activationHeight => $_getIZ(8);
   @$pb.TagNumber(9)
-  set chaintipVout($core.int v) { $_setUnsignedInt32(8, v); }
+  set activationHeight($core.int v) { $_setUnsignedInt32(8, v); }
   @$pb.TagNumber(9)
-  $core.bool hasChaintipVout() => $_has(8);
+  $core.bool hasActivationHeight() => $_has(8);
   @$pb.TagNumber(9)
-  void clearChaintipVout() => clearField(9);
+  void clearActivationHeight() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get descriptionHex => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set descriptionHex($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasDescriptionHex() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearDescriptionHex() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $fixnum.Int64 get balanceSatoshi => $_getI64(10);
+  @$pb.TagNumber(11)
+  set balanceSatoshi($fixnum.Int64 v) { $_setInt64(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasBalanceSatoshi() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearBalanceSatoshi() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.String get chaintipTxid => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set chaintipTxid($core.String v) { $_setString(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasChaintipTxid() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearChaintipTxid() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.int get chaintipVout => $_getIZ(12);
+  @$pb.TagNumber(13)
+  set chaintipVout($core.int v) { $_setUnsignedInt32(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasChaintipVout() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearChaintipVout() => clearField(13);
 }
 
 class ListSidechainsResponse extends $pb.GeneratedMessage {

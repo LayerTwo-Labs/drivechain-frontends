@@ -690,11 +690,15 @@ class ListSidechainDepositsResponse extends $pb.GeneratedMessage {
 
 class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   factory CreateSidechainDepositRequest({
+    $fixnum.Int64? slot,
     $core.String? destination,
     $core.double? amount,
     $core.double? fee,
   }) {
     final $result = create();
+    if (slot != null) {
+      $result.slot = slot;
+    }
     if (destination != null) {
       $result.destination = destination;
     }
@@ -711,9 +715,10 @@ class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   factory CreateSidechainDepositRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSidechainDepositRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'destination')
-    ..a<$core.double>(2, _omitFieldNames ? '' : 'amount', $pb.PbFieldType.OD)
-    ..a<$core.double>(3, _omitFieldNames ? '' : 'fee', $pb.PbFieldType.OD)
+    ..aInt64(1, _omitFieldNames ? '' : 'slot')
+    ..aOS(2, _omitFieldNames ? '' : 'destination')
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'amount', $pb.PbFieldType.OD)
+    ..a<$core.double>(4, _omitFieldNames ? '' : 'fee', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -740,33 +745,43 @@ class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
 
   /// The sidechain deposit address to send to.
   @$pb.TagNumber(1)
-  $core.String get destination => $_getSZ(0);
+  $fixnum.Int64 get slot => $_getI64(0);
   @$pb.TagNumber(1)
-  set destination($core.String v) { $_setString(0, v); }
+  set slot($fixnum.Int64 v) { $_setInt64(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasDestination() => $_has(0);
+  $core.bool hasSlot() => $_has(0);
   @$pb.TagNumber(1)
-  void clearDestination() => clearField(1);
+  void clearSlot() => clearField(1);
+
+  /// The sidechain deposit address to send to.
+  @$pb.TagNumber(2)
+  $core.String get destination => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set destination($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDestination() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDestination() => clearField(2);
 
   /// The amount in BTC to send. eg 0.1
-  @$pb.TagNumber(2)
-  $core.double get amount => $_getN(1);
-  @$pb.TagNumber(2)
-  set amount($core.double v) { $_setDouble(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasAmount() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearAmount() => clearField(2);
+  @$pb.TagNumber(3)
+  $core.double get amount => $_getN(2);
+  @$pb.TagNumber(3)
+  set amount($core.double v) { $_setDouble(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAmount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAmount() => clearField(3);
 
   /// The fee in BTC
-  @$pb.TagNumber(3)
-  $core.double get fee => $_getN(2);
-  @$pb.TagNumber(3)
-  set fee($core.double v) { $_setDouble(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasFee() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearFee() => clearField(3);
+  @$pb.TagNumber(4)
+  $core.double get fee => $_getN(3);
+  @$pb.TagNumber(4)
+  set fee($core.double v) { $_setDouble(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFee() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFee() => clearField(4);
 }
 
 class CreateSidechainDepositResponse extends $pb.GeneratedMessage {

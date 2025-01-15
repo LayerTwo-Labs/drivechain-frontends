@@ -2347,8 +2347,11 @@ type GetSidechainsResponse_SidechainInfo struct {
 	VoteCount        *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=vote_count,json=voteCount,proto3" json:"vote_count,omitempty"`
 	ProposalHeight   *wrapperspb.UInt32Value `protobuf:"bytes,4,opt,name=proposal_height,json=proposalHeight,proto3" json:"proposal_height,omitempty"`
 	ActivationHeight *wrapperspb.UInt32Value `protobuf:"bytes,5,opt,name=activation_height,json=activationHeight,proto3" json:"activation_height,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Sidechain data, as declared in the M1 proposal.
+	// Might be nil, if the proposal uses an unknown version.
+	Declaration   *SidechainDeclaration `protobuf:"bytes,6,opt,name=declaration,proto3,oneof" json:"declaration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetSidechainsResponse_SidechainInfo) Reset() {
@@ -2412,6 +2415,13 @@ func (x *GetSidechainsResponse_SidechainInfo) GetProposalHeight() *wrapperspb.UI
 func (x *GetSidechainsResponse_SidechainInfo) GetActivationHeight() *wrapperspb.UInt32Value {
 	if x != nil {
 		return x.ActivationHeight
+	}
+	return nil
+}
+
+func (x *GetSidechainsResponse_SidechainInfo) GetDeclaration() *SidechainDeclaration {
+	if x != nil {
+		return x.Declaration
 	}
 	return nil
 }
@@ -2982,14 +2992,14 @@ var file_cusf_mainchain_v1_validator_proto_rawDesc = []byte{
 	0x6f, 0x73, 0x61, 0x6c, 0x41, 0x67, 0x65, 0x42, 0x0e, 0x0a, 0x0c, 0x5f, 0x64, 0x65, 0x63, 0x6c,
 	0x61, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x16, 0x0a, 0x14, 0x47, 0x65, 0x74, 0x53, 0x69,
 	0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22,
-	0xd9, 0x03, 0x0a, 0x15, 0x47, 0x65, 0x74, 0x53, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e,
+	0xb9, 0x04, 0x0a, 0x15, 0x47, 0x65, 0x74, 0x53, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e,
 	0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x56, 0x0a, 0x0a, 0x73, 0x69, 0x64,
 	0x65, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x36, 0x2e,
 	0x63, 0x75, 0x73, 0x66, 0x2e, 0x6d, 0x61, 0x69, 0x6e, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x2e, 0x76,
 	0x31, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x73, 0x52,
 	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x53, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69,
 	0x6e, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x0a, 0x73, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e,
-	0x73, 0x1a, 0xe7, 0x02, 0x0a, 0x0d, 0x53, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x49,
+	0x73, 0x1a, 0xc7, 0x03, 0x0a, 0x0d, 0x53, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x49,
 	0x6e, 0x66, 0x6f, 0x12, 0x47, 0x0a, 0x10, 0x73, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e,
 	0x5f, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e,
 	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e,
@@ -3011,7 +3021,13 @@ var file_cusf_mainchain_v1_validator_proto_rawDesc = []byte{
 	0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x67, 0x6f,
 	0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x55, 0x49,
 	0x6e, 0x74, 0x33, 0x32, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x10, 0x61, 0x63, 0x74, 0x69, 0x76,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74, 0x22, 0xfc, 0x01, 0x0a, 0x17,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x4e, 0x0a, 0x0b, 0x64,
+	0x65, 0x63, 0x6c, 0x61, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x27, 0x2e, 0x63, 0x75, 0x73, 0x66, 0x2e, 0x6d, 0x61, 0x69, 0x6e, 0x63, 0x68, 0x61, 0x69,
+	0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x69, 0x64, 0x65, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x44, 0x65,
+	0x63, 0x6c, 0x61, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0b, 0x64, 0x65, 0x63,
+	0x6c, 0x61, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x88, 0x01, 0x01, 0x42, 0x0e, 0x0a, 0x0c, 0x5f,
+	0x64, 0x65, 0x63, 0x6c, 0x61, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0xfc, 0x01, 0x0a, 0x17,
 	0x47, 0x65, 0x74, 0x54, 0x77, 0x6f, 0x57, 0x61, 0x79, 0x50, 0x65, 0x67, 0x44, 0x61, 0x74, 0x61,
 	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x3f, 0x0a, 0x0c, 0x73, 0x69, 0x64, 0x65, 0x63,
 	0x68, 0x61, 0x69, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e,
@@ -3328,40 +3344,41 @@ var file_cusf_mainchain_v1_validator_proto_depIdxs = []int32{
 	53, // 67: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.vote_count:type_name -> google.protobuf.UInt32Value
 	53, // 68: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.proposal_height:type_name -> google.protobuf.UInt32Value
 	53, // 69: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.activation_height:type_name -> google.protobuf.UInt32Value
-	1,  // 70: cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem.block_header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
-	4,  // 71: cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem.block_info:type_name -> cusf.mainchain.v1.BlockInfo
-	47, // 72: cusf.mainchain.v1.SubscribeEventsResponse.Event.connect_block:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock
-	48, // 73: cusf.mainchain.v1.SubscribeEventsResponse.Event.disconnect_block:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock
-	1,  // 74: cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock.header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
-	4,  // 75: cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock.block_info:type_name -> cusf.mainchain.v1.BlockInfo
-	49, // 76: cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock.block_hash:type_name -> cusf.common.v1.ReverseHex
-	5,  // 77: cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo:input_type -> cusf.mainchain.v1.GetBlockHeaderInfoRequest
-	7,  // 78: cusf.mainchain.v1.ValidatorService.GetBlockInfo:input_type -> cusf.mainchain.v1.GetBlockInfoRequest
-	9,  // 79: cusf.mainchain.v1.ValidatorService.GetBmmHStarCommitment:input_type -> cusf.mainchain.v1.GetBmmHStarCommitmentRequest
-	11, // 80: cusf.mainchain.v1.ValidatorService.GetChainInfo:input_type -> cusf.mainchain.v1.GetChainInfoRequest
-	13, // 81: cusf.mainchain.v1.ValidatorService.GetChainTip:input_type -> cusf.mainchain.v1.GetChainTipRequest
-	15, // 82: cusf.mainchain.v1.ValidatorService.GetCoinbasePSBT:input_type -> cusf.mainchain.v1.GetCoinbasePSBTRequest
-	17, // 83: cusf.mainchain.v1.ValidatorService.GetCtip:input_type -> cusf.mainchain.v1.GetCtipRequest
-	19, // 84: cusf.mainchain.v1.ValidatorService.GetSidechainProposals:input_type -> cusf.mainchain.v1.GetSidechainProposalsRequest
-	21, // 85: cusf.mainchain.v1.ValidatorService.GetSidechains:input_type -> cusf.mainchain.v1.GetSidechainsRequest
-	23, // 86: cusf.mainchain.v1.ValidatorService.GetTwoWayPegData:input_type -> cusf.mainchain.v1.GetTwoWayPegDataRequest
-	25, // 87: cusf.mainchain.v1.ValidatorService.SubscribeEvents:input_type -> cusf.mainchain.v1.SubscribeEventsRequest
-	6,  // 88: cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo:output_type -> cusf.mainchain.v1.GetBlockHeaderInfoResponse
-	8,  // 89: cusf.mainchain.v1.ValidatorService.GetBlockInfo:output_type -> cusf.mainchain.v1.GetBlockInfoResponse
-	10, // 90: cusf.mainchain.v1.ValidatorService.GetBmmHStarCommitment:output_type -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse
-	12, // 91: cusf.mainchain.v1.ValidatorService.GetChainInfo:output_type -> cusf.mainchain.v1.GetChainInfoResponse
-	14, // 92: cusf.mainchain.v1.ValidatorService.GetChainTip:output_type -> cusf.mainchain.v1.GetChainTipResponse
-	16, // 93: cusf.mainchain.v1.ValidatorService.GetCoinbasePSBT:output_type -> cusf.mainchain.v1.GetCoinbasePSBTResponse
-	18, // 94: cusf.mainchain.v1.ValidatorService.GetCtip:output_type -> cusf.mainchain.v1.GetCtipResponse
-	20, // 95: cusf.mainchain.v1.ValidatorService.GetSidechainProposals:output_type -> cusf.mainchain.v1.GetSidechainProposalsResponse
-	22, // 96: cusf.mainchain.v1.ValidatorService.GetSidechains:output_type -> cusf.mainchain.v1.GetSidechainsResponse
-	24, // 97: cusf.mainchain.v1.ValidatorService.GetTwoWayPegData:output_type -> cusf.mainchain.v1.GetTwoWayPegDataResponse
-	26, // 98: cusf.mainchain.v1.ValidatorService.SubscribeEvents:output_type -> cusf.mainchain.v1.SubscribeEventsResponse
-	88, // [88:99] is the sub-list for method output_type
-	77, // [77:88] is the sub-list for method input_type
-	77, // [77:77] is the sub-list for extension type_name
-	77, // [77:77] is the sub-list for extension extendee
-	0,  // [0:77] is the sub-list for field type_name
+	55, // 70: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
+	1,  // 71: cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem.block_header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
+	4,  // 72: cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem.block_info:type_name -> cusf.mainchain.v1.BlockInfo
+	47, // 73: cusf.mainchain.v1.SubscribeEventsResponse.Event.connect_block:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock
+	48, // 74: cusf.mainchain.v1.SubscribeEventsResponse.Event.disconnect_block:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock
+	1,  // 75: cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock.header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
+	4,  // 76: cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock.block_info:type_name -> cusf.mainchain.v1.BlockInfo
+	49, // 77: cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock.block_hash:type_name -> cusf.common.v1.ReverseHex
+	5,  // 78: cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo:input_type -> cusf.mainchain.v1.GetBlockHeaderInfoRequest
+	7,  // 79: cusf.mainchain.v1.ValidatorService.GetBlockInfo:input_type -> cusf.mainchain.v1.GetBlockInfoRequest
+	9,  // 80: cusf.mainchain.v1.ValidatorService.GetBmmHStarCommitment:input_type -> cusf.mainchain.v1.GetBmmHStarCommitmentRequest
+	11, // 81: cusf.mainchain.v1.ValidatorService.GetChainInfo:input_type -> cusf.mainchain.v1.GetChainInfoRequest
+	13, // 82: cusf.mainchain.v1.ValidatorService.GetChainTip:input_type -> cusf.mainchain.v1.GetChainTipRequest
+	15, // 83: cusf.mainchain.v1.ValidatorService.GetCoinbasePSBT:input_type -> cusf.mainchain.v1.GetCoinbasePSBTRequest
+	17, // 84: cusf.mainchain.v1.ValidatorService.GetCtip:input_type -> cusf.mainchain.v1.GetCtipRequest
+	19, // 85: cusf.mainchain.v1.ValidatorService.GetSidechainProposals:input_type -> cusf.mainchain.v1.GetSidechainProposalsRequest
+	21, // 86: cusf.mainchain.v1.ValidatorService.GetSidechains:input_type -> cusf.mainchain.v1.GetSidechainsRequest
+	23, // 87: cusf.mainchain.v1.ValidatorService.GetTwoWayPegData:input_type -> cusf.mainchain.v1.GetTwoWayPegDataRequest
+	25, // 88: cusf.mainchain.v1.ValidatorService.SubscribeEvents:input_type -> cusf.mainchain.v1.SubscribeEventsRequest
+	6,  // 89: cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo:output_type -> cusf.mainchain.v1.GetBlockHeaderInfoResponse
+	8,  // 90: cusf.mainchain.v1.ValidatorService.GetBlockInfo:output_type -> cusf.mainchain.v1.GetBlockInfoResponse
+	10, // 91: cusf.mainchain.v1.ValidatorService.GetBmmHStarCommitment:output_type -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse
+	12, // 92: cusf.mainchain.v1.ValidatorService.GetChainInfo:output_type -> cusf.mainchain.v1.GetChainInfoResponse
+	14, // 93: cusf.mainchain.v1.ValidatorService.GetChainTip:output_type -> cusf.mainchain.v1.GetChainTipResponse
+	16, // 94: cusf.mainchain.v1.ValidatorService.GetCoinbasePSBT:output_type -> cusf.mainchain.v1.GetCoinbasePSBTResponse
+	18, // 95: cusf.mainchain.v1.ValidatorService.GetCtip:output_type -> cusf.mainchain.v1.GetCtipResponse
+	20, // 96: cusf.mainchain.v1.ValidatorService.GetSidechainProposals:output_type -> cusf.mainchain.v1.GetSidechainProposalsResponse
+	22, // 97: cusf.mainchain.v1.ValidatorService.GetSidechains:output_type -> cusf.mainchain.v1.GetSidechainsResponse
+	24, // 98: cusf.mainchain.v1.ValidatorService.GetTwoWayPegData:output_type -> cusf.mainchain.v1.GetTwoWayPegDataResponse
+	26, // 99: cusf.mainchain.v1.ValidatorService.SubscribeEvents:output_type -> cusf.mainchain.v1.SubscribeEventsResponse
+	89, // [89:100] is the sub-list for method output_type
+	78, // [78:89] is the sub-list for method input_type
+	78, // [78:78] is the sub-list for extension type_name
+	78, // [78:78] is the sub-list for extension extendee
+	0,  // [0:78] is the sub-list for field type_name
 }
 
 func init() { file_cusf_mainchain_v1_validator_proto_init() }
@@ -3393,6 +3410,7 @@ func file_cusf_mainchain_v1_validator_proto_init() {
 		(*GetCoinbasePSBTRequest_AckBundles_Upvotes_)(nil),
 	}
 	file_cusf_mainchain_v1_validator_proto_msgTypes[42].OneofWrappers = []any{}
+	file_cusf_mainchain_v1_validator_proto_msgTypes[43].OneofWrappers = []any{}
 	file_cusf_mainchain_v1_validator_proto_msgTypes[45].OneofWrappers = []any{
 		(*SubscribeEventsResponse_Event_ConnectBlock_)(nil),
 		(*SubscribeEventsResponse_Event_DisconnectBlock_)(nil),
