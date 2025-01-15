@@ -1,3 +1,4 @@
+// dart format width=80
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 // **************************************************************************
@@ -13,10 +14,7 @@ part of 'router.dart';
 /// [OverviewPage]
 class OverviewRoute extends PageRouteInfo<void> {
   const OverviewRoute({List<PageRouteInfo>? children})
-      : super(
-          OverviewRoute.name,
-          initialChildren: children,
-        );
+    : super(OverviewRoute.name, initialChildren: children);
 
   static const String name = 'OverviewRoute';
 
@@ -32,10 +30,7 @@ class OverviewRoute extends PageRouteInfo<void> {
 /// [RootPage]
 class RootRoute extends PageRouteInfo<void> {
   const RootRoute({List<PageRouteInfo>? children})
-      : super(
-          RootRoute.name,
-          initialChildren: children,
-        );
+    : super(RootRoute.name, initialChildren: children);
 
   static const String name = 'RootRoute';
 
@@ -51,10 +46,7 @@ class RootRoute extends PageRouteInfo<void> {
 /// [SettingsPage]
 class SettingsRoute extends PageRouteInfo<void> {
   const SettingsRoute({List<PageRouteInfo>? children})
-      : super(
-          SettingsRoute.name,
-          initialChildren: children,
-        );
+    : super(SettingsRoute.name, initialChildren: children);
 
   static const String name = 'SettingsRoute';
 
@@ -70,10 +62,7 @@ class SettingsRoute extends PageRouteInfo<void> {
 /// [ToolsPage]
 class ToolsRoute extends PageRouteInfo<void> {
   const ToolsRoute({List<PageRouteInfo>? children})
-      : super(
-          ToolsRoute.name,
-          initialChildren: children,
-        );
+    : super(ToolsRoute.name, initialChildren: children);
 
   static const String name = 'ToolsRoute';
 
@@ -81,25 +70,6 @@ class ToolsRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const ToolsPage();
-    },
-  );
-}
-
-/// generated route for
-/// [WalletsPage]
-class WalletsRoute extends PageRouteInfo<void> {
-  const WalletsRoute({List<PageRouteInfo>? children})
-      : super(
-          WalletsRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'WalletsRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const WalletsPage();
     },
   );
 }
