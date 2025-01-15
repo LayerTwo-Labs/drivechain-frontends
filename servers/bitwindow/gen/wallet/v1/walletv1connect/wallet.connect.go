@@ -54,17 +54,6 @@ const (
 	WalletServiceCreateSidechainDepositProcedure = "/wallet.v1.WalletService/CreateSidechainDeposit"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	walletServiceServiceDescriptor                      = v1.File_wallet_v1_wallet_proto.Services().ByName("WalletService")
-	walletServiceSendTransactionMethodDescriptor        = walletServiceServiceDescriptor.Methods().ByName("SendTransaction")
-	walletServiceGetBalanceMethodDescriptor             = walletServiceServiceDescriptor.Methods().ByName("GetBalance")
-	walletServiceGetNewAddressMethodDescriptor          = walletServiceServiceDescriptor.Methods().ByName("GetNewAddress")
-	walletServiceListTransactionsMethodDescriptor       = walletServiceServiceDescriptor.Methods().ByName("ListTransactions")
-	walletServiceListSidechainDepositsMethodDescriptor  = walletServiceServiceDescriptor.Methods().ByName("ListSidechainDeposits")
-	walletServiceCreateSidechainDepositMethodDescriptor = walletServiceServiceDescriptor.Methods().ByName("CreateSidechainDeposit")
-)
-
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
 type WalletServiceClient interface {
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
@@ -86,41 +75,42 @@ type WalletServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) WalletServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	walletServiceMethods := v1.File_wallet_v1_wallet_proto.Services().ByName("WalletService").Methods()
 	return &walletServiceClient{
 		sendTransaction: connect.NewClient[v1.SendTransactionRequest, v1.SendTransactionResponse](
 			httpClient,
 			baseURL+WalletServiceSendTransactionProcedure,
-			connect.WithSchema(walletServiceSendTransactionMethodDescriptor),
+			connect.WithSchema(walletServiceMethods.ByName("SendTransaction")),
 			connect.WithClientOptions(opts...),
 		),
 		getBalance: connect.NewClient[emptypb.Empty, v1.GetBalanceResponse](
 			httpClient,
 			baseURL+WalletServiceGetBalanceProcedure,
-			connect.WithSchema(walletServiceGetBalanceMethodDescriptor),
+			connect.WithSchema(walletServiceMethods.ByName("GetBalance")),
 			connect.WithClientOptions(opts...),
 		),
 		getNewAddress: connect.NewClient[emptypb.Empty, v1.GetNewAddressResponse](
 			httpClient,
 			baseURL+WalletServiceGetNewAddressProcedure,
-			connect.WithSchema(walletServiceGetNewAddressMethodDescriptor),
+			connect.WithSchema(walletServiceMethods.ByName("GetNewAddress")),
 			connect.WithClientOptions(opts...),
 		),
 		listTransactions: connect.NewClient[emptypb.Empty, v1.ListTransactionsResponse](
 			httpClient,
 			baseURL+WalletServiceListTransactionsProcedure,
-			connect.WithSchema(walletServiceListTransactionsMethodDescriptor),
+			connect.WithSchema(walletServiceMethods.ByName("ListTransactions")),
 			connect.WithClientOptions(opts...),
 		),
 		listSidechainDeposits: connect.NewClient[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse](
 			httpClient,
 			baseURL+WalletServiceListSidechainDepositsProcedure,
-			connect.WithSchema(walletServiceListSidechainDepositsMethodDescriptor),
+			connect.WithSchema(walletServiceMethods.ByName("ListSidechainDeposits")),
 			connect.WithClientOptions(opts...),
 		),
 		createSidechainDeposit: connect.NewClient[v1.CreateSidechainDepositRequest, v1.CreateSidechainDepositResponse](
 			httpClient,
 			baseURL+WalletServiceCreateSidechainDepositProcedure,
-			connect.WithSchema(walletServiceCreateSidechainDepositMethodDescriptor),
+			connect.WithSchema(walletServiceMethods.ByName("CreateSidechainDeposit")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -184,40 +174,41 @@ type WalletServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	walletServiceMethods := v1.File_wallet_v1_wallet_proto.Services().ByName("WalletService").Methods()
 	walletServiceSendTransactionHandler := connect.NewUnaryHandler(
 		WalletServiceSendTransactionProcedure,
 		svc.SendTransaction,
-		connect.WithSchema(walletServiceSendTransactionMethodDescriptor),
+		connect.WithSchema(walletServiceMethods.ByName("SendTransaction")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceGetBalanceHandler := connect.NewUnaryHandler(
 		WalletServiceGetBalanceProcedure,
 		svc.GetBalance,
-		connect.WithSchema(walletServiceGetBalanceMethodDescriptor),
+		connect.WithSchema(walletServiceMethods.ByName("GetBalance")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceGetNewAddressHandler := connect.NewUnaryHandler(
 		WalletServiceGetNewAddressProcedure,
 		svc.GetNewAddress,
-		connect.WithSchema(walletServiceGetNewAddressMethodDescriptor),
+		connect.WithSchema(walletServiceMethods.ByName("GetNewAddress")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceListTransactionsHandler := connect.NewUnaryHandler(
 		WalletServiceListTransactionsProcedure,
 		svc.ListTransactions,
-		connect.WithSchema(walletServiceListTransactionsMethodDescriptor),
+		connect.WithSchema(walletServiceMethods.ByName("ListTransactions")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceListSidechainDepositsHandler := connect.NewUnaryHandler(
 		WalletServiceListSidechainDepositsProcedure,
 		svc.ListSidechainDeposits,
-		connect.WithSchema(walletServiceListSidechainDepositsMethodDescriptor),
+		connect.WithSchema(walletServiceMethods.ByName("ListSidechainDeposits")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceCreateSidechainDepositHandler := connect.NewUnaryHandler(
 		WalletServiceCreateSidechainDepositProcedure,
 		svc.CreateSidechainDeposit,
-		connect.WithSchema(walletServiceCreateSidechainDepositMethodDescriptor),
+		connect.WithSchema(walletServiceMethods.ByName("CreateSidechainDeposit")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -237,6 +237,11 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	if err != nil {
 		return nil, fmt.Errorf("invalid deposit address: %w", err)
 	}
+	if slot == nil && c.Msg.Slot == 0 {
+		return nil, fmt.Errorf("address is not a sidechain deposit address, expected slot or format: s<slot>_<address> or s9_<address>_<checksum>")
+	} else if slot == nil {
+		slot = &c.Msg.Slot
+	}
 
 	amount, err := btcutil.NewAmount(c.Msg.Amount)
 	if err != nil || amount < 0 {
@@ -249,7 +254,7 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	}
 
 	created, err := s.wallet.CreateDepositTransaction(ctx, connect.NewRequest(&validatorpb.CreateDepositTransactionRequest{
-		SidechainId: &wrapperspb.UInt32Value{Value: uint32(slot)},
+		SidechainId: &wrapperspb.UInt32Value{Value: uint32(*slot)},
 		Address:     &commonv1.Hex{Hex: &wrapperspb.StringValue{Value: depositAddress}},
 		ValueSats:   &wrapperspb.UInt64Value{Value: uint64(amount)},
 		FeeSats:     &wrapperspb.UInt64Value{Value: uint64(fee)},
@@ -257,6 +262,8 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	if err != nil {
 		return nil, err
 	}
+
+	zerolog.Ctx(ctx).Info().Msgf("create deposit tx: broadcast transaction: %s", created.Msg.Txid)
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
 		Txid: created.Msg.Txid.Hex.Value,
