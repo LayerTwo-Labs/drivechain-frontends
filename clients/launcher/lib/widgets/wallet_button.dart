@@ -118,9 +118,61 @@ class _WalletButtonState extends State<WalletButton> {
                       SailText.secondary12('Total Balance'),
                       const SizedBox(height: 8),
                       SailText.primary24('0.00 BTC'),
+                      const SizedBox(height: 16),
+                      // Action buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SailScaleButton(
+                              style: SailButtonStyle.primary,
+                              onPressed: () {},
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Builder(
+                                    builder: (context) {
+                                      final theme = SailTheme.of(context);
+                                      return SailSVG.icon(
+                                        SailSVGAsset.iconSend,
+                                        color: theme.colors.background,
+                                      );
+                                    }
+                                  ),
+                                  const SizedBox(width: 8),
+                                  SailText.background12('Send'),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: SailScaleButton(
+                              style: SailButtonStyle.primary,
+                              onPressed: () {},
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Builder(
+                                    builder: (context) {
+                                      final theme = SailTheme.of(context);
+                                      return SailSVG.icon(
+                                        SailSVGAsset.iconReceive,
+                                        color: theme.colors.background,
+                                      );
+                                    }
+                                  ),
+                                  const SizedBox(width: 8),
+                                  SailText.background12('Receive'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
                 // Tabs
                 DefaultTabController(
                   length: 3,
@@ -199,59 +251,6 @@ class _WalletButtonState extends State<WalletButton> {
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Action buttons
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SailScaleButton(
-                          style: SailButtonStyle.primary,
-                          onPressed: () {},
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Builder(
-                                builder: (context) {
-                                  final theme = SailTheme.of(context);
-                                  return SailSVG.icon(
-                                    SailSVGAsset.iconSend,
-                                    color: theme.colors.background,
-                                  );
-                                }
-                              ),
-                              const SizedBox(width: 8),
-                              SailText.background12('Send'),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: SailScaleButton(
-                          style: SailButtonStyle.primary,
-                          onPressed: () {},
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Builder(
-                                builder: (context) {
-                                  final theme = SailTheme.of(context);
-                                  return SailSVG.icon(
-                                    SailSVGAsset.iconReceive,
-                                    color: theme.colors.background,
-                                  );
-                                }
-                              ),
-                              const SizedBox(width: 8),
-                              SailText.background12('Receive'),
-                            ],
-                          ),
                         ),
                       ),
                     ],
