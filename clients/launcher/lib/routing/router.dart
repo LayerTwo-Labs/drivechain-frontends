@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:launcher/pages/overview_page.dart';
 import 'package:launcher/pages/root_page.dart';
-import 'package:launcher/pages/wallets_page.dart';
 import 'package:launcher/pages/tools_page.dart';
 import 'package:launcher/pages/settings_page.dart';
 
@@ -39,10 +38,6 @@ class AppRouter extends RootStackRouter {
             AutoRoute(
               path: 'overview',
               page: OverviewRoute.page,
-            ),
-            AutoRoute(
-              path: 'wallets',
-              page: WalletsRoute.page,
             ),
             AutoRoute(
               path: 'tools',

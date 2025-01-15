@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:launcher/widgets/update_modal.dart';
+import 'package:launcher/widgets/wallet_button.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 
@@ -29,7 +30,6 @@ class _RootPageState extends State<RootPage> {
       animatePageTransition: false,
       routes: const [
         OverviewRoute(),
-        WalletsRoute(),
         ToolsRoute(),
         SettingsRoute(),
       ],
@@ -63,24 +63,20 @@ class _RootPageState extends State<RootPage> {
                         onTap: () => tabsRouter.setActiveIndex(0),
                       ),
                       QtTab(
-                        icon: SailSVGAsset.iconWallet,
-                        label: 'Wallets',
+                        icon: SailSVGAsset.iconTabTools,
+                        label: 'Tools',
                         active: tabsRouter.activeIndex == 1,
                         onTap: () => tabsRouter.setActiveIndex(1),
                       ),
                       QtTab(
-                        icon: SailSVGAsset.iconTabTools,
-                        label: 'Tools',
+                        icon: SailSVGAsset.iconTabSettings,
+                        label: 'Settings',
                         active: tabsRouter.activeIndex == 2,
                         onTap: () => tabsRouter.setActiveIndex(2),
                       ),
-                      QtTab(
-                        icon: SailSVGAsset.iconTabSettings,
-                        label: 'Settings',
-                        active: tabsRouter.activeIndex == 3,
-                        onTap: () => tabsRouter.setActiveIndex(3),
-                      ),
                       Expanded(child: Container()),
+                      const WalletButton(),
+                      const SizedBox(width: 8),
                       const ToggleThemeButton(),
                     ],
                   );
