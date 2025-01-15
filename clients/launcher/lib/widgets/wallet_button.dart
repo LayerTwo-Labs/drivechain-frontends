@@ -82,9 +82,15 @@ class _WalletButtonState extends State<WalletButton> {
             padding: const EdgeInsets.only(
               right: SailStyleValues.padding10,
             ),
-            child: SailSVG.fromAsset(
-              SailSVGAsset.iconWallet,
-              height: 20,
+            child: Builder(
+              builder: (context) {
+                final theme = SailTheme.of(context);
+                return SailSVG.fromAsset(
+                  SailSVGAsset.iconWallet,
+                  height: 20,
+                  color: theme.colors.text,
+                );
+              }
             ),
           ),
         ),
