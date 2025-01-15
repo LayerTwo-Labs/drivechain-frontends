@@ -81,11 +81,13 @@ message ListSidechainDepositsResponse {
 
 message CreateSidechainDepositRequest {
   // The sidechain deposit address to send to.
-  string destination = 1;
+  int64 slot = 1;
+  // The sidechain deposit address to send to.
+  string destination = 2;
   // The amount in BTC to send. eg 0.1
-  double amount = 2;
+  double amount = 3;
   // The fee in BTC
-  double fee = 3;
+  double fee = 4;
 }
 
 message CreateSidechainDepositResponse {

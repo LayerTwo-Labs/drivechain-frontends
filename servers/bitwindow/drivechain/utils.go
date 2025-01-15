@@ -10,31 +10,50 @@ import (
 )
 
 // DecodeDepositAddress decodes a deposit address string into its components.
-// The deposit address format is: slot_address_checksum
-// It returns the slot number, the Bitcoin address, the checksum, and any error encountered.
-// The function validates the format, parses the slot, decodes the Bitcoin address,
-// and verifies the checksum to ensure the integrity of the deposit address.
-func DecodeDepositAddress(depositAddress string) (int64, string, string, error) {
+// It can handle three formats:
+// 1. Just a address (e.g. "13tqn1jxdcrbDycej4bp5S5PcffYtdGNPy")
+// 2. Slot and address (e.g. "s9_13tqn1jxdcrbDycej4bp5S5PcffYtdGNPy")
+// 3. Full format with checksum (e.g. "s9_13tqn1jxdcrbDycej4bp5S5PcffYtdGNPy_checksum")
+// Returns slot number (or 0), address, checksum (or empty), and any error.
+func DecodeDepositAddress(depositAddress string) (*int64, string, *string, error) {
 	parts := strings.Split(depositAddress, "_")
-	if len(parts) != 3 {
-		return 0, "", "", errors.New("invalid format, expected slot_address_checksum")
+
+	// Case 1: Just Bitcoin address
+	if len(parts) == 1 {
+		return nil, depositAddress, nil, nil
 	}
 
-	slotStr := strings.TrimPrefix(parts[0], "s")
-	slot, err := strconv.ParseInt(slotStr, 10, 64)
-	if err != nil || slot < 0 || slot > 254 {
-		return 0, "", "", fmt.Errorf("slot must be a whole number between 0 and 254: %w", err)
+	// Case 2: Slot and address
+	if len(parts) == 2 {
+		slotStr := strings.TrimPrefix(parts[0], "s")
+		slot, err := strconv.ParseInt(slotStr, 10, 64)
+		if err != nil || slot < 0 || slot > 254 {
+			return nil, "", nil, fmt.Errorf("slot must be a whole number between 0 and 254: %w", err)
+		}
+		return &slot, parts[1], nil, nil
 	}
 
-	address := parts[1]
+	// Case 3: Full format with checksum
+	if len(parts) == 3 {
+		slotStr := strings.TrimPrefix(parts[0], "s")
+		slot, err := strconv.ParseInt(slotStr, 10, 64)
+		if err != nil || slot < 0 || slot > 254 {
+			return nil, "", nil, fmt.Errorf("slot must be a whole number between 0 and 254: %w", err)
+		}
 
-	addrWithoutChecksum := fmt.Sprintf("s%d_%s_", slot, address)
-	hash := sha256.Sum256([]byte(addrWithoutChecksum))
-	calculatedChecksum := hex.EncodeToString(hash[:3])
-	checksum := parts[2]
-	if checksum != calculatedChecksum {
-		return 0, "", "", fmt.Errorf("invalid checksum: expected %s, got %s", calculatedChecksum, checksum)
+		address := parts[1]
+		checksum := parts[2]
+
+		addrWithoutChecksum := fmt.Sprintf("s%d_%s_", slot, address)
+		hash := sha256.Sum256([]byte(addrWithoutChecksum))
+		calculatedChecksum := hex.EncodeToString(hash[:3])
+
+		if checksum != calculatedChecksum {
+			return nil, "", nil, fmt.Errorf("invalid checksum: expected %s, got %s", calculatedChecksum, checksum)
+		}
+
+		return &slot, address, &checksum, nil
 	}
 
-	return slot, address, checksum, nil
+	return nil, "", nil, errors.New("could not parse deposit address: invalid format")
 }
