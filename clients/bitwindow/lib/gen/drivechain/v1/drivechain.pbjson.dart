@@ -40,23 +40,29 @@ const ListSidechainsResponse_Sidechain$json = {
     {'1': 'nversion', '3': 3, '4': 1, '5': 13, '10': 'nversion'},
     {'1': 'hashid1', '3': 4, '4': 1, '5': 9, '10': 'hashid1'},
     {'1': 'hashid2', '3': 5, '4': 1, '5': 9, '10': 'hashid2'},
-    {'1': 'slot', '3': 6, '4': 1, '5': 5, '10': 'slot'},
-    {'1': 'amount_satoshi', '3': 7, '4': 1, '5': 3, '10': 'amountSatoshi'},
-    {'1': 'chaintip_txid', '3': 8, '4': 1, '5': 9, '10': 'chaintipTxid'},
-    {'1': 'chaintip_vout', '3': 9, '4': 1, '5': 13, '10': 'chaintipVout'},
+    {'1': 'slot', '3': 6, '4': 1, '5': 13, '10': 'slot'},
+    {'1': 'vote_count', '3': 7, '4': 1, '5': 13, '10': 'voteCount'},
+    {'1': 'proposal_height', '3': 8, '4': 1, '5': 13, '10': 'proposalHeight'},
+    {'1': 'activation_height', '3': 9, '4': 1, '5': 13, '10': 'activationHeight'},
+    {'1': 'description_hex', '3': 10, '4': 1, '5': 9, '10': 'descriptionHex'},
+    {'1': 'balance_satoshi', '3': 11, '4': 1, '5': 3, '10': 'balanceSatoshi'},
+    {'1': 'chaintip_txid', '3': 12, '4': 1, '5': 9, '10': 'chaintipTxid'},
+    {'1': 'chaintip_vout', '3': 13, '4': 1, '5': 13, '10': 'chaintipVout'},
   ],
 };
 
 /// Descriptor for `ListSidechainsResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listSidechainsResponseDescriptor = $convert.base64Decode(
     'ChZMaXN0U2lkZWNoYWluc1Jlc3BvbnNlEk8KCnNpZGVjaGFpbnMYASADKAsyLy5kcml2ZWNoYW'
-    'luLnYxLkxpc3RTaWRlY2hhaW5zUmVzcG9uc2UuU2lkZWNoYWluUgpzaWRlY2hhaW5zGpgCCglT'
+    'luLnYxLkxpc3RTaWRlY2hhaW5zUmVzcG9uc2UuU2lkZWNoYWluUgpzaWRlY2hhaW5zGrgDCglT'
     'aWRlY2hhaW4SFAoFdGl0bGUYASABKAlSBXRpdGxlEiAKC2Rlc2NyaXB0aW9uGAIgASgJUgtkZX'
     'NjcmlwdGlvbhIaCghudmVyc2lvbhgDIAEoDVIIbnZlcnNpb24SGAoHaGFzaGlkMRgEIAEoCVIH'
-    'aGFzaGlkMRIYCgdoYXNoaWQyGAUgASgJUgdoYXNoaWQyEhIKBHNsb3QYBiABKAVSBHNsb3QSJQ'
-    'oOYW1vdW50X3NhdG9zaGkYByABKANSDWFtb3VudFNhdG9zaGkSIwoNY2hhaW50aXBfdHhpZBgI'
-    'IAEoCVIMY2hhaW50aXBUeGlkEiMKDWNoYWludGlwX3ZvdXQYCSABKA1SDGNoYWludGlwVm91dA'
-    '==');
+    'aGFzaGlkMRIYCgdoYXNoaWQyGAUgASgJUgdoYXNoaWQyEhIKBHNsb3QYBiABKA1SBHNsb3QSHQ'
+    'oKdm90ZV9jb3VudBgHIAEoDVIJdm90ZUNvdW50EicKD3Byb3Bvc2FsX2hlaWdodBgIIAEoDVIO'
+    'cHJvcG9zYWxIZWlnaHQSKwoRYWN0aXZhdGlvbl9oZWlnaHQYCSABKA1SEGFjdGl2YXRpb25IZW'
+    'lnaHQSJwoPZGVzY3JpcHRpb25faGV4GAogASgJUg5kZXNjcmlwdGlvbkhleBInCg9iYWxhbmNl'
+    'X3NhdG9zaGkYCyABKANSDmJhbGFuY2VTYXRvc2hpEiMKDWNoYWludGlwX3R4aWQYDCABKAlSDG'
+    'NoYWludGlwVHhpZBIjCg1jaGFpbnRpcF92b3V0GA0gASgNUgxjaGFpbnRpcFZvdXQ=');
 
 @$core.Deprecated('Use listSidechainProposalsRequestDescriptor instead')
 const ListSidechainProposalsRequest$json = {

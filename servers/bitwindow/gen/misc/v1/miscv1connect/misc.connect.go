@@ -49,16 +49,6 @@ const (
 	MiscServiceListCoinNewsProcedure = "/misc.v1.MiscService/ListCoinNews"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	miscServiceServiceDescriptor             = v1.File_misc_v1_misc_proto.Services().ByName("MiscService")
-	miscServiceListOPReturnMethodDescriptor  = miscServiceServiceDescriptor.Methods().ByName("ListOPReturn")
-	miscServiceBroadcastNewsMethodDescriptor = miscServiceServiceDescriptor.Methods().ByName("BroadcastNews")
-	miscServiceCreateTopicMethodDescriptor   = miscServiceServiceDescriptor.Methods().ByName("CreateTopic")
-	miscServiceListTopicsMethodDescriptor    = miscServiceServiceDescriptor.Methods().ByName("ListTopics")
-	miscServiceListCoinNewsMethodDescriptor  = miscServiceServiceDescriptor.Methods().ByName("ListCoinNews")
-)
-
 // MiscServiceClient is a client for the misc.v1.MiscService service.
 type MiscServiceClient interface {
 	ListOPReturn(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListOPReturnResponse], error)
@@ -77,35 +67,36 @@ type MiscServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewMiscServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MiscServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	miscServiceMethods := v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods()
 	return &miscServiceClient{
 		listOPReturn: connect.NewClient[emptypb.Empty, v1.ListOPReturnResponse](
 			httpClient,
 			baseURL+MiscServiceListOPReturnProcedure,
-			connect.WithSchema(miscServiceListOPReturnMethodDescriptor),
+			connect.WithSchema(miscServiceMethods.ByName("ListOPReturn")),
 			connect.WithClientOptions(opts...),
 		),
 		broadcastNews: connect.NewClient[v1.BroadcastNewsRequest, v1.BroadcastNewsResponse](
 			httpClient,
 			baseURL+MiscServiceBroadcastNewsProcedure,
-			connect.WithSchema(miscServiceBroadcastNewsMethodDescriptor),
+			connect.WithSchema(miscServiceMethods.ByName("BroadcastNews")),
 			connect.WithClientOptions(opts...),
 		),
 		createTopic: connect.NewClient[v1.CreateTopicRequest, v1.CreateTopicResponse](
 			httpClient,
 			baseURL+MiscServiceCreateTopicProcedure,
-			connect.WithSchema(miscServiceCreateTopicMethodDescriptor),
+			connect.WithSchema(miscServiceMethods.ByName("CreateTopic")),
 			connect.WithClientOptions(opts...),
 		),
 		listTopics: connect.NewClient[emptypb.Empty, v1.ListTopicsResponse](
 			httpClient,
 			baseURL+MiscServiceListTopicsProcedure,
-			connect.WithSchema(miscServiceListTopicsMethodDescriptor),
+			connect.WithSchema(miscServiceMethods.ByName("ListTopics")),
 			connect.WithClientOptions(opts...),
 		),
 		listCoinNews: connect.NewClient[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse](
 			httpClient,
 			baseURL+MiscServiceListCoinNewsProcedure,
-			connect.WithSchema(miscServiceListCoinNewsMethodDescriptor),
+			connect.WithSchema(miscServiceMethods.ByName("ListCoinNews")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -160,34 +151,35 @@ type MiscServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	miscServiceMethods := v1.File_misc_v1_misc_proto.Services().ByName("MiscService").Methods()
 	miscServiceListOPReturnHandler := connect.NewUnaryHandler(
 		MiscServiceListOPReturnProcedure,
 		svc.ListOPReturn,
-		connect.WithSchema(miscServiceListOPReturnMethodDescriptor),
+		connect.WithSchema(miscServiceMethods.ByName("ListOPReturn")),
 		connect.WithHandlerOptions(opts...),
 	)
 	miscServiceBroadcastNewsHandler := connect.NewUnaryHandler(
 		MiscServiceBroadcastNewsProcedure,
 		svc.BroadcastNews,
-		connect.WithSchema(miscServiceBroadcastNewsMethodDescriptor),
+		connect.WithSchema(miscServiceMethods.ByName("BroadcastNews")),
 		connect.WithHandlerOptions(opts...),
 	)
 	miscServiceCreateTopicHandler := connect.NewUnaryHandler(
 		MiscServiceCreateTopicProcedure,
 		svc.CreateTopic,
-		connect.WithSchema(miscServiceCreateTopicMethodDescriptor),
+		connect.WithSchema(miscServiceMethods.ByName("CreateTopic")),
 		connect.WithHandlerOptions(opts...),
 	)
 	miscServiceListTopicsHandler := connect.NewUnaryHandler(
 		MiscServiceListTopicsProcedure,
 		svc.ListTopics,
-		connect.WithSchema(miscServiceListTopicsMethodDescriptor),
+		connect.WithSchema(miscServiceMethods.ByName("ListTopics")),
 		connect.WithHandlerOptions(opts...),
 	)
 	miscServiceListCoinNewsHandler := connect.NewUnaryHandler(
 		MiscServiceListCoinNewsProcedure,
 		svc.ListCoinNews,
-		connect.WithSchema(miscServiceListCoinNewsMethodDescriptor),
+		connect.WithSchema(miscServiceMethods.ByName("ListCoinNews")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/misc.v1.MiscService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

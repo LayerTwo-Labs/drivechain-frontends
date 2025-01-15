@@ -560,6 +560,10 @@ const GetSidechainsResponse_SidechainInfo$json = {
     {'1': 'vote_count', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'voteCount'},
     {'1': 'proposal_height', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'proposalHeight'},
     {'1': 'activation_height', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'activationHeight'},
+    {'1': 'declaration', '3': 6, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.SidechainDeclaration', '9': 0, '10': 'declaration', '17': true},
+  ],
+  '8': [
+    {'1': '_declaration'},
   ],
 };
 
@@ -567,13 +571,15 @@ const GetSidechainsResponse_SidechainInfo$json = {
 final $typed_data.Uint8List getSidechainsResponseDescriptor = $convert.base64Decode(
     'ChVHZXRTaWRlY2hhaW5zUmVzcG9uc2USVgoKc2lkZWNoYWlucxgBIAMoCzI2LmN1c2YubWFpbm'
     'NoYWluLnYxLkdldFNpZGVjaGFpbnNSZXNwb25zZS5TaWRlY2hhaW5JbmZvUgpzaWRlY2hhaW5z'
-    'GucCCg1TaWRlY2hhaW5JbmZvEkcKEHNpZGVjaGFpbl9udW1iZXIYASABKAsyHC5nb29nbGUucH'
+    'GscDCg1TaWRlY2hhaW5JbmZvEkcKEHNpZGVjaGFpbl9udW1iZXIYASABKAsyHC5nb29nbGUucH'
     'JvdG9idWYuVUludDMyVmFsdWVSD3NpZGVjaGFpbk51bWJlchI+CgtkZXNjcmlwdGlvbhgCIAEo'
     'CzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleFILZGVzY3JpcHRpb24SOwoKdm90ZV9jb3'
     'VudBgDIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZVIJdm90ZUNvdW50EkUKD3By'
     'b3Bvc2FsX2hlaWdodBgEIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZVIOcHJvcG'
     '9zYWxIZWlnaHQSSQoRYWN0aXZhdGlvbl9oZWlnaHQYBSABKAsyHC5nb29nbGUucHJvdG9idWYu'
-    'VUludDMyVmFsdWVSEGFjdGl2YXRpb25IZWlnaHQ=');
+    'VUludDMyVmFsdWVSEGFjdGl2YXRpb25IZWlnaHQSTgoLZGVjbGFyYXRpb24YBiABKAsyJy5jdX'
+    'NmLm1haW5jaGFpbi52MS5TaWRlY2hhaW5EZWNsYXJhdGlvbkgAUgtkZWNsYXJhdGlvbogBAUIO'
+    'CgxfZGVjbGFyYXRpb24=');
 
 @$core.Deprecated('Use getTwoWayPegDataRequestDescriptor instead')
 const GetTwoWayPegDataRequest$json = {

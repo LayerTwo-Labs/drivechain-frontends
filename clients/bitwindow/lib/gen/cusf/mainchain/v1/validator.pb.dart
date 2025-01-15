@@ -2390,6 +2390,7 @@ class GetSidechainsResponse_SidechainInfo extends $pb.GeneratedMessage {
     $4.UInt32Value? voteCount,
     $4.UInt32Value? proposalHeight,
     $4.UInt32Value? activationHeight,
+    $6.SidechainDeclaration? declaration,
   }) {
     final $result = create();
     if (sidechainNumber != null) {
@@ -2407,6 +2408,9 @@ class GetSidechainsResponse_SidechainInfo extends $pb.GeneratedMessage {
     if (activationHeight != null) {
       $result.activationHeight = activationHeight;
     }
+    if (declaration != null) {
+      $result.declaration = declaration;
+    }
     return $result;
   }
   GetSidechainsResponse_SidechainInfo._() : super();
@@ -2419,6 +2423,7 @@ class GetSidechainsResponse_SidechainInfo extends $pb.GeneratedMessage {
     ..aOM<$4.UInt32Value>(3, _omitFieldNames ? '' : 'voteCount', subBuilder: $4.UInt32Value.create)
     ..aOM<$4.UInt32Value>(4, _omitFieldNames ? '' : 'proposalHeight', subBuilder: $4.UInt32Value.create)
     ..aOM<$4.UInt32Value>(5, _omitFieldNames ? '' : 'activationHeight', subBuilder: $4.UInt32Value.create)
+    ..aOM<$6.SidechainDeclaration>(6, _omitFieldNames ? '' : 'declaration', subBuilder: $6.SidechainDeclaration.create)
     ..hasRequiredFields = false
   ;
 
@@ -2497,6 +2502,19 @@ class GetSidechainsResponse_SidechainInfo extends $pb.GeneratedMessage {
   void clearActivationHeight() => clearField(5);
   @$pb.TagNumber(5)
   $4.UInt32Value ensureActivationHeight() => $_ensure(4);
+
+  /// Sidechain data, as declared in the M1 proposal.
+  /// Might be nil, if the proposal uses an unknown version.
+  @$pb.TagNumber(6)
+  $6.SidechainDeclaration get declaration => $_getN(5);
+  @$pb.TagNumber(6)
+  set declaration($6.SidechainDeclaration v) { setField(6, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasDeclaration() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDeclaration() => clearField(6);
+  @$pb.TagNumber(6)
+  $6.SidechainDeclaration ensureDeclaration() => $_ensure(5);
 }
 
 class GetSidechainsResponse extends $pb.GeneratedMessage {
