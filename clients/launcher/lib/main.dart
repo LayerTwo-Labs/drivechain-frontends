@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/providers/download_provider.dart';
+import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/providers/resource_downloader.dart';
+import 'package:provider/provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -33,10 +35,12 @@ void main() async {
   );
 
   return runApp(
-    SailApp(
-      dense: true,
-      builder: (context) {
-        return MaterialApp.router(
+    ChangeNotifierProvider(
+      create: (_) => GetIt.I.get<QuotesProvider>(),
+      child: SailApp(
+        dense: true,
+        builder: (context) {
+          return MaterialApp.router(
           routerDelegate: router.delegate(),
           routeInformationParser: router.defaultRouteParser(),
           title: 'Drivechain Launcher',
@@ -49,7 +53,7 @@ void main() async {
       },
       accentColor: const Color.fromARGB(255, 255, 153, 0),
       log: log,
-    ),
+    )),
   );
 }
 
@@ -87,4 +91,9 @@ Future<void> initDependencies(Logger log) async {
     downloadProvider,
   );
   await downloadProvider.initialize();
+
+  // Register quotes provider
+  GetIt.I.registerSingleton<QuotesProvider>(
+    QuotesProvider(prefs),
+  );
 }

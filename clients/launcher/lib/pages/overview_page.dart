@@ -5,6 +5,7 @@ import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/providers/download_provider.dart';
 import 'package:launcher/providers/resource_downloader.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
+import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -30,10 +31,12 @@ class _OverviewPageState extends State<OverviewPage> {
   @override
   Widget build(BuildContext context) {
     return QtPage(
-      child: Column(
+      child: Stack(
         children: [
-          Expanded(
-            child: StreamBuilder<Map<String, DownloadProgress>>(
+          Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<Map<String, DownloadProgress>>(
               stream: _downloadManager.statusStream,
               builder: (context, statusSnapshot) {
                 final l1Chains = _configService.configs.where((chain) => chain.chainLayer == 1).toList()
@@ -104,8 +107,11 @@ class _OverviewPageState extends State<OverviewPage> {
                   ),
                 );
               },
-            ),
+                ),
+              ),
+            ],
           ),
+          const QuotesWidget(), // Now properly positioned in Stack
         ],
       ),
     );
