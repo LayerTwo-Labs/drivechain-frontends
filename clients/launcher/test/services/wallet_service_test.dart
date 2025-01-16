@@ -72,16 +72,16 @@ void main() {
         expect(walletData.masterKey, isNotEmpty);
         expect(walletData.chainCode, isNotEmpty);
         expect(walletData.hdKeyData, isNotEmpty);
-        expect(walletData.bip32Path, equals("m/44'/0'/0'"));
+        expect(walletData.bip32Path, equals("m/44'/0'/0'"),);
       });
 
       test('Test Vector 2 - Complex Mnemonic HD Key Generation', () async {
         const mnemonic = 'dignity pass list indicate nasty swamp pool script soccer toe leaf photo multiply desk host tomato cradle drill spread actor shine dismiss champion exotic';
         const passphrase = 'TREZOR';
         
-        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase);
+        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase,);
         
-        expect(walletData.seedHex, equals('ff7f3184df8696d8bef94b6c03114dbee0ef89ff938712301d27ed8336ca89ef9635da20af07d4175f2bf5f3de130f39c9d9e8dd0472489c19b1a020a940da67'));
+        expect(walletData.seedHex, equals('ff7f3184df8696d8bef94b6c03114dbee0ef89ff938712301d27ed8336ca89ef9635da20af07d4175f2bf5f3de130f39c9d9e8dd0472489c19b1a020a940da67'),);
       });
     });
 
@@ -89,29 +89,29 @@ void main() {
       test('creates wallet from mnemonic and stores it', () async {
         const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
         
-        final result = await walletService.createFromMnemonic(mnemonic);
-        expect(result, isTrue);
+        final result = await walletService.createFromMnemonic(mnemonic,);
+        expect(result, isTrue,);
         
         final hasWallet = await walletService.hasWallet();
-        expect(hasWallet, isTrue);
+        expect(hasWallet, isTrue,);
         
         final storedWallet = await walletService.getWalletData();
-        expect(storedWallet, isNotNull);
-        expect(storedWallet!.mnemonic, equals(mnemonic));
+        expect(storedWallet, isNotNull,);
+        expect(storedWallet!.mnemonic, equals(mnemonic),);
       });
 
       test('creates wallet from hex and stores it', () async {
         const hexKey = '77c2b00716cec7213839159e404db50d';
         
-        final result = await walletService.createFromHex(hexKey);
-        expect(result, isTrue);
+        final result = await walletService.createFromHex(hexKey,);
+        expect(result, isTrue,);
         
         final hasWallet = await walletService.hasWallet();
-        expect(hasWallet, isTrue);
+        expect(hasWallet, isTrue,);
         
         final storedWallet = await walletService.getWalletData();
-        expect(storedWallet, isNotNull);
-        expect(storedWallet!.mnemonic, equals('jelly better achieve collect unaware mountain thought cargo oxygen act hood bridge'));
+        expect(storedWallet, isNotNull,);
+        expect(storedWallet!.mnemonic, equals('jelly better achieve collect unaware mountain thought cargo oxygen act hood bridge'),);
       });
     });
   });
