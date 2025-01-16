@@ -5,7 +5,11 @@ class QuotesProvider extends ChangeNotifier {
   final SharedPreferences _prefs;
   static const String _showQuotesKey = 'show_quotes';
 
-  QuotesProvider(this._prefs);
+  QuotesProvider(this._prefs) {
+    // Clear any existing preference on app start
+    // TODO: Remove this when settings page is implemented
+    _prefs.remove(_showQuotesKey);
+  }
 
   bool get showQuotes => _prefs.getBool(_showQuotesKey) ?? true;
 

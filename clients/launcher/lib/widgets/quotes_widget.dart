@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
 import 'package:launcher/providers/quotes_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -41,13 +40,13 @@ class _QuotesWidgetState extends State<QuotesWidget> {
   Future<void> loadQuotes() async {
     try {
       final String jsonString = await rootBundle.loadString('assets/quotes.json');
-      final Map<String, dynamic> jsonData = json.decode(jsonString);
+      final List<dynamic> jsonData = json.decode(jsonString);
       setState(() {
         quotes = List<Map<String, String>>.from(
-          jsonData['quotes'].map((quote) => {
-                'text': quote['text'] as String,
+          jsonData.map((quote) => {
+                'text': quote['quote'] as String,
                 'author': quote['author'] as String,
-              }),
+              },),
         );
       });
     } catch (e) {
@@ -82,66 +81,84 @@ class _QuotesWidgetState extends State<QuotesWidget> {
 
     return Positioned(
       bottom: 32,
-      left: 32,
       right: 32,
-      child: SailRawCard(
-        padding: true,
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios, size: 16),
-                        onPressed: previousQuote,
-                        color: Colors.grey[600],
+      child: SizedBox(
+        width: 350,
+        child: SailRawCard(
+          padding: false, // Remove default padding
+          child: Stack(
+            children: [
+              // Main content
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios, size: 14),
+                      onPressed: previousQuote,
+                      color: Colors.grey[600],
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
                       ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              '"${quote['text']}"',
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    fontStyle: FontStyle.italic,
-                                    color: Colors.grey[600],
-                                  ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '- ${quote['author']}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.grey[500],
-                                  ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '"${quote['text']}"', // Using stored 'text' key from JSON parsing
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.grey[600],
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '- ${quote['author']}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[500],
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onPressed: nextQuote,
-                        color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_forward_ios, size: 14),
+                      onPressed: nextQuote,
+                      color: Colors.grey[600],
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              // Close button overlay
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.close, size: 14),
+                  onPressed: () => quotesProvider.setShowQuotes(false),
+                  color: Colors.grey[600],
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 24,
+                    minHeight: 24,
                   ),
-                ],
+                ),
               ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton(
-                icon: const Icon(Icons.close, size: 16),
-                onPressed: () => quotesProvider.setShowQuotes(false),
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
