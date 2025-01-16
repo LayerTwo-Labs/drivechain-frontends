@@ -29,36 +29,36 @@ void main() {
         const mnemonic = 'legal winner thank year wave sausage worth useful legal winner thank yellow';
         const passphrase = 'TREZOR';
         
-        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase);
+        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase,);
         
-        expect(walletData.seedHex, equals('2e8905819b8723fe2c1d161860e5ee1830318dbf49a83bd451cfb8440c28bd6fa457fe1296106559a3c80937a1c1069be3a3a5bd381ee6260e8d9739fce1f607'));
+        expect(walletData.seedHex, equals('2e8905819b8723fe2c1d161860e5ee1830318dbf49a83bd451cfb8440c28bd6fa457fe1296106559a3c80937a1c1069be3a3a5bd381ee6260e8d9739fce1f607'),);
       });
 
       test('Test Vector 3 - 18 words', () async {
         const mnemonic = 'letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter always';
         const passphrase = 'TREZOR';
         
-        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase);
+        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase,);
         
-        expect(walletData.seedHex, equals('107d7c02a5aa6f38c58083ff74f04c607c2d2c0ecc55501dadd72d025b751bc27fe913ffb796f841c49b1d33b610cf0e91d3aa239027f5e99fe4ce9e5088cd65'));
+        expect(walletData.seedHex, equals('107d7c02a5aa6f38c58083ff74f04c607c2d2c0ecc55501dadd72d025b751bc27fe913ffb796f841c49b1d33b610cf0e91d3aa239027f5e99fe4ce9e5088cd65'),);
       });
 
       test('Test Vector 4 - 24 words', () async {
         const mnemonic = 'letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic bless';
         const passphrase = 'TREZOR';
         
-        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase);
+        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase,);
         
-        expect(walletData.seedHex, equals('c0c519bd0e91a2ed54357d9d1ebef6f5af218a153624cf4f2da911a0ed8f7a09e2ef61af0aca007096df430022f7a2b6fb91661a9589097069720d015e4e982f'));
+        expect(walletData.seedHex, equals('c0c519bd0e91a2ed54357d9d1ebef6f5af218a153624cf4f2da911a0ed8f7a09e2ef61af0aca007096df430022f7a2b6fb91661a9589097069720d015e4e982f'),);
       });
 
       test('Test Vector 5 - Real world example', () async {
         const mnemonic = 'jelly better achieve collect unaware mountain thought cargo oxygen act hood bridge';
         const passphrase = 'TREZOR';
         
-        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase);
+        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase,);
         
-        expect(walletData.seedHex, equals('b5b6d0127db1a9d2226af0c3346031d77af31e918dba64287a1b44b8ebf63cdd52676f672a290aae502472cf2d602c051f3e6f18055e84e4c43897fc4e51a6ff'));
+        expect(walletData.seedHex, equals('b5b6d0127db1a9d2226af0c3346031d77af31e918dba64287a1b44b8ebf63cdd52676f672a290aae502472cf2d602c051f3e6f18055e84e4c43897fc4e51a6ff'),);
       });
     });
 

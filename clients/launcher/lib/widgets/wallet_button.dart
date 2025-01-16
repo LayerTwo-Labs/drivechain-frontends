@@ -208,7 +208,7 @@ class _WalletButtonState extends State<WalletButton> {
                             // Tokens tab
                             ListView(
                               padding: const EdgeInsets.all(16),
-                              children: [
+                              children: const [
                                 _TokenListItem(
                                   name: 'Bitcoin',
                                   amount: '0.00 BTC',

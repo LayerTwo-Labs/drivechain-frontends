@@ -24,6 +24,10 @@ dependencies:
   window_manager: ^0.3.7
   crypto: ^3.0.3
   pointycastle: ^3.7.3
+  meta: ^1.11.0
+  stacked: ^3.4.1+1
+  path: ^1.8.3
+  convert: ^3.1.1
 
 dev_dependencies:
   flutter_test:

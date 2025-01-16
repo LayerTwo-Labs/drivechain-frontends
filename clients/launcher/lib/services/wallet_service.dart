@@ -5,13 +5,13 @@ import 'package:bip32/bip32.dart' as bip32;
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
-import 'package:path/path.dart' as path;
 import 'package:pointycastle/key_derivators/api.dart' show Pbkdf2Parameters;
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/digests/sha512.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:launcher/env.dart';
+import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 
 class WalletData {
 
@@ -63,6 +63,8 @@ class WalletData {
 }
 
 class WalletService {
+  final _logger = Logger();
+
   Future<String> get _walletDir async {
     try {
       final appDir = await Environment.datadir();
@@ -154,7 +156,7 @@ class WalletService {
       final walletData = await createWalletData(mnemonic, passphrase: passphrase);
       final file = await _walletFile;
       await file.writeAsString(jsonEncode(walletData.toJson()));
-      print('Successfully wrote wallet data');
+      _logger.i('Successfully wrote wallet data');
       return true;
     } catch (e) {
       return false;

@@ -14,7 +14,7 @@ class ToolsPage extends StatelessWidget {
         viewModelBuilder: () => ToolsPageViewModel(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
-          return InlineTabBar(
+          return const InlineTabBar(
             tabs: [
               TabItem(
                 label: 'Fast Withdrawal',
