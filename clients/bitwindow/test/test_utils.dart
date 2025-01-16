@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'mocks/api_mock.dart';
@@ -53,7 +54,7 @@ Future<void> registerTestDependencies() async {
     GetIt.I.registerLazySingleton<API>(
       () => MockAPI(
         conf: NodeConnectionSettings.empty(),
-        binary: 'mock',
+        binary: MockBinary(),
         logPath: '',
       ),
     );
@@ -80,4 +81,35 @@ class SailTestPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return child;
   }
+}
+
+class MockBinary extends Binary {
+  MockBinary()
+      : super(
+          name: 'Mocktown',
+          version: '0.0.0',
+          description: 'Mock Binary',
+          repoUrl: 'https://mock.test',
+          directories: DirectoryConfig(
+            base: {
+              OS.linux: '.mock',
+              OS.macos: 'Mock',
+              OS.windows: 'Mock',
+            },
+          ),
+          download: DownloadConfig(
+            baseUrl: 'https://mock.test',
+            files: {
+              OS.linux: 'mock',
+              OS.macos: 'mock',
+              OS.windows: 'mock',
+            },
+          ),
+          binary: 'mock',
+          network: NetworkConfig(port: 8272),
+          chainLayer: 0,
+        );
+
+  @override
+  Color get color => SailColorScheme.orange;
 }

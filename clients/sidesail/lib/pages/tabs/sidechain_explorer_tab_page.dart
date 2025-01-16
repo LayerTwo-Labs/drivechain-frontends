@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/providers/balance_provider.dart';
@@ -37,7 +38,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           confirmedBalance: model.balance,
                           unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
-                          currentChain: model.chain.type == ChainType.testchain,
+                          currentChain: model.chain == TestSidechain(),
                           onPressed: () => model.setSidechain(TestSidechain(), app),
                           inBottomNav: false,
                         ),
@@ -46,7 +47,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           confirmedBalance: model.balance,
                           unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
-                          currentChain: model.chain.type == ChainType.ethereum,
+                          currentChain: model.chain == EthereumSidechain(),
                           onPressed: () => model.setSidechain(EthereumSidechain(), app),
                           inBottomNav: false,
                         ),
@@ -55,7 +56,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           confirmedBalance: model.balance,
                           unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
-                          currentChain: model.chain.type == ChainType.zcash,
+                          currentChain: model.chain == ZCashSidechain(),
                           onPressed: () => model.setSidechain(ZCashSidechain(), app),
                           inBottomNav: false,
                         ),
@@ -82,7 +83,7 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
 
-  Chain get chain => sidechain.rpc.chain;
+  Binary get chain => sidechain.rpc.chain;
 
   SidechainExplorerTabViewModel() {
     _balanceProvider.addListener(notifyListeners);

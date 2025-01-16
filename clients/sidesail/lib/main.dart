@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/runtime_args.dart';
@@ -122,7 +123,7 @@ Future<void> initSidechainBinary(
 
 bool isCurrentChainActive({
   required List<ActiveSidechain> activeChains,
-  required Chain currentChain,
+  required Binary currentChain,
 }) {
   final foundMatch = activeChains.firstWhereOrNull((chain) => chain.title == currentChain.name);
   return foundMatch != null;

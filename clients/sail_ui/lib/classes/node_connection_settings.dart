@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class NodeConnectionSettings extends ChangeNotifier {
@@ -84,7 +85,7 @@ class NodeConnectionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  void readAndSetValuesFromFile(Chain chain, String network) async {
+  void readAndSetValuesFromFile(Binary chain, String network) async {
     try {
       var parts = splitPath(configPathController.text);
       String dataDir = parts.$1;
@@ -192,12 +193,12 @@ final _emptyNodeConf = NodeConnectionSettings.empty();
 Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network) async {
   NodeConnectionSettings conf = _emptyNodeConf;
 
-  switch (chain.type) {
-    case ChainType.testchain:
+  switch (chain) {
+    case TestSidechain():
       try {
         conf = await readRPCConfig(
-          TestSidechain().type.datadir(),
-          TestSidechain().type.confFile(),
+          TestSidechain().datadir(),
+          TestSidechain().confFile(),
           TestSidechain(),
           network,
         );
@@ -205,11 +206,11 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
         // do nothing, just don't exit
       }
       break;
-    case ChainType.ethereum:
+    case EthereumSidechain():
       try {
         conf = await readRPCConfig(
-          EthereumSidechain().type.datadir(),
-          EthereumSidechain().type.confFile(),
+          EthereumSidechain().datadir(),
+          EthereumSidechain().confFile(),
           EthereumSidechain(),
           network,
         );
@@ -217,11 +218,11 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
         // do nothing, just don't exit
       }
       break;
-    case ChainType.zcash:
+    case ZCashSidechain():
       try {
         conf = await readRPCConfig(
-          ZCashSidechain().type.datadir(),
-          ZCashSidechain().type.confFile(),
+          ZCashSidechain().datadir(),
+          ZCashSidechain().confFile(),
           ZCashSidechain(),
           'regtest',
           useCookieAuth: false,
@@ -231,7 +232,7 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
       }
       break;
 
-    case ChainType.parentchain:
+    case ParentChain():
       // do absolutely nothing, not a sidechain!
       break;
   }

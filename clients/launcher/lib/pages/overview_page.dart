@@ -1,11 +1,11 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:launcher/models/chain_config.dart';
-import 'package:launcher/services/configuration_service.dart';
-import 'package:launcher/services/download_manager.dart';
-import 'package:launcher/services/resource_downloader.dart';
-import 'package:launcher/services/service_provider.dart';
+import 'package:get_it/get_it.dart';
+import 'package:launcher/providers/config_provider.dart';
+import 'package:launcher/providers/download_provider.dart';
+import 'package:launcher/providers/resource_downloader.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -17,14 +17,14 @@ class OverviewPage extends StatefulWidget {
 }
 
 class _OverviewPageState extends State<OverviewPage> {
-  late final ConfigurationService _configService;
-  late final DownloadManager _downloadManager;
+  late final ConfigProvider _configService;
+  late final DownloadProvider _downloadManager;
 
   @override
   void initState() {
     super.initState();
-    _configService = ServiceProvider.get<ConfigurationService>();
-    _downloadManager = ServiceProvider.get<DownloadManager>();
+    _configService = GetIt.I.get<ConfigProvider>();
+    _downloadManager = GetIt.I.get<DownloadProvider>();
   }
 
   @override
@@ -36,9 +36,9 @@ class _OverviewPageState extends State<OverviewPage> {
             child: StreamBuilder<Map<String, DownloadProgress>>(
               stream: _downloadManager.statusStream,
               builder: (context, statusSnapshot) {
-                final l1Chains = _configService.configs.chains.where((chain) => chain.chainType == 0).toList()
-                  ..sort((a, b) => a.slot.compareTo(b.slot));
-                final l2Chains = _configService.configs.chains.where((chain) => chain.chainType == 1).toList();
+                final l1Chains = _configService.configs.where((chain) => chain.chainLayer == 1).toList()
+                  ..sort((a, b) => a.chainLayer.compareTo(b.chainLayer));
+                final l2Chains = _configService.configs.where((chain) => chain.chainLayer == 2).toList();
 
                 return SingleChildScrollView(
                   child: Column(
@@ -61,7 +61,7 @@ class _OverviewPageState extends State<OverviewPage> {
                                   spacing: 16.0,
                                   runSpacing: 16.0,
                                   children: l1Chains.map((chain) {
-                                    final status = statusSnapshot.data?[chain.id];
+                                    final status = statusSnapshot.data?[chain.name];
                                     return SizedBox(
                                       width: cardWidth,
                                       child: SailRawCard(
@@ -85,7 +85,7 @@ class _OverviewPageState extends State<OverviewPage> {
                             SailText.primary24('Layer 2'),
                             const SizedBox(height: 16),
                             ...l2Chains.map((chain) {
-                              final status = statusSnapshot.data?[chain.id];
+                              final status = statusSnapshot.data?[chain.name];
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8.0,
@@ -178,7 +178,7 @@ class _OverviewPageState extends State<OverviewPage> {
     return const SizedBox();
   }
 
-  Widget _buildChainContent(ChainConfig chain, DownloadProgress? status) {
+  Widget _buildChainContent(Binary chain, DownloadProgress? status) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -186,7 +186,7 @@ class _OverviewPageState extends State<OverviewPage> {
           children: [
             Expanded(
               child: SailText.primary24(
-                chain.displayName,
+                chain.name,
                 textAlign: TextAlign.left,
               ),
             ),
@@ -221,7 +221,7 @@ class _OverviewPageState extends State<OverviewPage> {
             ),
           ),
         const SizedBox(height: 8),
-        _buildActionButton(chain.id, status),
+        _buildActionButton(chain.name, status),
       ],
     );
   }

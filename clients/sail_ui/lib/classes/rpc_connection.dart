@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 // when you implement this class, you should extend a ChangeNotifier, to get
@@ -18,7 +19,7 @@ abstract class RPCConnection extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
   NodeConnectionSettings conf;
-  final String binary;
+  final Binary binary;
   final String logPath;
 
   RPCConnection({
@@ -154,7 +155,7 @@ abstract class RPCConnection extends ChangeNotifier {
     try {
       pid = await processes.start(
         context,
-        binary,
+        binary.binary,
         args,
         stop,
       );
@@ -172,7 +173,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
     await startConnectionTimer();
     var timeout = Duration(seconds: 60);
-    if (binary == 'zsided') {
+    if (binary.binary == 'zsided') {
       // zcash can take a long time. initial sync as well
       timeout = Duration(seconds: 5 * 60);
     }

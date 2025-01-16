@@ -14,6 +14,7 @@ import 'package:bitwindow/servers/mainchain_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -115,7 +116,7 @@ Future<void> initDependencies(Logger log, File logFile) async {
   NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
   try {
     final network = 'signet';
-    mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'bitcoin.conf', ParentChain(), network);
+    mainchainConf = await readRPCConfig(ParentChain().datadir(), 'bitcoin.conf', ParentChain(), network);
   } catch (error) {
     log.e('could not read mainchain conf: $error');
     // do nothing
@@ -128,16 +129,17 @@ Future<void> initDependencies(Logger log, File logFile) async {
       host: env(Environment.bitwindowdHost),
       port: env(Environment.bitwindowdPort),
       conf: mainchainConf,
-      binary: 'bitwindowd',
+      binary: BitWindow(),
       logPath: serverLogFile,
     ),
   );
 
   final enforcer = EnforcerLive(
     conf: mainchainConf,
-    binary: 'bip300301_enforcer',
+    binary: Enforcer(),
     logPath: serverLogFile,
   );
+
   GetIt.I.registerLazySingleton<EnforcerRPC>(
     () => enforcer,
   );
@@ -172,10 +174,10 @@ Future<void> initDependencies(Logger log, File logFile) async {
   );
   unawaited(sidechainProvider.fetch());
 
-  final mainchainLogDir = [ParentChain().type.datadir(), 'signet', 'debug.log'].join(Platform.pathSeparator);
+  final mainchainLogDir = [ParentChain().datadir(), 'signet', 'debug.log'].join(Platform.pathSeparator);
   final mainchainRPC = await MainchainRPCLive.create(
     mainchainConf,
-    ParentChain().binary,
+    ParentChain(),
     mainchainLogDir,
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(

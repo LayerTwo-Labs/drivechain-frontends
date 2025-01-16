@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// RPC connection to the mainchain node. Only really used
@@ -45,7 +46,7 @@ class MainchainRPCLive extends MainchainRPC {
   });
   static Future<MainchainRPCLive> create(
     NodeConnectionSettings conf,
-    String binary,
+    Binary binary,
     String logPath,
   ) async {
     final container = MainchainRPCLive._create(

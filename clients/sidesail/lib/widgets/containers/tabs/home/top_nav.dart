@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
@@ -48,7 +49,7 @@ class _TopNavState extends State<TopNav> {
                   },
                   icon: SailSVGAsset.iconTabPeg,
                 ),
-                if (_sidechain.rpc.chain.type == ChainType.testchain)
+                if (_sidechain.rpc.chain == TestSidechain())
                   QtTab(
                     label: 'Withdrawal Explorer',
                     active: widget.tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
@@ -57,7 +58,7 @@ class _TopNavState extends State<TopNav> {
                     },
                     icon: SailSVGAsset.iconTabWithdrawalExplorer,
                   ),
-                if (_sidechain.rpc.chain.type == ChainType.testchain)
+                if (_sidechain.rpc.chain == TestSidechain())
                   QtTab(
                     label: 'Blind Merged Mining',
                     active: widget.tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
@@ -91,8 +92,8 @@ class _TopNavState extends State<TopNav> {
     TopNavViewModel viewModel,
     auto_router.TabsRouter tabsRouter,
   ) {
-    switch (chain.type) {
-      case ChainType.testchain:
+    switch (chain) {
+      case TestSidechain():
         return [
           QtTab(
             label: 'Send',
@@ -103,7 +104,7 @@ class _TopNavState extends State<TopNav> {
             icon: SailSVGAsset.iconTabSidechainSend,
           ),
         ];
-      case ChainType.ethereum:
+      case EthereumSidechain():
         return [
           QtTab(
             label: 'Console',
@@ -115,7 +116,7 @@ class _TopNavState extends State<TopNav> {
           ),
         ];
 
-      case ChainType.zcash:
+      case ZCashSidechain():
         return [
           QtTab(
             label: 'Send',
@@ -151,20 +152,24 @@ class _TopNavState extends State<TopNav> {
           ),
         ];
 
-      case ChainType.parentchain:
+      case ParentChain():
         return [];
+      case Thunder():
+        return [];
+      default:
+        throw Exception('could not handle unknown sidechain type ${chain.runtimeType}');
     }
   }
 
   List<QtTab> _navForSidechainTrailing(
-    Chain chain,
+    Binary chain,
     TopNavViewModel viewModel,
     auto_router.TabsRouter tabsRouter,
   ) {
     List<QtTab> trailing = [];
 
-    switch (chain.type) {
-      case ChainType.testchain:
+    switch (chain) {
+      case TestSidechain():
         trailing = [
           QtTab(
             label: 'Console',
@@ -177,10 +182,10 @@ class _TopNavState extends State<TopNav> {
         ];
         break;
 
-      case ChainType.ethereum:
+      case EthereumSidechain():
         break;
 
-      case ChainType.zcash:
+      case ZCashSidechain():
         trailing = [
           QtTab(
             label: 'Console',
@@ -193,7 +198,7 @@ class _TopNavState extends State<TopNav> {
         ];
         break;
 
-      case ChainType.parentchain:
+      case ParentChain():
         break;
     }
 
@@ -220,7 +225,7 @@ class TopNavViewModel extends BaseViewModel {
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
 
-  Chain get chain => _sideRPC.rpc.chain;
+  Binary get chain => _sideRPC.rpc.chain;
 
   TopNavViewModel() {
     _balanceProvider.addListener(notifyListeners);

@@ -1,15 +1,16 @@
 import 'dart:async';
-import 'package:launcher/services/download_manager.dart';
-import 'package:launcher/services/resource_downloader.dart';
 
-class MockDownloadManager extends DownloadManager {
+import 'package:launcher/providers/download_provider.dart';
+import 'package:launcher/providers/resource_downloader.dart';
+
+class MockDownloadProvider extends DownloadProvider {
   final _statusController = StreamController<Map<String, DownloadProgress>>.broadcast();
   final Map<String, DownloadProgress> _componentStatus = {};
 
   @override
   Stream<Map<String, DownloadProgress>> get statusStream => _statusController.stream;
 
-  MockDownloadManager() : super(configService: null, downloader: null) {
+  MockDownloadProvider() : super(configService: null, downloader: null) {
     // Initialize with a test status
     _componentStatus['test-chain'] = DownloadProgress(
       componentId: 'test-chain',

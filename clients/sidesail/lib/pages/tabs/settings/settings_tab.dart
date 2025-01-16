@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/runtime_args.dart';
@@ -137,7 +138,7 @@ class SettingsTabPage extends StatelessWidget {
 }
 
 class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewModel> {
-  final Chain chain;
+  final Binary chain;
   final String name;
   final bool connected;
   final NodeConnectionSettings settings;

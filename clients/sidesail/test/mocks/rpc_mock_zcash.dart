@@ -2,11 +2,13 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
+import 'mock_binary.dart';
+
 class MockZCashRPC extends ZCashRPC {
   MockZCashRPC()
       : super(
           conf: NodeConnectionSettings('./mocked.conf', 'mock mock', 1337, '', '', true),
-          binary: 'mock mock',
+          binary: MockBinary(),
           logPath: './mocked.log',
         );
 

@@ -1,10 +1,9 @@
 {
-  "schema_version": "1.0",
   "chains": [
       {
           "id": "grpcurl",
           "version": "1.9.1",
-          "display_name": "GRPCURL",
+          "name": "GRPCURL",
           "description": "Command line tool for interacting with gRPC servers",
           "repo_url": "https://github.com/fullstorydev/grpcurl",
           "directories": {
@@ -41,13 +40,12 @@
           "network": {
               "port": 0
           },
-          "chain_type": 0,
-          "slot": 0
+          "chain_layer": 1
       },
       {
           "id": "bitcoin",
           "version": "latest",
-          "display_name": "Bitcoin Core (Patched)",
+          "name": "Bitcoin Core (Patched)",
           "description": "Modified Bitcoin implementation for drivechain support",
           "repo_url": "",
           "directories": {
@@ -84,13 +82,12 @@
           "network": {
               "port": 8332
           },
-          "chain_type": 0,
-          "slot": 1
+          "chain_layer": 1
       },
       {
           "id": "enforcer",
           "version": "0.1.0",
-          "display_name": "BIP300301 Enforcer",
+          "name": "BIP300301 Enforcer",
           "description": "Manages drivechain validation rules",
           "repo_url": "",
           "directories": {
@@ -127,13 +124,12 @@
           "network": {
               "port": 0
           },
-          "chain_type": 0,
-          "slot": 2
+          "chain_layer": 1
       },
       {
           "id": "bitwindow",
           "version": "latest",
-          "display_name": "BitWindow",
+          "name": "BitWindow",
           "description": "GUI for managing drivechain operations",
           "repo_url": "",
           "directories": {
@@ -170,13 +166,12 @@
           "network": {
               "port": 0
           },
-          "chain_type": 0,
-          "slot": 3
+          "chain_layer": 1
       },
       {
           "id": "thunder",
           "version": "latest",
-          "display_name": "Thunder",
+          "name": "Thunder",
           "description": "Layer 2 sidechain implementation",
           "repo_url": "",
           "directories": {
@@ -213,8 +208,7 @@
           "network": {
               "port": 6009
           },
-          "chain_type": 1,
-          "slot": 0
+          "chain_layer": 2
       }
   ]
 }

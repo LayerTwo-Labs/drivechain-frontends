@@ -1,39 +1,20 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-abstract class Chain {
-  String get name;
-  Color get color;
-  ChainType get type;
-  int get rpcPort;
+abstract class Sidechain extends Binary {
+  Sidechain({
+    required super.name,
+    required super.version,
+    required super.description,
+    required super.repoUrl,
+    required super.directories,
+    required super.download,
+    required super.binary,
+    required super.network,
+    required super.chainLayer,
+  });
 
-  String get ticker {
-    return '';
-  }
-
-  String get binary;
-
-  static Chain? fromBinary(String binary) {
-    switch (binary.toLowerCase()) {
-      case 'bitcoind':
-        return ParentChain();
-
-      case 'sidegeth':
-        return EthereumSidechain();
-
-      case 'testchaind':
-        return TestSidechain();
-
-      case 'zsided':
-        return ZCashSidechain();
-    }
-    return null;
-  }
-}
-
-abstract class Sidechain extends Chain {
   int get slot;
 
   static Sidechain? fromString(String input) {
@@ -46,213 +27,146 @@ abstract class Sidechain extends Chain {
 
       case 'zcash':
         return ZCashSidechain();
+
+      case 'thunder':
+        return Thunder();
     }
     return null;
   }
 }
 
 class TestSidechain extends Sidechain {
-  @override
-  String name = 'Testchain';
+  TestSidechain()
+      : super(
+          name: 'Testchain',
+          version: '0.1.0',
+          description: 'Test Sidechain',
+          repoUrl: 'https://github.com/drivechain-project/testchain',
+          directories: DirectoryConfig(
+            base: {
+              OS.linux: '.testchain',
+              OS.macos: 'Testchain',
+              OS.windows: 'Testchain',
+            },
+          ),
+          download: DownloadConfig(
+            baseUrl: 'https://releases.drivechain.info/',
+            files: {
+              OS.linux: 'L2-S0-Testchain-latest-x86_64-unknown-linux-gnu.zip',
+              OS.macos: 'L2-S0-Testchain-latest-x86_64-apple-darwin.zip',
+              OS.windows: 'L2-S0-Testchain-latest-x86_64-pc-windows-gnu.zip',
+            },
+          ),
+          binary: 'testchaind',
+          network: NetworkConfig(port: 8272),
+          chainLayer: 2,
+        );
 
   @override
   int slot = 0;
 
   @override
   Color color = SailColorScheme.orange;
-
-  @override
-  ChainType get type => ChainType.testchain;
-
-  @override
-  int get rpcPort => 8272;
-
-  @override
-  String get binary => 'testchaind';
 }
 
 class ZCashSidechain extends Sidechain {
-  @override
-  String name = 'zSide';
+  ZCashSidechain()
+      : super(
+          name: 'zSide',
+          version: '0.1.0',
+          description: 'ZCash Sidechain',
+          repoUrl: 'https://github.com/drivechain-project/zside',
+          directories: DirectoryConfig(
+            base: {
+              OS.linux: '.zside',
+              OS.macos: 'ZSide',
+              OS.windows: 'ZSide',
+            },
+          ),
+          download: DownloadConfig(
+            baseUrl: 'https://releases.drivechain.info/',
+            files: {
+              OS.linux: 'L2-S5-ZCash-latest-x86_64-unknown-linux-gnu.zip',
+              OS.macos: 'L2-S5-ZCash-latest-x86_64-apple-darwin.zip',
+              OS.windows: 'L2-S5-ZCash-latest-x86_64-pc-windows-gnu.zip',
+            },
+          ),
+          binary: 'zsided',
+          network: NetworkConfig(port: 8232),
+          chainLayer: 2,
+        );
 
   @override
   int slot = 5;
 
   @override
   Color color = SailColorScheme.blue;
-
-  @override
-  ChainType get type => ChainType.zcash;
-
-  @override
-  int get rpcPort => 8232;
-
-  @override
-  String get binary => 'zsided';
 }
 
 class EthereumSidechain extends Sidechain {
-  @override
-  String name = 'EthSide';
+  EthereumSidechain()
+      : super(
+          name: 'EthSide',
+          version: '0.1.0',
+          description: 'Ethereum Sidechain',
+          repoUrl: 'https://github.com/drivechain-project/ethside',
+          directories: DirectoryConfig(
+            base: {
+              OS.linux: '.ethside',
+              OS.macos: 'EthSide',
+              OS.windows: 'EthSide',
+            },
+          ),
+          download: DownloadConfig(
+            baseUrl: 'https://releases.drivechain.info/',
+            files: {
+              OS.linux: 'L2-S6-Ethereum-latest-x86_64-unknown-linux-gnu.zip',
+              OS.macos: 'L2-S6-Ethereum-latest-x86_64-apple-darwin.zip',
+              OS.windows: 'L2-S6-Ethereum-latest-x86_64-pc-windows-gnu.zip',
+            },
+          ),
+          binary: 'sidegeth',
+          network: NetworkConfig(port: 8545),
+          chainLayer: 2,
+        );
 
   @override
   int slot = 6;
 
   @override
   Color color = SailColorScheme.purple;
-
-  @override
-  ChainType get type => ChainType.ethereum;
-
-  @override
-  int get rpcPort => 8545;
-
-  @override
-  String get binary => 'sidegeth';
 }
 
-class ParentChain extends Chain {
+class Thunder extends Sidechain {
+  Thunder()
+      : super(
+          name: 'Thunder',
+          version: '0.1.0',
+          description: 'Thunder Sidechain',
+          repoUrl: 'https://github.com/drivechain-project/thunder',
+          directories: DirectoryConfig(
+            base: {
+              OS.linux: '.thunder',
+              OS.macos: 'Thunder',
+              OS.windows: 'Thunder',
+            },
+          ),
+          download: DownloadConfig(
+            baseUrl: 'https://releases.drivechain.info/',
+            files: {
+              OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
+              OS.macos: 'L2-S9-Thunder-latest-x86_64-apple-darwin.zip',
+              OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
+            },
+          ),
+          binary: 'thunder',
+          network: NetworkConfig(port: 38332),
+          chainLayer: 2,
+        );
+
   @override
-  String name = 'Parent Chain';
+  int slot = 9;
 
   @override
   Color color = SailColorScheme.green;
-
-  @override
-  ChainType get type => ChainType.parentchain;
-
-  @override
-  int get rpcPort => 38332;
-
-  @override
-  String get binary => 'bitcoind';
-}
-
-enum ChainType {
-  parentchain,
-  testchain,
-  ethereum,
-  zcash,
-}
-
-extension SidechainPaths on ChainType {
-  String confFile() {
-    switch (this) {
-      case ChainType.testchain:
-        return 'testchain.conf';
-      case ChainType.ethereum:
-        return 'config.toml';
-      case ChainType.zcash:
-        return 'zcash.conf';
-      case ChainType.parentchain:
-        return 'bitcoin.conf';
-    }
-  }
-
-  String logDir() {
-    switch (this) {
-      case ChainType.testchain:
-        return filePath([datadir(), 'debug.log']);
-      case ChainType.ethereum:
-        return filePath([datadir(), 'ethereum.log']);
-      case ChainType.zcash:
-        return filePath([datadir(), 'regtest', 'debug.log']);
-      case ChainType.parentchain:
-        return filePath([datadir(), 'debug.log']);
-    }
-  }
-
-  String datadir() {
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']; // windows!
-    if (home == null) {
-      throw 'unable to determine HOME location';
-    }
-
-    if (Platform.isLinux) {
-      return applicationDir(subdir: _linuxDirname());
-    } else if (Platform.isMacOS) {
-      return applicationDir(subdir: _macosDirname());
-    } else if (Platform.isWindows) {
-      return applicationDir(subdir: _windowsDirname());
-    } else {
-      throw 'unsupported operating system: ${Platform.operatingSystem}';
-    }
-  }
-
-  String _linuxDirname() {
-    switch (this) {
-      case ChainType.testchain:
-        return 'drivechain_launcher_sidechains/testchain';
-      case ChainType.ethereum:
-        return '.ethside';
-      case ChainType.zcash:
-        return '.zcash-drivechain';
-      case ChainType.parentchain:
-        return '.drivechain';
-    }
-  }
-
-  String _macosDirname() {
-    switch (this) {
-      case ChainType.testchain:
-        return 'drivechain_launcher_sidechains/testchain';
-      case ChainType.ethereum:
-        return 'EthSide';
-      case ChainType.zcash:
-        return 'ZcashDrivechain';
-      case ChainType.parentchain:
-        return 'Drivechain';
-    }
-  }
-
-  String _windowsDirname() {
-    switch (this) {
-      case ChainType.testchain:
-        return 'drivechain_launcher_sidechains/testchain';
-      case ChainType.ethereum:
-        return 'EthSide';
-      case ChainType.zcash:
-        return 'ZcashDrivechain';
-      case ChainType.parentchain:
-        return 'Drivechain';
-    }
-  }
-}
-
-String applicationDir({String? subdir}) {
-  final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']; // windows!
-  if (home == null) {
-    throw 'unable to determine HOME location';
-  }
-
-  subdir = subdir ?? '';
-
-  if (Platform.isLinux) {
-    return filePath([
-      home,
-      subdir,
-    ]);
-  } else if (Platform.isMacOS) {
-    return filePath([
-      home,
-      'Library',
-      'Application Support',
-      subdir,
-    ]);
-  } else if (Platform.isWindows) {
-    return filePath([
-      home,
-      'AppData',
-      'Roaming',
-      subdir,
-    ]);
-  } else {
-    throw 'unsupported operating system: ${Platform.operatingSystem}';
-  }
-}
-
-/// Join a list of filepath segments based on the underlying platform
-/// path separator
-String filePath(List<String> segments) {
-  return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }

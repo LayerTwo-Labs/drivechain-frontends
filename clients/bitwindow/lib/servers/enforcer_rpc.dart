@@ -25,7 +25,7 @@ class EnforcerLive extends EnforcerRPC {
   }) {
     final channel = ClientChannel(
       'localhost',
-      port: 50051,
+      port: binary.port,
       options: const ChannelOptions(
         credentials: ChannelCredentials.insecure(),
       ),

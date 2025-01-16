@@ -138,15 +138,7 @@ class SailTextButton extends StatelessWidget {
 
     return SailScaleButton(
       onPressed: onPressed,
-      child: InkWell(
-        borderRadius: SailStyleValues.borderRadiusButton,
-        onTap: onPressed,
-        highlightColor: Colors.transparent,
-        focusColor: theme.colors.backgroundActionModal.withValues(alpha: 0.1),
-        hoverColor: theme.colors.backgroundActionModal.withValues(alpha: 0.1),
-        splashColor: Colors.transparent,
-        child: SailText.secondary12(label, bold: true),
-      ),
+      child: SailText.secondary12(label, bold: true, color: theme.colors.background),
     );
   }
 }

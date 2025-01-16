@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class Config {
@@ -29,7 +30,7 @@ class Config {
 Future<NodeConnectionSettings> readRPCConfig(
   String datadir,
   String confFile,
-  Chain chain,
+  Binary chain,
   String network, {
   // if set, will force this network, irregardless of runtime argument
   bool useCookieAuth = true,
@@ -52,7 +53,7 @@ Future<NodeConnectionSettings> readRPCConfig(
     return NodeConnectionSettings(
       conf.path,
       'localhost',
-      chain.rpcPort,
+      chain.port,
       'user',
       'password',
       network == 'regtest',
@@ -79,7 +80,7 @@ Future<NodeConnectionSettings> readRPCConfig(
     final settings = NodeConnectionSettings(
       conf.path,
       'localhost',
-      chain.rpcPort,
+      chain.port,
       'user',
       'password',
       network == 'regtest',
@@ -97,7 +98,7 @@ Future<NodeConnectionSettings> readRPCConfig(
   }
 
   host ??= 'localhost';
-  port ??= chain.rpcPort;
+  port ??= chain.port;
 
 // Make sure to not include password here
   log.i('resolved conf: $username@$host:$port on $network');

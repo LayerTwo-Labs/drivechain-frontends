@@ -12,6 +12,7 @@ import 'package:bitwindow/servers/mainchain_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:stacked/stacked.dart';
@@ -354,7 +355,7 @@ class BottomNavViewModel extends BaseViewModel {
 
   Future<void> deleteMainchainBlocks(BuildContext context) async {
     try {
-      final datadir = mainchain.chain.type.datadir();
+      final datadir = mainchain.chain.datadir();
       final signetDir = filePath([datadir, 'signet']);
 
       // List of files/directories to delete
