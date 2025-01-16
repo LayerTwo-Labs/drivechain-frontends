@@ -5,7 +5,7 @@ import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/download_provider.dart';
+import 'package:launcher/providers/download_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()

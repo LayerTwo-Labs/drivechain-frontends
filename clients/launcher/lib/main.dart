@@ -6,13 +6,9 @@ import 'package:launcher/env.dart';
 import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/providers/download_provider.dart';
 import 'package:launcher/providers/quotes_provider.dart';
-import 'package:launcher/providers/resource_downloader.dart';
-import 'package:provider/provider.dart';
-import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-import 'package:sail_ui/providers/download_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -86,15 +82,12 @@ Future<void> initDependencies(Logger log) async {
 
   final datadir = await Environment.datadir();
   // Register download manager
-  final downloadProvider = DownloadProvider(
-    datadir: datadir,
-    binaries: configProvider.configs,
-  );
   GetIt.I.registerSingleton<DownloadProvider>(
-    downloadProvider,
+    DownloadProvider(
+      datadir: datadir,
+      configs: configProvider.configs,
+    ),
   );
-
-  await downloadProvider.initialize();
 
   // Register quotes provider
   GetIt.I.registerSingleton<QuotesProvider>(

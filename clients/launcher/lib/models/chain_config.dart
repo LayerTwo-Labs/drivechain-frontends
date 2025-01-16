@@ -1,36 +1,43 @@
-import 'dart:ui';
-
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/style/color_scheme.dart';
-
-class ChainConfigs {
-  final String schemaVersion;
-  final List<ChainConfig> chains;
-
-  const ChainConfigs({
-    required this.schemaVersion,
-    required this.chains,
-  });
-}
-
-class ChainConfig extends Binary {
-  final String id;
+class ChainConfig {
+  final String name;
+  final String binary;
+  final int chainLayer;
+  final String downloadUrl;
+  final String linuxFile;
+  final String macosFile;
+  final String windowsFile;
 
   ChainConfig({
-    required this.id,
-    required super.version,
-    required super.name,
-    required super.description,
-    required super.repoUrl,
-    required super.chainLayer,
-    required Map<String, String> binary,
-    required super.directories,
-    required super.download,
-    required super.network,
-  }) : super(
-          binary: binary.values.first,
-        );
+    required this.name,
+    required this.binary,
+    required this.chainLayer,
+    required this.downloadUrl,
+    required this.linuxFile,
+    required this.macosFile,
+    required this.windowsFile,
+  });
 
-  @override
-  Color get color => SailColorScheme.green; // Default color
+  factory ChainConfig.fromJson(Map<String, dynamic> json) {
+    return ChainConfig(
+      name: json['name'] as String,
+      binary: json['binary'] as String,
+      chainLayer: json['chainLayer'] as int,
+      downloadUrl: json['downloadUrl'] as String,
+      linuxFile: json['linuxFile'] as String,
+      macosFile: json['macosFile'] as String,
+      windowsFile: json['windowsFile'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'binary': binary,
+      'chainLayer': chainLayer,
+      'downloadUrl': downloadUrl,
+      'linuxFile': linuxFile,
+      'macosFile': macosFile,
+      'windowsFile': windowsFile,
+    };
+  }
 }
