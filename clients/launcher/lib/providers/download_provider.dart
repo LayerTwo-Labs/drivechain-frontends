@@ -8,18 +8,9 @@ export 'package:sail_ui/providers/download_provider.dart' show DownloadProgress,
 
 class DownloadProvider extends sail.DownloadProvider {
   DownloadProvider({
-    required Directory datadir,
+    required super.datadir,
     required List<Binary> configs,
-  }) : super(
-          datadir: datadir,
-          binaries: configs,
-        );
-
-  @override
-  Stream<Map<String, sail.DownloadProgress>> get statusStream => super.statusStream;
-
-  @override
-  Future<bool> downloadBinary(Binary binary) => super.downloadBinary(binary);
+  }) : super(binaries: configs);
 
   // Initialize is a no-op since the parent class handles initialization in constructor
   Future<void> initialize() async {}

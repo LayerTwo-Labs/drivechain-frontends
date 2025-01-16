@@ -1,17 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:launcher/providers/download_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/download_provider.dart';
 
 class MockDownloadProvider extends DownloadProvider {
   final _statusController = StreamController<Map<String, DownloadProgress>>.broadcast();
   final Map<String, DownloadProgress> _binaryStatus = {};
 
-  @override
-  Stream<Map<String, DownloadProgress>> get statusStream => _statusController.stream;
-
-  MockDownloadProvider() : super(datadir: Directory(''), binaries: []) {
+  MockDownloadProvider() : super(datadir: Directory(''), configs: []) {
     // Initialize with a test status
     _binaryStatus['test-chain'] = DownloadProgress(
       binaryName: 'test-chain',
@@ -19,6 +16,9 @@ class MockDownloadProvider extends DownloadProvider {
     );
     _emitStatus();
   }
+
+  @override
+  Stream<Map<String, DownloadProgress>> get statusStream => _statusController.stream;
 
   @override
   Future<bool> downloadBinary(Binary binary) async {
@@ -38,5 +38,6 @@ class MockDownloadProvider extends DownloadProvider {
   @override
   void dispose() {
     _statusController.close();
+    super.dispose();
   }
 }
