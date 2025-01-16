@@ -58,14 +58,21 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   }
 
   void _handleFastMode() async {
-    final mnemonic = _walletService.generateMnemonic();
-    final success = await _walletService.createFromMnemonic(mnemonic);
-    
-    if (success) {
-      if (mounted) Navigator.of(context).pop(true);
-    } else {
+    try {
+      // In fast mode, we generate a random mnemonic and create the wallet
+      final mnemonic = _walletService.generateMnemonic();
+      final success = await _walletService.createFromMnemonic(mnemonic);
+      
+      if (success) {
+        if (mounted) Navigator.of(context).pop(true);
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to create wallet';
+        });
+      }
+    } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to create wallet';
+        _errorMessage = 'Failed to create wallet: $e';
       });
     }
   }
@@ -151,7 +158,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                 onChanged: (value) {
                   setState(() {
                     _useMnemonic = value ?? false;
-                    // clear input fields when switching modes
+                    // Clear input fields when switching modes
                     _mnemonicController.clear();
                     _passphraseController.clear();
                     _errorMessage = null;
@@ -205,15 +212,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             children: [
               SailButton.secondary(
                 'Fast Mode',
-                onPressed: () async {
-                  try {
-                    await _handleFastMode();
-                  } catch (e) {
-                    setState(() {
-                      _errorMessage = 'Failed to create wallet: $e';
-                    });
-                  }
-                },
+                onPressed: _handleFastMode,
                 size: ButtonSize.regular,
               ),
               const SizedBox(width: 8),
