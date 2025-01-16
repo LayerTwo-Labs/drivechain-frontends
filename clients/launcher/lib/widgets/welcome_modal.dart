@@ -1,4 +1,9 @@
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:hex/hex.dart';
+import 'package:launcher/services/wallet_service.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
@@ -30,6 +35,14 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   bool _useMnemonic = true;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
+  late final WalletService _walletService;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _walletService = GetIt.I.get<WalletService>();
+  }
 
   @override
   void dispose() {
@@ -38,15 +51,73 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     super.dispose();
   }
 
-  void _handleFastMode() {
-    // TODO: Implement fast withdrawal creation logic
-    Navigator.of(context).pop(true);
+  String _generateRandomHex() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (i) => random.nextInt(256));
+    return HEX.encode(bytes);
+  }
+
+  void _handleFastMode() async {
+    final mnemonic = _walletService.generateMnemonic();
+    final success = await _walletService.createFromMnemonic(mnemonic);
+    
+    if (success) {
+      if (mounted) Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _errorMessage = 'Failed to create wallet';
+      });
+    }
   }
 
   void _handleAdvancedMode() {
     setState(() {
       _showAdvanced = true;
+      _errorMessage = null;
     });
+  }
+
+  void _handleGenerateRandom() {
+    setState(() {
+      if (_useMnemonic) {
+        _mnemonicController.text = _walletService.generateMnemonic();
+      } else {
+        _mnemonicController.text = _generateRandomHex();
+      }
+      _errorMessage = null;
+    });
+  }
+
+  Future<void> _handleCreateWallet() async {
+    final input = _mnemonicController.text.trim();
+    if (input.isEmpty) {
+      setState(() {
+        _errorMessage = _useMnemonic 
+            ? 'Please enter a mnemonic phrase'
+            : 'Please enter a hex key';
+      });
+      return;
+    }
+
+    bool success;
+    if (_useMnemonic) {
+      success = await _walletService.createFromMnemonic(
+        input,
+        passphrase: _passphraseController.text.trim(),
+      );
+    } else {
+      success = await _walletService.createFromHex(input);
+    }
+
+    if (success) {
+      if (mounted) Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _errorMessage = _useMnemonic 
+            ? 'Invalid mnemonic phrase'
+            : 'Invalid hex key';
+      });
+    }
   }
 
   @override
@@ -64,6 +135,13 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           'Get started by creating a wallet!',
           color: SailTheme.of(context).colors.textSecondary,
         ),
+        if (_errorMessage != null) ...[
+          const SizedBox(height: 8),
+          SailText.primary13(
+            _errorMessage!,
+            color: SailTheme.of(context).colors.error,
+          ),
+        ],
         if (_showAdvanced) ...[
           const SizedBox(height: 16),
           Row(
@@ -73,9 +151,10 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                 onChanged: (value) {
                   setState(() {
                     _useMnemonic = value ?? false;
-                    // Clear input fields when switching modes
+                    // clear input fields when switching modes
                     _mnemonicController.clear();
                     _passphraseController.clear();
+                    _errorMessage = null;
                   });
                 },
               ),
@@ -108,17 +187,13 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             children: [
               SailButton.secondary(
                 'Generate Random',
-                onPressed: () {
-                  // TODO: Implement random generation
-                },
+                onPressed: _handleGenerateRandom,
                 size: ButtonSize.regular,
               ),
               const SizedBox(width: 8),
               SailButton.primary(
                 'Create Wallet',
-                onPressed: () {
-                  // TODO: Implement wallet creation
-                },
+                onPressed: _handleCreateWallet,
                 size: ButtonSize.regular,
               ),
             ],
@@ -130,7 +205,15 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             children: [
               SailButton.secondary(
                 'Fast Mode',
-                onPressed: _handleFastMode,
+                onPressed: () async {
+                  try {
+                    await _handleFastMode();
+                  } catch (e) {
+                    setState(() {
+                      _errorMessage = 'Failed to create wallet: $e';
+                    });
+                  }
+                },
                 size: ButtonSize.regular,
               ),
               const SizedBox(width: 8),
