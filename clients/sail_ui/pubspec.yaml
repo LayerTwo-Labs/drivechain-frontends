@@ -18,6 +18,9 @@ dependencies:
     flutter_custom_tabs: ^2.1.0
     flutter_svg: ^2.0.17
     flutter_platform_alert: ^0.6.1
+    dio: ^5.7.0
+    path: ^1.8.3
+    archive: ^3.4.10  
     intl: ^0.20.1
     crypto: ^3.0.6
     logger: ^2.5.0

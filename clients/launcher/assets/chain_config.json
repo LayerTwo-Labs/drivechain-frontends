@@ -1,214 +1,198 @@
 {
   "chains": [
-      {
-          "id": "grpcurl",
-          "version": "1.9.1",
-          "name": "GRPCURL",
-          "description": "Command line tool for interacting with gRPC servers",
-          "repo_url": "https://github.com/fullstorydev/grpcurl",
-          "directories": {
-              "base": {
-                  "linux": "downloads/l1",
-                  "darwin": "downloads/l1",
-                  "win32": "downloads/l1"
-              },
-              "wallet": ""
-          },
-          "download": {
-              "base_url": "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.1/",
-              "files": {
-                  "linux": "grpcurl_1.9.1_linux_x86_64.tar.gz",
-                  "darwin": "grpcurl_1.9.1_osx_x86_64.tar.gz",
-                  "win32": "grpcurl_1.9.1_windows_x86_64.zip"
-              },
-              "sizes": {
-                  "linux": 0,
-                  "darwin": 0,
-                  "win32": 0
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "grpcurl",
-              "darwin": "grpcurl",
-              "win32": "grpcurl.exe"
-          },
-          "network": {
-              "port": 0
-          },
-          "chain_layer": 1
+    {
+      "version": "1.9.1",
+      "name": "GRPCURL",
+      "description": "Command line tool for interacting with gRPC servers",
+      "repo_url": "https://github.com/fullstorydev/grpcurl",
+      "directories": {
+        "linux": "downloads/l1",
+        "darwin": "downloads/l1",
+        "win32": "downloads/l1"
       },
-      {
-          "id": "bitcoin",
-          "version": "latest",
-          "name": "Bitcoin Core (Patched)",
-          "description": "Modified Bitcoin implementation for drivechain support",
-          "repo_url": "",
-          "directories": {
-              "base": {
-                  "linux": "downloads/l1",
-                  "darwin": "downloads/l1",
-                  "win32": "downloads/l1"
-              },
-              "wallet": "wallet.dat"
-          },
-          "download": {
-              "base_url": "https://releases.drivechain.info/",
-              "files": {
-                  "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
-                  "win32": "L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
-              },
-              "sizes": {
-                  "linux": 0,
-                  "darwin": 0,
-                  "win32": 0
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu/bitcoind",
-              "darwin": "L1-bitcoin-patched-latest-x86_64-apple-darwin/bitcoind",
-              "win32": "L1-bitcoin-patched-latest-x86_64-w64-msvc/Release/bitcoind.exe"
-          },
-          "network": {
-              "port": 8332
-          },
-          "chain_layer": 1
+      "download": {
+        "base_url": "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.1/",
+        "files": {
+          "linux": "grpcurl_1.9.1_linux_x86_64.tar.gz",
+          "darwin": "grpcurl_1.9.1_osx_x86_64.tar.gz",
+          "win32": "grpcurl_1.9.1_windows_x86_64.zip"
+        },
+        "sizes": {
+          "linux": 0,
+          "darwin": 0,
+          "win32": 0
+        },
+        "hashes": {
+          "linux": "",
+          "darwin": "",
+          "win32": ""
+        }
       },
-      {
-          "id": "enforcer",
-          "version": "0.1.0",
-          "name": "BIP300301 Enforcer",
-          "description": "Manages drivechain validation rules",
-          "repo_url": "",
-          "directories": {
-              "base": {
-                  "linux": "downloads/l1",
-                  "darwin": "downloads/l1",
-                  "win32": "downloads/l1"
-              },
-              "wallet": ""
-          },
-          "download": {
-              "base_url": "https://releases.drivechain.info/",
-              "files": {
-                  "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
-                  "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
-              },
-              "sizes": {
-                  "linux": 0,
-                  "darwin": 0,
-                  "win32": 0
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu/bip300301_enforcer-0.1.0-x86_64-unknown-linux-gnu",
-              "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin/bip300301_enforcer-0.1.0-x86_64-apple-darwin",
-              "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.exe/bip300301_enforcer-0.1.0-x86_64-pc-windows-gnu.exe"
-          },
-          "network": {
-              "port": 0
-          },
-          "chain_layer": 1
+      "binary": {
+        "linux": "grpcurl",
+        "darwin": "grpcurl",
+        "win32": "grpcurl.exe"
       },
-      {
-          "id": "bitwindow",
-          "version": "latest",
-          "name": "BitWindow",
-          "description": "GUI for managing drivechain operations",
-          "repo_url": "",
-          "directories": {
-              "base": {
-                  "linux": "downloads/l1/bitwindow",
-                  "darwin": "downloads/l1/bitwindow",
-                  "win32": "downloads/l1"
-              },
-              "wallet": ""
-          },
-          "download": {
-              "base_url": "https://releases.drivechain.info/",
-              "files": {
-                  "linux": "BitWindow-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "BitWindow-latest-x86_64-apple-darwin.zip",
-                  "win32": "BitWindow-latest-x86_64-pc-windows-msvc.zip"
-              },
-              "sizes": {
-                  "linux": 0,
-                  "darwin": 0,
-                  "win32": 0
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "bitwindow/bitwindow",
-              "darwin": "bitwindow/bitwindow.app/Contents/MacOS/bitwindow",
-              "win32": "bitwindow.exe"
-          },
-          "network": {
-              "port": 0
-          },
-          "chain_layer": 1
+      "network": {
+        "port": 0
       },
-      {
-          "id": "thunder",
-          "version": "latest",
-          "name": "Thunder",
-          "description": "Layer 2 sidechain implementation",
-          "repo_url": "",
-          "directories": {
-              "base": {
-                  "linux": "downloads/l2",
-                  "darwin": "downloads/l2",
-                  "win32": "downloads/l2"
-              },
-              "wallet": "data/wallet.mdb"
-          },
-          "download": {
-              "base_url": "https://releases.drivechain.info/",
-              "files": {
-                  "linux": "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
-                  "darwin": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
-                  "win32": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
-              },
-              "sizes": {
-                  "linux": 0,
-                  "darwin": 0,
-                  "win32": 0
-              },
-              "hashes": {
-                  "linux": "",
-                  "darwin": "",
-                  "win32": ""
-              }
-          },
-          "binary": {
-              "linux": "thunder-latest-x86_64-unknown-linux-gnu",
-              "darwin": "thunder-latest-x86_64-apple-darwin",
-              "win32": "thunder-latest-x86_64-pc-windows-gnu.exe"
-          },
-          "network": {
-              "port": 6009
-          },
-          "chain_layer": 2
-      }
+      "chain_layer": 1
+    },
+    {
+      "version": "latest",
+      "name": "Bitcoin Core (Patched)",
+      "description": "Modified Bitcoin implementation for drivechain support",
+      "repo_url": "",
+      "directories": {
+        "base": {
+          "linux": "downloads/l1",
+          "darwin": "downloads/l1",
+          "win32": "downloads/l1"
+        }
+      },
+      "download": {
+        "base_url": "https://releases.drivechain.info/",
+        "files": {
+          "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip",
+          "darwin": "L1-bitcoin-patched-latest-x86_64-apple-darwin.zip",
+          "win32": "L1-bitcoin-patched-latest-x86_64-w64-msvc.zip"
+        },
+        "sizes": {
+          "linux": 0,
+          "darwin": 0,
+          "win32": 0
+        },
+        "hashes": {
+          "linux": "",
+          "darwin": "",
+          "win32": ""
+        }
+      },
+      "binary": {
+        "linux": "L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu/bitcoind",
+        "darwin": "L1-bitcoin-patched-latest-x86_64-apple-darwin/bitcoind",
+        "win32": "L1-bitcoin-patched-latest-x86_64-w64-msvc/Release/bitcoind.exe"
+      },
+      "network": {
+        "port": 8332
+      },
+      "chain_layer": 1
+    },
+    {
+      "version": "0.1.0",
+      "name": "BIP300301 Enforcer",
+      "description": "Manages drivechain validation rules",
+      "repo_url": "",
+      "directories": {
+        "base": {
+          "linux": "downloads/l1",
+          "darwin": "downloads/l1",
+          "win32": "downloads/l1"
+        }
+      },
+      "download": {
+        "base_url": "https://releases.drivechain.info/",
+        "files": {
+          "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip",
+          "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin.zip",
+          "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip"
+        },
+        "sizes": {
+          "linux": 0,
+          "darwin": 0,
+          "win32": 0
+        },
+        "hashes": {
+          "linux": "",
+          "darwin": "",
+          "win32": ""
+        }
+      },
+      "binary": {
+        "linux": "bip300301-enforcer-latest-x86_64-unknown-linux-gnu/bip300301_enforcer-0.1.0-x86_64-unknown-linux-gnu",
+        "darwin": "bip300301-enforcer-latest-x86_64-apple-darwin/bip300301_enforcer-0.1.0-x86_64-apple-darwin",
+        "win32": "bip300301-enforcer-latest-x86_64-pc-windows-gnu.exe/bip300301_enforcer-0.1.0-x86_64-pc-windows-gnu.exe"
+      },
+      "network": {
+        "port": 0
+      },
+      "chain_layer": 1
+    },
+    {
+      "version": "latest",
+      "name": "BitWindow",
+      "description": "GUI for managing drivechain operations",
+      "repo_url": "",
+      "directories": {
+        "linux": "downloads/l1/bitwindow",
+        "darwin": "downloads/l1/bitwindow",
+        "win32": "downloads/l1"
+      },
+      "download": {
+        "base_url": "https://releases.drivechain.info/",
+        "files": {
+          "linux": "BitWindow-latest-x86_64-unknown-linux-gnu.zip",
+          "darwin": "BitWindow-latest-x86_64-apple-darwin.zip",
+          "win32": "BitWindow-latest-x86_64-pc-windows-msvc.zip"
+        },
+        "sizes": {
+          "linux": 0,
+          "darwin": 0,
+          "win32": 0
+        },
+        "hashes": {
+          "linux": "",
+          "darwin": "",
+          "win32": ""
+        }
+      },
+      "binary": {
+        "linux": "bitwindow/bitwindow",
+        "darwin": "bitwindow/bitwindow.app/Contents/MacOS/bitwindow",
+        "win32": "bitwindow.exe"
+      },
+      "network": {
+        "port": 0
+      },
+      "chain_layer": 1
+    },
+    {
+      "version": "latest",
+      "name": "Thunder",
+      "description": "Layer 2 sidechain implementation",
+      "repo_url": "",
+      "directories": {
+        "linux": "downloads/l2",
+        "darwin": "downloads/l2",
+        "win32": "downloads/l2"
+      },
+      "download": {
+        "base_url": "https://releases.drivechain.info/",
+        "files": {
+          "linux": "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
+          "darwin": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
+          "win32": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
+        },
+        "sizes": {
+          "linux": 0,
+          "darwin": 0,
+          "win32": 0
+        },
+        "hashes": {
+          "linux": "",
+          "darwin": "",
+          "win32": ""
+        }
+      },
+      "binary": {
+        "linux": "thunder-latest-x86_64-unknown-linux-gnu",
+        "darwin": "thunder-latest-x86_64-apple-darwin",
+        "win32": "thunder-latest-x86_64-pc-windows-gnu.exe"
+      },
+      "network": {
+        "port": 6009
+      },
+      "chain_layer": 2
+    }
   ]
 }
