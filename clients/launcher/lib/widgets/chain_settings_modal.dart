@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:launcher/env.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/widgets/buttons/button.dart';
@@ -21,9 +22,9 @@ class ChainSettingsModal extends StatelessWidget {
     throw Exception('unsupported platform');
   }
 
-  void _openDownloadLocation(BuildContext context) {
+  void _openDownloadLocation(Binary binary) async {
     final os = _getOS();
-    final baseDir = chain.directories.base[os];
+    final baseDir = binary.directories.base[os];
     if (baseDir == null) return;
 
     final command = switch (os) {
@@ -32,7 +33,9 @@ class ChainSettingsModal extends StatelessWidget {
       OS.windows => 'explorer',
     };
 
-    Process.run(command, [baseDir]);
+    final datadir = await Environment.datadir();
+
+    await Process.run(command, [datadir.path]);
   }
 
   @override
@@ -78,7 +81,7 @@ class ChainSettingsModal extends StatelessWidget {
               Center(
                 child: SailButton.primary(
                   'Open Installation Directory',
-                  onPressed: () => _openDownloadLocation(context),
+                  onPressed: () => _openDownloadLocation(chain),
                   size: ButtonSize.regular,
                 ),
               ),

@@ -2,11 +2,10 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/providers/config_provider.dart';
-import 'package:launcher/providers/download_provider.dart';
-import 'package:launcher/providers/resource_downloader.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/download_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -156,27 +155,19 @@ class _OverviewPageState extends State<OverviewPage> {
     return const SizedBox();
   }
 
-  Widget _buildActionButton(String componentId, DownloadProgress? status) {
+  Widget _buildActionButton(Binary binary, DownloadProgress? status) {
     if (status == null || status.status == DownloadStatus.notStarted) {
       return SailButton.primary(
         'Download',
-        onPressed: () => _downloadManager.downloadComponent(componentId),
+        onPressed: () => _downloadManager.downloadBinary(binary),
         size: ButtonSize.regular,
       );
     }
 
     if (status.status == DownloadStatus.failed) {
       return SailButton.primary(
-        'Retry',
-        onPressed: () => _downloadManager.downloadComponent(componentId),
-        size: ButtonSize.regular,
-      );
-    }
-
-    if (status.status == DownloadStatus.completed) {
-      return SailButton.secondary(
-        'Verify',
-        onPressed: () => _downloadManager.verifyComponent(componentId),
+        'Retry Download',
+        onPressed: () => _downloadManager.downloadBinary(binary),
         size: ButtonSize.regular,
       );
     }
@@ -227,7 +218,7 @@ class _OverviewPageState extends State<OverviewPage> {
             ),
           ),
         const SizedBox(height: 8),
-        _buildActionButton(chain.name, status),
+        _buildActionButton(chain, status),
       ],
     );
   }
