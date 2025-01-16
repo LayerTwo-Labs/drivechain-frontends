@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/models/zcash_utxos.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
@@ -38,7 +39,7 @@ Future<void> copyIfNotExists(Logger log, BuildContext context, File file, String
 }
 
 Future<void> writeConfFileIfNotExists(Logger log) async {
-  final appDataDir = ZCashSidechain().type.datadir();
+  final appDataDir = ZCashSidechain().datadir();
   final zcashDataDir = Directory(appDataDir);
 
   if (!await zcashDataDir.exists()) {
@@ -46,7 +47,7 @@ Future<void> writeConfFileIfNotExists(Logger log) async {
     await zcashDataDir.create(recursive: true);
   }
 
-  final confFile = ZCashSidechain().type.confFile();
+  final confFile = ZCashSidechain().confFile();
 
   final file = File('${zcashDataDir.path}/$confFile');
 

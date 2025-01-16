@@ -15,7 +15,6 @@ Future<T?> showThemedDialog<T>({
 
 Future<T?> infoDialog<T>({
   required BuildContext context,
-  required String action,
   required String title,
   required String subtitle,
   required VoidCallback onConfirm,
@@ -71,7 +70,7 @@ Future<T?> _baseDialogSimple<T>({
       spacing: SailStyleValues.padding12,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SailText.primary10(
+        SailText.primary15(
           subtitle,
           color: theme.colors.textSecondary,
         ),

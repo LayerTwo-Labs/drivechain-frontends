@@ -36,7 +36,7 @@ class DepositWithdrawTabPage extends StatelessWidget {
                         title: 'Deposit from parent chain',
                         widgetEnd: HelpButton(onPressed: () => model.castHelp(context)),
                         children: [
-                          if (model._sidechain.rpc.chain.type == ChainType.ethereum)
+                          if (model._sidechain.rpc.chain == EthereumSidechain())
                             const PegInEthAction()
                           else
                             const PegInAction(),
@@ -93,7 +93,7 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
 
   void pegOut(BuildContext context) async {
     String? staticAddress;
-    if (_sidechain.rpc.chain.type == ChainType.ethereum) {
+    if (_sidechain.rpc.chain == EthereumSidechain()) {
       staticAddress = formatDepositAddress('0xc96aaa54e2d44c299564da76e1cd3184a2386b8d', _sidechain.rpc.chain.slot);
     }
 
@@ -108,7 +108,7 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
   }
 
   void pegIn(BuildContext context) async {
-    if (_sidechain.rpc.chain.type == ChainType.ethereum) {
+    if (_sidechain.rpc.chain == EthereumSidechain()) {
       return await showThemedDialog(
         context: context,
         builder: (BuildContext context) {

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
@@ -1065,7 +1066,7 @@ class ShieldedUTXOView extends StatelessWidget {
 
 class PendingCastView extends StatefulWidget {
   final PendingCastBill pending;
-  final Chain chain;
+  final Binary chain;
 
   const PendingCastView({
     super.key,

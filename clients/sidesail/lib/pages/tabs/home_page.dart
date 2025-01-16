@@ -5,6 +5,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -169,7 +170,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: _proccessProvider.runningProcesses.entries.map((entry) {
                 return ShutdownCard(
-                  chain: Chain.fromBinary(entry.value.binary)!,
+                  chain: Binary.fromBinary(entry.value.binary)!,
                   initializing: true,
                   message: 'with pid ${entry.value.pid}',
                   forceCleanup: () => entry.value.cleanup(),
@@ -204,7 +205,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 class ShutdownCard extends StatelessWidget {
-  final Chain chain;
+  final Binary chain;
   final String message;
   final bool initializing;
   final VoidCallback forceCleanup;

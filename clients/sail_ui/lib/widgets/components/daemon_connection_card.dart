@@ -28,7 +28,7 @@ class DaemonConnectionCard extends StatelessWidget {
         spacing: SailStyleValues.padding08,
         children: [
           SailText.primary15(
-            '${connection.binary} daemon',
+            '${connection.binary.name} daemon',
             bold: true,
           ),
           SailSVG.fromAsset(
@@ -65,7 +65,8 @@ class DaemonConnectionCard extends StatelessWidget {
           MouseRegion(
             cursor: navigateToLogs == null ? MouseCursor.defer : SystemMouseCursors.click,
             child: GestureDetector(
-              onTap: navigateToLogs == null ? null : () => navigateToLogs!(connection.binary, connection.logPath),
+              onTap:
+                  navigateToLogs == null ? null : () => navigateToLogs!(connection.binary.binary, connection.logPath),
               child: SailText.primary10(
                 'View logs',
                 color: theme.colors.textSecondary,

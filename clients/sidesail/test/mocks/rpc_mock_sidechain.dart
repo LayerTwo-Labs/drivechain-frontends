@@ -2,12 +2,14 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
 
+import 'mock_binary.dart';
+
 class MockSidechainRPC extends SidechainRPC {
   MockSidechainRPC()
       : super(
           conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
           chain: TestSidechain(),
-          binary: 'mock mock',
+          binary: MockBinary(),
           logPath: './mocked.log',
         );
 

@@ -1,17 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
-import 'package:launcher/models/chain_config.dart';
+import 'package:sail_ui/config/binaries.dart';
 
 /// Service responsible for loading and managing chain configurations
-class ConfigurationService {
-  late ChainConfigs _configs;
+class ConfigProvider {
+  late List<Binary> _configs;
   final String _baseDir;
 
-  ChainConfigs get configs => _configs;
+  List<Binary> get configs => _configs;
 
-  ConfigurationService({
+  ConfigProvider({
     String? baseDir,
   }) : _baseDir = baseDir ?? _defaultBaseDir;
 
@@ -40,7 +41,8 @@ class ConfigurationService {
     // Load chain configurations from assets
     final jsonString = await rootBundle.loadString('assets/chain_config.json');
     final jsonData = json.decode(jsonString) as Map<String, dynamic>;
-    _configs = ChainConfigs.fromJson(jsonData);
+    final List<dynamic> chainsJson = jsonData['chains'] as List<dynamic>;
+    _configs = chainsJson.map((json) => Binary.fromJson(json as Map<String, dynamic>)).toList();
 
     // Ensure base directory exists
     await Directory(_baseDir).create(recursive: true);
@@ -51,7 +53,7 @@ class ConfigurationService {
 
   /// Initialize directories for all components
   Future<void> _initializeDirectories() async {
-    for (final chain in _configs.chains) {
+    for (final chain in _configs) {
       final platform = _getPlatformKey();
       final baseDir = chain.directories.base[platform];
       if (baseDir != null) {
@@ -61,42 +63,41 @@ class ConfigurationService {
     }
   }
 
-  /// Get chain configuration by ID
-  ChainConfig? getChainConfig(String id) {
+  /// Get chain configuration by binary name
+  Binary? getChainConfig(String binaryName) {
     try {
-      return _configs.chains.firstWhere((chain) => chain.id == id);
+      return _configs.firstWhere((chain) => chain.binary == binaryName);
     } catch (e) {
       return null;
     }
   }
 
   /// Get all L1 chain configurations
-  List<ChainConfig> getL1Chains() {
-    return _configs.chains.where((chain) => chain.chainType == 0).toList();
+  List<Binary> getL1Chains() {
+    return _configs.where((chain) => chain.chainLayer == 1).toList();
   }
 
   /// Get all L2 chain configurations
-  List<ChainConfig> getL2Chains() {
-    return _configs.chains.where((chain) => chain.chainType == 1).toList();
+  List<Binary> getL2Chains() {
+    return _configs.where((chain) => chain.chainLayer == 2).toList();
   }
 
   /// Get binary path for a component
-  String? getBinaryPath(String componentId) {
-    final config = getChainConfig(componentId);
+  String? getBinaryPath(String binaryName) {
+    final config = getChainConfig(binaryName);
     if (config == null) return null;
 
     final platform = _getPlatformKey();
     final baseDir = config.directories.base[platform];
-    final binary = config.binary[platform];
 
-    if (baseDir == null || binary == null) return null;
+    if (baseDir == null) return null;
 
-    return path.join(_baseDir, baseDir, binary);
+    return path.join(_baseDir, baseDir, config.binary);
   }
 
   /// Get data directory for a component
-  String? getDataDir(String componentId) {
-    final config = getChainConfig(componentId);
+  String? getDataDir(String binaryName) {
+    final config = getChainConfig(binaryName);
     if (config == null) return null;
 
     final platform = _getPlatformKey();
@@ -107,29 +108,28 @@ class ConfigurationService {
   }
 
   /// Get wallet path for a component
-  String? getWalletPath(String componentId) {
-    final config = getChainConfig(componentId);
+  String? getWalletPath(String binaryName) {
+    final config = getChainConfig(binaryName);
     if (config == null) return null;
 
     final platform = _getPlatformKey();
     final baseDir = config.directories.base[platform];
-    final walletPath = config.directories.wallet;
 
-    if (baseDir == null || walletPath.isEmpty) return null;
+    if (baseDir == null) return null;
 
-    return path.join(_baseDir, baseDir, walletPath);
+    return path.join(_baseDir, baseDir, 'wallet');
   }
 
   /// Gets the platform-specific key used in config
-  String _getPlatformKey() {
+  OS _getPlatformKey() {
     if (Platform.isWindows) {
-      return 'win32';
+      return OS.windows;
     }
     if (Platform.isMacOS) {
-      return 'darwin';
+      return OS.macos;
     }
     if (Platform.isLinux) {
-      return 'linux';
+      return OS.linux;
     }
     throw Exception('Unsupported platform');
   }

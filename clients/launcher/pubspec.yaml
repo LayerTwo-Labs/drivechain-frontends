@@ -19,6 +19,7 @@ dependencies:
   dio: ^5.7.0
   archive: ^3.4.10
   path: ^1.8.3
+  path_provider: ^2.1.5
   stacked: ^3.4.3
   qr_flutter: ^4.1.0
   cupertino_icons: ^1.0.8

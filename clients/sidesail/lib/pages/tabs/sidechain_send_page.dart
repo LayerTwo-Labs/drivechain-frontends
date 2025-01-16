@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -83,7 +84,7 @@ class SidechainSendViewModel extends BaseViewModel {
 
   List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
 
-  Chain get chain => _sideRPC.rpc.chain;
+  Binary get chain => _sideRPC.rpc.chain;
 
   SidechainSendViewModel() {
     _transactionsProvider.addListener(notifyListeners);

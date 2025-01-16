@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:launcher/providers/config_provider.dart';
+import 'package:launcher/providers/download_provider.dart';
+import 'package:launcher/providers/resource_downloader.dart';
 import 'package:launcher/routing/router.dart';
-import 'package:launcher/services/service_provider.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,9 +44,6 @@ void main() async {
           theme: ThemeData(
             visualDensity: VisualDensity.compact,
             fontFamily: 'Inter',
-            textTheme: GoogleFonts.interTightTextTheme(
-              GoogleFonts.sourceCodeProTextTheme(),
-            ),
           ),
         );
       },
@@ -71,6 +69,22 @@ Future<void> initDependencies(Logger log) async {
     ),
   );
 
-  // Initialize our services
-  await ServiceProvider.initialize();
+  // Register configuration service
+  final configProvider = ConfigProvider();
+  GetIt.I.registerSingleton<ConfigProvider>(
+    configProvider,
+  );
+  await configProvider.initialize();
+
+  // Register resource downloader
+  GetIt.I.registerSingleton<ResourceDownloader>(
+    ResourceDownloader(),
+  );
+
+  // Register download manager
+  final downloadProvider = DownloadProvider();
+  GetIt.I.registerSingleton<DownloadProvider>(
+    downloadProvider,
+  );
+  await downloadProvider.initialize();
 }

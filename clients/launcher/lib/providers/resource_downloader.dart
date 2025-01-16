@@ -1,10 +1,11 @@
-import 'dart:io';
-import 'package:dio/dio.dart';
-import 'package:path/path.dart' as path;
-import 'package:archive/archive.dart';
 import 'dart:async';
+import 'dart:io';
 
-import 'package:launcher/models/chain_config.dart';
+import 'package:archive/archive.dart';
+import 'package:dio/dio.dart';
+import 'package:launcher/env.dart';
+import 'package:path/path.dart' as path;
+import 'package:sail_ui/config/binaries.dart';
 
 /// Represents the current status of a download operation
 enum DownloadStatus {
@@ -35,86 +36,65 @@ class DownloadProgress {
 
 /// Service responsible for downloading and managing binary resources
 class ResourceDownloader {
-  final Dio _dio;
-  final String _baseDir;
+  final Dio _dio = Dio();
 
   // Stream controller for progress updates
   final _progressController = StreamController<DownloadProgress>.broadcast();
   Stream<DownloadProgress> get progressStream => _progressController.stream;
 
-  ResourceDownloader({
-    Dio? dio,
-    String? baseDir,
-  })  : _dio = dio ?? Dio(),
-        _baseDir = baseDir ?? _defaultBaseDir;
-
-  // Get the default base directory based on platform
-  static String get _defaultBaseDir {
-    if (Platform.isWindows) {
-      return path.join(Platform.environment['APPDATA']!, 'Drivechain');
-    } else if (Platform.isMacOS) {
-      return path.join(
-        Platform.environment['HOME']!,
-        'Library',
-        'Application Support',
-        'Drivechain',
-      );
-    } else {
-      // Linux and others
-      return path.join(
-        Platform.environment['HOME']!,
-        '.drivechain',
-      );
-    }
-  }
-
   /// Downloads and sets up a component
-  Future<bool> downloadComponent(ChainConfig component) async {
-    final componentId = component.id;
-    final downloadInfo = component.download;
+  Future<bool> downloadComponent(Binary component) async {
+    final datadir = await Environment.datadir();
+    final dir = path.join(datadir.path, 'assets');
 
     try {
       // Determine platform-specific details
       final platform = _getPlatformKey();
-      final baseUrl = downloadInfo.baseUrl;
-      final fileName = downloadInfo.files[platform]!;
+      final baseUrl = component.download.baseUrl;
+      final fileName = component.download.files[platform]!;
       final downloadUrl = Uri.parse(baseUrl).resolve(fileName).toString();
 
       // Get the target directory from component config
-      final targetDir = path.join(_baseDir, component.directories.base[platform]!);
+      final targetDir = path.join(dir, component.directories.base[platform]!);
 
       // Create target directory if it doesn't exist
       await Directory(targetDir).create(recursive: true);
 
       // Start download
-      _progressController.add(DownloadProgress(
-        componentId: componentId,
-        status: DownloadStatus.downloading,
-        message: 'Starting download...',
-      ),);
+      _progressController.add(
+        DownloadProgress(
+          componentId: component.name,
+          status: DownloadStatus.downloading,
+          message: 'Starting download...',
+        ),
+      );
 
       final filePath = path.join(targetDir, fileName);
-      await _downloadFile(downloadUrl, filePath, componentId);
+      await _downloadFile(downloadUrl, filePath, component.name);
 
       // Extract the downloaded file
-      _progressController.add(DownloadProgress(
-        componentId: componentId,
-        status: DownloadStatus.extracting,
-        message: 'Extracting files...',
-      ),);
+      _progressController.add(
+        DownloadProgress(
+          componentId: component.name,
+          status: DownloadStatus.extracting,
+          message: 'Extracting files...',
+        ),
+      );
 
       await _extractFile(filePath, targetDir, fileName);
 
       // Verify binary exists and is executable
-      _progressController.add(DownloadProgress(
-        componentId: componentId,
-        status: DownloadStatus.verifying,
-        message: 'Verifying installation...',
-      ),);
+      _progressController.add(
+        DownloadProgress(
+          componentId: component.name,
+          status: DownloadStatus.verifying,
+          message: 'Verifying installation...',
+        ),
+      );
 
       final binaryPath = path.join(
         targetDir,
-        component.binary[platform]!,
+        component.binary,
       );
 
       if (!await verifyBinary(binaryPath)) {
@@ -124,20 +104,24 @@ class ResourceDownloader {
       // Cleanup downloaded archive
       await File(filePath).delete();
 
-      _progressController.add(DownloadProgress(
-        componentId: componentId,
-        status: DownloadStatus.completed,
-        progress: 1.0,
-        message: 'Installation complete',
-      ),);
+      _progressController.add(
+        DownloadProgress(
+          componentId: component.name,
+          status: DownloadStatus.completed,
+          progress: 1.0,
+          message: 'Installation complete',
+        ),
+      );
 
       return true;
     } catch (e) {
-      _progressController.add(DownloadProgress(
-        componentId: componentId,
-        status: DownloadStatus.failed,
-        error: e.toString(),
-      ),);
+      _progressController.add(
+        DownloadProgress(
+          componentId: component.name,
+          status: DownloadStatus.failed,
+          error: e.toString(),
+        ),
+      );
       return false;
     }
   }
@@ -155,12 +139,14 @@ class ResourceDownloader {
         onReceiveProgress: (received, total) {
           if (total != -1) {
             final progress = received / total;
-            _progressController.add(DownloadProgress(
-              componentId: componentId,
-              status: DownloadStatus.downloading,
-              progress: progress,
-              message: 'Downloaded ${(progress * 100).toStringAsFixed(1)}%',
-            ),);
+            _progressController.add(
+              DownloadProgress(
+                componentId: componentId,
+                status: DownloadStatus.downloading,
+                progress: progress,
+                message: 'Downloaded ${(progress * 100).toStringAsFixed(1)}%',
+              ),
+            );
           }
         },
       );
@@ -225,15 +211,15 @@ class ResourceDownloader {
   }
 
   /// Gets the platform-specific key used in config
-  String _getPlatformKey() {
+  OS _getPlatformKey() {
     if (Platform.isWindows) {
-      return 'win32';
+      return OS.windows;
     }
     if (Platform.isMacOS) {
-      return 'darwin';
+      return OS.macos;
     }
     if (Platform.isLinux) {
-      return 'linux';
+      return OS.linux;
     }
     throw Exception('Unsupported platform');
   }

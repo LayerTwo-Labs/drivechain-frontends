@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sidesail/config/runtime_args.dart';
@@ -52,14 +53,14 @@ Future<void> initDependencies(Sidechain chain) async {
   NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
   try {
     final network = RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
-    mainchainConf = await readRPCConfig(ParentChain().type.datadir(), 'drivechain.conf', ParentChain(), network);
+    mainchainConf = await readRPCConfig(ParentChain().datadir(), 'drivechain.conf', ParentChain(), network);
   } catch (error) {
     // do nothing
   }
   final mainchainRPC = await MainchainRPCLive.create(
     mainchainConf,
-    ParentChain().binary,
-    ParentChain().type.logDir(),
+    ParentChain(),
+    ParentChain().logDir(),
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
@@ -104,13 +105,13 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
 
   SidechainRPC? sidechain;
 
-  if (chain.type == ChainType.testchain) {
+  if (chain is TestSidechain) {
     log.i('starting init testchain RPC');
 
     final testchain = TestchainRPCLive(
       conf: conf,
-      binary: TestSidechain().binary,
-      logPath: TestSidechain().type.logDir(),
+      binary: TestSidechain(),
+      logPath: TestSidechain().logDir(),
     );
     sidechain = testchain;
 
@@ -121,13 +122,13 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
     }
   }
 
-  if (chain.type == ChainType.ethereum) {
+  if (chain is EthereumSidechain) {
     log.i('starting init ethereum RPC');
 
     final ethChain = EthereumRPCLive(
       conf: conf,
-      binary: EthereumSidechain().binary,
-      logPath: EthereumSidechain().type.logDir(),
+      binary: EthereumSidechain(),
+      logPath: EthereumSidechain().logDir(),
     );
     sidechain = ethChain;
 
@@ -138,13 +139,13 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
     }
   }
 
-  if (chain.type == ChainType.zcash) {
+  if (chain == ZCashSidechain()) {
     log.i('starting init zcash RPC');
 
     final zChain = ZcashRPCLive(
       conf: conf,
-      binary: ZCashSidechain().binary,
-      logPath: ZCashSidechain().type.logDir(),
+      binary: ZCashSidechain(),
+      logPath: ZCashSidechain().logDir(),
     );
     sidechain = zChain;
 

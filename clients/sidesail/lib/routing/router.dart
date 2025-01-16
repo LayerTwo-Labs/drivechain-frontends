@@ -60,21 +60,21 @@ class AppRouter extends RootStackRouter {
             ),
             AutoRoute(
               page: SidechainSendRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == ChainType.testchain,
+              initial: Sidechain.fromString(RuntimeArgs.chain) == TestSidechain(),
             ),
             AutoRoute(
               page: TestchainRPCTabRoute.page,
             ),
             AutoRoute(
               page: EthereumRPCTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == ChainType.ethereum,
+              initial: Sidechain.fromString(RuntimeArgs.chain) == EthereumSidechain(),
             ),
             AutoRoute(
               page: ZCashMeltCastTabRoute.page,
             ),
             AutoRoute(
               page: ZCashShieldDeshieldTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain)?.type == ChainType.zcash,
+              initial: Sidechain.fromString(RuntimeArgs.chain) == ZCashSidechain(),
             ),
             AutoRoute(
               page: ZCashTransferTabRoute.page,

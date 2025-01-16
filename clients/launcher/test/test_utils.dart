@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:launcher/services/configuration_service.dart';
-import 'package:launcher/services/download_manager.dart';
+import 'package:launcher/providers/config_provider.dart';
+import 'package:launcher/providers/download_provider.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -50,15 +50,15 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<ConfigurationService>()) {
-    GetIt.I.registerLazySingleton<ConfigurationService>(
-      () => MockConfigurationService(),
+  if (!GetIt.I.isRegistered<ConfigProvider>()) {
+    GetIt.I.registerLazySingleton<ConfigProvider>(
+      () => MockConfigProvider(),
     );
   }
 
-  if (!GetIt.I.isRegistered<DownloadManager>()) {
-    GetIt.I.registerLazySingleton<DownloadManager>(
-      () => MockDownloadManager(),
+  if (!GetIt.I.isRegistered<DownloadProvider>()) {
+    GetIt.I.registerLazySingleton<DownloadProvider>(
+      () => MockDownloadProvider(),
     );
   }
 }

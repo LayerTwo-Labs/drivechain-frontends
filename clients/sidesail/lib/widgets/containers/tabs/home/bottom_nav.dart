@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/providers/balance_provider.dart';
@@ -106,7 +107,7 @@ class BottomNavViewModel extends BaseViewModel {
   String? get sidechainError => _sideRPC.rpc.connectionError;
   String? get mainchainError => _mainRPC.connectionError;
 
-  Chain get chain => _sideRPC.rpc.chain;
+  Binary get chain => _sideRPC.rpc.chain;
 
   BottomNavViewModel({required this.navigateToSettings}) {
     _sideRPC.addListener(notifyListeners);

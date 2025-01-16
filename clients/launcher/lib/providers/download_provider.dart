@@ -1,11 +1,12 @@
 import 'dart:async';
+
 import 'package:get_it/get_it.dart';
-import 'package:launcher/services/configuration_service.dart';
-import 'package:launcher/services/resource_downloader.dart';
+import 'package:launcher/providers/config_provider.dart';
+import 'package:launcher/providers/resource_downloader.dart';
 
 /// Manages the overall download process for all components
-class DownloadManager {
-  final ConfigurationService _configService;
+class DownloadProvider {
+  final ConfigProvider _configService;
   final ResourceDownloader _downloader;
 
   // Stream controller for overall download status
@@ -15,10 +16,10 @@ class DownloadManager {
   // Track status of all components
   final Map<String, DownloadProgress> _componentStatus = {};
 
-  DownloadManager({
-    ConfigurationService? configService,
+  DownloadProvider({
+    ConfigProvider? configService,
     ResourceDownloader? downloader,
-  })  : _configService = configService ?? GetIt.I<ConfigurationService>(),
+  })  : _configService = configService ?? GetIt.I<ConfigProvider>(),
         _downloader = downloader ?? ResourceDownloader() {
     // Listen to individual download progress updates
     _downloader.progressStream.listen(_handleProgressUpdate);
@@ -27,9 +28,9 @@ class DownloadManager {
   /// Initialize the download manager
   Future<void> initialize() async {
     // Initialize all components with "not started" status
-    for (final chain in _configService.configs.chains) {
-      _componentStatus[chain.id] = DownloadProgress(
-        componentId: chain.id,
+    for (final chain in _configService.configs) {
+      _componentStatus[chain.name] = DownloadProgress(
+        componentId: chain.name,
         status: DownloadStatus.notStarted,
       );
     }
@@ -83,19 +84,19 @@ class DownloadManager {
   Future<bool> verifyAllComponents() async {
     bool allValid = true;
 
-    for (final chain in _configService.configs.chains) {
-      final binaryPath = _configService.getBinaryPath(chain.id);
+    for (final chain in _configService.configs) {
+      final binaryPath = _configService.getBinaryPath(chain.name);
       if (binaryPath == null) {
         allValid = false;
-        _componentStatus[chain.id] = DownloadProgress(
-          componentId: chain.id,
+        _componentStatus[chain.name] = DownloadProgress(
+          componentId: chain.name,
           status: DownloadStatus.failed,
           error: 'Invalid binary path',
         );
         continue;
       }
 
-      if (!await _verifyComponent(chain.id, binaryPath)) {
+      if (!await _verifyComponent(chain.name, binaryPath)) {
         allValid = false;
       }
     }
