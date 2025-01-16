@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/buttons/button.dart';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
   return await widgetDialog<bool>(
@@ -27,7 +28,7 @@ class _WelcomeModalContent extends StatefulWidget {
 
 class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   bool _showAdvanced = false;
-  bool _useMnemonic = false;
+  bool _useMnemonic = true;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
 
@@ -71,9 +72,11 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
               Checkbox(
                 value: _useMnemonic,
                 onChanged: (value) {
-                  // TODO: Implement mnemonic checkbox logic
                   setState(() {
                     _useMnemonic = value ?? false;
+                    // Clear input fields when switching modes
+                    _mnemonicController.clear();
+                    _passphraseController.clear();
                   });
                 },
               ),
@@ -82,17 +85,24 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             ],
           ),
           const SizedBox(height: 8),
-          SailTextField(
-            controller: _mnemonicController,
-            hintText: 'Enter BIP39 mnemonic (12 words) or generate random',
-          ),
-          const SizedBox(height: 16),
-          SailText.primary13('Optional BIP39 Passphrase:'),
-          const SizedBox(height: 8),
-          SailTextField(
-            controller: _passphraseController,
-            hintText: 'Enter optional passphrase (leave empty for none)',
-          ),
+          if (_useMnemonic) ...[
+            SailTextField(
+              controller: _mnemonicController,
+              hintText: 'Enter BIP39 mnemonic (12 words) or generate random',
+            ),
+            const SizedBox(height: 16),
+            SailText.primary13('Optional BIP39 Passphrase:'),
+            const SizedBox(height: 8),
+            SailTextField(
+              controller: _passphraseController,
+              hintText: 'Enter optional passphrase (leave empty for none)',
+            ),
+          ] else ...[
+            SailTextField(
+              controller: _mnemonicController,
+              hintText: 'Enter 64 hex characters or generate random',
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
