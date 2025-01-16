@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/buttons/button.dart';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
   return await widgetDialog<bool>(
@@ -20,7 +19,7 @@ class WelcomeModal extends StatelessWidget {
 }
 
 class _WelcomeModalContent extends StatefulWidget {
-  const _WelcomeModalContent({Key? key}) : super(key: key);
+  const _WelcomeModalContent();
 
   @override
   _WelcomeModalContentState createState() => _WelcomeModalContentState();
@@ -28,11 +27,14 @@ class _WelcomeModalContent extends StatefulWidget {
 
 class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   bool _showAdvanced = false;
-  final TextEditingController _textController = TextEditingController();
+  bool _useMnemonic = false;
+  final TextEditingController _mnemonicController = TextEditingController();
+  final TextEditingController _passphraseController = TextEditingController();
 
   @override
   void dispose() {
-    _textController.dispose();
+    _mnemonicController.dispose();
+    _passphraseController.dispose();
     super.dispose();
   }
 
@@ -53,39 +55,84 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       spacing: SailStyleValues.padding12,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SailText.primary15(
+        SailText.primary13(
           'Welcome to Drivechain Launcher! This application helps you manage and interact with your Drivechain sidechains.',
           color: SailTheme.of(context).colors.textSecondary,
         ),
         const SizedBox(height: 8),
-        SailText.primary15(
+        SailText.primary13(
           'Get started by creating a wallet!',
           color: SailTheme.of(context).colors.textSecondary,
         ),
         if (_showAdvanced) ...[
           const SizedBox(height: 16),
+          Row(
+            children: [
+              Checkbox(
+                value: _useMnemonic,
+                onChanged: (value) {
+                  // TODO: Implement mnemonic checkbox logic
+                  setState(() {
+                    _useMnemonic = value ?? false;
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+              SailText.primary13('Mnemonic'),
+            ],
+          ),
+          const SizedBox(height: 8),
           SailTextField(
-            controller: _textController,
-            hintText: 'Enter advanced settings...',
+            controller: _mnemonicController,
+            hintText: 'Enter BIP39 mnemonic (12 words) or generate random',
+          ),
+          const SizedBox(height: 16),
+          SailText.primary13('Optional BIP39 Passphrase:'),
+          const SizedBox(height: 8),
+          SailTextField(
+            controller: _passphraseController,
+            hintText: 'Enter optional passphrase (leave empty for none)',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              SailButton.secondary(
+                'Generate Random',
+                onPressed: () {
+                  // TODO: Implement random generation
+                },
+                size: ButtonSize.regular,
+              ),
+              const SizedBox(width: 8),
+              SailButton.primary(
+                'Create Wallet',
+                onPressed: () {
+                  // TODO: Implement wallet creation
+                },
+                size: ButtonSize.regular,
+              ),
+            ],
+          ),
+        ] else ...[
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              SailButton.secondary(
+                'Fast Mode',
+                onPressed: _handleFastMode,
+                size: ButtonSize.regular,
+              ),
+              const SizedBox(width: 8),
+              SailButton.primary(
+                'Advanced Mode',
+                onPressed: _handleAdvancedMode,
+                size: ButtonSize.regular,
+              ),
+            ],
           ),
         ],
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SailButton.secondary(
-              'Fast Mode',
-              onPressed: _handleFastMode,
-              size: ButtonSize.regular,
-            ),
-            const SizedBox(width: 8),
-            SailButton.primary(
-              'Advanced Mode',
-              onPressed: _handleAdvancedMode,
-              size: ButtonSize.regular,
-            ),
-          ],
-        ),
       ],
     );
   }
