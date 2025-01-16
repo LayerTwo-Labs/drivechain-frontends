@@ -67,11 +67,11 @@ void main() {
         const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
         const passphrase = 'TREZOR';
         
-        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase);
+        final walletData = await walletService.createWalletData(mnemonic, passphrase: passphrase,);
         
-        expect(walletData.masterKey, isNotEmpty);
-        expect(walletData.chainCode, isNotEmpty);
-        expect(walletData.hdKeyData, isNotEmpty);
+        expect(walletData.masterKey, isNotEmpty,);
+        expect(walletData.chainCode, isNotEmpty,);
+        expect(walletData.hdKeyData, isNotEmpty,);
         expect(walletData.bip32Path, equals("m/44'/0'/0'"),);
       });
 
