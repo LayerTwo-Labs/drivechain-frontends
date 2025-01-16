@@ -38,6 +38,7 @@ dependencies:
   super_clipboard: ^0.8.24
   window_manager: ^0.4.3
   synchronized: ^3.3.0+3
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:
@@ -52,6 +53,7 @@ flutter:
 
   assets:
     - assets/chain_config.json
+    - assets/quotes.json
     - assets/fonts/
 
   fonts:
