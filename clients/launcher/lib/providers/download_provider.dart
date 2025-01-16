@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/download_provider.dart' as sail;
 
