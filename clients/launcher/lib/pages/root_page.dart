@@ -1,7 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:launcher/routing/router.dart';
-import 'package:launcher/widgets/update_modal.dart';
+import 'package:launcher/widgets/welcome_modal.dart';
 import 'package:launcher/widgets/wallet_button.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
@@ -18,9 +18,9 @@ class _RootPageState extends State<RootPage> {
   @override
   void initState() {
     super.initState();
-    // Show update modal after widget is initialized
+    // Show welcome modal after widget is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showUpdateModal(context);
+      showWelcomeModal(context);
     });
   }
 
