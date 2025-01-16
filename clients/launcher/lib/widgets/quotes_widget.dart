@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:launcher/providers/quotes_provider.dart';
@@ -43,10 +44,12 @@ class _QuotesWidgetState extends State<QuotesWidget> {
       final List<dynamic> jsonData = json.decode(jsonString);
       setState(() {
         quotes = List<Map<String, String>>.from(
-          jsonData.map((quote) => {
-                'text': quote['quote'] as String,
-                'author': quote['author'] as String,
-              },),
+          jsonData.map(
+            (quote) => {
+              'quote': quote['quote'] as String,
+              'author': quote['author'] as String,
+            },
+          ),
         );
       });
     } catch (e) {
@@ -70,9 +73,8 @@ class _QuotesWidgetState extends State<QuotesWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Add a setting in the settings page to enable/disable quotes using QuotesProvider
     final quotesProvider = context.watch<QuotesProvider>();
-    
+
     if (quotes.isEmpty || !quotesProvider.showQuotes) {
       return const SizedBox.shrink();
     }
@@ -110,7 +112,7 @@ class _QuotesWidgetState extends State<QuotesWidget> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '"${quote['text']}"', // Using stored 'text' key from JSON parsing
+                            '"${quote['quote']}"', // Using stored 'text' key from JSON parsing
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   fontStyle: FontStyle.italic,
                                   color: Colors.grey[600],

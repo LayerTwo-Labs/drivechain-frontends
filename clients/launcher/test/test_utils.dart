@@ -5,6 +5,7 @@ import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/providers/quotes_provider.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
+import 'package:sail_ui/providers/download_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'mocks/configuration_service_mock.dart';
