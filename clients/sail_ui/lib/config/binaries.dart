@@ -26,12 +26,11 @@ class DirectoryConfig {
   });
 
   factory DirectoryConfig.fromJson(Map<String, dynamic> json) {
-    final baseJson = json['base'] as Map<String, dynamic>;
     return DirectoryConfig(
       base: {
-        OS.linux: baseJson['linux'] as String? ?? '',
-        OS.macos: baseJson['darwin'] as String? ?? '',
-        OS.windows: baseJson['win32'] as String? ?? '',
+        OS.linux: json['linux'] as String? ?? '',
+        OS.macos: json['darwin'] as String? ?? '',
+        OS.windows: json['win32'] as String? ?? '',
       },
     );
   }
