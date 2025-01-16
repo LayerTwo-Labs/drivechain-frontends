@@ -6,6 +6,7 @@ import 'package:launcher/env.dart';
 import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/routing/router.dart';
+import 'package:launcher/services/wallet_service.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:sail_ui/providers/download_provider.dart';
@@ -63,6 +64,11 @@ Future<void> initDependencies(Logger log) async {
 
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
+
+  // Register wallet service
+  GetIt.I.registerLazySingleton<WalletService>(
+    () => WalletService(),
+  );
 
   // Needed for sidesail_ui to work
   GetIt.I.registerLazySingleton<ClientSettings>(
