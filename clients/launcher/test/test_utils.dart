@@ -3,11 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/providers/download_provider.dart';
+import 'package:launcher/providers/quotes_provider.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'mocks/configuration_service_mock.dart';
 import 'mocks/download_manager_mock.dart';
+import 'mocks/quotes_provider_mock.dart';
 import 'mocks/storage_mock.dart';
 import 'test_page.dart';
 
@@ -24,14 +27,17 @@ extension TestExtension on WidgetTester {
     await registerTestDependencies();
 
     await pumpWidget(
-      SailApp(
-        dense: false,
-        builder: (context) {
-          return MaterialApp(home: SailTestPage(child: child));
-        },
-        initMethod: (_) async => (),
-        accentColor: SailColorScheme.black,
-        log: GetIt.I.get<Logger>(),
+      ChangeNotifierProvider<QuotesProvider>.value(
+        value: GetIt.I.get<QuotesProvider>(),
+        child: SailApp(
+          dense: false,
+          builder: (context) {
+            return MaterialApp(home: SailTestPage(child: child));
+          },
+          initMethod: (_) async => (),
+          accentColor: SailColorScheme.black,
+          log: GetIt.I.get<Logger>(),
+        ),
       ),
     );
     await pumpAndSettle();
@@ -59,6 +65,12 @@ Future<void> registerTestDependencies() async {
   if (!GetIt.I.isRegistered<DownloadProvider>()) {
     GetIt.I.registerLazySingleton<DownloadProvider>(
       () => MockDownloadProvider(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<QuotesProvider>()) {
+    GetIt.I.registerLazySingleton<QuotesProvider>(
+      () => MockQuotesProvider(),
     );
   }
 }
