@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:launcher/env.dart';
 import 'package:launcher/providers/config_provider.dart';
-import 'package:launcher/providers/download_provider.dart';
 import 'package:launcher/providers/quotes_provider.dart';
-import 'package:launcher/providers/resource_downloader.dart';
-import 'package:provider/provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
+import 'package:sail_ui/providers/download_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -41,19 +41,20 @@ void main() async {
         dense: true,
         builder: (context) {
           return MaterialApp.router(
-          routerDelegate: router.delegate(),
-          routeInformationParser: router.defaultRouteParser(),
-          title: 'Drivechain Launcher',
-          builder: (context, child) => child ?? const SizedBox(),
-          theme: ThemeData(
-            visualDensity: VisualDensity.compact,
-            fontFamily: 'Inter',
-          ),
-        );
-      },
-      accentColor: const Color.fromARGB(255, 255, 153, 0),
-      log: log,
-    ),),
+            routerDelegate: router.delegate(),
+            routeInformationParser: router.defaultRouteParser(),
+            title: 'Drivechain Launcher',
+            builder: (context, child) => child ?? const SizedBox(),
+            theme: ThemeData(
+              visualDensity: VisualDensity.compact,
+              fontFamily: 'Inter',
+            ),
+          );
+        },
+        accentColor: const Color.fromARGB(255, 255, 153, 0),
+        log: log,
+      ),
+    ),
   );
 }
 
@@ -80,17 +81,15 @@ Future<void> initDependencies(Logger log) async {
   );
   await configProvider.initialize();
 
-  // Register resource downloader
-  GetIt.I.registerSingleton<ResourceDownloader>(
-    ResourceDownloader(),
-  );
-
+  final datadir = await Environment.datadir();
   // Register download manager
-  final downloadProvider = DownloadProvider();
+  final downloadProvider = DownloadProvider(
+    datadir: datadir,
+    binaries: configProvider.configs,
+  );
   GetIt.I.registerSingleton<DownloadProvider>(
     downloadProvider,
   );
-  await downloadProvider.initialize();
 
   // Register quotes provider
   GetIt.I.registerSingleton<QuotesProvider>(

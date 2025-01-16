@@ -1,33 +1,29 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'package:launcher/providers/download_provider.dart';
-import 'package:launcher/providers/resource_downloader.dart';
+import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/download_provider.dart';
 
 class MockDownloadProvider extends DownloadProvider {
   final _statusController = StreamController<Map<String, DownloadProgress>>.broadcast();
-  final Map<String, DownloadProgress> _componentStatus = {};
+  final Map<String, DownloadProgress> _binaryStatus = {};
 
   @override
   Stream<Map<String, DownloadProgress>> get statusStream => _statusController.stream;
 
-  MockDownloadProvider() : super(configService: null, downloader: null) {
+  MockDownloadProvider() : super(datadir: Directory(''), binaries: []) {
     // Initialize with a test status
-    _componentStatus['test-chain'] = DownloadProgress(
-      componentId: 'test-chain',
+    _binaryStatus['test-chain'] = DownloadProgress(
+      binaryName: 'test-chain',
       status: DownloadStatus.notStarted,
     );
     _emitStatus();
   }
 
   @override
-  Future<void> initialize() async {
-    // No-op for tests
-  }
-
-  @override
-  Future<bool> downloadComponent(String componentId) async {
-    _componentStatus[componentId] = DownloadProgress(
-      componentId: componentId,
+  Future<bool> downloadBinary(Binary binary) async {
+    _binaryStatus[binary.name] = DownloadProgress(
+      binaryName: binary.name,
       status: DownloadStatus.completed,
       progress: 1.0,
     );
@@ -35,13 +31,8 @@ class MockDownloadProvider extends DownloadProvider {
     return true;
   }
 
-  @override
-  Future<bool> verifyComponent(String componentId) async {
-    return true;
-  }
-
   void _emitStatus() {
-    _statusController.add(Map.from(_componentStatus));
+    _statusController.add(Map.from(_binaryStatus));
   }
 
   @override
