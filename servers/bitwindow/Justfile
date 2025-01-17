@@ -1,5 +1,5 @@
 build-go:
-    go build -o ./bin/bitwindowd .
+    go build -v -o ./bin/bitwindowd .
 
 build: build-enforcer build-go
 
