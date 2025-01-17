@@ -36,76 +36,76 @@ class _OverviewPageState extends State<OverviewPage> {
             children: [
               Expanded(
                 child: StreamBuilder<Map<String, DownloadProgress>>(
-              stream: _downloadManager.statusStream,
-              builder: (context, statusSnapshot) {
-                final l1Chains = _configService.configs.where((chain) => chain.chainLayer == 1).toList()
-                  ..sort((a, b) => a.chainLayer.compareTo(b.chainLayer));
-                final l2Chains = _configService.configs.where((chain) => chain.chainLayer == 2).toList();
+                  stream: _downloadManager.statusStream,
+                  builder: (context, statusSnapshot) {
+                    final l1Chains = _configService.configs.where((chain) => chain.chainLayer == 1).toList()
+                      ..sort((a, b) => a.chainLayer.compareTo(b.chainLayer));
+                    final l2Chains = _configService.configs.where((chain) => chain.chainLayer == 2).toList();
 
-                return SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary24('Layer 1'),
-                            const SizedBox(height: 16),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final availableWidth = constraints.maxWidth;
-                                final cardWidth = availableWidth >= 900
-                                    ? (availableWidth - (3 * 16)) / 4 // 4 cards with 16px spacing
-                                    : (availableWidth - 16) / 2; // 2 cards with 16px spacing
+                    return SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.primary24('Layer 1'),
+                                const SizedBox(height: 16),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final availableWidth = constraints.maxWidth;
+                                    final cardWidth = availableWidth >= 900
+                                        ? (availableWidth - (3 * 16)) / 4 // 4 cards with 16px spacing
+                                        : (availableWidth - 16) / 2; // 2 cards with 16px spacing
 
-                                return Wrap(
-                                  spacing: 16.0,
-                                  runSpacing: 16.0,
-                                  children: l1Chains.map((chain) {
-                                    final status = statusSnapshot.data?[chain.name];
-                                    return SizedBox(
-                                      width: cardWidth,
-                                      child: SailRawCard(
-                                        padding: true,
-                                        child: _buildChainContent(chain, status),
-                                      ),
+                                    return Wrap(
+                                      spacing: 16.0,
+                                      runSpacing: 16.0,
+                                      children: l1Chains.map((chain) {
+                                        final status = statusSnapshot.data?[chain.name];
+                                        return SizedBox(
+                                          width: cardWidth,
+                                          child: SailRawCard(
+                                            padding: true,
+                                            child: _buildChainContent(chain, status),
+                                          ),
+                                        );
+                                      }).toList(),
                                     );
-                                  }).toList(),
-                                );
-                              },
+                                  },
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 32),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.primary24('Layer 2'),
+                                const SizedBox(height: 16),
+                                ...l2Chains.map((chain) {
+                                  final status = statusSnapshot.data?[chain.name];
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0,
+                                      vertical: 8.0,
+                                    ),
+                                    child: SailRawCard(
+                                      padding: true,
+                                      child: _buildChainContent(chain, status),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 32),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary24('Layer 2'),
-                            const SizedBox(height: 16),
-                            ...l2Chains.map((chain) {
-                              final status = statusSnapshot.data?[chain.name];
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8.0,
-                                  vertical: 8.0,
-                                ),
-                                child: SailRawCard(
-                                  padding: true,
-                                  child: _buildChainContent(chain, status),
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                    );
+                  },
                 ),
               ),
             ],
