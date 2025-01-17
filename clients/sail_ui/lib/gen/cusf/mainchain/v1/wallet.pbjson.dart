@@ -47,52 +47,6 @@ final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
     'MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSOAoJdGltZXN0YW1wGAMgASgLMhouZ29vZ2xlLnByb3'
     'RvYnVmLlRpbWVzdGFtcFIJdGltZXN0YW1w');
 
-@$core.Deprecated('Use unlockWalletRequestDescriptor instead')
-const UnlockWalletRequest$json = {
-  '1': 'UnlockWalletRequest',
-  '2': [
-    {'1': 'password', '3': 1, '4': 1, '5': 9, '10': 'password'},
-  ],
-};
-
-/// Descriptor for `UnlockWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unlockWalletRequestDescriptor = $convert.base64Decode(
-    'ChNVbmxvY2tXYWxsZXRSZXF1ZXN0EhoKCHBhc3N3b3JkGAEgASgJUghwYXNzd29yZA==');
-
-@$core.Deprecated('Use unlockWalletResponseDescriptor instead')
-const UnlockWalletResponse$json = {
-  '1': 'UnlockWalletResponse',
-};
-
-/// Descriptor for `UnlockWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unlockWalletResponseDescriptor = $convert.base64Decode(
-    'ChRVbmxvY2tXYWxsZXRSZXNwb25zZQ==');
-
-@$core.Deprecated('Use createWalletRequestDescriptor instead')
-const CreateWalletRequest$json = {
-  '1': 'CreateWalletRequest',
-  '2': [
-    {'1': 'mnemonic_words', '3': 1, '4': 3, '5': 9, '10': 'mnemonicWords'},
-    {'1': 'mnemonic_path', '3': 2, '4': 1, '5': 9, '10': 'mnemonicPath'},
-    {'1': 'password', '3': 3, '4': 1, '5': 9, '10': 'password'},
-  ],
-};
-
-/// Descriptor for `CreateWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createWalletRequestDescriptor = $convert.base64Decode(
-    'ChNDcmVhdGVXYWxsZXRSZXF1ZXN0EiUKDm1uZW1vbmljX3dvcmRzGAEgAygJUg1tbmVtb25pY1'
-    'dvcmRzEiMKDW1uZW1vbmljX3BhdGgYAiABKAlSDG1uZW1vbmljUGF0aBIaCghwYXNzd29yZBgD'
-    'IAEoCVIIcGFzc3dvcmQ=');
-
-@$core.Deprecated('Use createWalletResponseDescriptor instead')
-const CreateWalletResponse$json = {
-  '1': 'CreateWalletResponse',
-};
-
-/// Descriptor for `CreateWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createWalletResponseDescriptor = $convert.base64Decode(
-    'ChRDcmVhdGVXYWxsZXRSZXNwb25zZQ==');
-
 @$core.Deprecated('Use broadcastWithdrawalBundleRequestDescriptor instead')
 const BroadcastWithdrawalBundleRequest$json = {
   '1': 'BroadcastWithdrawalBundleRequest',
@@ -157,7 +111,7 @@ const CreateDepositTransactionRequest$json = {
   '1': 'CreateDepositTransactionRequest',
   '2': [
     {'1': 'sidechain_id', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainId'},
-    {'1': 'address', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.Hex', '10': 'address'},
+    {'1': 'address', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.StringValue', '10': 'address'},
     {'1': 'value_sats', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.UInt64Value', '10': 'valueSats'},
     {'1': 'fee_sats', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.UInt64Value', '10': 'feeSats'},
   ],
@@ -166,10 +120,10 @@ const CreateDepositTransactionRequest$json = {
 /// Descriptor for `CreateDepositTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createDepositTransactionRequestDescriptor = $convert.base64Decode(
     'Ch9DcmVhdGVEZXBvc2l0VHJhbnNhY3Rpb25SZXF1ZXN0Ej8KDHNpZGVjaGFpbl9pZBgBIAEoCz'
-    'IcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZVILc2lkZWNoYWluSWQSLQoHYWRkcmVzcxgC'
-    'IAEoCzITLmN1c2YuY29tbW9uLnYxLkhleFIHYWRkcmVzcxI7Cgp2YWx1ZV9zYXRzGAMgASgLMh'
-    'wuZ29vZ2xlLnByb3RvYnVmLlVJbnQ2NFZhbHVlUgl2YWx1ZVNhdHMSNwoIZmVlX3NhdHMYBCAB'
-    'KAsyHC5nb29nbGUucHJvdG9idWYuVUludDY0VmFsdWVSB2ZlZVNhdHM=');
+    'IcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZVILc2lkZWNoYWluSWQSNgoHYWRkcmVzcxgC'
+    'IAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5TdHJpbmdWYWx1ZVIHYWRkcmVzcxI7Cgp2YWx1ZV9zYX'
+    'RzGAMgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQ2NFZhbHVlUgl2YWx1ZVNhdHMSNwoIZmVl'
+    'X3NhdHMYBCABKAsyHC5nb29nbGUucHJvdG9idWYuVUludDY0VmFsdWVSB2ZlZVNhdHM=');
 
 @$core.Deprecated('Use createDepositTransactionResponseDescriptor instead')
 const CreateDepositTransactionResponse$json = {
@@ -273,33 +227,30 @@ final $typed_data.Uint8List createSidechainProposalResponseDescriptor = $convert
     'MzJWYWx1ZVIGaGVpZ2h0EkIKD3ByZXZfYmxvY2tfaGFzaBgDIAEoCzIaLmN1c2YuY29tbW9uLn'
     'YxLlJldmVyc2VIZXhSDXByZXZCbG9ja0hhc2hCBwoFZXZlbnQ=');
 
-@$core.Deprecated('Use generateBlocksRequestDescriptor instead')
-const GenerateBlocksRequest$json = {
-  '1': 'GenerateBlocksRequest',
+@$core.Deprecated('Use createWalletRequestDescriptor instead')
+const CreateWalletRequest$json = {
+  '1': 'CreateWalletRequest',
   '2': [
-    {'1': 'blocks', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'blocks'},
-    {'1': 'ack_all_proposals', '3': 2, '4': 1, '5': 8, '10': 'ackAllProposals'},
+    {'1': 'mnemonic_words', '3': 1, '4': 3, '5': 9, '10': 'mnemonicWords'},
+    {'1': 'mnemonic_path', '3': 2, '4': 1, '5': 9, '10': 'mnemonicPath'},
+    {'1': 'password', '3': 3, '4': 1, '5': 9, '10': 'password'},
   ],
 };
 
-/// Descriptor for `GenerateBlocksRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateBlocksRequestDescriptor = $convert.base64Decode(
-    'ChVHZW5lcmF0ZUJsb2Nrc1JlcXVlc3QSNAoGYmxvY2tzGAEgASgLMhwuZ29vZ2xlLnByb3RvYn'
-    'VmLlVJbnQzMlZhbHVlUgZibG9ja3MSKgoRYWNrX2FsbF9wcm9wb3NhbHMYAiABKAhSD2Fja0Fs'
-    'bFByb3Bvc2Fscw==');
+/// Descriptor for `CreateWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createWalletRequestDescriptor = $convert.base64Decode(
+    'ChNDcmVhdGVXYWxsZXRSZXF1ZXN0EiUKDm1uZW1vbmljX3dvcmRzGAEgAygJUg1tbmVtb25pY1'
+    'dvcmRzEiMKDW1uZW1vbmljX3BhdGgYAiABKAlSDG1uZW1vbmljUGF0aBIaCghwYXNzd29yZBgD'
+    'IAEoCVIIcGFzc3dvcmQ=');
 
-@$core.Deprecated('Use generateBlocksResponseDescriptor instead')
-const GenerateBlocksResponse$json = {
-  '1': 'GenerateBlocksResponse',
-  '2': [
-    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
-  ],
+@$core.Deprecated('Use createWalletResponseDescriptor instead')
+const CreateWalletResponse$json = {
+  '1': 'CreateWalletResponse',
 };
 
-/// Descriptor for `GenerateBlocksResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateBlocksResponseDescriptor = $convert.base64Decode(
-    'ChZHZW5lcmF0ZUJsb2Nrc1Jlc3BvbnNlEjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLmNvbW'
-    '1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2g=');
+/// Descriptor for `CreateWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createWalletResponseDescriptor = $convert.base64Decode(
+    'ChRDcmVhdGVXYWxsZXRSZXNwb25zZQ==');
 
 @$core.Deprecated('Use getBalanceRequestDescriptor instead')
 const GetBalanceRequest$json = {
@@ -323,6 +274,42 @@ const GetBalanceResponse$json = {
 final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode(
     'ChJHZXRCYWxhbmNlUmVzcG9uc2USJQoOY29uZmlybWVkX3NhdHMYASABKARSDWNvbmZpcm1lZF'
     'NhdHMSIQoMcGVuZGluZ19zYXRzGAIgASgEUgtwZW5kaW5nU2F0cw==');
+
+@$core.Deprecated('Use listSidechainDepositTransactionsRequestDescriptor instead')
+const ListSidechainDepositTransactionsRequest$json = {
+  '1': 'ListSidechainDepositTransactionsRequest',
+};
+
+/// Descriptor for `ListSidechainDepositTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listSidechainDepositTransactionsRequestDescriptor = $convert.base64Decode(
+    'CidMaXN0U2lkZWNoYWluRGVwb3NpdFRyYW5zYWN0aW9uc1JlcXVlc3Q=');
+
+@$core.Deprecated('Use listSidechainDepositTransactionsResponseDescriptor instead')
+const ListSidechainDepositTransactionsResponse$json = {
+  '1': 'ListSidechainDepositTransactionsResponse',
+  '2': [
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransaction', '10': 'transactions'},
+  ],
+  '3': [ListSidechainDepositTransactionsResponse_SidechainDepositTransaction$json],
+};
+
+@$core.Deprecated('Use listSidechainDepositTransactionsResponseDescriptor instead')
+const ListSidechainDepositTransactionsResponse_SidechainDepositTransaction$json = {
+  '1': 'SidechainDepositTransaction',
+  '2': [
+    {'1': 'sidechain_number', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainNumber'},
+    {'1': 'tx', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.WalletTransaction', '10': 'tx'},
+  ],
+};
+
+/// Descriptor for `ListSidechainDepositTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listSidechainDepositTransactionsResponseDescriptor = $convert.base64Decode(
+    'CihMaXN0U2lkZWNoYWluRGVwb3NpdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEnsKDHRyYW5zYWN0aW'
+    '9ucxgBIAMoCzJXLmN1c2YubWFpbmNoYWluLnYxLkxpc3RTaWRlY2hhaW5EZXBvc2l0VHJhbnNh'
+    'Y3Rpb25zUmVzcG9uc2UuU2lkZWNoYWluRGVwb3NpdFRyYW5zYWN0aW9uUgx0cmFuc2FjdGlvbn'
+    'ManAEKG1NpZGVjaGFpbkRlcG9zaXRUcmFuc2FjdGlvbhJHChBzaWRlY2hhaW5fbnVtYmVyGAEg'
+    'ASgLMhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUg9zaWRlY2hhaW5OdW1iZXISNAoCdH'
+    'gYAiABKAsyJC5jdXNmLm1haW5jaGFpbi52MS5XYWxsZXRUcmFuc2FjdGlvblICdHg=');
 
 @$core.Deprecated('Use listTransactionsRequestDescriptor instead')
 const ListTransactionsRequest$json = {
@@ -407,4 +394,53 @@ const SendTransactionResponse$json = {
 final $typed_data.Uint8List sendTransactionResponseDescriptor = $convert.base64Decode(
     'ChdTZW5kVHJhbnNhY3Rpb25SZXNwb25zZRIuCgR0eGlkGAEgASgLMhouY3VzZi5jb21tb24udj'
     'EuUmV2ZXJzZUhleFIEdHhpZA==');
+
+@$core.Deprecated('Use unlockWalletRequestDescriptor instead')
+const UnlockWalletRequest$json = {
+  '1': 'UnlockWalletRequest',
+  '2': [
+    {'1': 'password', '3': 1, '4': 1, '5': 9, '10': 'password'},
+  ],
+};
+
+/// Descriptor for `UnlockWalletRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List unlockWalletRequestDescriptor = $convert.base64Decode(
+    'ChNVbmxvY2tXYWxsZXRSZXF1ZXN0EhoKCHBhc3N3b3JkGAEgASgJUghwYXNzd29yZA==');
+
+@$core.Deprecated('Use unlockWalletResponseDescriptor instead')
+const UnlockWalletResponse$json = {
+  '1': 'UnlockWalletResponse',
+};
+
+/// Descriptor for `UnlockWalletResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List unlockWalletResponseDescriptor = $convert.base64Decode(
+    'ChRVbmxvY2tXYWxsZXRSZXNwb25zZQ==');
+
+@$core.Deprecated('Use generateBlocksRequestDescriptor instead')
+const GenerateBlocksRequest$json = {
+  '1': 'GenerateBlocksRequest',
+  '2': [
+    {'1': 'blocks', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'blocks'},
+    {'1': 'ack_all_proposals', '3': 2, '4': 1, '5': 8, '10': 'ackAllProposals'},
+  ],
+};
+
+/// Descriptor for `GenerateBlocksRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List generateBlocksRequestDescriptor = $convert.base64Decode(
+    'ChVHZW5lcmF0ZUJsb2Nrc1JlcXVlc3QSNAoGYmxvY2tzGAEgASgLMhwuZ29vZ2xlLnByb3RvYn'
+    'VmLlVJbnQzMlZhbHVlUgZibG9ja3MSKgoRYWNrX2FsbF9wcm9wb3NhbHMYAiABKAhSD2Fja0Fs'
+    'bFByb3Bvc2Fscw==');
+
+@$core.Deprecated('Use generateBlocksResponseDescriptor instead')
+const GenerateBlocksResponse$json = {
+  '1': 'GenerateBlocksResponse',
+  '2': [
+    {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
+  ],
+};
+
+/// Descriptor for `GenerateBlocksResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List generateBlocksResponseDescriptor = $convert.base64Decode(
+    'ChZHZW5lcmF0ZUJsb2Nrc1Jlc3BvbnNlEjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLmNvbW'
+    '1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2g=');
 

@@ -1,16 +1,16 @@
 import 'dart:async';
 
-import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:bitwindow/gen/google/protobuf/timestamp.pb.dart';
-import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
-import 'package:bitwindow/servers/api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
+import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class BlockchainProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
-  API get api => GetIt.I.get<API>();
+  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
 
   // raw data go here
   List<Peer> peers = [];

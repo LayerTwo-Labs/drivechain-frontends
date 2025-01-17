@@ -1,19 +1,18 @@
-import 'package:bitwindow/exceptions.dart';
-import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
-import 'package:bitwindow/gen/google/protobuf/empty.pb.dart';
-import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
-import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:sail_ui/gen/google/protobuf/empty.pb.dart';
+import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
 
 /// API to the drivechain server.
-abstract class API extends RPCConnection {
-  API({
+abstract class BitwindowRPC extends RPCConnection {
+  BitwindowRPC({
     required super.conf,
     required super.binary,
     required super.logPath,
@@ -63,7 +62,7 @@ abstract class MiscAPI {
   Future<BroadcastNewsResponse> broadcastNews(String topic, String headline);
 }
 
-class APILive extends API {
+class BitwindowRPCLive extends BitwindowRPC {
   late final DrivechainServiceClient _client;
   late final BitcoindServiceClient _bitcoindClient;
   late final WalletServiceClient _walletClient;
@@ -73,7 +72,7 @@ class APILive extends API {
   late final BitcoindAPI _bitcoind;
   late final DrivechainAPI _drivechain;
   late final MiscAPI _misc;
-  APILive({
+  BitwindowRPCLive({
     required String host,
     required int port,
     required super.conf,
@@ -390,4 +389,25 @@ class _MiscAPILive implements MiscAPI {
       throw BitcoindException(error);
     }
   }
+}
+
+class WalletException implements Exception {
+  final String message;
+  WalletException(this.message);
+  @override
+  String toString() => 'WalletException: $message';
+}
+
+class BitcoindException implements Exception {
+  final String message;
+  BitcoindException(this.message);
+  @override
+  String toString() => 'BitcoindException: $message';
+}
+
+class DrivechainException implements Exception {
+  final String message;
+  DrivechainException(this.message);
+  @override
+  String toString() => 'DrivechainException: $message';
 }

@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:bitwindow/servers/api.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class BalanceProvider extends ChangeNotifier {
-  API get api => GetIt.I.get<API>();
+  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
 
   // because the class extends ChangeNotifier, any subscribers
   // to this class will be notified of changes to these

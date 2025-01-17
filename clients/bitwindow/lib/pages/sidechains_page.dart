@@ -1,15 +1,15 @@
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -178,7 +178,7 @@ class SelectableListTile extends StatelessWidget {
 class SidechainsViewModel extends BaseViewModel {
   final TransactionProvider transactionsProvider = GetIt.I.get<TransactionProvider>();
   final SidechainProvider sidechainProvider = GetIt.I.get<SidechainProvider>();
-  final API api = GetIt.I.get<API>();
+  final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController depositAmountController = TextEditingController();

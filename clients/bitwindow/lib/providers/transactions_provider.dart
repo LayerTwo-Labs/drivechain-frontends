@@ -1,16 +1,16 @@
 import 'dart:async';
 
-import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
-import 'package:bitwindow/servers/api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
 class TransactionProvider extends ChangeNotifier {
-  API get api => GetIt.I.get<API>();
+  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
