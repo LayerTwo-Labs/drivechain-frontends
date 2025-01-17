@@ -1,6 +1,7 @@
 import 'package:grpc/grpc.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pbgrpc.dart';
 
 /// API to the drivechain server.
@@ -18,11 +19,31 @@ class EnforcerLive extends EnforcerRPC {
   @override
   late final ValidatorServiceClient validator;
 
-  EnforcerLive({
+  // Private constructor
+  EnforcerLive._create({
     required super.conf,
     required super.binary,
     required super.logPath,
-  }) {
+  });
+
+  // Async factory
+  static Future<EnforcerLive> create({
+    required Binary binary,
+    required String logPath,
+  }) async {
+    final conf = await getMainchainConf();
+
+    final instance = EnforcerLive._create(
+      conf: conf,
+      binary: binary,
+      logPath: logPath,
+    );
+
+    await instance._init();
+    return instance;
+  }
+
+  Future<void> _init() async {
     final channel = ClientChannel(
       'localhost',
       port: binary.port,
