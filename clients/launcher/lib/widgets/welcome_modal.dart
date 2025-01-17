@@ -60,18 +60,23 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   void _handleFastMode() async {
     try {
       final wallet = await _walletService.generateWallet();
+      if (!mounted) return;
+      
       if (wallet.containsKey('error')) {
         await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
         return;
       }
       
       final success = await _walletService.saveWallet(wallet);
+      if (!mounted) return;
+      
       if (success) {
         Navigator.of(context).pop(true);
       } else {
         await _showErrorDialog('Failed to save wallet');
       }
     } catch (e) {
+      if (!mounted) return;
       await _showErrorDialog('Unexpected error: $e');
     }
   }
@@ -105,6 +110,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         customMnemonic: _useMnemonic ? input : null,
         passphrase: _useMnemonic ? null : input,
       );
+      if (!mounted) return;
 
       if (wallet.containsKey('error')) {
         await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
@@ -112,12 +118,15 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       }
 
       final success = await _walletService.saveWallet(wallet);
+      if (!mounted) return;
+      
       if (success) {
         Navigator.of(context).pop(true);
       } else {
         await _showErrorDialog('Failed to save wallet');
       }
     } catch (e) {
+      if (!mounted) return;
       await _showErrorDialog('Unexpected error: $e');
     }
   }
