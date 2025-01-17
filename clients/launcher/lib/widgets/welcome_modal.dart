@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/buttons/button.dart';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
   return await widgetDialog<bool>(

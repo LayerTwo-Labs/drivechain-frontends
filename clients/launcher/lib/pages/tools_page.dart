@@ -174,9 +174,7 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: viewModel.invoiceStatus == 'Awaiting Payment'
-                        ? Colors.orange
-                        : Colors.green,
+                    color: viewModel.invoiceStatus == 'Awaiting Payment' ? Colors.orange : Colors.green,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -231,8 +229,7 @@ class ToolsPageViewModel extends BaseViewModel {
   String finalMessage = '';
 
   /// Controllers for user input
-  final TextEditingController mainchainAddressController =
-      TextEditingController();
+  final TextEditingController mainchainAddressController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   final TextEditingController paymentTxIdController = TextEditingController();
 
