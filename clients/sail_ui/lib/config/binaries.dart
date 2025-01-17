@@ -208,7 +208,7 @@ abstract class Binary {
     Binary base = switch (name) {
       'Bitcoin Core (Patched)' => ParentChain(),
       'BitWindow' => BitWindow(),
-      'Enforcer' => Enforcer(),
+      'BIP300301 Enforcer' => Enforcer(),
       'Test Sidechain' => TestSidechain(),
       'zSide' => ZCashSidechain(),
       'EthSide' => EthereumSidechain(),
