@@ -71,7 +71,7 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("open log file: %w", err)
 	}
 
-	if err := initFileLogger(logFile, conf); err != nil {
+	if err := initLogger(logFile); err != nil {
 		return fmt.Errorf("initialize logger")
 	}
 
@@ -138,11 +138,7 @@ func realMain(ctx context.Context) error {
 	return <-errs
 }
 
-func initFileLogger(logFile *os.File, conf Config) error {
-	if conf.LogPath == "" {
-		return nil
-	}
-
+func initLogger(logFile *os.File) error {
 	// We want pretty printing to the file as well. This is not meant for
 	// centralized log ingestion, where JSON is crucial.
 	logWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
