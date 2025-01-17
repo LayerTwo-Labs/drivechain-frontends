@@ -205,7 +205,7 @@ class Net {
       'data': {
         'amount': amount,
         'destination': destination,
-      }
+      },
     });
 
     _fastWithdrawRequested.add((_currentPeer!.id, amount, destination));
@@ -232,7 +232,7 @@ class Net {
         'txid': txid,
         'amount': amount,
         'destination': destination,
-      }
+      },
     });
 
     _fastWithdrawInvoicePaid.add((_currentPeer!.id, txid, amount, destination));

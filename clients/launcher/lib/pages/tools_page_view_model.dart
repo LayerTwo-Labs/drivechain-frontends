@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
-import '../services/net.dart';
+import 'package:launcher/services/net.dart';
 
 class ToolsPageViewModel extends BaseViewModel {
   final Net _net = Net();
