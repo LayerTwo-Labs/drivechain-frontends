@@ -153,8 +153,8 @@ class BinaryProvider extends ChangeNotifier {
       _log('Extracted dir: $extractedDir');
       _log('Zip path: $zipPath');
 
-      // 2. Download
-      await Directory(downloadsDir).create(recursive: true);
+      // Create all required directories recursively
+      await Directory(path.dirname(zipPath)).create(recursive: true);
       await Directory(extractedDir).create(recursive: true);
 
       await _updateStatus(
