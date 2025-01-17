@@ -83,12 +83,12 @@ Future<void> initDependencies(Logger log) async {
 
   final datadir = await Environment.datadir();
   // Register download manager
-  final downloadProvider = DownloadProvider(
+  final binaryProvider = BinaryProvider(
     datadir: datadir,
     binaries: configProvider.configs,
   );
-  GetIt.I.registerSingleton<DownloadProvider>(
-    downloadProvider,
+  GetIt.I.registerSingleton<BinaryProvider>(
+    binaryProvider,
   );
 
   // Register quotes provider

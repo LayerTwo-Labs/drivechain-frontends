@@ -62,8 +62,8 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<DownloadProvider>()) {
-    GetIt.I.registerLazySingleton<DownloadProvider>(
+  if (!GetIt.I.isRegistered<BinaryProvider>()) {
+    GetIt.I.registerLazySingleton<BinaryProvider>(
       () => MockDownloadProvider(),
     );
   }
