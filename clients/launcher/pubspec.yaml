@@ -39,6 +39,9 @@ dependencies:
   window_manager: ^0.4.3
   synchronized: ^3.3.0+3
   provider: ^6.1.2
+  dart_bip32_bip44: ^0.2.0
+  bip39_mnemonic: ^3.0.7
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:

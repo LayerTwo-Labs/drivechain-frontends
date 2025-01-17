@@ -62,6 +62,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.3.1"
+  base58check:
+    dependency: transitive
+    description:
+      name: base58check
+      sha256: "6c300dfc33e598d2fe26319e13f6243fea81eaf8204cb4c6b69ef20a625319a5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.0"
+  bip39_mnemonic:
+    dependency: "direct main"
+    description:
+      name: bip39_mnemonic
+      sha256: "3ae6ed74b97a0b820e71d01b75ac4bc5b036a8bb427d5ee5827427d2872eefb0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.7"
   boolean_selector:
     dependency: transitive
     description:
@@ -183,7 +199,7 @@ packages:
     source: hosted
     version: "3.1.2"
   crypto:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: crypto
       sha256: "1e445881f28f22d6140f181e07737b22f1e099a5e1ff94b0af2f9e4a463f4855"
@@ -198,6 +214,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  dart_bip32_bip44:
+    dependency: "direct main"
+    description:
+      name: dart_bip32_bip44
+      sha256: ca8417bac434f2ece417b03818d91fe2d1d036e5aa568743872dede401660560
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
   dart_coin_rpc:
     dependency: "direct main"
     description:
@@ -726,6 +750,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  pointycastle:
+    dependency: transitive
+    description:
+      name: pointycastle
+      sha256: "4be0097fcf3fd3e8449e53730c631200ebc7b88016acecab2b0da2f0149222fe"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.9.1"
   pool:
     dependency: transitive
     description:
@@ -1042,6 +1074,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.2"
+  unorm_dart:
+    dependency: transitive
+    description:
+      name: unorm_dart
+      sha256: "23d8bf65605401a6a32cff99435fed66ef3dab3ddcad3454059165df46496a3b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.0"
   url_launcher_platform_interface:
     dependency: transitive
     description:
