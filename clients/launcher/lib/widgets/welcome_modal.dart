@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:launcher/services/wallet_service.dart';
+import 'package:get_it/get_it.dart';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
   return await widgetDialog<bool>(
@@ -30,6 +32,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   bool _useMnemonic = true;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
+  final WalletService _walletService = GetIt.I.get<WalletService>();
 
   @override
   void dispose() {
@@ -38,15 +41,103 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     super.dispose();
   }
 
-  void _handleFastMode() {
-    // TODO: Implement fast withdrawal creation logic
-    Navigator.of(context).pop(true);
+  Future<void> _showErrorDialog(String message) async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleFastMode() async {
+    try {
+      final wallet = await _walletService.generateWallet();
+      if (wallet.containsKey('error')) {
+        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
+        return;
+      }
+      
+      final success = await _walletService.saveWallet(wallet);
+      if (success) {
+        Navigator.of(context).pop(true);
+      } else {
+        await _showErrorDialog('Failed to save wallet');
+      }
+    } catch (e) {
+      await _showErrorDialog('Unexpected error: $e');
+    }
   }
 
   void _handleAdvancedMode() {
     setState(() {
       _showAdvanced = true;
     });
+  }
+
+  Future<void> _handleCreateWallet() async {
+    try {
+      String input = _useMnemonic ? _mnemonicController.text : _passphraseController.text;
+      
+      if (input.isEmpty) {
+        await _showErrorDialog(_useMnemonic 
+          ? 'Please enter a valid mnemonic phrase' 
+          : 'Please enter a passphrase',
+        );
+        return;
+      }
+
+      if (_useMnemonic && !_isValidMnemonic(input)) {
+        await _showErrorDialog(
+          'Invalid mnemonic phrase. Please enter 12 or 24 words separated by spaces.',
+        );
+        return;
+      }
+
+      final wallet = await _walletService.generateWallet(
+        customMnemonic: _useMnemonic ? input : null,
+        passphrase: _useMnemonic ? null : input,
+      );
+
+      if (wallet.containsKey('error')) {
+        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
+        return;
+      }
+
+      final success = await _walletService.saveWallet(wallet);
+      if (success) {
+        Navigator.of(context).pop(true);
+      } else {
+        await _showErrorDialog('Failed to save wallet');
+      }
+    } catch (e) {
+      await _showErrorDialog('Unexpected error: $e');
+    }
+  }
+
+  bool _isValidMnemonic(String mnemonic) {
+    final words = mnemonic.trim().split(' ');
+    return words.length == 12 || words.length == 24;
+  }
+
+  Future<void> _handleGenerateRandom() async {
+    try {
+      final wallet = await _walletService.generateWallet();
+      if (wallet.containsKey('error')) {
+        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
+        return;
+      }
+      _mnemonicController.text = wallet['mnemonic'];
+    } catch (e) {
+      await _showErrorDialog('Unexpected error: $e');
+    }
   }
 
   @override
@@ -73,7 +164,6 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                 onChanged: (value) {
                   setState(() {
                     _useMnemonic = value ?? false;
-                    // Clear input fields when switching modes
                     _mnemonicController.clear();
                     _passphraseController.clear();
                   });
@@ -108,17 +198,13 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             children: [
               SailButton.secondary(
                 'Generate Random',
-                onPressed: () {
-                  // TODO: Implement random generation
-                },
+                onPressed: _handleGenerateRandom,
                 size: ButtonSize.regular,
               ),
               const SizedBox(width: 8),
               SailButton.primary(
                 'Create Wallet',
-                onPressed: () {
-                  // TODO: Implement wallet creation
-                },
+                onPressed: _handleCreateWallet,
                 size: ButtonSize.regular,
               ),
             ],
