@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/utils/file_utils.dart';
 
 abstract class Sidechain extends Binary {
   Sidechain({
