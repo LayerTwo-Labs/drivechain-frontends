@@ -50,7 +50,9 @@ func main() {
 func realMain(ctx context.Context) error {
 	conf, err := readConfig()
 	if err != nil {
+		if !flags.WroteHelp(err) {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("read config")
+		}
 		return err
 	}
 
