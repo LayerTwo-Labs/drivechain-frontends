@@ -51,7 +51,7 @@ func realMain(ctx context.Context) error {
 	conf, err := readConfig()
 	if err != nil {
 		if !flags.WroteHelp(err) {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("read config")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("read config")
 		}
 		return err
 	}
@@ -66,16 +66,18 @@ func realMain(ctx context.Context) error {
 		conf.LogPath = filepath.Join(datadir, "debug.log")
 	}
 
-	cleanup, err := initFileLogger(conf)
+	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("init logger")
-		return err
+		return fmt.Errorf("open log file: %w", err)
 	}
-	defer cleanup()
+
+	if err := initFileLogger(logFile, conf); err != nil {
+		return fmt.Errorf("initialize logger")
+	}
 
 	// Now that the logger is initialized, we can use zerolog.Ctx(ctx) safely
 	log := zerolog.Ctx(ctx)
-	log.Info().Msg("logger initialized successfully")
+	log.Info().Msgf("logger initialized successfully with file %q", conf.LogPath)
 
 	log.Debug().
 		Msgf("initiating database")
@@ -136,19 +138,25 @@ func realMain(ctx context.Context) error {
 	return <-errs
 }
 
-func initFileLogger(conf Config) (func(), error) {
+func initFileLogger(logFile *os.File, conf Config) error {
 	if conf.LogPath == "" {
-		return func() {}, nil
+		return nil
 	}
 
 	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %w", err)
+		return fmt.Errorf("failed to open log file: %w", err)
 	}
 
+	// We want pretty printing to the file as well. This is not meant for
+	// centralized log ingestion, where JSON is crucial.
+	logWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+		w.Out = logFile
+		w.NoColor = true // ANSI colors don't work well with file output.
+	})
 	multiWriter := zerolog.MultiLevelWriter(
 		zerolog.NewConsoleWriter(),
-		logFile,
+		logWriter,
 	)
 
 	logger := zerolog.New(multiWriter).
@@ -158,14 +166,7 @@ func initFileLogger(conf Config) (func(), error) {
 		Level(zerolog.InfoLevel)
 	zerolog.DefaultContextLogger = &logger
 
-	log.Info().Str("file", logFile.Name()).Msg("logging to file")
-
-	return func() {
-		if err := logFile.Close(); err != nil {
-			log.Error().Err(err).Msg("failed to close log file")
-		}
-		log.Info().Msg("closed log file")
-	}, nil
+	return nil
 }
 
 func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, error) {
