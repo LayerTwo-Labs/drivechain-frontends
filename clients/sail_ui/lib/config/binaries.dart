@@ -73,7 +73,7 @@ class NetworkConfig {
 
   factory NetworkConfig.fromJson(Map<String, dynamic> json) {
     return NetworkConfig(
-      port: json['port'] as int,
+      port: json['port'] as int? ?? 0,
     );
   }
 }
@@ -203,151 +203,263 @@ abstract class Binary {
   }
 
   factory Binary.fromJson(Map<String, dynamic> json) {
-    final binaryMap = json['binary'] as Map<String, dynamic>;
-    final platform = Platform.operatingSystem;
-    final binaryPath = switch (platform) {
-      'linux' => binaryMap['linux'],
-      'macos' => binaryMap['darwin'],
-      'windows' => binaryMap['win32'],
-      _ => throw Exception('unsupported platform')
-    } as String;
+    // First create the correct type based on name
+    final name = json['name'] as String? ?? '';
+    Binary base = switch (name) {
+      'Bitcoin Core (Patched)' => ParentChain(),
+      'BitWindow' => BitWindow(),
+      'Enforcer' => Enforcer(),
+      'Test Sidechain' => TestSidechain(),
+      'zSide' => ZCashSidechain(),
+      'EthSide' => EthereumSidechain(),
+      'Thunder' => Thunder(),
+      _ => _BinaryImpl(
+          name: name,
+          version: json['version'] as String? ?? '',
+          description: json['description'] as String? ?? '',
+          repoUrl: json['repo_url'] as String? ?? '',
+          directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
+          download: DownloadConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
+          binary: '', // Will be set by copyWith below
+          network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
+          chainLayer: json['chain_layer'] as int? ?? 0,
+        ),
+    };
 
-    return _BinaryImpl(
-      name: json['name'] as String,
-      version: json['version'] as String,
-      description: json['description'] as String,
-      repoUrl: json['repo_url'] as String,
-      directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>),
-      download: DownloadConfig.fromJson(json['download'] as Map<String, dynamic>),
+    // Handle the binary field which is a map of platform-specific paths
+    final binaryMap = json['binary'] as Map<String, dynamic>? ?? {};
+    final binaryPath = switch (Platform.operatingSystem) {
+          'linux' => binaryMap['linux'],
+          'macos' => binaryMap['darwin'],
+          'windows' => binaryMap['win32'],
+          _ => throw Exception('unsupported platform')
+        } as String? ??
+        '';
+
+    // Update fields from JSON, keeping the base type
+    return base.copyWith(
+      version: json['version'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      repoUrl: json['repo_url'] as String? ?? '',
+      directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
+      download: DownloadConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
       binary: binaryPath,
-      network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>),
-      chainLayer: json['chain_layer'] as int,
+      network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
+      chainLayer: json['chain_layer'] as int? ?? 0,
+    );
+  }
+
+  Binary copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    String? binary,
+    NetworkConfig? network,
+    int? chainLayer,
+  });
+}
+
+class ParentChain extends Binary {
+  ParentChain({
+    super.name = 'Bitcoin Core (Patched)',
+    super.version = '0.1.0',
+    super.description = 'Drivechain Parent Chain',
+    super.repoUrl = 'https://github.com/drivechain-project/drivechain',
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    super.binary = 'bitcoind',
+    NetworkConfig? network,
+    super.chainLayer = 1,
+  }) : super(
+          directories: directories ??
+              DirectoryConfig(
+                base: {
+                  OS.linux: '.drivechain',
+                  OS.macos: 'Drivechain',
+                  OS.windows: 'Drivechain',
+                },
+              ),
+          download: download ??
+              DownloadConfig(
+                baseUrl: 'https://releases.drivechain.info/',
+                files: {
+                  OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
+                  OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
+                  OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
+                },
+              ),
+          network: network ?? NetworkConfig(port: 38332),
+        );
+
+  @override
+  Color get color => SailColorScheme.green;
+
+  @override
+  ParentChain copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    String? binary,
+    NetworkConfig? network,
+    int? chainLayer,
+  }) {
+    return ParentChain(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      download: download ?? this.download,
+      binary: binary ?? this.binary,
+      network: network ?? this.network,
+      chainLayer: chainLayer ?? this.chainLayer,
     );
   }
 }
 
-class ParentChain extends Binary {
-  ParentChain()
-      : super(
-          name: 'Bitcoin Core (Patched)',
-          version: '0.1.0',
-          description: 'Drivechain Parent Chain',
-          repoUrl: 'https://github.com/drivechain-project/drivechain',
-          directories: DirectoryConfig(
-            base: {
-              OS.linux: '.drivechain',
-              OS.macos: 'Drivechain',
-              OS.windows: 'Drivechain',
-            },
-          ),
-          download: DownloadConfig(
-            baseUrl: 'https://releases.drivechain.info/',
-            files: {
-              OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
-              OS.macos: 'L1-bitcoin-patched-latest-x86_64-apple-darwin.zip',
-              OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
-            },
-          ),
-          binary: 'bitcoind',
-          network: NetworkConfig(port: 38332),
-          chainLayer: 1,
-        );
-
-  @override
-  Color get color => SailColorScheme.green;
-}
-
 class BitWindow extends Binary {
-  BitWindow()
-      : super(
-          name: 'BitWindow',
-          version: '0.1.0',
-          description: 'BitWindow UI',
-          repoUrl: 'https://github.com/drivechain-project/bitwindow',
-          directories: DirectoryConfig(
-            base: {
-              OS.linux: '.bitwindow',
-              OS.macos: 'bitwindow',
-              OS.windows: 'bitwindow',
-            },
-          ),
-          download: DownloadConfig(
-            baseUrl: 'https://releases.drivechain.info/',
-            files: {
-              OS.linux: 'BitWindow-latest-x86_64-unknown-linux-gnu.zip',
-              OS.macos: 'BitWindow-latest-x86_64-apple-darwin.zip',
-              OS.windows: 'BitWindow-latest-x86_64-pc-windows-msvc.zip',
-            },
-          ),
-          binary: 'bitwindowd',
-          network: NetworkConfig(port: 38332),
-          chainLayer: 0,
+  BitWindow({
+    super.name = 'BitWindow',
+    super.version = '0.1.0',
+    super.description = 'BitWindow UI',
+    super.repoUrl = 'https://github.com/drivechain-project/bitwindow',
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    super.binary = 'bitwindowd',
+    NetworkConfig? network,
+    super.chainLayer = 0,
+  }) : super(
+          directories: directories ??
+              DirectoryConfig(
+                base: {
+                  OS.linux: '.bitwindow',
+                  OS.macos: 'bitwindow',
+                  OS.windows: 'bitwindow',
+                },
+              ),
+          download: download ??
+              DownloadConfig(
+                baseUrl: 'https://releases.drivechain.info/',
+                files: {
+                  OS.linux: 'BitWindow-latest-x86_64-unknown-linux-gnu.zip',
+                  OS.macos: 'BitWindow-latest-x86_64-apple-darwin.zip',
+                  OS.windows: 'BitWindow-latest-x86_64-pc-windows-msvc.zip',
+                },
+              ),
+          network: network ?? NetworkConfig(port: 38332),
         );
 
   @override
   Color get color => SailColorScheme.green;
+
+  @override
+  BitWindow copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    String? binary,
+    NetworkConfig? network,
+    int? chainLayer,
+  }) {
+    return BitWindow(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      download: download ?? this.download,
+      binary: binary ?? this.binary,
+      network: network ?? this.network,
+      chainLayer: chainLayer ?? this.chainLayer,
+    );
+  }
 }
 
 class Enforcer extends Binary {
-  Enforcer()
-      : super(
-          name: 'Enforcer',
-          version: '0.1.0',
-          description: 'BIP300/301 Enforcer',
-          repoUrl: 'https://github.com/drivechain-project/enforcer',
-          directories: DirectoryConfig(
-            base: {
-              OS.linux: '.enforcer',
-              OS.macos: 'bip300301_enforcer',
-              OS.windows: 'bip300301_enforcer',
-            },
-          ),
-          download: DownloadConfig(
-            baseUrl: 'https://releases.drivechain.info/',
-            files: {
-              OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
-              OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
-              OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
-            },
-          ),
-          binary: 'bip300301_enforcer',
-          network: NetworkConfig(port: 38332),
-          chainLayer: 0,
+  Enforcer({
+    super.name = 'Enforcer',
+    super.version = '0.1.0',
+    super.description = 'BIP300/301 Enforcer',
+    super.repoUrl = 'https://github.com/drivechain-project/enforcer',
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    super.binary = 'bip300301_enforcer',
+    NetworkConfig? network,
+    super.chainLayer = 0,
+  }) : super(
+          directories: directories ??
+              DirectoryConfig(
+                base: {
+                  OS.linux: '.enforcer',
+                  OS.macos: 'bip300301_enforcer',
+                  OS.windows: 'bip300301_enforcer',
+                },
+              ),
+          download: download ??
+              DownloadConfig(
+                baseUrl: 'https://releases.drivechain.info/',
+                files: {
+                  OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
+                  OS.macos: 'bip300301-enforcer-latest-x86_64-apple-darwin.zip',
+                  OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
+                },
+              ),
+          network: network ?? NetworkConfig(port: 38332),
         );
 
   @override
   Color get color => SailColorScheme.green;
+
+  @override
+  Enforcer copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    String? binary,
+    NetworkConfig? network,
+    int? chainLayer,
+  }) {
+    return Enforcer(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      download: download ?? this.download,
+      binary: binary ?? this.binary,
+      network: network ?? this.network,
+      chainLayer: chainLayer ?? this.chainLayer,
+    );
+  }
 }
 
 extension BinaryPaths on Binary {
   String confFile() {
-    switch (this) {
-      case TestSidechain():
-        return 'testchain.conf';
-      case EthereumSidechain():
-        return 'config.toml';
-      case ZCashSidechain():
-        return 'zcash.conf';
-      case ParentChain():
-        return 'bitcoin.conf';
-      default:
-        throw 'unsupported binary type: $runtimeType';
-    }
+    return switch (this) {
+      var b when b is TestSidechain => 'testchain.conf',
+      var b when b is EthereumSidechain => 'config.toml',
+      var b when b is ZCashSidechain => 'zcash.conf',
+      var b when b is ParentChain => 'bitcoin.conf',
+      _ => throw 'unsupported binary type: $runtimeType',
+    };
   }
 
   String logDir() {
-    switch (this) {
-      case TestSidechain():
-        return filePath([datadir(), 'debug.log']);
-      case EthereumSidechain():
-        return filePath([datadir(), 'ethereum.log']);
-      case ZCashSidechain():
-        return filePath([datadir(), 'regtest', 'debug.log']);
-      case ParentChain():
-        return filePath([datadir(), 'debug.log']);
-      default:
-        throw 'unsupported binary type: $runtimeType';
-    }
+    return switch (this) {
+      var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
+      var b when b is EthereumSidechain => filePath([datadir(), 'ethereum.log']),
+      var b when b is ZCashSidechain => filePath([datadir(), 'regtest', 'debug.log']),
+      var b when b is ParentChain => filePath([datadir(), 'debug.log']),
+      _ => throw 'unsupported binary type: $runtimeType',
+    };
   }
 
   String datadir() {
@@ -393,6 +505,30 @@ class _BinaryImpl extends Binary {
 
   @override
   Color get color => SailColorScheme.green;
+
+  @override
+  Binary copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    String? binary,
+    NetworkConfig? network,
+    int? chainLayer,
+  }) {
+    return _BinaryImpl(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      download: download ?? this.download,
+      binary: binary ?? this.binary,
+      network: network ?? this.network,
+      chainLayer: chainLayer ?? this.chainLayer,
+    );
+  }
 }
 
 extension BinaryDownload on Binary {

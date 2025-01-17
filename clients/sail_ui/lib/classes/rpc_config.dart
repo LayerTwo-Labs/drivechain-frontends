@@ -115,9 +115,9 @@ Future<NodeConnectionSettings> readRPCConfig(
 List<String> bitcoinCoreBinaryArgs(NodeConnectionSettings conf) {
   return [
     conf.isLocalNetwork ? '-regtest' : '',
-    '-rpcuser=${conf.username}',
-    '-rpcpassword=${conf.password}',
-    '-rpcport=${conf.port}',
+    conf.username.isNotEmpty ? '-rpcuser=${conf.username}' : '',
+    conf.password.isNotEmpty ? '-rpcpassword=${conf.password}' : '',
+    conf.port != 0 ? '-rpcport=${conf.port}' : '',
     ...conf.getConfigArgs(), // Add all additional config values
   ]
       // important: empty strings trip up the binary

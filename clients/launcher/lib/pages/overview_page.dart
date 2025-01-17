@@ -5,7 +5,7 @@ import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/download_provider.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -133,7 +133,7 @@ class _OverviewPageState extends State<OverviewPage> {
     bool initializing = false;
     String? error;
 
-    switch (binary.runtimeType) {
+    switch (binary) {
       case ParentChain():
         connected = _binaryProvider.mainchainRPC?.connected ?? false;
         initializing = _binaryProvider.mainchainRPC?.initializingBinary ?? false;
@@ -166,14 +166,6 @@ class _OverviewPageState extends State<OverviewPage> {
             shape: BoxShape.circle,
           ),
         ),
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: SailText.secondary13(
-              error,
-              color: Colors.red,
-            ),
-          ),
       ],
     );
   }
@@ -197,18 +189,18 @@ class _OverviewPageState extends State<OverviewPage> {
 
   Widget _buildActionButton(Binary binary, DownloadState? status) {
     // Check if binary is running
-    final isRunning = switch (binary.runtimeType) {
-      ParentChain() => _binaryProvider.mainchainConnected,
-      Enforcer() => _binaryProvider.enforcerConnected,
-      BitWindow() => _binaryProvider.bitwindowConnected,
+    final isRunning = switch (binary) {
+      var b when b is ParentChain => _binaryProvider.mainchainConnected,
+      var b when b is Enforcer => _binaryProvider.enforcerConnected,
+      var b when b is BitWindow => _binaryProvider.bitwindowConnected,
       _ => false,
     };
 
     // Check if binary is initializing
-    final isInitializing = switch (binary.runtimeType) {
-      ParentChain() => _binaryProvider.mainchainInitializing,
-      Enforcer() => _binaryProvider.enforcerInitializing,
-      BitWindow() => _binaryProvider.bitwindowInitializing,
+    final isInitializing = switch (binary) {
+      var b when b is ParentChain => _binaryProvider.mainchainInitializing,
+      var b when b is Enforcer => _binaryProvider.enforcerInitializing,
+      var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
       _ => false,
     };
 
@@ -216,7 +208,7 @@ class _OverviewPageState extends State<OverviewPage> {
       return SailButton.secondary(
         'Stop',
         onPressed: () async {
-          switch (binary.runtimeType) {
+          switch (binary) {
             case ParentChain():
               await _binaryProvider.mainchainRPC?.stop();
             case Enforcer():
