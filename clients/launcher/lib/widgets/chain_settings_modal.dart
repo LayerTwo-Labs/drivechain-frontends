@@ -1,46 +1,31 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:launcher/env.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/style/color_scheme.dart';
+import 'package:sail_ui/utils/file_utils.dart';
 import 'package:sail_ui/widgets/buttons/button.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class ChainSettingsModal extends StatelessWidget {
   final Binary chain;
+  OS get os => getOS();
 
   const ChainSettingsModal({
     super.key,
     required this.chain,
   });
 
-  OS _getOS() {
-    if (Platform.isWindows) return OS.windows;
-    if (Platform.isMacOS) return OS.macos;
-    if (Platform.isLinux) return OS.linux;
-    throw Exception('unsupported platform');
-  }
-
   void _openDownloadLocation(Binary binary) async {
-    final os = _getOS();
     final baseDir = binary.directories.base[os];
     if (baseDir == null) return;
 
-    final command = switch (os) {
-      OS.linux => 'xdg-open',
-      OS.macos => 'open',
-      OS.windows => 'explorer',
-    };
-
     final datadir = await Environment.datadir();
 
-    await Process.run(command, [datadir.path]);
+    await openDir(datadir);
   }
 
   @override
   Widget build(BuildContext context) {
-    final os = _getOS();
     final baseDir = chain.directories.base[os];
     final binary = chain.binary;
     final downloadFile = chain.download.files[os];

@@ -3,19 +3,7 @@ import 'dart:ui';
 
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/style/color_scheme.dart';
-
-enum OS {
-  linux,
-  macos,
-  windows;
-
-  static OS get current {
-    if (Platform.isLinux) return OS.linux;
-    if (Platform.isMacOS) return OS.macos;
-    if (Platform.isWindows) return OS.windows;
-    throw 'unsupported operating system: ${Platform.operatingSystem}';
-  }
-}
+import 'package:sail_ui/utils/file_utils.dart';
 
 /// Configuration for component directories
 class DirectoryConfig {

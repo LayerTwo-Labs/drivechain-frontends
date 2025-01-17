@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/utils/file_utils.dart';
 
 /// Manages downloads and installations of binaries
 class DownloadProvider {
@@ -61,8 +62,8 @@ class DownloadProvider {
   /// Downloads and sets up a binary
   Future<bool> downloadBinary(Binary binary) async {
     try {
-      final platform = _getPlatformKey();
-      final fileName = binary.download.files[platform]!;
+      final os = getOS();
+      final fileName = binary.download.files[os]!;
       final downloadUrl = Uri.parse(binary.download.baseUrl).resolve(fileName).toString();
 
       // 1. Setup paths
@@ -242,14 +243,6 @@ class DownloadProvider {
   /// Get current status for all binaries
   Map<String, DownloadProgress> getAllBinaryStatus() {
     return Map.from(_binaryStatus);
-  }
-
-  /// Gets the platform-specific key used in config
-  OS _getPlatformKey() {
-    if (Platform.isWindows) return OS.windows;
-    if (Platform.isMacOS) return OS.macos;
-    if (Platform.isLinux) return OS.linux;
-    throw Exception('Unsupported platform');
   }
 
   /// Dispose of resources

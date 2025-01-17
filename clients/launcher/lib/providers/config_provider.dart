@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/utils/file_utils.dart';
 
 /// Service responsible for loading and managing chain configurations
 class ConfigProvider {

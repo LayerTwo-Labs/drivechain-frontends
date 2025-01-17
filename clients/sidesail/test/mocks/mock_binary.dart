@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/style/color_scheme.dart';
+import 'package:sail_ui/utils/file_utils.dart';
 
 class MockBinary extends Binary {
   MockBinary()
