@@ -17,14 +17,25 @@ class OverviewPage extends StatefulWidget {
 }
 
 class _OverviewPageState extends State<OverviewPage> {
-  late final ConfigProvider _configService;
-  late final DownloadProvider _downloadManager;
+  ConfigProvider get _configService => GetIt.I.get<ConfigProvider>();
+  BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
 
   @override
   void initState() {
     super.initState();
-    _configService = GetIt.I.get<ConfigProvider>();
-    _downloadManager = GetIt.I.get<DownloadProvider>();
+    _binaryProvider.addListener(_onBinaryProviderUpdate);
+  }
+
+  @override
+  void dispose() {
+    _binaryProvider.removeListener(_onBinaryProviderUpdate);
+    super.dispose();
+  }
+
+  void _onBinaryProviderUpdate() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -35,8 +46,8 @@ class _OverviewPageState extends State<OverviewPage> {
           Column(
             children: [
               Expanded(
-                child: StreamBuilder<Map<String, DownloadProgress>>(
-                  stream: _downloadManager.statusStream,
+                child: StreamBuilder<Map<String, DownloadState>>(
+                  stream: _binaryProvider.statusStream,
                   builder: (context, statusSnapshot) {
                     final l1Chains = _configService.configs.where((chain) => chain.chainLayer == 1).toList()
                       ..sort((a, b) => a.chainLayer.compareTo(b.chainLayer));
@@ -116,32 +127,61 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Widget _buildStatusIndicator(DownloadProgress? status) {
-    if (status == null) return const SizedBox();
+  Widget _buildStatusIndicator(Binary binary) {
+    // Get RPC status based on binary type
+    bool connected = false;
+    bool initializing = false;
+    String? error;
 
-    final color = switch (status.status) {
-      DownloadStatus.completed => Colors.green,
-      DownloadStatus.failed => Colors.red,
-      DownloadStatus.downloading || DownloadStatus.extracting || DownloadStatus.verifying => Colors.blue,
+    switch (binary.runtimeType) {
+      case ParentChain():
+        connected = _binaryProvider.mainchainRPC?.connected ?? false;
+        initializing = _binaryProvider.mainchainRPC?.initializingBinary ?? false;
+        error = _binaryProvider.mainchainRPC?.connectionError;
+      case Enforcer():
+        connected = _binaryProvider.enforcerRPC?.connected ?? false;
+        initializing = _binaryProvider.enforcerRPC?.initializingBinary ?? false;
+        error = _binaryProvider.enforcerRPC?.connectionError;
+      case BitWindow():
+        connected = _binaryProvider.bitwindowRPC?.connected ?? false;
+        initializing = _binaryProvider.bitwindowRPC?.initializingBinary ?? false;
+        error = _binaryProvider.bitwindowRPC?.connectionError;
+    }
+
+    final color = switch ((connected, initializing, error != null)) {
+      (true, _, _) => Colors.green,
+      (_, true, _) => Colors.orange,
+      (_, _, true) => Colors.red,
       _ => Colors.grey,
     };
 
-    return Container(
-      width: 12,
-      height: 12,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: SailText.secondary13(
+              error,
+              color: Colors.red,
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildProgressIndicator(DownloadProgress? status) {
+  Widget _buildProgressIndicator(DownloadState? status) {
     if (status == null) return const SizedBox();
 
-    if (status.status == DownloadStatus.downloading ||
-        status.status == DownloadStatus.extracting ||
-        status.status == DownloadStatus.verifying) {
+    if (status.status == DownloadStatus.installing) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -155,19 +195,69 @@ class _OverviewPageState extends State<OverviewPage> {
     return const SizedBox();
   }
 
-  Widget _buildActionButton(Binary binary, DownloadProgress? status) {
-    if (status == null || status.status == DownloadStatus.notStarted) {
+  Widget _buildActionButton(Binary binary, DownloadState? status) {
+    // Check if binary is running
+    final isRunning = switch (binary.runtimeType) {
+      ParentChain() => _binaryProvider.mainchainConnected,
+      Enforcer() => _binaryProvider.enforcerConnected,
+      BitWindow() => _binaryProvider.bitwindowConnected,
+      _ => false,
+    };
+
+    // Check if binary is initializing
+    final isInitializing = switch (binary.runtimeType) {
+      ParentChain() => _binaryProvider.mainchainInitializing,
+      Enforcer() => _binaryProvider.enforcerInitializing,
+      BitWindow() => _binaryProvider.bitwindowInitializing,
+      _ => false,
+    };
+
+    if (isRunning) {
+      return SailButton.secondary(
+        'Stop',
+        onPressed: () async {
+          switch (binary.runtimeType) {
+            case ParentChain():
+              await _binaryProvider.mainchainRPC?.stop();
+            case Enforcer():
+              await _binaryProvider.enforcerRPC?.stop();
+            case BitWindow():
+              await _binaryProvider.bitwindowRPC?.stop();
+          }
+        },
+        size: ButtonSize.regular,
+      );
+    }
+
+    if (isInitializing) {
+      return SailButton.primary(
+        'Launching...',
+        onPressed: () {}, // Disable button while initializing
+        size: ButtonSize.regular,
+        loading: true, // Show loading spinner
+      );
+    }
+
+    if (status == null || status.status == DownloadStatus.uninstalled) {
       return SailButton.primary(
         'Download',
-        onPressed: () => _downloadManager.downloadBinary(binary),
+        onPressed: () => _binaryProvider.downloadBinary(binary),
         size: ButtonSize.regular,
       );
     }
 
     if (status.status == DownloadStatus.failed) {
       return SailButton.primary(
-        'Retry Download',
-        onPressed: () => _downloadManager.downloadBinary(binary),
+        'Retry',
+        onPressed: () => _binaryProvider.downloadBinary(binary),
+        size: ButtonSize.regular,
+      );
+    }
+
+    if (status.status == DownloadStatus.installed) {
+      return SailButton.primary(
+        'Launch',
+        onPressed: () => _binaryProvider.startBinary(context, binary),
         size: ButtonSize.regular,
       );
     }
@@ -175,7 +265,7 @@ class _OverviewPageState extends State<OverviewPage> {
     return const SizedBox();
   }
 
-  Widget _buildChainContent(Binary chain, DownloadProgress? status) {
+  Widget _buildChainContent(Binary chain, DownloadState? status) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -197,7 +287,7 @@ class _OverviewPageState extends State<OverviewPage> {
               },
             ),
             const SizedBox(width: 8),
-            _buildStatusIndicator(status),
+            _buildStatusIndicator(chain),
           ],
         ),
         const SizedBox(height: 12),

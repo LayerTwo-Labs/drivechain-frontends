@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:crypto/crypto.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
@@ -73,6 +76,74 @@ class NetworkConfig {
       port: json['port'] as int,
     );
   }
+}
+
+/// Represents the download status and information for a binary
+class DownloadInfo {
+  final DownloadStatus status;
+  final double progress;
+  final String? message;
+  final String? error;
+  final String? hash; // SHA256 of the binary
+  final DateTime? downloadedAt;
+
+  const DownloadInfo({
+    this.status = DownloadStatus.uninstalled,
+    this.progress = 0.0,
+    this.message,
+    this.error,
+    this.hash,
+    this.downloadedAt,
+  });
+
+  /// Create a copy with updated fields
+  DownloadInfo copyWith({
+    DownloadStatus? status,
+    double? progress,
+    String? message,
+    String? error,
+    String? hash,
+    DateTime? downloadedAt,
+  }) {
+    return DownloadInfo(
+      status: status ?? this.status,
+      progress: progress ?? this.progress,
+      message: message ?? this.message,
+      error: error ?? this.error,
+      hash: hash ?? this.hash,
+      downloadedAt: downloadedAt ?? this.downloadedAt,
+    );
+  }
+}
+
+enum DownloadStatus {
+  uninstalled, // Binary not present in assets/
+  installing, // Currently downloading/extracting/moving
+  installed, // Binary present in assets/ with metadata
+  failed, // Installation failed with error
+}
+
+/// Information about a completed download
+class DownloadMetadata {
+  final String hash; // SHA256 of the binary
+  final DateTime releaseDate; // Last-Modified date from server
+
+  const DownloadMetadata({
+    required this.hash,
+    required this.releaseDate,
+  });
+
+  factory DownloadMetadata.fromJson(Map<String, dynamic> json) {
+    return DownloadMetadata(
+      hash: json['hash'] as String,
+      releaseDate: DateTime.parse(json['releaseDate'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'hash': hash,
+        'releaseDate': releaseDate.toIso8601String(),
+      };
 }
 
 abstract class Binary {
@@ -158,7 +229,7 @@ abstract class Binary {
 class ParentChain extends Binary {
   ParentChain()
       : super(
-          name: 'Parent Chain',
+          name: 'Bitcoin Core (Patched)',
           version: '0.1.0',
           description: 'Drivechain Parent Chain',
           repoUrl: 'https://github.com/drivechain-project/drivechain',
@@ -322,4 +393,50 @@ class _BinaryImpl extends Binary {
 
   @override
   Color get color => SailColorScheme.green;
+}
+
+extension BinaryDownload on Binary {
+  /// Check if the binary exists in the assets directory
+  Future<bool> exists(Directory datadir) async {
+    final binaryPath = path.join(datadir.path, 'assets', binary);
+    final exists = await File(binaryPath).exists();
+    return exists;
+  }
+
+  /// Get the path to the binary in assets
+  String assetPath(Directory datadir) {
+    return path.join(datadir.path, 'assets', binary);
+  }
+
+  /// Calculate SHA256 hash of the binary
+  Future<String?> calculateHash(Directory datadir) async {
+    try {
+      final file = File(assetPath(datadir));
+      if (!await file.exists()) return null;
+
+      final bytes = await file.readAsBytes();
+      return sha256.convert(bytes).toString();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Load metadata about the downloaded binary
+  Future<DownloadMetadata?> loadMetadata(Directory datadir) async {
+    try {
+      final metaFile = File(path.join(datadir.path, 'assets', '$binary.meta'));
+      if (!await metaFile.exists()) return null;
+
+      final json = jsonDecode(await metaFile.readAsString());
+      return DownloadMetadata.fromJson(json);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Save metadata about the downloaded binary
+  Future<void> saveMetadata(Directory datadir, DownloadMetadata meta) async {
+    final metaFile = File(path.join(datadir.path, 'assets', '$binary.meta'));
+    await metaFile.writeAsString(jsonEncode(meta.toJson()));
+  }
 }
