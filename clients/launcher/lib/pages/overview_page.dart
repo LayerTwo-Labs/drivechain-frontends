@@ -19,16 +19,19 @@ class OverviewPage extends StatefulWidget {
 class _OverviewPageState extends State<OverviewPage> {
   ConfigProvider get _configService => GetIt.I.get<ConfigProvider>();
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
+  ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
 
   @override
   void initState() {
     super.initState();
     _binaryProvider.addListener(_onBinaryProviderUpdate);
+    _processProvider.addListener(_onBinaryProviderUpdate);
   }
 
   @override
   void dispose() {
     _binaryProvider.removeListener(_onBinaryProviderUpdate);
+    _processProvider.removeListener(_onBinaryProviderUpdate);
     super.dispose();
   }
 

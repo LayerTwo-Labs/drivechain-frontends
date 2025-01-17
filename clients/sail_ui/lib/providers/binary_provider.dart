@@ -364,7 +364,6 @@ class BinaryProvider extends ChangeNotifier {
 
     switch (binary) {
       case ParentChain():
-        print('is parentchain');
         if (mainchainRPC == null) {
           mainchainRPC = await MainchainRPCLive.create(
             conf,
@@ -375,7 +374,6 @@ class BinaryProvider extends ChangeNotifier {
         await mainchainRPC!.initBinary(context);
 
       case Enforcer():
-        print('is enforcer');
         if (enforcerRPC == null) {
           enforcerRPC = EnforcerLive(
             conf: conf,
@@ -387,8 +385,6 @@ class BinaryProvider extends ChangeNotifier {
         await enforcerRPC!.initBinary(context);
 
       case BitWindow():
-        print('is bitwindow');
-
         if (bitwindowRPC == null) {
           bitwindowRPC = BitwindowRPCLive(
             host: 'localhost',
