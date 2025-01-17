@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'tools_page_view_model.dart';
 
 @RoutePage()
 class ToolsPage extends StatelessWidget {
@@ -79,9 +80,7 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
                 const SizedBox(width: 24),
                 SailButton.secondary(
                   viewModel.isConnected ? 'Disconnect' : 'Connect',
-                  onPressed: () {
-                    viewModel.connectToServerDummy();
-                  },
+                  onPressed: () => viewModel.connectToServer(),
                   size: ButtonSize.small,
                 ),
               ],
@@ -114,9 +113,8 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
             const SizedBox(height: 16),
             SailButton.primary(
               'Request Withdrawal',
-              onPressed: () {
-                viewModel.requestWithdrawalDummy();
-              },
+              onPressed: () => viewModel.requestWithdrawal(),
+              disabled: !viewModel.isConnected,
               size: ButtonSize.regular,
             ),
             const SizedBox(height: 24),
@@ -148,9 +146,9 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
                 SailButton.secondary(
                   'Copy Address',
                   onPressed: () {
-                    // Placeholder for copying address to clipboard
-                    // In real code, you'd copy `viewModel.invoiceAddress`
+                    // TODO: Implement clipboard functionality
                   },
+                  disabled: !viewModel.invoiceAddress.isNotEmpty,
                   size: ButtonSize.regular,
                 ),
               ],
@@ -160,9 +158,8 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
             // Mark Invoice as Paid
             SailButton.primary(
               'Invoice Paid',
-              onPressed: () {
-                viewModel.invoicePaidDummy();
-              },
+              onPressed: () => viewModel.invoicePaid(),
+              disabled: !(viewModel.isConnected && viewModel.invoiceAddress.isNotEmpty),
               size: ButtonSize.regular,
             ),
             const SizedBox(height: 24),
@@ -206,69 +203,5 @@ class FaucetTab extends ViewModelWidget<ToolsPageViewModel> {
       subtitle: 'Get test coins from the faucet',
       child: Container(), // Add your faucet UI here
     );
-  }
-}
-
-class ToolsPageViewModel extends BaseViewModel {
-  /// Whether to use localhost for the debug server.
-  bool useLocalhost = false;
-
-  /// Simple boolean for dummy connection state.
-  bool isConnected = false;
-
-  /// Human-readable status: "Not Connected", "Connected", etc.
-  String connectionStatus = 'Not Connected';
-
-  /// Invoice status: "Awaiting Payment" or "Payment Complete"
-  String invoiceStatus = 'Awaiting Payment';
-
-  /// The text displayed after requesting withdrawal (fake invoice).
-  String invoiceText = '';
-
-  /// A final message displayed once the withdrawal is completed (fake).
-  String finalMessage = '';
-
-  /// Controllers for user input
-  final TextEditingController mainchainAddressController = TextEditingController();
-  final TextEditingController amountController = TextEditingController();
-  final TextEditingController paymentTxIdController = TextEditingController();
-
-  void init() {
-    // Initialize any required data
-    amountController.text = '1.0 BTC';
-  }
-
-  void setUseLocalhost(bool value) {
-    useLocalhost = value;
-    notifyListeners();
-  }
-
-  /// Dummy method to connect/disconnect from server
-  void connectToServerDummy() {
-    // Flip the connection state to simulate connecting/disconnecting
-    isConnected = !isConnected;
-    connectionStatus = isConnected ? 'Connected' : 'Not Connected';
-    notifyListeners();
-  }
-
-  /// Dummy method to request a fast withdrawal
-  void requestWithdrawalDummy() {
-    // Simulate receiving an invoice from the server
-    invoiceText = 'Fast withdraw request received!\n'
-        'Send L2 coins to [some-sidechain-address]\n'
-        "Once paid, enter the L2 txid and press 'Invoice Paid'.";
-    invoiceStatus = 'Awaiting Payment';
-    notifyListeners();
-  }
-
-  /// Dummy method for marking the invoice as paid
-  void invoicePaidDummy() {
-    // Simulate server response that mainchain tx is broadcast
-    invoiceStatus = 'Payment Complete';
-    finalMessage = 'Withdraw complete!\n'
-        'Mainchain payout txid: <dummy-txid>\n'
-        'Amount: ${amountController.text}\n'
-        'Destination: ${mainchainAddressController.text}\n';
-    notifyListeners();
   }
 }

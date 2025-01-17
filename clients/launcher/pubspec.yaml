@@ -39,6 +39,7 @@ dependencies:
   window_manager: ^0.4.3
   synchronized: ^3.3.0+3
   provider: ^6.1.2
+  web_socket_channel: ^2.4.0
 
 dev_dependencies:
   flutter_test:
