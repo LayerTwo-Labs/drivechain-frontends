@@ -113,29 +113,19 @@ Future<void> initDependencies(Logger log, File logFile) async {
     () => ProcessProvider(),
   );
 
-  NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
-  try {
-    final network = 'signet';
-    mainchainConf = await readRPCConfig(ParentChain().datadir(), 'bitcoin.conf', ParentChain(), network);
-  } catch (error) {
-    log.e('could not read mainchain conf: $error');
-    // do nothing
-  }
-
   var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
   log.i('logging server logs to: $serverLogFile');
+  final bitwindow = await BitwindowRPCLive.create(
+    host: env(Environment.bitwindowdHost),
+    port: env(Environment.bitwindowdPort),
+    binary: BitWindow(),
+    logPath: serverLogFile,
+  );
   GetIt.I.registerLazySingleton<BitwindowRPC>(
-    () => BitwindowRPCLive(
-      host: env(Environment.bitwindowdHost),
-      port: env(Environment.bitwindowdPort),
-      conf: mainchainConf,
-      binary: BitWindow(),
-      logPath: serverLogFile,
-    ),
+    () => bitwindow,
   );
 
-  final enforcer = EnforcerLive(
-    conf: mainchainConf,
+  final enforcer = await EnforcerLive.create(
     binary: Enforcer(),
     logPath: serverLogFile,
   );
@@ -175,7 +165,6 @@ Future<void> initDependencies(Logger log, File logFile) async {
   unawaited(sidechainProvider.fetch());
 
   final mainchainRPC = await MainchainRPCLive.create(
-    mainchainConf,
     ParentChain(),
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(

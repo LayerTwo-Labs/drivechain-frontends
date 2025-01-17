@@ -237,6 +237,7 @@ abstract class RPCConnection extends ChangeNotifier {
   // so we can update the UI immediately when the connection drops/begins
   Timer? connectionTimer;
   Future<void> startConnectionTimer() async {
+    log.i('starting connection timer for ${conf.host}:${conf.port}');
     connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();
     });

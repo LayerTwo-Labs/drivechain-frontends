@@ -5,8 +5,6 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/classes/node_connection_settings.dart';
-import 'package:sail_ui/classes/rpc_config.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
@@ -354,19 +352,10 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> startBinary(BuildContext context, Binary binary) async {
     if (!context.mounted) return;
 
-    NodeConnectionSettings conf = NodeConnectionSettings.empty();
-    try {
-      final network = 'signet';
-      conf = await readRPCConfig(ParentChain().datadir(), 'bitcoin.conf', ParentChain(), network);
-    } catch (error) {
-      log.e('could not read mainchain conf: $error');
-    }
-
     switch (binary) {
       case ParentChain():
         if (mainchainRPC == null) {
           mainchainRPC = await MainchainRPCLive.create(
-            conf,
             binary,
           );
           mainchainRPC!.addListener(notifyListeners);
@@ -375,8 +364,7 @@ class BinaryProvider extends ChangeNotifier {
 
       case Enforcer():
         if (enforcerRPC == null) {
-          enforcerRPC = EnforcerLive(
-            conf: conf,
+          enforcerRPC = await EnforcerLive.create(
             binary: binary,
             logPath: path.join(datadir.path, 'enforcer.log'),
           );
@@ -386,10 +374,9 @@ class BinaryProvider extends ChangeNotifier {
 
       case BitWindow():
         if (bitwindowRPC == null) {
-          bitwindowRPC = BitwindowRPCLive(
+          bitwindowRPC = await BitwindowRPCLive.create(
             host: 'localhost',
             port: binary.port,
-            conf: conf,
             binary: binary,
             logPath: path.join(datadir.path, 'bitwindow.log'),
           );

@@ -4,6 +4,7 @@ import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:sail_ui/gen/google/protobuf/empty.pb.dart';
@@ -68,17 +69,38 @@ class BitwindowRPCLive extends BitwindowRPC {
   late final WalletServiceClient _walletClient;
   late final MiscServiceClient _miscClient;
 
-  late final WalletAPI _wallet;
-  late final BitcoindAPI _bitcoind;
-  late final DrivechainAPI _drivechain;
-  late final MiscAPI _misc;
-  BitwindowRPCLive({
-    required String host,
-    required int port,
+  late final _WalletAPILive _wallet;
+  late final _BitcoindAPILive _bitcoind;
+  late final _DrivechainAPILive _drivechain;
+  late final _MiscAPILive _misc;
+
+  // Private constructor
+  BitwindowRPCLive._create({
     required super.conf,
     required super.binary,
     required super.logPath,
-  }) {
+  });
+
+  // Async factory
+  static Future<BitwindowRPCLive> create({
+    required String host,
+    required int port,
+    required Binary binary,
+    required String logPath,
+  }) async {
+    final conf = await getMainchainConf();
+
+    final instance = BitwindowRPCLive._create(
+      conf: conf,
+      binary: binary,
+      logPath: logPath,
+    );
+
+    await instance._init(host, port);
+    return instance;
+  }
+
+  Future<void> _init(String host, int port) async {
     final channel = ClientChannel(
       host,
       port: port,

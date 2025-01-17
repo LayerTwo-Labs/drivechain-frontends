@@ -350,7 +350,7 @@ class BitWindow extends Binary {
                   OS.windows: 'BitWindow-latest-x86_64-pc-windows-msvc.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 38332),
+          network: network ?? NetworkConfig(port: 8080),
         );
 
   @override
@@ -410,7 +410,7 @@ class Enforcer extends Binary {
                   OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 38332),
+          network: network ?? NetworkConfig(port: 50051),
         );
 
   @override

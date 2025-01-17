@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -235,6 +237,27 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
     case ParentChain():
       // do absolutely nothing, not a sidechain!
       break;
+  }
+
+  return conf;
+}
+
+Future<NodeConnectionSettings> getMainchainConf() async {
+  final log = GetIt.I.get<Logger>();
+
+  NodeConnectionSettings conf = NodeConnectionSettings.empty();
+  try {
+    final network = 'signet';
+    conf = await readRPCConfig(
+      ParentChain().datadir(),
+      'bitcoin.conf',
+      ParentChain(),
+      network,
+    );
+    // Do something with mainchainConf if needed
+  } catch (error) {
+    log.e('could not read mainchain conf: $error');
+    // do nothing
   }
 
   return conf;

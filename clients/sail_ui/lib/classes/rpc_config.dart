@@ -43,48 +43,19 @@ Future<NodeConnectionSettings> readRPCConfig(
 
   final cookie = File(filePath([networkDir, '.cookie']));
 
-  String? username;
-  String? password;
-  String? host;
-  int? port;
-
-  if (!await conf.exists() && !await cookie.exists()) {
-    log.d('missing both conf ($conf) and cookie ($cookie), returning default settings');
-    return NodeConnectionSettings(
-      conf.path,
-      'localhost',
-      chain.port,
-      'user',
-      'password',
-      network == 'regtest',
-    );
-  }
-
-  if (useCookieAuth && await cookie.exists()) {
-    final data = await cookie.readAsString();
-    final parts = data.split(':');
-    if (parts.length != 2) {
-      throw 'unexpected cookie file: $data';
-    }
-    [username, password] = parts;
-
-    log.t('rpc: read password from cookie file at $cookie');
-  }
+  var settings = NodeConnectionSettings(
+    conf.path,
+    'localhost',
+    chain.port,
+    'user',
+    'password',
+    network == 'regtest',
+  );
 
   if (await conf.exists()) {
-    log.d('rpc: reading conf file at $conf');
+    log.i('rpc: reading conf file at $conf');
     final confContent = await conf.readAsString();
     final lines = confContent.split('\n').map((e) => e.trim()).toList();
-
-    // Create settings with basic values
-    final settings = NodeConnectionSettings(
-      conf.path,
-      'localhost',
-      chain.port,
-      'user',
-      'password',
-      network == 'regtest',
-    );
 
     // Read all config values, overwrite
     // default 'host' 'port' 'user' 'password' if set
@@ -93,23 +64,29 @@ Future<NodeConnectionSettings> readRPCConfig(
     return settings;
   }
 
-  if (password == null || username == null) {
-    throw 'could not find username or password in conf file, and cookie was not present';
+  if (useCookieAuth && await cookie.exists()) {
+    final data = await cookie.readAsString();
+    final parts = data.split(':');
+    if (parts.length != 2) {
+      throw 'unexpected cookie file: $data';
+    }
+    final [username, password] = parts;
+
+    // Make sure to not include password here
+    log.t('rpc: read password from cookie file at $cookie');
+    log.i('resolved conf: $username@${settings.host}:${settings.port} on $network');
+    return NodeConnectionSettings(
+      conf.path,
+      settings.host,
+      settings.port,
+      username,
+      password,
+      network == 'regtest',
+    );
   }
 
-  host ??= 'localhost';
-  port ??= chain.port;
-
-// Make sure to not include password here
-  log.i('resolved conf: $username@$host:$port on $network');
-  return NodeConnectionSettings(
-    conf.path,
-    host,
-    port,
-    username,
-    password,
-    network == 'regtest',
-  );
+  log.i('missing both conf ($conf) and cookie ($cookie), returning default settings');
+  return settings;
 }
 
 List<String> bitcoinCoreBinaryArgs(NodeConnectionSettings conf) {
