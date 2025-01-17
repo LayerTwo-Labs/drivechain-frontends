@@ -143,11 +143,6 @@ func initFileLogger(logFile *os.File, conf Config) error {
 		return nil
 	}
 
-	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return fmt.Errorf("failed to open log file: %w", err)
-	}
-
 	// We want pretty printing to the file as well. This is not meant for
 	// centralized log ingestion, where JSON is crucial.
 	logWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
