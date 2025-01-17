@@ -1,7 +1,7 @@
-import 'package:bitwindow/gen/cusf/mainchain/v1/validator.pbgrpc.dart';
 import 'package:grpc/grpc.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pbgrpc.dart';
 
 /// API to the drivechain server.
 abstract class EnforcerRPC extends RPCConnection {

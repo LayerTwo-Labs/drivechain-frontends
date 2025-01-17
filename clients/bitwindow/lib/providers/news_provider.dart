@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
-import 'package:bitwindow/servers/api.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class NewsProvider extends ChangeNotifier {
-  API get api => GetIt.I.get<API>();
+  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
   List<CoinNews> news = [];

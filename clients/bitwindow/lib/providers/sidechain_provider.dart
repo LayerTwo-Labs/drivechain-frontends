@@ -1,15 +1,15 @@
 import 'dart:async';
 
-import 'package:bitwindow/gen/drivechain/v1/drivechain.pbgrpc.dart';
-import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
-import 'package:bitwindow/servers/api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class SidechainProvider extends ChangeNotifier {
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
-  API get api => GetIt.I.get<API>();
+  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
 
   // This always has 255 slots. The fetch-method fills in the slots that
   // are actually in use.

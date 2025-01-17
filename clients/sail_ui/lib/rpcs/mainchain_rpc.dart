@@ -47,12 +47,14 @@ class MainchainRPCLive extends MainchainRPC {
   static Future<MainchainRPCLive> create(
     NodeConnectionSettings conf,
     Binary binary,
-    String logPath,
   ) async {
+    final mainchainLogDir = [ParentChain().datadir(), 'signet', 'debug.log'].join(Platform.pathSeparator);
+    NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
+
     final container = MainchainRPCLive._create(
-      conf: conf,
+      conf: mainchainConf,
       binary: binary,
-      logPath: logPath,
+      logPath: mainchainLogDir,
     );
     await container.init();
     return container;

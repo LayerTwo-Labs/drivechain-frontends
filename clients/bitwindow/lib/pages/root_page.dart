@@ -2,17 +2,17 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:bitwindow/servers/api.dart';
-import 'package:bitwindow/servers/enforcer_rpc.dart';
-import 'package:bitwindow/servers/mainchain_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:stacked/stacked.dart';
@@ -320,7 +320,7 @@ class BottomNavViewModel extends BaseViewModel {
 
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
-  API get server => GetIt.I.get<API>();
+  BitwindowRPC get server => GetIt.I.get<BitwindowRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
   int get balance => _balanceProvider.balance;

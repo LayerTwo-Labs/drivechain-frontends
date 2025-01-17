@@ -1,11 +1,11 @@
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
-import 'package:bitwindow/servers/api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
@@ -51,8 +51,8 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<API>()) {
-    GetIt.I.registerLazySingleton<API>(
+  if (!GetIt.I.isRegistered<BitwindowRPC>()) {
+    GetIt.I.registerLazySingleton<BitwindowRPC>(
       () => MockAPI(
         conf: NodeConnectionSettings.empty(),
         binary: MockBinary(),

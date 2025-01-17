@@ -211,196 +211,6 @@ class WalletTransaction extends $pb.GeneratedMessage {
   WalletTransaction_Confirmation ensureConfirmationInfo() => $_ensure(4);
 }
 
-class UnlockWalletRequest extends $pb.GeneratedMessage {
-  factory UnlockWalletRequest({
-    $core.String? password,
-  }) {
-    final $result = create();
-    if (password != null) {
-      $result.password = password;
-    }
-    return $result;
-  }
-  UnlockWalletRequest._() : super();
-  factory UnlockWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UnlockWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnlockWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'password')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  UnlockWalletRequest clone() => UnlockWalletRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  UnlockWalletRequest copyWith(void Function(UnlockWalletRequest) updates) => super.copyWith((message) => updates(message as UnlockWalletRequest)) as UnlockWalletRequest;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static UnlockWalletRequest create() => UnlockWalletRequest._();
-  UnlockWalletRequest createEmptyInstance() => create();
-  static $pb.PbList<UnlockWalletRequest> createRepeated() => $pb.PbList<UnlockWalletRequest>();
-  @$core.pragma('dart2js:noInline')
-  static UnlockWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnlockWalletRequest>(create);
-  static UnlockWalletRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get password => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set password($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasPassword() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearPassword() => clearField(1);
-}
-
-class UnlockWalletResponse extends $pb.GeneratedMessage {
-  factory UnlockWalletResponse() => create();
-  UnlockWalletResponse._() : super();
-  factory UnlockWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UnlockWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnlockWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  UnlockWalletResponse clone() => UnlockWalletResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  UnlockWalletResponse copyWith(void Function(UnlockWalletResponse) updates) => super.copyWith((message) => updates(message as UnlockWalletResponse)) as UnlockWalletResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static UnlockWalletResponse create() => UnlockWalletResponse._();
-  UnlockWalletResponse createEmptyInstance() => create();
-  static $pb.PbList<UnlockWalletResponse> createRepeated() => $pb.PbList<UnlockWalletResponse>();
-  @$core.pragma('dart2js:noInline')
-  static UnlockWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnlockWalletResponse>(create);
-  static UnlockWalletResponse? _defaultInstance;
-}
-
-class CreateWalletRequest extends $pb.GeneratedMessage {
-  factory CreateWalletRequest({
-    $core.Iterable<$core.String>? mnemonicWords,
-    $core.String? mnemonicPath,
-    $core.String? password,
-  }) {
-    final $result = create();
-    if (mnemonicWords != null) {
-      $result.mnemonicWords.addAll(mnemonicWords);
-    }
-    if (mnemonicPath != null) {
-      $result.mnemonicPath = mnemonicPath;
-    }
-    if (password != null) {
-      $result.password = password;
-    }
-    return $result;
-  }
-  CreateWalletRequest._() : super();
-  factory CreateWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..pPS(1, _omitFieldNames ? '' : 'mnemonicWords')
-    ..aOS(2, _omitFieldNames ? '' : 'mnemonicPath')
-    ..aOS(3, _omitFieldNames ? '' : 'password')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  CreateWalletRequest clone() => CreateWalletRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateWalletRequest copyWith(void Function(CreateWalletRequest) updates) => super.copyWith((message) => updates(message as CreateWalletRequest)) as CreateWalletRequest;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static CreateWalletRequest create() => CreateWalletRequest._();
-  CreateWalletRequest createEmptyInstance() => create();
-  static $pb.PbList<CreateWalletRequest> createRepeated() => $pb.PbList<CreateWalletRequest>();
-  @$core.pragma('dart2js:noInline')
-  static CreateWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateWalletRequest>(create);
-  static CreateWalletRequest? _defaultInstance;
-
-  /// BIP39 mnemonic. 12 or 24 words.
-  @$pb.TagNumber(1)
-  $core.List<$core.String> get mnemonicWords => $_getList(0);
-
-  /// Path to a file containing the mnemonic.
-  @$pb.TagNumber(2)
-  $core.String get mnemonicPath => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set mnemonicPath($core.String v) { $_setString(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasMnemonicPath() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearMnemonicPath() => clearField(2);
-
-  /// Password for the wallet. Used to encrypt the mnemonic in storage.
-  /// NOT a BIP39 passphrase.
-  @$pb.TagNumber(3)
-  $core.String get password => $_getSZ(2);
-  @$pb.TagNumber(3)
-  set password($core.String v) { $_setString(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasPassword() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearPassword() => clearField(3);
-}
-
-class CreateWalletResponse extends $pb.GeneratedMessage {
-  factory CreateWalletResponse() => create();
-  CreateWalletResponse._() : super();
-  factory CreateWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  CreateWalletResponse clone() => CreateWalletResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateWalletResponse copyWith(void Function(CreateWalletResponse) updates) => super.copyWith((message) => updates(message as CreateWalletResponse)) as CreateWalletResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static CreateWalletResponse create() => CreateWalletResponse._();
-  CreateWalletResponse createEmptyInstance() => create();
-  static $pb.PbList<CreateWalletResponse> createRepeated() => $pb.PbList<CreateWalletResponse>();
-  @$core.pragma('dart2js:noInline')
-  static CreateWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateWalletResponse>(create);
-  static CreateWalletResponse? _defaultInstance;
-}
-
 class BroadcastWithdrawalBundleRequest extends $pb.GeneratedMessage {
   factory BroadcastWithdrawalBundleRequest({
     $4.UInt32Value? sidechainId,
@@ -672,7 +482,7 @@ class CreateBmmCriticalDataTransactionResponse extends $pb.GeneratedMessage {
 class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
   factory CreateDepositTransactionRequest({
     $4.UInt32Value? sidechainId,
-    $5.Hex? address,
+    $4.StringValue? address,
     $4.UInt64Value? valueSats,
     $4.UInt64Value? feeSats,
   }) {
@@ -697,7 +507,7 @@ class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateDepositTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
-    ..aOM<$5.Hex>(2, _omitFieldNames ? '' : 'address', subBuilder: $5.Hex.create)
+    ..aOM<$4.StringValue>(2, _omitFieldNames ? '' : 'address', subBuilder: $4.StringValue.create)
     ..aOM<$4.UInt64Value>(3, _omitFieldNames ? '' : 'valueSats', subBuilder: $4.UInt64Value.create)
     ..aOM<$4.UInt64Value>(4, _omitFieldNames ? '' : 'feeSats', subBuilder: $4.UInt64Value.create)
     ..hasRequiredFields = false
@@ -735,16 +545,25 @@ class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $4.UInt32Value ensureSidechainId() => $_ensure(0);
 
+  /// Addresses are encoded in UTF8.
+  /// *Sidechain deposit addresses* (not sidechain addresses) are typically
+  /// formatted as `s<SLOT_NUMBER>_<ADDRESS>_<CHECKSUM>`,
+  /// where `CHECKSUM` is a hex encoding of the first 6 bytes of the SHA256
+  /// hash of `s<SLOT_NUMBER>_<ADDRESS>`.
+  /// protolint:disable:next MAX_LINE_LENGTH
+  /// https://github.com/LayerTwo-Labs/testchain-deprecated/blob/4b7bae3e1218e058f59a43caf6ccac2a4e9a91f6/src/sidechain.cpp#L219
+  /// The address used here is a sidechain address, the middle component of a
+  /// sidechain deposit address.
   @$pb.TagNumber(2)
-  $5.Hex get address => $_getN(1);
+  $4.StringValue get address => $_getN(1);
   @$pb.TagNumber(2)
-  set address($5.Hex v) { setField(2, v); }
+  set address($4.StringValue v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasAddress() => $_has(1);
   @$pb.TagNumber(2)
   void clearAddress() => clearField(2);
   @$pb.TagNumber(2)
-  $5.Hex ensureAddress() => $_ensure(1);
+  $4.StringValue ensureAddress() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $4.UInt64Value get valueSats => $_getN(2);
@@ -1254,27 +1073,32 @@ class CreateSidechainProposalResponse extends $pb.GeneratedMessage {
   CreateSidechainProposalResponse_NotConfirmed ensureNotConfirmed() => $_ensure(1);
 }
 
-class GenerateBlocksRequest extends $pb.GeneratedMessage {
-  factory GenerateBlocksRequest({
-    $4.UInt32Value? blocks,
-    $core.bool? ackAllProposals,
+class CreateWalletRequest extends $pb.GeneratedMessage {
+  factory CreateWalletRequest({
+    $core.Iterable<$core.String>? mnemonicWords,
+    $core.String? mnemonicPath,
+    $core.String? password,
   }) {
     final $result = create();
-    if (blocks != null) {
-      $result.blocks = blocks;
+    if (mnemonicWords != null) {
+      $result.mnemonicWords.addAll(mnemonicWords);
     }
-    if (ackAllProposals != null) {
-      $result.ackAllProposals = ackAllProposals;
+    if (mnemonicPath != null) {
+      $result.mnemonicPath = mnemonicPath;
+    }
+    if (password != null) {
+      $result.password = password;
     }
     return $result;
   }
-  GenerateBlocksRequest._() : super();
-  factory GenerateBlocksRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GenerateBlocksRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  CreateWalletRequest._() : super();
+  factory CreateWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateBlocksRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'blocks', subBuilder: $4.UInt32Value.create)
-    ..aOB(2, _omitFieldNames ? '' : 'ackAllProposals')
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'mnemonicWords')
+    ..aOS(2, _omitFieldNames ? '' : 'mnemonicPath')
+    ..aOS(3, _omitFieldNames ? '' : 'password')
     ..hasRequiredFields = false
   ;
 
@@ -1282,63 +1106,56 @@ class GenerateBlocksRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  GenerateBlocksRequest clone() => GenerateBlocksRequest()..mergeFromMessage(this);
+  CreateWalletRequest clone() => CreateWalletRequest()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  GenerateBlocksRequest copyWith(void Function(GenerateBlocksRequest) updates) => super.copyWith((message) => updates(message as GenerateBlocksRequest)) as GenerateBlocksRequest;
+  CreateWalletRequest copyWith(void Function(CreateWalletRequest) updates) => super.copyWith((message) => updates(message as CreateWalletRequest)) as CreateWalletRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GenerateBlocksRequest create() => GenerateBlocksRequest._();
-  GenerateBlocksRequest createEmptyInstance() => create();
-  static $pb.PbList<GenerateBlocksRequest> createRepeated() => $pb.PbList<GenerateBlocksRequest>();
+  static CreateWalletRequest create() => CreateWalletRequest._();
+  CreateWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateWalletRequest> createRepeated() => $pb.PbList<CreateWalletRequest>();
   @$core.pragma('dart2js:noInline')
-  static GenerateBlocksRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateBlocksRequest>(create);
-  static GenerateBlocksRequest? _defaultInstance;
+  static CreateWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateWalletRequest>(create);
+  static CreateWalletRequest? _defaultInstance;
 
-  /// Number of blocks to generate.
+  /// BIP39 mnemonic. 12 or 24 words.
   @$pb.TagNumber(1)
-  $4.UInt32Value get blocks => $_getN(0);
-  @$pb.TagNumber(1)
-  set blocks($4.UInt32Value v) { setField(1, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasBlocks() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearBlocks() => clearField(1);
-  @$pb.TagNumber(1)
-  $4.UInt32Value ensureBlocks() => $_ensure(0);
+  $core.List<$core.String> get mnemonicWords => $_getList(0);
 
-  /// ACK all sidechain proposals, irregardless of if they are already
-  /// in the wallet DB.
+  /// Path to a file containing the mnemonic.
   @$pb.TagNumber(2)
-  $core.bool get ackAllProposals => $_getBF(1);
+  $core.String get mnemonicPath => $_getSZ(1);
   @$pb.TagNumber(2)
-  set ackAllProposals($core.bool v) { $_setBool(1, v); }
+  set mnemonicPath($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasAckAllProposals() => $_has(1);
+  $core.bool hasMnemonicPath() => $_has(1);
   @$pb.TagNumber(2)
-  void clearAckAllProposals() => clearField(2);
+  void clearMnemonicPath() => clearField(2);
+
+  /// Password for the wallet. Used to encrypt the mnemonic in storage.
+  /// NOT a BIP39 passphrase.
+  @$pb.TagNumber(3)
+  $core.String get password => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set password($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasPassword() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPassword() => clearField(3);
 }
 
-class GenerateBlocksResponse extends $pb.GeneratedMessage {
-  factory GenerateBlocksResponse({
-    $5.ReverseHex? blockHash,
-  }) {
-    final $result = create();
-    if (blockHash != null) {
-      $result.blockHash = blockHash;
-    }
-    return $result;
-  }
-  GenerateBlocksResponse._() : super();
-  factory GenerateBlocksResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GenerateBlocksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+class CreateWalletResponse extends $pb.GeneratedMessage {
+  factory CreateWalletResponse() => create();
+  CreateWalletResponse._() : super();
+  factory CreateWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateBlocksResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..hasRequiredFields = false
   ;
 
@@ -1346,33 +1163,22 @@ class GenerateBlocksResponse extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  GenerateBlocksResponse clone() => GenerateBlocksResponse()..mergeFromMessage(this);
+  CreateWalletResponse clone() => CreateWalletResponse()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  GenerateBlocksResponse copyWith(void Function(GenerateBlocksResponse) updates) => super.copyWith((message) => updates(message as GenerateBlocksResponse)) as GenerateBlocksResponse;
+  CreateWalletResponse copyWith(void Function(CreateWalletResponse) updates) => super.copyWith((message) => updates(message as CreateWalletResponse)) as CreateWalletResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GenerateBlocksResponse create() => GenerateBlocksResponse._();
-  GenerateBlocksResponse createEmptyInstance() => create();
-  static $pb.PbList<GenerateBlocksResponse> createRepeated() => $pb.PbList<GenerateBlocksResponse>();
+  static CreateWalletResponse create() => CreateWalletResponse._();
+  CreateWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateWalletResponse> createRepeated() => $pb.PbList<CreateWalletResponse>();
   @$core.pragma('dart2js:noInline')
-  static GenerateBlocksResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateBlocksResponse>(create);
-  static GenerateBlocksResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $5.ReverseHex get blockHash => $_getN(0);
-  @$pb.TagNumber(1)
-  set blockHash($5.ReverseHex v) { setField(1, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasBlockHash() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearBlockHash() => clearField(1);
-  @$pb.TagNumber(1)
-  $5.ReverseHex ensureBlockHash() => $_ensure(0);
+  static CreateWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateWalletResponse>(create);
+  static CreateWalletResponse? _defaultInstance;
 }
 
 class GetBalanceRequest extends $pb.GeneratedMessage {
@@ -1469,6 +1275,150 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   $core.bool hasPendingSats() => $_has(1);
   @$pb.TagNumber(2)
   void clearPendingSats() => clearField(2);
+}
+
+class ListSidechainDepositTransactionsRequest extends $pb.GeneratedMessage {
+  factory ListSidechainDepositTransactionsRequest() => create();
+  ListSidechainDepositTransactionsRequest._() : super();
+  factory ListSidechainDepositTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListSidechainDepositTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListSidechainDepositTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListSidechainDepositTransactionsRequest clone() => ListSidechainDepositTransactionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListSidechainDepositTransactionsRequest copyWith(void Function(ListSidechainDepositTransactionsRequest) updates) => super.copyWith((message) => updates(message as ListSidechainDepositTransactionsRequest)) as ListSidechainDepositTransactionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListSidechainDepositTransactionsRequest create() => ListSidechainDepositTransactionsRequest._();
+  ListSidechainDepositTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListSidechainDepositTransactionsRequest> createRepeated() => $pb.PbList<ListSidechainDepositTransactionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListSidechainDepositTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListSidechainDepositTransactionsRequest>(create);
+  static ListSidechainDepositTransactionsRequest? _defaultInstance;
+}
+
+class ListSidechainDepositTransactionsResponse_SidechainDepositTransaction extends $pb.GeneratedMessage {
+  factory ListSidechainDepositTransactionsResponse_SidechainDepositTransaction({
+    $4.UInt32Value? sidechainNumber,
+    WalletTransaction? tx,
+  }) {
+    final $result = create();
+    if (sidechainNumber != null) {
+      $result.sidechainNumber = sidechainNumber;
+    }
+    if (tx != null) {
+      $result.tx = tx;
+    }
+    return $result;
+  }
+  ListSidechainDepositTransactionsResponse_SidechainDepositTransaction._() : super();
+  factory ListSidechainDepositTransactionsResponse_SidechainDepositTransaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListSidechainDepositTransactionsResponse_SidechainDepositTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListSidechainDepositTransactionsResponse.SidechainDepositTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $4.UInt32Value.create)
+    ..aOM<WalletTransaction>(2, _omitFieldNames ? '' : 'tx', subBuilder: WalletTransaction.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListSidechainDepositTransactionsResponse_SidechainDepositTransaction clone() => ListSidechainDepositTransactionsResponse_SidechainDepositTransaction()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListSidechainDepositTransactionsResponse_SidechainDepositTransaction copyWith(void Function(ListSidechainDepositTransactionsResponse_SidechainDepositTransaction) updates) => super.copyWith((message) => updates(message as ListSidechainDepositTransactionsResponse_SidechainDepositTransaction)) as ListSidechainDepositTransactionsResponse_SidechainDepositTransaction;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListSidechainDepositTransactionsResponse_SidechainDepositTransaction create() => ListSidechainDepositTransactionsResponse_SidechainDepositTransaction._();
+  ListSidechainDepositTransactionsResponse_SidechainDepositTransaction createEmptyInstance() => create();
+  static $pb.PbList<ListSidechainDepositTransactionsResponse_SidechainDepositTransaction> createRepeated() => $pb.PbList<ListSidechainDepositTransactionsResponse_SidechainDepositTransaction>();
+  @$core.pragma('dart2js:noInline')
+  static ListSidechainDepositTransactionsResponse_SidechainDepositTransaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListSidechainDepositTransactionsResponse_SidechainDepositTransaction>(create);
+  static ListSidechainDepositTransactionsResponse_SidechainDepositTransaction? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $4.UInt32Value get sidechainNumber => $_getN(0);
+  @$pb.TagNumber(1)
+  set sidechainNumber($4.UInt32Value v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSidechainNumber() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSidechainNumber() => clearField(1);
+  @$pb.TagNumber(1)
+  $4.UInt32Value ensureSidechainNumber() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  WalletTransaction get tx => $_getN(1);
+  @$pb.TagNumber(2)
+  set tx(WalletTransaction v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTx() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTx() => clearField(2);
+  @$pb.TagNumber(2)
+  WalletTransaction ensureTx() => $_ensure(1);
+}
+
+class ListSidechainDepositTransactionsResponse extends $pb.GeneratedMessage {
+  factory ListSidechainDepositTransactionsResponse({
+    $core.Iterable<ListSidechainDepositTransactionsResponse_SidechainDepositTransaction>? transactions,
+  }) {
+    final $result = create();
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    return $result;
+  }
+  ListSidechainDepositTransactionsResponse._() : super();
+  factory ListSidechainDepositTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListSidechainDepositTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListSidechainDepositTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..pc<ListSidechainDepositTransactionsResponse_SidechainDepositTransaction>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: ListSidechainDepositTransactionsResponse_SidechainDepositTransaction.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListSidechainDepositTransactionsResponse clone() => ListSidechainDepositTransactionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListSidechainDepositTransactionsResponse copyWith(void Function(ListSidechainDepositTransactionsResponse) updates) => super.copyWith((message) => updates(message as ListSidechainDepositTransactionsResponse)) as ListSidechainDepositTransactionsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListSidechainDepositTransactionsResponse create() => ListSidechainDepositTransactionsResponse._();
+  ListSidechainDepositTransactionsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListSidechainDepositTransactionsResponse> createRepeated() => $pb.PbList<ListSidechainDepositTransactionsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListSidechainDepositTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListSidechainDepositTransactionsResponse>(create);
+  static ListSidechainDepositTransactionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<ListSidechainDepositTransactionsResponse_SidechainDepositTransaction> get transactions => $_getList(0);
 }
 
 class ListTransactionsRequest extends $pb.GeneratedMessage {
@@ -1758,6 +1708,209 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
   $5.ReverseHex ensureTxid() => $_ensure(0);
+}
+
+class UnlockWalletRequest extends $pb.GeneratedMessage {
+  factory UnlockWalletRequest({
+    $core.String? password,
+  }) {
+    final $result = create();
+    if (password != null) {
+      $result.password = password;
+    }
+    return $result;
+  }
+  UnlockWalletRequest._() : super();
+  factory UnlockWalletRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UnlockWalletRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnlockWalletRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'password')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UnlockWalletRequest clone() => UnlockWalletRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UnlockWalletRequest copyWith(void Function(UnlockWalletRequest) updates) => super.copyWith((message) => updates(message as UnlockWalletRequest)) as UnlockWalletRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UnlockWalletRequest create() => UnlockWalletRequest._();
+  UnlockWalletRequest createEmptyInstance() => create();
+  static $pb.PbList<UnlockWalletRequest> createRepeated() => $pb.PbList<UnlockWalletRequest>();
+  @$core.pragma('dart2js:noInline')
+  static UnlockWalletRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnlockWalletRequest>(create);
+  static UnlockWalletRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get password => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set password($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPassword() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPassword() => clearField(1);
+}
+
+class UnlockWalletResponse extends $pb.GeneratedMessage {
+  factory UnlockWalletResponse() => create();
+  UnlockWalletResponse._() : super();
+  factory UnlockWalletResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UnlockWalletResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnlockWalletResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UnlockWalletResponse clone() => UnlockWalletResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UnlockWalletResponse copyWith(void Function(UnlockWalletResponse) updates) => super.copyWith((message) => updates(message as UnlockWalletResponse)) as UnlockWalletResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UnlockWalletResponse create() => UnlockWalletResponse._();
+  UnlockWalletResponse createEmptyInstance() => create();
+  static $pb.PbList<UnlockWalletResponse> createRepeated() => $pb.PbList<UnlockWalletResponse>();
+  @$core.pragma('dart2js:noInline')
+  static UnlockWalletResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnlockWalletResponse>(create);
+  static UnlockWalletResponse? _defaultInstance;
+}
+
+class GenerateBlocksRequest extends $pb.GeneratedMessage {
+  factory GenerateBlocksRequest({
+    $4.UInt32Value? blocks,
+    $core.bool? ackAllProposals,
+  }) {
+    final $result = create();
+    if (blocks != null) {
+      $result.blocks = blocks;
+    }
+    if (ackAllProposals != null) {
+      $result.ackAllProposals = ackAllProposals;
+    }
+    return $result;
+  }
+  GenerateBlocksRequest._() : super();
+  factory GenerateBlocksRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GenerateBlocksRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateBlocksRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'blocks', subBuilder: $4.UInt32Value.create)
+    ..aOB(2, _omitFieldNames ? '' : 'ackAllProposals')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GenerateBlocksRequest clone() => GenerateBlocksRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GenerateBlocksRequest copyWith(void Function(GenerateBlocksRequest) updates) => super.copyWith((message) => updates(message as GenerateBlocksRequest)) as GenerateBlocksRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GenerateBlocksRequest create() => GenerateBlocksRequest._();
+  GenerateBlocksRequest createEmptyInstance() => create();
+  static $pb.PbList<GenerateBlocksRequest> createRepeated() => $pb.PbList<GenerateBlocksRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GenerateBlocksRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateBlocksRequest>(create);
+  static GenerateBlocksRequest? _defaultInstance;
+
+  /// Number of blocks to generate.
+  @$pb.TagNumber(1)
+  $4.UInt32Value get blocks => $_getN(0);
+  @$pb.TagNumber(1)
+  set blocks($4.UInt32Value v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBlocks() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBlocks() => clearField(1);
+  @$pb.TagNumber(1)
+  $4.UInt32Value ensureBlocks() => $_ensure(0);
+
+  /// ACK all sidechain proposals, irregardless of if they are already
+  /// in the wallet DB.
+  @$pb.TagNumber(2)
+  $core.bool get ackAllProposals => $_getBF(1);
+  @$pb.TagNumber(2)
+  set ackAllProposals($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAckAllProposals() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAckAllProposals() => clearField(2);
+}
+
+class GenerateBlocksResponse extends $pb.GeneratedMessage {
+  factory GenerateBlocksResponse({
+    $5.ReverseHex? blockHash,
+  }) {
+    final $result = create();
+    if (blockHash != null) {
+      $result.blockHash = blockHash;
+    }
+    return $result;
+  }
+  GenerateBlocksResponse._() : super();
+  factory GenerateBlocksResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GenerateBlocksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateBlocksResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GenerateBlocksResponse clone() => GenerateBlocksResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GenerateBlocksResponse copyWith(void Function(GenerateBlocksResponse) updates) => super.copyWith((message) => updates(message as GenerateBlocksResponse)) as GenerateBlocksResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GenerateBlocksResponse create() => GenerateBlocksResponse._();
+  GenerateBlocksResponse createEmptyInstance() => create();
+  static $pb.PbList<GenerateBlocksResponse> createRepeated() => $pb.PbList<GenerateBlocksResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GenerateBlocksResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateBlocksResponse>(create);
+  static GenerateBlocksResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $5.ReverseHex get blockHash => $_getN(0);
+  @$pb.TagNumber(1)
+  set blockHash($5.ReverseHex v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBlockHash() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBlockHash() => clearField(1);
+  @$pb.TagNumber(1)
+  $5.ReverseHex ensureBlockHash() => $_ensure(0);
 }
 
 

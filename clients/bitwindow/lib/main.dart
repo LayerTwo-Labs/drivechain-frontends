@@ -8,13 +8,13 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:bitwindow/servers/api.dart';
-import 'package:bitwindow/servers/enforcer_rpc.dart';
-import 'package:bitwindow/servers/mainchain_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -65,7 +65,7 @@ void main() async {
           // first, set all binaries as initializing
           mainchain.initializingBinary = true;
           GetIt.I.get<EnforcerRPC>().initializingBinary = true;
-          GetIt.I.get<API>().initializingBinary = true;
+          GetIt.I.get<BitwindowRPC>().initializingBinary = true;
 
           await initMainchainBinary(context, log, mainchain);
           log.i(
@@ -76,7 +76,7 @@ void main() async {
           await initEnforcer(context, log);
 
           if (!context.mounted) return;
-          await initServer(context, log);
+          await initBitwindow(context, log);
           log.i(
             'server inited: ready to serve frontend',
           );
@@ -124,8 +124,8 @@ Future<void> initDependencies(Logger log, File logFile) async {
 
   var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
   log.i('logging server logs to: $serverLogFile');
-  GetIt.I.registerLazySingleton<API>(
-    () => APILive(
+  GetIt.I.registerLazySingleton<BitwindowRPC>(
+    () => BitwindowRPCLive(
       host: env(Environment.bitwindowdHost),
       port: env(Environment.bitwindowdPort),
       conf: mainchainConf,
@@ -174,11 +174,9 @@ Future<void> initDependencies(Logger log, File logFile) async {
   );
   unawaited(sidechainProvider.fetch());
 
-  final mainchainLogDir = [ParentChain().datadir(), 'signet', 'debug.log'].join(Platform.pathSeparator);
   final mainchainRPC = await MainchainRPCLive.create(
     mainchainConf,
     ParentChain(),
-    mainchainLogDir,
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
@@ -225,11 +223,11 @@ Future<void> initEnforcer(
   log.i('mainchain init: successfully started enforcer');
 }
 
-Future<void> initServer(
+Future<void> initBitwindow(
   BuildContext context,
   Logger log,
 ) async {
-  final server = GetIt.I.get<API>();
+  final server = GetIt.I.get<BitwindowRPC>();
 
   await server.initBinary(context);
 

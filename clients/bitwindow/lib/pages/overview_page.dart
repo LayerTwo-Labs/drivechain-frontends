@@ -1,14 +1,14 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:bitwindow/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
-import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -642,7 +642,7 @@ class BroadcastNewsView extends StatelessWidget {
 
 class BroadcastNewsViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
-  final API _api = GetIt.I.get<API>();
+  final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
 
   late Topic topic;
 
@@ -738,7 +738,7 @@ class CreateTopicView extends StatelessWidget {
 
 class CreateTopicViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
-  final API _api = GetIt.I.get<API>();
+  final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
 
   late Topic topic;
 
@@ -826,7 +826,7 @@ class NewGraffittiView extends StatelessWidget {
 
 class NewGraffittiViewModel extends BaseViewModel {
   final TextEditingController messageController = TextEditingController();
-  final API _api = GetIt.I<API>();
+  final BitwindowRPC _api = GetIt.I<BitwindowRPC>();
 
   NewGraffittiViewModel() {
     messageController.addListener(notifyListeners);

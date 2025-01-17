@@ -1,23 +1,23 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:bitwindow/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/servers/api.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
-  API get api => GetIt.I.get<API>();
+  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
 
   const WalletPage({super.key});
 
@@ -315,7 +315,7 @@ class SendPageViewModel extends BaseViewModel {
   BalanceProvider get balanceProvider => GetIt.I<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I<BlockchainProvider>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
-  API get api => GetIt.I<API>();
+  BitwindowRPC get api => GetIt.I<BitwindowRPC>();
   Logger get log => GetIt.I<Logger>();
   late TextEditingController addressController;
   late TextEditingController amountController;
@@ -586,7 +586,7 @@ class ReceiveTab extends StatelessWidget {
 }
 
 class ReceivePageViewModel extends BaseViewModel {
-  final API api = GetIt.I.get<API>();
+  final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
 
   TextEditingController addressController = TextEditingController();
 
