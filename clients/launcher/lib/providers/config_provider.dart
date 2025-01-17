@@ -39,11 +39,13 @@ class ConfigProvider {
 
   /// Initialize configuration service
   Future<void> initialize() async {
-    // Load chain configurations from assets
     final jsonString = await rootBundle.loadString('assets/chain_config.json');
-    final jsonData = json.decode(jsonString) as Map<String, dynamic>;
-    final List<dynamic> chainsJson = jsonData['chains'] as List<dynamic>;
-    _configs = chainsJson.map((json) => Binary.fromJson(json as Map<String, dynamic>)).toList();
+    final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+
+    _configs = (jsonData['chains'] as List<dynamic>?)
+            ?.map((chain) => Binary.fromJson(chain as Map<String, dynamic>? ?? {}))
+            .toList() ??
+        [];
 
     // Ensure base directory exists
     await Directory(_baseDir).create(recursive: true);

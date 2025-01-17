@@ -117,16 +117,18 @@ class MainchainRPCLive extends MainchainRPC {
   Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
   ) async {
-    final baseArgs = bitcoinCoreBinaryArgs(
+    var baseArgs = bitcoinCoreBinaryArgs(
       conf,
     );
-    var parts = conf.splitPath(conf.confPath);
-    final dataDir = parts.$1;
-    // Ensure the directory exists
-    Directory(dataDir).createSync(recursive: true);
+    if (conf.confPath.isNotEmpty) {
+      var parts = conf.splitPath(conf.confPath);
+      final dataDir = parts.$1;
+      // Ensure the directory exists
+      Directory(dataDir).createSync(recursive: true);
+      baseArgs.add('-datadir=$dataDir');
+    }
 
     final sidechainArgs = [
-      '-datadir=$dataDir',
       '-signet',
       '-server',
       '-addnode=172.105.148.135:38333',
@@ -146,11 +148,6 @@ class MainchainRPCLive extends MainchainRPC {
       final paramName = arg.split('=')[0];
       return !baseArgs.any((baseArg) => baseArg.startsWith(paramName));
     }).toList();
-
-    // Check if the data directory exists before starting the node
-    if (!await Directory(dataDir).exists()) {
-      log.e('Data directory "$dataDir" does not exist. Please create it manually.');
-    }
 
     return [...baseArgs, ...extraArgs];
   }

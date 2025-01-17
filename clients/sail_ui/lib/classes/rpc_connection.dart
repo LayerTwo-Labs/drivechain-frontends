@@ -132,12 +132,12 @@ abstract class RPCConnection extends ChangeNotifier {
     initializingBinary = true;
     notifyListeners();
 
-    log.d('init binaries: checking $binary connection ${conf.host}:${conf.port}');
+    log.i('init binaries: checking $binary connection ${conf.host}:${conf.port}');
 
     await testConnection();
     // If we managed to connect to an already running daemon, we're finished here!
     if (connected) {
-      log.d('init binaries: $binary is already running, not doing anything');
+      log.i('init binaries: $binary is already running, not doing anything');
       initializingBinary = false;
       notifyListeners();
       return;
@@ -149,7 +149,7 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    log.d('init binaries: starting $binary ${args.join(" ")}');
+    log.i('init binaries: starting $binary ${args.join(" ")}');
 
     int pid;
     try {
@@ -159,7 +159,7 @@ abstract class RPCConnection extends ChangeNotifier {
         args,
         stop,
       );
-      log.d('init binaries: started $binary with PID $pid');
+      log.i('init binaries: started $binary with PID $pid');
     } catch (err) {
       log.e('init binaries: could not start $binary daemon', error: err);
       initializingBinary = false;

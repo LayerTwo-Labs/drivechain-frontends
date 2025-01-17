@@ -43,25 +43,25 @@ class BinaryProvider extends ChangeNotifier {
   Stream<Map<String, DownloadState>> get statusStream => _statusController.stream;
 
   // Track RPC connections
-  MainchainRPC? _mainchainRPC;
-  EnforcerRPC? _enforcerRPC;
-  BitwindowRPC? _bitwindowRPC;
+  MainchainRPC? mainchainRPC;
+  EnforcerRPC? enforcerRPC;
+  BitwindowRPC? bitwindowRPC;
   // TODO: Add Thunder RPC when available
 
   // Connection status getters
-  bool get mainchainConnected => _mainchainRPC?.connected ?? false;
-  bool get enforcerConnected => _enforcerRPC?.connected ?? false;
-  bool get bitwindowConnected => _bitwindowRPC?.connected ?? false;
+  bool get mainchainConnected => mainchainRPC?.connected ?? false;
+  bool get enforcerConnected => enforcerRPC?.connected ?? false;
+  bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
 
-  bool get mainchainInitializing => _mainchainRPC?.initializingBinary ?? false;
-  bool get enforcerInitializing => _enforcerRPC?.initializingBinary ?? false;
-  bool get bitwindowInitializing => _bitwindowRPC?.initializingBinary ?? false;
+  bool get mainchainInitializing => mainchainRPC?.initializingBinary ?? false;
+  bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
+  bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
 
-  String? get mainchainError => _mainchainRPC?.connectionError;
-  String? get enforcerError => _enforcerRPC?.connectionError;
-  String? get bitwindowError => _bitwindowRPC?.connectionError;
+  String? get mainchainError => mainchainRPC?.connectionError;
+  String? get enforcerError => enforcerRPC?.connectionError;
+  String? get bitwindowError => bitwindowRPC?.connectionError;
 
-  bool get inIBD => _mainchainRPC?.inIBD ?? false;
+  bool get inIBD => mainchainRPC?.inIBD ?? false;
 
   BinaryProvider({
     required this.datadir,
@@ -70,9 +70,9 @@ class BinaryProvider extends ChangeNotifier {
     // Initialize immediately and asynchronously
     _initializeStates();
     // Add listeners to notify UI of status changes
-    _mainchainRPC?.addListener(notifyListeners);
-    _enforcerRPC?.addListener(notifyListeners);
-    _bitwindowRPC?.addListener(notifyListeners);
+    mainchainRPC?.addListener(notifyListeners);
+    enforcerRPC?.addListener(notifyListeners);
+    bitwindowRPC?.addListener(notifyListeners);
   }
 
   /// Initialize download states for all binaries
@@ -164,7 +164,7 @@ class BinaryProvider extends ChangeNotifier {
         DownloadStatus.installing,
         message: 'Downloading...',
       );
-      await _downloadBinary(downloadUrl, zipPath, binary);
+      final releaseDate = await _downloadBinary(downloadUrl, zipPath, binary);
 
       // 3. Extract
       await _updateStatus(
@@ -219,7 +219,7 @@ class BinaryProvider extends ChangeNotifier {
         datadir,
         DownloadMetadata(
           hash: hash,
-          releaseDate: DateTime.now(),
+          releaseDate: releaseDate,
         ),
       );
 
@@ -281,7 +281,8 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   /// Downloads a file with progress tracking
-  Future<void> _downloadBinary(String url, String savePath, Binary binary) async {
+  /// Returns the release date from the Last-Modified header
+  Future<DateTime> _downloadBinary(String url, String savePath, Binary binary) async {
     try {
       final client = HttpClient();
       _log('Starting download for ${binary.name} from $url to $savePath');
@@ -341,6 +342,8 @@ class BinaryProvider extends ChangeNotifier {
         DownloadStatus.installing,
         message: 'Verifying download...',
       );
+
+      return releaseDate; // Return the release date
     } catch (e) {
       final error = 'Download failed from $url: $e\nSave path: $savePath';
       _log('ERROR: $error');
@@ -359,41 +362,49 @@ class BinaryProvider extends ChangeNotifier {
       log.e('could not read mainchain conf: $error');
     }
 
-    switch (binary.runtimeType) {
+    switch (binary) {
       case ParentChain():
-        if (_mainchainRPC == null) {
-          _mainchainRPC = await MainchainRPCLive.create(
+        print('is parentchain');
+        if (mainchainRPC == null) {
+          mainchainRPC = await MainchainRPCLive.create(
             conf,
             binary,
           );
-          _mainchainRPC!.addListener(notifyListeners);
+          mainchainRPC!.addListener(notifyListeners);
         }
-        await _mainchainRPC!.initBinary(context);
+        await mainchainRPC!.initBinary(context);
 
       case Enforcer():
-        if (_enforcerRPC == null) {
-          _enforcerRPC = EnforcerLive(
+        print('is enforcer');
+        if (enforcerRPC == null) {
+          enforcerRPC = EnforcerLive(
             conf: conf,
             binary: binary,
             logPath: path.join(datadir.path, 'enforcer.log'),
           );
-          _enforcerRPC!.addListener(notifyListeners);
+          enforcerRPC!.addListener(notifyListeners);
         }
-        await _enforcerRPC!.initBinary(context);
+        await enforcerRPC!.initBinary(context);
 
       case BitWindow():
-        if (_bitwindowRPC == null) {
-          _bitwindowRPC = BitwindowRPCLive(
+        print('is bitwindow');
+
+        if (bitwindowRPC == null) {
+          bitwindowRPC = BitwindowRPCLive(
             host: 'localhost',
             port: binary.port,
             conf: conf,
             binary: binary,
             logPath: path.join(datadir.path, 'bitwindow.log'),
           );
-          _bitwindowRPC!.addListener(notifyListeners);
+          bitwindowRPC!.addListener(notifyListeners);
         }
-        await _bitwindowRPC!.initBinary(context);
+        await bitwindowRPC!.initBinary(context);
+
+      default:
+        print('is $binary');
     }
+    notifyListeners();
 
     // Wait for connection or timeout
     await Future.any([
@@ -410,7 +421,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   bool _isConnected(Binary binary) {
-    return switch (binary.runtimeType) {
+    return switch (binary) {
       ParentChain() => mainchainConnected,
       Enforcer() => enforcerConnected,
       BitWindow() => bitwindowConnected,
@@ -420,12 +431,12 @@ class BinaryProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _mainchainRPC?.removeListener(notifyListeners);
-    _mainchainRPC?.dispose();
-    _enforcerRPC?.removeListener(notifyListeners);
-    _enforcerRPC?.dispose();
-    _bitwindowRPC?.removeListener(notifyListeners);
-    _bitwindowRPC?.dispose();
+    mainchainRPC?.removeListener(notifyListeners);
+    mainchainRPC?.dispose();
+    enforcerRPC?.removeListener(notifyListeners);
+    enforcerRPC?.dispose();
+    bitwindowRPC?.removeListener(notifyListeners);
+    bitwindowRPC?.dispose();
     super.dispose();
   }
 }

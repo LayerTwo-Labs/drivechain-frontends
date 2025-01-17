@@ -16,3 +16,5 @@ fix:
             (cd "$dir" && dart fix --apply)
         fi
     done
+
+lint: format fix

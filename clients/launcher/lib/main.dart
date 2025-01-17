@@ -8,7 +8,7 @@ import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-import 'package:sail_ui/providers/download_provider.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -82,6 +82,13 @@ Future<void> initDependencies(Logger log) async {
   await configProvider.initialize();
 
   final datadir = await Environment.datadir();
+  final processProvider = ProcessProvider(
+    datadir: datadir,
+  );
+  GetIt.I.registerSingleton<ProcessProvider>(
+    processProvider,
+  );
+
   // Register download manager
   final binaryProvider = BinaryProvider(
     datadir: datadir,

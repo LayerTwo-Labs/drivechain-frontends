@@ -31,7 +31,11 @@ class ExitTuple {
 }
 
 class ProcessProvider extends ChangeNotifier {
-  ProcessProvider();
+  final Directory? datadir;
+
+  ProcessProvider({
+    this.datadir,
+  });
 
   Logger get log => GetIt.I.get<Logger>();
 
@@ -62,6 +66,8 @@ class ProcessProvider extends ChangeNotifier {
     if (File(binary).existsSync()) {
       // The file exists at the full path, just reference it and later run it directly
       file = File(binary);
+    } else if (datadir != null && File('${datadir!.path}/assets/$binary').existsSync()) {
+      file = File(filePath([datadir!.path, 'assets', binary]));
     } else {
       // We have received a raw binary, expected to be present in the asset bundle
       // Attempt to load it from there, and write it to a temp directory we can run
