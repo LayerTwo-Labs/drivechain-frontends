@@ -6,9 +6,10 @@ import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 import 'package:launcher/env.dart';
+import 'package:logger/logger.dart';
 
 class WalletService {
-  static const String _walletKey = 'wallet_data';
+  final _logger = Logger();
   static const String defaultBip32Path = "m/44'/0'/0'";
   
   Future<bool> hasExistingWallet() async {
@@ -41,7 +42,6 @@ class WalletService {
         );
       }
 
-      final entropyHex = hex.encode(mnemonicObj.entropy);
       final seedHex = hex.encode(mnemonicObj.seed);
       
       final chain = Chain.seed(seedHex);
@@ -59,7 +59,7 @@ class WalletService {
         'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
       };
     } catch (e) {
-      print('Error generating wallet: $e');
+      _logger.e('Error generating wallet: $e');
       return {'error': e.toString()};
     }
   }
@@ -74,12 +74,12 @@ class WalletService {
   }
 
   String _calculateChecksumBits(List<int> entropy) {
-    final ENT = entropy.length * 8;
-    final CS = ENT ~/ 32;
+    final entropyBits = entropy.length * 8;
+    final checksumSize = entropyBits ~/ 32;
     
     final hash = sha256.convert(entropy);
     final hashBits = _bytesToBinary(hash.bytes);
-    return hashBits.substring(0, CS);
+    return hashBits.substring(0, checksumSize);
   }
 
   Future<bool> saveWallet(Map<String, dynamic> walletData) async {
@@ -105,7 +105,7 @@ class WalletService {
       await walletFile.writeAsString(jsonEncode(walletData));
       return true;
     } catch (e) {
-      print('Error saving wallet: $e');
+      _logger.e('Error saving wallet: $e');
       return false;
     }
   }
@@ -118,7 +118,7 @@ class WalletService {
       }
       return true;
     } catch (e) {
-      print('Error deleting wallet: $e');
+      _logger.e('Error deleting wallet: $e');
       return false;
     }
   }
@@ -137,7 +137,7 @@ class WalletService {
       
       return walletData;
     } catch (e) {
-      print('Error loading wallet: $e');
+      _logger.e('Error loading wallet: $e');
       return null;
     }
   }

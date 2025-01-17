@@ -42,6 +42,7 @@ dependencies:
   dart_bip32_bip44: ^0.2.0
   bip39_mnemonic: ^3.0.7
   crypto: ^3.0.6
+  convert: ^3.1.1
 
 dev_dependencies:
   flutter_test:

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:launcher/env.dart';
+import 'package:logger/logger.dart';
 import 'package:launcher/widgets/welcome_modal.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -10,8 +11,9 @@ class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   Future<void> _openDataDirectory() async {
+    final logger = Logger();
     final appDir = await Environment.datadir();
-    print('Opening directory: ${appDir.path}');
+    logger.i('Opening directory: ${appDir.path}');
     
     if (Platform.isWindows) {
       await Process.run('explorer', [appDir.path]);
