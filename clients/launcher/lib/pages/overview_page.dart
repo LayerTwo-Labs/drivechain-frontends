@@ -1,14 +1,16 @@
+import 'dart:convert';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
 import 'package:get_it/get_it.dart';
+import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:launcher/services/wallet_service.dart';
 
 @RoutePage()
 class OverviewPage extends StatefulWidget {
@@ -56,7 +58,7 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
-  void _downloadUninstalledL1Binaries(Map<String, DownloadState>? statusData) {
+  Future<void> _downloadUninstalledL1Binaries(Map<String, DownloadState>? statusData) async {
     if (statusData == null) return;
 
     final uninstalledBinaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1).where((b) {
@@ -65,11 +67,68 @@ class _OverviewPageState extends State<OverviewPage> {
     });
 
     // Start downloads concurrently for uninstalled/failed binaries
-    Future.wait(
+    await Future.wait(
       uninstalledBinaries.map(
         (binary) => _binaryProvider.downloadBinary(binary),
       ),
     );
+  }
+
+  Future<void> _runL1(Map<String, DownloadState>? statusData) async {
+    // First ensure all binaries are downloaded
+    await _downloadUninstalledL1Binaries(statusData);
+
+    // Get logger
+    final log = GetIt.I.get<Logger>();
+    log.i('Starting L1 binaries sequence');
+
+    try {
+      // Ensure we have all required binaries
+      final parentChain = _binaryProvider.binaries.whereType<ParentChain>().firstOrNull;
+      final enforcer = _binaryProvider.binaries.whereType<Enforcer>().firstOrNull;
+      final bitwindow = _binaryProvider.binaries.whereType<BitWindow>().firstOrNull;
+
+      if (parentChain == null || enforcer == null || bitwindow == null) {
+        throw Exception('could not find all required L1 binaries');
+      }
+
+      // 1. Start parent chain and wait for IBD
+      await _binaryProvider.startBinary(context, parentChain);
+      if (_binaryProvider.mainchainRPC == null) {
+        throw Exception('could not initialize mainchain RPC');
+      }
+
+      log.i('Waiting for mainchain to connect...');
+      await _binaryProvider.mainchainRPC!.waitForIBD();
+      log.i('Mainchain connected and synced');
+
+      // 2. Start enforcer after mainchain is ready
+      await _binaryProvider.startBinary(context, enforcer);
+      if (_binaryProvider.enforcerRPC == null) {
+        throw Exception('could not initialize enforcer RPC');
+      }
+      log.i('Started enforcer');
+
+      // 3. Start BitWindow after enforcer
+      await _binaryProvider.startBinary(context, bitwindow);
+      if (_binaryProvider.bitwindowRPC == null) {
+        throw Exception('could not initialize BitWindow RPC');
+      }
+      log.i('Started BitWindow');
+
+      log.i('All L1 binaries started successfully');
+    } catch (e) {
+      log.e('Error starting L1 binaries: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start L1 binaries: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      rethrow; // Re-throw to indicate failure
+    }
   }
 
   bool _shouldDisableDownloadAll(Map<String, DownloadState>? statusData) {
@@ -146,11 +205,22 @@ class _OverviewPageState extends State<OverviewPage> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     SailText.primary24('Layer 1'),
-                                    SailButton.primary(
-                                      'Download All',
-                                      onPressed: () => _downloadUninstalledL1Binaries(statusSnapshot.data),
-                                      size: ButtonSize.regular,
-                                      disabled: _shouldDisableDownloadAll(statusSnapshot.data),
+                                    Row(
+                                      children: [
+                                        SailButton.primary(
+                                          'Boot Layer 1',
+                                          onPressed: () => _runL1(statusSnapshot.data),
+                                          size: ButtonSize.regular,
+                                          disabled: _shouldDisableDownloadAll(statusSnapshot.data),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        SailButton.primary(
+                                          'Download All',
+                                          onPressed: () => _downloadUninstalledL1Binaries(statusSnapshot.data),
+                                          size: ButtonSize.regular,
+                                          disabled: _shouldDisableDownloadAll(statusSnapshot.data),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
