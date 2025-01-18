@@ -211,7 +211,6 @@ class _OverviewPageState extends State<OverviewPage> {
                                           'Boot Layer 1',
                                           onPressed: () => _runL1(statusSnapshot.data),
                                           size: ButtonSize.regular,
-                                          disabled: _shouldDisableDownloadAll(statusSnapshot.data),
                                         ),
                                         const SizedBox(width: 8),
                                         SailButton.primary(
