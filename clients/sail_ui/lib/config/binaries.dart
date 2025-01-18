@@ -323,31 +323,60 @@ abstract class Binary {
     final baseNameToFind = path.basenameWithoutExtension(binary).toLowerCase();
     _log('Looking for binary base name: $baseNameToFind');
 
-    // First list all files
-    final files = await dir.list(recursive: false).toList();
-    _log('Found ${files.length} files in directory');
+    // First list all files and subdirectories
+    final entries = await dir.list(recursive: false).toList();
+    _log('Found ${entries.length} entries in directory');
 
-    for (final entity in files) {
-      if (entity is File) {
-        final fileName = path.basename(entity.path);
+    // Debug log all entries
+    for (final entry in entries) {
+      _log('Found in directory: ${entry.path} (${entry.runtimeType})');
+    }
+
+    // First check subdirectories for binaries
+    for (final entry in entries) {
+      if (entry is Directory) {
+        // Look for binaries in first level subdirectories
+        final subFiles = await entry.list(recursive: false).toList();
+        for (final subFile in subFiles) {
+          if (subFile is File) {
+            final fileName = path.basename(subFile.path);
+            final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
+            _log('Examining file in subdirectory: $fileName (base: $fileBaseName)');
+
+            if (fileBaseName.contains(baseNameToFind)) {
+              final targetName = '$fileBaseName${path.extension(fileName)}';
+              final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
+
+              _log('Moving binary from ${subFile.path} to $finalBinaryPath');
+              await Directory(path.dirname(finalBinaryPath)).create(recursive: true);
+              await subFile.copy(finalBinaryPath);
+
+              final destFile = File(finalBinaryPath);
+              if (!Platform.isWindows) {
+                await Process.run('chmod', ['+x', destFile.path]);
+              }
+
+              foundBinaries.add(destFile);
+            }
+          }
+        }
+      }
+    }
+
+    // Then check root directory for binaries
+    for (final entry in entries) {
+      if (entry is File) {
+        final fileName = path.basename(entry.path);
         final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
         _log('Examining file: $fileName (base: $fileBaseName)');
 
-        // Compare base names (without extension), also check for -cli variant
-        if (fileBaseName == baseNameToFind ||
-            fileBaseName == '$baseNameToFind-cli' ||
-            fileBaseName.startsWith(baseNameToFind)) {
-          // More lenient matching
-
-          // Keep the original extension when copying
-          final targetName = fileBaseName.contains('-cli')
-              ? '$binary-cli${path.extension(fileName)}'
-              : '$binary${path.extension(fileName)}';
+        if (fileBaseName.contains(baseNameToFind)) {
+          final targetName = '$fileBaseName${path.extension(fileName)}';
           final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
 
-          _log('Moving binary from ${entity.path} to $finalBinaryPath');
+          _log('Moving binary from ${entry.path} to $finalBinaryPath');
           await Directory(path.dirname(finalBinaryPath)).create(recursive: true);
-          await entity.copy(finalBinaryPath);
+          await entry.copy(finalBinaryPath);
 
           final destFile = File(finalBinaryPath);
           if (!Platform.isWindows) {
@@ -361,7 +390,7 @@ abstract class Binary {
 
     if (foundBinaries.isEmpty) {
       _log('No matching binaries found. Directory contents:');
-      for (final f in files) {
+      for (final f in entries) {
         _log('  - ${f.path}');
       }
       throw Exception('could not find any matching binaries in extracted files');
