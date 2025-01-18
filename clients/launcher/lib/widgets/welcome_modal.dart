@@ -61,15 +61,15 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     try {
       final wallet = await _walletService.generateWallet();
       if (!mounted) return;
-      
+
       if (wallet.containsKey('error')) {
         await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
         return;
       }
-      
+
       final success = await _walletService.saveWallet(wallet);
       if (!mounted) return;
-      
+
       if (success) {
         Navigator.of(context).pop(true);
       } else {
@@ -90,11 +90,10 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   Future<void> _handleCreateWallet() async {
     try {
       String input = _useMnemonic ? _mnemonicController.text : _passphraseController.text;
-      
+
       if (input.isEmpty) {
-        await _showErrorDialog(_useMnemonic 
-          ? 'Please enter a valid mnemonic phrase' 
-          : 'Please enter a passphrase',
+        await _showErrorDialog(
+          _useMnemonic ? 'Please enter a valid mnemonic phrase' : 'Please enter a passphrase',
         );
         return;
       }
@@ -119,7 +118,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
       final success = await _walletService.saveWallet(wallet);
       if (!mounted) return;
-      
+
       if (success) {
         Navigator.of(context).pop(true);
       } else {

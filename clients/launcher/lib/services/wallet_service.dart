@@ -11,7 +11,7 @@ import 'package:logger/logger.dart';
 class WalletService {
   final _logger = Logger();
   static const String defaultBip32Path = "m/44'/0'/0'";
-  
+
   Future<bool> hasExistingWallet() async {
     final walletFile = await _getWalletFile();
     return walletFile.existsSync();
@@ -20,11 +20,11 @@ class WalletService {
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
     try {
       final Mnemonic mnemonicObj;
-      
+
       if (customMnemonic != null) {
         try {
           mnemonicObj = Mnemonic.fromSentence(
-            customMnemonic, 
+            customMnemonic,
             Language.english,
             passphrase: passphrase ?? '', // Empty string if no passphrase
           );
@@ -43,17 +43,17 @@ class WalletService {
       }
 
       final seedHex = hex.encode(mnemonicObj.seed);
-      
+
       final chain = Chain.seed(seedHex);
       final masterKey = chain.forPath('m') as ExtendedPrivateKey;
 
       final bip39Bin = _bytesToBinary(mnemonicObj.entropy);
       final checksumBits = _calculateChecksumBits(mnemonicObj.entropy);
-      
+
       return {
         'mnemonic': mnemonicObj.sentence,
         'seed_hex': seedHex,
-        'xprv': masterKey.toString(), 
+        'xprv': masterKey.toString(),
         'bip39_bin': bip39Bin,
         'bip39_csum': checksumBits,
         'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
@@ -76,7 +76,7 @@ class WalletService {
   String _calculateChecksumBits(List<int> entropy) {
     final entropyBits = entropy.length * 8;
     final checksumSize = entropyBits ~/ 32;
-    
+
     final hash = sha256.convert(entropy);
     final hashBits = _bytesToBinary(hash.bytes);
     return hashBits.substring(0, checksumSize);
@@ -85,23 +85,23 @@ class WalletService {
   Future<bool> saveWallet(Map<String, dynamic> walletData) async {
     try {
       final walletFile = await _getWalletFile();
-      
+
       if (!walletFile.parent.existsSync()) {
         await walletFile.parent.create(recursive: true);
       }
-      
+
       final requiredFields = [
         'mnemonic',
         'seed_hex',
         'xprv',
       ];
-      
+
       for (final field in requiredFields) {
         if (!walletData.containsKey(field) || walletData[field] == null) {
           throw Exception('Missing required wallet field: $field');
         }
       }
-      
+
       await walletFile.writeAsString(jsonEncode(walletData));
       return true;
     } catch (e) {
@@ -127,14 +127,14 @@ class WalletService {
     try {
       final walletFile = await _getWalletFile();
       if (!await walletFile.exists()) return null;
-      
+
       final walletJson = await walletFile.readAsString();
       final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
-      
+
       if (!walletData.containsKey('mnemonic') || !walletData.containsKey('xprv')) {
         throw Exception('Invalid wallet data format');
       }
-      
+
       return walletData;
     } catch (e) {
       _logger.e('Error loading wallet: $e');
