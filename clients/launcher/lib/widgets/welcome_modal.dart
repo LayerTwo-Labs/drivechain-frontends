@@ -81,12 +81,6 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     }
   }
 
-  void _handleAdvancedMode() {
-    setState(() {
-      _showAdvanced = true;
-    });
-  }
-
   Future<void> _handleCreateWallet() async {
     try {
       String? input = _useMnemonic ? _mnemonicController.text : null;

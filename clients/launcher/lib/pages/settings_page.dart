@@ -15,7 +15,7 @@ class SettingsPage extends StatelessWidget {
     final logger = Logger();
     final dataDir = await Environment.datadir();
     final walletStarterDir = path.join(dataDir.path, 'wallet_starters');
-    logger.i('Opening directory: ${walletStarterDir}');
+    logger.i('Opening directory: $walletStarterDir');
 
     if (Platform.isWindows) {
       await Process.run('explorer', [walletStarterDir]);
