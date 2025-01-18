@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/thunder_rpc.dart';
 
 /// Represents the current status of a binary download
 class DownloadState {
@@ -41,6 +43,7 @@ class BinaryProvider extends ChangeNotifier {
   MainchainRPC? mainchainRPC;
   EnforcerRPC? enforcerRPC;
   BitwindowRPC? bitwindowRPC;
+  ThunderRPC? thunderRPC;
   // TODO: Add Thunder RPC when available
 
   // Connection status getters
@@ -188,6 +191,17 @@ class BinaryProvider extends ChangeNotifier {
         }
         if (!context.mounted) return;
         await bitwindowRPC!.initBinary(context);
+
+      case Thunder():
+        if (thunderRPC == null) {
+          thunderRPC = await ThunderLive.create(
+            binary: binary,
+            logPath: path.join(datadir.path, 'thunder.log'),
+          );
+          thunderRPC!.addListener(notifyListeners);
+        }
+        if (!context.mounted) return;
+        await thunderRPC!.initBinary(context);
 
       default:
         log.i('is $binary');

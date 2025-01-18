@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:sail_ui/config/binaries.dart';
@@ -17,7 +16,6 @@ class OverviewPage extends StatefulWidget {
 }
 
 class _OverviewPageState extends State<OverviewPage> {
-  ConfigProvider get _configService => GetIt.I.get<ConfigProvider>();
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
 
@@ -52,9 +50,9 @@ class _OverviewPageState extends State<OverviewPage> {
                 child: StreamBuilder<Map<String, DownloadState>>(
                   stream: _binaryProvider.statusStream,
                   builder: (context, statusSnapshot) {
-                    final l1Chains = _configService.configs.where((chain) => chain.chainLayer == 1).toList()
+                    final l1Chains = _binaryProvider.binaries.where((chain) => chain.chainLayer == 1).toList()
                       ..sort((a, b) => a.chainLayer.compareTo(b.chainLayer));
-                    final l2Chains = _configService.configs.where((chain) => chain.chainLayer == 2).toList();
+                    final l2Chains = _binaryProvider.binaries.where((chain) => chain.chainLayer == 2).toList();
 
                     return SingleChildScrollView(
                       child: Column(
@@ -149,6 +147,11 @@ class _OverviewPageState extends State<OverviewPage> {
         connected = _binaryProvider.bitwindowRPC?.connected ?? false;
         initializing = _binaryProvider.bitwindowRPC?.initializingBinary ?? false;
         error = _binaryProvider.bitwindowRPC?.connectionError;
+
+      case Thunder():
+        connected = _binaryProvider.thunderRPC?.connected ?? false;
+        initializing = _binaryProvider.thunderRPC?.initializingBinary ?? false;
+        error = _binaryProvider.thunderRPC?.connectionError;
     }
 
     final color = switch ((connected, initializing, error != null)) {

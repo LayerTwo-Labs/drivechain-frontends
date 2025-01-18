@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 
@@ -58,16 +59,57 @@ class ProcessProvider extends ChangeNotifier {
     List<String> args,
     Future<void> Function() cleanup,
   ) async {
-    if (Platform.isWindows && !binary.endsWith('.exe')) {
-      binary = '$binary.exe';
+    String executablePath;
+
+    // First try the binary name as-is
+    if (File(binary).existsSync()) {
+      executablePath = binary;
+    } else {
+      // Check platform-specific extensions
+      final possiblePaths = [binary];
+      if (Platform.isMacOS) {
+        possiblePaths.add('$binary.app');
+      }
+      if (Platform.isWindows) {
+        possiblePaths.add('$binary.exe');
+      }
+
+      // Find first existing file
+      executablePath = possiblePaths.firstWhere(
+        (path) => File(path).existsSync(),
+        orElse: () => binary, // Fall back to original if none exist
+      );
+    }
+
+    // Handle .app bundles on macOS
+    if (Platform.isMacOS && executablePath.endsWith('.app')) {
+      executablePath = path.join(
+        executablePath,
+        'Contents',
+        'MacOS',
+        path.basenameWithoutExtension(executablePath),
+      );
     }
 
     File file;
-    if (File(binary).existsSync()) {
-      // The file exists at the full path, just reference it and later run it directly
-      file = File(binary);
-    } else if (datadir != null && File('${datadir!.path}/assets/$binary').existsSync()) {
-      file = File(filePath([datadir!.path, 'assets', binary]));
+    if (File(executablePath).existsSync()) {
+      // The file exists at the full path
+      file = File(executablePath);
+    } else if (datadir != null) {
+      // Try assets directory with possible extensions
+      final assetPath = path.join(datadir!.path, 'assets');
+      final possibleAssetPaths = [
+        path.join(assetPath, executablePath),
+        if (Platform.isMacOS) path.join(assetPath, '$binary.app'),
+        if (Platform.isWindows) path.join(assetPath, '$binary.exe'),
+      ];
+
+      final existingAssetPath = possibleAssetPaths.firstWhere(
+        (file) => File(file).existsSync(),
+        orElse: () => path.join(assetPath, executablePath),
+      );
+
+      file = File(existingAssetPath);
     } else {
       // We have received a raw binary, expected to be present in the asset bundle
       // Attempt to load it from there, and write it to a temp directory we can run
@@ -75,7 +117,7 @@ class ProcessProvider extends ChangeNotifier {
 
       final binResource = await DefaultAssetBundle.of(context).load(
         // Assets don't operate with platform path separators, just /
-        'assets/bin/$binary',
+        'assets/bin/$executablePath',
       );
 
       final temp = await getTemporaryDirectory();
@@ -93,7 +135,7 @@ class ProcessProvider extends ChangeNotifier {
       file = File(
         filePath([
           randDir.path,
-          binary,
+          executablePath,
         ]),
       );
 
@@ -110,7 +152,7 @@ class ProcessProvider extends ChangeNotifier {
       await Process.run('chmod', ['+x', file.path]);
     }
 
-    log.d('starting $binary with args $args');
+    log.d('starting $executablePath with args $args');
 
     final process = await Process.start(
       file.path,
@@ -118,7 +160,7 @@ class ProcessProvider extends ChangeNotifier {
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
     );
     runningProcesses[process.pid] = SailProcess(
-      binary: binary.split(Platform.pathSeparator).last,
+      binary: executablePath.split(Platform.pathSeparator).last,
       pid: process.pid,
       cleanup: cleanup,
     );
@@ -131,14 +173,14 @@ class ProcessProvider extends ChangeNotifier {
     process.stdout.transform(utf8.decoder).listen((data) {
       stdoutController.add(data);
       if (!isSpam(data)) {
-        log.d('$binary: $data');
+        log.d('$executablePath: $data');
       }
     });
 
     process.stderr.transform(utf8.decoder).listen((data) {
       stderrController.add(data);
       if (!isSpam(data)) {
-        log.e('$binary: $data');
+        log.e('$executablePath: $data');
       }
     });
 
@@ -160,9 +202,9 @@ class ProcessProvider extends ChangeNotifier {
 
         final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
         if (errLogs.isNotEmpty) {
-          log.log(level, '"$binary" exited with code $code: ${errLogs.last}');
+          log.log(level, '"$executablePath" exited with code $code: ${errLogs.last}');
         } else {
-          log.log(level, '"$binary" exited with code $code');
+          log.log(level, '"$executablePath" exited with code $code');
         }
 
         // Resolve the process exit future
@@ -193,10 +235,10 @@ class ProcessProvider extends ChangeNotifier {
 
     if (exited) {
       final tuple = _exitTuples[process.pid];
-      throw '"$binary" exited with code ${tuple?.code}: ${tuple?.message}';
+      throw '"$executablePath" exited with code ${tuple?.code}: ${tuple?.message}';
     }
 
-    log.d('started "$binary" with pid ${process.pid}');
+    log.d('started "$executablePath" with pid ${process.pid}');
 
     notifyListeners();
     return process.pid;
