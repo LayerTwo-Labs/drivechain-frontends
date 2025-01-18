@@ -142,6 +142,83 @@ class WalletService {
     }
   }
 
+  Future<Map<String, dynamic>?> deriveSidechainStarter(int sidechainSlot) async {
+    try {
+      // Load master starter
+      final masterWallet = await loadWallet();
+      if (masterWallet == null) {
+        _logger.e('Master starter not found');
+        throw Exception('Master starter not found');
+      }
+      
+      // Validate master wallet data
+      if (!masterWallet.containsKey('xprv')) {
+        _logger.e('Master starter is missing required field: xprv');
+        throw Exception('Master starter is missing required field: xprv');
+      }
+
+      // Import master key and derive sidechain key
+      final chain = Chain.import(masterWallet['xprv']);
+      final sidechainPath = "m/44'/0'/$sidechainSlot'";
+      final sidechainKey = chain.forPath(sidechainPath) as ExtendedPrivateKey;
+      
+      // Hash the private key with SHA256 to get proper entropy length
+      final privateKeyBytes = hex.decode(sidechainKey.privateKeyHex());
+      final entropy = sha256.convert(privateKeyBytes).bytes;
+      
+      final mnemonic = Mnemonic(entropy, Language.english);
+
+      // Create a new chain from the mnemonic's seed to get a proper master key
+      final sidechainChain = Chain.seed(hex.encode(mnemonic.seed));
+      final sidechainMasterKey = sidechainChain.forPath('m') as ExtendedPrivateKey;
+
+      // Create sidechain starter with new mnemonic and master key
+      final sidechainStarter = {
+        'mnemonic': mnemonic.sentence,
+        'seed_hex': hex.encode(mnemonic.seed),
+        'xprv': sidechainMasterKey.toString(),
+        'parent_xprv': masterWallet['xprv'],
+        'derivation_path': sidechainPath,
+      };
+
+      // Save to sidechain-specific file
+      await _saveSidechainStarter(sidechainSlot, sidechainStarter);
+
+      return sidechainStarter;
+    } catch (e, stackTrace) {
+      _logger.e('Error deriving sidechain starter: $e\n$stackTrace');
+      rethrow;
+    }
+  }
+
+  Future<void> _saveSidechainStarter(int sidechainSlot, Map<String, dynamic> starterData) async {
+    try {
+      final appDir = await Environment.datadir();
+      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+      
+      // Ensure wallet directory exists
+      if (!walletDir.existsSync()) {
+        await walletDir.create(recursive: true);
+      }
+
+      // Create sidechain starter file with clear naming
+      final sidechainStarterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
+      
+      // Write data with proper formatting
+      await sidechainStarterFile.writeAsString(
+        JsonEncoder.withIndent('  ').convert(starterData),
+      );
+      
+      // Verify file was written successfully
+      if (!sidechainStarterFile.existsSync()) {
+        throw Exception('Failed to write sidechain starter file: File does not exist after write');
+      }
+    } catch (e, stackTrace) {
+      _logger.e('Error saving sidechain starter: $e\n$stackTrace');
+      rethrow;
+    }
+  }
+
   Future<File> _getWalletFile() async {
     final appDir = await Environment.datadir();
     final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));

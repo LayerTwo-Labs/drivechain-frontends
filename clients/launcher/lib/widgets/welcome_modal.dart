@@ -163,7 +163,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         ),
         const SizedBox(height: 8),
         SailText.primary13(
-          'RECOMMENDED: Create a wallet starter - this generates a master key that will be used to derive unique keys for each sidechain, allowing you to securely manage multiple chains from a single source.',
+          'Create a wallet starter - this generates a master key that will be used to derive unique keys for each sidechain, allowing you to securely manage multiple chains from a single source.',
           color: SailTheme.of(context).colors.textSecondary,
         ),
         if (_showAdvanced) ...[
