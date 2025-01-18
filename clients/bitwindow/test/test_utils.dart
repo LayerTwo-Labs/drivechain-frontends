@@ -124,6 +124,7 @@ class MockBinary extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
+    String? walletFile,
   }) {
     return MockBinary();
   }
