@@ -139,7 +139,8 @@
       "network": {
         "port": 6009
       },
-      "chain_layer": 2
+      "chain_layer": 2,
+      "sidechain_slot": 9
     }
   ]
 }

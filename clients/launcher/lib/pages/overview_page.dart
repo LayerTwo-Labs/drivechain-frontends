@@ -1,11 +1,14 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:launcher/services/wallet_service.dart';
 
 @RoutePage()
 class OverviewPage extends StatefulWidget {
@@ -18,12 +21,26 @@ class OverviewPage extends StatefulWidget {
 class _OverviewPageState extends State<OverviewPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
+  Map<String, dynamic>? _chainConfig;
+  WalletService get _walletService => GetIt.I.get<WalletService>();
 
   @override
   void initState() {
     super.initState();
     _binaryProvider.addListener(_onBinaryProviderUpdate);
     _processProvider.addListener(_onBinaryProviderUpdate);
+    _loadChainConfig();
+  }
+
+  Future<void> _loadChainConfig() async {
+    try {
+      final config = await rootBundle.loadString('assets/chain_config.json');
+      setState(() {
+        _chainConfig = jsonDecode(config) as Map<String, dynamic>;
+      });
+    } catch (e) {
+      debugPrint('Error loading chain config: $e');
+    }
   }
 
   @override
@@ -73,6 +90,39 @@ class _OverviewPageState extends State<OverviewPage> {
         .every((b) => statusData[b.name]?.status == DownloadStatus.installed);
     
     return hasActiveDownloads || allInstalled;
+  }
+
+  Future<void> _handleBinaryDownload(Binary binary) async {
+    debugPrint('Starting download for ${binary.name}');
+    await _binaryProvider.downloadBinary(binary);
+    debugPrint('Download completed for ${binary.name}');
+    
+    if (binary.chainLayer == 2 && _chainConfig != null) {
+      final chains = _chainConfig!['chains'] as List<dynamic>;
+      for (final chain in chains) {
+        if (chain['name'].toString().toLowerCase() == binary.name.toLowerCase() && 
+            chain['sidechain_slot'] != null) {
+          final sidechainSlot = chain['sidechain_slot'] as int;
+          debugPrint('Creating sidechain starter for slot $sidechainSlot');
+          try {
+            await _walletService.deriveSidechainStarter(sidechainSlot);
+            debugPrint('Successfully created sidechain starter for slot $sidechainSlot');
+          } catch (e) {
+            debugPrint('Error creating sidechain starter: $e');
+            // Show error to user
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to create sidechain starter: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+          break;
+        }
+      }
+    }
   }
 
   @override
@@ -286,7 +336,7 @@ class _OverviewPageState extends State<OverviewPage> {
     if (status == null || status.status == DownloadStatus.uninstalled) {
       return SailButton.primary(
         'Download',
-        onPressed: () => _binaryProvider.downloadBinary(binary),
+        onPressed: () => _handleBinaryDownload(binary),
         size: ButtonSize.regular,
       );
     }
@@ -294,7 +344,7 @@ class _OverviewPageState extends State<OverviewPage> {
     if (status.status == DownloadStatus.failed) {
       return SailButton.primary(
         'Retry',
-        onPressed: () => _binaryProvider.downloadBinary(binary),
+        onPressed: () => _handleBinaryDownload(binary),
         size: ButtonSize.regular,
       );
     }
