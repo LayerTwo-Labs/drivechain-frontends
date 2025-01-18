@@ -39,6 +39,42 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
+  void _downloadUninstalledL1Binaries(Map<String, DownloadState>? statusData) {
+    if (statusData == null) return;
+
+    final uninstalledBinaries = _binaryProvider.binaries
+        .where((b) => b.chainLayer == 1)
+        .where((b) {
+          final status = statusData[b.name]?.status;
+          return status == null || 
+                 status == DownloadStatus.uninstalled ||
+                 status == DownloadStatus.failed;
+        });
+    
+    // Start downloads concurrently for uninstalled/failed binaries
+    Future.wait(
+      uninstalledBinaries.map((binary) => 
+        _binaryProvider.downloadBinary(binary),),
+    );
+  }
+
+  bool _shouldDisableDownloadAll(Map<String, DownloadState>? statusData) {
+    if (statusData == null) return false;
+
+    // Get L1 binaries
+    final l1Binaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1);
+    
+    // Check if any downloads are in progress
+    final hasActiveDownloads = statusData.values
+        .any((state) => state.status == DownloadStatus.installing);
+    
+    // Check if all L1 binaries are already installed
+    final allInstalled = l1Binaries
+        .every((b) => statusData[b.name]?.status == DownloadStatus.installed);
+    
+    return hasActiveDownloads || allInstalled;
+  }
+
   @override
   Widget build(BuildContext context) {
     return QtPage(
@@ -62,7 +98,18 @@ class _OverviewPageState extends State<OverviewPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SailText.primary24('Layer 1'),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    SailText.primary24('Layer 1'),
+                                    SailButton.primary(
+                                      'Download All',
+                                      onPressed: () => _downloadUninstalledL1Binaries(statusSnapshot.data),
+                                      size: ButtonSize.regular,
+                                      disabled: _shouldDisableDownloadAll(statusSnapshot.data),
+                                    ),
+                                  ],
+                                ),
                                 const SizedBox(height: 16),
                                 LayoutBuilder(
                                   builder: (context, constraints) {
