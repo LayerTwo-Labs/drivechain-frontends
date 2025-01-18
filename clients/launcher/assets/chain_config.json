@@ -1,31 +1,6 @@
 {
   "chains": [
     {
-      "version": "1.9.1",
-      "name": "GRPCURL",
-      "description": "Command line tool for interacting with gRPC servers",
-      "repo_url": "https://github.com/fullstorydev/grpcurl",
-      "directories": {
-        "linux": ".grpcurl",
-        "darwin": ".grpcurl",
-        "win32": ".grpcurl"
-      },
-      "download": {
-        "base_url": "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.1/",
-        "files": {
-          "linux": "grpcurl_1.9.1_linux_x86_64.tar.gz",
-          "darwin": "grpcurl_1.9.1_osx_x86_64.tar.gz",
-          "win32": "grpcurl_1.9.1_windows_x86_64.zip"
-        }
-      },
-      "binary": {
-        "linux": "grpcurl",
-        "darwin": "grpcurl",
-        "win32": "grpcurl.exe"
-      },
-      "chain_layer": 1
-    },
-    {
       "version": "latest",
       "name": "Bitcoin Core (Patched)",
       "description": "Modified Bitcoin implementation for drivechain support",
@@ -76,9 +51,9 @@
         }
       },
       "binary": {
-        "linux": "bip300301-enforcer",
-        "darwin": "bip300301-enforcer",
-        "win32": "bip300301-enforcer.exe"
+        "linux": "bip300301_enforcer",
+        "darwin": "bip300301_enforcer",
+        "win32": "bip300301_enforcer.exe"
       },
       "network": {
         "port": 50051
