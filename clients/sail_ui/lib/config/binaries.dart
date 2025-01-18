@@ -11,148 +11,6 @@ import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
-/// Configuration for component directories
-class DirectoryConfig {
-  final Map<OS, String> base;
-
-  const DirectoryConfig({
-    required this.base,
-  });
-
-  factory DirectoryConfig.fromJson(Map<String, dynamic> json) {
-    return DirectoryConfig(
-      base: {
-        OS.linux: json['linux'] as String? ?? '',
-        OS.macos: json['darwin'] as String? ?? '',
-        OS.windows: json['win32'] as String? ?? '',
-      },
-    );
-  }
-}
-
-/// Configuration for binary downloads
-class DownloadConfig {
-  final String baseUrl;
-  final Map<OS, String> files;
-  DateTime? remoteTimestamp; // Last-Modified from server
-  DateTime? downloadedTimestamp; // When we last downloaded it, what is saved to disk in .meta
-
-  DownloadConfig({
-    required this.baseUrl,
-    required this.files,
-    this.remoteTimestamp,
-    this.downloadedTimestamp,
-  });
-
-  factory DownloadConfig.fromJson(Map<String, dynamic> json) {
-    final remoteStr = json['remote_timestamp'] as String?;
-    final downloadedStr = json['downloaded_timestamp'] as String?;
-    return DownloadConfig(
-      baseUrl: json['base_url'] as String,
-      files: {
-        OS.linux: (json['files'] as Map<String, dynamic>)['linux'] as String? ?? '',
-        OS.macos: (json['files'] as Map<String, dynamic>)['darwin'] as String? ?? '',
-        OS.windows: (json['files'] as Map<String, dynamic>)['win32'] as String? ?? '',
-      },
-      remoteTimestamp: remoteStr != null ? DateTime.parse(remoteStr) : null,
-      downloadedTimestamp: downloadedStr != null ? DateTime.parse(downloadedStr) : null,
-    );
-  }
-
-  DownloadConfig copyWith({
-    String? baseUrl,
-    Map<OS, String>? files,
-    DateTime? remoteTimestamp,
-    DateTime? downloadedTimestamp,
-  }) {
-    return DownloadConfig(
-      baseUrl: baseUrl ?? this.baseUrl,
-      files: files ?? this.files,
-      remoteTimestamp: remoteTimestamp ?? this.remoteTimestamp,
-      downloadedTimestamp: downloadedTimestamp ?? this.downloadedTimestamp,
-    );
-  }
-}
-
-/// Configuration for network settings
-class NetworkConfig {
-  final int port;
-
-  const NetworkConfig({
-    required this.port,
-  });
-
-  factory NetworkConfig.fromJson(Map<String, dynamic> json) {
-    return NetworkConfig(
-      port: json['port'] as int? ?? 0,
-    );
-  }
-}
-
-/// Represents the download status and information for a binary
-class DownloadInfo {
-  final DownloadStatus status;
-  final double progress;
-  final String? message;
-  final String? error;
-  final String? hash; // SHA256 of the binary
-  final DateTime? downloadedAt;
-
-  const DownloadInfo({
-    this.status = DownloadStatus.uninstalled,
-    this.progress = 0.0,
-    this.message,
-    this.error,
-    this.hash,
-    this.downloadedAt,
-  });
-
-  /// Create a copy with updated fields
-  DownloadInfo copyWith({
-    DownloadStatus? status,
-    double? progress,
-    String? message,
-    String? error,
-    String? hash,
-    DateTime? downloadedAt,
-  }) {
-    return DownloadInfo(
-      status: status ?? this.status,
-      progress: progress ?? this.progress,
-      message: message ?? this.message,
-      error: error ?? this.error,
-      hash: hash ?? this.hash,
-      downloadedAt: downloadedAt ?? this.downloadedAt,
-    );
-  }
-}
-
-enum DownloadStatus {
-  uninstalled, // Binary not present in assets/
-  installing, // Currently downloading/extracting/moving
-  installed, // Binary present in assets/ with metadata
-  failed, // Installation failed with error
-}
-
-/// Information about a completed download
-class DownloadMetadata {
-  final DateTime releaseDate; // Last-Modified date from server
-
-  const DownloadMetadata({
-    required this.releaseDate,
-  });
-
-  factory DownloadMetadata.fromJson(Map<String, dynamic> json) {
-    return DownloadMetadata(
-      releaseDate: DateTime.parse(json['releaseDate'] as String),
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'releaseDate': releaseDate.toIso8601String(),
-      };
-}
-
 abstract class Binary {
   Logger get log => GetIt.I.get<Logger>();
 
@@ -183,6 +41,9 @@ abstract class Binary {
   int get port => network.port;
   String get ticker => '';
   String get binaryName => binary;
+  bool get updateAvailable =>
+      download.remoteTimestamp != null &&
+      (download.downloadedTimestamp == null || download.remoteTimestamp!.isAfter(download.downloadedTimestamp!));
 
   @override
   bool operator ==(Object other) =>
@@ -318,21 +179,21 @@ abstract class Binary {
         message: 'Starting download...',
       );
 
-// 1. Setup directories
+      // 1. Setup directories
       final (fileName, downloadsDir, zipPath) = await _setupDirectories(datadir);
       onStatusUpdate(
         DownloadStatus.installing,
         message: 'Downloading...',
       );
 
-// 2. Download the binary
+      // 2. Download the binary
       final downloadUrl = Uri.parse(download.baseUrl).resolve(fileName).toString();
       final releaseDate = await _download(downloadUrl, zipPath, onStatusUpdate);
 
       // 3. Extract
       await _extract(datadir, zipPath, downloadsDir);
 
-// 4. Save metadata
+      // 4. Save metadata
       await saveMetadata(
         datadir,
         DownloadMetadata(
@@ -367,41 +228,77 @@ abstract class Binary {
     final os = getOS();
     final fileName = download.files[os]!;
 
-    // 1. Setup paths
-    final downloadsDir = path.join(datadir.path, 'assets', 'downloads');
-    final zipPath = path.join(downloadsDir, fileName);
+    // 1. Setup paths - use the full datadir path
+    final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads'));
+    final zipPath = path.join(downloadsDir.path, fileName);
 
-    _log('Downloads dir: $downloadsDir');
+    _log('Downloads dir: ${downloadsDir.path}');
     _log('Zip path: $zipPath');
 
-    // Create all required directories
-    await Directory(path.dirname(zipPath)).create(recursive: true);
-    await Directory(downloadsDir).create(recursive: true);
+    // Create downloads directory recursively
+    await downloadsDir.create(recursive: true);
 
-    return (fileName, Directory(downloadsDir), zipPath);
+    return (fileName, downloadsDir, zipPath);
   }
 
   Future<void> _extract(Directory datadir, String zipPath, Directory downloadsDir) async {
-    final inputStream = InputFileStream(zipPath);
-    final archive = ZipDecoder().decodeBuffer(inputStream);
-    await extractArchiveToDisk(archive, downloadsDir.path);
+    final extension = path.extension(zipPath).toLowerCase();
 
-    // 4. Move binary to final location
-    // Find the binary in the extracted folder
-    final binaryName = path.basename(binary);
-    _log('Looking for binary name: $binaryName');
+    // Extract the archive
+    if (extension == '.zip') {
+      final inputStream = InputFileStream(zipPath);
+      final archive = ZipDecoder().decodeBuffer(inputStream);
 
-    // Find any binary in the extracted folder
+      // If we're looking for a .app bundle
+      if (Platform.isMacOS && binary.endsWith('.app')) {
+        _log('Extracting .app bundle');
+
+        // Extract everything - we need the full bundle structure
+        await extractArchiveToDisk(archive, downloadsDir.path);
+
+        // Find the .app directory in the extracted files
+        await for (final entity in Directory(downloadsDir.path).list(recursive: false)) {
+          if (entity is Directory && entity.path.endsWith('.app')) {
+            _log('Found .app bundle: ${entity.path}');
+
+            // Move the entire .app bundle to assets/
+            final targetPath = path.join(datadir.path, 'assets', path.basename(entity.path));
+            _log('Moving .app bundle to $targetPath');
+
+            await Directory(path.dirname(targetPath)).create(recursive: true);
+            await entity.rename(targetPath);
+            return;
+          }
+        }
+        throw Exception('Could not find .app bundle in extracted files');
+      }
+
+      // For non-.app binaries, continue with normal extraction...
+      // Rest of the existing code for regular binaries
+      await extractArchiveToDisk(archive, downloadsDir.path);
+    } else if (extension == '.gz') {
+      final bytes = await File(zipPath).readAsBytes();
+      final gzBytes = GZipDecoder().decodeBytes(bytes);
+      final tarArchive = TarDecoder().decodeBytes(gzBytes);
+      await extractArchiveToDisk(tarArchive, downloadsDir.path);
+    } else {
+      throw Exception('could not extract archive: unsupported format $extension');
+    }
+
+    // Find and move binaries (only for files without extension)
     final binaryFiles = await _findBinaries(downloadsDir.path, datadir);
     if (binaryFiles.isEmpty) {
       throw Exception('No binary found in extracted files');
     }
 
     for (final binaryFile in binaryFiles) {
-      final fileName = path.basename(binaryFile.path).toLowerCase();
+      final fileName = path.basename(binaryFile.path);
+      final fileNameLower = fileName.toLowerCase();
+      final extension = path.extension(fileName);
 
-      // Determine target name based on whether it's a CLI binary
-      final targetName = fileName.contains('-cli') ? '$binary-cli' : binary;
+      // Determine target name based on whether it's a CLI binary, preserving extension
+      final baseName = fileNameLower.contains('-cli') ? '$binary-cli' : binary;
+      final targetName = extension.isEmpty ? baseName : '$baseName$extension';
 
       final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
       _log('Moving binary from ${binaryFile.path} to $finalBinaryPath');
@@ -420,35 +317,38 @@ abstract class Binary {
   }
 
   /// Find all binary files recursively in a directory and move them to the assets directory
-  Future<List<File>> _findBinaries(String sourceDirectory, Directory assetsDir) async {
+  Future<List<File>> _findBinaries(String sourceDirectory, Directory datadir) async {
     final dir = Directory(sourceDirectory);
     final foundBinaries = <File>[];
-    _log('Looking for binaries in $sourceDirectory');
+    final baseNameToFind = path.basenameWithoutExtension(binary).toLowerCase();
+    _log('Looking for binary base name: $baseNameToFind');
 
-    await for (final entity in dir.list(recursive: true)) {
+    await for (final entity in dir.list(recursive: false)) {
       if (entity is File) {
         final fileName = path.basename(entity.path);
-        _log('Found file: $fileName');
+        final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
+        _log('Found file: $fileName (base: $fileBaseName)');
 
-        // Copy file to assets directory
-        final destPath = path.join(assetsDir.path, fileName);
-        await entity.copy(destPath);
+        // Compare base names (without extension)
+        if (fileBaseName == baseNameToFind || fileBaseName == '$baseNameToFind-cli') {
+          // Keep the original extension when copying
+          final targetName = fileName.contains('-cli')
+              ? '$binary-cli${path.extension(fileName)}'
+              : '$binary${path.extension(fileName)}';
+          final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
 
-        final destFile = File(destPath);
-        // Make executable on non-Windows platforms
-        if (!Platform.isWindows) {
-          await Process.run('chmod', ['+x', destFile.path]);
+          _log('Moving binary from ${entity.path} to $finalBinaryPath');
+          await Directory(path.dirname(finalBinaryPath)).create(recursive: true);
+          await entity.copy(finalBinaryPath);
+
+          final destFile = File(finalBinaryPath);
+          if (!Platform.isWindows) {
+            await Process.run('chmod', ['+x', destFile.path]);
+          }
+
+          foundBinaries.add(destFile);
         }
-
-        foundBinaries.add(destFile);
-        _log('Moved binary to $destPath');
       }
-    }
-
-    if (foundBinaries.isEmpty) {
-      _log('No binaries found in extracted files');
-    } else {
-      _log('Found ${foundBinaries.length} binaries');
     }
 
     return foundBinaries;
@@ -622,7 +522,7 @@ class BitWindow extends Binary {
     DownloadConfig? download,
     super.binary = 'bitwindowd',
     NetworkConfig? network,
-    super.chainLayer = 0,
+    super.chainLayer = 1,
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -866,4 +766,146 @@ extension BinaryDownload on Binary {
     final metaFile = File(path.join(datadir.path, 'assets', '$binary.meta'));
     await metaFile.writeAsString(jsonEncode(meta.toJson()));
   }
+}
+
+/// Configuration for component directories
+class DirectoryConfig {
+  final Map<OS, String> base;
+
+  const DirectoryConfig({
+    required this.base,
+  });
+
+  factory DirectoryConfig.fromJson(Map<String, dynamic> json) {
+    return DirectoryConfig(
+      base: {
+        OS.linux: json['linux'] as String? ?? '',
+        OS.macos: json['darwin'] as String? ?? '',
+        OS.windows: json['win32'] as String? ?? '',
+      },
+    );
+  }
+}
+
+/// Configuration for binary downloads
+class DownloadConfig {
+  final String baseUrl;
+  final Map<OS, String> files;
+  DateTime? remoteTimestamp; // Last-Modified from server
+  DateTime? downloadedTimestamp; // When we last downloaded it, what is saved to disk in .meta
+
+  DownloadConfig({
+    required this.baseUrl,
+    required this.files,
+    this.remoteTimestamp,
+    this.downloadedTimestamp,
+  });
+
+  factory DownloadConfig.fromJson(Map<String, dynamic> json) {
+    final remoteStr = json['remote_timestamp'] as String?;
+    final downloadedStr = json['downloaded_timestamp'] as String?;
+    return DownloadConfig(
+      baseUrl: json['base_url'] as String,
+      files: {
+        OS.linux: (json['files'] as Map<String, dynamic>)['linux'] as String? ?? '',
+        OS.macos: (json['files'] as Map<String, dynamic>)['darwin'] as String? ?? '',
+        OS.windows: (json['files'] as Map<String, dynamic>)['win32'] as String? ?? '',
+      },
+      remoteTimestamp: remoteStr != null ? DateTime.parse(remoteStr) : null,
+      downloadedTimestamp: downloadedStr != null ? DateTime.parse(downloadedStr) : null,
+    );
+  }
+
+  DownloadConfig copyWith({
+    String? baseUrl,
+    Map<OS, String>? files,
+    DateTime? remoteTimestamp,
+    DateTime? downloadedTimestamp,
+  }) {
+    return DownloadConfig(
+      baseUrl: baseUrl ?? this.baseUrl,
+      files: files ?? this.files,
+      remoteTimestamp: remoteTimestamp ?? this.remoteTimestamp,
+      downloadedTimestamp: downloadedTimestamp ?? this.downloadedTimestamp,
+    );
+  }
+}
+
+/// Configuration for network settings
+class NetworkConfig {
+  final int port;
+
+  const NetworkConfig({
+    required this.port,
+  });
+
+  factory NetworkConfig.fromJson(Map<String, dynamic> json) {
+    return NetworkConfig(
+      port: json['port'] as int? ?? 0,
+    );
+  }
+}
+
+/// Represents the download status and information for a binary
+class DownloadInfo {
+  final DownloadStatus status;
+  final double progress;
+  final String? message;
+  final String? error;
+  final String? hash; // SHA256 of the binary
+  final DateTime? downloadedAt;
+
+  const DownloadInfo({
+    this.status = DownloadStatus.uninstalled,
+    this.progress = 0.0,
+    this.message,
+    this.error,
+    this.hash,
+    this.downloadedAt,
+  });
+
+  /// Create a copy with updated fields
+  DownloadInfo copyWith({
+    DownloadStatus? status,
+    double? progress,
+    String? message,
+    String? error,
+    String? hash,
+    DateTime? downloadedAt,
+  }) {
+    return DownloadInfo(
+      status: status ?? this.status,
+      progress: progress ?? this.progress,
+      message: message ?? this.message,
+      error: error ?? this.error,
+      hash: hash ?? this.hash,
+      downloadedAt: downloadedAt ?? this.downloadedAt,
+    );
+  }
+}
+
+enum DownloadStatus {
+  uninstalled, // Binary not present in assets/
+  installing, // Currently downloading/extracting/moving
+  installed, // Binary present in assets/ with metadata
+  failed, // Installation failed with error
+}
+
+/// Information about a completed download
+class DownloadMetadata {
+  final DateTime releaseDate; // Last-Modified date from server
+
+  const DownloadMetadata({
+    required this.releaseDate,
+  });
+
+  factory DownloadMetadata.fromJson(Map<String, dynamic> json) {
+    return DownloadMetadata(
+      releaseDate: DateTime.parse(json['releaseDate'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'releaseDate': releaseDate.toIso8601String(),
+      };
 }

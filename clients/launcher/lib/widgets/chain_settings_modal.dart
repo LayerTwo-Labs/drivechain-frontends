@@ -34,43 +34,48 @@ class ChainSettingsModal extends StatelessWidget {
       backgroundColor: Colors.transparent,
       child: Container(
         width: 500,
+        height: 500,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: SailColorScheme.blackLighter,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SailText.primary20('${chain.name} Settings'),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildInfoRow('Version', chain.version),
-            if (chain.repoUrl.isNotEmpty) _buildInfoRow('Repository', chain.repoUrl),
-            _buildInfoRow('Network Port', chain.network.port.toString()),
-            _buildInfoRow('Chain Layer', chain.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
-            if (baseDir != null) _buildInfoRow('Installation Directory', baseDir),
-            _buildInfoRow('Binary Path', binary),
-            if (downloadFile != null) _buildInfoRow('Download File', downloadFile),
-            const SizedBox(height: 24),
-            if (baseDir != null)
-              Center(
-                child: SailButton.primary(
-                  'Open Installation Directory',
-                  onPressed: () => _openDownloadLocation(chain),
-                  size: ButtonSize.regular,
-                ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SailText.primary20('${chain.name} Settings'),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
               ),
-          ],
+              const SizedBox(height: 24),
+              _buildInfoRow('Version', chain.version),
+              if (chain.repoUrl.isNotEmpty) _buildInfoRow('Repository', chain.repoUrl),
+              _buildInfoRow('Network Port', chain.network.port.toString()),
+              _buildInfoRow('Chain Layer', chain.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
+              if (baseDir != null) _buildInfoRow('Installation Directory', baseDir),
+              _buildInfoRow('Binary Path', binary),
+              if (downloadFile != null) _buildInfoRow('Download File', downloadFile),
+              _buildInfoRow('Latest Release At', chain.download.remoteTimestamp?.toLocal().toString() ?? 'N/A'),
+              _buildInfoRow('Your Version', chain.download.downloadedTimestamp?.toLocal().toString() ?? 'N/A'),
+              const SizedBox(height: 24),
+              if (baseDir != null)
+                Center(
+                  child: SailButton.primary(
+                    'Open Installation Directory',
+                    onPressed: () => _openDownloadLocation(chain),
+                    size: ButtonSize.regular,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

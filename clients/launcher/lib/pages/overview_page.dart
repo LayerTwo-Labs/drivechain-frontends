@@ -263,7 +263,7 @@ class _OverviewPageState extends State<OverviewPage> {
     return const SizedBox();
   }
 
-  Widget _buildChainContent(Binary chain, DownloadState? status) {
+  Widget _buildChainContent(Binary binary, DownloadState? status) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -271,7 +271,7 @@ class _OverviewPageState extends State<OverviewPage> {
           children: [
             Expanded(
               child: SailText.primary24(
-                chain.name,
+                binary.name,
                 textAlign: TextAlign.left,
               ),
             ),
@@ -280,18 +280,18 @@ class _OverviewPageState extends State<OverviewPage> {
               onPressed: () {
                 showDialog(
                   context: context,
-                  builder: (context) => ChainSettingsModal(chain: chain),
+                  builder: (context) => ChainSettingsModal(chain: binary),
                 );
               },
             ),
             const SizedBox(width: 8),
-            _buildStatusIndicator(chain),
+            _buildStatusIndicator(binary),
           ],
         ),
         const SizedBox(height: 12),
         SizedBox(
           child: SailText.secondary13(
-            chain.description,
+            binary.description,
             textAlign: TextAlign.left,
           ),
         ),
@@ -306,7 +306,20 @@ class _OverviewPageState extends State<OverviewPage> {
             ),
           ),
         const SizedBox(height: 8),
-        _buildActionButton(chain, status),
+        Row(
+          children: [
+            _buildActionButton(binary, status),
+            if (binary.updateAvailable) const SizedBox(width: 12),
+            if (binary.updateAvailable)
+              Center(
+                child: SailButton.primary(
+                  'Update Now',
+                  onPressed: () => _binaryProvider.downloadBinary(binary),
+                  size: ButtonSize.regular,
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
