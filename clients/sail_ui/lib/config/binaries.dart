@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
@@ -23,6 +24,7 @@ abstract class Binary {
   final String binary;
   final NetworkConfig network;
   final int chainLayer;
+  final String? walletFile;
 
   Binary({
     required this.name,
@@ -34,6 +36,7 @@ abstract class Binary {
     required this.binary,
     required this.network,
     required this.chainLayer,
+    this.walletFile,
   });
 
   // Runtime properties
@@ -75,6 +78,8 @@ abstract class Binary {
   factory Binary.fromJson(Map<String, dynamic> json) {
     // First create the correct type based on name
     final name = json['name'] as String? ?? '';
+    final walletFile = json['wallet_file'] as String?;
+
     Binary base = switch (name) {
       'Bitcoin Core (Patched)' => ParentChain(),
       'BitWindow' => BitWindow(),
@@ -90,9 +95,10 @@ abstract class Binary {
           repoUrl: json['repo_url'] as String? ?? '',
           directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
           download: DownloadConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
-          binary: '', // Will be set by copyWith below
+          binary: '',
           network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
           chainLayer: json['chain_layer'] as int? ?? 0,
+          walletFile: walletFile,
         ),
     };
 
@@ -116,6 +122,7 @@ abstract class Binary {
       binary: binaryPath,
       network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
       chainLayer: json['chain_layer'] as int? ?? 0,
+      walletFile: walletFile,
     );
   }
 
@@ -128,6 +135,7 @@ abstract class Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
+    String? walletFile,
   });
 
   /// Check the Last-Modified header for a binary without downloading
@@ -379,6 +387,121 @@ abstract class Binary {
     }
   }
 
+  Future<void> wipeDatadir(BuildContext context) async {
+    _log('Starting data wipe for $name');
+
+    final dir = datadir();
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Data Wipe'),
+        content: Text(
+          'Are you sure you want to wipe all data for $name?\nThis will wipe all data in $dir but will preserve your wallet file.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Wipe Data'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      _log('Data wipe cancelled by user');
+      return;
+    }
+
+    // if parent chain, wipe specific folders and files
+    if (this is ParentChain) {
+      final filesToWipe = [
+        'banlist.json',
+        'bitcoind.pid', 
+        'blocks',
+        'chainstate',
+        'debug.log',
+        'fee_estimates.dat',
+        'indexes',
+        'mempool.dat',
+        'peers.dat',
+        'settings.json',
+      ];
+
+      for (final file in filesToWipe) {
+        final filePath = path.join(dir, 'signet', file);
+        if (await FileSystemEntity.isDirectory(filePath)) {
+          await Directory(filePath).delete(recursive: true);
+        } else {
+          final fileEntity = File(filePath);
+          if (await fileEntity.exists()) {
+            await fileEntity.delete();
+          }
+        }
+      }
+    } else if (this is Enforcer) {
+         final filesToWipe = [
+        'validator',
+      ];
+
+      for (final file in filesToWipe) {
+        final filePath = path.join(dir, file);
+        if (await FileSystemEntity.isDirectory(filePath)) {
+          await Directory(filePath).delete(recursive: true);
+        } else {
+          final fileEntity = File(filePath);
+          if (await fileEntity.exists()) {
+            await fileEntity.delete();
+          }
+        }
+      }
+    } else if (this is BitWindow) {
+      final filesToWipe = [
+        'bitwindow.db',
+      ];
+
+        for (final file in filesToWipe) {
+        final filePath = path.join(dir, file);
+        if (await FileSystemEntity.isDirectory(filePath)) {
+          await Directory(filePath).delete(recursive: true);
+        } else {
+          final fileEntity = File(filePath);
+          if (await fileEntity.exists()) {
+            await fileEntity.delete();
+          }
+        }
+      }
+    }
+
+    // Show success message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$name data wiped successfully'),
+          ),
+        );
+      }
+    } catch (e, stack) {
+      _log('Error during data wipe: $e');
+      _log('Stack trace: $stack');
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error wiping $name data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _log(String message) {
     log.i('Binary: $message');
   }
@@ -414,6 +537,7 @@ class ParentChain extends Binary {
                 },
               ),
           network: network ?? NetworkConfig(port: 38332),
+          walletFile: 'wallet.dat',
         );
 
   @override
@@ -429,6 +553,7 @@ class ParentChain extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
+    String? walletFile,
   }) {
     return ParentChain(
       name: name,
@@ -455,6 +580,7 @@ class BitWindow extends Binary {
     super.binary = 'bitwindowd',
     NetworkConfig? network,
     super.chainLayer = 1,
+    super.walletFile,
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -489,6 +615,7 @@ class BitWindow extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
+    String? walletFile,
   }) {
     return BitWindow(
       name: name,
@@ -500,6 +627,7 @@ class BitWindow extends Binary {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
+      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -515,6 +643,7 @@ class Enforcer extends Binary {
     super.binary = 'bip300301_enforcer',
     NetworkConfig? network,
     super.chainLayer = 0,
+    super.walletFile = 'wallet.db',
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -549,6 +678,7 @@ class Enforcer extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
+    String? walletFile,
   }) {
     return Enforcer(
       name: name,
@@ -560,6 +690,7 @@ class Enforcer extends Binary {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
+      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -592,7 +723,7 @@ extension BinaryPaths on Binary {
     }
 
     final subdir = directories.base[OS.current];
-    if (subdir == null) {
+    if (subdir == null || subdir.isEmpty) {
       throw 'unsupported operating system: ${Platform.operatingSystem}';
     }
 
@@ -624,6 +755,7 @@ class _BinaryImpl extends Binary {
     required super.binary,
     required super.network,
     required super.chainLayer,
+    required super.walletFile,
   });
 
   @override
@@ -639,6 +771,7 @@ class _BinaryImpl extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
+    String? walletFile,
   }) {
     return _BinaryImpl(
       name: name,
@@ -650,6 +783,7 @@ class _BinaryImpl extends Binary {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
+      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -732,9 +866,9 @@ class DirectoryConfig {
   factory DirectoryConfig.fromJson(Map<String, dynamic> json) {
     return DirectoryConfig(
       base: {
-        OS.linux: json['linux'] as String? ?? '',
-        OS.macos: json['darwin'] as String? ?? '',
-        OS.windows: json['win32'] as String? ?? '',
+        OS.linux: json['linux'] as String? ?? 'Drivechain',
+        OS.macos: json['darwin'] as String? ?? 'Drivechain',
+        OS.windows: json['win32'] as String? ?? 'Drivechain',
       },
     );
   }
