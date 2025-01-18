@@ -14,7 +14,7 @@ class SettingsPage extends StatelessWidget {
     final logger = Logger();
     final appDir = await Environment.datadir();
     logger.i('Opening directory: ${appDir.path}');
-    
+
     if (Platform.isWindows) {
       await Process.run('explorer', [appDir.path]);
     } else if (Platform.isMacOS) {
