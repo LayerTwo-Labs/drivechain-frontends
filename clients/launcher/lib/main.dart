@@ -1,14 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
-import 'package:launcher/providers/config_provider.dart';
 import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,13 +77,6 @@ Future<void> initDependencies(Logger log) async {
     ),
   );
 
-  // Register configuration service
-  final configProvider = ConfigProvider();
-  GetIt.I.registerSingleton<ConfigProvider>(
-    configProvider,
-  );
-  await configProvider.initialize();
-
   final datadir = await Environment.datadir();
   final processProvider = ProcessProvider(
     datadir: datadir,
@@ -90,10 +85,18 @@ Future<void> initDependencies(Logger log) async {
     processProvider,
   );
 
+  final jsonString = await rootBundle.loadString('assets/chain_config.json');
+  final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+
+  final binaries = (jsonData['chains'] as List<dynamic>?)
+          ?.map((chain) => Binary.fromJson(chain as Map<String, dynamic>? ?? {}))
+          .toList() ??
+      [];
+
   // Register download manager
   final binaryProvider = BinaryProvider(
     datadir: datadir,
-    binaries: configProvider.configs,
+    initialBinaries: binaries,
   );
   GetIt.I.registerSingleton<BinaryProvider>(
     binaryProvider,

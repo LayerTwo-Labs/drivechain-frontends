@@ -29,9 +29,8 @@ class DownloadState {
 /// Manages downloads and installations of binaries
 class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
-
   final Directory datadir;
-  final List<Binary> binaries;
+  late List<Binary> binaries;
 
   // Track download status for each binary
   final _downloadStates = <String, DownloadState>{};
@@ -63,10 +62,10 @@ class BinaryProvider extends ChangeNotifier {
 
   BinaryProvider({
     required this.datadir,
-    required this.binaries,
+    required List<Binary> initialBinaries,
   }) {
-    // Initialize immediately and asynchronously
-    _initializeStates();
+    binaries = initialBinaries;
+    initialize();
     // Add listeners to notify UI of status changes
     mainchainRPC?.addListener(notifyListeners);
     enforcerRPC?.addListener(notifyListeners);
@@ -74,13 +73,13 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   /// Initialize download states for all binaries
-  Future<void> _initializeStates() async {
-    _log('Initializing states for ${binaries.length} binaries');
+  Future<void> initialize() async {
+    _log('Read binaries from assets/chain_config.json: Found ${binaries.length} binaries');
 
-    for (final binary in binaries) {
+    for (var i = 0; i < binaries.length; i++) {
+      final binary = binaries[i];
       try {
         _log('Checking binary: ${binary.name} (${binary.binary})');
-
         _log('datadir is: ${datadir.path}');
         // Check if binary exists in assets/
         final exists = await binary.exists(datadir);
@@ -112,6 +111,16 @@ class BinaryProvider extends ChangeNotifier {
 
     // Emit initial states
     _statusController.add(Map.from(_downloadStates));
+  }
+
+  /// Get all L1 chain configurations
+  List<Binary> getL1Chains() {
+    return binaries.where((chain) => chain.chainLayer == 1).toList();
+  }
+
+  /// Get all L2 chain configurations
+  List<Binary> getL2Chains() {
+    return binaries.where((chain) => chain.chainLayer == 2).toList();
   }
 
   /// Update status for a binary
@@ -360,6 +369,7 @@ class BinaryProvider extends ChangeNotifier {
           );
           mainchainRPC!.addListener(notifyListeners);
         }
+        if (!context.mounted) return;
         await mainchainRPC!.initBinary(context);
 
       case Enforcer():
@@ -370,6 +380,7 @@ class BinaryProvider extends ChangeNotifier {
           );
           enforcerRPC!.addListener(notifyListeners);
         }
+        if (!context.mounted) return;
         await enforcerRPC!.initBinary(context);
 
       case BitWindow():
@@ -382,10 +393,11 @@ class BinaryProvider extends ChangeNotifier {
           );
           bitwindowRPC!.addListener(notifyListeners);
         }
+        if (!context.mounted) return;
         await bitwindowRPC!.initBinary(context);
 
       default:
-        print('is $binary');
+        log.i('is $binary');
     }
     notifyListeners();
 
