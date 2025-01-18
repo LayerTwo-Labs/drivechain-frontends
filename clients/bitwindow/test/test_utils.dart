@@ -115,15 +115,16 @@ class MockBinary extends Binary {
   Color get color => SailColorScheme.orange;
 
   @override
-  Binary copyWith(
-      {String? version,
-      String? description,
-      String? repoUrl,
-      DirectoryConfig? directories,
-      DownloadConfig? download,
-      String? binary,
-      NetworkConfig? network,
-      int? chainLayer,}) {
+  Binary copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    String? binary,
+    NetworkConfig? network,
+    int? chainLayer,
+  }) {
     return MockBinary();
   }
 }

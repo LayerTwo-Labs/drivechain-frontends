@@ -120,8 +120,8 @@
       "repo_url": "",
       "directories": {
         "linux": ".thunder",
-        "darwin": "thunder",
-        "win32": "thunder"
+        "darwin": "Thunder",
+        "win32": "Thunder"
       },
       "download": {
         "base_url": "https://releases.drivechain.info/",
@@ -129,22 +129,12 @@
           "linux": "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
           "darwin": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
           "win32": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
-        },
-        "sizes": {
-          "linux": 0,
-          "darwin": 0,
-          "win32": 0
-        },
-        "hashes": {
-          "linux": "",
-          "darwin": "",
-          "win32": ""
         }
       },
       "binary": {
-        "linux": "thunder-latest-x86_64-unknown-linux-gnu",
-        "darwin": "thunder-latest-x86_64-apple-darwin",
-        "win32": "thunder-latest-x86_64-pc-windows-gnu.exe"
+        "linux": "thunder",
+        "darwin": "thunder",
+        "win32": "thunder.exe"
       },
       "network": {
         "port": 6009
