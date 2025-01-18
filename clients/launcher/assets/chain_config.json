@@ -51,7 +51,7 @@
         "win32": "bitcoind.exe"
       },
       "network": {
-        "port": 8332
+        "port": 38332
       },
       "chain_layer": 1
     },
