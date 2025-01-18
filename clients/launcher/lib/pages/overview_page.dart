@@ -393,7 +393,22 @@ class _OverviewPageState extends State<OverviewPage> {
         'Launching...',
         onPressed: () {}, // Disable button while initializing
         size: ButtonSize.regular,
-        loading: true, // Show loading spinner
+        loading: true,
+      );
+    }
+
+    if (status?.status == DownloadStatus.installed) {
+      final canStart = _binaryProvider.canStart(binary);
+      final dependencyMessage = _binaryProvider.getDependencyMessage(binary);
+
+      return Tooltip(
+        message: dependencyMessage ?? 'Launch ${binary.name}',
+        child: SailButton.primary(
+          'Launch',
+          onPressed: () => _binaryProvider.startBinary(context, binary),
+          size: ButtonSize.regular,
+          disabled: !canStart,
+        ),
       );
     }
 
@@ -409,14 +424,6 @@ class _OverviewPageState extends State<OverviewPage> {
       return SailButton.primary(
         'Retry',
         onPressed: () => _handleBinaryDownload(binary),
-        size: ButtonSize.regular,
-      );
-    }
-
-    if (status.status == DownloadStatus.installed) {
-      return SailButton.primary(
-        'Launch',
-        onPressed: () => _binaryProvider.startBinary(context, binary),
         size: ButtonSize.regular,
       );
     }

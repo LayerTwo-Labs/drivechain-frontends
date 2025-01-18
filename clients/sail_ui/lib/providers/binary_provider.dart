@@ -297,6 +297,29 @@ class BinaryProvider extends ChangeNotifier {
     }
   }
 
+  /// Check if a binary can be started based on its dependencies
+  bool canStart(Binary binary) {
+    return switch (binary) {
+      BitWindow() => mainchainConnected && enforcerConnected,
+      Thunder() => mainchainConnected && enforcerConnected, // L2 binary
+      _ => true, // No dependencies for mainchain/enforcer
+    };
+  }
+
+  /// Get dependency message if binary cannot be started
+  String? getDependencyMessage(Binary binary) {
+    return switch (binary) {
+      BitWindow() when !mainchainConnected && !enforcerConnected =>
+        'Requires mainchain and enforcer to be running first',
+      BitWindow() when !mainchainConnected => 'Requires mainchain to be running first',
+      BitWindow() when !enforcerConnected => 'Requires enforcer to be running first',
+      Thunder() when !mainchainConnected && !enforcerConnected => 'Requires mainchain and enforcer to be running first',
+      Thunder() when !mainchainConnected => 'Requires mainchain to be running first',
+      Thunder() when !enforcerConnected => 'Requires enforcer to be running first',
+      _ => null,
+    };
+  }
+
   @override
   void dispose() {
     _dirWatcher?.cancel();
