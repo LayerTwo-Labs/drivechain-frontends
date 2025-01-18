@@ -5,22 +5,24 @@ import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
 import 'package:launcher/widgets/welcome_modal.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:path/path.dart' as path;
 
 @RoutePage()
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
-  Future<void> _openDataDirectory() async {
+  Future<void> _openWalletStarterDirectory() async {
     final logger = Logger();
-    final appDir = await Environment.datadir();
-    logger.i('Opening directory: ${appDir.path}');
+    final dataDir = await Environment.datadir();
+    final walletStarterDir = path.join(dataDir.path, 'wallet_starters');
+    logger.i('Opening directory: $walletStarterDir');
 
     if (Platform.isWindows) {
-      await Process.run('explorer', [appDir.path]);
+      await Process.run('explorer', [walletStarterDir]);
     } else if (Platform.isMacOS) {
-      await Process.run('open', [appDir.path]);
+      await Process.run('open', [walletStarterDir]);
     } else if (Platform.isLinux) {
-      await Process.run('xdg-open', [appDir.path]);
+      await Process.run('xdg-open', [walletStarterDir]);
     }
   }
 
@@ -39,8 +41,8 @@ class SettingsPage extends StatelessWidget {
           Row(
             children: [
               SailButton.secondary(
-                'Open Data Directory',
-                onPressed: _openDataDirectory,
+                'Open Starters Directory',
+                onPressed: _openWalletStarterDirectory,
                 size: ButtonSize.regular,
               ),
               const SizedBox(width: 16),

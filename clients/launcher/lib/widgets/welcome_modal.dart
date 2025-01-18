@@ -81,24 +81,17 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     }
   }
 
-  void _handleAdvancedMode() {
-    setState(() {
-      _showAdvanced = true;
-    });
-  }
-
   Future<void> _handleCreateWallet() async {
     try {
-      String input = _useMnemonic ? _mnemonicController.text : _passphraseController.text;
+      String? input = _useMnemonic ? _mnemonicController.text : null;
+      String? passphrase = _passphraseController.text.isNotEmpty ? _passphraseController.text : null;
 
-      if (input.isEmpty) {
-        await _showErrorDialog(
-          _useMnemonic ? 'Please enter a valid mnemonic phrase' : 'Please enter a passphrase',
-        );
+      if (_useMnemonic && input!.isEmpty) {
+        await _showErrorDialog('Please enter a valid mnemonic phrase');
         return;
       }
 
-      if (_useMnemonic && !_isValidMnemonic(input)) {
+      if (_useMnemonic && !_isValidMnemonic(input!)) {
         await _showErrorDialog(
           'Invalid mnemonic phrase. Please enter 12 or 24 words separated by spaces.',
         );
@@ -107,7 +100,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
       final wallet = await _walletService.generateWallet(
         customMnemonic: _useMnemonic ? input : null,
-        passphrase: _useMnemonic ? null : input,
+        passphrase: passphrase,
       );
       if (!mounted) return;
 
@@ -137,12 +130,22 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   Future<void> _handleGenerateRandom() async {
     try {
-      final wallet = await _walletService.generateWallet();
-      if (wallet.containsKey('error')) {
-        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
-        return;
+      if (_useMnemonic) {
+        final wallet = await _walletService.generateWallet();
+        if (wallet.containsKey('error')) {
+          await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
+          return;
+        }
+        _mnemonicController.text = wallet['mnemonic'];
+      } else {
+        // Generate 32 random bytes (64 hex characters)
+        final wallet = await _walletService.generateWallet();
+        if (wallet.containsKey('error')) {
+          await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
+          return;
+        }
+        _mnemonicController.text = wallet['seed_hex'];
       }
-      _mnemonicController.text = wallet['mnemonic'];
     } catch (e) {
       await _showErrorDialog('Unexpected error: $e');
     }
@@ -160,7 +163,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         ),
         const SizedBox(height: 8),
         SailText.primary13(
-          'Get started by creating a wallet!',
+          'RECOMMENDED: Create a wallet starter - this generates a master key that will be used to derive unique keys for each sidechain, allowing you to securely manage multiple chains from a single source.',
           color: SailTheme.of(context).colors.textSecondary,
         ),
         if (_showAdvanced) ...[
@@ -178,7 +181,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                 },
               ),
               const SizedBox(width: 8),
-              SailText.primary13('Mnemonic'),
+              SailText.primary13('Use BIP39 Mnemonic'),
             ],
           ),
           const SizedBox(height: 8),
@@ -202,36 +205,62 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           ],
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SailButton.secondary(
-                'Generate Random',
-                onPressed: _handleGenerateRandom,
+                _showAdvanced ? 'Simple Mode' : 'Advanced Mode',
+                onPressed: () {
+                  setState(() {
+                    _showAdvanced = !_showAdvanced;
+                  });
+                },
                 size: ButtonSize.regular,
               ),
-              const SizedBox(width: 8),
-              SailButton.primary(
-                'Create Wallet',
-                onPressed: _handleCreateWallet,
-                size: ButtonSize.regular,
+              Row(
+                children: [
+                  SailButton.secondary(
+                    'Generate Random',
+                    onPressed: _handleGenerateRandom,
+                    size: ButtonSize.regular,
+                  ),
+                  const SizedBox(width: 8),
+                  SailButton.primary(
+                    'Create Wallet',
+                    onPressed: _handleCreateWallet,
+                    size: ButtonSize.regular,
+                  ),
+                ],
               ),
             ],
           ),
         ] else ...[
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SailButton.secondary(
-                'Fast Mode',
-                onPressed: _handleFastMode,
+                _showAdvanced ? 'Simple Mode' : 'Advanced Mode',
+                onPressed: () {
+                  setState(() {
+                    _showAdvanced = !_showAdvanced;
+                  });
+                },
                 size: ButtonSize.regular,
               ),
-              const SizedBox(width: 8),
-              SailButton.primary(
-                'Advanced Mode',
-                onPressed: _handleAdvancedMode,
-                size: ButtonSize.regular,
+              Row(
+                children: [
+                  SailButton.secondary(
+                    'Fast Mode',
+                    onPressed: _handleFastMode,
+                    size: ButtonSize.regular,
+                  ),
+                  const SizedBox(width: 8),
+                  SailButton.primary(
+                    'Create Wallet',
+                    onPressed: _handleCreateWallet,
+                    size: ButtonSize.regular,
+                  ),
+                ],
               ),
             ],
           ),
