@@ -211,9 +211,6 @@ abstract class Binary {
         message: 'Installed $name)',
       );
 
-      // 5. Finally, clean up downloads after everything else succeeded
-      await _cleanup(downloadsDir.path);
-
       return releaseDate;
     } catch (e) {
       onStatusUpdate(
@@ -242,161 +239,66 @@ abstract class Binary {
   }
 
   Future<void> _extract(Directory datadir, String zipPath, Directory downloadsDir) async {
-    final extension = path.extension(zipPath).toLowerCase();
+    final inputStream = InputFileStream(zipPath);
+    final archive = ZipDecoder().decodeBuffer(inputStream);
 
-    // Extract the archive
-    if (extension == '.zip') {
-      final inputStream = InputFileStream(zipPath);
-      final archive = ZipDecoder().decodeBuffer(inputStream);
+    // Extract everything - we need the full bundle structure
+    await extractArchiveToDisk(archive, downloadsDir.path);
 
-      // If we're looking for a .app bundle
-      if (Platform.isMacOS && binary.endsWith('.app')) {
-        _log('Extracting .app bundle');
+    if (Platform.isMacOS && binary.endsWith('.app')) {
+      _log('Extracting .app bundle');
 
-        // Extract everything - we need the full bundle structure
-        await extractArchiveToDisk(archive, downloadsDir.path);
+      // Find the .app directory in the extracted files
+      await for (final entity in Directory(downloadsDir.path).list(recursive: false)) {
+        if (entity is Directory && entity.path.endsWith('.app')) {
+          _log('Found .app bundle: ${entity.path}');
 
-        // Find the .app directory in the extracted files
-        await for (final entity in Directory(downloadsDir.path).list(recursive: false)) {
-          if (entity is Directory && entity.path.endsWith('.app')) {
-            _log('Found .app bundle: ${entity.path}');
+          // Move the entire .app bundle to assets/
+          final targetPath = path.join(datadir.path, 'assets', path.basename(entity.path));
+          _log('Moving .app bundle to $targetPath');
 
-            // Move the entire .app bundle to assets/
-            final targetPath = path.join(datadir.path, 'assets', path.basename(entity.path));
-            _log('Moving .app bundle to $targetPath');
-
-            await Directory(path.dirname(targetPath)).create(recursive: true);
-            await entity.rename(targetPath);
-            return;
-          }
-        }
-        throw Exception('Could not find .app bundle in extracted files');
-      }
-
-      // For non-.app binaries, continue with normal extraction...
-      // Rest of the existing code for regular binaries
-      await extractArchiveToDisk(archive, downloadsDir.path);
-    } else if (extension == '.gz') {
-      final bytes = await File(zipPath).readAsBytes();
-      final gzBytes = GZipDecoder().decodeBytes(bytes);
-      final tarArchive = TarDecoder().decodeBytes(gzBytes);
-      await extractArchiveToDisk(tarArchive, downloadsDir.path);
-    } else {
-      throw Exception('could not extract archive: unsupported format $extension');
-    }
-
-    // Find and move binaries (only for files without extension)
-    final binaryFiles = await _findBinaries(downloadsDir.path, datadir);
-    if (binaryFiles.isEmpty) {
-      throw Exception('No binary found in extracted files');
-    }
-
-    for (final binaryFile in binaryFiles) {
-      final fileName = path.basename(binaryFile.path);
-      final fileNameLower = fileName.toLowerCase();
-      final extension = path.extension(fileName);
-
-      // Determine target name based on whether it's a CLI binary, preserving extension
-      final baseName = fileNameLower.contains('-cli') ? '$binary-cli' : binary;
-      final targetName = extension.isEmpty ? baseName : '$baseName$extension';
-
-      final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
-      _log('Moving binary from ${binaryFile.path} to $finalBinaryPath');
-
-      // Create assets directory if it doesn't exist
-      await Directory(path.dirname(finalBinaryPath)).create(recursive: true);
-
-      // Copy the binary first
-      await binaryFile.copy(finalBinaryPath);
-
-      // Verify the copy was successful
-      if (!await File(finalBinaryPath).exists()) {
-        throw Exception('could not copy binary to final location');
-      }
-    }
-  }
-
-  /// Find all binary files recursively in a directory and move them to the assets directory
-  Future<List<File>> _findBinaries(String sourceDirectory, Directory datadir) async {
-    final dir = Directory(sourceDirectory);
-    final foundBinaries = <File>[];
-    final baseNameToFind = path.basenameWithoutExtension(binary).toLowerCase();
-    _log('Looking for binary base name: $baseNameToFind');
-
-    // First list all files and subdirectories
-    final entries = await dir.list(recursive: false).toList();
-    _log('Found ${entries.length} entries in directory');
-
-    // Debug log all entries
-    for (final entry in entries) {
-      _log('Found in directory: ${entry.path} (${entry.runtimeType})');
-    }
-
-    // First check subdirectories for binaries
-    for (final entry in entries) {
-      if (entry is Directory) {
-        // Look for binaries in first level subdirectories
-        final subFiles = await entry.list(recursive: false).toList();
-        for (final subFile in subFiles) {
-          if (subFile is File) {
-            final fileName = path.basename(subFile.path);
-            final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
-            _log('Examining file in subdirectory: $fileName (base: $fileBaseName)');
-
-            if (fileBaseName.contains(baseNameToFind)) {
-              final targetName = '$fileBaseName${path.extension(fileName)}';
-              final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
-
-              _log('Moving binary from ${subFile.path} to $finalBinaryPath');
-              await Directory(path.dirname(finalBinaryPath)).create(recursive: true);
-              await subFile.copy(finalBinaryPath);
-
-              final destFile = File(finalBinaryPath);
-              if (!Platform.isWindows) {
-                await Process.run('chmod', ['+x', destFile.path]);
-              }
-
-              foundBinaries.add(destFile);
-            }
-          }
+          await Directory(path.dirname(targetPath)).create(recursive: true);
+          await entity.rename(targetPath);
+          return;
         }
       }
+      throw Exception('Could not find .app bundle in extracted files');
     }
 
-    // Then check root directory for binaries
-    for (final entry in entries) {
-      if (entry is File) {
-        final fileName = path.basename(entry.path);
-        final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
-        _log('Examining file: $fileName (base: $fileBaseName)');
+    // Move all executables to assets/
+    final extractedDir = Directory(downloadsDir.path);
+    await for (final entity in extractedDir.list(recursive: true)) {
+      if (entity is File) {
+        final fileName = path.basename(entity.path);
 
-        if (fileBaseName.contains(baseNameToFind)) {
-          final targetName = '$fileBaseName${path.extension(fileName)}';
-          final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
+        // Skip non-executable files
+        if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
 
-          _log('Moving binary from ${entry.path} to $finalBinaryPath');
-          await Directory(path.dirname(finalBinaryPath)).create(recursive: true);
-          await entry.copy(finalBinaryPath);
+        // Clean up the filename:
+        // 1. Remove version numbers (like -0.1.7-)
+        // 2. Remove platform specifics (-x86_64-apple-darwin)
+        // 3. Remove -latest if present
+        String targetName = fileName;
 
-          final destFile = File(finalBinaryPath);
-          if (!Platform.isWindows) {
-            await Process.run('chmod', ['+x', destFile.path]);
-          }
-
-          foundBinaries.add(destFile);
+        // First remove platform specific parts
+        final platformParts = ['-x86_64-apple-darwin', '-x86_64-linux', '-x86_64.exe'];
+        for (final part in platformParts) {
+          targetName = targetName.replaceAll(part, '');
         }
+
+        // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
+        targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
+
+        // Remove -latest
+        targetName = targetName.replaceAll('-latest', '');
+
+        final targetPath = path.join(datadir.path, 'assets', targetName);
+        _log('Moving binary from ${entity.path} to $targetPath');
+
+        await Directory(path.dirname(targetPath)).create(recursive: true);
+        await entity.copy(targetPath);
       }
     }
-
-    if (foundBinaries.isEmpty) {
-      _log('No matching binaries found. Directory contents:');
-      for (final f in entries) {
-        _log('  - ${f.path}');
-      }
-      throw Exception('could not find any matching binaries in extracted files');
-    }
-
-    return foundBinaries;
   }
 
   /// Downloads a file with progress tracking
@@ -474,21 +376,6 @@ abstract class Binary {
       final error = 'Download failed from $url: $e\nSave path: $savePath';
       _log('ERROR: $error');
       throw Exception(error);
-    }
-  }
-
-  /// Clean up the downloads directory
-  Future<void> _cleanup(String downloadsDir) async {
-    try {
-      final dir = Directory(downloadsDir);
-      if (await dir.exists()) {
-        _log('Cleaning up downloads directory: $downloadsDir');
-        await dir.delete(recursive: true);
-        _log('Successfully cleaned up downloads directory');
-      }
-    } catch (e) {
-      // Log but don't throw - cleanup failure shouldn't fail the installation
-      _log('Warning: Failed to clean up downloads directory: $e');
     }
   }
 

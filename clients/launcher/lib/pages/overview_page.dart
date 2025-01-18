@@ -59,19 +59,16 @@ class _OverviewPageState extends State<OverviewPage> {
   void _downloadUninstalledL1Binaries(Map<String, DownloadState>? statusData) {
     if (statusData == null) return;
 
-    final uninstalledBinaries = _binaryProvider.binaries
-        .where((b) => b.chainLayer == 1)
-        .where((b) {
-          final status = statusData[b.name]?.status;
-          return status == null || 
-                 status == DownloadStatus.uninstalled ||
-                 status == DownloadStatus.failed;
-        });
-    
+    final uninstalledBinaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1).where((b) {
+      final status = statusData[b.name]?.status;
+      return status == null || status == DownloadStatus.uninstalled || status == DownloadStatus.failed;
+    });
+
     // Start downloads concurrently for uninstalled/failed binaries
     Future.wait(
-      uninstalledBinaries.map((binary) => 
-        _binaryProvider.downloadBinary(binary),),
+      uninstalledBinaries.map(
+        (binary) => _binaryProvider.downloadBinary(binary),
+      ),
     );
   }
 
@@ -80,15 +77,13 @@ class _OverviewPageState extends State<OverviewPage> {
 
     // Get L1 binaries
     final l1Binaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1);
-    
+
     // Check if any downloads are in progress
-    final hasActiveDownloads = statusData.values
-        .any((state) => state.status == DownloadStatus.installing);
-    
+    final hasActiveDownloads = statusData.values.any((state) => state.status == DownloadStatus.installing);
+
     // Check if all L1 binaries are already installed
-    final allInstalled = l1Binaries
-        .every((b) => statusData[b.name]?.status == DownloadStatus.installed);
-    
+    final allInstalled = l1Binaries.every((b) => statusData[b.name]?.status == DownloadStatus.installed);
+
     return hasActiveDownloads || allInstalled;
   }
 
@@ -96,12 +91,11 @@ class _OverviewPageState extends State<OverviewPage> {
     debugPrint('Starting download for ${binary.name}');
     await _binaryProvider.downloadBinary(binary);
     debugPrint('Download completed for ${binary.name}');
-    
+
     if (binary.chainLayer == 2 && _chainConfig != null) {
       final chains = _chainConfig!['chains'] as List<dynamic>;
       for (final chain in chains) {
-        if (chain['name'].toString().toLowerCase() == binary.name.toLowerCase() && 
-            chain['sidechain_slot'] != null) {
+        if (chain['name'].toString().toLowerCase() == binary.name.toLowerCase() && chain['sidechain_slot'] != null) {
           final sidechainSlot = chain['sidechain_slot'] as int;
           debugPrint('Creating sidechain starter for slot $sidechainSlot');
           try {
