@@ -228,8 +228,10 @@ abstract class Binary {
     final os = getOS();
     final fileName = download.files[os]!;
 
-    // 1. Setup paths - use the full datadir path
-    final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads'));
+    // Create a unique downloads directory for this specific download
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final uniqueDir = '${path.basenameWithoutExtension(fileName)}_$timestamp';
+    final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads', uniqueDir));
     final zipPath = path.join(downloadsDir.path, fileName);
 
     _log('Downloads dir: ${downloadsDir.path}');
@@ -477,18 +479,26 @@ abstract class Binary {
     }
   }
 
-  /// Clean up the downloads directory
+  /// Clean up the specific download directory
   Future<void> _cleanup(String downloadsDir) async {
     try {
       final dir = Directory(downloadsDir);
       if (await dir.exists()) {
-        _log('Cleaning up downloads directory: $downloadsDir');
+        _log('Cleaning up download directory: $downloadsDir');
         await dir.delete(recursive: true);
-        _log('Successfully cleaned up downloads directory');
+        _log('Successfully cleaned up download directory');
+        
+        // Try to remove parent downloads directory if empty
+        final parentDir = Directory(path.dirname(downloadsDir));
+        final contents = await parentDir.list().toList();
+        if (contents.isEmpty) {
+          await parentDir.delete(recursive: true);
+          _log('Removed empty parent downloads directory');
+        }
       }
     } catch (e) {
       // Log but don't throw - cleanup failure shouldn't fail the installation
-      _log('Warning: Failed to clean up downloads directory: $e');
+      _log('Warning: Failed to clean up download directory: $e');
     }
   }
 
