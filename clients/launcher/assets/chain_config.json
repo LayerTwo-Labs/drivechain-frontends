@@ -104,9 +104,9 @@
         }
       },
       "binary": {
-        "linux": "bitwindowd",
-        "darwin": "bitwindowd",
-        "win32": "bitwindowd.exe"
+        "linux": "bitwindow",
+        "darwin": "bitwindow.app",
+        "win32": "bitwindow.exe"
       },
       "network": {
         "port": 8080

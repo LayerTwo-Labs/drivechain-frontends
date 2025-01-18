@@ -60,6 +60,12 @@ Future<void> registerTestDependencies() async {
     );
   }
 
+  if (!GetIt.I.isRegistered<ProcessProvider>()) {
+    GetIt.I.registerLazySingleton<ProcessProvider>(
+      () => ProcessProvider(),
+    );
+  }
+
   if (!GetIt.I.isRegistered<QuotesProvider>()) {
     GetIt.I.registerLazySingleton<QuotesProvider>(
       () => MockQuotesProvider(),

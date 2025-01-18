@@ -31,6 +31,8 @@ class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final Directory datadir;
   late List<Binary> binaries;
+  StreamSubscription<FileSystemEvent>? _dirWatcher;
+  bool _isDownloading = false;
 
   // Track download status for each binary
   final _downloadStates = <String, DownloadState>{};
@@ -44,7 +46,6 @@ class BinaryProvider extends ChangeNotifier {
   EnforcerRPC? enforcerRPC;
   BitwindowRPC? bitwindowRPC;
   ThunderRPC? thunderRPC;
-  // TODO: Add Thunder RPC when available
 
   // Connection status getters
   bool get mainchainConnected => mainchainRPC?.connected ?? false;
@@ -67,10 +68,35 @@ class BinaryProvider extends ChangeNotifier {
   }) {
     binaries = initialBinaries;
     initialize();
+    _setupDirectoryWatcher();
     // Add listeners to notify UI of status changes
     mainchainRPC?.addListener(notifyListeners);
     enforcerRPC?.addListener(notifyListeners);
     bitwindowRPC?.addListener(notifyListeners);
+    thunderRPC?.addListener(notifyListeners);
+  }
+
+  void _setupDirectoryWatcher() {
+    // Watch the assets directory for changes
+    final assetsDir = Directory(path.join(datadir.path, 'assets'));
+    _dirWatcher = assetsDir.watch(recursive: true).listen((event) {
+      // Skip if we're currently downloading/extracting
+      if (_isDownloading) {
+        _log('Ignoring file system event during download: ${event.path}');
+        return;
+      }
+
+      _log('File system changed: ${event.path}');
+      switch (event.type) {
+        case FileSystemEvent.create:
+        case FileSystemEvent.delete:
+        case FileSystemEvent.modify:
+          initialize();
+          break;
+        default:
+          break;
+      }
+    });
   }
 
   /// Initialize download states for all binaries
@@ -85,10 +111,9 @@ class BinaryProvider extends ChangeNotifier {
 
         // Check release date from server
         final serverReleaseDate = await binary.checkReleaseDate();
+        var updatedConfig = binary.download;
         if (serverReleaseDate != null) {
-          // Update the binary in the config provider's list
-          final updatedConfig = binary.download.copyWith(remoteTimestamp: serverReleaseDate);
-          binaries[i] = binary.copyWith(download: updatedConfig);
+          updatedConfig = updatedConfig.copyWith(remoteTimestamp: serverReleaseDate);
         }
 
         // Check if binary exists in assets/
@@ -105,6 +130,14 @@ class BinaryProvider extends ChangeNotifier {
         // Load metadata from assets/
         final metadata = await binary.loadMetadata(datadir);
         _log('${binary.name} metadata: ${metadata != null}');
+
+        if (metadata != null) {
+          // Update the binary's download config with the downloaded timestamp
+          updatedConfig = updatedConfig.copyWith(downloadedTimestamp: metadata.releaseDate);
+        }
+
+        // Update binary with all timestamp info
+        binaries[i] = binary.copyWith(download: updatedConfig);
 
         _downloadStates[binary.name] = DownloadState(
           status: DownloadStatus.installed,
@@ -232,29 +265,35 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> downloadBinary(Binary binary) async {
-    final releaseDate = await binary.downloadAndExtract(
-      datadir,
-      (status, {progress = 0.0, message, error}) {
-        _updateStatus(
-          binary,
-          status,
-          progress: progress,
-          message: message,
-          error: error,
-        );
-      },
-    );
+    _isDownloading = true;
+    try {
+      final releaseDate = await binary.downloadAndExtract(
+        datadir,
+        (status, {progress = 0.0, message, error}) {
+          _updateStatus(
+            binary,
+            status,
+            progress: progress,
+            message: message,
+            error: error,
+          );
+        },
+      );
 
-    // After successful download
-    final updatedConfig = binary.download.copyWith(
-      remoteTimestamp: releaseDate,
-      downloadedTimestamp: DateTime.now(),
-    );
-    binary = binary.copyWith(download: updatedConfig);
+      // After successful download
+      final updatedConfig = binary.download.copyWith(
+        remoteTimestamp: releaseDate,
+        downloadedTimestamp: DateTime.now(),
+      );
+      binary = binary.copyWith(download: updatedConfig);
+    } finally {
+      _isDownloading = false;
+    }
   }
 
   @override
   void dispose() {
+    _dirWatcher?.cancel();
     mainchainRPC?.removeListener(notifyListeners);
     mainchainRPC?.dispose();
     enforcerRPC?.removeListener(notifyListeners);
