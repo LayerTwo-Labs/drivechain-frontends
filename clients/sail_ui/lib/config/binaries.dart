@@ -323,16 +323,24 @@ abstract class Binary {
     final baseNameToFind = path.basenameWithoutExtension(binary).toLowerCase();
     _log('Looking for binary base name: $baseNameToFind');
 
-    await for (final entity in dir.list(recursive: false)) {
+    // First list all files
+    final files = await dir.list(recursive: false).toList();
+    _log('Found ${files.length} files in directory');
+
+    for (final entity in files) {
       if (entity is File) {
         final fileName = path.basename(entity.path);
         final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
-        _log('Found file: $fileName (base: $fileBaseName)');
+        _log('Examining file: $fileName (base: $fileBaseName)');
 
-        // Compare base names (without extension)
-        if (fileBaseName == baseNameToFind || fileBaseName == '$baseNameToFind-cli') {
+        // Compare base names (without extension), also check for -cli variant
+        if (fileBaseName == baseNameToFind ||
+            fileBaseName == '$baseNameToFind-cli' ||
+            fileBaseName.startsWith(baseNameToFind)) {
+          // More lenient matching
+
           // Keep the original extension when copying
-          final targetName = fileName.contains('-cli')
+          final targetName = fileBaseName.contains('-cli')
               ? '$binary-cli${path.extension(fileName)}'
               : '$binary${path.extension(fileName)}';
           final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
@@ -349,6 +357,14 @@ abstract class Binary {
           foundBinaries.add(destFile);
         }
       }
+    }
+
+    if (foundBinaries.isEmpty) {
+      _log('No matching binaries found. Directory contents:');
+      for (final f in files) {
+        _log('  - ${f.path}');
+      }
+      throw Exception('could not find any matching binaries in extracted files');
     }
 
     return foundBinaries;
@@ -725,9 +741,30 @@ class _BinaryImpl extends Binary {
 extension BinaryDownload on Binary {
   /// Check if the binary exists in the assets directory
   Future<bool> exists(Directory datadir) async {
-    final binaryPath = path.join(datadir.path, 'assets', binary);
-    final exists = await File(binaryPath).exists();
-    return exists;
+    // For macOS .app bundles, check for the .app directory
+    if (Platform.isMacOS && binary.endsWith('.app')) {
+      final appPath = path.join(datadir.path, 'assets', binary);
+      return Directory(appPath).existsSync();
+    }
+
+    // For regular binaries, check both with and without extension
+    final baseNameToFind = path.basenameWithoutExtension(binary).toLowerCase();
+
+    final assetsDir = Directory(path.join(datadir.path, 'assets'));
+    if (!assetsDir.existsSync()) return false;
+
+    try {
+      final files = assetsDir.listSync();
+      return files.any((entity) {
+        if (entity is! File) return false;
+        final fileName = path.basename(entity.path);
+        final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
+        return fileBaseName == baseNameToFind;
+      });
+    } catch (e) {
+      _log('Error checking binary existence: $e');
+      return false;
+    }
   }
 
   /// Get the path to the binary in assets
