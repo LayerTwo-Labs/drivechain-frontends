@@ -254,7 +254,7 @@ class Thunder extends Sidechain {
                   OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 38332),
+          network: network ?? NetworkConfig(port: 6009),
         );
 
   @override
