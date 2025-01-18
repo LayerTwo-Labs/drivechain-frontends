@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/style/color_scheme.dart';
@@ -27,24 +30,23 @@ class DirectoryConfig {
   }
 }
 
-/// Configuration for component downloads
+/// Configuration for binary downloads
 class DownloadConfig {
   final String baseUrl;
   final Map<OS, String> files;
-  final Map<String, int>? sizes;
-  final Map<String, String>? hashes;
-  final DateTime? timestamp;
+  DateTime? remoteTimestamp; // Last-Modified from server
+  DateTime? downloadedTimestamp; // When we last downloaded it, what is saved to disk in .meta
 
-  const DownloadConfig({
+  DownloadConfig({
     required this.baseUrl,
     required this.files,
-    this.sizes,
-    this.hashes,
-    this.timestamp,
+    this.remoteTimestamp,
+    this.downloadedTimestamp,
   });
 
   factory DownloadConfig.fromJson(Map<String, dynamic> json) {
-    final timestampStr = json['timestamp'] as String?;
+    final remoteStr = json['remote_timestamp'] as String?;
+    final downloadedStr = json['downloaded_timestamp'] as String?;
     return DownloadConfig(
       baseUrl: json['base_url'] as String,
       files: {
@@ -52,13 +54,22 @@ class DownloadConfig {
         OS.macos: (json['files'] as Map<String, dynamic>)['darwin'] as String? ?? '',
         OS.windows: (json['files'] as Map<String, dynamic>)['win32'] as String? ?? '',
       },
-      sizes: (json['sizes'] as Map<String, dynamic>?)?.map(
-        (k, v) => MapEntry(k, v as int),
-      ),
-      hashes: (json['hashes'] as Map<String, dynamic>?)?.map(
-        (k, v) => MapEntry(k, v as String),
-      ),
-      timestamp: timestampStr != null ? DateTime.parse(timestampStr) : null,
+      remoteTimestamp: remoteStr != null ? DateTime.parse(remoteStr) : null,
+      downloadedTimestamp: downloadedStr != null ? DateTime.parse(downloadedStr) : null,
+    );
+  }
+
+  DownloadConfig copyWith({
+    String? baseUrl,
+    Map<OS, String>? files,
+    DateTime? remoteTimestamp,
+    DateTime? downloadedTimestamp,
+  }) {
+    return DownloadConfig(
+      baseUrl: baseUrl ?? this.baseUrl,
+      files: files ?? this.files,
+      remoteTimestamp: remoteTimestamp ?? this.remoteTimestamp,
+      downloadedTimestamp: downloadedTimestamp ?? this.downloadedTimestamp,
     );
   }
 }
@@ -125,39 +136,37 @@ enum DownloadStatus {
 
 /// Information about a completed download
 class DownloadMetadata {
-  final String hash; // SHA256 of the binary
   final DateTime releaseDate; // Last-Modified date from server
 
   const DownloadMetadata({
-    required this.hash,
     required this.releaseDate,
   });
 
   factory DownloadMetadata.fromJson(Map<String, dynamic> json) {
     return DownloadMetadata(
-      hash: json['hash'] as String,
       releaseDate: DateTime.parse(json['releaseDate'] as String),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'hash': hash,
         'releaseDate': releaseDate.toIso8601String(),
       };
 }
 
 abstract class Binary {
+  Logger get log => GetIt.I.get<Logger>();
+
   final String name;
   final String version;
   final String description;
   final String repoUrl;
   final DirectoryConfig directories;
-  final DownloadConfig download;
+  DownloadConfig download;
   final String binary;
   final NetworkConfig network;
   final int chainLayer;
 
-  const Binary({
+  Binary({
     required this.name,
     required this.version,
     required this.description,
@@ -259,6 +268,288 @@ abstract class Binary {
     NetworkConfig? network,
     int? chainLayer,
   });
+
+  /// Check the Last-Modified header for a binary without downloading
+  Future<DateTime?> checkReleaseDate() async {
+    try {
+      final os = getOS();
+      final fileName = download.files[os]!;
+      final downloadUrl = Uri.parse(download.baseUrl).resolve(fileName).toString();
+
+      final client = HttpClient();
+      _log('Checking release date for $name at $downloadUrl');
+
+      final request = await client.headUrl(Uri.parse(downloadUrl));
+      final response = await request.close();
+
+      if (response.statusCode != 200) {
+        _log('Warning: Could not check release date for $name: HTTP ${response.statusCode}');
+        return null;
+      }
+
+      final lastModified = response.headers.value('last-modified');
+      if (lastModified == null) {
+        _log('Warning: No Last-Modified header for $name');
+        return null;
+      }
+
+      final releaseDate = HttpDate.parse(lastModified);
+      _log('$name release date: $releaseDate');
+      return releaseDate;
+    } catch (e) {
+      _log('Warning: Failed to check release date for $name: $e');
+      return null;
+    }
+  }
+
+  /// Downloads and installs a binary
+  Future<DateTime> downloadAndExtract(
+    Directory datadir,
+    void Function(
+      DownloadStatus status, {
+      double progress,
+      String? message,
+      String? error,
+    }) onStatusUpdate,
+  ) async {
+    try {
+      onStatusUpdate(
+        DownloadStatus.installing,
+        message: 'Starting download...',
+      );
+
+// 1. Setup directories
+      final (fileName, downloadsDir, zipPath) = await _setupDirectories(datadir);
+      onStatusUpdate(
+        DownloadStatus.installing,
+        message: 'Downloading...',
+      );
+
+// 2. Download the binary
+      final downloadUrl = Uri.parse(download.baseUrl).resolve(fileName).toString();
+      final releaseDate = await _download(downloadUrl, zipPath, onStatusUpdate);
+
+      // 3. Extract
+      await _extract(datadir, zipPath, downloadsDir);
+
+// 4. Save metadata
+      await saveMetadata(
+        datadir,
+        DownloadMetadata(
+          releaseDate: releaseDate,
+        ),
+      );
+      download = download.copyWith(
+        remoteTimestamp: releaseDate,
+        downloadedTimestamp: DateTime.now(),
+      );
+
+      // Update status to completed
+      onStatusUpdate(
+        DownloadStatus.installed,
+        message: 'Installed $name)',
+      );
+
+      // 5. Finally, clean up downloads after everything else succeeded
+      await _cleanup(downloadsDir.path);
+
+      return releaseDate;
+    } catch (e) {
+      onStatusUpdate(
+        DownloadStatus.failed,
+        error: e.toString(),
+      );
+      throw Exception(e);
+    }
+  }
+
+  Future<(String, Directory, String)> _setupDirectories(Directory datadir) async {
+    final os = getOS();
+    final fileName = download.files[os]!;
+
+    // 1. Setup paths
+    final downloadsDir = path.join(datadir.path, 'assets', 'downloads');
+    final zipPath = path.join(downloadsDir, fileName);
+
+    _log('Downloads dir: $downloadsDir');
+    _log('Zip path: $zipPath');
+
+    // Create all required directories
+    await Directory(path.dirname(zipPath)).create(recursive: true);
+    await Directory(downloadsDir).create(recursive: true);
+
+    return (fileName, Directory(downloadsDir), zipPath);
+  }
+
+  Future<void> _extract(Directory datadir, String zipPath, Directory downloadsDir) async {
+    final inputStream = InputFileStream(zipPath);
+    final archive = ZipDecoder().decodeBuffer(inputStream);
+    await extractArchiveToDisk(archive, downloadsDir.path);
+
+    // 4. Move binary to final location
+    // Find the binary in the extracted folder
+    final binaryName = path.basename(binary);
+    _log('Looking for binary name: $binaryName');
+
+    // Find any binary in the extracted folder
+    final binaryFiles = await _findBinaries(downloadsDir.path, datadir);
+    if (binaryFiles.isEmpty) {
+      throw Exception('No binary found in extracted files');
+    }
+
+    for (final binaryFile in binaryFiles) {
+      final fileName = path.basename(binaryFile.path).toLowerCase();
+
+      // Determine target name based on whether it's a CLI binary
+      final targetName = fileName.contains('-cli') ? '$binary-cli' : binary;
+
+      final finalBinaryPath = path.join(datadir.path, 'assets', targetName);
+      _log('Moving binary from ${binaryFile.path} to $finalBinaryPath');
+
+      // Create assets directory if it doesn't exist
+      await Directory(path.dirname(finalBinaryPath)).create(recursive: true);
+
+      // Copy the binary first
+      await binaryFile.copy(finalBinaryPath);
+
+      // Verify the copy was successful
+      if (!await File(finalBinaryPath).exists()) {
+        throw Exception('could not copy binary to final location');
+      }
+    }
+  }
+
+  /// Find all binary files recursively in a directory and move them to the assets directory
+  Future<List<File>> _findBinaries(String sourceDirectory, Directory assetsDir) async {
+    final dir = Directory(sourceDirectory);
+    final foundBinaries = <File>[];
+    _log('Looking for binaries in $sourceDirectory');
+
+    await for (final entity in dir.list(recursive: true)) {
+      if (entity is File) {
+        final fileName = path.basename(entity.path);
+        _log('Found file: $fileName');
+
+        // Copy file to assets directory
+        final destPath = path.join(assetsDir.path, fileName);
+        await entity.copy(destPath);
+
+        final destFile = File(destPath);
+        // Make executable on non-Windows platforms
+        if (!Platform.isWindows) {
+          await Process.run('chmod', ['+x', destFile.path]);
+        }
+
+        foundBinaries.add(destFile);
+        _log('Moved binary to $destPath');
+      }
+    }
+
+    if (foundBinaries.isEmpty) {
+      _log('No binaries found in extracted files');
+    } else {
+      _log('Found ${foundBinaries.length} binaries');
+    }
+
+    return foundBinaries;
+  }
+
+  /// Downloads a file with progress tracking
+  /// Returns the release date from the Last-Modified header
+  Future<DateTime> _download(
+    String url,
+    String savePath,
+    void Function(
+      DownloadStatus status, {
+      double progress,
+      String? message,
+      String? error,
+    }) onStatusUpdate,
+  ) async {
+    try {
+      final client = HttpClient();
+      _log('Starting download for $name from $url to $savePath');
+
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close();
+
+      if (response.statusCode != 200) {
+        throw Exception('HTTP Status ${response.statusCode}');
+      }
+
+      // Get the Last-Modified date from headers
+      final lastModified = response.headers.value('last-modified');
+      if (lastModified == null) {
+        throw Exception('Server did not provide Last-Modified header');
+      }
+      final releaseDate = HttpDate.parse(lastModified);
+      _log('Binary release date: $releaseDate');
+
+      final file = File(savePath);
+      final sink = file.openWrite();
+
+      final totalBytes = response.contentLength;
+      var receivedBytes = 0;
+
+      await for (final chunk in response) {
+        receivedBytes += chunk.length;
+        sink.add(chunk);
+
+        if (totalBytes != -1) {
+          final progress = receivedBytes / totalBytes;
+          final downloadedMB = (receivedBytes / 1024 / 1024).toStringAsFixed(1);
+          final totalMB = (totalBytes / 1024 / 1024).toStringAsFixed(1);
+
+          if (receivedBytes % (5 * 1024 * 1024) == 0) {
+            // Log every 5MB
+            _log('$name: Downloaded $downloadedMB MB / $totalMB MB (${(progress * 100).toStringAsFixed(1)}%)');
+          }
+
+          onStatusUpdate(
+            DownloadStatus.installing,
+            progress: progress,
+            message: 'Downloading... $downloadedMB MB / $totalMB MB (${(progress * 100).toStringAsFixed(1)}%)',
+          );
+        }
+      }
+
+      await sink.close();
+      client.close();
+
+      _log('Download completed for $name');
+
+      // Update status for next phase
+      onStatusUpdate(
+        DownloadStatus.installing,
+        message: 'Verifying download...',
+      );
+
+      return releaseDate; // Return the release date
+    } catch (e) {
+      final error = 'Download failed from $url: $e\nSave path: $savePath';
+      _log('ERROR: $error');
+      throw Exception(error);
+    }
+  }
+
+  /// Clean up the downloads directory
+  Future<void> _cleanup(String downloadsDir) async {
+    try {
+      final dir = Directory(downloadsDir);
+      if (await dir.exists()) {
+        _log('Cleaning up downloads directory: $downloadsDir');
+        await dir.delete(recursive: true);
+        _log('Successfully cleaned up downloads directory');
+      }
+    } catch (e) {
+      // Log but don't throw - cleanup failure shouldn't fail the installation
+      _log('Warning: Failed to clean up downloads directory: $e');
+    }
+  }
+
+  void _log(String message) {
+    log.i('Binary: $message');
+  }
 }
 
 class ParentChain extends Binary {
