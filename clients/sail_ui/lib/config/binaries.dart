@@ -8,7 +8,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/chains.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
@@ -289,7 +288,16 @@ abstract class Binary {
         String targetName = fileName;
 
         // First remove platform specific parts
-        final platformParts = ['-x86_64-apple-darwin', '-x86_64-linux', '-x86_64.exe'];
+        final platformParts = [
+          '-x86_64-apple-darwin',
+          '-x86_64-linux',
+          '-x86_64.exe',
+          '-x86_64-unknown-linux-gnu',
+          '-x86_64-pc-windows-gnu',
+          'x86_64-unknown-linux-gnu',
+          'x86_64-apple-darwin',
+          'x86_64-pc-windows-gnu',
+        ];
         for (final part in platformParts) {
           targetName = targetName.replaceAll(part, '');
         }
@@ -423,7 +431,7 @@ abstract class Binary {
     if (this is ParentChain) {
       final filesToWipe = [
         'banlist.json',
-        'bitcoind.pid', 
+        'bitcoind.pid',
         'blocks',
         'chainstate',
         'debug.log',
@@ -446,7 +454,7 @@ abstract class Binary {
         }
       }
     } else if (this is Enforcer) {
-         final filesToWipe = [
+      final filesToWipe = [
         'validator',
       ];
 
@@ -466,7 +474,7 @@ abstract class Binary {
         'bitwindow.db',
       ];
 
-        for (final file in filesToWipe) {
+      for (final file in filesToWipe) {
         final filePath = path.join(dir, file);
         if (await FileSystemEntity.isDirectory(filePath)) {
           await Directory(filePath).delete(recursive: true);
@@ -480,25 +488,12 @@ abstract class Binary {
     }
 
     // Show success message
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$name data wiped successfully'),
-          ),
-        );
-      }
-    } catch (e, stack) {
-      _log('Error during data wipe: $e');
-      _log('Stack trace: $stack');
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error wiping $name data: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$name data wiped successfully'),
+        ),
+      );
     }
   }
 
