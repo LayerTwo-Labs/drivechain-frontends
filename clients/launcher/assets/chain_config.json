@@ -117,7 +117,7 @@
         "port": 6009
       },
       "chain_layer": 2,
-      "wallet_file": "???",
+      "wallet_file": "wallet.dat",
       "sidechain_slot": 9
     }
   ]
