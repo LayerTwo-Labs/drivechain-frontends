@@ -32,10 +32,10 @@ class BinaryProvider extends ChangeNotifier {
   final Directory datadir;
   late List<Binary> binaries;
   StreamSubscription<FileSystemEvent>? _dirWatcher;
-  
-  // Track download status and active downloads for each binary
+  bool _isDownloading = false;
+
+  // Track download status for each binary
   final _downloadStates = <String, DownloadState>{};
-  final _activeDownloads = <String, bool>{};
 
   // Stream controller for status updates
   final _statusController = StreamController<Map<String, DownloadState>>.broadcast();
@@ -80,9 +80,9 @@ class BinaryProvider extends ChangeNotifier {
     // Watch the assets directory for changes
     final assetsDir = Directory(path.join(datadir.path, 'assets'));
     _dirWatcher = assetsDir.watch(recursive: true).listen((event) {
-      // Skip if the changed file is in a downloads directory
-      if (event.path.contains(path.join('assets', 'downloads'))) {
-        _log('Ignoring file system event in downloads directory: ${event.path}');
+      // Skip if we're currently downloading/extracting
+      if (_isDownloading) {
+        _log('Ignoring file system event during download: ${event.path}');
         return;
       }
 
@@ -265,13 +265,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> downloadBinary(Binary binary) async {
-    // Check if already downloading
-    if (_activeDownloads[binary.name] == true) {
-      _log('Download already in progress for ${binary.name}');
-      return;
-    }
-    
-    _activeDownloads[binary.name] = true;
+    _isDownloading = true;
     try {
       final releaseDate = await binary.downloadAndExtract(
         datadir,
@@ -293,7 +287,7 @@ class BinaryProvider extends ChangeNotifier {
       );
       binary = binary.copyWith(download: updatedConfig);
     } finally {
-      _activeDownloads[binary.name] = false;
+      _isDownloading = false;
     }
   }
 
