@@ -846,7 +846,13 @@ extension BinaryDownload on Binary {
   /// Save metadata about the downloaded binary
   Future<void> saveMetadata(Directory datadir, DownloadMetadata meta) async {
     final metaFile = File(path.join(datadir.path, 'assets', '$binary.meta'));
+
+    // Create parent directories if needed
+    await metaFile.parent.create(recursive: true);
+
+    // Write the metadata, overwriting if it exists
     await metaFile.writeAsString(jsonEncode(meta.toJson()));
+    _log('Saved metadata to ${metaFile.path}');
   }
 }
 

@@ -293,8 +293,20 @@ class BinaryProvider extends ChangeNotifier {
       );
       binary = binary.copyWith(download: updatedConfig);
     } finally {
+      // Only clean up if this was the only active download
+      if (_activeDownloads.values.where((active) => active).length == 1) {
+        await _cleanUp(datadir);
+      }
+      // after 3 seconds, set the download state to false
+      await Future.delayed(const Duration(seconds: 3));
+
       _activeDownloads[binary.name] = false;
     }
+  }
+
+  Future<void> _cleanUp(Directory datadir) async {
+    final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads'));
+    await downloadsDir.delete(recursive: true);
   }
 
   /// Check if a binary can be started based on its dependencies

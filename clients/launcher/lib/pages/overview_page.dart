@@ -483,6 +483,7 @@ class _OverviewPageState extends State<OverviewPage> {
                   'Update Now',
                   onPressed: () => _binaryProvider.downloadBinary(binary),
                   size: ButtonSize.regular,
+                  disabled: status?.status == DownloadStatus.installing,
                 ),
               ),
           ],
