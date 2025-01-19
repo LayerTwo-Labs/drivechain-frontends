@@ -11,7 +11,7 @@ fi
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
 # Bundle identifier
-sed -i "s/drivechain_launcher/$lower_app_name/" macos/Runner/Configs/AppInfo.xcconfig
+sed -i "s/launcher/$lower_app_name/" macos/Runner/Configs/AppInfo.xcconfig
 
 # App name
-sed -i "s/drivechain_launcher/$app_name/" macos/Runner/Configs/AppInfo.xcconfig
+sed -i "s/launcher/$app_name/" macos/Runner/Configs/AppInfo.xcconfig

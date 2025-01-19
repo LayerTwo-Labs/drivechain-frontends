@@ -11,8 +11,8 @@ fi
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
 # Name of executable + app
-sed -i "s/drivechain_launcher/$lower_app_name/" linux/CMakeLists.txt    
+sed -i "s/launcher/$lower_app_name/" linux/CMakeLists.txt    
 
 # Name of main window
-sed -i "s/drivechain_launcher/$app_name/" linux/my_application.cc
-sed -i "s/drivechain_launcher/$lower_app_name/" linux/my_application.cc    
+sed -i "s/launcher/$app_name/" linux/my_application.cc
+sed -i "s/launcher/$lower_app_name/" linux/my_application.cc    
