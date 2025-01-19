@@ -4,11 +4,13 @@ import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter/services.dart';
 
-class WalletService {
+class WalletService extends ChangeNotifier {
   final _logger = Logger();
   static const String defaultBip32Path = "m/44'/0'/0'";
 
@@ -102,7 +104,11 @@ class WalletService {
         }
       }
 
+      // Add name field for master starter
+      walletData['name'] = 'Master';
+
       await walletFile.writeAsString(jsonEncode(walletData));
+      notifyListeners();
       return true;
     } catch (e) {
       _logger.e('Error saving wallet: $e');
@@ -115,6 +121,7 @@ class WalletService {
       final walletFile = await _getWalletFile();
       if (await walletFile.exists()) {
         await walletFile.delete();
+        notifyListeners();
       }
       return true;
     } catch (e) {
@@ -162,9 +169,10 @@ class WalletService {
       final sidechainPath = "m/44'/0'/$sidechainSlot'";
       final sidechainKey = chain.forPath(sidechainPath) as ExtendedPrivateKey;
 
-      // Hash the private key with SHA256 to get proper entropy length
+      // Hash the private key and take first 16 bytes for 128-bit entropy
       final privateKeyBytes = hex.decode(sidechainKey.privateKeyHex());
-      final entropy = sha256.convert(privateKeyBytes).bytes;
+      final hashedKey = sha256.convert(privateKeyBytes).bytes;
+      final entropy = hashedKey.sublist(0, 16);
 
       final mnemonic = Mnemonic(entropy, Language.english);
 
@@ -196,6 +204,20 @@ class WalletService {
       final appDir = await Environment.datadir();
       final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
 
+      // Load chain config to get sidechain name
+      final configFile = await rootBundle.loadString('assets/chain_config.json');
+      final config = jsonDecode(configFile) as Map<String, dynamic>;
+      final chains = config['chains'] as List<dynamic>;
+      
+      // Find matching chain and get name
+      final chainConfig = chains.firstWhere(
+        (chain) => chain['sidechain_slot'] == sidechainSlot,
+        orElse: () => {'name': 'Sidechain $sidechainSlot'},
+      );
+      
+      // Add name to starter data
+      starterData['name'] = chainConfig['name'] as String;
+
       // Ensure wallet directory exists
       if (!walletDir.existsSync()) {
         await walletDir.create(recursive: true);
@@ -213,6 +235,8 @@ class WalletService {
       if (!sidechainStarterFile.existsSync()) {
         throw Exception('Failed to write sidechain starter file: File does not exist after write');
       }
+
+      notifyListeners();
     } catch (e, stackTrace) {
       _logger.e('Error saving sidechain starter: $e\n$stackTrace');
       rethrow;
