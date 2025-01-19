@@ -49,7 +49,7 @@ func DecodeDepositAddress(depositAddress string) (*int64, string, *string, error
 		calculatedChecksum := hex.EncodeToString(hash[:3])
 
 		if checksum != calculatedChecksum {
-			return nil, "", nil, fmt.Errorf("invalid checksum: expected %s, got %s", calculatedChecksum, checksum)
+			return &slot, address, nil, nil
 		}
 
 		return &slot, address, &checksum, nil
