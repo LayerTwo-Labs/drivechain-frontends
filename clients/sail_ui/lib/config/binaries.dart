@@ -257,10 +257,12 @@ abstract class Binary {
 
     if (await Directory(expectedDirPath).exists()) {
       final innerDir = Directory(expectedDirPath);
-      // Move all contents from inner directory up one level
+      // We extracted contents into a directory of the same name as the zip file
+      // We must move all contents up one level to the parent directory for everything
+      // to run correctly. Especially more complex binaries like bitwindow.
       for (final entity in innerDir.listSync()) {
         final newPath = path.join(extractDir.path, path.basename(entity.path));
-        // Delete existing file/directory if it exists
+        // Delete existing file/directory if it exists (or else we get errors!)
         if (await FileSystemEntity.isDirectory(newPath)) {
           await Directory(newPath).delete(recursive: true);
         } else if (await FileSystemEntity.isFile(newPath)) {
@@ -269,10 +271,14 @@ abstract class Binary {
         // Now move the new file/directory
         await entity.rename(newPath);
       }
-      // Remove the now-empty directory
+      // Finally, remove the now-empty directory
       await innerDir.delete();
     }
 
+    // some binaries have additional naming conventions that convolutes things
+    // such as versions, platform specific names, etc.
+    // we must remove those extra bits, and rename the files that had their
+    // names changed.
     await for (final entity in extractDir.list(recursive: false)) {
       if (entity is File) {
         final fileName = path.basename(entity.path);
