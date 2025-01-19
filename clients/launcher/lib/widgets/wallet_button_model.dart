@@ -21,16 +21,30 @@ class WalletButtonModel extends ChangeNotifier {
   List<WalletBalance> _balances = [];
   double _totalBalance = 0.0;
   bool _loading = true;
+  String? _address;
+  bool _wasConnected = false;
 
   WalletButtonModel() {
-    // Listen to changes in binary provider
-    _binaryProvider.addListener(_updateBalances);
+    _binaryProvider.addListener(_onBinaryProviderChanged);
     _updateBalances();
+    _updateAddress();
   }
 
   List<WalletBalance> get balances => _balances;
   double get totalBalance => _totalBalance;
   bool get loading => _loading;
+  String? get address => _address;
+
+  void _onBinaryProviderChanged() {
+    _updateBalances();
+
+    // Check if BitWindow just connected
+    final isConnected = _binaryProvider.bitwindowRPC?.connected == true;
+    if (isConnected && !_wasConnected) {
+      _updateAddress();
+    }
+    _wasConnected = isConnected;
+  }
 
   Future<void> _updateBalances() async {
     _loading = true;
@@ -78,9 +92,20 @@ class WalletButtonModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _updateAddress() async {
+    if (_binaryProvider.bitwindowRPC?.connected == true) {
+      try {
+        _address = await _binaryProvider.bitwindowRPC!.wallet.getNewAddress();
+        notifyListeners();
+      } catch (e) {
+        debugPrint('Error getting BitWindow address: $e');
+      }
+    }
+  }
+
   @override
   void dispose() {
-    _binaryProvider.removeListener(_updateBalances);
+    _binaryProvider.removeListener(_onBinaryProviderChanged);
     super.dispose();
   }
 }

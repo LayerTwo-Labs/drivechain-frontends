@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:launcher/widgets/wallet_button_model.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class _TokenListItem extends StatelessWidget {
   final String name;
@@ -273,41 +275,56 @@ class _WalletButtonState extends State<WalletButton> {
                   ),
                   const SizedBox(height: 16),
                   // Address section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: SailTheme.of(context).colors.background,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SailText.secondary12('Wallet Address'),
-                              const SizedBox(height: 4),
-                              SailText.primary12('bc1q...', monospace: true),
-                            ],
+                  if (viewModel.address != null)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: SailTheme.of(context).colors.background,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailText.secondary12('BitWindow Address'),
+                                const SizedBox(height: 4),
+                                SailText.primary12(
+                                  viewModel.address!,
+                                  monospace: true,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        SailScaleButton(
-                          style: SailButtonStyle.secondary,
-                          onPressed: () {},
-                          child: Builder(
-                            builder: (context) {
-                              final theme = SailTheme.of(context);
-                              return SailSVG.icon(
-                                SailSVGAsset.iconCopy,
-                                color: theme.colors.text,
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+                          if (viewModel.address != null)
+                            SailScaleButton(
+                              style: SailButtonStyle.secondary,
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(text: viewModel.address!));
+                              },
+                              child: Builder(
+                                builder: (context) {
+                                  final theme = SailTheme.of(context);
+                                  return SailSVG.icon(
+                                    SailSVGAsset.iconCopy,
+                                    color: theme.colors.text,
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
+                  SailButton.primary(
+                    'Open Faucet In Browser',
+                    onPressed: () {
+                      launchUrl(Uri.parse('https://drivechain.live'));
+                    },
+                    size: ButtonSize.regular,
                   ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
