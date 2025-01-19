@@ -257,9 +257,34 @@ abstract class Binary {
 
     if (await Directory(expectedDirPath).exists()) {
       final innerDir = Directory(expectedDirPath);
-      // We extracted contents into a directory of the same name as the zip file
+      // We extracted contents into a directory of the same name as the zip file!
       // We must move all contents up one level to the parent directory for everything
       // to run correctly. Especially more complex binaries like bitwindow.
+
+      // Special handling for Parent Chain on Windows - look in Release directory
+      if (Platform.isWindows && name == 'Bitcoin Core (Patched)') {
+        final releaseDir = Directory(path.join(innerDir.path, 'Release'));
+        if (await releaseDir.exists()) {
+          // Move files from Release directory up two levels
+          for (final entity in releaseDir.listSync()) {
+            final newPath = path.join(extractDir.path, path.basename(entity.path));
+            // Delete existing file/directory if it exists
+            if (await FileSystemEntity.isDirectory(newPath)) {
+              await Directory(newPath).delete(recursive: true);
+            } else if (await FileSystemEntity.isFile(newPath)) {
+              await File(newPath).delete();
+            }
+            // Move the file/directory up
+            await entity.rename(newPath);
+          }
+          // Clean up directories
+          await releaseDir.delete();
+          await innerDir.delete();
+          return;
+        }
+      }
+
+      // Normal extraction logic for other cases
       for (final entity in innerDir.listSync()) {
         final newPath = path.join(extractDir.path, path.basename(entity.path));
         // Delete existing file/directory if it exists (or else we get errors!)
@@ -388,7 +413,7 @@ abstract class Binary {
     }
   }
 
-  Future<void> wipeDatadir(BuildContext context) async {
+  Future<void> wipeAppDir(BuildContext context) async {
     _log('Starting data wipe for $name');
 
     final dir = datadir();
@@ -712,7 +737,7 @@ extension BinaryPaths on Binary {
 
     final subdir = directories.base[OS.current];
     if (subdir == null || subdir.isEmpty) {
-      throw 'unsupported operating system: ${Platform.operatingSystem}';
+      throw 'unsupported operating system, subdir is empty: ${Platform.operatingSystem}';
     }
 
     switch (OS.current) {

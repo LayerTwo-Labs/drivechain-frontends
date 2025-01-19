@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
+import 'package:launcher/pages/tools_page.dart';
 import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:launcher/services/wallet_service.dart';
-import 'package:launcher/pages/tools_page.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:sail_ui/config/binaries.dart';
@@ -78,9 +78,9 @@ Future<void> initDependencies(Logger log) async {
     ),
   );
 
-  final datadir = await Environment.datadir();
+  final appDir = await Environment.appDir();
   final processProvider = ProcessProvider(
-    datadir: datadir,
+    datadir: appDir,
   );
   GetIt.I.registerSingleton<ProcessProvider>(
     processProvider,
@@ -96,7 +96,7 @@ Future<void> initDependencies(Logger log) async {
 
   // Register download manager
   final binaryProvider = BinaryProvider(
-    datadir: datadir,
+    appDir: appDir,
     initialBinaries: binaries,
   );
   GetIt.I.registerSingleton<BinaryProvider>(

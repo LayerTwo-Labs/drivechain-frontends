@@ -12,8 +12,8 @@ class Variable<T> {
 }
 
 class Environment {
-  static Future<Directory> datadir() async {
-    final fromEnv = Platform.environment['LAUNCHER_DATADIR'] ?? const String.fromEnvironment('LAUNCHER_DATADIR');
+  static Future<Directory> appDir() async {
+    final fromEnv = Platform.environment['LAUNCHER_APPDIR'] ?? const String.fromEnvironment('LAUNCHER_APPDIR');
     if (fromEnv.isNotEmpty) {
       final dir = Directory(fromEnv);
       return dir;
