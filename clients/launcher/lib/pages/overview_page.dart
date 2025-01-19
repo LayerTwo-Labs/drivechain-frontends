@@ -104,6 +104,7 @@ class _OverviewPageState extends State<OverviewPage> {
       }
 
       // 1. Start parent chain and wait for IBD
+      if (!mounted) return;
       await _binaryProvider.startBinary(context, parentChain);
       if (_binaryProvider.mainchainRPC == null) {
         throw Exception('could not initialize mainchain RPC');
@@ -114,6 +115,7 @@ class _OverviewPageState extends State<OverviewPage> {
       log.i('Mainchain connected and synced');
 
       // 2. Start enforcer after mainchain is ready
+      if (!mounted) return;
       await _binaryProvider.startBinary(context, enforcer);
       if (_binaryProvider.enforcerRPC == null) {
         throw Exception('could not initialize enforcer RPC');
@@ -121,6 +123,7 @@ class _OverviewPageState extends State<OverviewPage> {
       log.i('Started enforcer');
 
       // 3. Start BitWindow after enforcer
+      if (!mounted) return;
       await _binaryProvider.startBinary(context, bitwindow);
       if (_binaryProvider.bitwindowRPC == null) {
         throw Exception('could not initialize BitWindow RPC');
@@ -173,15 +176,13 @@ class _OverviewPageState extends State<OverviewPage> {
             debugPrint('Successfully created sidechain starter for slot $sidechainSlot');
           } catch (e) {
             debugPrint('Error creating sidechain starter: $e');
-            // Show error to user
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Failed to create sidechain starter: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to create sidechain starter: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
           break;
         }
@@ -415,7 +416,10 @@ class _OverviewPageState extends State<OverviewPage> {
         message: dependencyMessage ?? 'Launch ${binary.name}',
         child: SailButton.primary(
           'Launch',
-          onPressed: () => _binaryProvider.startBinary(context, binary),
+          onPressed: () async {
+            if (!mounted) return;
+            await _binaryProvider.startBinary(context, binary);
+          },
           size: ButtonSize.regular,
           disabled: !canStart,
         ),
@@ -510,7 +514,6 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Widget _buildWalletButton(Binary binary, DownloadState? status) {
-    // If binary not downloaded, show disabled button
     if (status?.status != DownloadStatus.installed) {
       return SailButton.secondary(
         '',
@@ -520,7 +523,6 @@ class _OverviewPageState extends State<OverviewPage> {
       );
     }
 
-    // Find sidechain slot from config
     int? sidechainSlot;
     if (_chainConfig != null) {
       final chains = _chainConfig!['chains'] as List<dynamic>;
@@ -533,7 +535,7 @@ class _OverviewPageState extends State<OverviewPage> {
     }
 
     if (sidechainSlot == null) {
-      return const SizedBox(); // Hide button if no slot found
+      return const SizedBox();
     }
 
     return FutureBuilder<(bool, bool)>(
@@ -594,7 +596,7 @@ class _OverviewPageState extends State<OverviewPage> {
       final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
       final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
       await starterFile.delete();
-      setState(() {}); // Refresh UI
+      setState(() {});
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -609,7 +611,7 @@ class _OverviewPageState extends State<OverviewPage> {
   Future<void> _generateStarter(int sidechainSlot) async {
     try {
       await _walletService.deriveSidechainStarter(sidechainSlot);
-      setState(() {}); // Refresh UI
+      setState(() {});
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

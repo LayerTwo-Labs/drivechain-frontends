@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:path/path.dart' as path;
-import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/env.dart';
 import 'package:launcher/widgets/welcome_modal.dart';
 
@@ -337,10 +336,12 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
   }
 
   Future<void> _showDeleteConfirmation(BuildContext context) async {
+    if (!context.mounted) return;
+    
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: SailTheme.of(dialogContext).colors.backgroundSecondary,
         title: SailText.primary20(
           'Delete Wallet Starters',
           color: Colors.white,
@@ -363,18 +364,19 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
         actions: [
           SailButton.secondary(
             'Return',
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             size: ButtonSize.regular,
           ),
           SailButton.primary(
             'Delete',
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             size: ButtonSize.regular,
           ),
         ],
       ),
     );
 
+    if (!context.mounted) return;
     if (result == true) {
       await _deleteWalletStarters(context);
     }
@@ -391,10 +393,9 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
 
       if (!context.mounted) return;
 
-      // Navigate to overview page
-      AutoTabsRouter.of(context).setActiveIndex(0);
-
-      // Show welcome modal
+      // Navigate to overview page and show welcome modal
+      final router = AutoTabsRouter.of(context);
+      router.setActiveIndex(0);
       await showWelcomeModal(context);
     } catch (e) {
       if (!context.mounted) return;
@@ -409,7 +410,6 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
 }
 
 class ToolsPageViewModel extends BaseViewModel {
-  final WalletService _walletService = GetIt.I.get<WalletService>();
   final Set<String> _revealedStarters = {};
 
   /// Whether to use localhost for the debug server.
