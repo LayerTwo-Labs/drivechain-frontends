@@ -141,7 +141,7 @@ class BinaryProvider extends ChangeNotifier {
 
         _downloadStates[binary.name] = DownloadState(
           status: DownloadStatus.installed,
-          message: metadata != null ? 'Installed (${metadata.releaseDate.toLocal()})' : 'Installed (unverified)',
+          message: metadata != null ? 'Installed (${metadata.releaseDate?.toLocal()})' : 'Installed (unverified)',
         );
       } catch (e) {
         _log('Error initializing state for ${binary.name}: $e');
@@ -289,7 +289,7 @@ class BinaryProvider extends ChangeNotifier {
       // After successful download
       final updatedConfig = binary.download.copyWith(
         remoteTimestamp: releaseDate,
-        downloadedTimestamp: DateTime.now(),
+        downloadedTimestamp: releaseDate,
       );
       binary = binary.copyWith(download: updatedConfig);
     } finally {

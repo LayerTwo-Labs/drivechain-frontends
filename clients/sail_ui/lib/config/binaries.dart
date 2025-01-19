@@ -171,7 +171,7 @@ abstract class Binary {
   }
 
   /// Downloads and installs a binary
-  Future<DateTime> downloadAndExtract(
+  Future<DateTime?> downloadAndExtract(
     Directory datadir,
     void Function(
       DownloadStatus status, {
@@ -187,18 +187,32 @@ abstract class Binary {
       );
 
       // 1. Setup directories
-      final (fileName, downloadsDir, zipPath) = await _setupDirectories(datadir);
+      // 1. Setup paths - use the full datadir path
+      final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads'));
+      final extractDir = Directory(path.join(datadir.path, 'assets'));
+      final zipName = download.files[getOS()]!;
+      final zipPath = path.join(downloadsDir.path, zipName);
+
+      _log('Downloads dir: ${downloadsDir.path}');
+      _log('Extract dir: ${extractDir.path}');
+      _log('Zip path: $zipPath');
+
+      // Create downloads directory recursively, this will also
+      // create the parent assets directory
+      await downloadsDir.create(recursive: true);
+
       onStatusUpdate(
         DownloadStatus.installing,
         message: 'Downloading...',
       );
 
       // 2. Download the binary
-      final downloadUrl = Uri.parse(download.baseUrl).resolve(fileName).toString();
-      final releaseDate = await _download(downloadUrl, zipPath, onStatusUpdate);
+      final releaseDate = await checkReleaseDate();
+      final downloadUrl = Uri.parse(download.baseUrl).resolve(zipName).toString();
+      await _download(downloadUrl, zipPath, onStatusUpdate);
 
       // 3. Extract
-      await _extract(datadir, zipPath, downloadsDir);
+      await _extract(extractDir, zipPath, downloadsDir);
 
       // 4. Save metadata
       await saveMetadata(
@@ -209,7 +223,7 @@ abstract class Binary {
       );
       download = download.copyWith(
         remoteTimestamp: releaseDate,
-        downloadedTimestamp: DateTime.now(),
+        downloadedTimestamp: releaseDate,
       );
 
       // Update status to completed
@@ -228,139 +242,81 @@ abstract class Binary {
     }
   }
 
-  Future<(String, Directory, String)> _setupDirectories(Directory datadir) async {
-    final os = getOS();
-    final fileName = download.files[os]!;
-
-    // 1. Setup paths - use the full datadir path
-    final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads'));
-    final zipPath = path.join(downloadsDir.path, fileName);
-
-    _log('Downloads dir: ${downloadsDir.path}');
-    _log('Zip path: $zipPath');
-
-    // Create downloads directory recursively
-    await downloadsDir.create(recursive: true);
-
-    return (fileName, downloadsDir, zipPath);
-  }
-
-  Future<void> _extract(Directory datadir, String zipPath, Directory downloadsDir) async {
+  Future<void> _extract(Directory extractDir, String zipPath, Directory downloadsDir) async {
     final inputStream = InputFileStream(zipPath);
     final archive = ZipDecoder().decodeBuffer(inputStream);
 
-    // Extract everything - we need the full bundle structure
-    await extractArchiveToDisk(archive, downloadsDir.path);
+    await extractArchiveToDisk(
+      archive,
+      extractDir.path,
+    );
 
-    if (Platform.isMacOS && binary.endsWith('.app')) {
-      _log('Extracting .app bundle');
+    // Get the zip name without extension
+    final zipBaseName = path.basenameWithoutExtension(zipPath);
+    final expectedDirPath = path.join(extractDir.path, zipBaseName);
 
-      // Find the .app directory in the extracted files
-      await for (final entity in Directory(downloadsDir.path).list(recursive: false)) {
-        if (entity is Directory && entity.path.endsWith('.app')) {
-          _log('Found .app bundle: ${entity.path}');
-
-          // Move the entire .app bundle to assets/
-          final targetPath = path.join(datadir.path, 'assets', path.basename(entity.path));
-          _log('Moving .app bundle to $targetPath');
-
-          await Directory(path.dirname(targetPath)).create(recursive: true);
-          await entity.rename(targetPath);
-          return;
+    if (await Directory(expectedDirPath).exists()) {
+      final innerDir = Directory(expectedDirPath);
+      // Move all contents from inner directory up one level
+      for (final entity in innerDir.listSync()) {
+        final newPath = path.join(extractDir.path, path.basename(entity.path));
+        // Delete existing file/directory if it exists
+        if (await FileSystemEntity.isDirectory(newPath)) {
+          await Directory(newPath).delete(recursive: true);
+        } else if (await FileSystemEntity.isFile(newPath)) {
+          await File(newPath).delete();
         }
+        // Now move the new file/directory
+        await entity.rename(newPath);
       }
-      throw Exception('Could not find .app bundle in extracted files');
+      // Remove the now-empty directory
+      await innerDir.delete();
     }
 
-    // Move all executables to assets/
-    final extractedDir = Directory(downloadsDir.path);
-    final allFiles = await extractedDir.list(recursive: true).toList();
+    await for (final entity in extractDir.list(recursive: false)) {
+      if (entity is File) {
+        final fileName = path.basename(entity.path);
 
-    if (allFiles.length < 10) {
-      // This only contains raw binaries!
-      _log('Small archive detected (${allFiles.length} files), processing executables');
+        // Skip non-executable files
+        if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
 
-      await for (final entity in extractedDir.list(recursive: true)) {
-        if (entity is File) {
-          final fileName = path.basename(entity.path);
+        // Clean up the filename:
+        // 1. Remove version numbers (like -0.1.7-)
+        // 2. Remove platform specifics (-x86_64-apple-darwin)
+        // 3. Remove -latest if present
+        String targetName = fileName;
 
-          // Skip non-executable files
-          if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
-
-          // Clean up the filename:
-          // 1. Remove version numbers (like -0.1.7-)
-          // 2. Remove platform specifics (-x86_64-apple-darwin)
-          // 3. Remove -latest if present
-          String targetName = fileName;
-
-          // First remove platform specific parts
-          final platformParts = [
-            '-x86_64-apple-darwin',
-            '-x86_64-linux',
-            '-x86_64.exe',
-            '-x86_64-unknown-linux-gnu',
-            '-x86_64-pc-windows-gnu',
-            'x86_64-unknown-linux-gnu',
-            'x86_64-apple-darwin',
-            'x86_64-pc-windows-gnu',
-          ];
-          for (final part in platformParts) {
-            targetName = targetName.replaceAll(part, '');
-          }
-
-          // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
-          targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
-
-          // Remove -latest
-          targetName = targetName.replaceAll('-latest', '');
-
-          final targetPath = path.join(datadir.path, 'assets', targetName);
-          _log('Moving binary from ${entity.path} to $targetPath');
-
-          await Directory(path.dirname(targetPath)).create(recursive: true);
-          await entity.copy(targetPath);
+        // First remove platform specific parts
+        final platformParts = [
+          '-x86_64-apple-darwin',
+          '-x86_64-linux',
+          '-x86_64.exe',
+          '-x86_64-unknown-linux-gnu',
+          '-x86_64-pc-windows-gnu',
+          'x86_64-unknown-linux-gnu',
+          'x86_64-apple-darwin',
+          'x86_64-pc-windows-gnu',
+          '-latest',
+        ];
+        for (final part in platformParts) {
+          targetName = targetName.replaceAll(part, '');
         }
-      }
-    } else {
-      // For large archives, probably some sort of app or bundle, extract it all!
-      _log('Large archive detected (${allFiles.length} files), preserving directory structure');
+        // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
+        targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
 
-      // Find the root directory of the extracted files
-      final rootContents = await extractedDir.list(recursive: false).toList();
-      final rootDir = rootContents.firstWhere(
-        (e) => e is Directory,
-        orElse: () => extractedDir,
-      ) as Directory;
-
-      // Move everything to assets/
-      final targetDir = Directory(path.join(datadir.path, 'assets'));
-      await targetDir.create(recursive: true);
-
-      _log('Moving contents from ${rootDir.path} to ${targetDir.path}');
-
-      // Copy all contents preserving directory structure
-      await for (final entity in rootDir.list(recursive: false)) {
-        final targetPath = path.join(targetDir.path, path.basename(entity.path));
-        if (entity is Directory) {
-          await Directory(targetPath).create(recursive: true);
-          await for (final child in entity.list(recursive: true)) {
-            if (child is File) {
-              final relativePath = path.relative(child.path, from: entity.path);
-              final childTargetPath = path.join(targetPath, relativePath);
-              await Directory(path.dirname(childTargetPath)).create(recursive: true);
-              await child.copy(childTargetPath);
-            }
-          }
-        } else if (entity is File) {
-          await entity.copy(targetPath);
+        if (fileName == targetName) {
+          continue;
         }
+
+        final newPath = path.join(path.dirname(entity.path), targetName);
+        await entity.rename(newPath);
       }
     }
   }
 
   /// Downloads a file with progress tracking
   /// Returns the release date from the Last-Modified header
-  Future<DateTime> _download(
+  Future<void> _download(
     String url,
     String savePath,
     void Function(
@@ -380,14 +336,6 @@ abstract class Binary {
       if (response.statusCode != 200) {
         throw Exception('HTTP Status ${response.statusCode}');
       }
-
-      // Get the Last-Modified date from headers
-      final lastModified = response.headers.value('last-modified');
-      if (lastModified == null) {
-        throw Exception('Server did not provide Last-Modified header');
-      }
-      final releaseDate = HttpDate.parse(lastModified);
-      _log('Binary release date: $releaseDate');
 
       final file = File(savePath);
       final sink = file.openWrite();
@@ -427,8 +375,6 @@ abstract class Binary {
         DownloadStatus.installing,
         message: 'Verifying download...',
       );
-
-      return releaseDate; // Return the release date
     } catch (e) {
       final error = 'Download failed from $url: $e\nSave path: $savePath';
       _log('ERROR: $error');
@@ -1022,7 +968,7 @@ enum DownloadStatus {
 
 /// Information about a completed download
 class DownloadMetadata {
-  final DateTime releaseDate; // Last-Modified date from server
+  final DateTime? releaseDate; // Last-Modified date from server
 
   const DownloadMetadata({
     required this.releaseDate,
@@ -1030,11 +976,11 @@ class DownloadMetadata {
 
   factory DownloadMetadata.fromJson(Map<String, dynamic> json) {
     return DownloadMetadata(
-      releaseDate: DateTime.parse(json['releaseDate'] as String),
+      releaseDate: json['releaseDate'] != null ? DateTime.parse(json['releaseDate'] as String) : null,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'releaseDate': releaseDate.toIso8601String(),
+        'releaseDate': releaseDate?.toIso8601String(),
       };
 }
