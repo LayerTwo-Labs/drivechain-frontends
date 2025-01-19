@@ -32,12 +32,15 @@ if test -n  "$identity"; then
     # We FIRST need to sign the binaries, and then the app itself. Otherwise, the 
     # notarization server reports "a sealed resource is missing or invalid"
     assets_bin_dir=$app_name.app/Contents/Frameworks/App.framework/Versions/A/Resources/flutter_assets/assets/bin
-    for asset in $assets_bin_dir/* ; do 
-        echo Signing binary asset $(basename $asset)
-
-        codesign --verbose --deep --force --options runtime --sign \
-            "$identity" $asset
-    done
+    
+    # Only try to sign binaries if the directory exists and has files
+    if [ -d "$assets_bin_dir" ] && [ "$(ls -A $assets_bin_dir)" ]; then
+        for asset in $assets_bin_dir/* ; do 
+            echo Signing binary asset $(basename $asset)
+            codesign --verbose --deep --force --options runtime --sign \
+                "$identity" $asset
+        done
+    fi
 
     codesign --verbose --deep --force --options runtime \
         --entitlements $old_cwd/macos/Runner/Release.entitlements \
