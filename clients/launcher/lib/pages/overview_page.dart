@@ -585,12 +585,12 @@ class _OverviewPageState extends State<OverviewPage> {
 
   Future<(bool, bool)> _checkWalletFiles(int? sidechainSlot) async {
     if (sidechainSlot == null) return (false, false);
-    
+
     final appDir = await Environment.datadir();
     final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
     final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
     final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
-    
+
     return (masterFile.existsSync(), starterFile.existsSync());
   }
 

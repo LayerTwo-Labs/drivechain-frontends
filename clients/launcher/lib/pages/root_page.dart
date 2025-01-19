@@ -30,7 +30,8 @@ class _RootPageState extends State<RootPage> {
   }
 
   void _handleTabChange(int index) {
-    if (_lastIndex == 1 && index != 1) { // If leaving the Tools tab
+    if (_lastIndex == 1 && index != 1) {
+      // If leaving the Tools tab
       _toolsViewModel.resetStartersTab();
     }
     _lastIndex = index;
