@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:launcher/widgets/wallet_button_model.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
 class _TokenListItem extends StatelessWidget {
   final String name;
@@ -66,6 +68,17 @@ class _WalletButtonState extends State<WalletButton> {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _removeOverlay();
+    super.dispose();
+  }
+
   void _showModal() {
     // Remove existing overlay if any
     _removeOverlay();
@@ -74,226 +87,229 @@ class _WalletButtonState extends State<WalletButton> {
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         width: 300,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          targetAnchor: Alignment.bottomRight,
-          followerAnchor: Alignment.topRight,
-          offset: const Offset(0, 8),
-          child: Material(
-            elevation: 8,
-            borderRadius: BorderRadius.circular(8),
-            color: SailTheme.of(context).colors.backgroundSecondary,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header with close button
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      SailText.primary13('Wallet'),
-                      SailScaleButton(
-                        style: SailButtonStyle.secondary,
-                        onPressed: _removeOverlay,
-                        child: Builder(
-                          builder: (context) {
-                            final theme = SailTheme.of(context);
-                            return SailSVG.icon(
-                              SailSVGAsset.iconClose,
-                              color: theme.colors.text,
+        child: ViewModelBuilder<WalletButtonModel>.reactive(
+          viewModelBuilder: () => WalletButtonModel(),
+          builder: (context, viewModel, child) => CompositedTransformFollower(
+            link: _layerLink,
+            targetAnchor: Alignment.bottomRight,
+            followerAnchor: Alignment.topRight,
+            offset: const Offset(0, 8),
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(8),
+              color: SailTheme.of(context).colors.backgroundSecondary,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header with close button
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SailText.primary13('Wallet'),
+                        SailScaleButton(
+                          style: SailButtonStyle.secondary,
+                          onPressed: _removeOverlay,
+                          child: Builder(
+                            builder: (context) {
+                              final theme = SailTheme.of(context);
+                              return SailSVG.icon(
+                                SailSVGAsset.iconClose,
+                                color: theme.colors.text,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Balance section
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        SailText.secondary12('Total Balance'),
+                        const SizedBox(height: 8),
+                        ListenableBuilder(
+                          listenable: viewModel,
+                          builder: (context, _) {
+                            return SailText.primary24(
+                              '${viewModel.totalBalance.toStringAsFixed(8)} BTC',
                             );
                           },
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                // Balance section
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      SailText.secondary12('Total Balance'),
-                      const SizedBox(height: 8),
-                      SailText.primary24('0.00 BTC'),
-                      const SizedBox(height: 16),
-                      // Action buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SailScaleButton(
-                              style: SailButtonStyle.primary,
-                              onPressed: () {},
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Builder(
-                                    builder: (context) {
-                                      final theme = SailTheme.of(context);
-                                      return SailSVG.icon(
-                                        SailSVGAsset.iconSend,
-                                        color: theme.colors.background,
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 8),
-                                  SailText.background12('Send'),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: SailScaleButton(
-                              style: SailButtonStyle.primary,
-                              onPressed: () {},
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Builder(
-                                    builder: (context) {
-                                      final theme = SailTheme.of(context);
-                                      return SailSVG.icon(
-                                        SailSVGAsset.iconReceive,
-                                        color: theme.colors.background,
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 8),
-                                  SailText.background12('Receive'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Tabs
-                DefaultTabController(
-                  length: 3,
-                  child: Column(
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: SailTheme.of(context).colors.formFieldBorder,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        child: TabBar(
-                          indicatorColor: SailTheme.of(context).colors.primary,
-                          labelColor: SailTheme.of(context).colors.text,
-                          unselectedLabelColor: SailTheme.of(context).colors.textSecondary,
-                          indicatorWeight: 2,
-                          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                          unselectedLabelStyle: const TextStyle(fontSize: 13),
-                          tabs: const [
-                            Tab(text: 'Tokens'),
-                            Tab(text: 'BitAssets'),
-                            Tab(text: 'Activity'),
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        height: 200,
-                        child: TabBarView(
+                        const SizedBox(height: 16),
+                        // Action buttons
+                        Row(
                           children: [
-                            // Tokens tab
-                            ListView(
-                              padding: const EdgeInsets.all(16),
-                              children: [
-                                _TokenListItem(
-                                  name: 'Bitcoin',
-                                  amount: '0.00 BTC',
-                                  value: '\$0.00 USD',
-                                ),
-                              ],
-                            ),
-                            // BitAssets tab
-                            Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
+                            Expanded(
+                              child: SailScaleButton(
+                                style: SailButtonStyle.primary,
+                                onPressed: () {},
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SailSVG.icon(
-                                      SailSVGAsset.iconCoins,
-                                      color: SailTheme.of(context).colors.textSecondary,
+                                    Builder(
+                                      builder: (context) {
+                                        final theme = SailTheme.of(context);
+                                        return SailSVG.icon(
+                                          SailSVGAsset.iconSend,
+                                          color: theme.colors.background,
+                                        );
+                                      },
                                     ),
-                                    const SizedBox(height: 8),
-                                    SailText.secondary13('No BitAssets yet'),
+                                    const SizedBox(width: 8),
+                                    SailText.background12('Send'),
                                   ],
                                 ),
                               ),
                             ),
-                            // Activity tab
-                            Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: SailScaleButton(
+                                style: SailButtonStyle.primary,
+                                onPressed: () {},
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SailSVG.icon(
-                                      SailSVGAsset.iconTransactions,
-                                      color: SailTheme.of(context).colors.textSecondary,
+                                    Builder(
+                                      builder: (context) {
+                                        final theme = SailTheme.of(context);
+                                        return SailSVG.icon(
+                                          SailSVGAsset.iconReceive,
+                                          color: theme.colors.background,
+                                        );
+                                      },
                                     ),
-                                    const SizedBox(height: 8),
-                                    SailText.secondary13('No recent activity'),
+                                    const SizedBox(width: 8),
+                                    SailText.background12('Receive'),
                                   ],
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                // Address section
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: SailTheme.of(context).colors.background,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.secondary12('Wallet Address'),
-                            const SizedBox(height: 4),
-                            SailText.primary12('bc1q...', monospace: true),
-                          ],
+                  const SizedBox(height: 16),
+                  // Tabs
+                  DefaultTabController(
+                    length: 3,
+                    child: Column(
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: SailTheme.of(context).colors.formFieldBorder,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: TabBar(
+                            indicatorColor: SailTheme.of(context).colors.primary,
+                            labelColor: SailTheme.of(context).colors.text,
+                            unselectedLabelColor: SailTheme.of(context).colors.textSecondary,
+                            indicatorWeight: 2,
+                            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                            unselectedLabelStyle: const TextStyle(fontSize: 13),
+                            tabs: const [
+                              Tab(text: 'Tokens'),
+                              Tab(text: 'BitAssets'),
+                              Tab(text: 'Activity'),
+                            ],
+                          ),
                         ),
-                      ),
-                      SailScaleButton(
-                        style: SailButtonStyle.secondary,
-                        onPressed: () {},
-                        child: Builder(
-                          builder: (context) {
-                            final theme = SailTheme.of(context);
-                            return SailSVG.icon(
-                              SailSVGAsset.iconCopy,
-                              color: theme.colors.text,
-                            );
-                          },
+                        SizedBox(
+                          height: 200,
+                          child: TabBarView(
+                            children: [
+                              ListenableBuilder(
+                                listenable: viewModel,
+                                builder: (context, _) => _buildTokenList(viewModel),
+                              ),
+                              // BitAssets tab
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SailSVG.icon(
+                                        SailSVGAsset.iconCoins,
+                                        color: SailTheme.of(context).colors.textSecondary,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SailText.secondary13('No BitAssets yet'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Activity tab
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SailSVG.icon(
+                                        SailSVGAsset.iconTransactions,
+                                        color: SailTheme.of(context).colors.textSecondary,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SailText.secondary13('No recent activity'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  // Address section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: SailTheme.of(context).colors.background,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SailText.secondary12('Wallet Address'),
+                              const SizedBox(height: 4),
+                              SailText.primary12('bc1q...', monospace: true),
+                            ],
+                          ),
+                        ),
+                        SailScaleButton(
+                          style: SailButtonStyle.secondary,
+                          onPressed: () {},
+                          child: Builder(
+                            builder: (context) {
+                              final theme = SailTheme.of(context);
+                              return SailSVG.icon(
+                                SailSVGAsset.iconCopy,
+                                color: theme.colors.text,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -308,10 +324,37 @@ class _WalletButtonState extends State<WalletButton> {
     _overlayEntry = null;
   }
 
-  @override
-  void dispose() {
-    _removeOverlay();
-    super.dispose();
+  Widget _buildTokenList(WalletButtonModel viewModel) {
+    if (viewModel.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (viewModel.balances.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SailSVG.icon(
+              SailSVGAsset.iconCoins,
+              color: SailTheme.of(context).colors.textSecondary,
+            ),
+            const SizedBox(height: 8),
+            SailText.secondary13('No connected wallets'),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: viewModel.balances.map((balance) {
+        return _TokenListItem(
+          name: balance.name,
+          amount: '${balance.confirmedBalance.toStringAsFixed(8)} BTC',
+          value: balance.unconfirmedBalance > 0 ? '(${balance.unconfirmedBalance.toStringAsFixed(8)} unconfirmed)' : '',
+        );
+      }).toList(),
+    );
   }
 
   @override
