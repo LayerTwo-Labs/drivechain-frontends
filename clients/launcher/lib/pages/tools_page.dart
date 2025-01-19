@@ -383,7 +383,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
       try {
         final appDir = await Environment.datadir();
         final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-        
+
         if (walletDir.existsSync()) {
           await walletDir.delete(recursive: true);
         }
@@ -481,13 +481,13 @@ class ToolsPageViewModel extends BaseViewModel {
     try {
       final appDir = await Environment.datadir();
       final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-      
+
       if (!walletDir.existsSync()) {
         return [];
       }
 
       final starters = <Map<String, dynamic>>[];
-      
+
       // First load master starter if it exists
       final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
       if (masterFile.existsSync()) {
@@ -498,7 +498,7 @@ class ToolsPageViewModel extends BaseViewModel {
 
       // Then load sidechain starters
       final files = walletDir.listSync();
-      
+
       for (final file in files) {
         if (file.path.endsWith('_starter.json') && !file.path.endsWith('master_starter.json')) {
           final content = await (file as File).readAsString();
@@ -521,7 +521,7 @@ class ToolsPageViewModel extends BaseViewModel {
 
   void toggleStarterReveal(String? starterName, bool reveal) {
     if (starterName == null) return;
-    
+
     if (reveal) {
       _revealedStarters.add(starterName);
     } else {

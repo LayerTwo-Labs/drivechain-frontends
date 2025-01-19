@@ -208,13 +208,13 @@ class WalletService extends ChangeNotifier {
       final configFile = await rootBundle.loadString('assets/chain_config.json');
       final config = jsonDecode(configFile) as Map<String, dynamic>;
       final chains = config['chains'] as List<dynamic>;
-      
+
       // Find matching chain and get name
       final chainConfig = chains.firstWhere(
         (chain) => chain['sidechain_slot'] == sidechainSlot,
         orElse: () => {'name': 'Sidechain $sidechainSlot'},
       );
-      
+
       // Add name to starter data
       starterData['name'] = chainConfig['name'] as String;
 
