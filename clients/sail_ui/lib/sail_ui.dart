@@ -61,6 +61,7 @@ export './widgets/inputs/text_field.dart';
 export './widgets/inputs/text_form_field.dart';
 export './widgets/inputs/unit_dropdown.dart';
 export './widgets/loading_indicator.dart';
+export './widgets/modals/shutdown_modal.dart';
 export './widgets/nav/nav_components.dart';
 export './widgets/optional_builder.dart';
 export './widgets/spacing.dart';

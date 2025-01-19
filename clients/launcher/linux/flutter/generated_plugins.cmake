@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   flutter_platform_alert
+  flutter_window_close
   irondash_engine_context
   screen_retriever_linux
   super_native_extensions

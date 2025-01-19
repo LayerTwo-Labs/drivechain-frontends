@@ -28,6 +28,7 @@ dependencies:
     path: ../sail_ui
   logger: ^2.5.0
   google_fonts: ^6.2.1
+  flutter_window_close: ^1.2.0
   auto_route: ^9.3.0+1
   fixnum: ^1.1.1
   shared_preferences: ^2.3.3
