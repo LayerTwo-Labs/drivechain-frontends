@@ -250,9 +250,6 @@ class TestchainRPCLive extends TestchainRPC {
   Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
   ) async {
-    final baseArgs = bitcoinCoreBinaryArgs(
-      conf,
-    );
     final sidechainArgs = [
       '-mainchainrpcport=${mainchainConf.port}',
       '-mainchainrpchost=${mainchainConf.host}',
