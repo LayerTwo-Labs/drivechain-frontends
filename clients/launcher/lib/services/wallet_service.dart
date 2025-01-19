@@ -10,6 +10,9 @@ import 'package:flutter/services.dart';
 import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:get_it/get_it.dart';
+import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 
 class WalletService extends ChangeNotifier {
   final _logger = Logger();
@@ -248,5 +251,31 @@ class WalletService extends ChangeNotifier {
     final appDir = await Environment.appDir();
     final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
     return File(path.join(walletDir.path, 'master_starter.json'));
+  }
+
+  Future<void> generateStartersForDownloadedChains() async {
+    try {
+      // Get chain config to find sidechain slots
+      final jsonString = await rootBundle.loadString('assets/chain_config.json');
+      final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+      final chains = jsonData['chains'] as List<dynamic>;
+
+      // Get binary provider to check downloaded chains
+      final binaryProvider = GetIt.I.get<BinaryProvider>();
+      
+      // For each chain in config that has a sidechain slot
+      for (final chain in chains) {
+        final sidechainSlot = chain['sidechain_slot'] as int?;
+        if (sidechainSlot != null) {
+          // Generate starter for this chain
+          await deriveSidechainStarter(sidechainSlot);
+        }
+      }
+
+      // Notify listeners after all starters are generated
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error generating sidechain starters: $e');
+    }
   }
 }

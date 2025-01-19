@@ -28,8 +28,8 @@ class OverviewPage extends StatefulWidget {
 class _OverviewPageState extends State<OverviewPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
-  Map<String, dynamic>? _chainConfig;
   WalletService get _walletService => GetIt.I.get<WalletService>();
+  Map<String, dynamic>? _chainConfig;
 
   bool _closeAlertOpen = false;
 
@@ -38,6 +38,7 @@ class _OverviewPageState extends State<OverviewPage> {
     super.initState();
     _binaryProvider.addListener(_onBinaryProviderUpdate);
     _processProvider.addListener(_onBinaryProviderUpdate);
+    _walletService.addListener(_onBinaryProviderUpdate);
     _loadChainConfig();
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await displayShutdownModal(context);
@@ -59,6 +60,7 @@ class _OverviewPageState extends State<OverviewPage> {
   void dispose() {
     _binaryProvider.removeListener(_onBinaryProviderUpdate);
     _processProvider.removeListener(_onBinaryProviderUpdate);
+    _walletService.removeListener(_onBinaryProviderUpdate);
     super.dispose();
   }
 
@@ -527,8 +529,8 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Widget _buildWalletButton(Binary binary, DownloadState? status) {
-    // If binary not downloaded, show disabled button
-    if (status?.status != DownloadStatus.installed) {
+    // If binary not downloaded or in a failed state, show disabled button
+    if (status == null || status.status == DownloadStatus.uninstalled || status.status == DownloadStatus.failed) {
       return SailButton.secondary(
         '',
         onPressed: () {},
