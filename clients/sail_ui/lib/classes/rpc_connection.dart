@@ -246,23 +246,38 @@ abstract class RPCConnection extends ChangeNotifier {
     });
   }
 
-  List<String> unduplicatedArgs(List<String> baseArgs, List<String> sidechainArgs) {
+  // cleanArgs makes sure to NOT add any cli-args that are already set in the conf file
+  // any duplicates are removed
+  List<String> cleanArgs(NodeConnectionSettings settings, List<String> extraArgs) {
+    final baseArgs = bitcoinCoreBinaryArgs(settings);
     log.d('Deduplicating args - base args: $baseArgs');
-    log.d('Sidechain args to check: $sidechainArgs');
 
-    // Only add sidechain args that aren't already in baseArgs
-    final extraArgs = sidechainArgs.where((arg) {
-      final paramName = arg.split('=')[0];
-      final isDuplicate = baseArgs.any((baseArg) => baseArg.startsWith(paramName));
-      log.d('Checking arg $arg (param: $paramName) - isDuplicate: $isDuplicate');
-      return !isDuplicate;
+    // Filter out any extra args that exist in base args and come from config
+    final filteredExtraArgs = extraArgs.where((arg) {
+      final paramName = arg.split('=')[0].replaceAll(RegExp(r'^-+'), '');
+      return !settings.isFromConfigFile(paramName);
     }).toList();
 
-    log.d('Extra args after deduplication: $extraArgs');
-    final result = [...baseArgs, ...extraArgs];
-    log.d('Final combined args: $result');
+    log.d('Extra args after filtering config duplicates: $filteredExtraArgs');
 
-    return result;
+    // Create a map to store args by their parameter name (without the leading dash)
+    final argMap = <String, String>{};
+
+    // Process all args and keep only the last occurrence of each parameter
+    for (final arg in [...baseArgs, ...filteredExtraArgs]) {
+      String paramName;
+      if (arg.contains('=')) {
+        paramName = arg.split('=')[0].replaceAll(RegExp(r'^-+'), '');
+      } else {
+        paramName = arg.replaceAll(RegExp(r'^-+'), '');
+      }
+      argMap[paramName] = arg;
+    }
+
+    final args = argMap.values.toList();
+    log.d('Args after deduplication: $args');
+
+    return args;
   }
 
   @override

@@ -248,14 +248,11 @@ class MainchainRPCLive extends MainchainRPC {
   Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
   ) async {
-    final baseArgs = bitcoinCoreBinaryArgs(
-      conf,
-    );
     final sidechainArgs = [
       mainchainConf.confPath != '' ? '-conf=${mainchainConf.confPath}' : '',
     ];
 
-    return unduplicatedArgs(baseArgs, sidechainArgs);
+    return cleanArgs(conf, sidechainArgs);
   }
 }
 

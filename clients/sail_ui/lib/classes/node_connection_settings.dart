@@ -41,6 +41,9 @@ class NodeConnectionSettings extends ChangeNotifier {
   // Add a map to store arbitrary config values
   final Map<String, String> configValues = {};
 
+  // Add a set to track which config values came from file
+  final Set<String> configFromFile = {};
+
   NodeConnectionSettings(
     String path,
     String host,
@@ -149,9 +152,11 @@ class NodeConnectionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Add method to read all values from conf file
+  // Modify readConfigFromFile to track the source
   void readConfigFromFile(List<String> lines) {
     configValues.clear();
+    configFromFile.clear(); // Reset the tracking set
+
     for (final line in lines) {
       if (line.startsWith('#') || !line.contains('=')) continue;
 
@@ -165,19 +170,26 @@ class NodeConnectionSettings extends ChangeNotifier {
       switch (key) {
         case 'rpcuser':
           usernameController.text = value;
+          configFromFile.add('rpcuser');
           break;
         case 'rpcpassword':
           passwordController.text = value;
+          configFromFile.add('rpcpassword');
           break;
         case 'rpcport':
           portController.text = value;
+          configFromFile.add('rpcport');
           break;
         default:
           configValues[key] = value;
+          configFromFile.add(key);
       }
     }
     notifyListeners();
   }
+
+  // Add method to check if a config came from file
+  bool isFromConfigFile(String key) => configFromFile.contains(key);
 
   List<String> getConfigArgs() {
     final args = <String>[];

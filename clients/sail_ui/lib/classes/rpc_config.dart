@@ -90,16 +90,23 @@ Future<NodeConnectionSettings> readRPCConfig(
 }
 
 List<String> bitcoinCoreBinaryArgs(NodeConnectionSettings conf) {
-  return [
+  // Only include non-config args in the base args
+  final args = [
     conf.isLocalNetwork ? '-regtest' : '',
-    conf.username.isNotEmpty ? '-rpcuser=${conf.username}' : '',
-    conf.password.isNotEmpty ? '-rpcpassword=${conf.password}' : '',
-    conf.port != 0 ? '-rpcport=${conf.port}' : '',
-    ...conf.getConfigArgs(), // Add all additional config values
-  ]
-      // important: empty strings trip up the binary
-      .where((arg) => arg.isNotEmpty)
-      .toList();
+    conf.username.isNotEmpty && !conf.isFromConfigFile('rpcuser') ? '-rpcuser=${conf.username}' : '',
+    conf.password.isNotEmpty && !conf.isFromConfigFile('rpcpassword') ? '-rpcpassword=${conf.password}' : '',
+    conf.port != 0 && !conf.isFromConfigFile('rpcport') ? '-rpcport=${conf.port}' : '',
+  ];
+
+  // Add all additional config values that aren't from config file
+  args.addAll(
+    conf.getConfigArgs().where((arg) {
+      final paramName = arg.split('=')[0].replaceFirst('-', '');
+      return !conf.isFromConfigFile(paramName);
+    }),
+  );
+
+  return args.where((arg) => arg.isNotEmpty).toList();
 }
 
 // checks if the loaded bitcoin core config contains a specific
