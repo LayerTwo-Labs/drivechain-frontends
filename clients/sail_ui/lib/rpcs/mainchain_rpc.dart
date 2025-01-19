@@ -152,7 +152,7 @@ class MainchainRPCLive extends MainchainRPC {
     ];
     log.d('Sidechain specific args: $sidechainArgs');
 
-    final finalArgs = unduplicatedArgs(baseArgs, sidechainArgs);
+    final finalArgs = cleanArgs(conf, sidechainArgs);
     log.i('Final binary args: $finalArgs');
     return finalArgs;
   }

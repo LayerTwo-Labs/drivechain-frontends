@@ -260,7 +260,7 @@ class TestchainRPCLive extends TestchainRPC {
       '-mainchainrpcpassword=${mainchainConf.password}',
     ];
 
-    return unduplicatedArgs(baseArgs, sidechainArgs);
+    return cleanArgs(conf, sidechainArgs);
   }
 
   @override

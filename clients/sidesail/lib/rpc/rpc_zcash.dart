@@ -93,7 +93,7 @@ abstract class ZCashRPC extends SidechainRPC {
       '-mainhost=${mainchainConf.host}',
     ];
 
-    return unduplicatedArgs(args, sidechainArgs);
+    return cleanArgs(conf, sidechainArgs);
   }
 
   @override
