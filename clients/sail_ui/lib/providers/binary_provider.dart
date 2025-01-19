@@ -82,7 +82,6 @@ class BinaryProvider extends ChangeNotifier {
     _dirWatcher = assetsDir.watch(recursive: true).listen((event) {
       // Skip if there are any active downloads
       if (_activeDownloads.values.any((active) => active)) {
-        _log('Ignoring file system event during active download');
         return;
       }
 
