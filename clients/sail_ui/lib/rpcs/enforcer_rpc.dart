@@ -79,6 +79,11 @@ class EnforcerLive extends EnforcerRPC {
   }
 
   @override
+  Future<(double, double)> balance() async {
+    return (0.0, 0.0);
+  }
+
+  @override
   Future<void> stop() async {
     // TODO: not implemented!
   }

@@ -14,8 +14,6 @@ abstract class SidechainRPC extends RPCConnection {
 
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
 
-  /// Returns confirmed and unconfirmed balance.
-  Future<(double, double)> getBalance();
   Future<List<CoreTransaction>> listTransactions();
 
   Future<String> mainSend(

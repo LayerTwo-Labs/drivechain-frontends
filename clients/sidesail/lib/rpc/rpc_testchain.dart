@@ -56,7 +56,7 @@ class TestchainRPCLive extends TestchainRPC {
   });
 
   @override
-  Future<(double, double)> getBalance() async {
+  Future<(double, double)> balance() async {
     final walletInfo = await _client().call('getwalletinfo');
     final confirmed = walletInfo['balance'] as double;
     final unconfirmed = walletInfo['unconfirmed_balance'] as double;

@@ -222,7 +222,7 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
-  Future<(double, double)> getBalance() async {
+  Future<(double, double)> balance() async {
     final acc = await account();
 
     final (transparentConfirmed, transparentUnconfirmed) = await _transparentBalance(acc);

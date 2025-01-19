@@ -28,8 +28,6 @@ abstract class MainchainRPC extends RPCConnection {
   Future<String> send(String address, double amount, bool subtractFeeFromAmount);
   Future<String> getNewAddress();
 
-  // util functions for a better UX
-  Future<(double, double)> getBalance();
   Future<String> createSidechainDeposit(int sidechainSlot, String address, double amount);
   Future<void> waitForIBD();
 
@@ -223,7 +221,7 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
-  Future<(double, double)> getBalance() async {
+  Future<(double, double)> balance() async {
     final confirmedFut = _client().call('getbalance');
     final unconfirmedFut = _client().call('getunconfirmedbalance');
 

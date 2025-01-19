@@ -506,7 +506,7 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
   Future<void> easyDeposit() async {
     setBusy(true);
     // step 1, get mainchain balance
-    final balance = await _mainchain.getBalance();
+    final balance = await _mainchain.balance();
     final confirmedBalance = balance.$1;
 
     // step 2, get sidechain deposit address

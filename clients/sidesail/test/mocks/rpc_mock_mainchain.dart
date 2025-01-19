@@ -91,7 +91,7 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
-  Future<(double, double)> getBalance() async {
+  Future<(double, double)> balance() async {
     return (1.0, 2.0);
   }
 

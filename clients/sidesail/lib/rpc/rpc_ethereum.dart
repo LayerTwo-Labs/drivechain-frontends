@@ -53,7 +53,7 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<(double, double)> getBalance() async {
+  Future<(double, double)> balance() async {
     final account = await _setAndGetAccount();
     final balance = await _client.getBalance(account);
 

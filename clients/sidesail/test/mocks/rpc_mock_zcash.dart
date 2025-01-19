@@ -18,7 +18,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<(double, double)> getBalance() async {
+  Future<(double, double)> balance() async {
     return (123.0, 0.0);
   }
 
