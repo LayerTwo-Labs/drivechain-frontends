@@ -256,7 +256,8 @@ class MainchainRPCLive extends MainchainRPC {
     final sidechainArgs = [
       mainchainConf.confPath != '' ? '-conf=${mainchainConf.confPath}' : '',
     ];
-    return [...baseArgs, ...sidechainArgs];
+
+    return unduplicatedArgs(baseArgs, sidechainArgs);
   }
 }
 

@@ -243,6 +243,25 @@ abstract class RPCConnection extends ChangeNotifier {
     });
   }
 
+  List<String> unduplicatedArgs(List<String> baseArgs, List<String> sidechainArgs) {
+    log.d('Deduplicating args - base args: $baseArgs');
+    log.d('Sidechain args to check: $sidechainArgs');
+
+    // Only add sidechain args that aren't already in baseArgs
+    final extraArgs = sidechainArgs.where((arg) {
+      final paramName = arg.split('=')[0];
+      final isDuplicate = baseArgs.any((baseArg) => baseArg.startsWith(paramName));
+      log.d('Checking arg $arg (param: $paramName) - isDuplicate: $isDuplicate');
+      return !isDuplicate;
+    }).toList();
+
+    log.d('Extra args after deduplication: $extraArgs');
+    final result = [...baseArgs, ...extraArgs];
+    log.d('Final combined args: $result');
+
+    return result;
+  }
+
   @override
   void dispose() {
     super.dispose();
