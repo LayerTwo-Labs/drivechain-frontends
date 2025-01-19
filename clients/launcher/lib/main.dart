@@ -8,6 +8,7 @@ import 'package:launcher/env.dart';
 import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:launcher/services/wallet_service.dart';
+import 'package:launcher/pages/tools_page.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:sail_ui/config/binaries.dart';
@@ -107,8 +108,11 @@ Future<void> initDependencies(Logger log) async {
     QuotesProvider(prefs),
   );
 
-  // Register wallet service
+  // Register services
   GetIt.I.registerLazySingleton<WalletService>(
     () => WalletService(),
   );
+
+  // Register tools page view model
+  GetIt.I.registerSingleton<ToolsPageViewModel>(ToolsPageViewModel());
 }
