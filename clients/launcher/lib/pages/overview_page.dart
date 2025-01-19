@@ -1,16 +1,18 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:path/path.dart' as path;
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -29,12 +31,17 @@ class _OverviewPageState extends State<OverviewPage> {
   Map<String, dynamic>? _chainConfig;
   WalletService get _walletService => GetIt.I.get<WalletService>();
 
+  bool _closeAlertOpen = false;
+
   @override
   void initState() {
     super.initState();
     _binaryProvider.addListener(_onBinaryProviderUpdate);
     _processProvider.addListener(_onBinaryProviderUpdate);
     _loadChainConfig();
+    FlutterWindowClose.setWindowShouldCloseHandler(() async {
+      return await displayShutdownModal(context);
+    });
   }
 
   Future<void> _loadChainConfig() async {
@@ -301,31 +308,7 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Widget _buildStatusIndicator(Binary binary) {
-    // Get RPC status based on binary type
-    bool connected = false;
-    bool initializing = false;
-    String? error;
-
-    switch (binary) {
-      case ParentChain():
-        connected = _binaryProvider.mainchainRPC?.connected ?? false;
-        initializing = _binaryProvider.mainchainRPC?.initializingBinary ?? false;
-        error = _binaryProvider.mainchainRPC?.connectionError;
-      case Enforcer():
-        connected = _binaryProvider.enforcerRPC?.connected ?? false;
-        initializing = _binaryProvider.enforcerRPC?.initializingBinary ?? false;
-        error = _binaryProvider.enforcerRPC?.connectionError;
-      case BitWindow():
-        connected = _binaryProvider.bitwindowRPC?.connected ?? false;
-        initializing = _binaryProvider.bitwindowRPC?.initializingBinary ?? false;
-        error = _binaryProvider.bitwindowRPC?.connectionError;
-      case Thunder():
-        connected = _binaryProvider.thunderRPC?.connected ?? false;
-        initializing = _binaryProvider.thunderRPC?.initializingBinary ?? false;
-        error = _binaryProvider.thunderRPC?.connectionError;
-    }
-
+  Widget _buildStatusIndicator(bool connected, bool initializing, String? error) {
     final color = switch ((connected, initializing, error != null)) {
       (true, _, _) => Colors.green,
       (_, true, _) => Colors.orange,
@@ -371,6 +354,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is ParentChain => _binaryProvider.mainchainConnected,
       var b when b is Enforcer => _binaryProvider.enforcerConnected,
       var b when b is BitWindow => _binaryProvider.bitwindowConnected,
+      var b when b is Thunder => _binaryProvider.thunderConnected,
       _ => false,
     };
 
@@ -379,6 +363,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is ParentChain => _binaryProvider.mainchainInitializing,
       var b when b is Enforcer => _binaryProvider.enforcerInitializing,
       var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
+      var b when b is Thunder => _binaryProvider.thunderInitializing,
       _ => false,
     };
 
@@ -393,6 +378,8 @@ class _OverviewPageState extends State<OverviewPage> {
               await _binaryProvider.enforcerRPC?.stop();
             case BitWindow():
               await _binaryProvider.bitwindowRPC?.stop();
+            case Thunder():
+              await _binaryProvider.thunderRPC?.stop();
           }
         },
         size: ButtonSize.regular,
@@ -446,6 +433,30 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Widget _buildChainContent(Binary binary, DownloadState? status) {
+    // Get RPC status based on binary type
+    bool connected = false;
+    bool initializing = false;
+    String? error;
+
+    switch (binary) {
+      case ParentChain():
+        connected = _binaryProvider.mainchainRPC?.connected ?? false;
+        initializing = _binaryProvider.mainchainRPC?.initializingBinary ?? false;
+        error = _binaryProvider.mainchainRPC?.connectionError;
+      case Enforcer():
+        connected = _binaryProvider.enforcerRPC?.connected ?? false;
+        initializing = _binaryProvider.enforcerRPC?.initializingBinary ?? false;
+        error = _binaryProvider.enforcerRPC?.connectionError;
+      case BitWindow():
+        connected = _binaryProvider.bitwindowRPC?.connected ?? false;
+        initializing = _binaryProvider.bitwindowRPC?.initializingBinary ?? false;
+        error = _binaryProvider.bitwindowRPC?.connectionError;
+      case Thunder():
+        connected = _binaryProvider.thunderRPC?.connected ?? false;
+        initializing = _binaryProvider.thunderRPC?.initializingBinary ?? false;
+        error = _binaryProvider.thunderRPC?.connectionError;
+    }
+
     return Builder(
       builder: (context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,7 +479,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 },
               ),
               const SizedBox(width: 8),
-              _buildStatusIndicator(binary),
+              _buildStatusIndicator(connected, initializing, error),
             ],
           ),
           const SizedBox(height: 12),
@@ -480,11 +491,11 @@ class _OverviewPageState extends State<OverviewPage> {
           ),
           const SizedBox(height: 12),
           _buildProgressIndicator(status),
-          if (status?.error != null)
+          if (status?.error != null || error != null)
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: SailText.secondary13(
-                status!.error!,
+                status?.error ?? error!,
                 color: Colors.red,
               ),
             ),
@@ -625,5 +636,65 @@ class _OverviewPageState extends State<OverviewPage> {
         ),
       );
     }
+  }
+
+  Future<bool> displayShutdownModal(
+    BuildContext context,
+  ) async {
+    if (_closeAlertOpen) return false;
+    _closeAlertOpen = true;
+
+    var processesExited = Completer<bool>();
+    unawaited(_processProvider.shutdown().then((_) => processesExited.complete(true)));
+
+    if (!mounted) return true;
+
+    unawaited(
+      widgetDialog(
+        context: context,
+        title: 'Shutdown status',
+        subtitle: 'Shutting down nodes...',
+        child: SailColumn(
+          spacing: SailStyleValues.padding20,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SailSpacing(SailStyleValues.padding08),
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _processProvider.runningProcesses.entries.map((entry) {
+                return ShutdownCard(
+                  chain: Binary.fromBinary(entry.value.binary)!,
+                  initializing: true,
+                  message: 'with pid ${entry.value.pid}',
+                  forceCleanup: () => entry.value.cleanup(),
+                );
+              }).toList(),
+            ),
+            const SailSpacing(SailStyleValues.padding10),
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                SailButton.primary(
+                  'Force close',
+                  onPressed: () {
+                    processesExited.complete(true);
+                    Navigator.of(context).pop(true);
+                    _closeAlertOpen = false;
+                  },
+                  size: ButtonSize.regular,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await processesExited.future;
+    return true;
   }
 }

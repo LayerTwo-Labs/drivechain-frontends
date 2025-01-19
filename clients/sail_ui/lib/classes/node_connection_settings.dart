@@ -137,7 +137,7 @@ class NodeConnectionSettings extends ChangeNotifier {
   }
 
   static NodeConnectionSettings empty() {
-    return NodeConnectionSettings('', '', 0, '', '', false, {});
+    return NodeConnectionSettings('', 'localhost', 38332, 'user', 'password', true, {});
   }
 
   // Add method to get config value

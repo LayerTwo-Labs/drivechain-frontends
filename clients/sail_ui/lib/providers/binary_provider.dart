@@ -51,14 +51,17 @@ class BinaryProvider extends ChangeNotifier {
   bool get mainchainConnected => mainchainRPC?.connected ?? false;
   bool get enforcerConnected => enforcerRPC?.connected ?? false;
   bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
+  bool get thunderConnected => thunderRPC?.connected ?? false;
 
   bool get mainchainInitializing => mainchainRPC?.initializingBinary ?? false;
   bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
   bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
+  bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
 
   String? get mainchainError => mainchainRPC?.connectionError;
   String? get enforcerError => enforcerRPC?.connectionError;
   String? get bitwindowError => bitwindowRPC?.connectionError;
+  String? get thunderError => thunderRPC?.connectionError;
 
   bool get inIBD => mainchainRPC?.inIBD ?? false;
 
@@ -107,6 +110,7 @@ class BinaryProvider extends ChangeNotifier {
       try {
         _log('Checking binary: ${binary.name} (${binary.binary})');
         _log('datadir is: ${datadir.path}');
+        await initRPC(binary);
 
         // Check release date from server
         final serverReleaseDate = await binary.checkReleaseDate();
@@ -186,9 +190,7 @@ class BinaryProvider extends ChangeNotifier {
     _statusController.add(Map.from(_downloadStates));
   }
 
-  Future<void> startBinary(BuildContext context, Binary binary) async {
-    if (!context.mounted) return;
-
+  Future<void> initRPC(Binary binary) async {
     switch (binary) {
       case ParentChain():
         if (mainchainRPC == null) {
@@ -197,8 +199,6 @@ class BinaryProvider extends ChangeNotifier {
           );
           mainchainRPC!.addListener(notifyListeners);
         }
-        if (!context.mounted) return;
-        await mainchainRPC!.initBinary(context);
 
       case Enforcer():
         if (enforcerRPC == null) {
@@ -208,8 +208,6 @@ class BinaryProvider extends ChangeNotifier {
           );
           enforcerRPC!.addListener(notifyListeners);
         }
-        if (!context.mounted) return;
-        await enforcerRPC!.initBinary(context);
 
       case BitWindow():
         if (bitwindowRPC == null) {
@@ -221,8 +219,6 @@ class BinaryProvider extends ChangeNotifier {
           );
           bitwindowRPC!.addListener(notifyListeners);
         }
-        if (!context.mounted) return;
-        await bitwindowRPC!.initBinary(context);
 
       case Thunder():
         if (thunderRPC == null) {
@@ -232,7 +228,26 @@ class BinaryProvider extends ChangeNotifier {
           );
           thunderRPC!.addListener(notifyListeners);
         }
-        if (!context.mounted) return;
+
+      default:
+        log.i('is $binary');
+    }
+  }
+
+  Future<void> startBinary(BuildContext context, Binary binary) async {
+    if (!context.mounted) return;
+
+    switch (binary) {
+      case ParentChain():
+        await mainchainRPC!.initBinary(context);
+
+      case Enforcer():
+        await enforcerRPC!.initBinary(context);
+
+      case BitWindow():
+        await bitwindowRPC!.initBinary(context);
+
+      case Thunder():
         await thunderRPC!.initBinary(context);
 
       default:
@@ -259,6 +274,7 @@ class BinaryProvider extends ChangeNotifier {
       ParentChain() => mainchainConnected,
       Enforcer() => enforcerConnected,
       BitWindow() => bitwindowConnected,
+      Thunder() => thunderConnected,
       _ => false,
     };
   }
