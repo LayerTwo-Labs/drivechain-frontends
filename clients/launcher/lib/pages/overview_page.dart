@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:path/path.dart' as path;
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:launcher/env.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
@@ -261,7 +264,12 @@ class _OverviewPageState extends State<OverviewPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SailText.primary24('Layer 2'),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    SailText.primary24('Layer 2'),
+                                  ],
+                                ),
                                 const SizedBox(height: 16),
                                 ...l2Chains.map((chain) {
                                   final status = statusSnapshot.data?[chain.name];
@@ -496,10 +504,126 @@ class _OverviewPageState extends State<OverviewPage> {
                   ),
                 ),
               ],
+              if (binary.chainLayer == 2) ...[
+                const Spacer(),
+                _buildWalletButton(binary, status),
+              ],
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildWalletButton(Binary binary, DownloadState? status) {
+    // If binary not downloaded, show disabled button
+    if (status?.status != DownloadStatus.installed) {
+      return SailButton.secondary(
+        '',
+        onPressed: () {},
+        size: ButtonSize.regular,
+        disabled: true,
+      );
+    }
+
+    // Find sidechain slot from config
+    int? sidechainSlot;
+    if (_chainConfig != null) {
+      final chains = _chainConfig!['chains'] as List<dynamic>;
+      for (final chain in chains) {
+        if (chain['name'].toString().toLowerCase() == binary.name.toLowerCase()) {
+          sidechainSlot = chain['sidechain_slot'] as int?;
+          break;
+        }
+      }
+    }
+
+    if (sidechainSlot == null) {
+      return const SizedBox(); // Hide button if no slot found
+    }
+
+    return FutureBuilder<(bool, bool)>(
+      future: _checkWalletFiles(sidechainSlot),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (!snapshot.hasData) return const SizedBox();
+
+        final (hasMasterStarter, hasStarter) = snapshot.data!;
+
+        if (!hasMasterStarter) {
+          return SailButton.secondary(
+            '',
+            onPressed: () {},
+            size: ButtonSize.regular,
+            disabled: true,
+          );
+        }
+
+        if (hasStarter) {
+          return SailButton.secondary(
+            'Delete Starter',
+            onPressed: () => _deleteStarter(sidechainSlot!),
+            size: ButtonSize.regular,
+          );
+        } else {
+          return SailButton.primary(
+            'Generate Starter',
+            onPressed: () => _generateStarter(sidechainSlot!),
+            size: ButtonSize.regular,
+          );
+        }
+      },
+    );
+  }
+
+  Future<(bool, bool)> _checkWalletFiles(int? sidechainSlot) async {
+    if (sidechainSlot == null) return (false, false);
+    
+    final appDir = await Environment.datadir();
+    final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+    final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
+    final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
+    
+    return (masterFile.existsSync(), starterFile.existsSync());
+  }
+
+  Future<void> _deleteStarter(int sidechainSlot) async {
+    try {
+      final appDir = await Environment.datadir();
+      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+      final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
+      await starterFile.delete();
+      setState(() {}); // Refresh UI
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting starter: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _generateStarter(int sidechainSlot) async {
+    try {
+      await _walletService.deriveSidechainStarter(sidechainSlot);
+      setState(() {}); // Refresh UI
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating starter: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
