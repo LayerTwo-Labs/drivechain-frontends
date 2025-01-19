@@ -10,9 +10,6 @@ import 'package:flutter/services.dart';
 import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:get_it/get_it.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
 
 class WalletService extends ChangeNotifier {
   final _logger = Logger();
@@ -259,9 +256,6 @@ class WalletService extends ChangeNotifier {
       final jsonString = await rootBundle.loadString('assets/chain_config.json');
       final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
       final chains = jsonData['chains'] as List<dynamic>;
-
-      // Get binary provider to check downloaded chains
-      final binaryProvider = GetIt.I.get<BinaryProvider>();
       
       // For each chain in config that has a sidechain slot
       for (final chain in chains) {
