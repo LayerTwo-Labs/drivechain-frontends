@@ -274,45 +274,86 @@ abstract class Binary {
 
     // Move all executables to assets/
     final extractedDir = Directory(downloadsDir.path);
-    await for (final entity in extractedDir.list(recursive: true)) {
-      if (entity is File) {
-        final fileName = path.basename(entity.path);
+    final allFiles = await extractedDir.list(recursive: true).toList();
 
-        // Skip non-executable files
-        if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
+    if (allFiles.length < 10) {
+      // This only contains raw binaries!
+      _log('Small archive detected (${allFiles.length} files), processing executables');
 
-        // Clean up the filename:
-        // 1. Remove version numbers (like -0.1.7-)
-        // 2. Remove platform specifics (-x86_64-apple-darwin)
-        // 3. Remove -latest if present
-        String targetName = fileName;
+      await for (final entity in extractedDir.list(recursive: true)) {
+        if (entity is File) {
+          final fileName = path.basename(entity.path);
 
-        // First remove platform specific parts
-        final platformParts = [
-          '-x86_64-apple-darwin',
-          '-x86_64-linux',
-          '-x86_64.exe',
-          '-x86_64-unknown-linux-gnu',
-          '-x86_64-pc-windows-gnu',
-          'x86_64-unknown-linux-gnu',
-          'x86_64-apple-darwin',
-          'x86_64-pc-windows-gnu',
-        ];
-        for (final part in platformParts) {
-          targetName = targetName.replaceAll(part, '');
+          // Skip non-executable files
+          if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
+
+          // Clean up the filename:
+          // 1. Remove version numbers (like -0.1.7-)
+          // 2. Remove platform specifics (-x86_64-apple-darwin)
+          // 3. Remove -latest if present
+          String targetName = fileName;
+
+          // First remove platform specific parts
+          final platformParts = [
+            '-x86_64-apple-darwin',
+            '-x86_64-linux',
+            '-x86_64.exe',
+            '-x86_64-unknown-linux-gnu',
+            '-x86_64-pc-windows-gnu',
+            'x86_64-unknown-linux-gnu',
+            'x86_64-apple-darwin',
+            'x86_64-pc-windows-gnu',
+          ];
+          for (final part in platformParts) {
+            targetName = targetName.replaceAll(part, '');
+          }
+
+          // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
+          targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
+
+          // Remove -latest
+          targetName = targetName.replaceAll('-latest', '');
+
+          final targetPath = path.join(datadir.path, 'assets', targetName);
+          _log('Moving binary from ${entity.path} to $targetPath');
+
+          await Directory(path.dirname(targetPath)).create(recursive: true);
+          await entity.copy(targetPath);
         }
+      }
+    } else {
+      // For large archives, probably some sort of app or bundle, extract it all!
+      _log('Large archive detected (${allFiles.length} files), preserving directory structure');
 
-        // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
-        targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
+      // Find the root directory of the extracted files
+      final rootContents = await extractedDir.list(recursive: false).toList();
+      final rootDir = rootContents.firstWhere(
+        (e) => e is Directory,
+        orElse: () => extractedDir,
+      ) as Directory;
 
-        // Remove -latest
-        targetName = targetName.replaceAll('-latest', '');
+      // Move everything to assets/
+      final targetDir = Directory(path.join(datadir.path, 'assets'));
+      await targetDir.create(recursive: true);
 
-        final targetPath = path.join(datadir.path, 'assets', targetName);
-        _log('Moving binary from ${entity.path} to $targetPath');
+      _log('Moving contents from ${rootDir.path} to ${targetDir.path}');
 
-        await Directory(path.dirname(targetPath)).create(recursive: true);
-        await entity.copy(targetPath);
+      // Copy all contents preserving directory structure
+      await for (final entity in rootDir.list(recursive: false)) {
+        final targetPath = path.join(targetDir.path, path.basename(entity.path));
+        if (entity is Directory) {
+          await Directory(targetPath).create(recursive: true);
+          await for (final child in entity.list(recursive: true)) {
+            if (child is File) {
+              final relativePath = path.relative(child.path, from: entity.path);
+              final childTargetPath = path.join(targetPath, relativePath);
+              await Directory(path.dirname(childTargetPath)).create(recursive: true);
+              await child.copy(childTargetPath);
+            }
+          }
+        } else if (entity is File) {
+          await entity.copy(targetPath);
+        }
       }
     }
   }
