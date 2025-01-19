@@ -226,7 +226,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                   const SizedBox(width: 8),
                   SailButton.primary(
                     'Create Wallet',
-                    onPressed: _handleCreateWallet,
+                    onPressed: _showAdvanced ? () => _handleCreateWallet() : () {},
                     size: ButtonSize.regular,
                   ),
                 ],
@@ -247,20 +247,10 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                 },
                 size: ButtonSize.regular,
               ),
-              Row(
-                children: [
-                  SailButton.secondary(
-                    'Fast Mode',
-                    onPressed: _handleFastMode,
-                    size: ButtonSize.regular,
-                  ),
-                  const SizedBox(width: 8),
-                  SailButton.primary(
-                    'Create Wallet',
-                    onPressed: _handleCreateWallet,
-                    size: ButtonSize.regular,
-                  ),
-                ],
+              SailButton.primary(
+                'Fast Mode',
+                onPressed: _handleFastMode,
+                size: ButtonSize.regular,
               ),
             ],
           ),
