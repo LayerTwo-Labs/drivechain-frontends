@@ -99,6 +99,7 @@ class ProcessProvider extends ChangeNotifier {
       // Try assets directory with possible extensions
       final assetPath = path.join(datadir!.path, 'assets');
       final possibleAssetPaths = [
+        path.join(assetPath, binary),
         path.join(assetPath, executablePath),
         if (Platform.isMacOS) path.join(assetPath, '$binary.app'),
         if (Platform.isWindows) path.join(assetPath, '$binary.exe'),

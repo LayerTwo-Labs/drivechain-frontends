@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.layertwolabs" "\0"
-            VALUE "FileDescription", "drivechain_launcher" "\0"
+            VALUE "FileDescription", "launcher" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "drivechain_launcher" "\0"
+            VALUE "InternalName", "launcher" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 Layer Two Labs. All rights reserved." "\0"
-            VALUE "OriginalFilename", "drivechain_launcher.exe" "\0"
-            VALUE "ProductName", "Drivechain Launcher" "\0"
+            VALUE "OriginalFilename", "launcher.exe" "\0"
+            VALUE "ProductName", "launcher" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
