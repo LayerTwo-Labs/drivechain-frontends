@@ -14,7 +14,7 @@ class MockSidechainRPC extends SidechainRPC {
         );
 
   @override
-  Future<(double, double)> getBalance() async {
+  Future<(double, double)> balance() async {
     return (1.12345678, 2.24680);
   }
 

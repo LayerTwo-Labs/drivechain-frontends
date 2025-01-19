@@ -40,6 +40,9 @@ abstract class RPCConnection extends ChangeNotifier {
   // for bitcoin core based binaries, returns the block height
   Future<int> ping();
 
+  /// Returns confirmed and unconfirmed balance.
+  Future<(double, double)> balance();
+
   bool initializingBinary = false;
   bool _testing = false;
 

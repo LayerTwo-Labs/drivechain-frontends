@@ -2,6 +2,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
@@ -141,6 +142,12 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<int> ping() async {
     return await _bitcoind.getBlockchainInfo().then((value) => value.blocks);
+  }
+
+  @override
+  Future<(double, double)> balance() async {
+    final balanceSat = await _wallet.getBalance();
+    return (satoshiToBTC(balanceSat.confirmedSatoshi.toInt()), satoshiToBTC(balanceSat.pendingSatoshi.toInt()));
   }
 
   @override

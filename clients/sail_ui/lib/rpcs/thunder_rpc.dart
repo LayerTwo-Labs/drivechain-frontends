@@ -1,5 +1,6 @@
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
@@ -65,6 +66,12 @@ class ThunderLive extends ThunderRPC {
   Future<int> ping() async {
     final balanceSat = await _client().call('balance') as int;
     return balanceSat;
+  }
+
+  @override
+  Future<(double, double)> balance() async {
+    final balanceSat = await _client().call('balance') as int;
+    return (satoshiToBTC(balanceSat.toInt()), 0.0);
   }
 
   @override

@@ -36,7 +36,7 @@ class BalanceProvider extends ChangeNotifier {
       }
       _isFetching = true;
 
-      final (newBalance, newPendingBalance) = await sidechain.rpc.getBalance();
+      final (newBalance, newPendingBalance) = await sidechain.rpc.balance();
       const newInitialized = true;
 
       if (_dataHasChanged(newBalance, newPendingBalance, newInitialized)) {
