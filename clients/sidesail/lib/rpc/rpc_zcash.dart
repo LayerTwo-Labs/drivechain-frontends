@@ -88,10 +88,12 @@ abstract class ZCashRPC extends SidechainRPC {
       conf,
     );
 
-    addEntryIfNotSet(args, 'mainport', mainchainConf.port.toString());
-    addEntryIfNotSet(args, 'mainhost', mainchainConf.host);
+    final sidechainArgs = [
+      '-mainport=${mainchainConf.port}',
+      '-mainhost=${mainchainConf.host}',
+    ];
 
-    return args;
+    return unduplicatedArgs(args, sidechainArgs);
   }
 
   @override

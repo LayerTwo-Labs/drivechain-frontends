@@ -259,7 +259,8 @@ class TestchainRPCLive extends TestchainRPC {
       '-mainchainrpcuser=${mainchainConf.username}',
       '-mainchainrpcpassword=${mainchainConf.password}',
     ];
-    return [...baseArgs, ...sidechainArgs];
+
+    return unduplicatedArgs(baseArgs, sidechainArgs);
   }
 
   @override

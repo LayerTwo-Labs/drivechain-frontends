@@ -116,15 +116,24 @@ class MainchainRPCLive extends MainchainRPC {
   Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
   ) async {
+    log.i('Getting binary args for mainchain');
     var baseArgs = bitcoinCoreBinaryArgs(
       conf,
     );
+    log.d('Base bitcoin core args: $baseArgs');
+
     if (conf.confPath.isNotEmpty) {
+      log.d('Config path is not empty: ${conf.confPath}');
       var parts = conf.splitPath(conf.confPath);
       final dataDir = parts.$1;
+      log.d('Data directory path: $dataDir');
+
       // Ensure the directory exists
       Directory(dataDir).createSync(recursive: true);
+      log.i('Created data directory at: $dataDir');
+
       baseArgs.add('-datadir=$dataDir');
+      log.d('Added datadir arg: -datadir=$dataDir');
     }
 
     final sidechainArgs = [
@@ -141,19 +150,17 @@ class MainchainRPCLive extends MainchainRPC {
       '-fallbackfee=0.00021',
       '-zmqpubsequence=tcp://0.0.0.0:29000',
     ];
+    log.d('Sidechain specific args: $sidechainArgs');
 
-    // Only add sidechain args that aren't already in baseArgs
-    final extraArgs = sidechainArgs.where((arg) {
-      final paramName = arg.split('=')[0];
-      return !baseArgs.any((baseArg) => baseArg.startsWith(paramName));
-    }).toList();
-
-    return [...baseArgs, ...extraArgs];
+    final finalArgs = unduplicatedArgs(baseArgs, sidechainArgs);
+    log.i('Final binary args: $finalArgs');
+    return finalArgs;
   }
 
   @override
   Future<void> stop() async {
     await _client().call('stop');
+    notifyListeners();
   }
 
   @override
