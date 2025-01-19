@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:get_it/get_it.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
   return await widgetDialog<bool>(
@@ -30,6 +32,7 @@ class _WelcomeModalContent extends StatefulWidget {
 class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   bool _showAdvanced = false;
   bool _useMnemonic = true;
+  bool _generateStarters = true;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final WalletService _walletService = GetIt.I.get<WalletService>();
@@ -57,7 +60,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     );
   }
 
-  void _handleFastMode() async {
+  Future<void> _handleFastMode() async {
     try {
       final wallet = await _walletService.generateWallet();
       if (!mounted) return;
@@ -70,11 +73,18 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       final success = await _walletService.saveWallet(wallet);
       if (!mounted) return;
 
-      if (success) {
-        Navigator.of(context).pop(true);
-      } else {
+      if (!success) {
         await _showErrorDialog('Failed to save wallet');
+        return;
       }
+
+      // Generate starters if enabled
+      if (_generateStarters) {
+        await _walletService.generateStartersForDownloadedChains();
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       await _showErrorDialog('Unexpected error: $e');
@@ -112,11 +122,18 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       final success = await _walletService.saveWallet(wallet);
       if (!mounted) return;
 
-      if (success) {
-        Navigator.of(context).pop(true);
-      } else {
+      if (!success) {
         await _showErrorDialog('Failed to save wallet');
+        return;
       }
+
+      // Generate starters if enabled
+      if (_generateStarters) {
+        await _walletService.generateStartersForDownloadedChains();
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       await _showErrorDialog('Unexpected error: $e');
@@ -165,6 +182,21 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         SailText.primary13(
           'Create a wallet starter - this generates a master key that will be used to derive unique keys for each sidechain, allowing you to securely manage multiple chains from a single source.',
           color: SailTheme.of(context).colors.textSecondary,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Checkbox(
+              value: _generateStarters,
+              onChanged: (value) {
+                setState(() {
+                  _generateStarters = value ?? true;
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+            SailText.primary13('Generate starters for downloaded sidechains'),
+          ],
         ),
         if (_showAdvanced) ...[
           const SizedBox(height: 16),
