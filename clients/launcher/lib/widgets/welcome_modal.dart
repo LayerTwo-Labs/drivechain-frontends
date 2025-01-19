@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:get_it/get_it.dart';
-import 'package:flutter/services.dart';
-import 'dart:convert';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
   return await widgetDialog<bool>(
