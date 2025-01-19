@@ -84,10 +84,6 @@ abstract class ZCashRPC extends SidechainRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    final args = bitcoinCoreBinaryArgs(
-      conf,
-    );
-
     final sidechainArgs = [
       '-mainport=${mainchainConf.port}',
       '-mainhost=${mainchainConf.host}',
