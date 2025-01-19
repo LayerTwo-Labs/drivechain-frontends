@@ -19,9 +19,9 @@ class ChainSettingsModal extends StatelessWidget {
     final baseDir = binary.directories.base[os];
     if (baseDir == null) return;
 
-    final datadir = await Environment.datadir();
+    final appDir = await Environment.appDir();
 
-    await openDir(datadir);
+    await openDir(appDir);
   }
 
   @override
@@ -53,7 +53,7 @@ class ChainSettingsModal extends StatelessWidget {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => chain.wipeDatadir(context),
+                        onPressed: () => chain.wipeAppDir(context),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white),

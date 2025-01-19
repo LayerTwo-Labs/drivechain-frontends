@@ -29,7 +29,7 @@ class DownloadState {
 /// Manages downloads and installations of binaries
 class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
-  final Directory datadir;
+  final Directory appDir;
   late List<Binary> binaries;
   StreamSubscription<FileSystemEvent>? _dirWatcher;
 
@@ -66,7 +66,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get inIBD => mainchainRPC?.inIBD ?? false;
 
   BinaryProvider({
-    required this.datadir,
+    required this.appDir,
     required List<Binary> initialBinaries,
   }) {
     binaries = initialBinaries;
@@ -81,14 +81,13 @@ class BinaryProvider extends ChangeNotifier {
 
   void _setupDirectoryWatcher() {
     // Watch the assets directory for changes
-    final assetsDir = Directory(path.join(datadir.path, 'assets'));
+    final assetsDir = Directory(path.join(appDir.path, 'assets'));
     _dirWatcher = assetsDir.watch(recursive: true).listen((event) {
       // Skip if there are any active downloads
       if (_activeDownloads.values.any((active) => active)) {
         return;
       }
 
-      _log('File system changed: ${event.path}');
       switch (event.type) {
         case FileSystemEvent.create:
         case FileSystemEvent.delete:
@@ -103,13 +102,9 @@ class BinaryProvider extends ChangeNotifier {
 
   /// Initialize download states for all binaries
   Future<void> initialize() async {
-    _log('Read binaries from assets/chain_config.json: Found ${binaries.length} binaries');
-
     for (var i = 0; i < binaries.length; i++) {
       final binary = binaries[i];
       try {
-        _log('Checking binary: ${binary.name} (${binary.binary})');
-        _log('datadir is: ${datadir.path}');
         await initRPC(binary);
 
         // Check release date from server
@@ -120,8 +115,7 @@ class BinaryProvider extends ChangeNotifier {
         }
 
         // Check if binary exists in assets/
-        final exists = await binary.exists(datadir);
-        _log('${binary.name} exists: $exists');
+        final exists = await binary.exists(appDir);
 
         if (!exists) {
           _downloadStates[binary.name] = DownloadState(
@@ -131,8 +125,7 @@ class BinaryProvider extends ChangeNotifier {
         }
 
         // Load metadata from assets/
-        final metadata = await binary.loadMetadata(datadir);
-        _log('${binary.name} metadata: ${metadata != null}');
+        final metadata = await binary.loadMetadata(appDir);
 
         if (metadata != null) {
           // Update the binary's download config with the downloaded timestamp
@@ -147,7 +140,6 @@ class BinaryProvider extends ChangeNotifier {
           message: metadata != null ? 'Installed (${metadata.releaseDate?.toLocal()})' : 'Installed (unverified)',
         );
       } catch (e) {
-        _log('Error initializing state for ${binary.name}: $e');
         _downloadStates[binary.name] = DownloadState(
           status: DownloadStatus.failed,
           error: 'Could not determine binary status: $e',
@@ -167,10 +159,6 @@ class BinaryProvider extends ChangeNotifier {
   /// Get all L2 chain configurations
   List<Binary> getL2Chains() {
     return binaries.where((chain) => chain.chainLayer == 2).toList();
-  }
-
-  void _log(String message) {
-    log.i('BinaryProvider: $message');
   }
 
   /// Update status for a binary
@@ -204,7 +192,7 @@ class BinaryProvider extends ChangeNotifier {
         if (enforcerRPC == null) {
           enforcerRPC = await EnforcerLive.create(
             binary: binary,
-            logPath: path.join(datadir.path, 'enforcer.log'),
+            logPath: path.join(appDir.path, 'enforcer.log'),
           );
           enforcerRPC!.addListener(notifyListeners);
         }
@@ -215,7 +203,7 @@ class BinaryProvider extends ChangeNotifier {
             host: 'localhost',
             port: binary.port,
             binary: binary,
-            logPath: path.join(datadir.path, 'bitwindow.log'),
+            logPath: path.join(appDir.path, 'bitwindow.log'),
           );
           bitwindowRPC!.addListener(notifyListeners);
         }
@@ -224,7 +212,7 @@ class BinaryProvider extends ChangeNotifier {
         if (thunderRPC == null) {
           thunderRPC = await ThunderLive.create(
             binary: binary,
-            logPath: path.join(datadir.path, 'thunder.log'),
+            logPath: path.join(appDir.path, 'thunder.log'),
           );
           thunderRPC!.addListener(notifyListeners);
         }
@@ -282,14 +270,13 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> downloadBinary(Binary binary) async {
     // Check if already downloading
     if (_activeDownloads[binary.name] == true) {
-      _log('Download already in progress for ${binary.name}');
       return;
     }
 
     _activeDownloads[binary.name] = true;
     try {
       final releaseDate = await binary.downloadAndExtract(
-        datadir,
+        appDir,
         (status, {progress = 0.0, message, error}) {
           _updateStatus(
             binary,
@@ -310,7 +297,7 @@ class BinaryProvider extends ChangeNotifier {
     } finally {
       // Only clean up if this was the only active download
       if (_activeDownloads.values.where((active) => active).length == 1) {
-        await _cleanUp(datadir);
+        await _cleanUp(appDir);
       }
       // after 3 seconds, set the download state to false
       await Future.delayed(const Duration(seconds: 3));

@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
-import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
+import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as path;
+import 'package:flutter/services.dart';
 import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
-import 'package:flutter/services.dart';
+import 'package:path/path.dart' as path;
 
 class WalletService extends ChangeNotifier {
   final _logger = Logger();
@@ -201,7 +202,7 @@ class WalletService extends ChangeNotifier {
 
   Future<void> _saveSidechainStarter(int sidechainSlot, Map<String, dynamic> starterData) async {
     try {
-      final appDir = await Environment.datadir();
+      final appDir = await Environment.appDir();
       final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
 
       // Load chain config to get sidechain name
@@ -244,7 +245,7 @@ class WalletService extends ChangeNotifier {
   }
 
   Future<File> _getWalletFile() async {
-    final appDir = await Environment.datadir();
+    final appDir = await Environment.appDir();
     final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
     return File(path.join(walletDir.path, 'master_starter.json'));
   }

@@ -1,11 +1,12 @@
 import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:launcher/env.dart';
-import 'package:logger/logger.dart';
 import 'package:launcher/widgets/welcome_modal.dart';
-import 'package:sail_ui/sail_ui.dart';
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
 class SettingsPage extends StatelessWidget {
@@ -13,8 +14,8 @@ class SettingsPage extends StatelessWidget {
 
   Future<void> _openWalletStarterDirectory() async {
     final logger = Logger();
-    final dataDir = await Environment.datadir();
-    final walletStarterDir = path.join(dataDir.path, 'wallet_starters');
+    final appDir = await Environment.appDir();
+    final walletStarterDir = path.join(appDir.path, 'wallet_starters');
     logger.i('Opening directory: $walletStarterDir');
 
     if (Platform.isWindows) {

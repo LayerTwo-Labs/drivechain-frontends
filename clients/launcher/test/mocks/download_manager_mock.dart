@@ -7,7 +7,7 @@ import 'package:sail_ui/providers/binary_provider.dart';
 class MockDownloadProvider extends BinaryProvider {
   final _statusController = StreamController<void>.broadcast();
 
-  MockDownloadProvider() : super(datadir: Directory(''), initialBinaries: []);
+  MockDownloadProvider() : super(appDir: Directory(''), initialBinaries: []);
 
   @override
   Future<bool> downloadBinary(Binary binary) async {

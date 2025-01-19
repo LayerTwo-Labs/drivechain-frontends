@@ -381,7 +381,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
 
     if (result == true) {
       try {
-        final appDir = await Environment.datadir();
+        final appDir = await Environment.appDir();
         final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
 
         if (walletDir.existsSync()) {
@@ -479,7 +479,7 @@ class ToolsPageViewModel extends BaseViewModel {
 
   Future<List<Map<String, dynamic>>> loadStarters() async {
     try {
-      final appDir = await Environment.datadir();
+      final appDir = await Environment.appDir();
       final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
 
       if (!walletDir.existsSync()) {
