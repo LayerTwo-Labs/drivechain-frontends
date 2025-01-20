@@ -11,7 +11,6 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:super_clipboard/super_clipboard.dart';
 
 class FaucetViewModel extends BaseViewModel {
   ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
@@ -130,15 +129,12 @@ class _FaucetPageState extends State<FaucetPage> {
                         QtIconButton(
                           tooltip: 'Paste from clipboard',
                           onPressed: () async {
-                            if (SystemClipboard.instance != null) {
-                              await SystemClipboard.instance?.read().then((reader) async {
-                                if (reader.canProvide(Formats.plainText)) {
-                                  final text = await reader.readValue(Formats.plainText);
-
-                                  model.addressController.text = text ?? model.addressController.text;
-                                }
-                              });
-                            } else {
+                            try {
+                              final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                              if (clipboardData?.text != null) {
+                                model.addressController.text = clipboardData!.text!;
+                              }
+                            } catch (e) {
                               showSnackBar(context, 'Clipboard not available');
                             }
                           },

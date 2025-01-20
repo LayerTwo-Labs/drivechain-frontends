@@ -7,12 +7,12 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:super_clipboard/super_clipboard.dart';
 
 @RoutePage()
 class SidechainsPage extends StatelessWidget {
@@ -342,18 +342,6 @@ class SidechainsViewModel extends BaseViewModel {
   List<ListSidechainDepositsResponse_SidechainDeposit> get recentDeposits =>
       sidechainProvider.sidechains[_selectedIndex ?? 254]?.deposits ?? [];
 
-  void pasteAddress() async {
-    if (SystemClipboard.instance != null) {
-      await SystemClipboard.instance?.read().then((reader) async {
-        if (reader.canProvide(Formats.plainText)) {
-          final text = await reader.readValue(Formats.plainText);
-          addressController.text = text ?? addressController.text;
-          notifyListeners();
-        }
-      });
-    }
-  }
-
   void clearAddress() {
     addressController.clear();
     notifyListeners();
@@ -449,7 +437,17 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
               ),
               QtIconButton(
                 tooltip: 'Paste from clipboard',
-                onPressed: viewModel.pasteAddress,
+                onPressed: () async {
+                  try {
+                    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                    if (clipboardData?.text != null) {
+                      viewModel.addressController.text = clipboardData!.text!;
+                      viewModel.notifyListeners(); // Make sure UI updates
+                    }
+                  } catch (e) {
+                    showSnackBar(context, 'Error accessing clipboard');
+                  }
+                },
                 icon: Icon(
                   Icons.content_paste_rounded,
                   size: 20.0,
