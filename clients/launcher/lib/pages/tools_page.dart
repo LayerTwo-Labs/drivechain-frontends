@@ -1,14 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
-import 'package:get_it/get_it.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
-import 'dart:convert';
-import 'package:path/path.dart' as path;
+import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
 import 'package:launcher/services/wallet_service.dart';
+import 'package:path/path.dart' as path;
+import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class ToolsPage extends StatelessWidget {
@@ -38,7 +39,7 @@ class ToolsPage extends StatelessWidget {
               ),
               TabItem(
                 label: 'Starters',
-                icon: SailSVGAsset.iconCoins,
+                icon: SailSVGAsset.iconTabStarters,
                 child: StartersTab(),
               ),
             ],
@@ -785,7 +786,7 @@ class ToolsPageViewModel extends BaseViewModel {
     final appDir = await Environment.appDir();
     final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
     final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
-    
+
     if (masterFile.existsSync()) {
       final content = await masterFile.readAsString();
       final data = jsonDecode(content) as Map<String, dynamic>;
@@ -796,7 +797,7 @@ class ToolsPageViewModel extends BaseViewModel {
       if (l1File.existsSync()) {
         final l1Content = await l1File.readAsString();
         final l1Data = jsonDecode(l1Content) as Map<String, dynamic>;
-        l1Data['chain_layer'] = 1;  // Ensure chain_layer is set
+        l1Data['chain_layer'] = 1; // Ensure chain_layer is set
         starters.add(l1Data);
       } else {
         // Find L1 chain from config
@@ -818,11 +819,11 @@ class ToolsPageViewModel extends BaseViewModel {
 
     for (final chain in l2Chains) {
       final isDownloaded = await _isBinaryDownloaded(chain);
-      
+
       if (isDownloaded) {
         final chainName = chain['name'] as String;
         final sidechainSlot = chain['sidechain_slot'] as int?;
-        
+
         if (sidechainSlot != null) {
           final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
           final starterExists = starterFile.existsSync();
@@ -831,7 +832,7 @@ class ToolsPageViewModel extends BaseViewModel {
             final content = await starterFile.readAsString();
             final data = jsonDecode(content) as Map<String, dynamic>;
             data['sidechain_slot'] = sidechainSlot;
-            data['chain_layer'] = 2;  // Explicitly set chain layer
+            data['chain_layer'] = 2; // Explicitly set chain layer
             starters.add(data);
           } else {
             // Add placeholder for chains without starters
@@ -839,7 +840,7 @@ class ToolsPageViewModel extends BaseViewModel {
               'name': chainName,
               'sidechain_slot': sidechainSlot,
               'mnemonic': null,
-              'chain_layer': 2,  // Explicitly set chain layer
+              'chain_layer': 2, // Explicitly set chain layer
             });
           }
         }
@@ -881,7 +882,7 @@ class ToolsPageViewModel extends BaseViewModel {
 
   Future<void> deleteStarter(int? sidechainSlot) async {
     if (sidechainSlot == null) return;
-    
+
     try {
       final appDir = await Environment.appDir();
       final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
