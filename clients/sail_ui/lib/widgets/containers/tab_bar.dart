@@ -50,7 +50,7 @@ class _InlineTabBarState extends State<InlineTabBar> {
                       widget.tabs[index].icon,
                       color:
                           isSelected ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.textTertiary,
-                      width: 18,
+                      height: 18,
                     ),
                     const SizedBox(width: SailStyleValues.padding08),
                     SailText.primary13(
