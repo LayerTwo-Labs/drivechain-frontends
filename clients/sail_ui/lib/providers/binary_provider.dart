@@ -60,6 +60,12 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
   bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
+  bool get mainchainStopping => mainchainRPC?.stoppingBinary ?? false;
+  bool get enforcerStopping => enforcerRPC?.stoppingBinary ?? false;
+  bool get bitwindowStopping => bitwindowRPC?.stoppingBinary ?? false;
+  bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
+  bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
+
   // Add a flag to track if binaries were explicitly launched
   final Map<String, bool> _explicitlyLaunched = {};
 
@@ -79,12 +85,6 @@ class BinaryProvider extends ChangeNotifier {
     binaries = initialBinaries;
     initialize();
     _setupDirectoryWatcher();
-    // Add listeners to notify UI of status changes
-    mainchainRPC?.addListener(notifyListeners);
-    enforcerRPC?.addListener(notifyListeners);
-    bitwindowRPC?.addListener(notifyListeners);
-    thunderRPC?.addListener(notifyListeners);
-    bitnamesRPC?.addListener(notifyListeners);
   }
 
   void _setupDirectoryWatcher() {

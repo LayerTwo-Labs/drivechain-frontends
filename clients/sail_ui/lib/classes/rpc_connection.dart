@@ -283,7 +283,9 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Future<void> stop() async {
     try {
+      log.i('stopping rpc');
       stoppingBinary = true;
+      notifyListeners();
       // Try graceful shutdown first
       await stopRPC().timeout(
         const Duration(seconds: 5),
@@ -293,8 +295,15 @@ abstract class RPCConnection extends ChangeNotifier {
           await processes.kill(binary);
         },
       );
+      connected = false;
+      connectionError = null;
+      connectionTimer?.cancel();
+    } catch (e) {
+      log.e('could not stop rpc: $e');
     } finally {
+      log.i('stopping rpc successfully');
       stoppingBinary = false;
+      notifyListeners();
     }
   }
 

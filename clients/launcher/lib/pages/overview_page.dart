@@ -33,12 +33,16 @@ class _OverviewPageState extends State<OverviewPage> {
   @override
   void initState() {
     super.initState();
-    _binaryProvider.addListener(_onBinaryProviderUpdate);
-    _processProvider.addListener(_onBinaryProviderUpdate);
-    _walletService.addListener(_onBinaryProviderUpdate);
-    _loadChainConfig();
-    FlutterWindowClose.setWindowShouldCloseHandler(() async {
-      return await displayShutdownModal(context);
+
+    // Add all listeners and initialization after build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _binaryProvider.addListener(_onBinaryProviderUpdate);
+      _processProvider.addListener(_onBinaryProviderUpdate);
+      _walletService.addListener(_onBinaryProviderUpdate);
+      _loadChainConfig();
+      FlutterWindowClose.setWindowShouldCloseHandler(() async {
+        return await displayShutdownModal(context);
+      });
     });
   }
 
@@ -365,13 +369,22 @@ class _OverviewPageState extends State<OverviewPage> {
     };
 
     final stopping = switch (binary) {
-      var b when b is ParentChain => _binaryProvider.mainchainRPC?.stoppingBinary ?? false,
-      var b when b is Enforcer => _binaryProvider.enforcerRPC?.stoppingBinary ?? false,
-      var b when b is BitWindow => _binaryProvider.bitwindowRPC?.stoppingBinary ?? false,
-      var b when b is Thunder => _binaryProvider.thunderRPC?.stoppingBinary ?? false,
-      var b when b is Bitnames => _binaryProvider.bitnamesRPC?.stoppingBinary ?? false,
+      var b when b is ParentChain => _binaryProvider.mainchainStopping,
+      var b when b is Enforcer => _binaryProvider.enforcerStopping,
+      var b when b is BitWindow => _binaryProvider.bitwindowStopping,
+      var b when b is Thunder => _binaryProvider.thunderStopping,
+      var b when b is Bitnames => _binaryProvider.bitnamesStopping,
       _ => false,
     };
+
+    if (stopping) {
+      return SailButton.primary(
+        'Stopping...',
+        onPressed: () {}, // Disable button while stopping
+        size: ButtonSize.regular,
+        loading: true,
+      );
+    }
 
     if (isRunning) {
       return SailButton.secondary(
@@ -398,15 +411,6 @@ class _OverviewPageState extends State<OverviewPage> {
       return SailButton.primary(
         'Launching...',
         onPressed: () {}, // Disable button while initializing
-        size: ButtonSize.regular,
-        loading: true,
-      );
-    }
-
-    if (stopping) {
-      return SailButton.primary(
-        'Stopping...',
-        onPressed: () {}, // Disable button while stopping
         size: ButtonSize.regular,
         loading: true,
       );
