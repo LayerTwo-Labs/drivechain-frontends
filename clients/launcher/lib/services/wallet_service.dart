@@ -257,19 +257,151 @@ class WalletService extends ChangeNotifier {
       final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
       final chains = jsonData['chains'] as List<dynamic>;
       
+      debugPrint('Checking for downloaded chains...');
+      
+      // Check for downloaded L1 chain first
+      for (final chain in chains) {
+        if (chain['chain_layer'] == 1) {
+          debugPrint('Found L1 chain: ${chain['name']}');
+          final appDir = await Environment.appDir();
+          final assetsDir = Directory(path.join(appDir.path, 'assets'));
+          final binaryName = (chain['binary'] as Map<String, dynamic>)['darwin'] as String;
+          final binaryPath = path.join(assetsDir.path, binaryName);
+          
+          debugPrint('Checking L1 binary at: $binaryPath');
+          if (File(binaryPath).existsSync()) {
+            debugPrint('L1 binary found, generating starter');
+            // Generate L1 starter if binary exists
+            await deriveL1Starter();
+            debugPrint('L1 starter generated');
+            break;  // Only need one L1 starter
+          } else {
+            debugPrint('L1 binary not found');
+          }
+        }
+      }
+      
       // For each chain in config that has a sidechain slot
       for (final chain in chains) {
         final sidechainSlot = chain['sidechain_slot'] as int?;
         if (sidechainSlot != null) {
-          // Generate starter for this chain
-          await deriveSidechainStarter(sidechainSlot);
+          debugPrint('Found sidechain: ${chain['name']} with slot $sidechainSlot');
+          // Check if binary is downloaded
+          final appDir = await Environment.appDir();
+          final assetsDir = Directory(path.join(appDir.path, 'assets'));
+          final binaryName = (chain['binary'] as Map<String, dynamic>)['darwin'] as String;
+          final binaryPath = path.join(assetsDir.path, binaryName);
+          
+          debugPrint('Checking sidechain binary at: $binaryPath');
+          if (File(binaryPath).existsSync()) {
+            debugPrint('Sidechain binary found, generating starter');
+            // Generate starter for this chain
+            await deriveSidechainStarter(sidechainSlot);
+            debugPrint('Sidechain starter generated');
+          } else {
+            debugPrint('Sidechain binary not found');
+          }
         }
       }
 
       // Notify listeners after all starters are generated
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error generating sidechain starters: $e');
+    } catch (e, stack) {
+      debugPrint('Error generating starters: $e\n$stack');
+    }
+  }
+
+  Future<Map<String, dynamic>?> deriveL1Starter() async {
+    try {
+      // Load master starter
+      final masterWallet = await loadWallet();
+      if (masterWallet == null) {
+        _logger.e('Master starter not found');
+        throw Exception('Master starter not found');
+      }
+
+      // Validate master wallet data
+      if (!masterWallet.containsKey('xprv')) {
+        _logger.e('Master starter is missing required field: xprv');
+        throw Exception('Master starter is missing required field: xprv');
+      }
+
+      // Import master key and derive L1 key with fixed path
+      final chain = Chain.import(masterWallet['xprv']);
+      const l1Path = "m/44'/0'/256'";
+      final l1Key = chain.forPath(l1Path) as ExtendedPrivateKey;
+
+      // Hash the private key and take first 16 bytes for 128-bit entropy
+      final privateKeyBytes = hex.decode(l1Key.privateKeyHex());
+      final hashedKey = sha256.convert(privateKeyBytes).bytes;
+      final entropy = hashedKey.sublist(0, 16);
+
+      final mnemonic = Mnemonic(entropy, Language.english);
+
+      // Create a new chain from the mnemonic's seed to get a proper master key
+      final l1Chain = Chain.seed(hex.encode(mnemonic.seed));
+      final l1MasterKey = l1Chain.forPath('m') as ExtendedPrivateKey;
+
+      // Create L1 starter with new mnemonic and master key
+      final l1Starter = {
+        'mnemonic': mnemonic.sentence,
+        'seed_hex': hex.encode(mnemonic.seed),
+        'xprv': l1MasterKey.toString(),
+        'parent_xprv': masterWallet['xprv'],
+        'derivation_path': l1Path,
+        'name': 'Bitcoin Core (Patched)',
+        'chain_layer': 1,
+      };
+
+      // Save to L1-specific file
+      await _saveL1Starter(l1Starter);
+
+      return l1Starter;
+    } catch (e, stackTrace) {
+      _logger.e('Error deriving L1 starter: $e\n$stackTrace');
+      rethrow;
+    }
+  }
+
+  Future<void> _saveL1Starter(Map<String, dynamic> starterData) async {
+    try {
+      final appDir = await Environment.appDir();
+      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+
+      // Ensure wallet directory exists
+      if (!walletDir.existsSync()) {
+        await walletDir.create(recursive: true);
+      }
+
+      // Create L1 starter file
+      final l1StarterFile = File(path.join(walletDir.path, 'l1_starter.json'));
+
+      // Write data with proper formatting
+      await l1StarterFile.writeAsString(
+        JsonEncoder.withIndent('  ').convert(starterData),
+      );
+
+      notifyListeners();
+    } catch (e, stackTrace) {
+      _logger.e('Error saving L1 starter: $e\n$stackTrace');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteL1Starter() async {
+    try {
+      final appDir = await Environment.appDir();
+      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+      final l1StarterFile = File(path.join(walletDir.path, 'l1_starter.json'));
+
+      if (l1StarterFile.existsSync()) {
+        await l1StarterFile.delete();
+      }
+
+      notifyListeners();
+    } catch (e, stackTrace) {
+      _logger.e('Error deleting L1 starter: $e\n$stackTrace');
+      rethrow;
     }
   }
 }
