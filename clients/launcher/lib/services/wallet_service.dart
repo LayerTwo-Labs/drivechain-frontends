@@ -197,6 +197,8 @@ class WalletService extends ChangeNotifier {
     } catch (e, stackTrace) {
       _logger.e('Error deriving sidechain starter: $e\n$stackTrace');
       rethrow;
+    } finally {
+      notifyListeners();
     }
   }
 
@@ -256,9 +258,9 @@ class WalletService extends ChangeNotifier {
       final jsonString = await rootBundle.loadString('assets/chain_config.json');
       final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
       final chains = jsonData['chains'] as List<dynamic>;
-      
+
       debugPrint('Checking for downloaded chains...');
-      
+
       // Check for downloaded L1 chain first
       for (final chain in chains) {
         if (chain['chain_layer'] == 1) {
@@ -267,20 +269,20 @@ class WalletService extends ChangeNotifier {
           final assetsDir = Directory(path.join(appDir.path, 'assets'));
           final binaryName = (chain['binary'] as Map<String, dynamic>)['darwin'] as String;
           final binaryPath = path.join(assetsDir.path, binaryName);
-          
+
           debugPrint('Checking L1 binary at: $binaryPath');
           if (File(binaryPath).existsSync()) {
             debugPrint('L1 binary found, generating starter');
             // Generate L1 starter if binary exists
             await deriveL1Starter();
             debugPrint('L1 starter generated');
-            break;  // Only need one L1 starter
+            break; // Only need one L1 starter
           } else {
             debugPrint('L1 binary not found');
           }
         }
       }
-      
+
       // For each chain in config that has a sidechain slot
       for (final chain in chains) {
         final sidechainSlot = chain['sidechain_slot'] as int?;
@@ -291,7 +293,7 @@ class WalletService extends ChangeNotifier {
           final assetsDir = Directory(path.join(appDir.path, 'assets'));
           final binaryName = (chain['binary'] as Map<String, dynamic>)['darwin'] as String;
           final binaryPath = path.join(assetsDir.path, binaryName);
-          
+
           debugPrint('Checking sidechain binary at: $binaryPath');
           if (File(binaryPath).existsSync()) {
             debugPrint('Sidechain binary found, generating starter');

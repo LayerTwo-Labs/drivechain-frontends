@@ -595,7 +595,6 @@ class _OverviewPageState extends State<OverviewPage> {
   Future<void> _deleteL1Starter() async {
     try {
       await _walletService.deleteL1Starter();
-      setState(() {}); // Refresh UI
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -610,7 +609,6 @@ class _OverviewPageState extends State<OverviewPage> {
   Future<void> _generateL1Starter() async {
     try {
       await _walletService.deriveL1Starter();
-      setState(() {}); // Refresh UI
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -722,7 +720,6 @@ class _OverviewPageState extends State<OverviewPage> {
   Future<void> _generateStarter(int sidechainSlot) async {
     try {
       await _walletService.deriveSidechainStarter(sidechainSlot);
-      setState(() {}); // Refresh UI
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
