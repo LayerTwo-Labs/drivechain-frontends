@@ -24,6 +24,8 @@ class ChainSettingsModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     final baseDir = chain.directories.base[os];
     final binary = chain.binary;
     final downloadFile = chain.download.files[os];
@@ -35,7 +37,7 @@ class ChainSettingsModal extends StatelessWidget {
         height: 500,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: SailColorScheme.blackLighter,
+          color: theme.colors.backgroundSecondary,
           borderRadius: BorderRadius.circular(8),
         ),
         child: SingleChildScrollView(
@@ -54,7 +56,7 @@ class ChainSettingsModal extends StatelessWidget {
                         onPressed: () => chain.wipeAppDir(context),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
+                        icon: Icon(Icons.close, color: theme.colors.text),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ],
@@ -62,18 +64,20 @@ class ChainSettingsModal extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              _buildInfoRow('Version', chain.version),
-              if (chain.repoUrl.isNotEmpty) _buildInfoRow('Repository', chain.repoUrl),
-              _buildInfoRow('Network Port', chain.network.port.toString()),
-              _buildInfoRow('Chain Layer', chain.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
-              if (baseDir != null) _buildInfoRow('Installation Directory', baseDir),
-              _buildInfoRow('Binary Path', binary),
-              if (downloadFile != null) _buildInfoRow('Download File', downloadFile),
+              _buildInfoRow(context, 'Version', chain.version),
+              if (chain.repoUrl.isNotEmpty) _buildInfoRow(context, 'Repository', chain.repoUrl),
+              _buildInfoRow(context, 'Network Port', chain.network.port.toString()),
+              _buildInfoRow(context, 'Chain Layer', chain.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
+              if (baseDir != null) _buildInfoRow(context, 'Installation Directory', baseDir),
+              _buildInfoRow(context, 'Binary Path', binary),
+              if (downloadFile != null) _buildInfoRow(context, 'Download File', downloadFile),
               _buildInfoRow(
+                context,
                 'Latest Release At',
                 chain.download.remoteTimestamp?.toLocal().toString() ?? 'N/A',
               ),
               _buildInfoRow(
+                context,
                 'Your Version',
                 chain.download.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
               ),
@@ -93,14 +97,17 @@ class ChainSettingsModal extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    final theme = SailTheme.of(context);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.secondary13(
+          SailText.primary13(
             label,
+            color: theme.colors.textTertiary,
           ),
           const SizedBox(height: 4),
           SailText.primary13(value),
