@@ -1,18 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
-import 'package:launcher/env.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -164,7 +161,6 @@ class _OverviewPageState extends State<OverviewPage> {
 
   Future<void> _handleBinaryDownload(BuildContext context, Binary binary) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    debugPrint('Starting download for ${binary.name}');
     await _binaryProvider.downloadBinary(binary);
     debugPrint('Download completed for ${binary.name}');
 
@@ -173,13 +169,11 @@ class _OverviewPageState extends State<OverviewPage> {
       for (final chain in chains) {
         if (chain['name'].toString().toLowerCase() == binary.name.toLowerCase() && chain['sidechain_slot'] != null) {
           final sidechainSlot = chain['sidechain_slot'] as int;
-          debugPrint('Creating sidechain starter for slot $sidechainSlot');
           try {
             await _walletService.deriveSidechainStarter(sidechainSlot);
             debugPrint('Successfully created sidechain starter for slot $sidechainSlot');
           } catch (e) {
             debugPrint('Error creating sidechain starter: $e');
-            // Show error to user
             if (mounted) {
               scaffoldMessenger.showSnackBar(
                 SnackBar(
