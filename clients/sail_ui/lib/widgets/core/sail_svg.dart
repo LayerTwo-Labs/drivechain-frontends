@@ -16,6 +16,7 @@ enum SailSVGAsset {
   iconTabConsole,
   iconTabSettings,
   iconTabTools,
+  iconTabStarters,
 
   iconCalendar,
   iconQuestion,
@@ -135,6 +136,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_tab_settings.svg';
       case SailSVGAsset.iconTabTools:
         return 'assets/svgs/icon_tab_tools.svg';
+      case SailSVGAsset.iconTabStarters:
+        return 'assets/svgs/icon_tab_starters.svg';
 
       case SailSVGAsset.iconCalendar:
         return 'assets/svgs/icon_calendar.svg';
