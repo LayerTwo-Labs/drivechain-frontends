@@ -2,12 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:get_it/get_it.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
-  return await widgetDialog<bool>(
+  return await showThemedDialog<bool>(
     context: context,
-    title: 'Welcome to Drivechain',
-    child: const _WelcomeModalContent(),
+    builder: (context) => PopScope(
+      canPop: false,
+      child: Dialog(
+        backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
+        child: SailRawCard(
+          header: DialogHeader(
+            title: 'Welcome to Drivechain',
+            onClose: () {}, // Disable close button
+          ),
+          child: const _WelcomeModalContent(),
+        ),
+      ),
+    ),
   );
 }
 
@@ -36,6 +50,25 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   final WalletService _walletService = GetIt.I.get<WalletService>();
 
   @override
+  void initState() {
+    super.initState();
+    // Check if we can close the modal
+    _checkMasterStarter();
+  }
+
+  Future<void> _checkMasterStarter() async {
+    final appDir = await getApplicationSupportDirectory();
+    final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+    final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
+
+    if (masterFile.existsSync()) {
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _mnemonicController.dispose();
     _passphraseController.dispose();
@@ -43,18 +76,11 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   }
 
   Future<void> _showErrorDialog(String message) async {
-    await showDialog(
+    await errorDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      action: 'Error',
+      title: 'Error',
+      subtitle: message,
     );
   }
 
@@ -91,25 +117,16 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   Future<void> _handleCreateWallet() async {
     try {
-      String? input = _useMnemonic ? _mnemonicController.text : null;
-      String? passphrase = _passphraseController.text.isNotEmpty ? _passphraseController.text : null;
-
-      if (_useMnemonic && input!.isEmpty) {
-        await _showErrorDialog('Please enter a valid mnemonic phrase');
-        return;
-      }
-
-      if (_useMnemonic && !_isValidMnemonic(input!)) {
-        await _showErrorDialog(
-          'Invalid mnemonic phrase. Please enter 12 or 24 words separated by spaces.',
-        );
+      if (_useMnemonic && _mnemonicController.text.isNotEmpty && !_isValidMnemonic(_mnemonicController.text)) {
+        await _showErrorDialog('Invalid mnemonic format. Please enter 12 or 24 words.');
         return;
       }
 
       final wallet = await _walletService.generateWallet(
-        customMnemonic: _useMnemonic ? input : null,
-        passphrase: passphrase,
+        customMnemonic: _mnemonicController.text.isNotEmpty ? _mnemonicController.text : null,
+        passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
       );
+
       if (!mounted) return;
 
       if (wallet.containsKey('error')) {
@@ -185,6 +202,19 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         Row(
           children: [
             Checkbox(
+              value: _useMnemonic,
+              onChanged: (value) {
+                setState(() {
+                  _useMnemonic = value ?? false;
+                  _mnemonicController.clear();
+                  _passphraseController.clear();
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+            SailText.primary13('Use BIP39 Mnemonic'),
+            const SizedBox(width: 24),
+            Checkbox(
               value: _generateStarters,
               onChanged: (value) {
                 setState(() {
@@ -193,28 +223,12 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
               },
             ),
             const SizedBox(width: 8),
-            SailText.primary13('Generate starters for downloaded sidechains'),
+            SailText.primary13('Generate starters for downloaded chains'),
+            const Spacer(),
           ],
         ),
         if (_showAdvanced) ...[
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Checkbox(
-                value: _useMnemonic,
-                onChanged: (value) {
-                  setState(() {
-                    _useMnemonic = value ?? false;
-                    _mnemonicController.clear();
-                    _passphraseController.clear();
-                  });
-                },
-              ),
-              const SizedBox(width: 8),
-              SailText.primary13('Use BIP39 Mnemonic'),
-            ],
-          ),
-          const SizedBox(height: 8),
           if (_useMnemonic) ...[
             SailTextField(
               controller: _mnemonicController,
@@ -269,16 +283,16 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SailButton.secondary(
-                _showAdvanced ? 'Simple Mode' : 'Advanced Mode',
+                'Advanced Mode',
                 onPressed: () {
                   setState(() {
-                    _showAdvanced = !_showAdvanced;
+                    _showAdvanced = true;
                   });
                 },
                 size: ButtonSize.regular,
               ),
               SailButton.primary(
-                'Fast Mode',
+                'Create Wallet',
                 onPressed: _handleFastMode,
                 size: ButtonSize.regular,
               ),
