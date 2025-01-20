@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:grpc/grpc.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
@@ -59,7 +61,7 @@ class EnforcerLive extends EnforcerRPC {
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     var host = mainchainConf.host;
-    if (host == 'localhost') {
+    if (host == 'localhost' && !Platform.isWindows) {
       host = '0.0.0.0';
     }
 
