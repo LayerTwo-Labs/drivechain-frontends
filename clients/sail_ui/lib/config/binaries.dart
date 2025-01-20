@@ -70,6 +70,8 @@ abstract class Binary {
         return Enforcer();
       case 'thunder':
         return Thunder();
+      case 'bitnames':
+        return Bitnames();
     }
     return null;
   }
@@ -87,6 +89,7 @@ abstract class Binary {
       'zSide' => ZCashSidechain(),
       'EthSide' => EthereumSidechain(),
       'Thunder' => Thunder(),
+      'Bitnames' => Bitnames(),
       _ => _BinaryImpl(
           name: name,
           version: json['version'] as String? ?? '',

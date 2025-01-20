@@ -53,7 +53,7 @@ class WalletButtonModel extends ChangeNotifier {
     final newBalances = <WalletBalance>[];
     var total = 0.0;
 
-    // Add other RPCs similarly...
+    // BitWindow balance
     if (_binaryProvider.bitwindowRPC?.connected == true) {
       try {
         final (confirmed, unconfirmed) = await _binaryProvider.bitwindowRPC!.balance();
@@ -70,12 +70,30 @@ class WalletButtonModel extends ChangeNotifier {
       }
     }
 
+    // Thunder balance
     if (_binaryProvider.thunderRPC?.connected == true) {
       try {
         final (confirmed, unconfirmed) = await _binaryProvider.thunderRPC!.balance();
         newBalances.add(
           WalletBalance(
             name: 'Thunder',
+            confirmedBalance: confirmed,
+            unconfirmedBalance: unconfirmed,
+          ),
+        );
+        total += confirmed + unconfirmed;
+      } catch (e) {
+        // Handle error
+      }
+    }
+
+    // BitNames balance
+    if (_binaryProvider.bitnamesRPC?.connected == true) {
+      try {
+        final (confirmed, unconfirmed) = await _binaryProvider.bitnamesRPC!.balance();
+        newBalances.add(
+          WalletBalance(
+            name: 'BitNames',
             confirmedBalance: confirmed,
             unconfirmedBalance: unconfirmed,
           ),

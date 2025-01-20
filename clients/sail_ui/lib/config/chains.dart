@@ -32,6 +32,9 @@ abstract class Sidechain extends Binary {
 
       case 'thunder':
         return Thunder();
+
+      case 'bitnames':
+        return Bitnames();
     }
     return null;
   }
@@ -286,6 +289,72 @@ class Thunder extends Sidechain {
     String? walletFile,
   }) {
     return Thunder(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      download: download ?? this.download,
+      binary: binary ?? this.binary,
+      network: network ?? this.network,
+      chainLayer: chainLayer ?? this.chainLayer,
+      walletFile: walletFile ?? this.walletFile,
+    );
+  }
+}
+
+class Bitnames extends Sidechain {
+  Bitnames({
+    super.name = 'Bitnames',
+    super.version = '0.1.0',
+    super.description = 'Bitnames Sidechain',
+    super.repoUrl = 'https://github.com/drivechain-project/bitnames',
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    super.binary = 'bitnames',
+    NetworkConfig? network,
+    super.chainLayer = 2,
+    super.walletFile = 'wallet.mdb',
+  }) : super(
+          directories: directories ??
+              DirectoryConfig(
+                base: {
+                  OS.linux: '.plain_bitnames',
+                  OS.macos: 'plain_bitnames',
+                  OS.windows: 'plain_bitnames',
+                },
+              ),
+          download: download ??
+              DownloadConfig(
+                baseUrl: 'https://releases.drivechain.info/',
+                files: {
+                  OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
+                  OS.macos: 'L2-S2-BitNames-latest-x86_64-apple-darwin.zip',
+                  OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
+                },
+              ),
+          network: network ?? NetworkConfig(port: 6002),
+        );
+
+  @override
+  int slot = 2;
+
+  @override
+  Color color = SailColorScheme.green;
+
+  @override
+  Bitnames copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    DownloadConfig? download,
+    String? binary,
+    NetworkConfig? network,
+    int? chainLayer,
+    String? walletFile,
+  }) {
+    return Bitnames(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,
