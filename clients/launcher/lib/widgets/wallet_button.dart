@@ -348,7 +348,8 @@ class _WalletButtonState extends State<WalletButton> {
 
     if (viewModel.balances.isEmpty) {
       return Center(
-        child: Column(
+        child: SailColumn(
+          spacing: SailStyleValues.padding08,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SailSVG.icon(
@@ -365,10 +366,14 @@ class _WalletButtonState extends State<WalletButton> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: viewModel.balances.map((balance) {
-        return _TokenListItem(
-          name: balance.name,
-          amount: '${balance.confirmedBalance.toStringAsFixed(8)} BTC',
-          value: balance.unconfirmedBalance > 0 ? '(${balance.unconfirmedBalance.toStringAsFixed(8)} unconfirmed)' : '',
+        return SailPadding(
+          padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+          child: _TokenListItem(
+            name: balance.name,
+            amount: '${balance.confirmedBalance.toStringAsFixed(8)} BTC',
+            value:
+                balance.unconfirmedBalance > 0 ? '(${balance.unconfirmedBalance.toStringAsFixed(8)} unconfirmed)' : '',
+          ),
         );
       }).toList(),
     );

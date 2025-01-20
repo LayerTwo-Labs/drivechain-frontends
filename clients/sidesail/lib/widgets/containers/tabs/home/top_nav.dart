@@ -156,6 +156,8 @@ class _TopNavState extends State<TopNav> {
         return [];
       case Thunder():
         return [];
+      case Bitnames():
+        return [];
       default:
         throw Exception('could not handle unknown sidechain type ${chain.runtimeType}');
     }

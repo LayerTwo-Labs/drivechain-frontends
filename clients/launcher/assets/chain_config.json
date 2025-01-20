@@ -119,6 +119,36 @@
       "chain_layer": 2,
       "wallet_file": "wallet.dat",
       "sidechain_slot": 9
+    },
+    {
+      "version": "latest",
+      "name": "Bitnames",
+      "description": "",
+      "repo_url": "",
+      "directories": {
+        "linux": ".plain_bitnames",
+        "darwin": "plain_bitnames",
+        "win32": "plain_bitnames"
+      },
+      "download": {
+        "base_url": "https://releases.drivechain.info/",
+        "files": {
+          "linux": "L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip",
+          "darwin": "L2-S2-BitNames-latest-x86_64-apple-darwin.zip",
+          "win32": "L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip"
+        }
+      },
+      "binary": {
+        "linux": "bitnames",
+        "darwin": "bitnames",
+        "win32": "bitnames.exe"
+      },
+      "network": {
+        "port": 6002
+      },
+      "chain_layer": 2,
+      "wallet_file": "wallet.mdb",
+      "sidechain_slot": 2
     }
   ]
 }

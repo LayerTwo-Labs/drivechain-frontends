@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -46,18 +47,19 @@ class BinaryProvider extends ChangeNotifier {
   EnforcerRPC? enforcerRPC;
   BitwindowRPC? bitwindowRPC;
   ThunderRPC? thunderRPC;
+  BitnamesRPC? bitnamesRPC;
 
   // Connection status getters
   bool get mainchainConnected => mainchainRPC?.connected ?? false;
   bool get enforcerConnected => enforcerRPC?.connected ?? false;
   bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
   bool get thunderConnected => thunderRPC?.connected ?? false;
-
+  bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
   bool get mainchainInitializing => mainchainRPC?.initializingBinary ?? false;
   bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
   bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
-
+  bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
   // Add a flag to track if binaries were explicitly launched
   final Map<String, bool> _explicitlyLaunched = {};
 
@@ -66,6 +68,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get enforcerError => _explicitlyLaunched[Enforcer().name] == true ? enforcerRPC?.connectionError : null;
   String? get bitwindowError => _explicitlyLaunched[BitWindow().name] == true ? bitwindowRPC?.connectionError : null;
   String? get thunderError => _explicitlyLaunched[Thunder().name] == true ? thunderRPC?.connectionError : null;
+  String? get bitnamesError => _explicitlyLaunched[Bitnames().name] == true ? bitnamesRPC?.connectionError : null;
 
   bool get inIBD => mainchainRPC?.inIBD ?? false;
 
@@ -81,6 +84,7 @@ class BinaryProvider extends ChangeNotifier {
     enforcerRPC?.addListener(notifyListeners);
     bitwindowRPC?.addListener(notifyListeners);
     thunderRPC?.addListener(notifyListeners);
+    bitnamesRPC?.addListener(notifyListeners);
   }
 
   void _setupDirectoryWatcher() {
@@ -202,6 +206,9 @@ class BinaryProvider extends ChangeNotifier {
       case Thunder():
         await thunderRPC!.initBinary(context);
 
+      case Bitnames():
+        await bitnamesRPC!.initBinary(context);
+
       default:
         log.i('is $binary');
     }
@@ -227,6 +234,7 @@ class BinaryProvider extends ChangeNotifier {
       Enforcer() => enforcerConnected,
       BitWindow() => bitwindowConnected,
       Thunder() => thunderConnected,
+      Bitnames() => bitnamesConnected,
       _ => false,
     };
   }
@@ -280,6 +288,7 @@ class BinaryProvider extends ChangeNotifier {
     return switch (binary) {
       BitWindow() => mainchainConnected && enforcerConnected,
       Thunder() => mainchainConnected && enforcerConnected, // L2 binary
+      Bitnames() => mainchainConnected && enforcerConnected,
       _ => true, // No dependencies for mainchain/enforcer
     };
   }
@@ -330,6 +339,15 @@ class BinaryProvider extends ChangeNotifier {
           thunderRPC!.addListener(notifyListeners);
         }
 
+      case Bitnames():
+        if (bitnamesRPC == null) {
+          bitnamesRPC = await BitnamesLive.create(
+            binary: binary,
+            logPath: path.join(binary.datadir(), 'bitnames.log'),
+          );
+          bitnamesRPC!.addListener(notifyListeners);
+        }
+
       default:
         log.i('is $binary');
     }
@@ -344,6 +362,10 @@ class BinaryProvider extends ChangeNotifier {
     enforcerRPC?.dispose();
     bitwindowRPC?.removeListener(notifyListeners);
     bitwindowRPC?.dispose();
+    thunderRPC?.removeListener(notifyListeners);
+    thunderRPC?.dispose();
+    bitnamesRPC?.removeListener(notifyListeners);
+    bitnamesRPC?.dispose();
     super.dispose();
   }
 }

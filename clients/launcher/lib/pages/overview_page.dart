@@ -241,28 +241,22 @@ class _OverviewPageState extends State<OverviewPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 16),
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final availableWidth = constraints.maxWidth;
-                                    final cardWidth = availableWidth >= 900
-                                        ? (availableWidth - (3 * 16)) / 4 // 4 cards with 16px spacing
-                                        : (availableWidth - 16) / 2; // 2 cards with 16px spacing
-
-                                    return Wrap(
-                                      spacing: 16.0,
-                                      runSpacing: 16.0,
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+                                  child: IntrinsicHeight(
+                                    child: SailRow(
+                                      spacing: SailStyleValues.padding16,
                                       children: l1Chains.map((chain) {
                                         final status = statusSnapshot.data?[chain.name];
-                                        return SizedBox(
-                                          width: cardWidth,
+                                        return Expanded(
                                           child: SailRawCard(
                                             padding: true,
                                             child: _buildChainContent(chain, status),
                                           ),
                                         );
                                       }).toList(),
-                                    );
-                                  },
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -280,19 +274,23 @@ class _OverviewPageState extends State<OverviewPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 16),
-                                ...l2Chains.map((chain) {
-                                  final status = statusSnapshot.data?[chain.name];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0,
-                                      vertical: 8.0,
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+                                  child: IntrinsicHeight(
+                                    child: SailRow(
+                                      spacing: SailStyleValues.padding16,
+                                      children: l2Chains.map((chain) {
+                                        final status = statusSnapshot.data?[chain.name];
+                                        return Expanded(
+                                          child: SailRawCard(
+                                            padding: true,
+                                            child: _buildChainContent(chain, status),
+                                          ),
+                                        );
+                                      }).toList(),
                                     ),
-                                    child: SailRawCard(
-                                      padding: true,
-                                      child: _buildChainContent(chain, status),
-                                    ),
-                                  );
-                                }),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -357,6 +355,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is Enforcer => _binaryProvider.enforcerConnected,
       var b when b is BitWindow => _binaryProvider.bitwindowConnected,
       var b when b is Thunder => _binaryProvider.thunderConnected,
+      var b when b is Bitnames => _binaryProvider.bitnamesConnected,
       _ => false,
     };
 
@@ -366,6 +365,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is Enforcer => _binaryProvider.enforcerInitializing,
       var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
       var b when b is Thunder => _binaryProvider.thunderInitializing,
+      var b when b is Bitnames => _binaryProvider.bitnamesInitializing,
       _ => false,
     };
 
@@ -382,6 +382,8 @@ class _OverviewPageState extends State<OverviewPage> {
               await _binaryProvider.bitwindowRPC?.stop();
             case Thunder():
               await _binaryProvider.thunderRPC?.stop();
+            case Bitnames():
+              await _binaryProvider.bitnamesRPC?.stop();
           }
         },
         size: ButtonSize.regular,
@@ -459,51 +461,60 @@ class _OverviewPageState extends State<OverviewPage> {
         connected = _binaryProvider.thunderRPC?.connected ?? false;
         initializing = _binaryProvider.thunderRPC?.initializingBinary ?? false;
         error = _binaryProvider.thunderRPC?.connectionError;
+      case Bitnames():
+        connected = _binaryProvider.bitnamesRPC?.connected ?? false;
+        initializing = _binaryProvider.bitnamesRPC?.initializingBinary ?? false;
+        error = _binaryProvider.bitnamesRPC?.connectionError;
     }
 
     return Builder(
       builder: (context) => Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: SailText.primary24(
-                  binary.name,
+              Row(
+                children: [
+                  Expanded(
+                    child: SailText.primary24(
+                      binary.name,
+                      textAlign: TextAlign.left,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.settings, color: theme.colors.text, size: 20),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => ChainSettingsModal(chain: binary),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatusIndicator(connected, initializing, error),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                child: SailText.secondary13(
+                  binary.description,
                   textAlign: TextAlign.left,
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.settings, color: theme.colors.text, size: 20),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => ChainSettingsModal(chain: binary),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              _buildStatusIndicator(connected, initializing, error),
+              const SizedBox(height: 12),
+              _buildProgressIndicator(status),
+              if (status?.error != null || error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: SailText.secondary13(
+                    status?.error ?? error!,
+                    color: Colors.red,
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            child: SailText.secondary13(
-              binary.description,
-              textAlign: TextAlign.left,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildProgressIndicator(status),
-          if (status?.error != null || error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: SailText.secondary13(
-                status?.error ?? error!,
-                color: Colors.red,
-              ),
-            ),
-          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
