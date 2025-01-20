@@ -51,13 +51,33 @@ zip_name=$lower_app_name-osx64.zip
 echo Zipping into $zip_name
 
 ditto -c -k --sequesterRsrc --keepParent $app_name.app $zip_name
-
 if test -n "$notarization_key_path"; then
     echo Notarizing $app_name with key "$notarization_key_path" "($notarization_key_id)" and issuer ID "$notarization_issuer_id"
-    xcrun notarytool submit $zip_name \
-        --wait --key $notarization_key_path \
-        --key-id $notarization_key_id \
-        --issuer $notarization_issuer_id 
+    
+    # Retry notarization up to 3 times if it fails with bus error
+    max_retries=3
+    retry_count=0
+    notarization_success=false
+    
+    while [ $retry_count -lt $max_retries ] && [ "$notarization_success" = false ]; do
+        if xcrun notarytool submit $zip_name \
+            --wait --key $notarization_key_path \
+            --key-id $notarization_key_id \
+            --issuer $notarization_issuer_id; then
+            notarization_success=true
+        else
+            retry_count=$((retry_count + 1))
+            if [ $retry_count -lt $max_retries ]; then
+                echo "Notarization attempt $retry_count failed, retrying..."
+                sleep 5
+            fi
+        fi
+    done
+
+    if [ "$notarization_success" = false ]; then
+        echo "Failed to notarize after $max_retries attempts"
+        exit 1
+    fi
 
     # Ensure Gatekeeper can verify notarization status offline
     xcrun stapler staple $app_name.app
