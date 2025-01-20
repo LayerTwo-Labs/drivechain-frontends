@@ -435,6 +435,8 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Widget _buildChainContent(Binary binary, DownloadState? status) {
+    final theme = SailTheme.of(context);
+
     // Get RPC status based on binary type
     bool connected = false;
     bool initializing = false;
@@ -472,7 +474,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.settings, color: Colors.white, size: 20),
+                icon: Icon(Icons.settings, color: theme.colors.text, size: 20),
                 onPressed: () {
                   showDialog(
                     context: context,
