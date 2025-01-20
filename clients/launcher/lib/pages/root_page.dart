@@ -7,6 +7,9 @@ import 'package:launcher/widgets/wallet_button.dart';
 import 'package:launcher/pages/tools_page.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 @RoutePage()
 class RootPage extends StatefulWidget {
@@ -24,8 +27,16 @@ class _RootPageState extends State<RootPage> {
   void initState() {
     super.initState();
     // Show welcome modal after widget is initialized
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      showWelcomeModal(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final appDir = await getApplicationSupportDirectory();
+      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+      final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
+
+      if (!masterFile.existsSync()) {
+        if (mounted) {
+          await showWelcomeModal(context);
+        }
+      }
     });
   }
 
