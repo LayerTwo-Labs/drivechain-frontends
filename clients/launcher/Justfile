@@ -7,5 +7,10 @@ format:
 lint: format fix
 
 run:
-    flutter run -d macos
-
+    #!/usr/bin/env bash
+    case "$(uname -s)" in
+        Darwin*)  flutter run -d macos ;;    # macOS
+        Linux*)   flutter run -d linux ;;    # Linux
+        MINGW*|MSYS*|CYGWIN*)  flutter run -d windows ;; # Windows
+        *)        echo "Unknown operating system" && exit 1 ;;
+    esac
