@@ -323,13 +323,8 @@ class BinaryProvider extends ChangeNotifier {
   /// Get dependency message if binary cannot be started
   String? getDependencyMessage(Binary binary) {
     return switch (binary) {
-      BitWindow() when !mainchainConnected && !enforcerConnected =>
-        'Requires mainchain and enforcer to be running first',
       BitWindow() when !mainchainConnected => 'Requires mainchain to be running first',
-      BitWindow() when !enforcerConnected => 'Requires enforcer to be running first',
-      Thunder() when !mainchainConnected && !enforcerConnected => 'Requires mainchain and enforcer to be running first',
       Thunder() when !mainchainConnected => 'Requires mainchain to be running first',
-      Thunder() when !enforcerConnected => 'Requires enforcer to be running first',
       _ => null,
     };
   }
