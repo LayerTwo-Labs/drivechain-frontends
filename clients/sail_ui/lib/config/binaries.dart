@@ -277,9 +277,12 @@ abstract class Binary {
             // Move the file/directory up
             await entity.rename(newPath);
           }
-          // Clean up directories
-          await releaseDir.delete();
-          await innerDir.delete();
+
+          // Finally, remove the now-empty directories, making
+          // sure to delete recursively in case something was
+          // lingering
+          await releaseDir.delete(recursive: true);
+          await innerDir.delete(recursive: true);
           return;
         }
       }
@@ -296,8 +299,10 @@ abstract class Binary {
         // Now move the new file/directory
         await entity.rename(newPath);
       }
-      // Finally, remove the now-empty directory
-      await innerDir.delete();
+      // Finally, remove the now-empty directories, making
+      // sure to delete recursively in case something was
+      // lingering
+      await innerDir.delete(recursive: true);
     }
 
     // some binaries have additional naming conventions that convolutes things
