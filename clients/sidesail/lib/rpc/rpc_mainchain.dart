@@ -190,7 +190,7 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stopRPC() async {
     await _client().call('stop');
   }
 

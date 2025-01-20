@@ -82,7 +82,7 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stopRPC() async {
     await _client().call('stop');
   }
 }

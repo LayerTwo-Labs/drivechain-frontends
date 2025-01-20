@@ -34,7 +34,7 @@ abstract class RPCConnection extends ChangeNotifier {
   );
 
   // attempt to stop the binary gracefully
-  Future<void> stop();
+  Future<void> stopRPC();
 
   // used to ping the node to check if the connection is live
   // for bitcoin core based binaries, returns the block height
@@ -44,6 +44,7 @@ abstract class RPCConnection extends ChangeNotifier {
   Future<(double, double)> balance();
 
   bool initializingBinary = false;
+  bool stoppingBinary = false;
   bool _testing = false;
 
   Future<(bool, String?)> testConnection() async {
@@ -160,7 +161,7 @@ abstract class RPCConnection extends ChangeNotifier {
         context,
         binary.binary,
         args,
-        stop,
+        stopRPC,
       );
       log.i('init binaries: started $binary with PID $pid');
     } catch (err) {
@@ -278,6 +279,23 @@ abstract class RPCConnection extends ChangeNotifier {
     log.d('Args after deduplication: $args');
 
     return args;
+  }
+
+  Future<void> stop() async {
+    try {
+      stoppingBinary = true;
+      // Try graceful shutdown first
+      await stopRPC().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () async {
+          log.w('RPC stop timed out after 5s, killing process');
+          final processes = GetIt.I.get<ProcessProvider>();
+          await processes.kill(binary);
+        },
+      );
+    } finally {
+      stoppingBinary = false;
+    }
   }
 
   @override

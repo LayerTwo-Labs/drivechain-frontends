@@ -302,11 +302,12 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Widget _buildStatusIndicator(bool connected, bool initializing, String? error) {
-    final color = switch ((connected, initializing, error != null)) {
-      (true, _, _) => Colors.green,
-      (_, true, _) => Colors.orange,
-      (_, _, true) => Colors.red,
+  Widget _buildStatusIndicator(bool connected, bool initializing, bool stopping, String? error) {
+    final color = switch ((connected, initializing, stopping, error != null)) {
+      (true, _, _, _) => Colors.green,
+      (_, true, _, _) => Colors.orange,
+      (_, _, true, _) => Colors.orange,
+      (_, _, _, true) => Colors.red,
       _ => Colors.grey,
     };
 
@@ -363,6 +364,15 @@ class _OverviewPageState extends State<OverviewPage> {
       _ => false,
     };
 
+    final stopping = switch (binary) {
+      var b when b is ParentChain => _binaryProvider.mainchainRPC?.stoppingBinary ?? false,
+      var b when b is Enforcer => _binaryProvider.enforcerRPC?.stoppingBinary ?? false,
+      var b when b is BitWindow => _binaryProvider.bitwindowRPC?.stoppingBinary ?? false,
+      var b when b is Thunder => _binaryProvider.thunderRPC?.stoppingBinary ?? false,
+      var b when b is Bitnames => _binaryProvider.bitnamesRPC?.stoppingBinary ?? false,
+      _ => false,
+    };
+
     if (isRunning) {
       return SailButton.secondary(
         'Stop',
@@ -388,6 +398,15 @@ class _OverviewPageState extends State<OverviewPage> {
       return SailButton.primary(
         'Launching...',
         onPressed: () {}, // Disable button while initializing
+        size: ButtonSize.regular,
+        loading: true,
+      );
+    }
+
+    if (stopping) {
+      return SailButton.primary(
+        'Stopping...',
+        onPressed: () {}, // Disable button while stopping
         size: ButtonSize.regular,
         loading: true,
       );
@@ -436,28 +455,34 @@ class _OverviewPageState extends State<OverviewPage> {
     // Get RPC status based on binary type
     bool connected = false;
     bool initializing = false;
+    bool stopping = false;
     String? error;
 
     switch (binary) {
       case ParentChain():
         connected = _binaryProvider.mainchainRPC?.connected ?? false;
         initializing = _binaryProvider.mainchainRPC?.initializingBinary ?? false;
+        stopping = _binaryProvider.mainchainRPC?.stoppingBinary ?? false;
         error = _binaryProvider.mainchainRPC?.connectionError;
       case Enforcer():
         connected = _binaryProvider.enforcerRPC?.connected ?? false;
         initializing = _binaryProvider.enforcerRPC?.initializingBinary ?? false;
+        stopping = _binaryProvider.enforcerRPC?.stoppingBinary ?? false;
         error = _binaryProvider.enforcerRPC?.connectionError;
       case BitWindow():
         connected = _binaryProvider.bitwindowRPC?.connected ?? false;
         initializing = _binaryProvider.bitwindowRPC?.initializingBinary ?? false;
+        stopping = _binaryProvider.bitwindowRPC?.stoppingBinary ?? false;
         error = _binaryProvider.bitwindowRPC?.connectionError;
       case Thunder():
         connected = _binaryProvider.thunderRPC?.connected ?? false;
         initializing = _binaryProvider.thunderRPC?.initializingBinary ?? false;
+        stopping = _binaryProvider.thunderRPC?.stoppingBinary ?? false;
         error = _binaryProvider.thunderRPC?.connectionError;
       case Bitnames():
         connected = _binaryProvider.bitnamesRPC?.connected ?? false;
         initializing = _binaryProvider.bitnamesRPC?.initializingBinary ?? false;
+        stopping = _binaryProvider.bitnamesRPC?.stoppingBinary ?? false;
         error = _binaryProvider.bitnamesRPC?.connectionError;
     }
 
@@ -487,7 +512,7 @@ class _OverviewPageState extends State<OverviewPage> {
                     },
                   ),
                   const SizedBox(width: 8),
-                  _buildStatusIndicator(connected, initializing, error),
+                  _buildStatusIndicator(connected, initializing, stopping, error),
                 ],
               ),
               const SizedBox(height: 12),

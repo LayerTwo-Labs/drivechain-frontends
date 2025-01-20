@@ -299,7 +299,7 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stopRPC() async {
     return;
   }
 

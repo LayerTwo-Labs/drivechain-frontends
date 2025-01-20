@@ -167,7 +167,7 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stopRPC() async {
     return;
   }
 
