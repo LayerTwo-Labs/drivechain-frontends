@@ -520,12 +520,106 @@ class _OverviewPageState extends State<OverviewPage> {
               if (binary.chainLayer == 2) ...[
                 const Spacer(),
                 _buildWalletButton(binary, status),
+              ] else if (binary.chainLayer == 1 && binary is ParentChain) ...[
+                const Spacer(),
+                _buildL1StarterButton(status),
               ],
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildL1StarterButton(DownloadState? status) {
+    // If binary not downloaded, show disabled button
+    if (status?.status != DownloadStatus.installed) {
+      return SailButton.secondary(
+        '',
+        onPressed: () {},
+        size: ButtonSize.regular,
+        disabled: true,
+      );
+    }
+
+    return FutureBuilder<(bool, bool)>(
+      future: _checkL1WalletFiles(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (!snapshot.hasData) return const SizedBox();
+
+        final (hasMasterStarter, hasStarter) = snapshot.data!;
+
+        if (!hasMasterStarter) {
+          return SailButton.secondary(
+            '',
+            onPressed: () {},
+            size: ButtonSize.regular,
+            disabled: true,
+          );
+        }
+
+        if (hasStarter) {
+          return SailButton.secondary(
+            'Delete Starter',
+            onPressed: () => _deleteL1Starter(),
+            size: ButtonSize.regular,
+          );
+        } else {
+          return SailButton.primary(
+            'Generate Starter',
+            onPressed: () => _generateL1Starter(),
+            size: ButtonSize.regular,
+          );
+        }
+      },
+    );
+  }
+
+  Future<(bool, bool)> _checkL1WalletFiles() async {
+    final appDir = await Environment.appDir();
+    final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+    final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
+    final l1File = File(path.join(walletDir.path, 'l1_starter.json'));
+
+    return (masterFile.existsSync(), l1File.existsSync());
+  }
+
+  Future<void> _deleteL1Starter() async {
+    try {
+      await _walletService.deleteL1Starter();
+      setState(() {}); // Refresh UI
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting starter: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _generateL1Starter() async {
+    try {
+      await _walletService.deriveL1Starter();
+      setState(() {}); // Refresh UI
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating starter: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildWalletButton(Binary binary, DownloadState? status) {

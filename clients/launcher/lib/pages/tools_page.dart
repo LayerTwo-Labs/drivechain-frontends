@@ -8,7 +8,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path/path.dart' as path;
 import 'package:launcher/env.dart';
-import 'package:launcher/widgets/welcome_modal.dart';
+import 'package:launcher/services/wallet_service.dart';
 
 @RoutePage()
 class ToolsPage extends StatelessWidget {
@@ -21,6 +21,14 @@ class ToolsPage extends StatelessWidget {
         viewModelBuilder: () => GetIt.I.get<ToolsPageViewModel>(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
+          final tabsRouter = AutoTabsRouter.of(context);
+
+          if (tabsRouter.activeIndex != 1) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              model.resetStartersTab();
+            });
+          }
+
           return InlineTabBar(
             tabs: [
               TabItem(
@@ -216,24 +224,49 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SailText.primary24('Starters'),
-                const SizedBox(height: 8),
-                SailText.secondary13(
-                  'View and manage your wallet starters',
+                // Header section with improved spacing
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SailText.primary24('Starters'),
+                    const SizedBox(height: 8),
+                    SailText.secondary13(
+                      'View and manage your wallet starters',
+                      color: SailTheme.of(context).colors.textSecondary,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 FutureBuilder<List<Map<String, dynamic>>>(
                   future: viewModel.loadStarters(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
                     }
 
                     if (snapshot.hasError) {
                       return Center(
-                        child: SailText.secondary13(
-                          'Error loading starters: ${snapshot.error}',
-                          color: Colors.red,
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: SailTheme.of(context).colors.error,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 16),
+                              SailText.secondary13(
+                                'Error loading starters: ${snapshot.error}',
+                                color: SailTheme.of(context).colors.error,
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     }
@@ -241,174 +274,421 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                     final starters = snapshot.data ?? [];
                     if (starters.isEmpty) {
                       return Center(
-                        child: SailText.secondary13('No starters found'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: SailTheme.of(context).colors.textSecondary,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 16),
+                              SailText.secondary13(
+                                'No downloaded sidechains found',
+                                color: SailTheme.of(context).colors.textSecondary,
+                              ),
+                            ],
+                          ),
+                        ),
                       );
                     }
 
-                    return Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(2), // Starter column
-                        1: FlexColumnWidth(4), // Mnemonic column
-                        2: FixedColumnWidth(200), // Buttons column
-                      },
-                      children: [
-                        // Header row
-                        TableRow(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: SailText.primary15('Starter'),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: SailText.primary15('Mnemonic'),
-                            ),
-                            const SizedBox(), // Space for buttons
-                          ],
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: SailTheme.of(context).colors.divider,
+                          width: 1,
                         ),
-                        // Data rows
-                        ...starters.map((starter) {
-                          final isRevealed = viewModel.isStarterRevealed(starter['name']);
-                          return TableRow(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Table(
+                        columnWidths: const {
+                          0: FlexColumnWidth(2), // Starter column
+                          1: FlexColumnWidth(4), // Mnemonic column
+                          2: FixedColumnWidth(300), // Buttons column
+                        },
+                        children: [
+                          // Header row with improved styling
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: SailTheme.of(context).colors.formField,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(8),
+                                topRight: Radius.circular(8),
+                              ),
+                            ),
                             children: [
-                              // Starter name
                               Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: SailText.secondary13(starter['name'] ?? 'Unknown'),
-                              ),
-                              // Mnemonic
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: SailText.secondary13(
-                                  isRevealed ? starter['mnemonic'] ?? '' : '••••••••••••',
+                                padding: const EdgeInsets.all(12.0),
+                                child: SailText.primary15(
+                                  'Starter',
+                                  color: SailTheme.of(context).colors.text,
                                 ),
                               ),
-                              // Action buttons
                               Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    if (!isRevealed)
-                                      SailButton.secondary(
-                                        'Reveal',
-                                        onPressed: () => viewModel.toggleStarterReveal(starter['name'], true),
-                                        size: ButtonSize.small,
-                                      )
-                                    else ...[
-                                      SailButton.secondary(
-                                        'Copy',
-                                        onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
-                                        size: ButtonSize.small,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      SailButton.secondary(
-                                        'Hide',
-                                        onPressed: () => viewModel.toggleStarterReveal(starter['name'], false),
-                                        size: ButtonSize.small,
-                                      ),
-                                    ],
-                                  ],
+                                padding: const EdgeInsets.all(12.0),
+                                child: SailText.primary15(
+                                  'Mnemonic',
+                                  color: SailTheme.of(context).colors.text,
                                 ),
                               ),
+                              const SizedBox(), // Space for buttons
                             ],
-                          );
-                        }),
-                      ],
+                          ),
+                          // Master starter row
+                          ...starters.where((s) => s['name'] == 'Master').map((starter) {
+                            final isRevealed = viewModel.isStarterRevealed(starter['name']);
+                            final hasMnemonic = starter['mnemonic'] != null;
+
+                            return TableRow(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: SailTheme.of(context).colors.divider,
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              children: [
+                                // Starter name
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: SailText.primary13(
+                                    starter['name'] ?? 'Unknown',
+                                    color: SailTheme.of(context).colors.text,
+                                  ),
+                                ),
+                                // Mnemonic
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: SailText.secondary13(
+                                    hasMnemonic
+                                        ? (isRevealed ? starter['mnemonic'] ?? '' : '••••••••••••')
+                                        : 'No starter generated',
+                                    color: hasMnemonic
+                                        ? SailTheme.of(context).colors.text
+                                        : SailTheme.of(context).colors.textSecondary,
+                                  ),
+                                ),
+                                // Action buttons
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      if (hasMnemonic) ...[
+                                        if (!isRevealed)
+                                          SailButton.secondary(
+                                            'Reveal',
+                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], true),
+                                            size: ButtonSize.small,
+                                          )
+                                        else ...[
+                                          SailButton.secondary(
+                                            'Copy',
+                                            onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
+                                            size: ButtonSize.small,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          SailButton.secondary(
+                                            'Hide',
+                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], false),
+                                            size: ButtonSize.small,
+                                          ),
+                                        ],
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                          // Layer 1 divider and starters
+                          if (starters.any((s) => s['name'] == 'Master')) ...[
+                            TableRow(
+                              decoration: BoxDecoration(
+                                color: SailTheme.of(context).colors.formField,
+                              ),
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
+                                  child: SailText.primary15(
+                                    'Layer 1',
+                                    color: SailTheme.of(context).colors.text,
+                                  ),
+                                ),
+                                Container(),
+                                Container(),
+                              ],
+                            ),
+                          ],
+                          // L1 starter row
+                          ...starters.where((s) => s['name'] == 'Layer 1' || s['chain_layer'] == 1).map((starter) {
+                            final isRevealed = viewModel.isStarterRevealed(starter['name']);
+                            final hasMnemonic = starter['mnemonic'] != null;
+
+                            return TableRow(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: SailTheme.of(context).colors.divider,
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              children: [
+                                // Starter name
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: SailText.primary13(
+                                    starter['name'] ?? 'Unknown',
+                                    color: SailTheme.of(context).colors.text,
+                                  ),
+                                ),
+                                // Mnemonic
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: SailText.secondary13(
+                                    hasMnemonic
+                                        ? (isRevealed ? starter['mnemonic'] ?? '' : '••••••••••••')
+                                        : 'No starter generated',
+                                    color: hasMnemonic
+                                        ? SailTheme.of(context).colors.text
+                                        : SailTheme.of(context).colors.textSecondary,
+                                  ),
+                                ),
+                                // Action buttons
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      if (hasMnemonic) ...[
+                                        if (!isRevealed)
+                                          SailButton.secondary(
+                                            'Reveal',
+                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], true),
+                                            size: ButtonSize.small,
+                                          )
+                                        else ...[
+                                          SailButton.secondary(
+                                            'Copy',
+                                            onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
+                                            size: ButtonSize.small,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          SailButton.secondary(
+                                            'Hide',
+                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], false),
+                                            size: ButtonSize.small,
+                                          ),
+                                        ],
+                                        const SizedBox(width: 8),
+                                        SailButton.secondary(
+                                          'Delete Starter',
+                                          onPressed: () async {
+                                            try {
+                                              if (starter['chain_layer'] == 1) {
+                                                await viewModel.deleteL1Starter();
+                                              } else {
+                                                final sidechainSlot = starter['sidechain_slot'] as int?;
+                                                if (sidechainSlot == null) {
+                                                  throw Exception('Invalid sidechain slot');
+                                                }
+                                                await viewModel.deleteStarter(sidechainSlot);
+                                              }
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Error deleting starter: $e'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                          size: ButtonSize.small,
+                                        ),
+                                      ] else ...[
+                                        SailButton.primary(
+                                          'Generate Starter',
+                                          onPressed: () async {
+                                            try {
+                                              await viewModel.generateL1Starter();
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Error generating starter: $e'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                          size: ButtonSize.small,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                          // Layer 2 divider
+                          if (starters.any((s) => s['chain_layer'] == 2)) ...[
+                            TableRow(
+                              decoration: BoxDecoration(
+                                color: SailTheme.of(context).colors.formField,
+                              ),
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
+                                  child: SailText.primary15(
+                                    'Layer 2',
+                                    color: SailTheme.of(context).colors.text,
+                                  ),
+                                ),
+                                Container(),
+                                Container(),
+                              ],
+                            ),
+                          ],
+                          // Sidechain starter rows
+                          ...starters.where((s) => s['chain_layer'] == 2).map((starter) {
+                            final isRevealed = viewModel.isStarterRevealed(starter['name']);
+                            final sidechainSlot = starter['sidechain_slot'] as int?;
+                            final hasMnemonic = starter['mnemonic'] != null;
+
+                            return TableRow(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: SailTheme.of(context).colors.divider,
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              children: [
+                                // Starter name
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: SailText.primary13(
+                                    starter['name'] ?? 'Unknown',
+                                    color: SailTheme.of(context).colors.text,
+                                  ),
+                                ),
+                                // Mnemonic
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: SailText.secondary13(
+                                    hasMnemonic
+                                        ? (isRevealed ? starter['mnemonic'] ?? '' : '••••••••••••')
+                                        : 'No starter generated',
+                                    color: hasMnemonic
+                                        ? SailTheme.of(context).colors.text
+                                        : SailTheme.of(context).colors.textSecondary,
+                                  ),
+                                ),
+                                // Action buttons
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      if (hasMnemonic) ...[
+                                        if (!isRevealed)
+                                          SailButton.secondary(
+                                            'Reveal',
+                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], true),
+                                            size: ButtonSize.small,
+                                          )
+                                        else ...[
+                                          SailButton.secondary(
+                                            'Copy',
+                                            onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
+                                            size: ButtonSize.small,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          SailButton.secondary(
+                                            'Hide',
+                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], false),
+                                            size: ButtonSize.small,
+                                          ),
+                                        ],
+                                        const SizedBox(width: 8),
+                                        SailButton.secondary(
+                                          'Delete Starter',
+                                          onPressed: () async {
+                                            try {
+                                              if (starter['chain_layer'] == 1) {
+                                                await viewModel.deleteL1Starter();
+                                              } else {
+                                                final sidechainSlot = starter['sidechain_slot'] as int?;
+                                                if (sidechainSlot == null) {
+                                                  throw Exception('Invalid sidechain slot');
+                                                }
+                                                await viewModel.deleteStarter(sidechainSlot);
+                                              }
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Error deleting starter: $e'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                          size: ButtonSize.small,
+                                        ),
+                                      ] else ...[
+                                        SailButton.primary(
+                                          'Generate Starter',
+                                          onPressed: () async {
+                                            try {
+                                              await viewModel.generateStarter(sidechainSlot!);
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Error generating starter: $e'),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          },
+                                          size: ButtonSize.small,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
                     );
                   },
                 ),
               ],
             ),
           ),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: SailButton.secondary(
-              'Delete Starters',
-              onPressed: () => _showDeleteConfirmation(context),
-              size: ButtonSize.regular,
-            ),
-          ),
         ],
       ),
     );
-  }
-
-  Future<void> _showDeleteConfirmation(BuildContext context) async {
-    final navigator = Navigator.of(context);
-    final tabsRouter = AutoTabsRouter.of(context);
-    final theme = SailTheme.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: theme.colors.backgroundSecondary,
-        title: SailText.primary20(
-          'Delete Wallet Starters',
-          color: Colors.white,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SailText.secondary13(
-              'Are you sure you want to delete all wallet starters? This action cannot be undone.',
-            ),
-            const SizedBox(height: 16),
-            SailText.primary13(
-              'WARNING: If you have not stored your master mnemonic phrase, you will not be able to regenerate your sidechain starters.',
-              color: Colors.red,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          SailButton.secondary(
-            'Return',
-            onPressed: () => navigator.pop(false),
-            size: ButtonSize.regular,
-          ),
-          SailButton.primary(
-            'Delete',
-            onPressed: () => navigator.pop(true),
-            size: ButtonSize.regular,
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      try {
-        final appDir = await Environment.appDir();
-        final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-
-        if (walletDir.existsSync()) {
-          await walletDir.delete(recursive: true);
-        }
-
-        // Navigate to overview page
-        tabsRouter.setActiveIndex(0);
-
-        // Show welcome modal
-        if (navigator.mounted) {
-          await showWelcomeModal(navigator.context);
-        }
-      } catch (e) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('Error deleting wallet starters: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 }
 
 class ToolsPageViewModel extends BaseViewModel {
   final Set<String> _revealedStarters = {};
+  final WalletService _walletService = GetIt.I.get<WalletService>();
+  Map<String, dynamic>? _chainConfig;
 
   /// Whether to use localhost for the debug server.
   bool useLocalhost = false;
@@ -436,6 +716,17 @@ class ToolsPageViewModel extends BaseViewModel {
   void init() {
     // Initialize any required data
     amountController.text = '1.0 BTC';
+    _loadChainConfig();
+  }
+
+  Future<void> _loadChainConfig() async {
+    try {
+      final config = await rootBundle.loadString('assets/chain_config.json');
+      _chainConfig = jsonDecode(config) as Map<String, dynamic>;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading chain config: $e');
+    }
   }
 
   void resetStartersTab() {
@@ -477,42 +768,85 @@ class ToolsPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  Future<bool> _isBinaryDownloaded(Map<String, dynamic> chain) async {
+    final appDir = await Environment.appDir();
+    final chainName = chain['name'] as String;
+    final assetsDir = Directory(path.join(appDir.path, 'assets'));
+    final binaryPath = path.join(assetsDir.path, chainName.toLowerCase());
+    return File(binaryPath).existsSync();
+  }
+
   Future<List<Map<String, dynamic>>> loadStarters() async {
-    try {
-      final appDir = await Environment.appDir();
-      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-
-      if (!walletDir.existsSync()) {
-        return [];
-      }
-
-      final starters = <Map<String, dynamic>>[];
-
-      // First load master starter if it exists
-      final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
-      if (masterFile.existsSync()) {
-        final content = await masterFile.readAsString();
-        final data = jsonDecode(content) as Map<String, dynamic>;
-        starters.add(data);
-      }
-
-      // Then load sidechain starters
-      final files = walletDir.listSync();
-
-      for (final file in files) {
-        if (file.path.endsWith('_starter.json') && !file.path.endsWith('master_starter.json')) {
-          final content = await (file as File).readAsString();
-          final data = jsonDecode(content) as Map<String, dynamic>;
-          starters.add(data);
-        }
-      }
-
-      return starters;
-    } catch (e, stackTrace) {
-      debugPrint('Error loading starters: $e');
-      debugPrint('Stack trace: $stackTrace');
+    if (_chainConfig == null) {
       return [];
     }
+
+    final starters = <Map<String, dynamic>>[];
+    final appDir = await Environment.appDir();
+    final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+    final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
+    
+    if (masterFile.existsSync()) {
+      final content = await masterFile.readAsString();
+      final data = jsonDecode(content) as Map<String, dynamic>;
+      starters.add(data);
+
+      // Load L1 starter if master exists
+      final l1File = File(path.join(walletDir.path, 'l1_starter.json'));
+      if (l1File.existsSync()) {
+        final l1Content = await l1File.readAsString();
+        final l1Data = jsonDecode(l1Content) as Map<String, dynamic>;
+        l1Data['chain_layer'] = 1;  // Ensure chain_layer is set
+        starters.add(l1Data);
+      } else {
+        // Find L1 chain from config
+        final l1Chain = _chainConfig!['chains'].firstWhere(
+          (chain) => chain['chain_layer'] == 1,
+          orElse: () => {'name': 'Bitcoin Core'},
+        );
+        // Add placeholder for L1 starter
+        starters.add({
+          'name': l1Chain['name'] as String,
+          'mnemonic': null,
+          'chain_layer': 1,
+        });
+      }
+    }
+
+    final chains = _chainConfig!['chains'] as List<dynamic>;
+    final l2Chains = chains.where((chain) => chain['chain_layer'] == 2).toList();
+
+    for (final chain in l2Chains) {
+      final isDownloaded = await _isBinaryDownloaded(chain);
+      
+      if (isDownloaded) {
+        final chainName = chain['name'] as String;
+        final sidechainSlot = chain['sidechain_slot'] as int?;
+        
+        if (sidechainSlot != null) {
+          final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
+          final starterExists = starterFile.existsSync();
+
+          if (starterExists) {
+            final content = await starterFile.readAsString();
+            final data = jsonDecode(content) as Map<String, dynamic>;
+            data['sidechain_slot'] = sidechainSlot;
+            data['chain_layer'] = 2;  // Explicitly set chain layer
+            starters.add(data);
+          } else {
+            // Add placeholder for chains without starters
+            starters.add({
+              'name': chainName,
+              'sidechain_slot': sidechainSlot,
+              'mnemonic': null,
+              'chain_layer': 2,  // Explicitly set chain layer
+            });
+          }
+        }
+      }
+    }
+
+    return starters;
   }
 
   bool isStarterRevealed(String? starterName) {
@@ -533,5 +867,57 @@ class ToolsPageViewModel extends BaseViewModel {
   Future<void> copyStarterMnemonic(String? mnemonic) async {
     if (mnemonic == null) return;
     await Clipboard.setData(ClipboardData(text: mnemonic));
+  }
+
+  Future<void> generateStarter(int sidechainSlot) async {
+    try {
+      await _walletService.deriveSidechainStarter(sidechainSlot);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error generating starter: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteStarter(int? sidechainSlot) async {
+    if (sidechainSlot == null) return;
+    
+    try {
+      final appDir = await Environment.appDir();
+      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+      final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
+      await starterFile.delete();
+      // Force a rebuild of the starters list
+      _revealedStarters.clear();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting starter: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteL1Starter() async {
+    try {
+      final appDir = await Environment.appDir();
+      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
+      final l1File = File(path.join(walletDir.path, 'l1_starter.json'));
+      await l1File.delete();
+      // Force a rebuild of the starters list
+      _revealedStarters.clear();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting L1 starter: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> generateL1Starter() async {
+    try {
+      await _walletService.deriveL1Starter();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error generating L1 starter: $e');
+      rethrow;
+    }
   }
 }
