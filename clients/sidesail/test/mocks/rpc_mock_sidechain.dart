@@ -64,7 +64,7 @@ class MockSidechainRPC extends SidechainRPC {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stopRPC() async {
     return;
   }
 

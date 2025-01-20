@@ -161,7 +161,7 @@ class ProcessProvider extends ChangeNotifier {
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
     );
     runningProcesses[process.pid] = SailProcess(
-      binary: executablePath.split(Platform.pathSeparator).last,
+      binary: binary.split(Platform.pathSeparator).last,
       pid: process.pid,
       cleanup: cleanup,
     );
@@ -245,9 +245,22 @@ class ProcessProvider extends ChangeNotifier {
     return process.pid;
   }
 
+  Future<void> kill(Binary binary) async {
+    final process = runningProcesses.values.firstWhere(
+      (p) => p.binary == binary.binary.split(Platform.pathSeparator).last,
+      orElse: () => throw Exception('Process not found for binary ${binary.binary}'),
+    );
+
+    await _shutdownSingle(process);
+
+    // Wait for process to exit
+    while (runningProcesses.containsKey(process.pid)) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
   Future<void> shutdown() async {
     log.d('dispose process provider: killing processes $runningProcesses');
-
     await Future.wait(runningProcesses.values.map((process) => _shutdownSingle(process)));
   }
 

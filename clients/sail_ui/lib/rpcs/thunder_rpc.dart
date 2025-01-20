@@ -75,7 +75,7 @@ class ThunderLive extends ThunderRPC {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stopRPC() async {
     await _client().call('stop');
   }
 }

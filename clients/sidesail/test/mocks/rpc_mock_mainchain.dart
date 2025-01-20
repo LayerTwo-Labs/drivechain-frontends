@@ -71,7 +71,7 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stopRPC() async {
     return;
   }
 

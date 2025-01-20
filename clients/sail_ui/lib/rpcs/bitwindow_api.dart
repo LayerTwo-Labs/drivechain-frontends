@@ -151,7 +151,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stopRPC() async {
     // TODO: not implemented
   }
 }

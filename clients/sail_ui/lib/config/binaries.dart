@@ -246,110 +246,111 @@ abstract class Binary {
   }
 
   Future<void> _extract(Directory extractDir, String zipPath, Directory downloadsDir) async {
+    // Create a temporary directory for extraction
+    final tempDir = await Directory(path.join(extractDir.path, 'temp_extract')).create();
+
     final inputStream = InputFileStream(zipPath);
     final archive = ZipDecoder().decodeBuffer(inputStream);
 
-    await extractArchiveToDisk(
-      archive,
-      extractDir.path,
-    );
+    try {
+      await extractArchiveToDisk(
+        archive,
+        tempDir.path,
+      );
 
-    // Get the zip name without extension
-    final zipBaseName = path.basenameWithoutExtension(zipPath);
-    final expectedDirPath = path.join(extractDir.path, zipBaseName);
+      // Move files from temp directory to final location
+      await for (final entity in tempDir.list()) {
+        final baseName = path.basename(entity.path);
+        final targetPath = path.join(extractDir.path, baseName);
+        if (await FileSystemEntity.isDirectory(targetPath)) {
+          await Directory(targetPath).delete(recursive: true);
+        } else if (await FileSystemEntity.isFile(targetPath)) {
+          await File(targetPath).delete();
+        }
+        await entity.rename(targetPath);
+      }
 
-    if (await Directory(expectedDirPath).exists()) {
-      final innerDir = Directory(expectedDirPath);
-      // We extracted contents into a directory of the same name as the zip file!
-      // We must move all contents up one level to the parent directory for everything
-      // to run correctly. Especially more complex binaries like bitwindow.
+      // Clean up temp directory
+      await tempDir.delete(recursive: true);
 
-      // Special handling for Parent Chain on Windows - look in Release directory
-      if (Platform.isWindows && name == 'Bitcoin Core (Patched)') {
-        final releaseDir = Directory(path.join(innerDir.path, 'Release'));
-        if (await releaseDir.exists()) {
-          // Move files from Release directory up two levels
-          for (final entity in releaseDir.listSync()) {
-            final newPath = path.join(extractDir.path, path.basename(entity.path));
-            // Delete existing file/directory if it exists
-            if (await FileSystemEntity.isDirectory(newPath)) {
-              await Directory(newPath).delete(recursive: true);
-            } else if (await FileSystemEntity.isFile(newPath)) {
-              await File(newPath).delete();
+      // Get the zip name without extension
+      final zipBaseName = path.basenameWithoutExtension(zipPath);
+      final expectedDirPath = path.join(extractDir.path, zipBaseName);
+
+      if (await Directory(expectedDirPath).exists()) {
+        final innerDir = Directory(expectedDirPath);
+
+        // Special handling for Parent Chain on Windows - look in Release directory
+        if (Platform.isWindows && name == 'Bitcoin Core (Patched)') {
+          final releaseDir = Directory(path.join(innerDir.path, 'Release'));
+          if (await releaseDir.exists()) {
+            // Move files from Release directory up two levels
+            for (final entity in releaseDir.listSync()) {
+              final newPath = path.join(extractDir.path, path.basename(entity.path));
+              // Move the file/directory up
+              await entity.rename(newPath);
             }
-            // Move the file/directory up
-            await entity.rename(newPath);
+            await releaseDir.delete(recursive: true);
+            await innerDir.delete(recursive: true);
+            return;
+          }
+        }
+
+        // Normal extraction logic for other cases
+        for (final entity in innerDir.listSync()) {
+          final newPath = path.join(extractDir.path, path.basename(entity.path));
+          // Now move the new file/directory
+          await entity.rename(newPath);
+        }
+        await innerDir.delete(recursive: true);
+      }
+
+      // some binaries have additional naming conventions that convolutes things
+      // such as versions, platform specific names, etc.
+      // we must remove those extra bits, and rename the files that had their
+      // names changed.
+      await for (final entity in extractDir.list(recursive: false)) {
+        if (entity is File) {
+          final fileName = path.basename(entity.path);
+
+          // Skip non-executable files
+          if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
+
+          // Clean up the filename:
+          // 1. Remove version numbers (like -0.1.7-)
+          // 2. Remove platform specifics (-x86_64-apple-darwin)
+          // 3. Remove -latest if present
+          String targetName = fileName;
+
+          // First remove platform specific parts
+          final platformParts = [
+            '-x86_64-apple-darwin',
+            '-x86_64-linux',
+            '-x86_64.exe',
+            '-x86_64-unknown-linux-gnu',
+            '-x86_64-pc-windows-gnu',
+            'x86_64-unknown-linux-gnu',
+            'x86_64-apple-darwin',
+            'x86_64-pc-windows-gnu',
+            '-latest',
+          ];
+          for (final part in platformParts) {
+            targetName = targetName.replaceAll(part, '');
+          }
+          // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
+          targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
+
+          if (fileName == targetName) {
+            continue;
           }
 
-          // Finally, remove the now-empty directories, making
-          // sure to delete recursively in case something was
-          // lingering
-          await releaseDir.delete(recursive: true);
-          await innerDir.delete(recursive: true);
-          return;
+          final newPath = path.join(path.dirname(entity.path), targetName);
+          await entity.rename(newPath);
         }
       }
-
-      // Normal extraction logic for other cases
-      for (final entity in innerDir.listSync()) {
-        final newPath = path.join(extractDir.path, path.basename(entity.path));
-        // Delete existing file/directory if it exists (or else we get errors!)
-        if (await FileSystemEntity.isDirectory(newPath)) {
-          await Directory(newPath).delete(recursive: true);
-        } else if (await FileSystemEntity.isFile(newPath)) {
-          await File(newPath).delete();
-        }
-        // Now move the new file/directory
-        await entity.rename(newPath);
-      }
-      // Finally, remove the now-empty directories, making
-      // sure to delete recursively in case something was
-      // lingering
-      await innerDir.delete(recursive: true);
-    }
-
-    // some binaries have additional naming conventions that convolutes things
-    // such as versions, platform specific names, etc.
-    // we must remove those extra bits, and rename the files that had their
-    // names changed.
-    await for (final entity in extractDir.list(recursive: false)) {
-      if (entity is File) {
-        final fileName = path.basename(entity.path);
-
-        // Skip non-executable files
-        if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
-
-        // Clean up the filename:
-        // 1. Remove version numbers (like -0.1.7-)
-        // 2. Remove platform specifics (-x86_64-apple-darwin)
-        // 3. Remove -latest if present
-        String targetName = fileName;
-
-        // First remove platform specific parts
-        final platformParts = [
-          '-x86_64-apple-darwin',
-          '-x86_64-linux',
-          '-x86_64.exe',
-          '-x86_64-unknown-linux-gnu',
-          '-x86_64-pc-windows-gnu',
-          'x86_64-unknown-linux-gnu',
-          'x86_64-apple-darwin',
-          'x86_64-pc-windows-gnu',
-          '-latest',
-        ];
-        for (final part in platformParts) {
-          targetName = targetName.replaceAll(part, '');
-        }
-        // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
-        targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
-
-        if (fileName == targetName) {
-          continue;
-        }
-
-        final newPath = path.join(path.dirname(entity.path), targetName);
-        await entity.rename(newPath);
-      }
+    } catch (e) {
+      _log('Extraction error: $e');
+      rethrow;
     }
   }
 
