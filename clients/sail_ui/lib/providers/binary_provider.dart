@@ -58,10 +58,14 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
 
-  String? get mainchainError => mainchainRPC?.connectionError;
-  String? get enforcerError => enforcerRPC?.connectionError;
-  String? get bitwindowError => bitwindowRPC?.connectionError;
-  String? get thunderError => thunderRPC?.connectionError;
+  // Add a flag to track if binaries were explicitly launched
+  final Map<String, bool> _explicitlyLaunched = {};
+
+  // Only show errors for explicitly launched binaries
+  String? get mainchainError => _explicitlyLaunched[ParentChain().name] == true ? mainchainRPC?.connectionError : null;
+  String? get enforcerError => _explicitlyLaunched[Enforcer().name] == true ? enforcerRPC?.connectionError : null;
+  String? get bitwindowError => _explicitlyLaunched[BitWindow().name] == true ? bitwindowRPC?.connectionError : null;
+  String? get thunderError => _explicitlyLaunched[Thunder().name] == true ? thunderRPC?.connectionError : null;
 
   bool get inIBD => mainchainRPC?.inIBD ?? false;
 
@@ -178,52 +182,12 @@ class BinaryProvider extends ChangeNotifier {
     _statusController.add(Map.from(_downloadStates));
   }
 
-  Future<void> initRPC(Binary binary) async {
-    switch (binary) {
-      case ParentChain():
-        if (mainchainRPC == null) {
-          mainchainRPC = await MainchainRPCLive.create(
-            binary,
-          );
-          mainchainRPC!.addListener(notifyListeners);
-        }
-
-      case Enforcer():
-        if (enforcerRPC == null) {
-          enforcerRPC = await EnforcerLive.create(
-            binary: binary,
-            logPath: path.join(appDir.path, 'enforcer.log'),
-          );
-          enforcerRPC!.addListener(notifyListeners);
-        }
-
-      case BitWindow():
-        if (bitwindowRPC == null) {
-          bitwindowRPC = await BitwindowRPCLive.create(
-            host: 'localhost',
-            port: binary.port,
-            binary: binary,
-            logPath: path.join(appDir.path, 'bitwindow.log'),
-          );
-          bitwindowRPC!.addListener(notifyListeners);
-        }
-
-      case Thunder():
-        if (thunderRPC == null) {
-          thunderRPC = await ThunderLive.create(
-            binary: binary,
-            logPath: path.join(appDir.path, 'thunder.log'),
-          );
-          thunderRPC!.addListener(notifyListeners);
-        }
-
-      default:
-        log.i('is $binary');
-    }
-  }
-
+  // Mark binary as explicitly launched when started
   Future<void> startBinary(BuildContext context, Binary binary) async {
     if (!context.mounted) return;
+
+    _explicitlyLaunched[binary.name] = true;
+    await initRPC(binary);
 
     switch (binary) {
       case ParentChain():
@@ -327,6 +291,48 @@ class BinaryProvider extends ChangeNotifier {
       Thunder() when !mainchainConnected => 'Requires mainchain to be running first',
       _ => null,
     };
+  }
+
+  Future<void> initRPC(Binary binary) async {
+    switch (binary) {
+      case ParentChain():
+        if (mainchainRPC == null) {
+          mainchainRPC = await MainchainRPCLive.create(binary);
+          mainchainRPC!.addListener(notifyListeners);
+        }
+
+      case Enforcer():
+        if (enforcerRPC == null) {
+          enforcerRPC = await EnforcerLive.create(
+            binary: binary,
+            logPath: path.join(binary.datadir(), 'enforcer.log'),
+          );
+          enforcerRPC!.addListener(notifyListeners);
+        }
+
+      case BitWindow():
+        if (bitwindowRPC == null) {
+          bitwindowRPC = await BitwindowRPCLive.create(
+            host: 'localhost',
+            port: binary.port,
+            binary: binary,
+            logPath: path.join(binary.datadir(), 'bitwindow.log'),
+          );
+          bitwindowRPC!.addListener(notifyListeners);
+        }
+
+      case Thunder():
+        if (thunderRPC == null) {
+          thunderRPC = await ThunderLive.create(
+            binary: binary,
+            logPath: path.join(binary.datadir(), 'thunder.log'),
+          );
+          thunderRPC!.addListener(notifyListeners);
+        }
+
+      default:
+        log.i('is $binary');
+    }
   }
 
   @override
