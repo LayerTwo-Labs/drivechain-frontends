@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:launcher/env.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/style/color_scheme.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/file_utils.dart';
-import 'package:sail_ui/widgets/buttons/button.dart';
-import 'package:sail_ui/widgets/core/sail_text.dart';
 
 class ChainSettingsModal extends StatelessWidget {
   final Binary chain;
@@ -71,8 +69,14 @@ class ChainSettingsModal extends StatelessWidget {
               if (baseDir != null) _buildInfoRow('Installation Directory', baseDir),
               _buildInfoRow('Binary Path', binary),
               if (downloadFile != null) _buildInfoRow('Download File', downloadFile),
-              _buildInfoRow('Latest Release At', chain.download.remoteTimestamp?.toLocal().toString() ?? 'N/A'),
-              _buildInfoRow('Your Version', chain.download.downloadedTimestamp?.toLocal().toString() ?? 'N/A'),
+              _buildInfoRow(
+                'Latest Release At',
+                chain.download.remoteTimestamp?.toLocal().toString() ?? 'N/A',
+              ),
+              _buildInfoRow(
+                'Your Version',
+                chain.download.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
+              ),
               const SizedBox(height: 24),
               if (baseDir != null)
                 Center(
@@ -97,7 +101,6 @@ class ChainSettingsModal extends StatelessWidget {
         children: [
           SailText.secondary13(
             label,
-            color: SailColorScheme.greyMiddle,
           ),
           const SizedBox(height: 4),
           SailText.primary13(value),
