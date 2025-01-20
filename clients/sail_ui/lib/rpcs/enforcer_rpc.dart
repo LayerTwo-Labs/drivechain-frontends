@@ -53,6 +53,7 @@ class EnforcerLive extends EnforcerRPC {
     );
 
     validator = ValidatorServiceClient(channel);
+    await testConnection();
   }
 
   @override
@@ -85,6 +86,9 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<void> stopRPC() async {
-    // TODO: not implemented!
+    // Wait forever by using an infinite delay
+    while (true) {
+      await Future.delayed(const Duration(days: 1));
+    }
   }
 }

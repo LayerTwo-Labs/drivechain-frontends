@@ -119,6 +119,8 @@ class BitwindowRPCLive extends BitwindowRPC {
     _bitcoind = _BitcoindAPILive(_bitcoindClient);
     _drivechain = _DrivechainAPILive(_client);
     _misc = _MiscAPILive(_miscClient);
+
+    await testConnection();
   }
 
   @override
