@@ -232,10 +232,12 @@ class _OverviewPageState extends State<OverviewPage> {
     try {
       final appDir = await Environment.appDir();
       final starterDir = path.join(appDir.path, 'wallet_starters');
-      final starterFile = File(path.join(
-        starterDir,
-        'sidechain_${sidechainSlot}_starter.json',
-      ));
+      final starterFile = File(
+        path.join(
+          starterDir,
+          'sidechain_${sidechainSlot}_starter.json',
+        ),
+      );
       
       return starterFile.existsSync();
     } catch (e) {
@@ -477,6 +479,7 @@ class _OverviewPageState extends State<OverviewPage> {
             final useStarter = binary.chainLayer == 2 && await _starterExists(binary) && (_useStarter[binary.name] ?? true);
             
             try {
+              if (!mounted) return;
               await _binaryProvider.startBinary(
                 navigator.context,
                 binary,
