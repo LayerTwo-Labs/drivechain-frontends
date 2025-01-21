@@ -5,10 +5,7 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/config/chains.dart';
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
-import 'package:logger/logger.dart';
 
 /// API to the thunder server.
 abstract class ThunderRPC extends RPCConnection {
@@ -79,12 +76,102 @@ class ThunderLive extends ThunderRPC {
     final response = await _client().call('balance') as Map<String, dynamic>;
     final totalSats = response['total_sats'] as int;
     final availableSats = response['available_sats'] as int;
-
     // Convert from sats to BTC
     final confirmed = satoshiToBTC(availableSats);
     final unconfirmed = satoshiToBTC(totalSats - availableSats);
 
-    return (confirmed, unconfirmed);
+      return (confirmed, unconfirmed);
+    } catch (e) {
+      log.e('Error getting balance', error: e);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> setSeedFromMnemonic(String mnemonic) async {
+    try {
+      final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+      if (home == null) {
+        throw Exception('Could not find home directory');
+      }
+
+      final thunderDir = path.join(home, 'Library', 'Application Support', 'Thunder');
+      await _deleteWalletFiles(thunderDir);
+
+      // Try to set the seed multiple times
+      int setSeedRetries = 0;
+      const maxSetSeedRetries = 5;
+      const setSeedRetryDelay = Duration(milliseconds: 500);
+      Exception? lastError;
+
+      while (setSeedRetries < maxSetSeedRetries) {
+        try {
+          await _client().call('set_seed_from_mnemonic', [mnemonic]);
+          break;
+        } catch (e) {
+          lastError = Exception(e.toString());
+          setSeedRetries++;
+          if (setSeedRetries == maxSetSeedRetries) {
+            throw lastError;
+          }
+          await Future.delayed(setSeedRetryDelay);
+        }
+      }
+
+      // Verify the seed was set by checking if we can get a balance
+      int retries = 0;
+      const maxRetries = 20;
+      const retryDelay = Duration(seconds: 2);
+
+      while (retries < maxRetries) {
+        try {
+          await _client().call('balance');
+          return;
+        } catch (e) {
+          if (e.toString().contains("wallet doesn't have a seed")) {
+            retries++;
+            await Future.delayed(retryDelay);
+            continue;
+          }
+          rethrow;
+        }
+      }
+      throw Exception('Failed to verify wallet was ready after $maxRetries attempts');
+    } catch (e) {
+      log.e('Error setting Thunder seed', error: e);
+      rethrow;
+    }
+  }
+
+  Future<void> _deleteWalletFiles(String dataDir) async {
+    try {
+      // Delete wallet.mdb directory if it exists
+      final walletMdbDir = Directory(path.join(dataDir, 'wallet.mdb'));
+      if (await walletMdbDir.exists()) {
+        await walletMdbDir.delete(recursive: true);
+      }
+
+      // Delete data.mdb directory if it exists
+      final dataMdbDir = Directory(path.join(dataDir, 'data.mdb'));
+      if (await dataMdbDir.exists()) {
+        await dataMdbDir.delete(recursive: true);
+      }
+
+      // Delete wallet.dat if it exists
+      final walletDat = File(path.join(dataDir, 'wallet.dat'));
+      if (await walletDat.exists()) {
+        await walletDat.delete();
+      }
+
+      // Delete mnemonic.txt if it exists
+      final mnemonicTxt = File(path.join(dataDir, 'mnemonic.txt'));
+      if (await mnemonicTxt.exists()) {
+        await mnemonicTxt.delete();
+      }
+    } catch (e) {
+      log.e('Error deleting Thunder wallet files', error: e);
+      rethrow;
+    }
   }
 
   @override

@@ -4,8 +4,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -13,7 +11,6 @@ import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:path/path.dart' as path;
 
 // when you implement this class, you should extend a ChangeNotifier, to get
 // a proper implementation of notifyListeners(), e.g:
@@ -312,37 +309,6 @@ abstract class RPCConnection extends ChangeNotifier {
   void dispose() {
     super.dispose();
     connectionTimer?.cancel();
-  }
-
-  Future<void> _deleteWalletFiles(String dataDir) async {
-    try {
-      // Delete wallet.mdb directory if it exists
-      final walletMdbDir = Directory(path.join(dataDir, 'wallet.mdb'));
-      if (await walletMdbDir.exists()) {
-        await walletMdbDir.delete(recursive: true);
-      }
-
-      // Delete data.mdb directory if it exists
-      final dataMdbDir = Directory(path.join(dataDir, 'data.mdb'));
-      if (await dataMdbDir.exists()) {
-        await dataMdbDir.delete(recursive: true);
-      }
-
-      // Delete wallet.dat if it exists
-      final walletDat = File(path.join(dataDir, 'wallet.dat'));
-      if (await walletDat.exists()) {
-        await walletDat.delete();
-      }
-
-      // Delete mnemonic.txt if it exists
-      final mnemonicTxt = File(path.join(dataDir, 'mnemonic.txt'));
-      if (await mnemonicTxt.exists()) {
-        await mnemonicTxt.delete();
-      }
-    } catch (e) {
-      debugPrint('Error deleting wallet files: $e');
-      rethrow;
-    }
   }
 }
 

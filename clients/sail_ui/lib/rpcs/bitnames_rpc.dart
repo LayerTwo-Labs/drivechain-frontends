@@ -4,8 +4,6 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/config/chains.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 
@@ -121,7 +119,7 @@ class BitnamesLive extends BitnamesRPC {
           lastError = Exception(e.toString());
           setSeedRetries++;
           if (setSeedRetries == maxSetSeedRetries) {
-            throw lastError!;
+            throw lastError;
           }
           await Future.delayed(setSeedRetryDelay);
         }
@@ -136,7 +134,7 @@ class BitnamesLive extends BitnamesRPC {
           await _client().call('balance');
           return;
         } catch (e) {
-          if (e.toString().contains('wallet doesn\'t have a seed')) {
+          if (e.toString().contains("wallet doesn't have a seed")) {
             retries++;
             await Future.delayed(retryDelay);
             continue;

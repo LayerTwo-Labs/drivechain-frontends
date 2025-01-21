@@ -388,7 +388,7 @@ class BinaryProvider extends ChangeNotifier {
       final starterFile = File(path.join(
         starterDir,
         'sidechain_${binary.slot}_starter.json',
-      ));
+      ),);
 
       if (!starterFile.existsSync()) return;
 
