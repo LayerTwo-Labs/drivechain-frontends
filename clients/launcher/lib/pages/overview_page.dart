@@ -163,7 +163,12 @@ class _OverviewPageState extends State<OverviewPage> {
     return hasActiveDownloads || allInstalled;
   }
 
-  Future<void> _handleBinaryDownload(BuildContext context, Binary binary) async {
+  Future<void> _updateBinary(Binary binary) async {
+    await _stopBinary(binary);
+    await _binaryProvider.downloadBinary(binary);
+  }
+
+  Future<void> _downloadBinary(BuildContext context, Binary binary) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     await _binaryProvider.downloadBinary(binary);
     debugPrint('Download completed for ${binary.name}');
@@ -390,18 +395,7 @@ class _OverviewPageState extends State<OverviewPage> {
       return SailButton.secondary(
         'Stop',
         onPressed: () async {
-          switch (binary) {
-            case ParentChain():
-              await _binaryProvider.mainchainRPC?.stop();
-            case Enforcer():
-              await _binaryProvider.enforcerRPC?.stop();
-            case BitWindow():
-              await _binaryProvider.bitwindowRPC?.stop();
-            case Thunder():
-              await _binaryProvider.thunderRPC?.stop();
-            case Bitnames():
-              await _binaryProvider.bitnamesRPC?.stop();
-          }
+          await _stopBinary(binary);
         },
         size: ButtonSize.regular,
       );
@@ -437,7 +431,7 @@ class _OverviewPageState extends State<OverviewPage> {
     if (status == null || status.status == DownloadStatus.uninstalled) {
       return SailButton.primary(
         'Download',
-        onPressed: () => _handleBinaryDownload(context, binary),
+        onPressed: () => _downloadBinary(context, binary),
         size: ButtonSize.regular,
       );
     }
@@ -445,12 +439,27 @@ class _OverviewPageState extends State<OverviewPage> {
     if (status.status == DownloadStatus.failed) {
       return SailButton.primary(
         'Retry',
-        onPressed: () => _handleBinaryDownload(context, binary),
+        onPressed: () => _downloadBinary(context, binary),
         size: ButtonSize.regular,
       );
     }
 
     return const SizedBox();
+  }
+
+  Future<void> _stopBinary(Binary binary) async {
+    switch (binary) {
+      case ParentChain():
+        await _binaryProvider.mainchainRPC?.stop();
+      case Enforcer():
+        await _binaryProvider.enforcerRPC?.stop();
+      case BitWindow():
+        await _binaryProvider.bitwindowRPC?.stop();
+      case Thunder():
+        await _binaryProvider.thunderRPC?.stop();
+      case Bitnames():
+        await _binaryProvider.bitnamesRPC?.stop();
+    }
   }
 
   Widget _buildChainContent(Binary binary, DownloadState? status) {
@@ -548,7 +557,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 Center(
                   child: SailButton.primary(
                     'Update Now',
-                    onPressed: () => _handleBinaryDownload(context, binary),
+                    onPressed: () => _updateBinary(binary),
                     size: ButtonSize.regular,
                     disabled: status?.status == DownloadStatus.installing,
                   ),
