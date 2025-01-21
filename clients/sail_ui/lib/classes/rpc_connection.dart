@@ -138,7 +138,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.i('init binaries: checking $binary connection ${conf.host}:${conf.port}');
 
-    await testConnection();
+    await startConnectionTimer();
     // If we managed to connect to an already running daemon, we're finished here!
     if (connected) {
       log.i('init binaries: $binary is already running, not doing anything');
@@ -175,7 +175,6 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.i('init binaries: waiting for $binary connection');
 
-    await startConnectionTimer();
     var timeout = Duration(seconds: 60);
     if (binary.binary == 'zsided') {
       // zcash can take a long time. initial sync as well
@@ -241,6 +240,10 @@ abstract class RPCConnection extends ChangeNotifier {
   // so we can update the UI immediately when the connection drops/begins
   Timer? connectionTimer;
   Future<void> startConnectionTimer() async {
+    // Cancel any existing timer before starting a new one
+    connectionTimer?.cancel();
+
+    await testConnection();
     log.i('starting connection timer for ${conf.host}:${conf.port}');
     connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();

@@ -60,10 +60,10 @@ class ProcessProvider extends ChangeNotifier {
 
     // Check if binary exists in any of the possible paths
     for (final binaryPath in possiblePaths) {
-      if (File(binaryPath).existsSync()) {
+      if (Directory(binaryPath).existsSync() || File(binaryPath).existsSync()) {
         var resolvedPath = binaryPath;
         // Handle .app bundles on macOS
-        if (Platform.isMacOS && binaryPath.endsWith('.app')) {
+        if (Platform.isMacOS && (binary.endsWith('.app') || binaryPath.endsWith('.app'))) {
           resolvedPath = path.join(
             binaryPath,
             'Contents',
@@ -118,9 +118,7 @@ class ProcessProvider extends ChangeNotifier {
   List<String> _getPossibleBinaryPaths(String baseBinary) {
     final paths = <String>[baseBinary];
     // Add platform-specific extensions
-    if (Platform.isMacOS) {
-      paths.add('$baseBinary.app');
-    } else if (Platform.isWindows) {
+    if (Platform.isWindows) {
       paths.add('$baseBinary.exe');
     }
 
@@ -129,7 +127,6 @@ class ProcessProvider extends ChangeNotifier {
       // Add asset directory variants
       paths.addAll([
         path.join(assetPath, baseBinary),
-        if (Platform.isMacOS) path.join(assetPath, '$baseBinary.app'),
         if (Platform.isWindows) path.join(assetPath, '$baseBinary.exe'),
       ]);
     }
@@ -262,14 +259,23 @@ class ProcessProvider extends ChangeNotifier {
   }
 
   Future<void> _shutdownSingle(SailProcess process) async {
+    log.i('attempting nice shutdown for pid=${process.pid}');
+
     try {
-      log.i('shutting down nicely pid=${process.pid} ');
-      await process.cleanup();
-      log.d('shut down nicely pid=${process.pid} ');
+      // Try nice shutdown with timeout
+      await Future.any([
+        process.cleanup(),
+        Future.delayed(const Duration(milliseconds: 500))
+            .then((_) => throw TimeoutException('Nice shutdown timed out')),
+      ]);
+      log.d('nice shutdown successful for pid=${process.pid}');
     } catch (error) {
-      // if we couldn't clean up nicely, we throw an error!
-      log.e('could not clean up nicely, killing pid=${process.pid}');
+      // If nice shutdown fails or times out, force kill with SIGTERM
+      log.e('nice shutdown failed, killing with SIGTERM pid=${process.pid}: $error');
       Process.killPid(process.pid, ProcessSignal.sigterm);
+    } finally {
+      runningProcesses.remove(process.pid);
+      notifyListeners();
     }
   }
 }
