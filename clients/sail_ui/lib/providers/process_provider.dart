@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -52,108 +53,104 @@ class ProcessProvider extends ChangeNotifier {
   Stream<String> stderr(int pid) => _stderrStreams[pid] ?? const Stream.empty();
   bool running(int pid) => runningProcesses.containsKey(pid);
 
-  // Starts a binary located in the asset bundle included with the app.
+  Future<File> _resolveBinaryPath(BuildContext context, String binary) async {
+    // First find all possible paths the binary might be in,
+    // such as .exe, .app, /assets/bin, $datadir/assets etc.
+    final possiblePaths = _getPossibleBinaryPaths(binary);
+
+    // Check if binary exists in any of the possible paths
+    for (final binaryPath in possiblePaths) {
+      if (File(binaryPath).existsSync()) {
+        var resolvedPath = binaryPath;
+        // Handle .app bundles on macOS
+        if (Platform.isMacOS && binaryPath.endsWith('.app')) {
+          resolvedPath = path.join(
+            binaryPath,
+            'Contents',
+            'MacOS',
+            path.basenameWithoutExtension(binaryPath),
+          );
+        }
+        return File(resolvedPath);
+      }
+    }
+
+    return _fileFromAssetsBundle(context, binary, possiblePaths);
+  }
+
+  Future<File> _fileFromAssetsBundle(BuildContext context, String binary, List<String> possiblePaths) async {
+    // If not found in datadir/assets, try loading from bundled assets
+    ByteData? binResource;
+    String? foundPath;
+
+    for (final assetPath in possiblePaths) {
+      try {
+        binResource = await DefaultAssetBundle.of(context).load('assets/bin/$assetPath');
+        foundPath = assetPath;
+        break;
+      } catch (e) {
+        continue;
+      }
+    }
+
+    if (binResource == null || foundPath == null) {
+      throw Exception('Could not find binary $binary in any location');
+    }
+
+    // Create temp file
+    final temp = await getTemporaryDirectory();
+    final ts = DateTime.now();
+    final randDir = Directory(
+      filePath([temp.path, ts.millisecondsSinceEpoch.toString()]),
+    );
+    await randDir.create();
+
+    final file = File(filePath([randDir.path, foundPath]));
+
+    final buffer = binResource.buffer;
+    await file.writeAsBytes(
+      buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
+    );
+
+    return file;
+  }
+
+  List<String> _getPossibleBinaryPaths(String baseBinary) {
+    final paths = <String>[baseBinary];
+    // Add platform-specific extensions
+    if (Platform.isMacOS) {
+      paths.add('$baseBinary.app');
+    } else if (Platform.isWindows) {
+      paths.add('$baseBinary.exe');
+    }
+
+    if (datadir != null) {
+      final assetPath = path.join(datadir!.path, 'assets');
+      // Add asset directory variants
+      paths.addAll([
+        path.join(assetPath, baseBinary),
+        if (Platform.isMacOS) path.join(assetPath, '$baseBinary.app'),
+        if (Platform.isWindows) path.join(assetPath, '$baseBinary.exe'),
+      ]);
+    }
+
+    return paths;
+  }
+
   Future<int> start(
     BuildContext context,
     String binary,
     List<String> args,
     Future<void> Function() cleanup,
   ) async {
-    String executablePath;
+    final file = await _resolveBinaryPath(context, binary);
 
-    // First try the binary name as-is
-    if (File(binary).existsSync()) {
-      executablePath = binary;
-    } else {
-      // Check platform-specific extensions
-      final possiblePaths = [binary];
-      if (Platform.isMacOS) {
-        possiblePaths.add('$binary.app');
-      }
-      if (Platform.isWindows) {
-        possiblePaths.add('$binary.exe');
-      }
-
-      // Find first existing file
-      executablePath = possiblePaths.firstWhere(
-        (path) => File(path).existsSync(),
-        orElse: () => binary, // Fall back to original if none exist
-      );
-    }
-
-    // Handle .app bundles on macOS
-    if (Platform.isMacOS && executablePath.endsWith('.app')) {
-      executablePath = path.join(
-        executablePath,
-        'Contents',
-        'MacOS',
-        path.basenameWithoutExtension(executablePath),
-      );
-    }
-
-    File file;
-    if (File(executablePath).existsSync()) {
-      // The file exists at the full path
-      file = File(executablePath);
-    } else if (datadir != null) {
-      // Try assets directory with possible extensions
-      final assetPath = path.join(datadir!.path, 'assets');
-      final possibleAssetPaths = [
-        path.join(assetPath, binary),
-        path.join(assetPath, executablePath),
-        if (Platform.isMacOS) path.join(assetPath, '$binary.app'),
-        if (Platform.isWindows) path.join(assetPath, '$binary.exe'),
-      ];
-
-      final existingAssetPath = possibleAssetPaths.firstWhere(
-        (file) => File(file).existsSync(),
-        orElse: () => path.join(assetPath, executablePath),
-      );
-
-      file = File(existingAssetPath);
-    } else {
-      // We have received a raw binary, expected to be present in the asset bundle
-      // Attempt to load it from there, and write it to a temp directory we can run
-      // it from.
-
-      final binResource = await DefaultAssetBundle.of(context).load(
-        // Assets don't operate with platform path separators, just /
-        'assets/bin/$executablePath',
-      );
-
-      final temp = await getTemporaryDirectory();
-      final ts = DateTime.now();
-      final randDir = Directory(
-        filePath([
-          temp.path,
-          // Add a random element to the file path. Windows doesn't like
-          // it when two processes open the same file...
-          ts.millisecondsSinceEpoch.toString(),
-        ]),
-      );
-      await randDir.create();
-
-      file = File(
-        filePath([
-          randDir.path,
-          executablePath,
-        ]),
-      );
-
-      // Have to convert the ByteData -> List<int>. https://stackoverflow.com/a/50121777
-      final buffer = binResource.buffer;
-      await file.writeAsBytes(
-        buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
-      );
-    }
-
-    // Windows doesn't do executable permissions, apparently
+    // Windows doesn't do executable permissions
     if (!Platform.isWindows) {
-      // Must be executable before we can start.
       await Process.run('chmod', ['+x', file.path]);
     }
 
-    log.d('starting $executablePath with args $args');
+    log.d('starting ${file.path} with args $args');
 
     final process = await Process.start(
       file.path,
@@ -174,14 +171,14 @@ class ProcessProvider extends ChangeNotifier {
     process.stdout.transform(utf8.decoder).listen((data) {
       stdoutController.add(data);
       if (!isSpam(data)) {
-        log.d('$executablePath: $data');
+        log.d('${file.path}: $data');
       }
     });
 
     process.stderr.transform(utf8.decoder).listen((data) {
       stderrController.add(data);
       if (!isSpam(data)) {
-        log.e('$executablePath: $data');
+        log.e('${file.path}: $data');
       }
     });
 
@@ -203,9 +200,9 @@ class ProcessProvider extends ChangeNotifier {
 
         final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
         if (errLogs.isNotEmpty) {
-          log.log(level, '"$executablePath" exited with code $code: ${errLogs.last}');
+          log.log(level, '"${file.path}" exited with code $code: ${errLogs.last}');
         } else {
-          log.log(level, '"$executablePath" exited with code $code');
+          log.log(level, '"${file.path}" exited with code $code');
         }
 
         // Resolve the process exit future
@@ -236,10 +233,10 @@ class ProcessProvider extends ChangeNotifier {
 
     if (exited) {
       final tuple = _exitTuples[process.pid];
-      throw '"$executablePath" exited with code ${tuple?.code}: ${tuple?.message}';
+      throw '"${file.path}" exited with code ${tuple?.code}: ${tuple?.message}';
     }
 
-    log.d('started "$executablePath" with pid ${process.pid}');
+    log.d('started "${file.path}" with pid ${process.pid}');
 
     notifyListeners();
     return process.pid;
