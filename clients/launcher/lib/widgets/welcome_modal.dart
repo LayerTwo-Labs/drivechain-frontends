@@ -7,16 +7,50 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+class CenteredDialogHeader extends StatelessWidget {
+  final String title;
+  final VoidCallback? onBack;
+
+  const CenteredDialogHeader({
+    super.key,
+    required this.title,
+    this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        if (onBack != null)
+          Positioned(
+            left: 16,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: onBack,
+                child: SailText.primary20(
+                  '←',
+                  color: SailTheme.of(context).colors.text,
+                ),
+              ),
+            ),
+          ),
+        Center(
+          child: SailText.primary20(title, bold: true),
+        ),
+      ],
+    );
+  }
+}
+
 Future<bool?> showWelcomeModal(BuildContext context) async {
   return await showDialog<bool>(
     context: context,
+    barrierDismissible: false,
     builder: (context) => Dialog(
       backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
-      child: SailRawCard(
-        header: DialogHeader(
-          title: 'Welcome to Drivechain',
-          onClose: () {}, // Disable close button
-        ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 400),
         child: const _WelcomeModalContent(
           keepOpen: true,
         ),
@@ -36,10 +70,15 @@ class _WelcomeModalContent extends StatefulWidget {
   _WelcomeModalContentState createState() => _WelcomeModalContentState();
 }
 
+enum WelcomeScreen {
+  initial,
+  restore,
+  create,
+  advanced,
+}
+
 class _WelcomeModalContentState extends State<_WelcomeModalContent> {
-  bool _showAdvanced = false;
-  bool _useMnemonic = true;
-  bool _generateStarters = true;
+  WelcomeScreen _currentScreen = WelcomeScreen.initial;
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final WalletService _walletService = GetIt.I.get<WalletService>();
@@ -47,8 +86,10 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   @override
   void initState() {
     super.initState();
-    // Check if we can close the modal
     _checkMasterStarter();
+    _mnemonicController.addListener(() {
+      setState(() {});
+    });
   }
 
   Future<void> _checkMasterStarter() async {
@@ -71,83 +112,36 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   }
 
   Future<void> _showErrorDialog(String message) async {
-    await errorDialog(
+    await showDialog<void>(
       context: context,
-      action: 'Error',
-      title: 'Error',
-      subtitle: message,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
+        child: SailRawCard(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailText.primary15(
+                  message,
+                  color: SailTheme.of(context).colors.textSecondary,
+                ),
+                const SizedBox(height: 24),
+                SailButton.primary(
+                  'Return',
+                  onPressed: () {
+                    _mnemonicController.clear();
+                    Navigator.of(context).pop();
+                  },
+                  size: ButtonSize.regular,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
-  }
-
-  Future<void> _handleFastMode() async {
-    try {
-      final wallet = await _walletService.generateWallet();
-      if (!mounted) return;
-
-      if (wallet.containsKey('error')) {
-        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
-        return;
-      }
-
-      final success = await _walletService.saveWallet(wallet);
-      if (!mounted) return;
-
-      if (!success) {
-        await _showErrorDialog('Failed to save wallet');
-        return;
-      }
-
-      // Generate starters if enabled
-      if (_generateStarters) {
-        await _walletService.generateStartersForDownloadedChains();
-      }
-
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } catch (e) {
-      if (!mounted) return;
-      await _showErrorDialog('Unexpected error: $e');
-    }
-  }
-
-  Future<void> _handleCreateWallet() async {
-    try {
-      if (_useMnemonic && _mnemonicController.text.isNotEmpty && !_isValidMnemonic(_mnemonicController.text)) {
-        await _showErrorDialog('Invalid mnemonic format. Please enter 12 or 24 words.');
-        return;
-      }
-
-      final wallet = await _walletService.generateWallet(
-        customMnemonic: _mnemonicController.text.isNotEmpty ? _mnemonicController.text : null,
-        passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
-      );
-
-      if (!mounted) return;
-
-      if (wallet.containsKey('error')) {
-        await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
-        return;
-      }
-
-      final success = await _walletService.saveWallet(wallet);
-      if (!mounted) return;
-
-      if (!success) {
-        await _showErrorDialog('Failed to save wallet');
-        return;
-      }
-
-      // Generate starters if enabled
-      if (_generateStarters) {
-        await _walletService.generateStartersForDownloadedChains();
-      }
-
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } catch (e) {
-      if (!mounted) return;
-      await _showErrorDialog('Unexpected error: $e');
-    }
   }
 
   bool _isValidMnemonic(String mnemonic) {
@@ -155,146 +149,268 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     return words.length == 12 || words.length == 24;
   }
 
-  Future<void> _handleGenerateRandom() async {
-    try {
-      if (_useMnemonic) {
-        final wallet = await _walletService.generateWallet();
-        if (wallet.containsKey('error')) {
-          await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
-          return;
-        }
-        _mnemonicController.text = wallet['mnemonic'];
-      } else {
-        // Generate 32 random bytes (64 hex characters)
-        final wallet = await _walletService.generateWallet();
-        if (wallet.containsKey('error')) {
-          await _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
-          return;
-        }
-        _mnemonicController.text = wallet['seed_hex'];
+  void _handleFastMode() {
+    _walletService.generateWallet().then((wallet) {
+      if (!mounted) return;
+
+      if (wallet.containsKey('error')) {
+        _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
+        return;
       }
-    } catch (e) {
-      await _showErrorDialog('Unexpected error: $e');
+
+      _walletService.saveWallet(wallet).then((success) {
+        if (!mounted) return;
+
+        if (!success) {
+          _showErrorDialog('Failed to save wallet');
+          return;
+        }
+
+        _walletService.generateStartersForDownloadedChains().then((_) {
+          if (!mounted) return;
+          Navigator.of(context).pop(true);
+        });
+      });
+    }).catchError((e) {
+      if (!mounted) return;
+      _showErrorDialog('Unexpected error: $e');
+    });
+  }
+
+  void _handleRestore() {
+    if (!_isValidMnemonic(_mnemonicController.text)) {
+      _showErrorDialog('Invalid mnemonic format. Please enter 12 or 24 words.');
+      return;
     }
+
+    _walletService.generateWallet(
+      customMnemonic: _mnemonicController.text,
+      passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
+    ).then((wallet) {
+      if (!mounted) return;
+
+      if (wallet.containsKey('error')) {
+        _showErrorDialog('Failed to generate wallet: ${wallet['error']}').then((_) {
+          // Clear the input after showing the error
+          _mnemonicController.clear();
+        });
+        return;
+      }
+
+      _walletService.saveWallet(wallet).then((success) {
+        if (!mounted) return;
+
+        if (!success) {
+          _showErrorDialog('Failed to save wallet').then((_) {
+            // Clear the input after showing the error
+            _mnemonicController.clear();
+          });
+          return;
+        }
+
+        _walletService.generateStartersForDownloadedChains().then((_) {
+          if (!mounted) return;
+          Navigator.of(context).pop(true);
+        }).catchError((e) {
+          if (!mounted) return;
+          _showErrorDialog('Failed to generate starters: $e').then((_) {
+            // Clear the input after showing the error
+            _mnemonicController.clear();
+          });
+        });
+      }).catchError((e) {
+        if (!mounted) return;
+        _showErrorDialog('Failed to save wallet: $e').then((_) {
+          // Clear the input after showing the error
+          _mnemonicController.clear();
+        });
+      });
+    }).catchError((e) {
+      if (!mounted) return;
+      _showErrorDialog('Invalid mnemonic: $e').then((_) {
+        // Clear the input after showing the error
+        _mnemonicController.clear();
+      });
+    });
+  }
+
+  Widget _buildInitialScreen() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 160,
+            child: SailButton.primary(
+              'Create Wallet',
+              onPressed: () => setState(() => _currentScreen = WelcomeScreen.create),
+              size: ButtonSize.regular,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => setState(() => _currentScreen = WelcomeScreen.restore),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: SailText.secondary13(
+                      'Restore Wallet',
+                      color: SailTheme.of(context).colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRestoreScreen() {
+    final isValidMnemonic = _isValidMnemonic(_mnemonicController.text);
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SailTextField(
+            controller: _mnemonicController,
+            hintText: 'Enter BIP39 mnemonic (12 or 24 words)',
+          ),
+          const SizedBox(height: 16),
+          SailTextField(
+            controller: _passphraseController,
+            hintText: 'Optional passphrase',
+          ),
+          const SizedBox(height: 24),
+          Center(
+            child: SizedBox(
+              width: 160,
+              height: 48,
+              child: SailButton.primary(
+                'Restore',
+                onPressed: () => isValidMnemonic ? _handleRestore() : null,
+                size: ButtonSize.regular,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreateScreen() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 160,
+            child: SailButton.primary(
+              'Fast Wallet',
+              onPressed: _handleFastMode,
+              size: ButtonSize.regular,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => setState(() => _currentScreen = WelcomeScreen.advanced),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: SailText.secondary13(
+                      'Advanced',
+                      color: SailTheme.of(context).colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdvancedScreen() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: SailText.primary13(
+              'Advanced options coming soon...',
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding12,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SailText.primary13(
-          'Welcome to Drivechain Launcher! This application helps you manage and interact with your Drivechain sidechains.',
-          color: SailTheme.of(context).colors.textSecondary,
-        ),
-        const SizedBox(height: 8),
-        SailText.primary13(
-          'Create a wallet starter - this generates a master key that will be used to derive unique keys for each sidechain, allowing you to securely manage multiple chains from a single source.',
-          color: SailTheme.of(context).colors.textSecondary,
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Checkbox(
-              value: _useMnemonic,
-              onChanged: (value) {
-                setState(() {
-                  _useMnemonic = value ?? false;
-                  _mnemonicController.clear();
-                  _passphraseController.clear();
-                });
-              },
-            ),
-            const SizedBox(width: 8),
-            SailText.primary13('Use BIP39 Mnemonic'),
-            const SizedBox(width: 24),
-            Checkbox(
-              value: _generateStarters,
-              onChanged: (value) {
-                setState(() {
-                  _generateStarters = value ?? true;
-                });
-              },
-            ),
-            const SizedBox(width: 8),
-            SailText.primary13('Generate starters for downloaded chains'),
-            const Spacer(),
-          ],
-        ),
-        if (_showAdvanced) ...[
-          const SizedBox(height: 16),
-          if (_useMnemonic) ...[
-            SailTextField(
-              controller: _mnemonicController,
-              hintText: 'Enter BIP39 mnemonic (12 words) or generate random',
-            ),
-            const SizedBox(height: 16),
-            SailText.primary13('Optional BIP39 Passphrase:'),
-            const SizedBox(height: 8),
-            SailTextField(
-              controller: _passphraseController,
-              hintText: 'Enter optional passphrase (leave empty for none)',
-            ),
-          ] else ...[
-            SailTextField(
-              controller: _mnemonicController,
-              hintText: 'Enter 64 hex characters or generate random',
-            ),
-          ],
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SailButton.secondary(
-                _showAdvanced ? 'Simple Mode' : 'Advanced Mode',
-                onPressed: () {
-                  setState(() {
-                    _showAdvanced = !_showAdvanced;
-                  });
-                },
-                size: ButtonSize.regular,
-              ),
-              Row(
-                children: [
-                  SailButton.secondary(
-                    'Generate Random',
-                    onPressed: _handleGenerateRandom,
-                    size: ButtonSize.regular,
-                  ),
-                  const SizedBox(width: 8),
-                  SailButton.primary(
-                    'Create Wallet',
-                    onPressed: _showAdvanced ? () => _handleCreateWallet() : () {},
-                    size: ButtonSize.regular,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ] else ...[
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SailButton.secondary(
-                'Advanced Mode',
-                onPressed: () {
-                  setState(() {
-                    _showAdvanced = true;
-                  });
-                },
-                size: ButtonSize.regular,
-              ),
-              SailButton.primary(
-                'Create Wallet',
-                onPressed: _handleFastMode,
-                size: ButtonSize.regular,
-              ),
-            ],
-          ),
-        ],
-      ],
+    Widget content;
+    String title = 'Welcome to Drivechain';
+    VoidCallback? onBack;
+
+    switch (_currentScreen) {
+      case WelcomeScreen.initial:
+        content = _buildInitialScreen();
+        break;
+      case WelcomeScreen.restore:
+        content = _buildRestoreScreen();
+        title = 'Restore Wallet';
+        onBack = () => setState(() {
+          _currentScreen = WelcomeScreen.initial;
+          _mnemonicController.clear();
+          _passphraseController.clear();
+        });
+        break;
+      case WelcomeScreen.create:
+        content = _buildCreateScreen();
+        title = 'Create Wallet';
+        onBack = () => setState(() => _currentScreen = WelcomeScreen.initial);
+        break;
+      case WelcomeScreen.advanced:
+        content = _buildAdvancedScreen();
+        title = 'Advanced Options';
+        onBack = () => setState(() => _currentScreen = WelcomeScreen.create);
+        break;
+    }
+
+    return SailRawCard(
+      header: CenteredDialogHeader(
+        title: title,
+        onBack: onBack,
+      ),
+      child: content,
     );
   }
 }
