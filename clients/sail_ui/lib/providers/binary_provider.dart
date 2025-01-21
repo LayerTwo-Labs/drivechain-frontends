@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
@@ -48,6 +49,15 @@ class BinaryProvider extends ChangeNotifier {
   BitwindowRPC? bitwindowRPC;
   ThunderRPC? thunderRPC;
   BitnamesRPC? bitnamesRPC;
+
+  // Track starter usage for L2 chains
+  final Map<String, bool> _useStarter = {};
+  
+  bool shouldUseStarter(Binary binary) => _useStarter[binary.name] ?? false;
+  void setUseStarter(Binary binary, bool value) {
+    _useStarter[binary.name] = value;
+    notifyListeners();
+  }
 
   // Connection status getters
   bool get mainchainConnected => mainchainRPC?.connected ?? false;
@@ -187,7 +197,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   // Mark binary as explicitly launched when started
-  Future<void> startBinary(BuildContext context, Binary binary) async {
+  Future<void> startBinary(BuildContext context, Binary binary, {bool useStarter = false}) async {
     if (!context.mounted) return;
 
     await initRPC(binary);
@@ -205,9 +215,15 @@ class BinaryProvider extends ChangeNotifier {
 
       case Thunder():
         await thunderRPC!.initBinary(context);
+        if (useStarter) {
+          await _setStarterSeed(binary);
+        }
 
       case Bitnames():
         await bitnamesRPC!.initBinary(context);
+        if (useStarter) {
+          await _setStarterSeed(binary);
+        }
 
       default:
         log.i('is $binary');
@@ -354,6 +370,37 @@ class BinaryProvider extends ChangeNotifier {
 
       default:
         log.i('is $binary');
+    }
+  }
+
+  Future<void> _setStarterSeed(Binary binary) async {
+    if (binary is! Sidechain) return;
+    
+    try {
+      final starterDir = path.join(appDir.path, 'wallet_starters');
+      final starterFile = File(path.join(
+        starterDir,
+        'sidechain_${binary.slot}_starter.json',
+      ),);
+
+      if (!starterFile.existsSync()) return;
+
+      final content = await starterFile.readAsString();
+      final json = jsonDecode(content) as Map<String, dynamic>;
+      final mnemonic = json['mnemonic'] as String?;
+      
+      if (mnemonic == null) return;
+
+      switch (binary) {
+        case Thunder():
+          await thunderRPC?.setSeedFromMnemonic(mnemonic);
+        case Bitnames():
+          await bitnamesRPC?.setSeedFromMnemonic(mnemonic);
+        default:
+          break;
+      }
+    } catch (e) {
+      log.e('Error setting starter seed: $e');
     }
   }
 
