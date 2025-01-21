@@ -6,11 +6,9 @@
       "description": "Modified Bitcoin implementation for drivechain support",
       "repo_url": "",
       "directories": {
-        "base": {
-          "linux": ".drivechain",
-          "darwin": "Drivechain",
-          "win32": "Drivechain"
-        }
+        "linux": ".drivechain",
+        "darwin": "Drivechain",
+        "win32": "Drivechain"
       },
       "download": {
         "base_url": "https://releases.drivechain.info/",
@@ -37,11 +35,9 @@
       "description": "Manages drivechain validation rules",
       "repo_url": "",
       "directories": {
-        "base": {
-          "linux": ".bip300301_enforcer",
-          "darwin": "bip300301_enforcer",
-          "win32": "bip300301_enforcer"
-        }
+        "linux": ".bip300301_enforcer",
+        "darwin": "bip300301_enforcer",
+        "win32": "bip300301_enforcer"
       },
       "download": {
         "base_url": "https://releases.drivechain.info/",
