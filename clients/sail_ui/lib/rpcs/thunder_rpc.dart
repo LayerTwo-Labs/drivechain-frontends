@@ -1,9 +1,14 @@
+import 'dart:io';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/config/chains.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as path;
+import 'package:logger/logger.dart';
 
 /// API to the thunder server.
 abstract class ThunderRPC extends RPCConnection {
@@ -12,6 +17,8 @@ abstract class ThunderRPC extends RPCConnection {
     required super.binary,
     required super.logPath,
   });
+
+  Future<void> setSeedFromMnemonic(String mnemonic);
 }
 
 class ThunderLive extends ThunderRPC {
@@ -24,7 +31,6 @@ class ThunderLive extends ThunderRPC {
       useSSL: false,
     );
 
-    // Completely empty client, with no retry logic.
     client.dioClient = Dio();
     return client;
   }
@@ -83,6 +89,17 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<void> stopRPC() async {
-    await _client().call('stop');
+    try {
+      await _client().call('stop');
+      // Wait a moment to let the node start shutting down
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (e) {
+      // If we get a connection refused error, the node is likely already stopped
+      if (e.toString().contains('Connection refused') || e.toString().contains('Unknown Error')) {
+        return;
+      }
+      log.e('Error stopping RPC', error: e);
+      rethrow;
+    }
   }
 }

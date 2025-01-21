@@ -4,6 +4,10 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/config/chains.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
 
 /// API to the bitnames server.
 abstract class BitnamesRPC extends RPCConnection {
@@ -12,6 +16,8 @@ abstract class BitnamesRPC extends RPCConnection {
     required super.binary,
     required super.logPath,
   });
+
+  Future<void> setSeedFromMnemonic(String mnemonic);
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -24,19 +30,16 @@ class BitnamesLive extends BitnamesRPC {
       useSSL: false,
     );
 
-    // Completely empty client, with no retry logic.
     client.dioClient = Dio();
     return client;
   }
 
-  // Private constructor
   BitnamesLive._create({
     required super.conf,
     required super.binary,
     required super.logPath,
   });
 
-  // Async factory
   static Future<BitnamesLive> create({
     required Binary binary,
     required String logPath,
@@ -74,7 +77,6 @@ class BitnamesLive extends BitnamesRPC {
     final totalSats = response['total_sats'] as int;
     final availableSats = response['available_sats'] as int;
 
-    // Convert from sats to BTC
     final confirmed = satoshiToBTC(availableSats);
     final unconfirmed = satoshiToBTC(totalSats - availableSats);
 
@@ -83,6 +85,96 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<void> stopRPC() async {
-    await _client().call('stop');
+    try {
+      await _client().call('stop');
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (e) {
+      if (e.toString().contains('Connection refused') || e.toString().contains('Unknown Error')) {
+        return;
+      }
+      log.e('Error stopping RPC', error: e);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> setSeedFromMnemonic(String mnemonic) async {
+    try {
+      final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+      if (home == null) {
+        throw Exception('Could not find home directory');
+      }
+
+      final bitnamesDir = path.join(home, 'Library', 'Application Support', 'plain_bitnames');
+      await _deleteWalletFiles(bitnamesDir);
+
+      int setSeedRetries = 0;
+      const maxSetSeedRetries = 5;
+      const setSeedRetryDelay = Duration(milliseconds: 500);
+      Exception? lastError;
+
+      while (setSeedRetries < maxSetSeedRetries) {
+        try {
+          await _client().call('set_seed_from_mnemonic', [mnemonic]);
+          break;
+        } catch (e) {
+          lastError = Exception(e.toString());
+          setSeedRetries++;
+          if (setSeedRetries == maxSetSeedRetries) {
+            throw lastError!;
+          }
+          await Future.delayed(setSeedRetryDelay);
+        }
+      }
+
+      int retries = 0;
+      const maxRetries = 20;
+      const retryDelay = Duration(seconds: 2);
+
+      while (retries < maxRetries) {
+        try {
+          await _client().call('balance');
+          return;
+        } catch (e) {
+          if (e.toString().contains('wallet doesn\'t have a seed')) {
+            retries++;
+            await Future.delayed(retryDelay);
+            continue;
+          }
+          rethrow;
+        }
+      }
+      throw Exception('Failed to verify wallet was ready after $maxRetries attempts');
+    } catch (e) {
+      log.e('Error setting Bitnames seed', error: e);
+      rethrow;
+    }
+  }
+
+  Future<void> _deleteWalletFiles(String dataDir) async {
+    try {
+      final walletMdbDir = Directory(path.join(dataDir, 'wallet.mdb'));
+      if (await walletMdbDir.exists()) {
+        await walletMdbDir.delete(recursive: true);
+      }
+
+      final dataMdbDir = Directory(path.join(dataDir, 'data.mdb'));
+      if (await dataMdbDir.exists()) {
+        await dataMdbDir.delete(recursive: true);
+      }
+
+      final walletDat = File(path.join(dataDir, 'wallet.dat'));
+      if (await walletDat.exists()) {
+        await walletDat.delete();
+      }
+
+      final mnemonicTxt = File(path.join(dataDir, 'mnemonic.txt'));
+      if (await mnemonicTxt.exists()) {
+        await mnemonicTxt.delete();
+      }
+    } catch (e) {
+      log.e('Error deleting Bitnames wallet files', error: e);
+      rethrow;
+    }
   }
 }

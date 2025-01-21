@@ -4,6 +4,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -11,6 +13,7 @@ import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:path/path.dart' as path;
 
 // when you implement this class, you should extend a ChangeNotifier, to get
 // a proper implementation of notifyListeners(), e.g:
@@ -107,7 +110,7 @@ abstract class RPCConnection extends ChangeNotifier {
       connected = false;
       if (connectionError != newError) {
         // we have a new error on our hands!
-        log.e('could not test connection: ${newError!}!');
+        log.e('Connection test failed', error: newError);
         connectionError = newError;
         initializingBinary = false;
         notifyListeners();
@@ -136,12 +139,12 @@ abstract class RPCConnection extends ChangeNotifier {
     initializingBinary = true;
     notifyListeners();
 
-    log.i('init binaries: checking $binary connection ${conf.host}:${conf.port}');
+    log.i('Checking connection', {'binary': binary, 'host': conf.host, 'port': conf.port});
 
     await startConnectionTimer();
     // If we managed to connect to an already running daemon, we're finished here!
     if (connected) {
-      log.i('init binaries: $binary is already running, not doing anything');
+      log.i('Binary already running', {'binary': binary});
       initializingBinary = false;
       notifyListeners();
       return;
@@ -153,7 +156,7 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    log.i('init binaries: starting $binary ${args.join(" ")}');
+    log.i('Starting binary', {'binary': binary, 'args': args.join(" ")});
 
     int pid;
     try {
@@ -163,9 +166,9 @@ abstract class RPCConnection extends ChangeNotifier {
         args,
         stopRPC,
       );
-      log.i('init binaries: started $binary with PID $pid');
+      log.i('Binary started', {'binary': binary, 'pid': pid});
     } catch (err) {
-      log.e('init binaries: could not start $binary daemon', error: err);
+      log.e('Failed to start binary', {'binary': binary, 'error': err});
       initializingBinary = false;
       connectionError = 'could not start $binary daemon: $err';
       connected = false;
@@ -173,7 +176,7 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    log.i('init binaries: waiting for $binary connection');
+    log.i('Waiting for connection', {'binary': binary});
 
     var timeout = Duration(seconds: 60);
     if (binary.binary == 'zsided') {
@@ -212,20 +215,15 @@ abstract class RPCConnection extends ChangeNotifier {
         // Timeout case!
       ]);
 
-      log.i('init binaries: $binary connected');
+      log.i('Binary connected', {'binary': binary});
     } catch (err) {
-      log.e("init binaries: couldn't connect to $binary", error: err);
+      log.e('Connection failed', {'binary': binary, 'error': err});
 
       // We've quit! Assuming there's error logs, somewhere.
       if (!processes.running(pid)) {
         final logs = await processes.stderr(pid).toList();
-        log.e('$binary exited before we could connect, dumping logs');
-        for (var line in logs) {
-          log.e('$binary: $line');
-        }
-
-        var lastLine = _stripFromString(logs.last, ': ');
-        connectionError = lastLine;
+        log.e('Binary exited with logs', {'binary': binary, 'logs': logs});
+        connectionError = _stripFromString(logs.last, ': ');
       } else {
         connectionError = err.toString();
       }
@@ -314,6 +312,37 @@ abstract class RPCConnection extends ChangeNotifier {
   void dispose() {
     super.dispose();
     connectionTimer?.cancel();
+  }
+
+  Future<void> _deleteWalletFiles(String dataDir) async {
+    try {
+      // Delete wallet.mdb directory if it exists
+      final walletMdbDir = Directory(path.join(dataDir, 'wallet.mdb'));
+      if (await walletMdbDir.exists()) {
+        await walletMdbDir.delete(recursive: true);
+      }
+
+      // Delete data.mdb directory if it exists
+      final dataMdbDir = Directory(path.join(dataDir, 'data.mdb'));
+      if (await dataMdbDir.exists()) {
+        await dataMdbDir.delete(recursive: true);
+      }
+
+      // Delete wallet.dat if it exists
+      final walletDat = File(path.join(dataDir, 'wallet.dat'));
+      if (await walletDat.exists()) {
+        await walletDat.delete();
+      }
+
+      // Delete mnemonic.txt if it exists
+      final mnemonicTxt = File(path.join(dataDir, 'mnemonic.txt'));
+      if (await mnemonicTxt.exists()) {
+        await mnemonicTxt.delete();
+      }
+    } catch (e) {
+      debugPrint('Error deleting wallet files: $e');
+      rethrow;
+    }
   }
 }
 

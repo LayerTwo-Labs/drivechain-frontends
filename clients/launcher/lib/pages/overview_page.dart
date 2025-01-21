@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:path/path.dart' as path;
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
@@ -30,9 +32,19 @@ class _OverviewPageState extends State<OverviewPage> {
 
   bool _closeAlertOpen = false;
 
+  // Add state for starter usage
+  final Map<String, bool> _useStarter = {};
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize starter state
+    for (final binary in GetIt.I.get<BinaryProvider>().binaries) {
+      if (binary.chainLayer == 2) {
+        _useStarter[binary.name] = true;
+      }
+    }
 
     // Add all listeners and initialization after build is complete
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -108,7 +120,7 @@ class _OverviewPageState extends State<OverviewPage> {
 
       // 1. Start parent chain and wait for IBD
       if (!mounted) return;
-      await _binaryProvider.startBinary(navigator.context, parentChain);
+      await _binaryProvider.startBinary(navigator.context, parentChain, useStarter: false);
       if (_binaryProvider.mainchainRPC == null) {
         throw Exception('could not initialize mainchain RPC');
       }
@@ -119,7 +131,7 @@ class _OverviewPageState extends State<OverviewPage> {
 
       // 2. Start enforcer after mainchain is ready
       if (!mounted) return;
-      await _binaryProvider.startBinary(navigator.context, enforcer);
+      await _binaryProvider.startBinary(navigator.context, enforcer, useStarter: false);
       if (_binaryProvider.enforcerRPC == null) {
         throw Exception('could not initialize enforcer RPC');
       }
@@ -127,7 +139,7 @@ class _OverviewPageState extends State<OverviewPage> {
 
       // 3. Start BitWindow after enforcer
       if (!mounted) return;
-      await _binaryProvider.startBinary(navigator.context, bitwindow);
+      await _binaryProvider.startBinary(navigator.context, bitwindow, useStarter: false);
       if (_binaryProvider.bitwindowRPC == null) {
         throw Exception('could not initialize BitWindow RPC');
       }
@@ -153,22 +165,28 @@ class _OverviewPageState extends State<OverviewPage> {
     await _binaryProvider.downloadBinary(binary);
   }
 
-  Future<void> _downloadBinary(BuildContext context, Binary binary) async {
+  Future<void> _handleBinaryDownload(BuildContext context, Binary binary) async {
+    // Store all context values before async operations
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    await _binaryProvider.downloadBinary(binary);
-    debugPrint('Download completed for ${binary.name}');
+    final chainConfig = _chainConfig; // Store config reference
+    
+    try {
+      await _binaryProvider.downloadBinary(binary);
+      debugPrint('Download completed for ${binary.name}');
 
-    if (binary.chainLayer == 2 && _chainConfig != null) {
-      final chains = _chainConfig!['chains'] as List<dynamic>;
-      for (final chain in chains) {
-        if (chain['name'].toString().toLowerCase() == binary.name.toLowerCase() && chain['sidechain_slot'] != null) {
-          final sidechainSlot = chain['sidechain_slot'] as int;
-          try {
-            await _walletService.deriveSidechainStarter(sidechainSlot);
-            debugPrint('Successfully created sidechain starter for slot $sidechainSlot');
-          } catch (e) {
-            debugPrint('Error creating sidechain starter: $e');
-            if (mounted) {
+      if (!mounted) return;
+
+      if (binary.chainLayer == 2 && chainConfig != null) {
+        final chains = chainConfig['chains'] as List<dynamic>;
+        for (final chain in chains) {
+          if (chain['name'].toString().toLowerCase() == binary.name.toLowerCase() && chain['sidechain_slot'] != null) {
+            final sidechainSlot = chain['sidechain_slot'] as int;
+            try {
+              await _walletService.deriveSidechainStarter(sidechainSlot);
+              debugPrint('Successfully created sidechain starter for slot $sidechainSlot');
+            } catch (e) {
+              debugPrint('Error creating sidechain starter: $e');
+              if (!mounted) return;
               scaffoldMessenger.showSnackBar(
                 SnackBar(
                   content: Text('Failed to create sidechain starter: $e'),
@@ -176,11 +194,57 @@ class _OverviewPageState extends State<OverviewPage> {
                 ),
               );
             }
+            break;
           }
-          break;
         }
       }
+    } catch (e) {
+      debugPrint('Error downloading binary: $e');
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to download binary: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
+  }
+
+  bool _starterExists(Binary binary) {
+    if (binary.chainLayer != 2 || _chainConfig == null) {
+      debugPrint('${binary.name}: Not L2 or no config');
+      return false;
+    }
+    
+    // Find the sidechain slot from config
+    final chains = _chainConfig!['chains'] as List<dynamic>;
+    final chainConfig = chains.firstWhere(
+      (chain) => chain['name'].toString().toLowerCase() == binary.name.toLowerCase(),
+      orElse: () => null,
+    );
+    
+    if (chainConfig == null || chainConfig['sidechain_slot'] == null) {
+      debugPrint('${binary.name}: No chain config or slot');
+      return false;
+    }
+    
+    final sidechainSlot = chainConfig['sidechain_slot'] as int;
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    if (home == null) {
+      debugPrint('${binary.name}: No home directory');
+      return false;
+    }
+
+    final launcherDir = path.join(home, 'Library', 'Application Support', 'com.layertwolabs.launcher');
+    final starterDir = path.join(launcherDir, 'wallet_starters');
+    final starterFile = File(path.join(
+      starterDir,
+      'sidechain_${sidechainSlot}_starter.json',
+    ),);
+    
+    final exists = starterFile.existsSync();
+    debugPrint('${binary.name}: Starter file exists: $exists');
+    return exists;
   }
 
   @override
@@ -344,6 +408,10 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Widget _buildActionButton(BuildContext context, Binary binary, DownloadState? status) {
+    // Store context values before any async operations
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     // Check if binary is running
     final isRunning = switch (binary) {
       var b when b is ParentChain => _binaryProvider.mainchainConnected,
@@ -405,24 +473,69 @@ class _OverviewPageState extends State<OverviewPage> {
       final canStart = _binaryProvider.canStart(binary);
       final dependencyMessage = _binaryProvider.getDependencyMessage(binary);
 
-      return Tooltip(
+      final actionButton = Tooltip(
         message: dependencyMessage ?? 'Launch ${binary.name}',
         child: SailButton.primary(
           'Launch',
-          onPressed: () {
-            final navigator = Navigator.of(context);
-            _binaryProvider.startBinary(navigator.context, binary);
+          onPressed: () async {
+            debugPrint('Starting ${binary.name}');
+            final useStarter = binary.chainLayer == 2 && _starterExists(binary) && (_useStarter[binary.name] ?? true);
+            debugPrint('Use starter: $useStarter');
+            
+            try {
+              await _binaryProvider.startBinary(
+                navigator.context,
+                binary,
+                useStarter: useStarter,
+              );
+            } catch (e) {
+              if (!mounted) return;
+              scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Text('Failed to start binary: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           },
           size: ButtonSize.regular,
           disabled: !canStart,
         ),
       );
+
+      // Only show checkbox for L2 chains
+      if (binary.chainLayer == 2) {
+        final starterExists = _starterExists(binary);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            actionButton,
+            const SizedBox(width: 8),
+            Tooltip(
+              message: starterExists ? 'Use starter' : 'Generate starter',
+              child: Checkbox(
+                value: starterExists ? (_useStarter[binary.name] ?? true) : false,
+                onChanged: starterExists 
+                  ? (value) {
+                      setState(() {
+                        _useStarter[binary.name] = value ?? false;
+                      });
+                    }
+                  : null,
+              ),
+            ),
+            SailText.secondary13('Use starter'),
+          ],
+        );
+      }
+
+      return actionButton;
     }
 
     if (status == null || status.status == DownloadStatus.uninstalled) {
       return SailButton.primary(
         'Download',
-        onPressed: () => _downloadBinary(context, binary),
+        onPressed: () => _handleBinaryDownload(context, binary),
         size: ButtonSize.regular,
       );
     }
@@ -430,7 +543,7 @@ class _OverviewPageState extends State<OverviewPage> {
     if (status.status == DownloadStatus.failed) {
       return SailButton.primary(
         'Retry',
-        onPressed: () => _downloadBinary(context, binary),
+        onPressed: () => _handleBinaryDownload(context, binary),
         size: ButtonSize.regular,
       );
     }
