@@ -15,6 +15,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:launcher/env.dart';
 
 @RoutePage()
 class OverviewPage extends StatefulWidget {
@@ -210,9 +211,8 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
-  bool _starterExists(Binary binary) {
+  Future<bool> _starterExists(Binary binary) async {
     if (binary.chainLayer != 2 || _chainConfig == null) {
-      debugPrint('${binary.name}: Not L2 or no config');
       return false;
     }
     
@@ -224,27 +224,23 @@ class _OverviewPageState extends State<OverviewPage> {
     );
     
     if (chainConfig == null || chainConfig['sidechain_slot'] == null) {
-      debugPrint('${binary.name}: No chain config or slot');
       return false;
     }
     
     final sidechainSlot = chainConfig['sidechain_slot'] as int;
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-    if (home == null) {
-      debugPrint('${binary.name}: No home directory');
+    
+    try {
+      final appDir = await Environment.appDir();
+      final starterDir = path.join(appDir.path, 'wallet_starters');
+      final starterFile = File(path.join(
+        starterDir,
+        'sidechain_${sidechainSlot}_starter.json',
+      ));
+      
+      return starterFile.existsSync();
+    } catch (e) {
       return false;
     }
-
-    final launcherDir = path.join(home, 'Library', 'Application Support', 'com.layertwolabs.launcher');
-    final starterDir = path.join(launcherDir, 'wallet_starters');
-    final starterFile = File(path.join(
-      starterDir,
-      'sidechain_${sidechainSlot}_starter.json',
-    ),);
-    
-    final exists = starterFile.existsSync();
-    debugPrint('${binary.name}: Starter file exists: $exists');
-    return exists;
   }
 
   @override
@@ -478,9 +474,7 @@ class _OverviewPageState extends State<OverviewPage> {
         child: SailButton.primary(
           'Launch',
           onPressed: () async {
-            debugPrint('Starting ${binary.name}');
-            final useStarter = binary.chainLayer == 2 && _starterExists(binary) && (_useStarter[binary.name] ?? true);
-            debugPrint('Use starter: $useStarter');
+            final useStarter = binary.chainLayer == 2 && await _starterExists(binary) && (_useStarter[binary.name] ?? true);
             
             try {
               await _binaryProvider.startBinary(
@@ -505,27 +499,32 @@ class _OverviewPageState extends State<OverviewPage> {
 
       // Only show checkbox for L2 chains
       if (binary.chainLayer == 2) {
-        final starterExists = _starterExists(binary);
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            actionButton,
-            const SizedBox(width: 8),
-            Tooltip(
-              message: starterExists ? 'Use starter' : 'Generate starter',
-              child: Checkbox(
-                value: starterExists ? (_useStarter[binary.name] ?? true) : false,
-                onChanged: starterExists 
-                  ? (value) {
-                      setState(() {
-                        _useStarter[binary.name] = value ?? false;
-                      });
-                    }
-                  : null,
-              ),
-            ),
-            SailText.secondary13('Use starter'),
-          ],
+        return FutureBuilder<bool>(
+          future: _starterExists(binary),
+          builder: (context, snapshot) {
+            final starterExists = snapshot.data ?? false;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                actionButton,
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: starterExists ? 'Use starter' : 'Generate starter',
+                  child: Checkbox(
+                    value: starterExists ? (_useStarter[binary.name] ?? true) : false,
+                    onChanged: starterExists 
+                      ? (value) {
+                          setState(() {
+                            _useStarter[binary.name] = value ?? false;
+                          });
+                        }
+                      : null,
+                  ),
+                ),
+                SailText.secondary13('Use starter'),
+              ],
+            );
+          },
         );
       }
 
