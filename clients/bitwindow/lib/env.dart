@@ -15,7 +15,7 @@ class Environment {
   // Define the environment variables here
   static const bitwindowdHost = Variable(
     'BITWINDOWD_HOST',
-    String.fromEnvironment('BITWINDOWD_HOST', defaultValue: 'localhost'),
+    String.fromEnvironment('BITWINDOWD_HOST', defaultValue: '127.0.0.1'),
   );
   static const bitwindowdPort = Variable(
     'BITWINDOWD_PORT',

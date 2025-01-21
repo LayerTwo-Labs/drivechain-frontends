@@ -322,7 +322,7 @@ class BinaryProvider extends ChangeNotifier {
       case BitWindow():
         if (bitwindowRPC == null) {
           bitwindowRPC = await BitwindowRPCLive.create(
-            host: 'localhost',
+            host: '127.0.0.1',
             port: binary.port,
             binary: binary,
             logPath: path.join(binary.datadir(), 'bitwindow.log'),
