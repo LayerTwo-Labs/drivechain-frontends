@@ -715,7 +715,7 @@ class _OverviewPageState extends State<OverviewPage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
                 child: IntrinsicHeight(
-                  child: SailRow(
+                  child: SailColumn(
                     spacing: SailStyleValues.padding16,
                     children: _processProvider.runningProcesses.values.map((process) {
                       final binary = Binary.fromBinary(process.binary)!;
