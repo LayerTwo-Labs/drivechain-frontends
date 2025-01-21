@@ -17,7 +17,7 @@ abstract class BitnamesRPC extends RPCConnection {
 class BitnamesLive extends BitnamesRPC {
   RPCClient _client() {
     final client = RPCClient(
-      host: 'localhost',
+      host: '127.0.0.1',
       port: binary.port,
       username: conf.username,
       password: conf.password,

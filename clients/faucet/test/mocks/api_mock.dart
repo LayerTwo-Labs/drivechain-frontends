@@ -7,7 +7,7 @@ class MockAPI implements API {
   ServiceClients clients = ServiceClients.setup(
     callOptions: CallOptions(timeout: const Duration(seconds: 5)),
     channel: GrpcOrGrpcWebClientChannel.grpc(
-      'localhost',
+      '127.0.0.1',
       port: 8080,
       options: ChannelOptions(
         credentials: ChannelCredentials.insecure(),

@@ -45,7 +45,7 @@ Future<NodeConnectionSettings> readRPCConfig(
 
   var settings = NodeConnectionSettings(
     conf.path,
-    'localhost',
+    '127.0.0.1',
     chain.port,
     'user',
     'password',

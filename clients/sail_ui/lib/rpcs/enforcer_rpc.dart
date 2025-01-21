@@ -47,7 +47,7 @@ class EnforcerLive extends EnforcerRPC {
 
   Future<void> _init() async {
     final channel = ClientChannel(
-      'localhost',
+      '127.0.0.1',
       port: binary.port,
       options: const ChannelOptions(
         credentials: ChannelCredentials.insecure(),

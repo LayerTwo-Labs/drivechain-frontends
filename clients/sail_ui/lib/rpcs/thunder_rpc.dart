@@ -17,7 +17,7 @@ abstract class ThunderRPC extends RPCConnection {
 class ThunderLive extends ThunderRPC {
   RPCClient _client() {
     final client = RPCClient(
-      host: 'localhost',
+      host: '127.0.0.1',
       port: binary.port,
       username: conf.username,
       password: conf.password,
