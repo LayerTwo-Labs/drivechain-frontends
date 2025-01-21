@@ -148,21 +148,6 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
-  bool _shouldDisableDownloadAll(Map<String, DownloadState>? statusData) {
-    if (statusData == null) return false;
-
-    // Get L1 binaries
-    final l1Binaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1);
-
-    // Check if any downloads are in progress
-    final hasActiveDownloads = statusData.values.any((state) => state.status == DownloadStatus.installing);
-
-    // Check if all L1 binaries are already installed
-    final allInstalled = l1Binaries.every((b) => statusData[b.name]?.status == DownloadStatus.installed);
-
-    return hasActiveDownloads || allInstalled;
-  }
-
   Future<void> _updateBinary(Binary binary) async {
     await _stopBinary(binary);
     await _binaryProvider.downloadBinary(binary);
@@ -227,18 +212,24 @@ class _OverviewPageState extends State<OverviewPage> {
                                     SailText.primary24('Layer 1'),
                                     Row(
                                       children: [
-                                        SailButton.primary(
-                                          'Boot Layer 1',
-                                          onPressed: () => _runL1(context, statusSnapshot.data),
-                                          size: ButtonSize.regular,
+                                        Builder(
+                                          builder: (context) {
+                                            final allL1Installed = statusSnapshot.data != null &&
+                                                [ParentChain(), Enforcer(), BitWindow()].every(
+                                                  (b) =>
+                                                      statusSnapshot.data![b.name]?.status == DownloadStatus.installed,
+                                                );
+
+                                            return SailButton.primary(
+                                              allL1Installed ? 'Boot Layer 1' : 'Download Layer 1',
+                                              onPressed: () => allL1Installed
+                                                  ? _runL1(context, statusSnapshot.data)
+                                                  : _downloadUninstalledL1Binaries(statusSnapshot.data),
+                                              size: ButtonSize.regular,
+                                            );
+                                          },
                                         ),
                                         const SizedBox(width: 8),
-                                        SailButton.primary(
-                                          'Download All',
-                                          onPressed: () => _downloadUninstalledL1Binaries(statusSnapshot.data),
-                                          size: ButtonSize.regular,
-                                          disabled: _shouldDisableDownloadAll(statusSnapshot.data),
-                                        ),
                                       ],
                                     ),
                                   ],
