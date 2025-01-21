@@ -154,7 +154,9 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<void> stopRPC() async {
-    // TODO: not implemented
+    while (true) {
+      await Future.delayed(const Duration(days: 1));
+    }
   }
 }
 
