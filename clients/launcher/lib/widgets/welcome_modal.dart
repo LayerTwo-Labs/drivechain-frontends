@@ -1,41 +1,36 @@
-import 'package:flutter/material.dart';
-import 'package:sail_ui/sail_ui.dart';
-import 'package:launcher/services/wallet_service.dart';
-import 'package:get_it/get_it.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:launcher/services/wallet_service.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
+
 Future<bool?> showWelcomeModal(BuildContext context) async {
-  return await showThemedDialog<bool>(
+  return await showDialog<bool>(
     context: context,
-    builder: (context) => PopScope(
-      canPop: false,
-      child: Dialog(
-        backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
-        child: SailRawCard(
-          header: DialogHeader(
-            title: 'Welcome to Drivechain',
-            onClose: () {}, // Disable close button
-          ),
-          child: const _WelcomeModalContent(),
+    builder: (context) => Dialog(
+      backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
+      child: SailRawCard(
+        header: DialogHeader(
+          title: 'Welcome to Drivechain',
+          onClose: () {}, // Disable close button
+        ),
+        child: const _WelcomeModalContent(
+          keepOpen: true,
         ),
       ),
     ),
   );
 }
 
-class WelcomeModal extends StatelessWidget {
-  const WelcomeModal({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(); // Placeholder since we use showWelcomeModal
-  }
-}
-
 class _WelcomeModalContent extends StatefulWidget {
-  const _WelcomeModalContent();
+  final bool keepOpen;
+
+  const _WelcomeModalContent({
+    this.keepOpen = false,
+  });
 
   @override
   _WelcomeModalContentState createState() => _WelcomeModalContentState();
@@ -61,7 +56,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
     final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
 
-    if (masterFile.existsSync()) {
+    if (!widget.keepOpen && masterFile.existsSync()) {
       if (mounted) {
         Navigator.of(context).pop(true);
       }
