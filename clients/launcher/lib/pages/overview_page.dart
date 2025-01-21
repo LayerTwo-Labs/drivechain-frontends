@@ -675,63 +675,91 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Future<bool> displayShutdownModal(
-    BuildContext context,
-  ) async {
-    if (_closeAlertOpen) return false;
-    _closeAlertOpen = true;
+  Future<bool> displayShutdownModal(BuildContext context) async {
+    // Start a timer that will force close after 6 seconds
+    final timer = Timer(const Duration(seconds: 6), () {
+      if (_closeAlertOpen) {
+        Navigator.of(context).pop(true);
+        _closeAlertOpen = false;
+      }
+    });
 
-    var processesExited = Completer<bool>();
-    unawaited(_processProvider.shutdown().then((_) => processesExited.complete(true)));
+    try {
+      final futures = <Future>[];
+      // Try to stop all binaries regardless of state
+      futures.add(_binaryProvider.mainchainRPC?.stop() ?? Future.value());
+      futures.add(_binaryProvider.enforcerRPC?.stop() ?? Future.value());
+      futures.add(_binaryProvider.bitwindowRPC?.stop() ?? Future.value());
+      futures.add(_binaryProvider.thunderRPC?.stop() ?? Future.value());
+      futures.add(_binaryProvider.bitnamesRPC?.stop() ?? Future.value());
 
-    if (!mounted) return true;
+      // If no processes are running, return immediately
+      if (futures.isEmpty) {
+        return true;
+      }
 
-    unawaited(
-      widgetDialog(
-        context: context,
-        title: 'Shutdown status',
-        subtitle: 'Shutting down nodes...',
-        child: SailColumn(
-          spacing: SailStyleValues.padding20,
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SailSpacing(SailStyleValues.padding08),
-            SailRow(
-              spacing: SailStyleValues.padding12,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _processProvider.runningProcesses.entries.map((entry) {
-                return ShutdownCard(
-                  chain: Binary.fromBinary(entry.value.binary)!,
-                  initializing: true,
-                  message: 'with pid ${entry.value.pid}',
-                  forceCleanup: () => entry.value.cleanup(),
-                );
-              }).toList(),
-            ),
-            const SailSpacing(SailStyleValues.padding10),
-            SailRow(
-              spacing: SailStyleValues.padding12,
-              mainAxisAlignment: MainAxisAlignment.end,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                SailButton.primary(
-                  'Force close',
-                  onPressed: () {
-                    processesExited.complete(true);
-                    Navigator.of(context).pop(true);
-                    _closeAlertOpen = false;
-                  },
-                  size: ButtonSize.regular,
+      _closeAlertOpen = true;
+
+      // Create dialog but don't await it. That's what the future is for
+      unawaited(
+        widgetDialog(
+          context: context,
+          title: 'Shutdown status',
+          subtitle: 'Shutting down nodes...',
+          child: SailColumn(
+            spacing: SailStyleValues.padding20,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SailSpacing(SailStyleValues.padding08),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+                child: IntrinsicHeight(
+                  child: SailRow(
+                    spacing: SailStyleValues.padding16,
+                    children: _processProvider.runningProcesses.values.map((process) {
+                      final binary = Binary.fromBinary(process.binary)!;
+                      return Expanded(
+                        child: SailRawCard(
+                          padding: true,
+                          child: _buildChainContent(binary, null),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SailSpacing(SailStyleValues.padding10),
+              SailRow(
+                spacing: SailStyleValues.padding12,
+                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  SailButton.primary(
+                    'Force close',
+                    onPressed: () {
+                      Navigator.of(context).pop(true);
+                      _closeAlertOpen = false;
+                    },
+                    size: ButtonSize.regular,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
-    await processesExited.future;
+      // Wait for all stop operations to complete
+      await Future.wait(futures);
+      if (context.mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } finally {
+      timer.cancel();
+      _closeAlertOpen = false;
+    }
+
     return true;
   }
 }
