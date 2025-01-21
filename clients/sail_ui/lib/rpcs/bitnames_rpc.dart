@@ -98,12 +98,7 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     try {
-      final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-      if (home == null) {
-        throw Exception('Could not find home directory');
-      }
-
-      final bitnamesDir = path.join(home, 'Library', 'Application Support', 'plain_bitnames');
+      final bitnamesDir = binary.datadir();
       await _deleteWalletFiles(bitnamesDir);
 
       int setSeedRetries = 0;

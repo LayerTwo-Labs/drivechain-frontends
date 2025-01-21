@@ -90,12 +90,7 @@ class ThunderLive extends ThunderRPC {
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     try {
-      final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-      if (home == null) {
-        throw Exception('Could not find home directory');
-      }
-
-      final thunderDir = path.join(home, 'Library', 'Application Support', 'Thunder');
+      final thunderDir = binary.datadir();
       await _deleteWalletFiles(thunderDir);
 
       // Try to set the seed multiple times

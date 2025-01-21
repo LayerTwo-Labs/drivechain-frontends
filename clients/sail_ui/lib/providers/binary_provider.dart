@@ -12,6 +12,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
+import 'package:launcher/env.dart';
 
 /// Represents the current status of a binary download
 class DownloadState {
@@ -377,18 +378,12 @@ class BinaryProvider extends ChangeNotifier {
     if (binary is! Sidechain) return;
     
     try {
-      final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-      if (home == null) {
-        log.e('Error: unable to determine HOME location');
-        return;
-      }
-
-      final launcherDir = path.join(home, 'Library', 'Application Support', 'com.layertwolabs.launcher');
-      final starterDir = path.join(launcherDir, 'wallet_starters');
+      final appDir = await Environment.appDir();
+      final starterDir = path.join(appDir.path, 'wallet_starters');
       final starterFile = File(path.join(
         starterDir,
         'sidechain_${binary.slot}_starter.json',
-      ),);
+      ));
 
       if (!starterFile.existsSync()) return;
 
