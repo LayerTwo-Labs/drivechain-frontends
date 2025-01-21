@@ -1,11 +1,9 @@
-import 'dart:io';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:path/path.dart' as path;
 import 'package:logger/logger.dart';
 
 final log = Logger();
@@ -94,7 +92,6 @@ class ThunderLive extends ThunderRPC {
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     try {
-      final thunderDir = binary.datadir();
       await binary.wipeWallet();  // Use the built-in wipeWallet function
 
       // Try to set the seed multiple times

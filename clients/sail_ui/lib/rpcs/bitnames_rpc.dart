@@ -4,8 +4,6 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'dart:io';
-import 'package:path/path.dart' as path;
 
 /// API to the bitnames server.
 abstract class BitnamesRPC extends RPCConnection {
@@ -143,33 +141,6 @@ class BitnamesLive extends BitnamesRPC {
       throw Exception('Failed to verify wallet was ready after $maxRetries attempts');
     } catch (e) {
       log.e('Error setting Bitnames seed', error: e);
-      rethrow;
-    }
-  }
-
-  Future<void> _deleteWalletFiles(String dataDir) async {
-    try {
-      final walletMdbDir = Directory(path.join(dataDir, 'wallet.mdb'));
-      if (await walletMdbDir.exists()) {
-        await walletMdbDir.delete(recursive: true);
-      }
-
-      final dataMdbDir = Directory(path.join(dataDir, 'data.mdb'));
-      if (await dataMdbDir.exists()) {
-        await dataMdbDir.delete(recursive: true);
-      }
-
-      final walletDat = File(path.join(dataDir, 'wallet.dat'));
-      if (await walletDat.exists()) {
-        await walletDat.delete();
-      }
-
-      final mnemonicTxt = File(path.join(dataDir, 'mnemonic.txt'));
-      if (await mnemonicTxt.exists()) {
-        await mnemonicTxt.delete();
-      }
-    } catch (e) {
-      log.e('Error deleting Bitnames wallet files', error: e);
       rethrow;
     }
   }
