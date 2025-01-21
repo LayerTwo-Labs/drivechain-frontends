@@ -12,6 +12,8 @@ abstract class BitnamesRPC extends RPCConnection {
     required super.binary,
     required super.logPath,
   });
+
+  Future<void> setSeedFromMnemonic(String mnemonic);
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -24,7 +26,6 @@ class BitnamesLive extends BitnamesRPC {
       useSSL: false,
     );
 
-    // Completely empty client, with no retry logic.
     client.dioClient = Dio();
     return client;
   }
@@ -74,7 +75,6 @@ class BitnamesLive extends BitnamesRPC {
     final totalSats = response['total_sats'] as int;
     final availableSats = response['available_sats'] as int;
 
-    // Convert from sats to BTC
     final confirmed = satoshiToBTC(availableSats);
     final unconfirmed = satoshiToBTC(totalSats - availableSats);
 
@@ -83,6 +83,65 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<void> stopRPC() async {
-    await _client().call('stop');
+    try {
+      await _client().call('stop');
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (e) {
+      if (e.toString().contains('Connection refused') || e.toString().contains('Unknown Error')) {
+        return;
+      }
+      log.e('Error stopping RPC', error: e);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> setSeedFromMnemonic(String mnemonic) async {
+    try {
+      await binary.wipeWallet();  // Use the built-in wipeWallet function
+
+      // Try to set the seed multiple times
+      int setSeedRetries = 0;
+      const maxSetSeedRetries = 5;
+      const setSeedRetryDelay = Duration(milliseconds: 500);
+      Exception? lastError;
+
+      while (setSeedRetries < maxSetSeedRetries) {
+        try {
+          await _client().call('set_seed_from_mnemonic', [mnemonic]);
+          break;
+        } catch (e) {
+          lastError = Exception(e.toString());
+          setSeedRetries++;
+          if (setSeedRetries == maxSetSeedRetries) {
+            throw lastError;
+          }
+          await Future.delayed(setSeedRetryDelay);
+        }
+      }
+
+      // Verify the seed was set by checking if we can get a balance
+      int retries = 0;
+      const maxRetries = 20;
+      const retryDelay = Duration(seconds: 2);
+
+      while (retries < maxRetries) {
+        try {
+          await _client().call('balance');
+          return;
+        } catch (e) {
+          if (e.toString().contains("wallet doesn't have a seed")) {
+            retries++;
+            await Future.delayed(retryDelay);
+            continue;
+          }
+          rethrow;
+        }
+      }
+      throw Exception('Failed to verify wallet was ready after $maxRetries attempts');
+    } catch (e) {
+      log.e('Error setting Bitnames seed', error: e);
+      rethrow;
+    }
   }
 }
