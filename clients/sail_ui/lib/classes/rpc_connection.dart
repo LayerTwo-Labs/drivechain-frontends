@@ -139,12 +139,12 @@ abstract class RPCConnection extends ChangeNotifier {
     initializingBinary = true;
     notifyListeners();
 
-    log.i('Checking connection', {'binary': binary, 'host': conf.host, 'port': conf.port});
+    log.i('Checking connection - binary: ${binary.name}, host: ${conf.host}, port: ${conf.port}');
 
     await startConnectionTimer();
     // If we managed to connect to an already running daemon, we're finished here!
     if (connected) {
-      log.i('Binary already running', {'binary': binary});
+      log.i('Binary already running - ${binary.name}');
       initializingBinary = false;
       notifyListeners();
       return;
@@ -156,7 +156,7 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    log.i('Starting binary', {'binary': binary, 'args': args.join(" ")});
+    log.i('Starting binary ${binary.name} with args: ${args.join(" ")}');
 
     int pid;
     try {
@@ -166,9 +166,9 @@ abstract class RPCConnection extends ChangeNotifier {
         args,
         stopRPC,
       );
-      log.i('Binary started', {'binary': binary, 'pid': pid});
+      log.i('Binary started - ${binary.name} with pid: $pid');
     } catch (err) {
-      log.e('Failed to start binary', {'binary': binary, 'error': err});
+      log.e('Failed to start binary ${binary.name}: $err');
       initializingBinary = false;
       connectionError = 'could not start $binary daemon: $err';
       connected = false;
@@ -176,7 +176,7 @@ abstract class RPCConnection extends ChangeNotifier {
       return;
     }
 
-    log.i('Waiting for connection', {'binary': binary});
+    log.i('Waiting for connection - ${binary.name}');
 
     var timeout = Duration(seconds: 60);
     if (binary.binary == 'zsided') {
@@ -215,14 +215,14 @@ abstract class RPCConnection extends ChangeNotifier {
         // Timeout case!
       ]);
 
-      log.i('Binary connected', {'binary': binary});
+      log.i('Binary connected - ${binary.name}');
     } catch (err) {
-      log.e('Connection failed', {'binary': binary, 'error': err});
+      log.e('Connection failed for ${binary.name}: $err');
 
       // We've quit! Assuming there's error logs, somewhere.
       if (!processes.running(pid)) {
         final logs = await processes.stderr(pid).toList();
-        log.e('Binary exited with logs', {'binary': binary, 'logs': logs});
+        log.e('Binary ${binary.name} exited with logs: ${logs.last}');
         connectionError = _stripFromString(logs.last, ': ');
       } else {
         connectionError = err.toString();
