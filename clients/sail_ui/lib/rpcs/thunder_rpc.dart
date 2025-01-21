@@ -6,6 +6,9 @@ import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:path/path.dart' as path;
+import 'package:logger/logger.dart';
+
+final log = Logger();
 
 /// API to the thunder server.
 abstract class ThunderRPC extends RPCConnection {
@@ -73,12 +76,13 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<(double, double)> balance() async {
-    final response = await _client().call('balance') as Map<String, dynamic>;
-    final totalSats = response['total_sats'] as int;
-    final availableSats = response['available_sats'] as int;
-    // Convert from sats to BTC
-    final confirmed = satoshiToBTC(availableSats);
-    final unconfirmed = satoshiToBTC(totalSats - availableSats);
+    try {
+      final response = await _client().call('balance') as Map<String, dynamic>;
+      final totalSats = response['total_sats'] as int;
+      final availableSats = response['available_sats'] as int;
+      // Convert from sats to BTC
+      final confirmed = satoshiToBTC(availableSats);
+      final unconfirmed = satoshiToBTC(totalSats - availableSats);
 
       return (confirmed, unconfirmed);
     } catch (e) {
@@ -91,7 +95,7 @@ class ThunderLive extends ThunderRPC {
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     try {
       final thunderDir = binary.datadir();
-      await _deleteWalletFiles(thunderDir);
+      await binary.wipeWallet();  // Use the built-in wipeWallet function
 
       // Try to set the seed multiple times
       int setSeedRetries = 0;
@@ -134,37 +138,6 @@ class ThunderLive extends ThunderRPC {
       throw Exception('Failed to verify wallet was ready after $maxRetries attempts');
     } catch (e) {
       log.e('Error setting Thunder seed', error: e);
-      rethrow;
-    }
-  }
-
-  Future<void> _deleteWalletFiles(String dataDir) async {
-    try {
-      // Delete wallet.mdb directory if it exists
-      final walletMdbDir = Directory(path.join(dataDir, 'wallet.mdb'));
-      if (await walletMdbDir.exists()) {
-        await walletMdbDir.delete(recursive: true);
-      }
-
-      // Delete data.mdb directory if it exists
-      final dataMdbDir = Directory(path.join(dataDir, 'data.mdb'));
-      if (await dataMdbDir.exists()) {
-        await dataMdbDir.delete(recursive: true);
-      }
-
-      // Delete wallet.dat if it exists
-      final walletDat = File(path.join(dataDir, 'wallet.dat'));
-      if (await walletDat.exists()) {
-        await walletDat.delete();
-      }
-
-      // Delete mnemonic.txt if it exists
-      final mnemonicTxt = File(path.join(dataDir, 'mnemonic.txt'));
-      if (await mnemonicTxt.exists()) {
-        await mnemonicTxt.delete();
-      }
-    } catch (e) {
-      log.e('Error deleting Thunder wallet files', error: e);
       rethrow;
     }
   }

@@ -32,12 +32,14 @@ class BitnamesLive extends BitnamesRPC {
     return client;
   }
 
+  // Private constructor
   BitnamesLive._create({
     required super.conf,
     required super.binary,
     required super.logPath,
   });
 
+  // Async factory
   static Future<BitnamesLive> create({
     required Binary binary,
     required String logPath,
@@ -98,9 +100,9 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     try {
-      final bitnamesDir = binary.datadir();
-      await _deleteWalletFiles(bitnamesDir);
+      await binary.wipeWallet();  // Use the built-in wipeWallet function
 
+      // Try to set the seed multiple times
       int setSeedRetries = 0;
       const maxSetSeedRetries = 5;
       const setSeedRetryDelay = Duration(milliseconds: 500);
@@ -120,6 +122,7 @@ class BitnamesLive extends BitnamesRPC {
         }
       }
 
+      // Verify the seed was set by checking if we can get a balance
       int retries = 0;
       const maxRetries = 20;
       const retryDelay = Duration(seconds: 2);

@@ -165,12 +165,9 @@ abstract class RPCConnection extends ChangeNotifier {
       );
       log.i('Binary started - ${binary.name} with pid: $pid');
     } catch (err) {
-      log.e('Failed to start binary ${binary.name}: $err');
-      initializingBinary = false;
-      connectionError = 'could not start $binary daemon: $err';
-      connected = false;
-      notifyListeners();
-      return;
+      log.e("init binaries: couldn't connect to $binary");
+      log.e('Connection failed for ${binary.name}');
+      rethrow;
     }
 
     log.i('Waiting for connection - ${binary.name}');
