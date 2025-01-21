@@ -55,7 +55,7 @@ class EnforcerLive extends EnforcerRPC {
     );
 
     validator = ValidatorServiceClient(channel);
-    await testConnection();
+    await startConnectionTimer();
   }
 
   @override

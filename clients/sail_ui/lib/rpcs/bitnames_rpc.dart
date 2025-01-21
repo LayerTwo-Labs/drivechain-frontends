@@ -54,7 +54,7 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   Future<void> _init() async {
-    await testConnection();
+    await startConnectionTimer();
   }
 
   @override

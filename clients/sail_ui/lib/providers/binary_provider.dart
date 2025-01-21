@@ -190,7 +190,6 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> startBinary(BuildContext context, Binary binary) async {
     if (!context.mounted) return;
 
-    _explicitlyLaunched[binary.name] = true;
     await initRPC(binary);
 
     if (!context.mounted) return;
@@ -213,6 +212,10 @@ class BinaryProvider extends ChangeNotifier {
       default:
         log.i('is $binary');
     }
+    Future.delayed(const Duration(seconds: 3), () {
+      _explicitlyLaunched[binary.name] = true;
+    });
+
     notifyListeners();
 
     // Wait for connection or timeout

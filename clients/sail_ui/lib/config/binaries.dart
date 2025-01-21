@@ -66,7 +66,7 @@ abstract class Binary {
         return ZCashSidechain();
       case 'bitwindow':
         return BitWindow();
-      case 'enforcer':
+      case 'bip300301_enforcer':
         return Enforcer();
       case 'thunder':
         return Thunder();

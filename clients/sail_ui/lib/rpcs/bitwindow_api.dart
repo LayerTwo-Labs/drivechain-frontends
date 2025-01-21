@@ -120,7 +120,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     _drivechain = _DrivechainAPILive(_client);
     _misc = _MiscAPILive(_miscClient);
 
-    await testConnection();
+    await startConnectionTimer();
   }
 
   @override

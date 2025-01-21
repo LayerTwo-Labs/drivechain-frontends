@@ -54,7 +54,7 @@ class ThunderLive extends ThunderRPC {
   }
 
   Future<void> _init() async {
-    await testConnection();
+    await startConnectionTimer();
   }
 
   @override
@@ -64,14 +64,21 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<int> ping() async {
-    final balanceSat = await _client().call('balance') as int;
-    return balanceSat;
+    final response = await _client().call('balance') as Map<String, dynamic>;
+    return response['total_sats'] as int;
   }
 
   @override
   Future<(double, double)> balance() async {
-    final balanceSat = await _client().call('balance') as int;
-    return (satoshiToBTC(balanceSat.toInt()), 0.0);
+    final response = await _client().call('balance') as Map<String, dynamic>;
+    final totalSats = response['total_sats'] as int;
+    final availableSats = response['available_sats'] as int;
+
+    // Convert from sats to BTC
+    final confirmed = satoshiToBTC(availableSats);
+    final unconfirmed = satoshiToBTC(totalSats - availableSats);
+
+    return (confirmed, unconfirmed);
   }
 
   @override
