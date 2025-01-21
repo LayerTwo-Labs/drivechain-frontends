@@ -467,27 +467,27 @@ class _OverviewPageState extends State<OverviewPage> {
         connected = _binaryProvider.mainchainRPC?.connected ?? false;
         initializing = _binaryProvider.mainchainRPC?.initializingBinary ?? false;
         stopping = _binaryProvider.mainchainRPC?.stoppingBinary ?? false;
-        error = _binaryProvider.mainchainRPC?.connectionError;
+        error = _binaryProvider.mainchainError;
       case Enforcer():
         connected = _binaryProvider.enforcerRPC?.connected ?? false;
         initializing = _binaryProvider.enforcerRPC?.initializingBinary ?? false;
         stopping = _binaryProvider.enforcerRPC?.stoppingBinary ?? false;
-        error = _binaryProvider.enforcerRPC?.connectionError;
+        error = _binaryProvider.enforcerError;
       case BitWindow():
         connected = _binaryProvider.bitwindowRPC?.connected ?? false;
         initializing = _binaryProvider.bitwindowRPC?.initializingBinary ?? false;
         stopping = _binaryProvider.bitwindowRPC?.stoppingBinary ?? false;
-        error = _binaryProvider.bitwindowRPC?.connectionError;
+        error = _binaryProvider.bitwindowError;
       case Thunder():
         connected = _binaryProvider.thunderRPC?.connected ?? false;
         initializing = _binaryProvider.thunderRPC?.initializingBinary ?? false;
         stopping = _binaryProvider.thunderRPC?.stoppingBinary ?? false;
-        error = _binaryProvider.thunderRPC?.connectionError;
+        error = _binaryProvider.thunderError;
       case Bitnames():
         connected = _binaryProvider.bitnamesRPC?.connected ?? false;
         initializing = _binaryProvider.bitnamesRPC?.initializingBinary ?? false;
         stopping = _binaryProvider.bitnamesRPC?.stoppingBinary ?? false;
-        error = _binaryProvider.bitnamesRPC?.connectionError;
+        error = _binaryProvider.bitnamesError;
     }
 
     return Builder(
@@ -538,6 +538,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 ),
             ],
           ),
+          SailSpacing(SailStyleValues.padding08),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
