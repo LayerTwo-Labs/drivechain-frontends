@@ -6,11 +6,15 @@ import 'package:sail_ui/utils/file_utils.dart';
 
 class ChainSettingsModal extends StatelessWidget {
   final Binary chain;
+  final Function() onWipeAppDir;
+  final Function() onWipeWallet;
   OS get os => getOS();
 
   const ChainSettingsModal({
     super.key,
     required this.chain,
+    required this.onWipeAppDir,
+    required this.onWipeWallet,
   });
 
   void _openDownloadLocation(Binary binary) async {
@@ -52,8 +56,12 @@ class ChainSettingsModal extends StatelessWidget {
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => chain.wipeAppDir(context),
+                        icon: const Icon(Icons.delete, color: SailColorScheme.red),
+                        onPressed: onWipeAppDir,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.wallet, color: SailColorScheme.red),
+                        onPressed: onWipeWallet,
                       ),
                       IconButton(
                         icon: Icon(Icons.close, color: theme.colors.text),

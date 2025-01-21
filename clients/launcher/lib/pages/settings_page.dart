@@ -93,7 +93,7 @@ class SettingsPage extends StatelessWidget {
             const SizedBox(height: 16),
             SailText.primary13(
               'WARNING: If you have not stored your master mnemonic phrase, you will not be able to regenerate your sidechain starters.',
-              color: Colors.red,
+              color: SailColorScheme.red,
               textAlign: TextAlign.center,
             ),
           ],
@@ -133,7 +133,7 @@ class SettingsPage extends StatelessWidget {
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('Error deleting wallet starters: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: SailColorScheme.red,
           ),
         );
       }

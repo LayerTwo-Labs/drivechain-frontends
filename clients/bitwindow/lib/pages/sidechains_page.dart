@@ -445,6 +445,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                       viewModel.notifyListeners(); // Make sure UI updates
                     }
                   } catch (e) {
+                    if (!context.mounted) return;
                     showSnackBar(context, 'Error accessing clipboard');
                   }
                 },

@@ -77,7 +77,7 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: viewModel.isConnected ? Colors.green : Colors.red,
+                    color: viewModel.isConnected ? Colors.green : SailColorScheme.red,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -504,7 +504,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                   SnackBar(
                                                     content: Text('Error deleting starter: $e'),
-                                                    backgroundColor: Colors.red,
+                                                    backgroundColor: SailColorScheme.red,
                                                   ),
                                                 );
                                               }
@@ -523,7 +523,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                   SnackBar(
                                                     content: Text('Error generating starter: $e'),
-                                                    backgroundColor: Colors.red,
+                                                    backgroundColor: SailColorScheme.red,
                                                   ),
                                                 );
                                               }
@@ -638,7 +638,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                   SnackBar(
                                                     content: Text('Error deleting starter: $e'),
-                                                    backgroundColor: Colors.red,
+                                                    backgroundColor: SailColorScheme.red,
                                                   ),
                                                 );
                                               }
@@ -657,7 +657,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                   SnackBar(
                                                     content: Text('Error generating starter: $e'),
-                                                    backgroundColor: Colors.red,
+                                                    backgroundColor: SailColorScheme.red,
                                                   ),
                                                 );
                                               }

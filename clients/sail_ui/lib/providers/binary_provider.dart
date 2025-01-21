@@ -193,6 +193,7 @@ class BinaryProvider extends ChangeNotifier {
     _explicitlyLaunched[binary.name] = true;
     await initRPC(binary);
 
+    if (!context.mounted) return;
     switch (binary) {
       case ParentChain():
         await mainchainRPC!.initBinary(context);

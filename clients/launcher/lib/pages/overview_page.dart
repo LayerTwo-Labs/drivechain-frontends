@@ -140,7 +140,7 @@ class _OverviewPageState extends State<OverviewPage> {
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('Failed to start L1 binaries: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: SailColorScheme.red,
           ),
         );
       }
@@ -172,7 +172,7 @@ class _OverviewPageState extends State<OverviewPage> {
               scaffoldMessenger.showSnackBar(
                 SnackBar(
                   content: Text('Failed to create sidechain starter: $e'),
-                  backgroundColor: Colors.red,
+                  backgroundColor: SailColorScheme.red,
                 ),
               );
             }
@@ -307,7 +307,7 @@ class _OverviewPageState extends State<OverviewPage> {
       (true, _, _, _) => Colors.green,
       (_, true, _, _) => Colors.orange,
       (_, _, true, _) => Colors.orange,
-      (_, _, _, true) => Colors.red,
+      (_, _, _, true) => SailColorScheme.red,
       _ => Colors.grey,
     };
 
@@ -453,6 +453,116 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
+  Future<void> _wipeBinary(BuildContext context, Binary binary) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Data Wipe'),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailText.primary15(
+              'Are you sure you want to wipe all data recursively for ${binary.name}?',
+            ),
+            const SizedBox(height: 8),
+            SailText.primary22(
+              binary.datadir(),
+              bold: true,
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: SailText.primary15('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: SailColorScheme.red),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: SailText.primary15('Wipe Data', color: SailColorScheme.red),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    // First stop the binary
+    await _stopBinary(binary);
+
+    // Then wipe it
+    await binary.wipeAppDir();
+
+    // Show success message
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${binary.name} data wiped successfully'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _wipeWallet(BuildContext context, Binary binary) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Wallet Wipe'),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailText.primary15(
+              'CAUTION: Are you sure you want to wipe all data recursively for ${binary.name}?',
+            ),
+            const SizedBox(height: 8),
+            SailText.primary22(
+              binary.datadir(),
+              bold: true,
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: SailColorScheme.red),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Wipe Wallet'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    // First stop the binary
+    await _stopBinary(binary);
+
+    // Then wipe it
+    await binary.wipeWallet();
+
+    // Show success message
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${binary.name} wallet wiped successfully'),
+        ),
+      );
+    }
+  }
+
   Widget _buildChainContent(Binary binary, DownloadState? status) {
     final theme = SailTheme.of(context);
 
@@ -511,7 +621,11 @@ class _OverviewPageState extends State<OverviewPage> {
                     onPressed: () {
                       showDialog(
                         context: context,
-                        builder: (context) => ChainSettingsModal(chain: binary),
+                        builder: (context) => ChainSettingsModal(
+                          chain: binary,
+                          onWipeAppDir: () => _wipeBinary(context, binary),
+                          onWipeWallet: () => _wipeWallet(context, binary),
+                        ),
                       );
                     },
                   ),
@@ -533,7 +647,7 @@ class _OverviewPageState extends State<OverviewPage> {
                   padding: const EdgeInsets.only(top: 8.0),
                   child: SailText.secondary13(
                     status?.error ?? error!,
-                    color: Colors.red,
+                    color: SailColorScheme.red,
                   ),
                 ),
             ],

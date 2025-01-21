@@ -422,105 +422,88 @@ abstract class Binary {
     }
   }
 
-  Future<void> wipeAppDir(BuildContext context) async {
+  Future<void> wipeAppDir() async {
     _log('Starting data wipe for $name');
 
     final dir = datadir();
 
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Data Wipe'),
-        content: Text(
-          'Are you sure you want to wipe all data for $name?\nThis will wipe all data in $dir but will preserve your wallet file.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Wipe Data'),
-          ),
-        ],
-      ),
-    );
+    switch (this) {
+      case ParentChain():
+        final signetDir = path.join(dir, 'signet');
+        await _deleteFilesInDir(signetDir, [
+          'banlist.json',
+          'bitcoind.pid',
+          'blocks',
+          'chainstate',
+          'debug.log',
+          'fee_estimates.dat',
+          'indexes',
+          'mempool.dat',
+          'peers.dat',
+          'anchors.dat',
+          'settings.json',
+        ]);
 
-    if (confirmed != true) {
-      _log('Data wipe cancelled by user');
-      return;
+      case Enforcer():
+        await _deleteFilesInDir(dir, ['validator']);
+
+      case BitWindow():
+        await _deleteFilesInDir(dir, ['bitwindow.db']);
+
+      case Bitnames():
+        await _deleteFilesInDir(dir, [
+          'data.mdb',
+          'logs',
+        ]);
+      case Thunder():
+        await _deleteFilesInDir(dir, [
+          path.join(dir, 'data', 'thunder', 'data.mdb'),
+          'data.mdb',
+          'logs',
+          'start.sh',
+          'thunder.conf',
+          'thunder.zip',
+          'thunder_app',
+        ]);
     }
+  }
 
-    // if parent chain, wipe specific folders and files
-    if (this is ParentChain) {
-      final filesToWipe = [
-        'banlist.json',
-        'bitcoind.pid',
-        'blocks',
-        'chainstate',
-        'debug.log',
-        'fee_estimates.dat',
-        'indexes',
-        'mempool.dat',
-        'peers.dat',
-        'settings.json',
-      ];
+  Future<void> wipeWallet() async {
+    _log('Starting wallet wipe for $name');
 
-      for (final file in filesToWipe) {
-        final filePath = path.join(dir, 'signet', file);
-        if (await FileSystemEntity.isDirectory(filePath)) {
-          await Directory(filePath).delete(recursive: true);
-        } else {
-          final fileEntity = File(filePath);
-          if (await fileEntity.exists()) {
-            await fileEntity.delete();
-          }
-        }
-      }
-    } else if (this is Enforcer) {
-      final filesToWipe = [
-        'validator',
-      ];
+    final dir = datadir();
 
-      for (final file in filesToWipe) {
-        final filePath = path.join(dir, file);
-        if (await FileSystemEntity.isDirectory(filePath)) {
-          await Directory(filePath).delete(recursive: true);
-        } else {
-          final fileEntity = File(filePath);
-          if (await fileEntity.exists()) {
-            await fileEntity.delete();
-          }
-        }
-      }
-    } else if (this is BitWindow) {
-      final filesToWipe = [
-        'bitwindow.db',
-      ];
+    switch (this) {
+      case ParentChain():
+        final signetDir = path.join(dir, 'signet');
+        await _deleteFilesInDir(signetDir, ['wallet.dat']);
 
-      for (final file in filesToWipe) {
-        final filePath = path.join(dir, file);
-        if (await FileSystemEntity.isDirectory(filePath)) {
-          await Directory(filePath).delete(recursive: true);
-        } else {
-          final fileEntity = File(filePath);
-          if (await fileEntity.exists()) {
-            await fileEntity.delete();
-          }
-        }
-      }
+      case Enforcer():
+        await _deleteFilesInDir(dir, ['wallet']);
+
+      case Bitnames():
+        await _deleteFilesInDir(dir, ['wallet.mdb']);
+
+      case Thunder():
+        await _deleteFilesInDir(dir, ['data', 'thunder', 'wallet.mdb']);
+
+      case BitWindow():
+        await _deleteFilesInDir(dir, ['']); // Bitwindow does not have a wallet file
     }
+  }
 
-    // Show success message
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$name data wiped successfully'),
-        ),
-      );
+  Future<void> _deleteFilesInDir(String dir, List<String> filesToWipe) async {
+    for (final file in filesToWipe) {
+      final filePath = path.join(dir, file);
+
+      if (await FileSystemEntity.isDirectory(filePath)) {
+        await Directory(filePath).delete(recursive: true);
+      } else {
+        final file = File(filePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
     }
   }
 

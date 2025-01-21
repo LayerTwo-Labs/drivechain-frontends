@@ -135,6 +135,7 @@ class _FaucetPageState extends State<FaucetPage> {
                                 model.addressController.text = clipboardData!.text!;
                               }
                             } catch (e) {
+                              if (!context.mounted) return;
                               showSnackBar(context, 'Clipboard not available');
                             }
                           },

@@ -85,6 +85,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                       viewModel.addressController.text = clipboardData!.text!;
                     }
                   } catch (e) {
+                    if (!context.mounted) return;
                     showSnackBar(context, 'Error accessing clipboard');
                   }
                 },
