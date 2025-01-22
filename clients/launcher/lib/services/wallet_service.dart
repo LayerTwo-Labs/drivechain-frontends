@@ -6,12 +6,16 @@ import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 
 class WalletService extends ChangeNotifier {
+  BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
+
   final _logger = Logger();
   static const String defaultBip32Path = "m/44'/0'/0'";
 
@@ -207,19 +211,14 @@ class WalletService extends ChangeNotifier {
       final appDir = await Environment.appDir();
       final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
 
-      // Load chain config to get sidechain name
-      final configFile = await rootBundle.loadString('assets/chain_config.json');
-      final config = jsonDecode(configFile) as Map<String, dynamic>;
-      final chains = config['chains'] as List<dynamic>;
-
-      // Find matching chain and get name
-      final chainConfig = chains.firstWhere(
-        (chain) => chain['sidechain_slot'] == sidechainSlot,
-        orElse: () => {'name': 'Sidechain $sidechainSlot'},
-      );
+      final binary =
+          binaryProvider.binaries.where((binary) => binary is Sidechain && binary.slot == sidechainSlot).firstOrNull;
+      if (binary == null) {
+        throw Exception('Could not find chain config for sidechain slot $sidechainSlot');
+      }
 
       // Add name to starter data
-      starterData['name'] = chainConfig['name'] as String;
+      starterData['name'] = binary.name;
 
       // Ensure wallet directory exists
       if (!walletDir.existsSync()) {
@@ -254,20 +253,17 @@ class WalletService extends ChangeNotifier {
 
   Future<void> generateStartersForDownloadedChains() async {
     try {
-      // Get chain config to find sidechain slots
-      final jsonString = await rootBundle.loadString('assets/chain_config.json');
-      final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
-      final chains = jsonData['chains'] as List<dynamic>;
+      final binaries = binaryProvider.binaries;
 
       debugPrint('Checking for downloaded chains...');
 
       // Check for downloaded L1 chain first
-      for (final chain in chains) {
-        if (chain['chain_layer'] == 1) {
-          debugPrint('Found L1 chain: ${chain['name']}');
+      for (final chain in binaries) {
+        if (chain.chainLayer == 1) {
+          debugPrint('Found L1 chain: ${chain.name}');
           final appDir = await Environment.appDir();
           final assetsDir = Directory(path.join(appDir.path, 'assets'));
-          final binaryName = (chain['binary'] as Map<String, dynamic>)['darwin'] as String;
+          final binaryName = chain.binary;
           final binaryPath = path.join(assetsDir.path, binaryName);
 
           debugPrint('Checking L1 binary at: $binaryPath');
@@ -284,14 +280,14 @@ class WalletService extends ChangeNotifier {
       }
 
       // For each chain in config that has a sidechain slot
-      for (final chain in chains) {
-        final sidechainSlot = chain['sidechain_slot'] as int?;
-        if (sidechainSlot != null) {
-          debugPrint('Found sidechain: ${chain['name']} with slot $sidechainSlot');
+      for (final binary in binaries) {
+        if (binary is Sidechain) {
+          final sidechainSlot = binary.slot;
+          debugPrint('Found sidechain: ${binary.name} with slot $sidechainSlot');
           // Check if binary is downloaded
           final appDir = await Environment.appDir();
           final assetsDir = Directory(path.join(appDir.path, 'assets'));
-          final binaryName = (chain['binary'] as Map<String, dynamic>)['darwin'] as String;
+          final binaryName = binary.binary;
           final binaryPath = path.join(assetsDir.path, binaryName);
 
           debugPrint('Checking sidechain binary at: $binaryPath');
