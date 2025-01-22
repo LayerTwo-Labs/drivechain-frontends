@@ -291,9 +291,9 @@ abstract class RPCConnection extends ChangeNotifier {
       notifyListeners();
       // Try graceful shutdown first
       await stopRPC().timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 2),
         onTimeout: () async {
-          log.w('RPC stop timed out after 5s, killing process');
+          log.w('RPC stop timed out after 2s, killing process');
           final processes = GetIt.I.get<ProcessProvider>();
           await processes.kill(binary);
         },
