@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
-import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';

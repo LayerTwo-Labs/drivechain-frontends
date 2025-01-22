@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
-import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';

@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
-import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:fixnum/fixnum.dart';
