@@ -21,7 +21,7 @@ class ToolsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return QtPage(
       child: ViewModelBuilder<ToolsPageViewModel>.reactive(
-        viewModelBuilder: () => GetIt.I.get<ToolsPageViewModel>(),
+        viewModelBuilder: () => ToolsPageViewModel(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
           final tabsRouter = AutoTabsRouter.of(context);
