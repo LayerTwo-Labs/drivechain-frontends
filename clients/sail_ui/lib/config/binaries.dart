@@ -262,10 +262,10 @@ abstract class Binary {
       await for (final entity in tempDir.list()) {
         final baseName = path.basename(entity.path);
         final targetPath = path.join(extractDir.path, baseName);
-        if (await FileSystemEntity.isDirectory(targetPath)) {
+        try {
           await Directory(targetPath).delete(recursive: true);
-        } else if (await FileSystemEntity.isFile(targetPath)) {
-          await File(targetPath).delete();
+        } catch (e) {
+          // directory probably doesn't exist, swallow!
         }
         await entity.rename(targetPath);
       }
@@ -429,19 +429,21 @@ abstract class Binary {
 
     switch (this) {
       case ParentChain():
+        final rootDir = dir;
         final signetDir = path.join(dir, 'signet');
-        await _deleteFilesInDir(signetDir, [
-          'banlist.json',
-          'bitcoind.pid',
-          'blocks',
-          'chainstate',
-          'debug.log',
-          'fee_estimates.dat',
-          'indexes',
-          'mempool.dat',
-          'peers.dat',
-          'anchors.dat',
-          'settings.json',
+        await _deleteFilesInDir(rootDir, [
+          '.lock',
+          path.join(signetDir, 'banlist.json'),
+          path.join(signetDir, 'bitcoind.pid'),
+          path.join(signetDir, 'blocks'),
+          path.join(signetDir, 'chainstate'),
+          path.join(signetDir, 'debug.log'),
+          path.join(signetDir, 'fee_estimates.dat'),
+          path.join(signetDir, 'indexes'),
+          path.join(signetDir, 'mempool.dat'),
+          path.join(signetDir, 'peers.dat'),
+          path.join(signetDir, 'anchors.dat'),
+          path.join(signetDir, 'settings.json'),
         ]);
 
       case Enforcer():

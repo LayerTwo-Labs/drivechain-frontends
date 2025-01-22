@@ -142,6 +142,11 @@ Future<void> initDependencies(Logger log) async {
     binaryProvider,
   );
 
+  // Register blockchain provider
+  GetIt.I.registerSingleton<BlockchainProvider>(
+    BlockchainProvider(),
+  );
+
   // Register quotes provider
   GetIt.I.registerSingleton<QuotesProvider>(
     QuotesProvider(prefs),

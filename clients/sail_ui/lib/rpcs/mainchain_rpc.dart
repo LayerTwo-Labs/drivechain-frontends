@@ -16,6 +16,7 @@ abstract class MainchainRPC extends RPCConnection {
   });
 
   Future<void> waitForIBD();
+  Future<BlockchainInfo> getBlockchainInfo();
 
   final chain = ParentChain();
 
@@ -80,6 +81,7 @@ class MainchainRPCLive extends MainchainRPC {
           log.i('Current block height: ${info.blocks}');
           lastLogTime = DateTime.now();
         }
+        inIBD = info.initialBlockDownload;
       } catch (error) {
         // probably just cant connect, and is in bootup-phase, which is okay
       } finally {
@@ -177,8 +179,9 @@ class MainchainRPCLive extends MainchainRPC {
     return (await confirmedFut as double, await unconfirmedFut as double);
   }
 
+  @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final confirmedFut = await _client().call('getblockchaininfo');
-    return BlockchainInfo.fromMap(confirmedFut);
+    final info = await _client().call('getblockchaininfo');
+    return BlockchainInfo.fromMap(info);
   }
 }
