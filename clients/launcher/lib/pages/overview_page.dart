@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
@@ -29,7 +27,6 @@ class _OverviewPageState extends State<OverviewPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
   WalletService get _walletService => GetIt.I.get<WalletService>();
-  Map<String, dynamic>? _chainConfig;
 
   bool _closeAlertOpen = false;
 
@@ -52,22 +49,10 @@ class _OverviewPageState extends State<OverviewPage> {
       _binaryProvider.addListener(_onBinaryProviderUpdate);
       _processProvider.addListener(_onBinaryProviderUpdate);
       _walletService.addListener(_onBinaryProviderUpdate);
-      _loadChainConfig();
       FlutterWindowClose.setWindowShouldCloseHandler(() async {
         return await displayShutdownModal(context);
       });
     });
-  }
-
-  Future<void> _loadChainConfig() async {
-    try {
-      final config = await rootBundle.loadString('assets/chain_config.json');
-      setState(() {
-        _chainConfig = jsonDecode(config) as Map<String, dynamic>;
-      });
-    } catch (e) {
-      debugPrint('Error loading chain config: $e');
-    }
   }
 
   @override
@@ -165,26 +150,19 @@ class _OverviewPageState extends State<OverviewPage> {
 
       if (!mounted) return;
 
-      if (binary.chainLayer == 2 && _chainConfig != null) {
-        final chains = _chainConfig!['chains'] as List<dynamic>;
-        for (final chain in chains) {
-          if (chain['name'].toString().toLowerCase() == binary.name.toLowerCase() && chain['sidechain_slot'] != null) {
-            final sidechainSlot = chain['sidechain_slot'] as int;
-            try {
-              await _walletService.deriveSidechainStarter(sidechainSlot);
-              debugPrint('Successfully created sidechain starter for slot $sidechainSlot');
-            } catch (e) {
-              debugPrint('Error creating sidechain starter: $e');
-              if (!mounted) return;
-              scaffoldMessenger.showSnackBar(
-                SnackBar(
-                  content: Text('Failed to create sidechain starter: $e'),
-                  backgroundColor: SailColorScheme.red,
-                ),
-              );
-            }
-            break;
-          }
+      if (binary is Sidechain) {
+        try {
+          await _walletService.deriveSidechainStarter(binary.slot);
+          debugPrint('Successfully created sidechain starter for slot ${binary.slot}');
+        } catch (e) {
+          debugPrint('Error creating sidechain starter: $e');
+          if (!mounted) return;
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text('Failed to create sidechain starter: $e'),
+              backgroundColor: SailColorScheme.red,
+            ),
+          );
         }
       }
     } catch (e) {
@@ -200,22 +178,11 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Future<bool> _starterExists(Binary binary) async {
-    if (binary.chainLayer != 2 || _chainConfig == null) {
+    if (binary.chainLayer != 2) {
       return false;
     }
 
-    // Find the sidechain slot from config
-    final chains = _chainConfig!['chains'] as List<dynamic>;
-    final chainConfig = chains.firstWhere(
-      (chain) => chain['name'].toString().toLowerCase() == binary.name.toLowerCase(),
-      orElse: () => null,
-    );
-
-    if (chainConfig == null || chainConfig['sidechain_slot'] == null) {
-      return false;
-    }
-
-    final sidechainSlot = chainConfig['sidechain_slot'] as int;
+    if (binary is! Sidechain) return false;
 
     try {
       final appDir = await Environment.appDir();
@@ -223,7 +190,7 @@ class _OverviewPageState extends State<OverviewPage> {
       final starterFile = File(
         path.join(
           starterDir,
-          'sidechain_${sidechainSlot}_starter.json',
+          'sidechain_${binary.slot}_starter.json',
         ),
       );
 
