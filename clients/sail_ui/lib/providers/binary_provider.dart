@@ -299,21 +299,14 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   /// Check if a binary can be started based on its dependencies
-  bool canStart(Binary binary) {
+  String? canStart(Binary binary) {
     return switch (binary) {
-      BitWindow() => mainchainConnected && enforcerConnected,
-      Thunder() => mainchainConnected && enforcerConnected, // L2 binary
-      Bitnames() => mainchainConnected && enforcerConnected,
-      _ => true, // No dependencies for mainchain/enforcer
-    };
-  }
-
-  /// Get dependency message if binary cannot be started
-  String? getDependencyMessage(Binary binary) {
-    return switch (binary) {
-      BitWindow() when !mainchainConnected => 'Requires mainchain to be running first',
-      Thunder() when !mainchainConnected => 'Requires mainchain to be running first',
-      _ => null,
+      Enforcer() =>
+        mainchainConnected && !inIBD ? null : 'Mainchain must be started and fully synced before starting Enforcer',
+      BitWindow() => enforcerConnected ? null : 'Enforcer must be running and fully synced before starting BitWindow',
+      Thunder() => enforcerConnected ? null : 'Enforcer must be running and fully synced before starting Thunder',
+      Bitnames() => enforcerConnected ? null : 'Enforcer must be running and fully synced before starting Bitnames',
+      _ => null, // No requirements for mainchain
     };
   }
 

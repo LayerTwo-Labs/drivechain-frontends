@@ -7,21 +7,40 @@ import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class BlockchainProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
 
   // raw data go here
   List<Peer> peers = [];
   List<Block> recentBlocks = [];
   List<RecentTransaction> recentTransactions = [];
-  GetBlockchainInfoResponse blockchainInfo = GetBlockchainInfoResponse();
+  BlockchainInfo blockchainInfo = BlockchainInfo(
+    chain: '',
+    blocks: 0,
+    headers: 0,
+    bestBlockHash: '',
+    difficulty: 0,
+    time: 0,
+    medianTime: 0,
+    verificationProgress: 0,
+    initialBlockDownload: false,
+    chainWork: '',
+    sizeOnDisk: 0,
+    pruned: false,
+    warnings: [],
+  );
   List<OPReturn> opReturns = [];
 
   // computed field go here
   Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.first.blockTime : null;
   String get verificationProgress => ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
+
+  Duration _currentInterval = Duration(seconds: 5);
 
   bool _isFetching = false;
   Timer? _fetchTimer;
@@ -90,17 +109,36 @@ class BlockchainProvider extends ChangeNotifier {
     return false;
   }
 
-  void _fetchBlockchainInfo() async {
-    final newBlockchainInfo = await api.bitcoind.getBlockchainInfo();
+  Future<void> _fetchBlockchainInfo() async {
+    final newBlockchainInfo = await mainchain.getBlockchainInfo();
     blockchainInfo = newBlockchainInfo;
     notifyListeners();
   }
 
   void _startFetchTimer() {
-    _fetchTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      fetch();
-      _fetchBlockchainInfo();
-    });
+    void tick() async {
+      try {
+        await fetch();
+        await _fetchBlockchainInfo();
+
+        // During IBD we should be pretty spammy to get up-to-date info all the time
+        // After IBD however we can check less frequently, so as soon as IBD is done
+        // we check every 5 seconds.
+
+        // Check if we need to change the interval
+        final newInterval = mainchain.inIBD ? Duration(milliseconds: 200) : Duration(seconds: 5);
+        if (newInterval != _currentInterval) {
+          // IBD-status changed!
+          _currentInterval = newInterval;
+          _fetchTimer?.cancel();
+          _fetchTimer = Timer.periodic(_currentInterval, (_) => tick());
+        }
+      } catch (e) {
+        // do nothing, swallov!
+      }
+    }
+
+    _fetchTimer = Timer.periodic(_currentInterval, (_) => tick());
   }
 
   @override

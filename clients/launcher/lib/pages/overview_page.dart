@@ -27,6 +27,7 @@ class _OverviewPageState extends State<OverviewPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
   WalletService get _walletService => GetIt.I.get<WalletService>();
+  BlockchainProvider get _blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
   bool _closeAlertOpen = false;
 
@@ -49,6 +50,7 @@ class _OverviewPageState extends State<OverviewPage> {
       _binaryProvider.addListener(_onBinaryProviderUpdate);
       _processProvider.addListener(_onBinaryProviderUpdate);
       _walletService.addListener(_onBinaryProviderUpdate);
+      _blockchainProvider.addListener(_onBinaryProviderUpdate);
       FlutterWindowClose.setWindowShouldCloseHandler(() async {
         return await displayShutdownModal(context);
       });
@@ -60,6 +62,7 @@ class _OverviewPageState extends State<OverviewPage> {
     _binaryProvider.removeListener(_onBinaryProviderUpdate);
     _processProvider.removeListener(_onBinaryProviderUpdate);
     _walletService.removeListener(_onBinaryProviderUpdate);
+    _blockchainProvider.removeListener(_onBinaryProviderUpdate);
     super.dispose();
   }
 
@@ -422,10 +425,9 @@ class _OverviewPageState extends State<OverviewPage> {
 
     if (status?.status == DownloadStatus.installed) {
       final canStart = _binaryProvider.canStart(binary);
-      final dependencyMessage = _binaryProvider.getDependencyMessage(binary);
 
       final actionButton = Tooltip(
-        message: dependencyMessage ?? 'Launch ${binary.name}',
+        message: canStart ?? 'Launch ${binary.name}',
         child: SailButton.primary(
           'Launch',
           onPressed: () async {
@@ -450,7 +452,7 @@ class _OverviewPageState extends State<OverviewPage> {
             }
           },
           size: ButtonSize.regular,
-          disabled: !canStart,
+          disabled: canStart != null,
         ),
       );
 
@@ -639,6 +641,7 @@ class _OverviewPageState extends State<OverviewPage> {
     bool connected = false;
     bool initializing = false;
     bool stopping = false;
+    String description = binary.description;
     String? error;
 
     switch (binary) {
@@ -647,11 +650,20 @@ class _OverviewPageState extends State<OverviewPage> {
         initializing = _binaryProvider.mainchainRPC.initializingBinary;
         stopping = _binaryProvider.mainchainRPC.stoppingBinary;
         error = _binaryProvider.mainchainError;
+
+        if (_binaryProvider.inIBD && _blockchainProvider.blockchainInfo.headers != 0) {
+          final info = _blockchainProvider.blockchainInfo;
+          description = 'Syncing... ${_blockchainProvider.verificationProgress}%\n'
+              'Blocks: ${info.blocks} / ${info.headers}';
+        }
       case Enforcer():
         connected = _binaryProvider.enforcerRPC.connected;
         initializing = _binaryProvider.enforcerRPC.initializingBinary;
         stopping = _binaryProvider.enforcerRPC.stoppingBinary;
         error = _binaryProvider.enforcerError;
+        if (_binaryProvider.inIBD && _blockchainProvider.blockchainInfo.headers != 0) {
+          description = 'Bitcoin Core in IBD, waiting...';
+        }
       case BitWindow():
         connected = _binaryProvider.bitwindowRPC.connected;
         initializing = _binaryProvider.bitwindowRPC.initializingBinary;
@@ -705,7 +717,7 @@ class _OverviewPageState extends State<OverviewPage> {
               const SizedBox(height: 12),
               SizedBox(
                 child: SailText.secondary13(
-                  binary.description,
+                  description,
                   textAlign: TextAlign.left,
                 ),
               ),
