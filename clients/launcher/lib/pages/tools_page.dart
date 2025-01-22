@@ -13,7 +13,9 @@ import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class ToolsPage extends StatelessWidget {
-  const ToolsPage({super.key});
+  const ToolsPage({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +26,11 @@ class ToolsPage extends StatelessWidget {
         builder: (context, model, child) {
           final tabsRouter = AutoTabsRouter.of(context);
 
-          if (tabsRouter.activeIndex != 1) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+          tabsRouter.addListener(() {
+            if (tabsRouter.activeIndex != 1) {
               model.resetStartersTab();
-            });
-          }
+            }
+          });
 
           return InlineTabBar(
             tabs: [

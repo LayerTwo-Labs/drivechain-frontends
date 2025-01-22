@@ -1,15 +1,14 @@
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:launcher/routing/router.dart';
-import 'package:launcher/widgets/welcome_modal.dart';
 import 'package:launcher/widgets/wallet_button.dart';
-import 'package:launcher/pages/tools_page.dart';
-import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/nav/top_nav.dart';
+import 'package:launcher/widgets/welcome_modal.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/nav/top_nav.dart';
 
 @RoutePage()
 class RootPage extends StatefulWidget {
@@ -20,9 +19,6 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> {
-  final _toolsViewModel = GetIt.I.get<ToolsPageViewModel>();
-  int _lastIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -40,14 +36,6 @@ class _RootPageState extends State<RootPage> {
     });
   }
 
-  void _handleTabChange(int index) {
-    if (_lastIndex == 1 && index != 1) {
-      // If leaving the Tools tab
-      _toolsViewModel.resetStartersTab();
-    }
-    _lastIndex = index;
-  }
-
   @override
   Widget build(BuildContext context) {
     return AutoTabsRouter.tabBar(
@@ -60,11 +48,6 @@ class _RootPageState extends State<RootPage> {
       builder: (context, child, controller) {
         final theme = SailTheme.of(context);
         final tabsRouter = AutoTabsRouter.of(context);
-
-        // Handle tab changes
-        if (tabsRouter.activeIndex != _lastIndex) {
-          _handleTabChange(tabsRouter.activeIndex);
-        }
 
         return Scaffold(
           backgroundColor: theme.colors.background,

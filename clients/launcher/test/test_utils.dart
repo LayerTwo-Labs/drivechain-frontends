@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/services/wallet_service.dart';
-import 'package:launcher/pages/tools_page.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
@@ -77,12 +76,6 @@ Future<void> registerTestDependencies() async {
   if (!GetIt.I.isRegistered<WalletService>()) {
     GetIt.I.registerLazySingleton<WalletService>(
       () => WalletService(),
-    );
-  }
-
-  if (!GetIt.I.isRegistered<ToolsPageViewModel>()) {
-    GetIt.I.registerLazySingleton<ToolsPageViewModel>(
-      () => ToolsPageViewModel(),
     );
   }
 }
