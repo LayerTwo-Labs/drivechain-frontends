@@ -1,12 +1,13 @@
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:logger/logger.dart';
 
-final log = Logger();
+final log = GetIt.I.get<Logger>();
 
 /// API to the thunder server.
 abstract class ThunderRPC extends RPCConnection {
@@ -74,25 +75,21 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<(double, double)> balance() async {
-    try {
-      final response = await _client().call('balance') as Map<String, dynamic>;
-      final totalSats = response['total_sats'] as int;
-      final availableSats = response['available_sats'] as int;
-      // Convert from sats to BTC
-      final confirmed = satoshiToBTC(availableSats);
-      final unconfirmed = satoshiToBTC(totalSats - availableSats);
+    final response = await _client().call('balance') as Map<String, dynamic>;
+    final totalSats = response['total_sats'] as int;
+    final availableSats = response['available_sats'] as int;
 
-      return (confirmed, unconfirmed);
-    } catch (e) {
-      log.e('Error getting balance', error: e);
-      rethrow;
-    }
+    // Convert from sats to BTC
+    final confirmed = satoshiToBTC(availableSats);
+    final unconfirmed = satoshiToBTC(totalSats - availableSats);
+
+    return (confirmed, unconfirmed);
   }
 
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     try {
-      await binary.wipeWallet();  // Use the built-in wipeWallet function
+      await binary.wipeWallet(); // Use the built-in wipeWallet function
 
       // Try to set the seed multiple times
       int setSeedRetries = 0;
@@ -141,17 +138,6 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<void> stopRPC() async {
-    try {
-      await _client().call('stop');
-      // Wait a moment to let the node start shutting down
-      await Future.delayed(const Duration(milliseconds: 500));
-    } catch (e) {
-      // If we get a connection refused error, the node is likely already stopped
-      if (e.toString().contains('Connection refused') || e.toString().contains('Unknown Error')) {
-        return;
-      }
-      log.e('Error stopping RPC', error: e);
-      rethrow;
-    }
+    await _client().call('stop');
   }
 }

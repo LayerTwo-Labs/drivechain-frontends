@@ -83,22 +83,13 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<void> stopRPC() async {
-    try {
-      await _client().call('stop');
-      await Future.delayed(const Duration(milliseconds: 500));
-    } catch (e) {
-      if (e.toString().contains('Connection refused') || e.toString().contains('Unknown Error')) {
-        return;
-      }
-      log.e('Error stopping RPC', error: e);
-      rethrow;
-    }
+    await _client().call('stop');
   }
 
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     try {
-      await binary.wipeWallet();  // Use the built-in wipeWallet function
+      await binary.wipeWallet(); // Use the built-in wipeWallet function
 
       // Try to set the seed multiple times
       int setSeedRetries = 0;
