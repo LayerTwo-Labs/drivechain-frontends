@@ -45,7 +45,8 @@ abstract class Binary {
   String get binaryName => binary;
   bool get updateAvailable =>
       download.remoteTimestamp != null &&
-      (download.downloadedTimestamp == null || download.remoteTimestamp!.isAfter(download.downloadedTimestamp!));
+      download.downloadedTimestamp != null &&
+      download.remoteTimestamp != download.downloadedTimestamp;
 
   @override
   bool operator ==(Object other) =>
@@ -847,6 +848,7 @@ extension BinaryDownload on Binary {
       if (!await metaFile.exists()) return null;
 
       final json = jsonDecode(await metaFile.readAsString());
+
       return DownloadMetadata.fromJson(json);
     } catch (e) {
       return null;
