@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -7,90 +6,17 @@ import 'package:launcher/services/wallet_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:convert/convert.dart';
-import 'package:crypto/crypto.dart';
-
-class CenteredDialogHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback? onBack;
-
-  const CenteredDialogHeader({
-    super.key,
-    required this.title,
-    this.onBack,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        if (onBack != null)
-          Positioned(
-            left: 16,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: onBack,
-                child: SailText.primary20(
-                  '←',
-                  color: SailTheme.of(context).colors.text,
-                ),
-              ),
-            ),
-          ),
-        Center(
-          child: SailText.primary20(title, bold: true),
-        ),
-      ],
-    );
-  }
-}
-
-class CenteredDialogHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback? onBack;
-
-  const CenteredDialogHeader({
-    super.key,
-    required this.title,
-    this.onBack,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        if (onBack != null)
-          Positioned(
-            left: 16,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: onBack,
-                child: SailText.primary20(
-                  '←',
-                  color: SailTheme.of(context).colors.text,
-                ),
-              ),
-            ),
-          ),
-        Center(
-          child: SailText.primary20(title, bold: true),
-        ),
-      ],
-    );
-  }
-}
+import 'package:sail_ui/providers/binary_provider.dart';
 
 Future<bool?> showWelcomeModal(BuildContext context) async {
-  return await showDialog<bool>(
+  final theme = SailTheme.of(context);
+
+  return showThemedDialog(
     context: context,
-    barrierDismissible: false,
     builder: (context) => Dialog(
-      backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 400),
-        child: const _WelcomeModalContent(
+      backgroundColor: theme.colors.backgroundSecondary,
+      child: IntrinsicHeight(
+        child: _WelcomeModalContent(
           keepOpen: true,
         ),
       ),
@@ -121,18 +47,17 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final WalletService _walletService = GetIt.I.get<WalletService>();
-  late final TextEditingController _entropyController;
-  Map<String, dynamic> _currentWalletData = {};
-  List<String> _mnemonicWords = [];
-  List<String> _binaryWords = [];
-  bool _isHexMode = false;
+  final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
+  bool _isValidInput = false;
 
   @override
   void initState() {
     super.initState();
     _checkMasterStarter();
     _mnemonicController.addListener(() {
-      setState(() {});
+      setState(() {
+        _isValidInput = _isValidMnemonic(_mnemonicController.text);
+      });
     });
   }
 
@@ -152,41 +77,17 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   void dispose() {
     _mnemonicController.dispose();
     _passphraseController.dispose();
-    _entropyController.dispose();
     super.dispose();
   }
 
   Future<void> _showErrorDialog(String message) async {
-    await showDialog<void>(
+    await errorDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
-        child: SailRawCard(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailText.primary15(
-                  message,
-                  color: SailTheme.of(context).colors.textSecondary,
-                ),
-                const SizedBox(height: 24),
-                SailButton.primary(
-                  'Return',
-                  onPressed: () {
-                    _mnemonicController.clear();
-                    Navigator.of(context).pop();
-                  },
-                  size: ButtonSize.regular,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      action: 'Error',
+      title: 'Error',
+      subtitle: message,
     );
+    _mnemonicController.clear();
   }
 
   bool _isValidMnemonic(String mnemonic) {
@@ -211,8 +112,15 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           return;
         }
 
+        // Generate starters for all downloaded chains
         _walletService.generateStartersForDownloadedChains().then((_) {
           if (!mounted) return;
+          
+          // After starters are generated, enable them in the binary provider
+          for (final chain in _binaryProvider.getL2Chains()) {
+            _binaryProvider.setUseStarter(chain, true);
+          }
+
           Navigator.of(context).pop(true);
         });
       });
@@ -235,10 +143,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       if (!mounted) return;
 
       if (wallet.containsKey('error')) {
-        _showErrorDialog('Failed to generate wallet: ${wallet['error']}').then((_) {
-          // Clear the input after showing the error
-          _mnemonicController.clear();
-        });
+        _showErrorDialog('Failed to generate wallet: ${wallet['error']}');
         return;
       }
 
@@ -246,113 +151,91 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         if (!mounted) return;
 
         if (!success) {
-          _showErrorDialog('Failed to save wallet').then((_) {
-            // Clear the input after showing the error
-            _mnemonicController.clear();
-          });
+          _showErrorDialog('Failed to save wallet');
           return;
         }
 
+        // Generate starters for all downloaded chains
         _walletService.generateStartersForDownloadedChains().then((_) {
           if (!mounted) return;
+          
+          // After starters are generated, enable them in the binary provider
+          for (final chain in _binaryProvider.getL2Chains()) {
+            _binaryProvider.setUseStarter(chain, true);
+          }
+
           Navigator.of(context).pop(true);
-        }).catchError((e) {
-          if (!mounted) return;
-          _showErrorDialog('Failed to generate starters: $e').then((_) {
-            // Clear the input after showing the error
-            _mnemonicController.clear();
-          });
-        });
-      }).catchError((e) {
-        if (!mounted) return;
-        _showErrorDialog('Failed to save wallet: $e').then((_) {
-          // Clear the input after showing the error
-          _mnemonicController.clear();
         });
       });
     }).catchError((e) {
       if (!mounted) return;
-      _showErrorDialog('Invalid mnemonic: $e').then((_) {
-        // Clear the input after showing the error
-        _mnemonicController.clear();
-      });
+      _showErrorDialog('Invalid mnemonic: $e');
     });
   }
 
   Widget _buildInitialScreen() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(
+        horizontal: SailStyleValues.padding16,
+        vertical: SailStyleValues.padding08,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            height: 160,
+            height: 48,
             child: SailButton.primary(
               'Create Wallet',
               onPressed: () => setState(() => _currentScreen = WelcomeScreen.create),
               size: ButtonSize.regular,
             ),
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => setState(() => _currentScreen = WelcomeScreen.restore),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: SailText.secondary13(
-                      'Restore Wallet',
-                      color: SailTheme.of(context).colors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          const SizedBox(height: SailStyleValues.padding08),
+          SailTextButton(
+            label: 'Restore Wallet',
+            onPressed: () => setState(() => _currentScreen = WelcomeScreen.restore),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
   Widget _buildRestoreScreen() {
-    final isValidMnemonic = _isValidMnemonic(_mnemonicController.text);
-
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(SailStyleValues.padding16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SailTextField(
             controller: _mnemonicController,
             hintText: 'Enter BIP39 mnemonic (12 or 24 words)',
+            maxLines: 3,
+            textFieldType: TextFieldType.text,
+            size: TextFieldSize.regular,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: SailStyleValues.padding12),
           SailTextField(
             controller: _passphraseController,
             hintText: 'Optional passphrase',
+            textFieldType: TextFieldType.text,
+            size: TextFieldSize.regular,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: SailStyleValues.padding16),
           Center(
             child: SizedBox(
-              width: 160,
-              height: 48,
+              width: 120,
+              height: 40,
               child: SailButton.primary(
                 'Restore',
-                onPressed: () => isValidMnemonic ? _handleRestore() : null,
+                onPressed: _handleRestore,
+                disabled: !_isValidInput,
                 size: ButtonSize.regular,
               ),
             ),
           ),
+          const SizedBox(height: SailStyleValues.padding08),
         ],
       ),
     );
@@ -360,44 +243,28 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   Widget _buildCreateScreen() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(
+        horizontal: SailStyleValues.padding16,
+        vertical: SailStyleValues.padding08,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            height: 160,
+            height: 48,
             child: SailButton.primary(
               'Fast Wallet',
               onPressed: _handleFastMode,
               size: ButtonSize.regular,
             ),
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => setState(() => _currentScreen = WelcomeScreen.advanced),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: SailText.secondary13(
-                      'Advanced',
-                      color: SailTheme.of(context).colors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          const SizedBox(height: SailStyleValues.padding08),
+          SailTextButton(
+            label: 'Advanced',
+            onPressed: () => setState(() => _currentScreen = WelcomeScreen.advanced),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -405,7 +272,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   Widget _buildAdvancedScreen() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(SailStyleValues.padding16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -422,40 +289,91 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   @override
   Widget build(BuildContext context) {
     Widget content;
-    String title = 'Welcome to Drivechain';
-    VoidCallback? onBack;
+    String? title;
+    BoxConstraints constraints;
+
+    switch (_currentScreen) {
+      case WelcomeScreen.initial:
+      case WelcomeScreen.create:
+        constraints = const BoxConstraints(maxWidth: 300);
+        break;
+      case WelcomeScreen.restore:
+      case WelcomeScreen.advanced:
+        constraints = const BoxConstraints(maxWidth: 400);
+        break;
+    }
 
     switch (_currentScreen) {
       case WelcomeScreen.initial:
         content = _buildInitialScreen();
+        title = 'Welcome to Drivechain';
         break;
       case WelcomeScreen.restore:
         content = _buildRestoreScreen();
         title = 'Restore Wallet';
-        onBack = () => setState(() {
-          _currentScreen = WelcomeScreen.initial;
-          _mnemonicController.clear();
-          _passphraseController.clear();
-        });
         break;
       case WelcomeScreen.create:
         content = _buildCreateScreen();
         title = 'Create Wallet';
-        onBack = () => setState(() => _currentScreen = WelcomeScreen.initial);
         break;
       case WelcomeScreen.advanced:
         content = _buildAdvancedScreen();
         title = 'Advanced Options';
-        onBack = () => setState(() => _currentScreen = WelcomeScreen.create);
         break;
     }
 
-    return SailRawCard(
-      header: CenteredDialogHeader(
-        title: title,
-        onBack: onBack,
+    return ConstrainedBox(
+      constraints: constraints,
+      child: SailRawCard(
+        padding: false,
+        child: IntrinsicHeight(
+          child: SailColumn(
+            spacing: SailStyleValues.padding04,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_currentScreen == WelcomeScreen.initial)
+                Padding(
+                  padding: const EdgeInsets.only(top: SailStyleValues.padding08),
+                  child: Center(
+                    child: SailText.primary20(title, bold: true),
+                  ),
+                )
+              else
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SailTextButton(
+                      label: '←',
+                      onPressed: () {
+                        if (_currentScreen == WelcomeScreen.advanced) {
+                          setState(() => _currentScreen = WelcomeScreen.create);
+                        } else {
+                          setState(() {
+                            _currentScreen = WelcomeScreen.initial;
+                            _mnemonicController.clear();
+                            _passphraseController.clear();
+                          });
+                        }
+                      },
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: SailText.primary20(title, bold: true),
+                      ),
+                    ),
+                    // Add invisible button to balance the layout
+                    SizedBox(
+                      width: 36, // Width to match the back button
+                      height: 24,
+                    ),
+                  ],
+                ),
+              content,
+            ],
+          ),
+        ),
       ),
-      child: content,
     );
   }
 }

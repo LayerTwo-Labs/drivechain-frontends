@@ -286,32 +286,21 @@ class WalletService extends ChangeNotifier {
       final binaries = binaryProvider.binaries;
 
       // Check for downloaded L1 chain first
-      for (final chain in chains) {
-        if (chain['chain_layer'] == 1) {
-          final appDir = await Environment.appDir();
-          final assetsDir = Directory(path.join(appDir.path, 'assets'));
-          final binaryName = chain.binary;
-          final binaryPath = path.join(assetsDir.path, binaryName);
+      final l1Chain = binaries.firstWhere((b) => b.chainLayer == 1);
+      final appDir = await Environment.appDir();
+      final assetsDir = Directory(path.join(appDir.path, 'assets'));
+      final binaryPath = path.join(assetsDir.path, l1Chain.binary);
 
-          if (File(binaryPath).existsSync()) {
-            await deriveL1Starter();
-            break; // Only need one L1 starter
-          }
-        }
+      if (File(binaryPath).existsSync()) {
+        await deriveL1Starter();
       }
 
-      // For each chain in config that has a sidechain slot
-      for (final chain in chains) {
-        final sidechainSlot = chain['sidechain_slot'] as int?;
-        if (sidechainSlot != null) {
-          // Check if binary is downloaded
-          final appDir = await Environment.appDir();
-          final assetsDir = Directory(path.join(appDir.path, 'assets'));
-          final binaryName = binary.binary;
-          final binaryPath = path.join(assetsDir.path, binaryName);
-
+      // For each L2 chain in binaries
+      for (final chain in binaryProvider.getL2Chains()) {
+        if (chain is Sidechain) {
+          final binaryPath = path.join(assetsDir.path, chain.binary);
           if (File(binaryPath).existsSync()) {
-            await deriveSidechainStarter(sidechainSlot);
+            await deriveSidechainStarter(chain.slot);
           }
         }
       }
