@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
@@ -35,6 +36,12 @@ class BinaryProvider extends ChangeNotifier {
   late List<Binary> binaries;
   StreamSubscription<FileSystemEvent>? _dirWatcher;
 
+  final mainchainRPC = GetIt.I.get<MainchainRPC>();
+  final enforcerRPC = GetIt.I.get<EnforcerRPC>();
+  final bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+  final thunderRPC = GetIt.I.get<ThunderRPC>();
+  final bitnamesRPC = GetIt.I.get<BitnamesRPC>();
+
   // Track download status and active downloads for each binary
   final _downloadStates = <String, DownloadState>{};
   final _activeDownloads = <String, bool>{}; // Track per-binary downloads
@@ -43,16 +50,8 @@ class BinaryProvider extends ChangeNotifier {
   final _statusController = StreamController<Map<String, DownloadState>>.broadcast();
   Stream<Map<String, DownloadState>> get statusStream => _statusController.stream;
 
-  // Track RPC connections
-  MainchainRPC? mainchainRPC;
-  EnforcerRPC? enforcerRPC;
-  BitwindowRPC? bitwindowRPC;
-  ThunderRPC? thunderRPC;
-  BitnamesRPC? bitnamesRPC;
-
   // Track starter usage for L2 chains
   final Map<String, bool> _useStarter = {};
-  
   bool shouldUseStarter(Binary binary) => _useStarter[binary.name] ?? false;
   void setUseStarter(Binary binary, bool value) {
     _useStarter[binary.name] = value;
@@ -60,39 +59,45 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   // Connection status getters
-  bool get mainchainConnected => mainchainRPC?.connected ?? false;
-  bool get enforcerConnected => enforcerRPC?.connected ?? false;
-  bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
-  bool get thunderConnected => thunderRPC?.connected ?? false;
-  bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
-  bool get mainchainInitializing => mainchainRPC?.initializingBinary ?? false;
-  bool get enforcerInitializing => enforcerRPC?.initializingBinary ?? false;
-  bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
-  bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
-  bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
-  bool get mainchainStopping => mainchainRPC?.stoppingBinary ?? false;
-  bool get enforcerStopping => enforcerRPC?.stoppingBinary ?? false;
-  bool get bitwindowStopping => bitwindowRPC?.stoppingBinary ?? false;
-  bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
-  bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
+  bool get mainchainConnected => mainchainRPC.connected;
+  bool get enforcerConnected => enforcerRPC.connected;
+  bool get bitwindowConnected => bitwindowRPC.connected;
+  bool get thunderConnected => thunderRPC.connected;
+  bool get bitnamesConnected => bitnamesRPC.connected;
+  bool get mainchainInitializing => mainchainRPC.initializingBinary;
+  bool get enforcerInitializing => enforcerRPC.initializingBinary;
+  bool get bitwindowInitializing => bitwindowRPC.initializingBinary;
+  bool get thunderInitializing => thunderRPC.initializingBinary;
+  bool get bitnamesInitializing => bitnamesRPC.initializingBinary;
+  bool get mainchainStopping => mainchainRPC.stoppingBinary;
+  bool get enforcerStopping => enforcerRPC.stoppingBinary;
+  bool get bitwindowStopping => bitwindowRPC.stoppingBinary;
+  bool get thunderStopping => thunderRPC.stoppingBinary;
+  bool get bitnamesStopping => bitnamesRPC.stoppingBinary;
 
   // Add a flag to track if binaries were explicitly launched
   final Map<String, bool> _explicitlyLaunched = {};
 
   // Only show errors for explicitly launched binaries
-  String? get mainchainError => _explicitlyLaunched[ParentChain().name] == true ? mainchainRPC?.connectionError : null;
-  String? get enforcerError => _explicitlyLaunched[Enforcer().name] == true ? enforcerRPC?.connectionError : null;
-  String? get bitwindowError => _explicitlyLaunched[BitWindow().name] == true ? bitwindowRPC?.connectionError : null;
-  String? get thunderError => _explicitlyLaunched[Thunder().name] == true ? thunderRPC?.connectionError : null;
-  String? get bitnamesError => _explicitlyLaunched[Bitnames().name] == true ? bitnamesRPC?.connectionError : null;
+  String? get mainchainError => _explicitlyLaunched[ParentChain().name] == true ? mainchainRPC.connectionError : null;
+  String? get enforcerError => _explicitlyLaunched[Enforcer().name] == true ? enforcerRPC.connectionError : null;
+  String? get bitwindowError => _explicitlyLaunched[BitWindow().name] == true ? bitwindowRPC.connectionError : null;
+  String? get thunderError => _explicitlyLaunched[Thunder().name] == true ? thunderRPC.connectionError : null;
+  String? get bitnamesError => _explicitlyLaunched[Bitnames().name] == true ? bitnamesRPC.connectionError : null;
 
-  bool get inIBD => mainchainRPC?.inIBD ?? false;
+  bool get inIBD => mainchainRPC.inIBD;
 
   BinaryProvider({
     required this.appDir,
     required List<Binary> initialBinaries,
   }) {
     binaries = initialBinaries;
+    mainchainRPC.addListener(notifyListeners);
+    enforcerRPC.addListener(notifyListeners);
+    bitwindowRPC.addListener(notifyListeners);
+    thunderRPC.addListener(notifyListeners);
+    bitnamesRPC.addListener(notifyListeners);
+
     initialize();
     _setupDirectoryWatcher();
   }
@@ -120,53 +125,45 @@ class BinaryProvider extends ChangeNotifier {
 
   /// Initialize download states for all binaries
   Future<void> initialize() async {
-    for (var i = 0; i < binaries.length; i++) {
-      final binary = binaries[i];
-      try {
-        await initRPC(binary);
-
-        // Check release date from server
-        final serverReleaseDate = await binary.checkReleaseDate();
-        var updatedConfig = binary.download;
-        if (serverReleaseDate != null) {
-          updatedConfig = updatedConfig.copyWith(remoteTimestamp: serverReleaseDate);
-        }
-
-        // Check if binary exists in assets/
-        final exists = await binary.exists(appDir);
-
-        if (!exists) {
-          _downloadStates[binary.name] = DownloadState(
-            status: DownloadStatus.uninstalled,
-          );
-          continue;
-        }
-
-        // Load metadata from assets/
-        final metadata = await binary.loadMetadata(appDir);
-
-        if (metadata != null) {
-          // Update the binary's download config with the downloaded timestamp
-          updatedConfig = updatedConfig.copyWith(downloadedTimestamp: metadata.releaseDate);
-        }
-
-        // Update binary with all timestamp info
-        binaries[i] = binary.copyWith(download: updatedConfig);
-
-        _downloadStates[binary.name] = DownloadState(
-          status: DownloadStatus.installed,
-          message: metadata != null ? 'Installed (${metadata.releaseDate?.toLocal()})' : 'Installed (unverified)',
-        );
-      } catch (e) {
-        _downloadStates[binary.name] = DownloadState(
-          status: DownloadStatus.failed,
-          error: 'Could not determine binary status: $e',
-        );
-      }
+    // First set initial states synchronously
+    for (final binary in binaries) {
+      _downloadStates[binary.name] = DownloadState(
+        status: binary.download.downloadedTimestamp != null ? DownloadStatus.installed : DownloadStatus.uninstalled,
+        message: binary.download.downloadedTimestamp != null
+            ? 'Installed (${binary.download.downloadedTimestamp!.toLocal()})'
+            : null,
+      );
     }
 
-    // Emit initial states
+    // Emit initial states immediately
     _statusController.add(Map.from(_downloadStates));
+
+    // Then check release dates in the background
+    unawaited(_checkReleaseDates());
+  }
+
+  Future<void> _checkReleaseDates() async {
+    for (var i = 0; i < binaries.length; i++) {
+      try {
+        final binary = binaries[i];
+        final serverReleaseDate = await binary.checkReleaseDate();
+        if (serverReleaseDate != null) {
+          final updatedConfig = binary.download.copyWith(remoteTimestamp: serverReleaseDate);
+          binaries[i] = binary.copyWith(download: updatedConfig);
+
+          // Update state if installed
+          if (_downloadStates[binary.name]?.status == DownloadStatus.installed) {
+            _downloadStates[binary.name] = DownloadState(
+              status: DownloadStatus.installed,
+              message: 'Installed (${serverReleaseDate.toLocal()})',
+            );
+            _statusController.add(Map.from(_downloadStates));
+          }
+        }
+      } catch (e) {
+        log.e('Error checking release date: $e');
+      }
+    }
   }
 
   /// Get all L1 chain configurations
@@ -196,31 +193,28 @@ class BinaryProvider extends ChangeNotifier {
     _statusController.add(Map.from(_downloadStates));
   }
 
-  // Mark binary as explicitly launched when started
+  // Start a binary, and set starter seeds (if set)
   Future<void> startBinary(BuildContext context, Binary binary, {bool useStarter = false}) async {
     if (!context.mounted) return;
 
-    await initRPC(binary);
-
-    if (!context.mounted) return;
     switch (binary) {
       case ParentChain():
-        await mainchainRPC!.initBinary(context);
+        await mainchainRPC.initBinary(context);
 
       case Enforcer():
-        await enforcerRPC!.initBinary(context);
+        await enforcerRPC.initBinary(context);
 
       case BitWindow():
-        await bitwindowRPC!.initBinary(context);
+        await bitwindowRPC.initBinary(context);
 
       case Thunder():
-        await thunderRPC!.initBinary(context);
+        await thunderRPC.initBinary(context);
         if (useStarter) {
           await _setStarterSeed(binary);
         }
 
       case Bitnames():
-        await bitnamesRPC!.initBinary(context);
+        await bitnamesRPC.initBinary(context);
         if (useStarter) {
           await _setStarterSeed(binary);
         }
@@ -229,6 +223,7 @@ class BinaryProvider extends ChangeNotifier {
         log.i('is $binary');
     }
     Future.delayed(const Duration(seconds: 3), () {
+      // give it a bit of time to clean fucked up error messages
       _explicitlyLaunched[binary.name] = true;
     });
 
@@ -322,80 +317,31 @@ class BinaryProvider extends ChangeNotifier {
     };
   }
 
-  Future<void> initRPC(Binary binary) async {
-    switch (binary) {
-      case ParentChain():
-        if (mainchainRPC == null) {
-          mainchainRPC = await MainchainRPCLive.create(binary);
-          mainchainRPC!.addListener(notifyListeners);
-        }
-
-      case Enforcer():
-        if (enforcerRPC == null) {
-          enforcerRPC = await EnforcerLive.create(
-            binary: binary,
-            logPath: path.join(binary.datadir(), 'enforcer.log'),
-          );
-          enforcerRPC!.addListener(notifyListeners);
-        }
-
-      case BitWindow():
-        if (bitwindowRPC == null) {
-          bitwindowRPC = await BitwindowRPCLive.create(
-            host: '127.0.0.1',
-            port: binary.port,
-            binary: binary,
-            logPath: path.join(binary.datadir(), 'bitwindow.log'),
-          );
-          bitwindowRPC!.addListener(notifyListeners);
-        }
-
-      case Thunder():
-        if (thunderRPC == null) {
-          thunderRPC = await ThunderLive.create(
-            binary: binary,
-            logPath: path.join(binary.datadir(), 'thunder.log'),
-          );
-          thunderRPC!.addListener(notifyListeners);
-        }
-
-      case Bitnames():
-        if (bitnamesRPC == null) {
-          bitnamesRPC = await BitnamesLive.create(
-            binary: binary,
-            logPath: path.join(binary.datadir(), 'bitnames.log'),
-          );
-          bitnamesRPC!.addListener(notifyListeners);
-        }
-
-      default:
-        log.i('is $binary');
-    }
-  }
-
   Future<void> _setStarterSeed(Binary binary) async {
     if (binary is! Sidechain) return;
-    
+
     try {
       final starterDir = path.join(appDir.path, 'wallet_starters');
-      final starterFile = File(path.join(
-        starterDir,
-        'sidechain_${binary.slot}_starter.json',
-      ),);
+      final starterFile = File(
+        path.join(
+          starterDir,
+          'sidechain_${binary.slot}_starter.json',
+        ),
+      );
 
       if (!starterFile.existsSync()) return;
 
       final content = await starterFile.readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
       final mnemonic = json['mnemonic'] as String?;
-      
+
       if (mnemonic == null) return;
 
       switch (binary) {
         case Thunder():
-          await thunderRPC?.setSeedFromMnemonic(mnemonic);
+          await thunderRPC.setSeedFromMnemonic(mnemonic);
         case Bitnames():
-          await bitnamesRPC?.setSeedFromMnemonic(mnemonic);
+          await bitnamesRPC.setSeedFromMnemonic(mnemonic);
         default:
           break;
       }
@@ -407,16 +353,11 @@ class BinaryProvider extends ChangeNotifier {
   @override
   void dispose() {
     _dirWatcher?.cancel();
-    mainchainRPC?.removeListener(notifyListeners);
-    mainchainRPC?.dispose();
-    enforcerRPC?.removeListener(notifyListeners);
-    enforcerRPC?.dispose();
-    bitwindowRPC?.removeListener(notifyListeners);
-    bitwindowRPC?.dispose();
-    thunderRPC?.removeListener(notifyListeners);
-    thunderRPC?.dispose();
-    bitnamesRPC?.removeListener(notifyListeners);
-    bitnamesRPC?.dispose();
+    mainchainRPC.removeListener(notifyListeners);
+    enforcerRPC.removeListener(notifyListeners);
+    bitwindowRPC.removeListener(notifyListeners);
+    thunderRPC.removeListener(notifyListeners);
+    bitnamesRPC.removeListener(notifyListeners);
     super.dispose();
   }
 }

@@ -1,18 +1,24 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
-import 'package:launcher/pages/tools_page.dart';
 import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/rpcs/bitnames_rpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -86,15 +92,48 @@ Future<void> initDependencies(Logger log) async {
     processProvider,
   );
 
-  final jsonString = await rootBundle.loadString('assets/chain_config.json');
-  final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+  // Load initial binary states
+  final binaries = await _loadBinaries(appDir);
 
-  final binaries = (jsonData['chains'] as List<dynamic>?)
-          ?.map((chain) => Binary.fromJson(chain as Map<String, dynamic>? ?? {}))
-          .toList() ??
-      [];
+  // Register all RPCs in GetIt
+  for (final binary in binaries) {
+    switch (binary) {
+      case ParentChain():
+        final mainchain = await MainchainRPCLive.create(binary);
+        GetIt.I.registerSingleton<MainchainRPC>(mainchain);
 
-  // Register download manager
+      case Enforcer():
+        final enforcer = await EnforcerLive.create(
+          binary: binary,
+          logPath: path.join(binary.datadir(), 'enforcer.log'),
+        );
+        GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
+
+      case BitWindow():
+        final bitwindow = await BitwindowRPCLive.create(
+          host: '127.0.0.1',
+          port: binary.port,
+          binary: binary,
+          logPath: path.join(binary.datadir(), 'bitwindow.log'),
+        );
+        GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
+
+      case Thunder():
+        final thunder = await ThunderLive.create(
+          binary: binary,
+          logPath: path.join(binary.datadir(), 'thunder.log'),
+        );
+        GetIt.I.registerSingleton<ThunderRPC>(thunder);
+
+      case Bitnames():
+        final bitnames = await BitnamesLive.create(
+          binary: binary,
+          logPath: path.join(binary.datadir(), 'bitnames.log'),
+        );
+        GetIt.I.registerSingleton<BitnamesRPC>(bitnames);
+    }
+  }
+  // Register binary provider
   final binaryProvider = BinaryProvider(
     appDir: appDir,
     initialBinaries: binaries,
@@ -112,7 +151,38 @@ Future<void> initDependencies(Logger log) async {
   GetIt.I.registerLazySingleton<WalletService>(
     () => WalletService(),
   );
+}
 
-  // Register tools page view model
-  GetIt.I.registerSingleton<ToolsPageViewModel>(ToolsPageViewModel());
+Future<List<Binary>> _loadBinaries(Directory appDir) async {
+  final jsonString = await rootBundle.loadString('assets/chain_config.json');
+  final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+
+  final binaries = (jsonData['chains'] as List<dynamic>?)
+          ?.map((chain) => Binary.fromJson(chain as Map<String, dynamic>? ?? {}))
+          .toList() ??
+      [];
+
+  for (var i = 0; i < binaries.length; i++) {
+    final binary = binaries[i];
+    try {
+      // Check release date from server
+      var updatedConfig = binary.download;
+
+      // Load metadata from assets/
+      final metadata = await binary.loadMetadata(appDir);
+
+      if (metadata != null) {
+        // Update the binary's download config with the downloaded timestamp
+        updatedConfig = updatedConfig.copyWith(downloadedTimestamp: metadata.releaseDate);
+      }
+
+      // Update binary with all timestamp info
+      binaries[i] = binary.copyWith(download: updatedConfig);
+    } catch (e) {
+      // Log error but continue with other binaries
+      GetIt.I.get<Logger>().e('Error loading binary state for ${binary.name}: $e');
+    }
+  }
+
+  return binaries;
 }

@@ -121,28 +121,19 @@ class _OverviewPageState extends State<OverviewPage> {
       // 1. Start parent chain and wait for IBD
       if (!context.mounted) return;
       await _binaryProvider.startBinary(context, parentChain, useStarter: false);
-      if (_binaryProvider.mainchainRPC == null) {
-        throw Exception('could not initialize mainchain RPC');
-      }
 
       log.i('Waiting for mainchain to connect...');
-      await _binaryProvider.mainchainRPC!.waitForIBD();
+      await _binaryProvider.mainchainRPC.waitForIBD();
       log.i('Mainchain connected and synced');
 
       // 2. Start enforcer after mainchain is ready
       if (!context.mounted) return;
       await _binaryProvider.startBinary(context, enforcer, useStarter: false);
-      if (_binaryProvider.enforcerRPC == null) {
-        throw Exception('could not initialize enforcer RPC');
-      }
       log.i('Started enforcer');
 
       // 3. Start BitWindow after enforcer
       if (!context.mounted) return;
       await _binaryProvider.startBinary(context, bitwindow, useStarter: false);
-      if (_binaryProvider.bitwindowRPC == null) {
-        throw Exception('could not initialize BitWindow RPC');
-      }
       log.i('Started BitWindow');
 
       log.i('All L1 binaries started successfully');
@@ -552,15 +543,15 @@ class _OverviewPageState extends State<OverviewPage> {
   Future<void> _stopBinary(Binary binary) async {
     switch (binary) {
       case ParentChain():
-        await _binaryProvider.mainchainRPC?.stop();
+        await _binaryProvider.mainchainRPC.stop();
       case Enforcer():
-        await _binaryProvider.enforcerRPC?.stop();
+        await _binaryProvider.enforcerRPC.stop();
       case BitWindow():
-        await _binaryProvider.bitwindowRPC?.stop();
+        await _binaryProvider.bitwindowRPC.stop();
       case Thunder():
-        await _binaryProvider.thunderRPC?.stop();
+        await _binaryProvider.thunderRPC.stop();
       case Bitnames():
-        await _binaryProvider.bitnamesRPC?.stop();
+        await _binaryProvider.bitnamesRPC.stop();
     }
   }
 
@@ -685,29 +676,29 @@ class _OverviewPageState extends State<OverviewPage> {
 
     switch (binary) {
       case ParentChain():
-        connected = _binaryProvider.mainchainRPC?.connected ?? false;
-        initializing = _binaryProvider.mainchainRPC?.initializingBinary ?? false;
-        stopping = _binaryProvider.mainchainRPC?.stoppingBinary ?? false;
+        connected = _binaryProvider.mainchainRPC.connected;
+        initializing = _binaryProvider.mainchainRPC.initializingBinary;
+        stopping = _binaryProvider.mainchainRPC.stoppingBinary;
         error = _binaryProvider.mainchainError;
       case Enforcer():
-        connected = _binaryProvider.enforcerRPC?.connected ?? false;
-        initializing = _binaryProvider.enforcerRPC?.initializingBinary ?? false;
-        stopping = _binaryProvider.enforcerRPC?.stoppingBinary ?? false;
+        connected = _binaryProvider.enforcerRPC.connected;
+        initializing = _binaryProvider.enforcerRPC.initializingBinary;
+        stopping = _binaryProvider.enforcerRPC.stoppingBinary;
         error = _binaryProvider.enforcerError;
       case BitWindow():
-        connected = _binaryProvider.bitwindowRPC?.connected ?? false;
-        initializing = _binaryProvider.bitwindowRPC?.initializingBinary ?? false;
-        stopping = _binaryProvider.bitwindowRPC?.stoppingBinary ?? false;
+        connected = _binaryProvider.bitwindowRPC.connected;
+        initializing = _binaryProvider.bitwindowRPC.initializingBinary;
+        stopping = _binaryProvider.bitwindowRPC.stoppingBinary;
         error = _binaryProvider.bitwindowError;
       case Thunder():
-        connected = _binaryProvider.thunderRPC?.connected ?? false;
-        initializing = _binaryProvider.thunderRPC?.initializingBinary ?? false;
-        stopping = _binaryProvider.thunderRPC?.stoppingBinary ?? false;
+        connected = _binaryProvider.thunderRPC.connected;
+        initializing = _binaryProvider.thunderRPC.initializingBinary;
+        stopping = _binaryProvider.thunderRPC.stoppingBinary;
         error = _binaryProvider.thunderError;
       case Bitnames():
-        connected = _binaryProvider.bitnamesRPC?.connected ?? false;
-        initializing = _binaryProvider.bitnamesRPC?.initializingBinary ?? false;
-        stopping = _binaryProvider.bitnamesRPC?.stoppingBinary ?? false;
+        connected = _binaryProvider.bitnamesRPC.connected;
+        initializing = _binaryProvider.bitnamesRPC.initializingBinary;
+        stopping = _binaryProvider.bitnamesRPC.stoppingBinary;
         error = _binaryProvider.bitnamesError;
     }
 
@@ -787,8 +778,8 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Future<bool> displayShutdownModal(BuildContext context) async {
-    // Start a timer that will force close after 6 seconds
-    final timer = Timer(const Duration(seconds: 6), () {
+    // Start a timer that will force close after 3 seconds
+    final timer = Timer(const Duration(seconds: 3), () {
       if (_closeAlertOpen) {
         Navigator.of(context).pop(true);
         _closeAlertOpen = false;
@@ -798,11 +789,11 @@ class _OverviewPageState extends State<OverviewPage> {
     try {
       final futures = <Future>[];
       // Try to stop all binaries regardless of state
-      futures.add(_binaryProvider.mainchainRPC?.stop() ?? Future.value());
-      futures.add(_binaryProvider.enforcerRPC?.stop() ?? Future.value());
-      futures.add(_binaryProvider.bitwindowRPC?.stop() ?? Future.value());
-      futures.add(_binaryProvider.thunderRPC?.stop() ?? Future.value());
-      futures.add(_binaryProvider.bitnamesRPC?.stop() ?? Future.value());
+      futures.add(_binaryProvider.mainchainRPC.stop());
+      futures.add(_binaryProvider.enforcerRPC.stop());
+      futures.add(_binaryProvider.bitwindowRPC.stop());
+      futures.add(_binaryProvider.thunderRPC.stop());
+      futures.add(_binaryProvider.bitnamesRPC.stop());
 
       // If no processes are running, return immediately
       if (futures.isEmpty) {
