@@ -370,9 +370,9 @@ class _WalletButtonState extends State<WalletButton> {
           padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
           child: _TokenListItem(
             name: balance.name,
-            amount: '${balance.confirmedBalance.toStringAsFixed(8)} BTC',
-            value:
-                balance.unconfirmedBalance > 0 ? '(${balance.unconfirmedBalance.toStringAsFixed(8)} unconfirmed)' : '',
+            amount:
+                '${balance.confirmedBalance.toStringAsFixed(8)} BTC${balance.unconfirmedBalance > 0 ? '\n(${balance.unconfirmedBalance.toStringAsFixed(8)} unconfirmed)' : ''}',
+            value: '',
           ),
         );
       }).toList(),
