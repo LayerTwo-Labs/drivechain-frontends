@@ -24,6 +24,36 @@ class WalletService extends ChangeNotifier {
     return walletFile.existsSync();
   }
 
+  Future<Map<String, dynamic>> generateWalletFromEntropy(List<int> entropy) async {
+    try {
+      // Create mnemonic from entropy
+      final mnemonic = Mnemonic(entropy, Language.english);
+      
+      // Get seed from mnemonic
+      final seedHex = hex.encode(mnemonic.seed);
+
+      // Create HD wallet chain
+      final chain = Chain.seed(seedHex);
+      final masterKey = chain.forPath('m') as ExtendedPrivateKey;
+
+      // Get binary representation and checksum
+      final bip39Bin = _bytesToBinary(mnemonic.entropy);
+      final checksumBits = _calculateChecksumBits(mnemonic.entropy);
+
+      return {
+        'mnemonic': mnemonic.sentence,
+        'seed_hex': seedHex,
+        'xprv': masterKey.toString(),
+        'bip39_bin': bip39Bin,
+        'bip39_csum': checksumBits,
+        'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
+      };
+    } catch (e) {
+      _logger.e('Error generating wallet from entropy: $e');
+      return {'error': e.toString()};
+    }
+  }
+
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
     try {
       final Mnemonic mnemonicObj;
@@ -255,49 +285,33 @@ class WalletService extends ChangeNotifier {
     try {
       final binaries = binaryProvider.binaries;
 
-      debugPrint('Checking for downloaded chains...');
-
       // Check for downloaded L1 chain first
-      for (final chain in binaries) {
-        if (chain.chainLayer == 1) {
-          debugPrint('Found L1 chain: ${chain.name}');
+      for (final chain in chains) {
+        if (chain['chain_layer'] == 1) {
           final appDir = await Environment.appDir();
           final assetsDir = Directory(path.join(appDir.path, 'assets'));
           final binaryName = chain.binary;
           final binaryPath = path.join(assetsDir.path, binaryName);
 
-          debugPrint('Checking L1 binary at: $binaryPath');
           if (File(binaryPath).existsSync()) {
-            debugPrint('L1 binary found, generating starter');
-            // Generate L1 starter if binary exists
             await deriveL1Starter();
-            debugPrint('L1 starter generated');
             break; // Only need one L1 starter
-          } else {
-            debugPrint('L1 binary not found');
           }
         }
       }
 
       // For each chain in config that has a sidechain slot
-      for (final binary in binaries) {
-        if (binary is Sidechain) {
-          final sidechainSlot = binary.slot;
-          debugPrint('Found sidechain: ${binary.name} with slot $sidechainSlot');
+      for (final chain in chains) {
+        final sidechainSlot = chain['sidechain_slot'] as int?;
+        if (sidechainSlot != null) {
           // Check if binary is downloaded
           final appDir = await Environment.appDir();
           final assetsDir = Directory(path.join(appDir.path, 'assets'));
           final binaryName = binary.binary;
           final binaryPath = path.join(assetsDir.path, binaryName);
 
-          debugPrint('Checking sidechain binary at: $binaryPath');
           if (File(binaryPath).existsSync()) {
-            debugPrint('Sidechain binary found, generating starter');
-            // Generate starter for this chain
             await deriveSidechainStarter(sidechainSlot);
-            debugPrint('Sidechain starter generated');
-          } else {
-            debugPrint('Sidechain binary not found');
           }
         }
       }

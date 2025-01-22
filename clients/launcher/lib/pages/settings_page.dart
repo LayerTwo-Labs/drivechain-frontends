@@ -52,12 +52,6 @@ class SettingsPage extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 SailButton.secondary(
-                  'Open Welcome Modal',
-                  onPressed: () => showWelcomeModal(context),
-                  size: ButtonSize.regular,
-                ),
-                const SizedBox(width: 16),
-                SailButton.secondary(
                   'Delete All Starters',
                   onPressed: () => _showDeleteConfirmation(context, tabsRouter),
                   size: ButtonSize.regular,
@@ -92,7 +86,7 @@ class SettingsPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             SailText.primary13(
-              'WARNING: If you have not stored your master mnemonic phrase, you will not be able to regenerate your sidechain starters.',
+              'WARNING: If you have not stored your master mnemonic phrase, you will not be able to restore your wallet.',
               color: SailColorScheme.red,
               textAlign: TextAlign.center,
             ),
