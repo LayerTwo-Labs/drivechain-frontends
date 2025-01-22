@@ -6,6 +6,11 @@ import 'package:launcher/services/wallet_service.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/rpcs/bitnames_rpc.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'mocks/download_manager_mock.dart';
@@ -52,6 +57,42 @@ Future<void> registerTestDependencies() async {
   if (!GetIt.I.isRegistered<ClientSettings>()) {
     GetIt.I.registerLazySingleton<ClientSettings>(
       () => ClientSettings(store: MockStore(), log: log),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<MainchainRPC>()) {
+    GetIt.I.registerLazySingleton<MainchainRPC>(
+      () => MockMainchainRPC(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<EnforcerRPC>()) {
+    GetIt.I.registerLazySingleton<EnforcerRPC>(
+      () => MockEnforcerRPC(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<BitwindowRPC>()) {
+    GetIt.I.registerLazySingleton<BitwindowRPC>(
+      () => MockBitwindowRPC(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<ThunderRPC>()) {
+    GetIt.I.registerLazySingleton<ThunderRPC>(
+      () => MockThunderRPC(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<BitnamesRPC>()) {
+    GetIt.I.registerLazySingleton<BitnamesRPC>(
+      () => MockBitnamesRPC(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<BlockchainProvider>()) {
+    GetIt.I.registerLazySingleton<BlockchainProvider>(
+      () => MockBlockchainProvider(),
     );
   }
 

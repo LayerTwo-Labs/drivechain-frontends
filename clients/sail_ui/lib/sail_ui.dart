@@ -6,6 +6,7 @@ export './config/chains.dart';
 export './extensions/build_context.dart';
 export './extensions/formatting.dart';
 export './logger.dart';
+export './mocks/mocks.dart';
 export './pages/router.gr.dart';
 export './providers/blockchain_provider.dart';
 export './providers/process_provider.dart';
