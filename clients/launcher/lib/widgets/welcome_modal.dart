@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:math';
-import 'dart:ui';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -266,7 +264,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
@@ -345,7 +343,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
@@ -431,9 +429,9 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                                 });
                               },
                               side: const BorderSide(color: Colors.white70),
-                              fillColor: MaterialStateProperty.resolveWith<Color>(
-                                (Set<MaterialState> states) {
-                                  if (states.contains(MaterialState.selected)) {
+                              fillColor: WidgetStateProperty.resolveWith<Color>(
+                                (Set<WidgetState> states) {
+                                  if (states.contains(WidgetState.selected)) {
                                     return Colors.white24;
                                   }
                                   return Colors.transparent;
