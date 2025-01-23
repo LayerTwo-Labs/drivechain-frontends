@@ -292,7 +292,7 @@ abstract class RPCConnection extends ChangeNotifier {
       // Try graceful shutdown first
       try {
         await stopRPC().timeout(
-          const Duration(seconds: 5),
+          const Duration(seconds: 7),
           onTimeout: () {
             log.w('Graceful shutdown timed out after 2 seconds');
             throw TimeoutException('Graceful shutdown timed out');
