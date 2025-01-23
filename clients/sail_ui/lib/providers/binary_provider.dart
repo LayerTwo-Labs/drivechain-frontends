@@ -294,28 +294,21 @@ class BinaryProvider extends ChangeNotifier {
       final starterFile = File(
         path.join(
           starterDir,
-          'sidechain_${binary.slot}_starter.json',
+          'sidechain_${binary.slot}_starter.txt',
         ),
       );
 
-      if (!starterFile.existsSync()) return;
-
-      final content = await starterFile.readAsString();
-      final json = jsonDecode(content) as Map<String, dynamic>;
-      final mnemonic = json['mnemonic'] as String?;
-
-      if (mnemonic == null) return;
-
-      switch (binary) {
-        case Thunder():
-          await thunderRPC.setSeedFromMnemonic(mnemonic);
-        case Bitnames():
-          await bitnamesRPC.setSeedFromMnemonic(mnemonic);
-        default:
-          break;
+      if (!starterFile.existsSync()) {
+        log.i('No starter file found for ${binary.name}');
+        return;
       }
-    } catch (e) {
-      log.e('Error setting starter seed: $e');
+
+      log.i('Found starter file, setting mnemonic seed phrase path');
+      binary.mnemonicSeedPhrasePath = starterFile.path;
+      log.i('Successfully set mnemonic seed phrase path to: ${starterFile.path}');
+    } catch (e, st) {
+      log.e('Error setting starter seed', error: e, stackTrace: st);
+      rethrow;
     }
   }
 

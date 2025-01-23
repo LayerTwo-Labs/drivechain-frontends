@@ -16,8 +16,6 @@ abstract class ThunderRPC extends RPCConnection {
     required super.binary,
     required super.logPath,
   });
-
-  Future<void> setSeedFromMnemonic(String mnemonic);
 }
 
 class ThunderLive extends ThunderRPC {
@@ -64,7 +62,13 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    return [];
+    final args = <String>[];
+    
+    if (binary.mnemonicSeedPhrasePath != null) {
+      args.addAll(['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]);
+    }
+    
+    return args;
   }
 
   @override
@@ -84,56 +88,6 @@ class ThunderLive extends ThunderRPC {
     final unconfirmed = satoshiToBTC(totalSats - availableSats);
 
     return (confirmed, unconfirmed);
-  }
-
-  @override
-  Future<void> setSeedFromMnemonic(String mnemonic) async {
-    try {
-      await binary.wipeWallet(); // Use the built-in wipeWallet function
-
-      // Try to set the seed multiple times
-      int setSeedRetries = 0;
-      const maxSetSeedRetries = 5;
-      const setSeedRetryDelay = Duration(milliseconds: 500);
-      Exception? lastError;
-
-      while (setSeedRetries < maxSetSeedRetries) {
-        try {
-          await _client().call('set_seed_from_mnemonic', [mnemonic]);
-          break;
-        } catch (e) {
-          lastError = Exception(e.toString());
-          setSeedRetries++;
-          if (setSeedRetries == maxSetSeedRetries) {
-            throw lastError;
-          }
-          await Future.delayed(setSeedRetryDelay);
-        }
-      }
-
-      // Verify the seed was set by checking if we can get a balance
-      int retries = 0;
-      const maxRetries = 20;
-      const retryDelay = Duration(seconds: 2);
-
-      while (retries < maxRetries) {
-        try {
-          await _client().call('balance');
-          return;
-        } catch (e) {
-          if (e.toString().contains("wallet doesn't have a seed")) {
-            retries++;
-            await Future.delayed(retryDelay);
-            continue;
-          }
-          rethrow;
-        }
-      }
-      throw Exception('Failed to verify wallet was ready after $maxRetries attempts');
-    } catch (e) {
-      log.e('Error setting Thunder seed', error: e);
-      rethrow;
-    }
   }
 
   @override
