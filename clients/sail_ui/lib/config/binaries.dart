@@ -41,10 +41,10 @@ abstract class Binary {
   int get port => network.port;
   String get ticker => '';
   String get binaryName => binary;
+  bool get isDownloaded => download.downloadedTimestamp != null;
+
   bool get updateAvailable =>
-      download.remoteTimestamp != null &&
-      download.downloadedTimestamp != null &&
-      download.remoteTimestamp != download.downloadedTimestamp;
+      isDownloaded && download.remoteTimestamp != null && download.remoteTimestamp != download.downloadedTimestamp;
 
   @override
   bool operator ==(Object other) =>
@@ -169,8 +169,7 @@ abstract class Binary {
   /// Downloads and installs a binary
   Future<DateTime?> downloadAndExtract(
     Directory datadir,
-    void Function(
-      DownloadStatus status, {
+    void Function({
       double progress,
       String? message,
       String? error,
@@ -178,7 +177,6 @@ abstract class Binary {
   ) async {
     try {
       onStatusUpdate(
-        DownloadStatus.installing,
         message: 'Starting download...',
       );
 
@@ -194,7 +192,6 @@ abstract class Binary {
       await downloadsDir.create(recursive: true);
 
       onStatusUpdate(
-        DownloadStatus.installing,
         message: 'Downloading...',
       );
 
@@ -220,14 +217,12 @@ abstract class Binary {
 
       // Update status to completed
       onStatusUpdate(
-        DownloadStatus.installed,
         message: 'Installed $name)',
       );
 
       return releaseDate;
     } catch (e) {
       onStatusUpdate(
-        DownloadStatus.failed,
         error: e.toString(),
       );
       throw Exception(e);
@@ -348,8 +343,7 @@ abstract class Binary {
   Future<void> _download(
     String url,
     String savePath,
-    void Function(
-      DownloadStatus status, {
+    void Function({
       double progress,
       String? message,
       String? error,
@@ -387,7 +381,6 @@ abstract class Binary {
           }
 
           onStatusUpdate(
-            DownloadStatus.installing,
             progress: progress,
             message: 'Downloading... $downloadedMB MB / $totalMB MB (${(progress * 100).toStringAsFixed(1)}%)',
           );
@@ -401,7 +394,6 @@ abstract class Binary {
 
       // Update status for next phase
       onStatusUpdate(
-        DownloadStatus.installing,
         message: 'Verifying download...',
       );
     } catch (e) {
@@ -925,7 +917,6 @@ class NetworkConfig {
 
 /// Represents the download status and information for a binary
 class DownloadInfo {
-  final DownloadStatus status;
   final double progress;
   final String? message;
   final String? error;
@@ -933,7 +924,6 @@ class DownloadInfo {
   final DateTime? downloadedAt;
 
   const DownloadInfo({
-    this.status = DownloadStatus.uninstalled,
     this.progress = 0.0,
     this.message,
     this.error,
@@ -943,7 +933,6 @@ class DownloadInfo {
 
   /// Create a copy with updated fields
   DownloadInfo copyWith({
-    DownloadStatus? status,
     double? progress,
     String? message,
     String? error,
@@ -951,7 +940,6 @@ class DownloadInfo {
     DateTime? downloadedAt,
   }) {
     return DownloadInfo(
-      status: status ?? this.status,
       progress: progress ?? this.progress,
       message: message ?? this.message,
       error: error ?? this.error,
@@ -959,13 +947,6 @@ class DownloadInfo {
       downloadedAt: downloadedAt ?? this.downloadedAt,
     );
   }
-}
-
-enum DownloadStatus {
-  uninstalled, // Binary not present in assets/
-  installing, // Currently downloading/extracting/moving
-  installed, // Binary present in assets/ with metadata
-  failed, // Installation failed with error
 }
 
 /// Information about a completed download

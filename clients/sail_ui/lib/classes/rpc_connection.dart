@@ -292,7 +292,7 @@ abstract class RPCConnection extends ChangeNotifier {
       // Try graceful shutdown first
       try {
         await stopRPC().timeout(
-          const Duration(seconds: 2),
+          const Duration(seconds: 3),
           onTimeout: () {
             log.w('Graceful shutdown timed out after 2 seconds');
             throw TimeoutException('Graceful shutdown timed out');
@@ -300,20 +300,23 @@ abstract class RPCConnection extends ChangeNotifier {
         );
       } catch (e) {
         log.w('Graceful shutdown failed: $e');
-      } finally {
-        // always kill, just in case something is lingering
+      }
+
+      try {
         log.w('Killing process');
         final processes = GetIt.I.get<ProcessProvider>();
         await processes.kill(binary);
+      } catch (e) {
+        log.w('Killing process failed: $e');
       }
 
       _connectionTimer?.cancel();
-      connected = false;
-      connectionError = null;
     } catch (e) {
       log.e('could not stop rpc: $e');
     } finally {
       log.i('stopping rpc successfully');
+      connected = false;
+      connectionError = null;
       stoppingBinary = false;
       notifyListeners();
     }

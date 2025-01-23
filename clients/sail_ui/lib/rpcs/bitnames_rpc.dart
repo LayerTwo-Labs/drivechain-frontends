@@ -84,6 +84,8 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<void> stopRPC() async {
     await _client().call('stop');
+    // can't trust the rpc, give it a moment to stop
+    await Future.delayed(const Duration(milliseconds: 1500));
   }
 
   @override

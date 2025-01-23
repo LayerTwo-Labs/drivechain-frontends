@@ -7,16 +7,15 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class MockAPI extends BitwindowRPC {
   @override
-  late final WalletAPI wallet = MockWalletAPI();
-
+  BitwindowAPI get bitwindowd => MockBitwindowdAPI();
   @override
-  late final BitcoindAPI bitcoind = MockBitcoindAPI();
-
+  final WalletAPI wallet = MockWalletAPI();
   @override
-  late final DrivechainAPI drivechain = MockDrivechainAPI();
-
+  final BitcoindAPI bitcoind = MockBitcoindAPI();
   @override
-  late final MiscAPI misc = MockMiscAPI();
+  final DrivechainAPI drivechain = MockDrivechainAPI();
+  @override
+  final MiscAPI misc = MockMiscAPI();
 
   MockAPI({
     required super.conf,
@@ -41,6 +40,13 @@ class MockAPI extends BitwindowRPC {
 
   @override
   Future<void> stopRPC() async {
+    return;
+  }
+}
+
+class MockBitwindowdAPI implements BitwindowAPI {
+  @override
+  Future<void> stop() async {
     return;
   }
 }
