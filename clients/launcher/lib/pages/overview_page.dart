@@ -189,7 +189,7 @@ class _OverviewPageState extends State<OverviewPage> {
       final starterFile = File(
         path.join(
           starterDir,
-          'sidechain_${binary.slot}_starter.json',
+          'sidechain_${binary.slot}_starter.txt',
         ),
       );
 

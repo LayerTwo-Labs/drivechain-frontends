@@ -20,7 +20,7 @@ class WalletService extends ChangeNotifier {
   static const String defaultBip32Path = "m/44'/0'/0'";
 
   Future<bool> hasExistingWallet() async {
-    final walletFile = await _getWalletFile();
+    final walletFile = await _getWalletFile('master_starter.json');
     return walletFile.existsSync();
   }
 
@@ -86,27 +86,19 @@ class WalletService extends ChangeNotifier {
 
   Future<bool> saveWallet(Map<String, dynamic> walletData) async {
     try {
-      final walletFile = await _getWalletFile();
+      // Add name field for master starter
+      walletData['name'] = 'Master';
 
-      if (!walletFile.parent.existsSync()) {
-        await walletFile.parent.create(recursive: true);
-      }
-
-      final requiredFields = [
-        'mnemonic',
-        'seed_hex',
-        'xprv',
-      ];
-
+      // Validate required fields
+      final requiredFields = ['mnemonic', 'seed_hex', 'xprv'];
       for (final field in requiredFields) {
         if (!walletData.containsKey(field) || walletData[field] == null) {
           throw Exception('Missing required wallet field: $field');
         }
       }
 
-      // Add name field for master starter
-      walletData['name'] = 'Master';
-
+      await _ensureWalletDir();
+      final walletFile = await _getWalletFile('master_starter.json');
       await walletFile.writeAsString(jsonEncode(walletData));
       notifyListeners();
       return true;
@@ -118,7 +110,7 @@ class WalletService extends ChangeNotifier {
 
   Future<bool> deleteWallet() async {
     try {
-      final walletFile = await _getWalletFile();
+      final walletFile = await _getWalletFile('master_starter.json');
       if (await walletFile.exists()) {
         await walletFile.delete();
         notifyListeners();
@@ -132,7 +124,7 @@ class WalletService extends ChangeNotifier {
 
   Future<Map<String, dynamic>?> loadWallet() async {
     try {
-      final walletFile = await _getWalletFile();
+      final walletFile = await _getWalletFile('master_starter.json');
       if (!await walletFile.exists()) return null;
 
       final walletJson = await walletFile.readAsString();
@@ -149,50 +141,55 @@ class WalletService extends ChangeNotifier {
     }
   }
 
+  /// Derive a starter from the master wallet using a specific derivation path
+  Future<Map<String, dynamic>> _deriveStarter(String derivationPath, {String? name}) async {
+    // Load and validate master wallet
+    final masterWallet = await loadWallet();
+    if (masterWallet == null) {
+      throw Exception('Master starter not found');
+    }
+    if (!masterWallet.containsKey('xprv')) {
+      throw Exception('Master starter is missing required field: xprv');
+    }
+
+    // Import master key and derive new key
+    final chain = Chain.import(masterWallet['xprv']);
+    final derivedKey = chain.forPath(derivationPath) as ExtendedPrivateKey;
+
+    // Hash the private key and take first 16 bytes for 128-bit entropy
+    final privateKeyBytes = hex.decode(derivedKey.privateKeyHex());
+    final hashedKey = sha256.convert(privateKeyBytes).bytes;
+    final entropy = hashedKey.sublist(0, 16);
+
+    final mnemonic = Mnemonic(entropy, Language.english);
+
+    return {
+      'mnemonic': mnemonic.sentence,
+      'seed_hex': hex.encode(mnemonic.seed),
+      'xprv': derivedKey.toString(),
+      'parent_xprv': masterWallet['xprv'],
+      'derivation_path': derivationPath,
+      if (name != null) 'name': name,
+    };
+  }
+
   Future<Map<String, dynamic>?> deriveSidechainStarter(int sidechainSlot) async {
     try {
-      // Load master starter
-      final masterWallet = await loadWallet();
-      if (masterWallet == null) {
-        _logger.e('Master starter not found');
-        throw Exception('Master starter not found');
+      final binary =
+          binaryProvider.binaries.where((binary) => binary is Sidechain && binary.slot == sidechainSlot).firstOrNull;
+      if (binary == null) {
+        throw Exception('Could not find chain config for sidechain slot $sidechainSlot');
       }
 
-      // Validate master wallet data
-      if (!masterWallet.containsKey('xprv')) {
-        _logger.e('Master starter is missing required field: xprv');
-        throw Exception('Master starter is missing required field: xprv');
-      }
-
-      // Import master key and derive sidechain key
-      final chain = Chain.import(masterWallet['xprv']);
-      final sidechainPath = "m/44'/0'/$sidechainSlot'";
-      final sidechainKey = chain.forPath(sidechainPath) as ExtendedPrivateKey;
-
-      // Hash the private key and take first 16 bytes for 128-bit entropy
-      final privateKeyBytes = hex.decode(sidechainKey.privateKeyHex());
-      final hashedKey = sha256.convert(privateKeyBytes).bytes;
-      final entropy = hashedKey.sublist(0, 16);
-
-      final mnemonic = Mnemonic(entropy, Language.english);
-
-      // Create a new chain from the mnemonic's seed to get a proper master key
-      final sidechainChain = Chain.seed(hex.encode(mnemonic.seed));
-      final sidechainMasterKey = sidechainChain.forPath('m') as ExtendedPrivateKey;
-
-      // Create sidechain starter with new mnemonic and master key
-      final sidechainStarter = {
-        'mnemonic': mnemonic.sentence,
-        'seed_hex': hex.encode(mnemonic.seed),
-        'xprv': sidechainMasterKey.toString(),
-        'parent_xprv': masterWallet['xprv'],
-        'derivation_path': sidechainPath,
-      };
+      final starterData = await _deriveStarter(
+        "m/44'/0'/$sidechainSlot'",
+        name: binary.name,
+      );
 
       // Save to sidechain-specific file
-      await _saveSidechainStarter(sidechainSlot, sidechainStarter);
+      await _saveMnemonicStarter('sidechain_${sidechainSlot}_starter.txt', starterData['mnemonic']);
 
-      return sidechainStarter;
+      return starterData;
     } catch (e, stackTrace) {
       _logger.e('Error deriving sidechain starter: $e\n$stackTrace');
       rethrow;
@@ -201,49 +198,91 @@ class WalletService extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveSidechainStarter(int sidechainSlot, Map<String, dynamic> starterData) async {
+  Future<Map<String, dynamic>?> deriveL1Starter() async {
     try {
-      final appDir = await Environment.appDir();
-      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-
-      final binary =
-          binaryProvider.binaries.where((binary) => binary is Sidechain && binary.slot == sidechainSlot).firstOrNull;
-      if (binary == null) {
-        throw Exception('Could not find chain config for sidechain slot $sidechainSlot');
-      }
-
-      // Add name to starter data
-      starterData['name'] = binary.name;
-
-      // Ensure wallet directory exists
-      if (!walletDir.existsSync()) {
-        await walletDir.create(recursive: true);
-      }
-
-      // Create sidechain starter file with clear naming
-      final sidechainStarterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
-
-      // Write data with proper formatting
-      await sidechainStarterFile.writeAsString(
-        JsonEncoder.withIndent('  ').convert(starterData),
+      final starterData = await _deriveStarter(
+        "m/44'/0'/256'",
+        name: 'Bitcoin Core (Patched)',
       );
+      starterData['chain_layer'] = 1;
 
-      // Verify file was written successfully
-      if (!sidechainStarterFile.existsSync()) {
-        throw Exception('Failed to write sidechain starter file: File does not exist after write');
-      }
+      // Save to L1-specific file
+      await _saveMnemonicStarter('l1_starter.txt', starterData['mnemonic']);
 
-      notifyListeners();
+      return starterData;
     } catch (e, stackTrace) {
-      _logger.e('Error saving sidechain starter: $e\n$stackTrace');
+      _logger.e('Error deriving L1 starter: $e\n$stackTrace');
       rethrow;
     }
   }
 
-  Future<File> _getWalletFile() async {
+  Future<void> deleteL1Starter() async {
+    await _deleteStarter('l1_starter.txt');
+  }
+
+  Future<String?> loadL1Starter() async {
+    return _loadMnemonicStarter('l1_starter.txt');
+  }
+
+  Future<String?> loadSidechainStarter(int sidechainSlot) async {
+    return _loadMnemonicStarter('sidechain_${sidechainSlot}_starter.txt');
+  }
+
+  Future<void> deleteSidechainStarter(int sidechainSlot) async {
+    await _deleteStarter('sidechain_${sidechainSlot}_starter.txt');
+  }
+
+  Future<String?> _loadMnemonicStarter(String fileName) async {
+    try {
+      final file = await _getWalletFile(fileName);
+      if (!file.existsSync()) return null;
+      return await file.readAsString();
+    } catch (e) {
+      _logger.e('Error loading starter $fileName: $e');
+      return null;
+    }
+  }
+
+  Future<void> _saveMnemonicStarter(String fileName, String mnemonic) async {
+    try {
+      await _ensureWalletDir();
+      final file = await _getWalletFile(fileName);
+      await file.writeAsString(mnemonic);
+      notifyListeners();
+    } catch (e, stackTrace) {
+      _logger.e('Error saving starter $fileName: $e\n$stackTrace');
+      rethrow;
+    }
+  }
+
+  Future<void> _deleteStarter(String fileName) async {
+    try {
+      final file = await _getWalletFile(fileName);
+      if (file.existsSync()) {
+        await file.delete();
+        notifyListeners();
+      }
+    } catch (e, stackTrace) {
+      _logger.e('Error deleting starter $fileName: $e\n$stackTrace');
+      rethrow;
+    }
+  }
+
+  Future<File> _getWalletFile(String fileName) async {
+    final walletDir = await _getWalletDir();
+    return File(path.join(walletDir.path, fileName));
+  }
+
+  Future<Directory> _getWalletDir() async {
     final appDir = await Environment.appDir();
-    final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-    return File(path.join(walletDir.path, 'master_starter.json'));
+    return Directory(path.join(appDir.path, 'wallet_starters'));
+  }
+
+  Future<void> _ensureWalletDir() async {
+    final walletDir = await _getWalletDir();
+    if (!walletDir.existsSync()) {
+      await walletDir.create(recursive: true);
+    }
   }
 
   Future<void> generateStartersForDownloadedChains() async {
@@ -274,100 +313,6 @@ class WalletService extends ChangeNotifier {
       notifyListeners();
     } catch (e, stack) {
       debugPrint('Error generating starters: $e\n$stack');
-    }
-  }
-
-  Future<Map<String, dynamic>?> deriveL1Starter() async {
-    try {
-      // Load master starter
-      final masterWallet = await loadWallet();
-      if (masterWallet == null) {
-        _logger.e('Master starter not found');
-        throw Exception('Master starter not found');
-      }
-
-      // Validate master wallet data
-      if (!masterWallet.containsKey('xprv')) {
-        _logger.e('Master starter is missing required field: xprv');
-        throw Exception('Master starter is missing required field: xprv');
-      }
-
-      // Import master key and derive L1 key with fixed path
-      final chain = Chain.import(masterWallet['xprv']);
-      const l1Path = "m/44'/0'/256'";
-      final l1Key = chain.forPath(l1Path) as ExtendedPrivateKey;
-
-      // Hash the private key and take first 16 bytes for 128-bit entropy
-      final privateKeyBytes = hex.decode(l1Key.privateKeyHex());
-      final hashedKey = sha256.convert(privateKeyBytes).bytes;
-      final entropy = hashedKey.sublist(0, 16);
-
-      final mnemonic = Mnemonic(entropy, Language.english);
-
-      // Create a new chain from the mnemonic's seed to get a proper master key
-      final l1Chain = Chain.seed(hex.encode(mnemonic.seed));
-      final l1MasterKey = l1Chain.forPath('m') as ExtendedPrivateKey;
-
-      // Create L1 starter with new mnemonic and master key
-      final l1Starter = {
-        'mnemonic': mnemonic.sentence,
-        'seed_hex': hex.encode(mnemonic.seed),
-        'xprv': l1MasterKey.toString(),
-        'parent_xprv': masterWallet['xprv'],
-        'derivation_path': l1Path,
-        'name': 'Bitcoin Core (Patched)',
-        'chain_layer': 1,
-      };
-
-      // Save to L1-specific file
-      await _saveL1Starter(l1Starter);
-
-      return l1Starter;
-    } catch (e, stackTrace) {
-      _logger.e('Error deriving L1 starter: $e\n$stackTrace');
-      rethrow;
-    }
-  }
-
-  Future<void> _saveL1Starter(Map<String, dynamic> starterData) async {
-    try {
-      final appDir = await Environment.appDir();
-      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-
-      // Ensure wallet directory exists
-      if (!walletDir.existsSync()) {
-        await walletDir.create(recursive: true);
-      }
-
-      // Create L1 starter file
-      final l1StarterFile = File(path.join(walletDir.path, 'l1_starter.json'));
-
-      // Write data with proper formatting
-      await l1StarterFile.writeAsString(
-        JsonEncoder.withIndent('  ').convert(starterData),
-      );
-
-      notifyListeners();
-    } catch (e, stackTrace) {
-      _logger.e('Error saving L1 starter: $e\n$stackTrace');
-      rethrow;
-    }
-  }
-
-  Future<void> deleteL1Starter() async {
-    try {
-      final appDir = await Environment.appDir();
-      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-      final l1StarterFile = File(path.join(walletDir.path, 'l1_starter.json'));
-
-      if (l1StarterFile.existsSync()) {
-        await l1StarterFile.delete();
-      }
-
-      notifyListeners();
-    } catch (e, stackTrace) {
-      _logger.e('Error deleting L1 starter: $e\n$stackTrace');
-      rethrow;
     }
   }
 }
