@@ -27,7 +27,7 @@ class ChainSettingsModal extends StatelessWidget {
 
     final baseDir = chain.directories.base[os];
     final binary = chain.binary;
-    final downloadFile = chain.download.files[os];
+    // final downloadFile = chain.download.files[os];
 
     return Dialog(
       backgroundColor: Colors.transparent,

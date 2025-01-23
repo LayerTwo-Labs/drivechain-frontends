@@ -319,6 +319,22 @@ class BinaryProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> stop(Binary binary) async {
+    _explicitlyLaunched[binary.name] = false;
+    switch (binary) {
+      case ParentChain():
+        await mainchainRPC.stop();
+      case Enforcer():
+        await enforcerRPC.stop();
+      case BitWindow():
+        await bitwindowRPC.stop();
+      case Thunder():
+        await thunderRPC.stop();
+      case Bitnames():
+        await bitnamesRPC.stop();
+    }
+  }
+
   @override
   void dispose() {
     _dirWatcher?.cancel();

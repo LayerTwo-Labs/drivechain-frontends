@@ -292,23 +292,21 @@ abstract class RPCConnection extends ChangeNotifier {
       // Try graceful shutdown first
       try {
         await stopRPC().timeout(
-          const Duration(seconds: 5),
+          const Duration(seconds: 7),
           onTimeout: () {
             log.w('Graceful shutdown timed out after 2 seconds');
             throw TimeoutException('Graceful shutdown timed out');
           },
         );
+
+        _connectionTimer?.cancel();
       } catch (e) {
         log.w('Graceful shutdown failed: $e');
       }
 
-      try {
-        log.w('Killing process');
-        final processes = GetIt.I.get<ProcessProvider>();
-        await processes.kill(binary);
-      } catch (e) {
-        log.w('Killing process failed: $e');
-      }
+      log.w('Killing process');
+      final processes = GetIt.I.get<ProcessProvider>();
+      await processes.kill(binary);
 
       _connectionTimer?.cancel();
     } catch (e) {
