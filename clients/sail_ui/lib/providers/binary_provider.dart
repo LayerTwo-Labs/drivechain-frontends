@@ -95,33 +95,30 @@ class BinaryProvider extends ChangeNotifier {
     thunderRPC.addListener(notifyListeners);
     bitnamesRPC.addListener(notifyListeners);
 
-    initialize();
     _setupDirectoryWatcher();
+    _checkReleaseDates();
   }
 
   void _setupDirectoryWatcher() {
     // Watch the assets directory for changes
     final assetsDir = Directory(path.join(appDir.path, 'assets'));
-    _dirWatcher = assetsDir.watch(recursive: true).listen((event) {
-      // Skip if there are any active downloads
+    _dirWatcher = assetsDir.watch(recursive: true).listen((event) async {
       if (_activeDownloads.values.any((active) => active)) {
+        // Skip if there are any active downloads
         return;
       }
 
       switch (event.type) {
         case FileSystemEvent.create:
         case FileSystemEvent.delete:
-          initialize();
+          // reload metadata when a file is created or deleted
+          binaries = await loadBinaryMetadata(binaries, appDir);
+          notifyListeners();
           break;
         default:
           break;
       }
     });
-  }
-
-  /// Initialize download states for all binaries
-  Future<void> initialize() async {
-    await _checkReleaseDates();
   }
 
   Future<void> _checkReleaseDates() async {
@@ -130,7 +127,10 @@ class BinaryProvider extends ChangeNotifier {
         final binary = binaries[i];
         final serverReleaseDate = await binary.checkReleaseDate();
         if (serverReleaseDate != null) {
-          final updatedConfig = binary.download.copyWith(remoteTimestamp: serverReleaseDate);
+          final updatedConfig = binary.download.copyWith(
+            remoteTimestamp: serverReleaseDate,
+            downloadedTimestamp: binary.download.downloadedTimestamp,
+          );
           binaries[i] = binary.copyWith(download: updatedConfig);
         }
       } catch (e) {
@@ -240,7 +240,7 @@ class BinaryProvider extends ChangeNotifier {
 
     _activeDownloads[binary.name] = true;
     try {
-      final releaseDate = await binary.downloadAndExtract(
+      await binary.downloadAndExtract(
         appDir,
         ({progress = 0.0, message, error}) {
           _updateStatus(
@@ -251,13 +251,6 @@ class BinaryProvider extends ChangeNotifier {
           );
         },
       );
-
-      // After successful download
-      final updatedConfig = binary.download.copyWith(
-        remoteTimestamp: releaseDate,
-        downloadedTimestamp: releaseDate,
-      );
-      binary = binary.copyWith(download: updatedConfig);
     } finally {
       // Only clean up if this was the only active download
       if (_activeDownloads.values.where((active) => active).length == 1) {
@@ -337,4 +330,25 @@ class BinaryProvider extends ChangeNotifier {
     bitnamesRPC.removeListener(notifyListeners);
     super.dispose();
   }
+}
+
+Future<List<Binary>> loadBinaryMetadata(List<Binary> binaries, Directory appDir) async {
+  for (var i = 0; i < binaries.length; i++) {
+    final binary = binaries[i];
+    try {
+      // Load metadata from assets/
+      final metadata = await binary.loadMetadata(appDir);
+
+      final updatedConfig = binary.download.copyWith(
+        remoteTimestamp: binary.download.remoteTimestamp,
+        downloadedTimestamp: metadata?.releaseDate,
+      );
+      binaries[i] = binary.copyWith(download: updatedConfig);
+    } catch (e) {
+      // Log error but continue with other binaries
+      GetIt.I.get<Logger>().e('Error loading binary state for ${binary.name}: $e');
+    }
+  }
+
+  return binaries;
 }
