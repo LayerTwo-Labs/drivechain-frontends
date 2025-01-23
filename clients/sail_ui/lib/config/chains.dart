@@ -14,7 +14,6 @@ abstract class Sidechain extends Binary {
     required super.binary,
     required super.network,
     required super.chainLayer,
-    required super.walletFile,
   });
 
   int get slot;
@@ -51,7 +50,6 @@ class TestSidechain extends Sidechain {
     super.binary = 'testchaind',
     NetworkConfig? network,
     super.chainLayer = 2,
-    super.walletFile = 'wallet.dat',
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -89,7 +87,6 @@ class TestSidechain extends Sidechain {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return TestSidechain(
       version: version ?? this.version,
@@ -100,7 +97,6 @@ class TestSidechain extends Sidechain {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
-      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -116,7 +112,6 @@ class ZCashSidechain extends Sidechain {
     super.binary = 'zsided',
     NetworkConfig? network,
     super.chainLayer = 2,
-    super.walletFile = 'wallet.dat',
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -154,7 +149,6 @@ class ZCashSidechain extends Sidechain {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return ZCashSidechain(
       name: name,
@@ -166,7 +160,6 @@ class ZCashSidechain extends Sidechain {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
-      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -182,7 +175,6 @@ class EthereumSidechain extends Sidechain {
     super.binary = 'sidegeth',
     NetworkConfig? network,
     super.chainLayer = 2,
-    super.walletFile = 'wallet.dat',
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -220,7 +212,6 @@ class EthereumSidechain extends Sidechain {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return EthereumSidechain(
       name: name,
@@ -232,7 +223,6 @@ class EthereumSidechain extends Sidechain {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
-      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -248,7 +238,6 @@ class Thunder extends Sidechain {
     super.binary = 'thunder',
     NetworkConfig? network,
     super.chainLayer = 2,
-    super.walletFile = 'wallet.dat',
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -286,7 +275,6 @@ class Thunder extends Sidechain {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return Thunder(
       name: name,
@@ -298,7 +286,6 @@ class Thunder extends Sidechain {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
-      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -314,7 +301,6 @@ class Bitnames extends Sidechain {
     super.binary = 'bitnames',
     NetworkConfig? network,
     super.chainLayer = 2,
-    super.walletFile = 'wallet.mdb',
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -352,7 +338,6 @@ class Bitnames extends Sidechain {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return Bitnames(
       name: name,
@@ -364,7 +349,6 @@ class Bitnames extends Sidechain {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
-      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
