@@ -298,17 +298,15 @@ abstract class RPCConnection extends ChangeNotifier {
             throw TimeoutException('Graceful shutdown timed out');
           },
         );
+
+        _connectionTimer?.cancel();
       } catch (e) {
         log.w('Graceful shutdown failed: $e');
       }
 
-      try {
-        log.w('Killing process');
-        final processes = GetIt.I.get<ProcessProvider>();
-        await processes.kill(binary);
-      } catch (e) {
-        log.w('Killing process failed: $e');
-      }
+      log.w('Killing process');
+      final processes = GetIt.I.get<ProcessProvider>();
+      await processes.kill(binary);
 
       _connectionTimer?.cancel();
     } catch (e) {

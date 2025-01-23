@@ -468,18 +468,7 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Future<void> _stopBinary(Binary binary) async {
-    switch (binary) {
-      case ParentChain():
-        await _binaryProvider.mainchainRPC.stop();
-      case Enforcer():
-        await _binaryProvider.enforcerRPC.stop();
-      case BitWindow():
-        await _binaryProvider.bitwindowRPC.stop();
-      case Thunder():
-        await _binaryProvider.thunderRPC.stop();
-      case Bitnames():
-        await _binaryProvider.bitnamesRPC.stop();
-    }
+    await _binaryProvider.stop(binary);
   }
 
   Future<void> _wipeBinary(BuildContext context, Binary binary) async {
@@ -716,11 +705,9 @@ class _OverviewPageState extends State<OverviewPage> {
   Future<bool> onShutdown(BuildContext context) async {
     final futures = <Future>[];
     // Try to stop all binaries regardless of state
-    futures.add(_binaryProvider.mainchainRPC.stop());
-    futures.add(_binaryProvider.enforcerRPC.stop());
-    futures.add(_binaryProvider.bitwindowRPC.stop());
-    futures.add(_binaryProvider.thunderRPC.stop());
-    futures.add(_binaryProvider.bitnamesRPC.stop());
+    for (final binary in _binaryProvider.binaries) {
+      futures.add(_binaryProvider.stop(binary));
+    }
 
     // If no processes are running, return immediately
     if (futures.isEmpty) {
