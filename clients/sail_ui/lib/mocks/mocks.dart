@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:logger/src/logger.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pbgrpc.dart';
@@ -141,24 +141,20 @@ class MockEnforcerRPC extends EnforcerRPC {
 
   @override
   Future<(double, double)> balance() {
-    // TODO: implement balance
-    throw UnimplementedError();
+    return Future.value((0.0, 0.0));
   }
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) {
-    // TODO: implement binaryArgs
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future<int> ping() {
-    // TODO: implement ping
-    throw UnimplementedError();
+    return Future.value(0);
   }
 
   @override
-  // TODO: implement validator
   ValidatorServiceClient get validator => throw UnimplementedError();
 }
 
@@ -228,6 +224,8 @@ class MockBitwindowRPC extends BitwindowRPC {
 
   @override
   WalletAPI get wallet => throw UnimplementedError();
+  @override
+  BitwindowAPI get bitwindowd => throw UnimplementedError();
 }
 
 class MockThunderRPC extends ThunderRPC {
@@ -405,11 +403,10 @@ class MockBlockchainProvider implements BlockchainProvider {
   bool get hasListeners => false;
 
   @override
-  // TODO: implement lastBlockAt
   Timestamp? get lastBlockAt => null;
 
   @override
-  Logger get log => throw UnimplementedError();
+  Logger get log => Logger();
 
   @override
   MainchainRPC get mainchain => throw UnimplementedError();

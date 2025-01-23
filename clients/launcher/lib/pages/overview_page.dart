@@ -74,10 +74,7 @@ class _OverviewPageState extends State<OverviewPage> {
   Future<void> _downloadUninstalledL1Binaries(Map<String, DownloadState>? statusData) async {
     if (statusData == null) return;
 
-    final uninstalledBinaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1).where((b) {
-      final status = statusData[b.name]?.status;
-      return status == null || status == DownloadStatus.uninstalled || status == DownloadStatus.failed;
-    });
+    final uninstalledBinaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1 && !b.isDownloaded);
 
     // Start downloads concurrently for uninstalled/failed binaries
     await Future.wait(
@@ -233,15 +230,13 @@ class _OverviewPageState extends State<OverviewPage> {
                                       children: [
                                         Builder(
                                           builder: (context) {
-                                            final allL1Installed = statusSnapshot.data != null &&
-                                                [ParentChain(), Enforcer(), BitWindow()].every(
-                                                  (b) =>
-                                                      statusSnapshot.data![b.name]?.status == DownloadStatus.installed,
-                                                );
+                                            final allL1Downloaded = l1Chains.every(
+                                              (b) => b.isDownloaded,
+                                            );
 
                                             return SailButton.primary(
-                                              allL1Installed ? 'Boot Layer 1' : 'Download Layer 1',
-                                              onPressed: () => allL1Installed
+                                              allL1Downloaded ? 'Boot Layer 1' : 'Download Layer 1',
+                                              onPressed: () => allL1Downloaded
                                                   ? _runL1(context, statusSnapshot.data)
                                                   : _downloadUninstalledL1Binaries(statusSnapshot.data),
                                               size: ButtonSize.regular,
@@ -345,26 +340,20 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Widget _buildProgressIndicator(DownloadState? status) {
-    if (status == null) return const SizedBox();
+  Widget _buildProgressIndicator(Binary binary, DownloadState? status) {
+    if (binary.isDownloaded || status == null) return const SizedBox();
 
-    if (status.status == DownloadStatus.installing) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          LinearProgressIndicator(value: status.progress),
-          const SizedBox(height: 4),
-          SailText.secondary13(status.message ?? ''),
-        ],
-      );
-    }
-
-    return const SizedBox();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LinearProgressIndicator(value: status.progress),
+        const SizedBox(height: 4),
+        SailText.secondary13(status.message ?? ''),
+      ],
+    );
   }
 
   Widget _buildActionButton(BuildContext context, Binary binary, DownloadState? status) {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
     // Check if binary is running
     final isRunning = switch (binary) {
       var b when b is ParentChain => _binaryProvider.mainchainConnected,
@@ -394,10 +383,12 @@ class _OverviewPageState extends State<OverviewPage> {
       _ => false,
     };
 
+    final isDownloaded = binary.isDownloaded;
+
     if (stopping) {
       return SailButton.primary(
         'Stopping...',
-        onPressed: () {}, // Disable button while stopping
+        onPressed: () {},
         size: ButtonSize.regular,
         loading: true,
       );
@@ -422,34 +413,14 @@ class _OverviewPageState extends State<OverviewPage> {
       );
     }
 
-    if (status?.status == DownloadStatus.installed) {
+    if (isDownloaded) {
       final canStart = _binaryProvider.canStart(binary);
 
       final actionButton = Tooltip(
         message: canStart ?? 'Launch ${binary.name}',
         child: SailButton.primary(
           'Launch',
-          onPressed: () async {
-            final useStarter =
-                binary.chainLayer == 2 && await _starterExists(binary) && (_useStarter[binary.name] ?? true);
-
-            try {
-              if (!context.mounted) return;
-              await _binaryProvider.startBinary(
-                context,
-                binary,
-                useStarter: useStarter,
-              );
-            } catch (e) {
-              if (!mounted) return;
-              scaffoldMessenger.showSnackBar(
-                SnackBar(
-                  content: Text('Failed to start binary: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          },
+          onPressed: () => _binaryProvider.startBinary(context, binary, useStarter: _useStarter[binary.name] ?? false),
           size: ButtonSize.regular,
           disabled: canStart != null,
         ),
@@ -489,23 +460,11 @@ class _OverviewPageState extends State<OverviewPage> {
       return actionButton;
     }
 
-    if (status == null || status.status == DownloadStatus.uninstalled) {
-      return SailButton.primary(
-        'Download',
-        onPressed: () => _downloadBinary(context, binary),
-        size: ButtonSize.regular,
-      );
-    }
-
-    if (status.status == DownloadStatus.failed) {
-      return SailButton.primary(
-        'Retry',
-        onPressed: () => _downloadBinary(context, binary),
-        size: ButtonSize.regular,
-      );
-    }
-
-    return const SizedBox();
+    return SailButton.primary(
+      'Download',
+      onPressed: () => _downloadBinary(context, binary),
+      size: ButtonSize.regular,
+    );
   }
 
   Future<void> _stopBinary(Binary binary) async {
@@ -721,7 +680,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              _buildProgressIndicator(status),
+              _buildProgressIndicator(binary, status),
               if (status?.error != null || error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
@@ -744,7 +703,6 @@ class _OverviewPageState extends State<OverviewPage> {
                     'Update Now',
                     onPressed: () => _updateBinary(binary),
                     size: ButtonSize.regular,
-                    disabled: status?.status == DownloadStatus.installing,
                   ),
                 ),
               ],

@@ -16,13 +16,11 @@ import 'package:sail_ui/rpcs/thunder_rpc.dart';
 
 /// Represents the current status of a binary download
 class DownloadState {
-  final DownloadStatus status;
   final double progress; // Only used during installing
   final String? message; // Progress message or installation date
   final String? error; // Error message if installation failed
 
   const DownloadState({
-    this.status = DownloadStatus.uninstalled,
     this.progress = 0.0,
     this.message,
     this.error,
@@ -114,7 +112,6 @@ class BinaryProvider extends ChangeNotifier {
       switch (event.type) {
         case FileSystemEvent.create:
         case FileSystemEvent.delete:
-        case FileSystemEvent.modify:
           initialize();
           break;
         default:
@@ -125,21 +122,7 @@ class BinaryProvider extends ChangeNotifier {
 
   /// Initialize download states for all binaries
   Future<void> initialize() async {
-    // First set initial states synchronously
-    for (final binary in binaries) {
-      _downloadStates[binary.name] = DownloadState(
-        status: binary.download.downloadedTimestamp != null ? DownloadStatus.installed : DownloadStatus.uninstalled,
-        message: binary.download.downloadedTimestamp != null
-            ? 'Installed (${binary.download.downloadedTimestamp!.toLocal()})'
-            : null,
-      );
-    }
-
-    // Emit initial states immediately
-    _statusController.add(Map.from(_downloadStates));
-
-    // Then check release dates in the background
-    unawaited(_checkReleaseDates());
+    await _checkReleaseDates();
   }
 
   Future<void> _checkReleaseDates() async {
@@ -150,15 +133,6 @@ class BinaryProvider extends ChangeNotifier {
         if (serverReleaseDate != null) {
           final updatedConfig = binary.download.copyWith(remoteTimestamp: serverReleaseDate);
           binaries[i] = binary.copyWith(download: updatedConfig);
-
-          // Update state if installed
-          if (_downloadStates[binary.name]?.status == DownloadStatus.installed) {
-            _downloadStates[binary.name] = DownloadState(
-              status: DownloadStatus.installed,
-              message: 'Installed (${serverReleaseDate.toLocal()})',
-            );
-            _statusController.add(Map.from(_downloadStates));
-          }
         }
       } catch (e) {
         log.e('Error checking release date: $e');
@@ -178,14 +152,12 @@ class BinaryProvider extends ChangeNotifier {
 
   /// Update status for a binary
   void _updateStatus(
-    Binary binary,
-    DownloadStatus status, {
+    Binary binary, {
     double progress = 0.0,
     String? message,
     String? error,
   }) {
     _downloadStates[binary.name] = DownloadState(
-      status: status,
       progress: progress,
       message: message,
       error: error,
@@ -271,10 +243,9 @@ class BinaryProvider extends ChangeNotifier {
     try {
       final releaseDate = await binary.downloadAndExtract(
         appDir,
-        (status, {progress = 0.0, message, error}) {
+        ({progress = 0.0, message, error}) {
           _updateStatus(
             binary,
-            status,
             progress: progress,
             message: message,
             error: error,

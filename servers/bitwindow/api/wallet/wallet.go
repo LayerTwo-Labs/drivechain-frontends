@@ -255,7 +255,7 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 
 	created, err := s.wallet.CreateDepositTransaction(ctx, connect.NewRequest(&validatorpb.CreateDepositTransactionRequest{
 		SidechainId: &wrapperspb.UInt32Value{Value: uint32(*slot)},
-		Address:     &commonv1.Hex{Hex: &wrapperspb.StringValue{Value: depositAddress}},
+		Address:     &wrapperspb.StringValue{Value: depositAddress},
 		ValueSats:   &wrapperspb.UInt64Value{Value: uint64(amount)},
 		FeeSats:     &wrapperspb.UInt64Value{Value: uint64(fee)},
 	}))

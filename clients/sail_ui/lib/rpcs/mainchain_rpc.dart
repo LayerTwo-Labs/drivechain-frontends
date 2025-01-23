@@ -162,7 +162,8 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<void> stopRPC() async {
     await _client().call('stop');
-    notifyListeners();
+    // can't trust the rpc, give it a moment to stop
+    await Future.delayed(const Duration(milliseconds: 1500));
   }
 
   @override

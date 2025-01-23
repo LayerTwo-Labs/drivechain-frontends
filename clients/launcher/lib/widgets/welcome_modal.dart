@@ -115,7 +115,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         // Generate starters for all downloaded chains
         _walletService.generateStartersForDownloadedChains().then((_) {
           if (!mounted) return;
-          
+
           // After starters are generated, enable them in the binary provider
           for (final chain in _binaryProvider.getL2Chains()) {
             _binaryProvider.setUseStarter(chain, true);
@@ -136,10 +136,12 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       return;
     }
 
-    _walletService.generateWallet(
+    _walletService
+        .generateWallet(
       customMnemonic: _mnemonicController.text,
       passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
-    ).then((wallet) {
+    )
+        .then((wallet) {
       if (!mounted) return;
 
       if (wallet.containsKey('error')) {
@@ -158,7 +160,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         // Generate starters for all downloaded chains
         _walletService.generateStartersForDownloadedChains().then((_) {
           if (!mounted) return;
-          
+
           // After starters are generated, enable them in the binary provider
           for (final chain in _binaryProvider.getL2Chains()) {
             _binaryProvider.setUseStarter(chain, true);

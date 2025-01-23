@@ -7,6 +7,7 @@ import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbgrpc.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pbgrpc.dart';
 import 'package:sail_ui/gen/google/protobuf/empty.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
@@ -20,10 +21,15 @@ abstract class BitwindowRPC extends RPCConnection {
     required super.logPath,
   });
 
+  BitwindowAPI get bitwindowd;
   WalletAPI get wallet;
   BitcoindAPI get bitcoind;
   DrivechainAPI get drivechain;
   MiscAPI get misc;
+}
+
+abstract class BitwindowAPI {
+  Future<void> stop();
 }
 
 abstract class WalletAPI {
@@ -65,15 +71,16 @@ abstract class MiscAPI {
 }
 
 class BitwindowRPCLive extends BitwindowRPC {
-  late final DrivechainServiceClient _client;
-  late final BitcoindServiceClient _bitcoindClient;
-  late final WalletServiceClient _walletClient;
-  late final MiscServiceClient _miscClient;
-
-  late final _WalletAPILive _wallet;
-  late final _BitcoindAPILive _bitcoind;
-  late final _DrivechainAPILive _drivechain;
-  late final _MiscAPILive _misc;
+  @override
+  late final BitwindowAPI bitwindowd;
+  @override
+  late final WalletAPI wallet;
+  @override
+  late final BitcoindAPI bitcoind;
+  @override
+  late final DrivechainAPI drivechain;
+  @override
+  late final MiscAPI misc;
 
   // Private constructor
   BitwindowRPCLive._create({
@@ -110,27 +117,14 @@ class BitwindowRPCLive extends BitwindowRPC {
       ),
     );
 
-    _client = DrivechainServiceClient(channel);
-    _bitcoindClient = BitcoindServiceClient(channel);
-    _walletClient = WalletServiceClient(channel);
-    _miscClient = MiscServiceClient(channel);
-
-    _wallet = _WalletAPILive(_walletClient);
-    _bitcoind = _BitcoindAPILive(_bitcoindClient);
-    _drivechain = _DrivechainAPILive(_client);
-    _misc = _MiscAPILive(_miscClient);
+    bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(channel));
+    wallet = _WalletAPILive(WalletServiceClient(channel));
+    bitcoind = _BitcoindAPILive(BitcoindServiceClient(channel));
+    drivechain = _DrivechainAPILive(DrivechainServiceClient(channel));
+    misc = _MiscAPILive(MiscServiceClient(channel));
 
     await startConnectionTimer();
   }
-
-  @override
-  WalletAPI get wallet => _wallet;
-  @override
-  BitcoindAPI get bitcoind => _bitcoind;
-  @override
-  DrivechainAPI get drivechain => _drivechain;
-  @override
-  MiscAPI get misc => _misc;
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
@@ -143,20 +137,32 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<int> ping() async {
-    return await _bitcoind.getBlockchainInfo().then((value) => value.blocks);
+    return await bitcoind.getBlockchainInfo().then((value) => value.blocks);
   }
 
   @override
   Future<(double, double)> balance() async {
-    final balanceSat = await _wallet.getBalance();
+    final balanceSat = await wallet.getBalance();
     return (satoshiToBTC(balanceSat.confirmedSatoshi.toInt()), satoshiToBTC(balanceSat.pendingSatoshi.toInt()));
   }
 
   @override
   Future<void> stopRPC() async {
-    while (true) {
-      await Future.delayed(const Duration(days: 1));
-    }
+    await bitwindowd.stop();
+    // can't trust the rpc, give it a moment to stop
+    await Future.delayed(const Duration(milliseconds: 1500));
+  }
+}
+
+class _BitwindowAPILive implements BitwindowAPI {
+  final BitwindowdServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _BitwindowAPILive(this._client);
+
+  @override
+  Future<void> stop() async {
+    await _client.stop(Empty());
   }
 }
 
