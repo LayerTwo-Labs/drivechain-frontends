@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:launcher/env.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/file_utils.dart';
@@ -16,15 +19,6 @@ class ChainSettingsModal extends StatelessWidget {
     required this.onWipeAppDir,
     required this.onWipeWallet,
   });
-
-  void _openDownloadLocation(Binary binary) async {
-    final baseDir = binary.directories.base[os];
-    if (baseDir == null) return;
-
-    final appDir = await Environment.appDir();
-
-    await openDir(appDir);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,14 +84,6 @@ class ChainSettingsModal extends StatelessWidget {
                 chain.download.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
               ),
               const SizedBox(height: 24),
-              if (baseDir != null)
-                Center(
-                  child: SailButton.primary(
-                    'Open Installation Directory',
-                    onPressed: () => _openDownloadLocation(chain),
-                    size: ButtonSize.regular,
-                  ),
-                ),
             ],
           ),
         ),
@@ -107,6 +93,7 @@ class ChainSettingsModal extends StatelessWidget {
 
   Widget _buildInfoRow(BuildContext context, String label, String value) {
     final theme = SailTheme.of(context);
+    final isPath = label.contains('Directory') || label.contains('Path') || label.contains('File');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -118,7 +105,29 @@ class ChainSettingsModal extends StatelessWidget {
             color: theme.colors.textTertiary,
           ),
           const SizedBox(height: 4),
-          SailText.primary13(value),
+          InkWell(
+            onTap: isPath ? () async {
+              final fullPath = switch (label) {
+                'Installation Directory' => chain.datadir(),
+                'Binary Path' => path.dirname(chain.assetPath(await Environment.appDir())),
+                'Download File' => path.dirname(path.join((await Environment.appDir()).path, 'assets', 'downloads', value)),
+                _ => null
+              };
+              if (fullPath != null) {
+                await openDir(Directory(fullPath));
+              }
+            } : null,
+            child: isPath 
+              ? Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: theme.colors.primary,
+                    decoration: TextDecoration.underline,
+                  ),
+                )
+              : SailText.primary13(value),
+          ),
         ],
       ),
     );
