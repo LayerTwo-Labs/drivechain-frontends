@@ -341,7 +341,9 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Widget _buildProgressIndicator(Binary binary, DownloadState? status) {
-    if (binary.isDownloaded || status == null) return const SizedBox();
+    if (status == null || status.progress == 0.0 || status.progress == 1.0) {
+      return const SizedBox();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
