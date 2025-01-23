@@ -24,36 +24,6 @@ class WalletService extends ChangeNotifier {
     return walletFile.existsSync();
   }
 
-  Future<Map<String, dynamic>> generateWalletFromEntropy(List<int> entropy) async {
-    try {
-      // Create mnemonic from entropy
-      final mnemonic = Mnemonic(entropy, Language.english);
-      
-      // Get seed from mnemonic
-      final seedHex = hex.encode(mnemonic.seed);
-
-      // Create HD wallet chain
-      final chain = Chain.seed(seedHex);
-      final masterKey = chain.forPath('m') as ExtendedPrivateKey;
-
-      // Get binary representation and checksum
-      final bip39Bin = _bytesToBinary(mnemonic.entropy);
-      final checksumBits = _calculateChecksumBits(mnemonic.entropy);
-
-      return {
-        'mnemonic': mnemonic.sentence,
-        'seed_hex': seedHex,
-        'xprv': masterKey.toString(),
-        'bip39_bin': bip39Bin,
-        'bip39_csum': checksumBits,
-        'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
-      };
-    } catch (e) {
-      _logger.e('Error generating wallet from entropy: $e');
-      return {'error': e.toString()};
-    }
-  }
-
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
     try {
       final Mnemonic mnemonicObj;
@@ -99,11 +69,6 @@ class WalletService extends ChangeNotifier {
       _logger.e('Error generating wallet: $e');
       return {'error': e.toString()};
     }
-  }
-
-  Future<ExtendedPrivateKey> getAccountKey(String xprv) async {
-    final chain = Chain.import(xprv);
-    return chain.forPath(defaultBip32Path) as ExtendedPrivateKey;
   }
 
   String _bytesToBinary(List<int> bytes) {
