@@ -29,14 +29,16 @@ class _OverviewPageState extends State<OverviewPage> {
   WalletService get _walletService => GetIt.I.get<WalletService>();
   BlockchainProvider get _blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
-  bool _closeAlertOpen = false;
-
   // Add state for starter usage
   final Map<String, bool> _useStarter = {};
 
   @override
   void initState() {
     super.initState();
+
+    FlutterWindowClose.setWindowShouldCloseHandler(() async {
+      return await onShutdown(context);
+    });
 
     // Initialize starter state
     for (final binary in GetIt.I.get<BinaryProvider>().binaries) {
@@ -51,9 +53,6 @@ class _OverviewPageState extends State<OverviewPage> {
       _processProvider.addListener(_onBinaryProviderUpdate);
       _walletService.addListener(_onBinaryProviderUpdate);
       _blockchainProvider.addListener(_onBinaryProviderUpdate);
-      FlutterWindowClose.setWindowShouldCloseHandler(() async {
-        return await displayShutdownModal(context);
-      });
     });
   }
 
@@ -756,90 +755,22 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Future<bool> displayShutdownModal(BuildContext context) async {
-    // Start a timer that will force close after 3 seconds
-    final timer = Timer(const Duration(seconds: 3), () {
-      if (_closeAlertOpen) {
-        Navigator.of(context).pop(true);
-        _closeAlertOpen = false;
-      }
-    });
+  Future<bool> onShutdown(BuildContext context) async {
+    final futures = <Future>[];
+    // Try to stop all binaries regardless of state
+    futures.add(_binaryProvider.mainchainRPC.stop());
+    futures.add(_binaryProvider.enforcerRPC.stop());
+    futures.add(_binaryProvider.bitwindowRPC.stop());
+    futures.add(_binaryProvider.thunderRPC.stop());
+    futures.add(_binaryProvider.bitnamesRPC.stop());
 
-    try {
-      final futures = <Future>[];
-      // Try to stop all binaries regardless of state
-      futures.add(_binaryProvider.mainchainRPC.stop());
-      futures.add(_binaryProvider.enforcerRPC.stop());
-      futures.add(_binaryProvider.bitwindowRPC.stop());
-      futures.add(_binaryProvider.thunderRPC.stop());
-      futures.add(_binaryProvider.bitnamesRPC.stop());
-
-      // If no processes are running, return immediately
-      if (futures.isEmpty) {
-        return true;
-      }
-
-      _closeAlertOpen = true;
-
-      // Create dialog but don't await it. That's what the future is for
-      unawaited(
-        widgetDialog(
-          context: context,
-          title: 'Shutdown status',
-          subtitle: 'Shutting down nodes...',
-          child: SailColumn(
-            spacing: SailStyleValues.padding20,
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SailSpacing(SailStyleValues.padding08),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
-                child: IntrinsicHeight(
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding16,
-                    children: _processProvider.runningProcesses.values.map((process) {
-                      final binary = Binary.fromBinary(process.binary)!;
-                      return Expanded(
-                        child: SailRawCard(
-                          padding: true,
-                          child: _buildChainContent(binary, null),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-              const SailSpacing(SailStyleValues.padding10),
-              SailRow(
-                spacing: SailStyleValues.padding12,
-                mainAxisAlignment: MainAxisAlignment.end,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  SailButton.primary(
-                    'Force close',
-                    onPressed: () {
-                      Navigator.of(context).pop(true);
-                      _closeAlertOpen = false;
-                    },
-                    size: ButtonSize.regular,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-
-      // Wait for all stop operations to complete
-      await Future.wait(futures);
-      if (context.mounted) {
-        Navigator.of(context).pop(true);
-      }
-    } finally {
-      timer.cancel();
-      _closeAlertOpen = false;
+    // If no processes are running, return immediately
+    if (futures.isEmpty) {
+      return true;
     }
+
+    // Wait for all stop operations to complete
+    await Future.wait(futures);
 
     return true;
   }
