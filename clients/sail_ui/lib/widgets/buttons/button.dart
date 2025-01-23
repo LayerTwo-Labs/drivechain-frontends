@@ -90,7 +90,7 @@ class SailButton extends StatelessWidget {
     final theme = SailTheme.of(context);
     final colors = theme.colors;
     final backgroundColor = isSecondary ? colors.chip : colors.primary;
-    final divideFactor = theme.dense ? 2 : 1;
+    final divideFactor = theme.dense ? 1.2 : 1;
 
     switch (size) {
       case ButtonSize.small:
@@ -100,8 +100,8 @@ class SailButton extends StatelessWidget {
           onPressed: onPressed,
           loading: loading,
           padding: EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding04 / divideFactor,
-            horizontal: SailStyleValues.padding10 / divideFactor,
+            vertical: SailStyleValues.padding08 / divideFactor,
+            horizontal: SailStyleValues.padding16 / divideFactor,
           ),
           child: child,
         );
@@ -113,7 +113,7 @@ class SailButton extends StatelessWidget {
           onPressed: onPressed,
           loading: loading,
           padding: EdgeInsets.symmetric(
-            vertical: SailStyleValues.padding08 / divideFactor,
+            vertical: SailStyleValues.padding16 / divideFactor,
             horizontal: SailStyleValues.padding20 / divideFactor,
           ),
           child: child,
@@ -182,6 +182,8 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
     return MaterialButton(
       mouseCursor: disabled ? SystemMouseCursors.forbidden : WidgetStateMouseCursor.clickable,
       visualDensity: theme.dense ? VisualDensity.compact : null,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      height: 32,
       onPressed: disabled ? null : widget.onPressed,
       disabledColor: backgroundColor,
       color: backgroundColor,
@@ -192,10 +194,10 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
           .withLightness((HSLColor.fromColor(backgroundColor).lightness - 0.1).clamp(0.0, 1.0))
           .toColor(),
       padding: widget.padding,
+      minWidth: 0,
       elevation: 0,
       hoverElevation: 0,
       focusElevation: 0,
-      minWidth: theme.dense ? 24 : 32,
       shape: RoundedRectangleBorder(
         borderRadius: SailStyleValues.borderRadiusButton,
         side: BorderSide(
@@ -361,12 +363,49 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
             builder: (context, child) {
               return Transform.scale(
                 scale: _scaleController.value,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Opacity(opacity: widget.loading ? 0.3 : 1, child: widget.child),
-                    if (widget.loading) Center(child: LoadingIndicator.insideButton()),
-                  ],
+                child: Container(
+                  padding: const EdgeInsets.only(bottom: 3, right: 3),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: SailTheme.of(context).colors.textTertiary.withValues(alpha: 0.5),
+                          offset: const Offset(1.5, 1.5),
+                          blurRadius: 0,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 50),
+                      padding: EdgeInsets.only(
+                        top: _isPressed ? 1.5 : 0,
+                        left: _isPressed ? 1.5 : 0,
+                        bottom: _isPressed ? 0 : 1.5,
+                        right: _isPressed ? 0 : 1.5,
+                      ),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8.0),
+                          color: widget.color ?? backgroundColor,
+                          border: Border.all(
+                            color: widget.borderColor ?? Colors.transparent,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Opacity(opacity: widget.loading ? 0.3 : 1, child: widget.child),
+                              if (widget.loading) Center(child: LoadingIndicator.insideButton()),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
@@ -374,47 +413,6 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
         ),
       ),
     );
-
-    if (widget.onPressed != null) {
-      return Container(
-        padding: const EdgeInsets.only(bottom: 3, right: 3),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8.0),
-            boxShadow: [
-              BoxShadow(
-                color: SailTheme.of(context).colors.textTertiary.withValues(alpha: 0.5),
-                offset: const Offset(1.5, 1.5),
-                blurRadius: 0,
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 50),
-            padding: EdgeInsets.only(
-              top: _isPressed ? 1.5 : 0,
-              left: _isPressed ? 1.5 : 0,
-              bottom: _isPressed ? 0 : 1.5,
-              right: _isPressed ? 0 : 1.5,
-            ),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
-                color: widget.color ?? backgroundColor,
-                border: Border.all(
-                  color: widget.borderColor ?? Colors.transparent,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                child: buttonContent,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
 
     return buttonContent;
   }
