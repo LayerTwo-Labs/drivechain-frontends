@@ -344,61 +344,6 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
-  Future<void> _wipeWallet(BuildContext context, Binary binary) async {
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Wallet Wipe'),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SailText.primary15(
-              'CAUTION: Are you sure you want to wipe all data recursively for ${binary.name}?',
-            ),
-            const SizedBox(height: 8),
-            SailText.primary22(
-              binary.datadir(),
-              bold: true,
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: SailColorScheme.red),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Wipe Wallet'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) {
-      return;
-    }
-
-    // First stop the binary
-    await _stopBinary(binary);
-
-    // Then wipe it
-    await binary.wipeWallet();
-
-    // Show success message
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${binary.name} wallet wiped successfully'),
-        ),
-      );
-    }
-  }
-
   Widget _buildChainContent(Binary binary, DownloadState? status) {
     final theme = SailTheme.of(context);
 
@@ -470,7 +415,6 @@ class _OverviewPageState extends State<OverviewPage> {
                         builder: (context) => ChainSettingsModal(
                           chain: binary,
                           onWipeAppDir: () => _wipeBinary(context, binary),
-                          onWipeWallet: () => _wipeWallet(context, binary),
                           useStarter: _useStarter[binary.name] ?? false,
                           onUseStarterChanged: (value) {
                             setState(() {

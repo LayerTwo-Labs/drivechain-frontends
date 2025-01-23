@@ -469,30 +469,6 @@ abstract class Binary {
     }
   }
 
-  Future<void> wipeWallet() async {
-    _log('Starting wallet wipe for $name');
-
-    final dir = datadir();
-
-    switch (this) {
-      case ParentChain():
-        final signetDir = path.join(dir, 'signet');
-        await _deleteFilesInDir(signetDir, ['wallet.dat']);
-
-      case Enforcer():
-        await _deleteFilesInDir(dir, ['wallet']);
-
-      case Bitnames():
-        await _deleteFilesInDir(dir, ['wallet.mdb']);
-
-      case Thunder():
-        await _deleteFilesInDir(dir, ['data', 'thunder', 'wallet.mdb']);
-
-      case BitWindow():
-        await _deleteFilesInDir(dir, ['']); // Bitwindow does not have a wallet file
-    }
-  }
-
   Future<void> _deleteFilesInDir(String dir, List<String> filesToWipe) async {
     for (final file in filesToWipe) {
       final filePath = path.join(dir, file);

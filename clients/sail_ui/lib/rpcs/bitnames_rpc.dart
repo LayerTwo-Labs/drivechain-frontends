@@ -59,11 +59,11 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     final args = <String>[];
-    
+
     if (binary.mnemonicSeedPhrasePath != null) {
       args.addAll(['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]);
     }
-    
+
     return args;
   }
 

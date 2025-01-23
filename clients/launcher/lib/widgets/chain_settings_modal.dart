@@ -1,15 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:launcher/env.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/file_utils.dart';
-import 'package:path/path.dart' as path;
-import 'dart:io';
 
 class ChainSettingsModal extends StatefulWidget {
   final Binary chain;
   final Function() onWipeAppDir;
-  final Function() onWipeWallet;
   final bool useStarter;
   final Function(bool) onUseStarterChanged;
 
@@ -17,7 +17,6 @@ class ChainSettingsModal extends StatefulWidget {
     super.key,
     required this.chain,
     required this.onWipeAppDir,
-    required this.onWipeWallet,
     required this.useStarter,
     required this.onUseStarterChanged,
   });
@@ -100,10 +99,6 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                       IconButton(
                         icon: const Icon(Icons.delete, color: SailColorScheme.red),
                         onPressed: widget.onWipeAppDir,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.wallet, color: SailColorScheme.red),
-                        onPressed: widget.onWipeWallet,
                       ),
                       IconButton(
                         icon: Icon(Icons.close, color: theme.colors.text),

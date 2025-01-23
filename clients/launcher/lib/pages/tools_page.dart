@@ -787,7 +787,7 @@ class ToolsPageViewModel extends BaseViewModel {
     final starters = <Map<String, dynamic>>[];
     final masterData = await _walletService.loadWallet();
     if (masterData == null) return starters;
-    
+
     // Add master starter
     starters.add(masterData);
 
@@ -796,7 +796,7 @@ class ToolsPageViewModel extends BaseViewModel {
       (chain) => chain['chain_layer'] == 1,
       orElse: () => {'name': 'Bitcoin Core'},
     );
-    
+
     final l1Mnemonic = await _walletService.loadL1Starter();
     starters.add({
       'name': l1Chain['name'] as String,
@@ -816,7 +816,7 @@ class ToolsPageViewModel extends BaseViewModel {
 
       final chainName = chain['name'] as String;
       final sidechainSlot = chain['sidechain_slot'] as int;
-      
+
       final mnemonic = await _walletService.loadSidechainStarter(sidechainSlot);
       starters.add({
         'name': chainName,
