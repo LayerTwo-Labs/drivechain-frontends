@@ -10,6 +10,7 @@ import 'package:launcher/services/wallet_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:logger/logger.dart';
 
 @RoutePage()
 class ToolsPage extends StatelessWidget {
@@ -691,6 +692,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
 class ToolsPageViewModel extends BaseViewModel {
   final Set<String> _revealedStarters = {};
   final WalletService _walletService = GetIt.I.get<WalletService>();
+  final _logger = Logger();
   Map<String, dynamic>? _chainConfig;
 
   /// Whether to use localhost for the debug server.
@@ -780,73 +782,48 @@ class ToolsPageViewModel extends BaseViewModel {
   }
 
   Future<List<Map<String, dynamic>>> loadStarters() async {
-    if (_chainConfig == null) {
-      return [];
-    }
+    if (_chainConfig == null) return [];
 
     final starters = <Map<String, dynamic>>[];
-    final appDir = await Environment.appDir();
-    final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-    final masterFile = File(path.join(walletDir.path, 'master_starter.json'));
+    final masterData = await _walletService.loadWallet();
+    if (masterData == null) return starters;
+    
+    // Add master starter
+    starters.add(masterData);
 
-    if (masterFile.existsSync()) {
-      final content = await masterFile.readAsString();
-      final data = jsonDecode(content) as Map<String, dynamic>;
-      starters.add(data);
+    // Add L1 starter
+    final l1Chain = _chainConfig!['chains'].firstWhere(
+      (chain) => chain['chain_layer'] == 1,
+      orElse: () => {'name': 'Bitcoin Core'},
+    );
+    
+    final l1Mnemonic = await _walletService.loadL1Starter();
+    starters.add({
+      'name': l1Chain['name'] as String,
+      'mnemonic': l1Mnemonic,
+      'chain_layer': 1,
+    });
 
-      // Load L1 starter if master exists
-      final l1File = File(path.join(walletDir.path, 'l1_starter.json'));
-      if (l1File.existsSync()) {
-        final l1Content = await l1File.readAsString();
-        final l1Data = jsonDecode(l1Content) as Map<String, dynamic>;
-        l1Data['chain_layer'] = 1; // Ensure chain_layer is set
-        starters.add(l1Data);
-      } else {
-        // Find L1 chain from config
-        final l1Chain = _chainConfig!['chains'].firstWhere(
-          (chain) => chain['chain_layer'] == 1,
-          orElse: () => {'name': 'Bitcoin Core'},
-        );
-        // Add placeholder for L1 starter
-        starters.add({
-          'name': l1Chain['name'] as String,
-          'mnemonic': null,
-          'chain_layer': 1,
-        });
-      }
-    }
-
-    final chains = _chainConfig!['chains'] as List<dynamic>;
-    final l2Chains = chains.where((chain) => chain['chain_layer'] == 2).toList();
+    // Add L2 starters
+    final l2Chains = (_chainConfig!['chains'] as List<dynamic>)
+        .where((chain) => chain['chain_layer'] == 2)
+        .where((chain) => chain['sidechain_slot'] != null)
+        .toList();
 
     for (final chain in l2Chains) {
       final isDownloaded = await _isBinaryDownloaded(chain);
+      if (!isDownloaded) continue;
 
-      if (isDownloaded) {
-        final chainName = chain['name'] as String;
-        final sidechainSlot = chain['sidechain_slot'] as int?;
-
-        if (sidechainSlot != null) {
-          final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
-          final starterExists = starterFile.existsSync();
-
-          if (starterExists) {
-            final content = await starterFile.readAsString();
-            final data = jsonDecode(content) as Map<String, dynamic>;
-            data['sidechain_slot'] = sidechainSlot;
-            data['chain_layer'] = 2; // Explicitly set chain layer
-            starters.add(data);
-          } else {
-            // Add placeholder for chains without starters
-            starters.add({
-              'name': chainName,
-              'sidechain_slot': sidechainSlot,
-              'mnemonic': null,
-              'chain_layer': 2, // Explicitly set chain layer
-            });
-          }
-        }
-      }
+      final chainName = chain['name'] as String;
+      final sidechainSlot = chain['sidechain_slot'] as int;
+      
+      final mnemonic = await _walletService.loadSidechainStarter(sidechainSlot);
+      starters.add({
+        'name': chainName,
+        'mnemonic': mnemonic,
+        'sidechain_slot': sidechainSlot,
+        'chain_layer': 2,
+      });
     }
 
     return starters;
@@ -858,18 +835,14 @@ class ToolsPageViewModel extends BaseViewModel {
 
   void toggleStarterReveal(String? starterName, bool reveal) {
     if (starterName == null) return;
-
-    if (reveal) {
-      _revealedStarters.add(starterName);
-    } else {
-      _revealedStarters.remove(starterName);
-    }
+    reveal ? _revealedStarters.add(starterName) : _revealedStarters.remove(starterName);
     notifyListeners();
   }
 
   Future<void> copyStarterMnemonic(String? mnemonic) async {
-    if (mnemonic == null) return;
-    await Clipboard.setData(ClipboardData(text: mnemonic));
+    if (mnemonic != null) {
+      await Clipboard.setData(ClipboardData(text: mnemonic));
+    }
   }
 
   Future<void> generateStarter(int sidechainSlot) async {
@@ -877,7 +850,7 @@ class ToolsPageViewModel extends BaseViewModel {
       await _walletService.deriveSidechainStarter(sidechainSlot);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error generating starter: $e');
+      _logger.e('Error generating starter: $e');
       rethrow;
     }
   }
@@ -886,30 +859,22 @@ class ToolsPageViewModel extends BaseViewModel {
     if (sidechainSlot == null) return;
 
     try {
-      final appDir = await Environment.appDir();
-      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-      final starterFile = File(path.join(walletDir.path, 'sidechain_${sidechainSlot}_starter.json'));
-      await starterFile.delete();
-      // Force a rebuild of the starters list
+      await _walletService.deleteSidechainStarter(sidechainSlot);
       _revealedStarters.clear();
       notifyListeners();
     } catch (e) {
-      debugPrint('Error deleting starter: $e');
+      _logger.e('Error deleting starter: $e');
       rethrow;
     }
   }
 
   Future<void> deleteL1Starter() async {
     try {
-      final appDir = await Environment.appDir();
-      final walletDir = Directory(path.join(appDir.path, 'wallet_starters'));
-      final l1File = File(path.join(walletDir.path, 'l1_starter.json'));
-      await l1File.delete();
-      // Force a rebuild of the starters list
+      await _walletService.deleteL1Starter();
       _revealedStarters.clear();
       notifyListeners();
     } catch (e) {
-      debugPrint('Error deleting L1 starter: $e');
+      _logger.e('Error deleting L1 starter: $e');
       rethrow;
     }
   }
@@ -919,7 +884,7 @@ class ToolsPageViewModel extends BaseViewModel {
       await _walletService.deriveL1Starter();
       notifyListeners();
     } catch (e) {
-      debugPrint('Error generating L1 starter: $e');
+      _logger.e('Error generating L1 starter: $e');
       rethrow;
     }
   }
