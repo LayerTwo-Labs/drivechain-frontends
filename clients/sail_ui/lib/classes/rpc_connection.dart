@@ -238,14 +238,14 @@ abstract class RPCConnection extends ChangeNotifier {
 
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the connection drops/begins
-  Timer? connectionTimer;
+  Timer? _connectionTimer;
   Future<void> startConnectionTimer() async {
     // Cancel any existing timer before starting a new one
-    connectionTimer?.cancel();
+    _connectionTimer?.cancel();
 
     await testConnection();
     log.i('starting connection timer for ${conf.host}:${conf.port}');
-    connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+    _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();
     });
   }
@@ -290,17 +290,26 @@ abstract class RPCConnection extends ChangeNotifier {
       stoppingBinary = true;
       notifyListeners();
       // Try graceful shutdown first
-      await stopRPC().timeout(
-        const Duration(seconds: 2),
-        onTimeout: () async {
-          log.w('RPC stop timed out after 2s, killing process');
-          final processes = GetIt.I.get<ProcessProvider>();
-          await processes.kill(binary);
-        },
-      );
+      try {
+        await stopRPC().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () {
+            log.w('Graceful shutdown timed out after 2 seconds');
+            throw TimeoutException('Graceful shutdown timed out');
+          },
+        );
+      } catch (e) {
+        log.w('Graceful shutdown failed: $e');
+      } finally {
+        // always kill, just in case something is lingering
+        log.w('Killing process');
+        final processes = GetIt.I.get<ProcessProvider>();
+        await processes.kill(binary);
+      }
+
+      _connectionTimer?.cancel();
       connected = false;
       connectionError = null;
-      connectionTimer?.cancel();
     } catch (e) {
       log.e('could not stop rpc: $e');
     } finally {
@@ -313,7 +322,7 @@ abstract class RPCConnection extends ChangeNotifier {
   @override
   void dispose() {
     super.dispose();
-    connectionTimer?.cancel();
+    _connectionTimer?.cancel();
   }
 }
 
