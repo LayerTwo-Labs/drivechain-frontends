@@ -26,7 +26,6 @@
       "network": {
         "port": 38332
       },
-      "wallet_file": "wallet.dat",
       "chain_layer": 1
     },
     {
@@ -55,7 +54,6 @@
       "network": {
         "port": 50051
       },
-      "wallet_file": "wallet.db",
       "chain_layer": 1
     },
     {
@@ -113,7 +111,6 @@
         "port": 6009
       },
       "chain_layer": 2,
-      "wallet_file": "wallet.dat",
       "sidechain_slot": 9
     },
     {
@@ -143,7 +140,6 @@
         "port": 6002
       },
       "chain_layer": 2,
-      "wallet_file": "wallet.mdb",
       "sidechain_slot": 2
     }
   ]

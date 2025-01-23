@@ -23,7 +23,6 @@ abstract class Binary {
   final String binary;
   final NetworkConfig network;
   final int chainLayer;
-  final String? walletFile;
 
   Binary({
     required this.name,
@@ -35,7 +34,6 @@ abstract class Binary {
     required this.binary,
     required this.network,
     required this.chainLayer,
-    this.walletFile,
   });
 
   // Runtime properties
@@ -80,7 +78,6 @@ abstract class Binary {
   factory Binary.fromJson(Map<String, dynamic> json) {
     // First create the correct type based on name
     final name = json['name'] as String? ?? '';
-    final walletFile = json['wallet_file'] as String?;
 
     Binary base = switch (name) {
       'Bitcoin Core (Patched)' => ParentChain(),
@@ -101,7 +98,6 @@ abstract class Binary {
           binary: '',
           network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
           chainLayer: json['chain_layer'] as int? ?? 0,
-          walletFile: walletFile,
         ),
     };
 
@@ -125,7 +121,6 @@ abstract class Binary {
       binary: binaryPath,
       network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
       chainLayer: json['chain_layer'] as int? ?? 0,
-      walletFile: walletFile,
     );
   }
 
@@ -138,7 +133,6 @@ abstract class Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   });
 
   /// Check the Last-Modified header for a binary without downloading
@@ -149,7 +143,6 @@ abstract class Binary {
       final downloadUrl = Uri.parse(download.baseUrl).resolve(fileName).toString();
 
       final client = HttpClient();
-      _log('Checking release date for $name at $downloadUrl');
 
       final request = await client.headUrl(Uri.parse(downloadUrl));
       final response = await request.close();
@@ -166,7 +159,6 @@ abstract class Binary {
       }
 
       final releaseDate = HttpDate.parse(lastModified);
-      _log('$name release date: $releaseDate');
       return releaseDate;
     } catch (e) {
       _log('Warning: Failed to check release date for $name: $e');
@@ -196,10 +188,6 @@ abstract class Binary {
       final extractDir = Directory(path.join(datadir.path, 'assets'));
       final zipName = download.files[getOS()]!;
       final zipPath = path.join(downloadsDir.path, zipName);
-
-      _log('Downloads dir: ${downloadsDir.path}');
-      _log('Extract dir: ${extractDir.path}');
-      _log('Zip path: $zipPath');
 
       // Create downloads directory recursively, this will also
       // create the parent assets directory
@@ -543,7 +531,6 @@ class ParentChain extends Binary {
                 },
               ),
           network: network ?? NetworkConfig(port: 38332),
-          walletFile: 'wallet.dat',
         );
 
   @override
@@ -559,7 +546,6 @@ class ParentChain extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return ParentChain(
       name: name,
@@ -586,7 +572,6 @@ class BitWindow extends Binary {
     super.binary = 'bitwindowd',
     NetworkConfig? network,
     super.chainLayer = 1,
-    super.walletFile,
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -621,7 +606,6 @@ class BitWindow extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return BitWindow(
       name: name,
@@ -633,7 +617,6 @@ class BitWindow extends Binary {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
-      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -649,7 +632,6 @@ class Enforcer extends Binary {
     super.binary = 'bip300301_enforcer',
     NetworkConfig? network,
     super.chainLayer = 0,
-    super.walletFile = 'wallet.db',
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -684,7 +666,6 @@ class Enforcer extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return Enforcer(
       name: name,
@@ -696,7 +677,6 @@ class Enforcer extends Binary {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
-      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
@@ -761,7 +741,6 @@ class _BinaryImpl extends Binary {
     required super.binary,
     required super.network,
     required super.chainLayer,
-    required super.walletFile,
   });
 
   @override
@@ -777,7 +756,6 @@ class _BinaryImpl extends Binary {
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
-    String? walletFile,
   }) {
     return _BinaryImpl(
       name: name,
@@ -789,7 +767,6 @@ class _BinaryImpl extends Binary {
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
-      walletFile: walletFile ?? this.walletFile,
     );
   }
 }
