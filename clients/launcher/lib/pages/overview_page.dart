@@ -176,185 +176,6 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
-  Future<bool> _starterExists(Binary binary) async {
-    if (binary.chainLayer != 2) {
-      return false;
-    }
-
-    if (binary is! Sidechain) return false;
-
-    try {
-      final appDir = await Environment.appDir();
-      final starterDir = path.join(appDir.path, 'wallet_starters');
-      final starterFile = File(
-        path.join(
-          starterDir,
-          'sidechain_${binary.slot}_starter.txt',
-        ),
-      );
-
-      return starterFile.existsSync();
-    } catch (e) {
-      return false;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return QtPage(
-      child: Stack(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                child: StreamBuilder<Map<String, DownloadState>>(
-                  stream: _binaryProvider.statusStream,
-                  builder: (context, statusSnapshot) {
-                    final l1Chains = _binaryProvider.binaries.where((chain) => chain.chainLayer == 1).toList()
-                      ..sort((a, b) => a.chainLayer.compareTo(b.chainLayer));
-                    final l2Chains = _binaryProvider.binaries.where((chain) => chain.chainLayer == 2).toList();
-
-                    return SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    SailText.primary24('Layer 1'),
-                                    Row(
-                                      children: [
-                                        Builder(
-                                          builder: (context) {
-                                            final allL1Downloaded = l1Chains.every(
-                                              (b) => b.isDownloaded,
-                                            );
-
-                                            return SailButton.primary(
-                                              allL1Downloaded ? 'Boot Layer 1' : 'Download Layer 1',
-                                              onPressed: () => allL1Downloaded
-                                                  ? _runL1(context, statusSnapshot.data)
-                                                  : _downloadUninstalledL1Binaries(statusSnapshot.data),
-                                              size: ButtonSize.regular,
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(width: 8),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
-                                  child: IntrinsicHeight(
-                                    child: SailRow(
-                                      spacing: SailStyleValues.padding16,
-                                      children: l1Chains.map((chain) {
-                                        final status = statusSnapshot.data?[chain.name];
-                                        return Expanded(
-                                          child: SailRawCard(
-                                            padding: true,
-                                            child: _buildChainContent(chain, status),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    SailText.primary24('Layer 2'),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
-                                  child: IntrinsicHeight(
-                                    child: SailRow(
-                                      spacing: SailStyleValues.padding16,
-                                      children: l2Chains.map((chain) {
-                                        final status = statusSnapshot.data?[chain.name];
-                                        return Expanded(
-                                          child: SailRawCard(
-                                            padding: true,
-                                            child: _buildChainContent(chain, status),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const QuotesWidget(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusIndicator(bool connected, bool initializing, bool stopping, String? error) {
-    final color = switch ((connected, initializing, stopping, error != null)) {
-      (true, _, _, _) => Colors.green,
-      (_, true, _, _) => Colors.orange,
-      (_, _, true, _) => Colors.orange,
-      (_, _, _, true) => SailColorScheme.red,
-      _ => Colors.grey,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProgressIndicator(Binary binary, DownloadState? status) {
-    if (status == null || status.progress == 0.0 || status.progress == 1.0) {
-      return const SizedBox();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        LinearProgressIndicator(value: status.progress),
-        const SizedBox(height: 4),
-        SailText.secondary13(status.message ?? ''),
-      ],
-    );
-  }
-
   Widget _buildActionButton(BuildContext context, Binary binary, DownloadState? status) {
     // Check if binary is running
     final isRunning = switch (binary) {
@@ -418,7 +239,7 @@ class _OverviewPageState extends State<OverviewPage> {
     if (isDownloaded) {
       final canStart = _binaryProvider.canStart(binary);
 
-      final actionButton = Tooltip(
+      return Tooltip(
         message: canStart ?? 'Launch ${binary.name}',
         child: SailButton.primary(
           'Launch',
@@ -427,39 +248,6 @@ class _OverviewPageState extends State<OverviewPage> {
           disabled: canStart != null,
         ),
       );
-
-      // Only show checkbox for L2 chains
-      if (binary.chainLayer == 2) {
-        return FutureBuilder<bool>(
-          future: _starterExists(binary),
-          builder: (context, snapshot) {
-            final starterExists = snapshot.data ?? false;
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                actionButton,
-                const SizedBox(width: 8),
-                Tooltip(
-                  message: starterExists ? 'Use starter' : 'Generate starter',
-                  child: Checkbox(
-                    value: starterExists ? (_useStarter[binary.name] ?? true) : false,
-                    onChanged: starterExists
-                        ? (value) {
-                            setState(() {
-                              _useStarter[binary.name] = value ?? false;
-                            });
-                          }
-                        : null,
-                  ),
-                ),
-                SailText.secondary13('Use starter'),
-              ],
-            );
-          },
-        );
-      }
-
-      return actionButton;
     }
 
     return SailButton.primary(
@@ -655,6 +443,12 @@ class _OverviewPageState extends State<OverviewPage> {
                           chain: binary,
                           onWipeAppDir: () => _wipeBinary(context, binary),
                           onWipeWallet: () => _wipeWallet(context, binary),
+                          useStarter: _useStarter[binary.name] ?? false,
+                          onUseStarterChanged: (value) {
+                            setState(() {
+                              _useStarter[binary.name] = value;
+                            });
+                          },
                         ),
                       );
                     },
@@ -704,6 +498,45 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
+  Widget _buildStatusIndicator(bool connected, bool initializing, bool stopping, String? error) {
+    final color = switch ((connected, initializing, stopping, error != null)) {
+      (true, _, _, _) => Colors.green,
+      (_, true, _, _) => Colors.orange,
+      (_, _, true, _) => Colors.orange,
+      (_, _, _, true) => SailColorScheme.red,
+      _ => Colors.grey,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgressIndicator(Binary binary, DownloadState? status) {
+    if (status == null || status.progress == 0.0 || status.progress == 1.0) {
+      return const SizedBox();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LinearProgressIndicator(value: status.progress),
+        const SizedBox(height: 4),
+        SailText.secondary13(status.message ?? ''),
+      ],
+    );
+  }
+
   Future<bool> onShutdown(BuildContext context) async {
     final futures = <Future>[];
     // Try to stop all binaries regardless of state
@@ -720,5 +553,122 @@ class _OverviewPageState extends State<OverviewPage> {
     await Future.wait(futures);
 
     return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return QtPage(
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<Map<String, DownloadState>>(
+                  stream: _binaryProvider.statusStream,
+                  builder: (context, statusSnapshot) {
+                    final l1Chains = _binaryProvider.binaries.where((chain) => chain.chainLayer == 1).toList()
+                      ..sort((a, b) => a.chainLayer.compareTo(b.chainLayer));
+                    final l2Chains = _binaryProvider.binaries.where((chain) => chain.chainLayer == 2).toList();
+
+                    return SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    SailText.primary24('Layer 1'),
+                                    Row(
+                                      children: [
+                                        Builder(
+                                          builder: (context) {
+                                            final allL1Downloaded = l1Chains.every(
+                                              (b) => b.isDownloaded,
+                                            );
+
+                                            return SailButton.primary(
+                                              allL1Downloaded ? 'Boot Layer 1' : 'Download Layer 1',
+                                              onPressed: () => allL1Downloaded
+                                                  ? _runL1(context, statusSnapshot.data)
+                                                  : _downloadUninstalledL1Binaries(statusSnapshot.data),
+                                              size: ButtonSize.regular,
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+                                  child: IntrinsicHeight(
+                                    child: SailRow(
+                                      spacing: SailStyleValues.padding16,
+                                      children: l1Chains.map((chain) {
+                                        final status = statusSnapshot.data?[chain.name];
+                                        return Expanded(
+                                          child: SailRawCard(
+                                            padding: true,
+                                            child: _buildChainContent(chain, status),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    SailText.primary24('Layer 2'),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding16),
+                                  child: IntrinsicHeight(
+                                    child: SailRow(
+                                      spacing: SailStyleValues.padding16,
+                                      children: l2Chains.map((chain) {
+                                        final status = statusSnapshot.data?[chain.name];
+                                        return Expanded(
+                                          child: SailRawCard(
+                                            padding: true,
+                                            child: _buildChainContent(chain, status),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const QuotesWidget(),
+        ],
+      ),
+    );
   }
 }
