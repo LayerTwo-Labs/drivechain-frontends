@@ -57,7 +57,7 @@ class _ToggleThemeButtonState extends State<ToggleThemeButton> {
 
     return SailSVG.fromAsset(
       icon,
-      height: icon == SailSVGAsset.iconLightMode ? 20 : null,
+      height: icon == SailSVGAsset.iconLightMode ? 18 : null,
     );
   }
 
