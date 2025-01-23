@@ -50,24 +50,27 @@ const (
 	// WalletServiceCreateSidechainProposalProcedure is the fully-qualified name of the WalletService's
 	// CreateSidechainProposal RPC.
 	WalletServiceCreateSidechainProposalProcedure = "/cusf.mainchain.v1.WalletService/CreateSidechainProposal"
+	// WalletServiceCreateWalletProcedure is the fully-qualified name of the WalletService's
+	// CreateWallet RPC.
+	WalletServiceCreateWalletProcedure = "/cusf.mainchain.v1.WalletService/CreateWallet"
 	// WalletServiceGetBalanceProcedure is the fully-qualified name of the WalletService's GetBalance
 	// RPC.
 	WalletServiceGetBalanceProcedure = "/cusf.mainchain.v1.WalletService/GetBalance"
+	// WalletServiceListSidechainDepositTransactionsProcedure is the fully-qualified name of the
+	// WalletService's ListSidechainDepositTransactions RPC.
+	WalletServiceListSidechainDepositTransactionsProcedure = "/cusf.mainchain.v1.WalletService/ListSidechainDepositTransactions"
 	// WalletServiceListTransactionsProcedure is the fully-qualified name of the WalletService's
 	// ListTransactions RPC.
 	WalletServiceListTransactionsProcedure = "/cusf.mainchain.v1.WalletService/ListTransactions"
 	// WalletServiceSendTransactionProcedure is the fully-qualified name of the WalletService's
 	// SendTransaction RPC.
 	WalletServiceSendTransactionProcedure = "/cusf.mainchain.v1.WalletService/SendTransaction"
-	// WalletServiceGenerateBlocksProcedure is the fully-qualified name of the WalletService's
-	// GenerateBlocks RPC.
-	WalletServiceGenerateBlocksProcedure = "/cusf.mainchain.v1.WalletService/GenerateBlocks"
 	// WalletServiceUnlockWalletProcedure is the fully-qualified name of the WalletService's
 	// UnlockWallet RPC.
 	WalletServiceUnlockWalletProcedure = "/cusf.mainchain.v1.WalletService/UnlockWallet"
-	// WalletServiceCreateWalletProcedure is the fully-qualified name of the WalletService's
-	// CreateWallet RPC.
-	WalletServiceCreateWalletProcedure = "/cusf.mainchain.v1.WalletService/CreateWallet"
+	// WalletServiceGenerateBlocksProcedure is the fully-qualified name of the WalletService's
+	// GenerateBlocks RPC.
+	WalletServiceGenerateBlocksProcedure = "/cusf.mainchain.v1.WalletService/GenerateBlocks"
 )
 
 // WalletServiceClient is a client for the cusf.mainchain.v1.WalletService service.
@@ -83,13 +86,14 @@ type WalletServiceClient interface {
 	// been able to generate a new block.
 	// Returns a stream of (non-)confirmation events for the sidechain proposal.
 	CreateSidechainProposal(context.Context, *connect.Request[v1.CreateSidechainProposalRequest]) (*connect.ServerStreamForClient[v1.CreateSidechainProposalResponse], error)
+	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
 	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
+	ListSidechainDepositTransactions(context.Context, *connect.Request[v1.ListSidechainDepositTransactionsRequest]) (*connect.Response[v1.ListSidechainDepositTransactionsResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
 	// Regtest only
 	GenerateBlocks(context.Context, *connect.Request[v1.GenerateBlocksRequest]) (*connect.ServerStreamForClient[v1.GenerateBlocksResponse], error)
-	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
-	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the cusf.mainchain.v1.WalletService service. By
@@ -133,10 +137,22 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("CreateSidechainProposal")),
 			connect.WithClientOptions(opts...),
 		),
+		createWallet: connect.NewClient[v1.CreateWalletRequest, v1.CreateWalletResponse](
+			httpClient,
+			baseURL+WalletServiceCreateWalletProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("CreateWallet")),
+			connect.WithClientOptions(opts...),
+		),
 		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
 			httpClient,
 			baseURL+WalletServiceGetBalanceProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("GetBalance")),
+			connect.WithClientOptions(opts...),
+		),
+		listSidechainDepositTransactions: connect.NewClient[v1.ListSidechainDepositTransactionsRequest, v1.ListSidechainDepositTransactionsResponse](
+			httpClient,
+			baseURL+WalletServiceListSidechainDepositTransactionsProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("ListSidechainDepositTransactions")),
 			connect.WithClientOptions(opts...),
 		),
 		listTransactions: connect.NewClient[v1.ListTransactionsRequest, v1.ListTransactionsResponse](
@@ -151,22 +167,16 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("SendTransaction")),
 			connect.WithClientOptions(opts...),
 		),
-		generateBlocks: connect.NewClient[v1.GenerateBlocksRequest, v1.GenerateBlocksResponse](
-			httpClient,
-			baseURL+WalletServiceGenerateBlocksProcedure,
-			connect.WithSchema(walletServiceMethods.ByName("GenerateBlocks")),
-			connect.WithClientOptions(opts...),
-		),
 		unlockWallet: connect.NewClient[v1.UnlockWalletRequest, v1.UnlockWalletResponse](
 			httpClient,
 			baseURL+WalletServiceUnlockWalletProcedure,
 			connect.WithSchema(walletServiceMethods.ByName("UnlockWallet")),
 			connect.WithClientOptions(opts...),
 		),
-		createWallet: connect.NewClient[v1.CreateWalletRequest, v1.CreateWalletResponse](
+		generateBlocks: connect.NewClient[v1.GenerateBlocksRequest, v1.GenerateBlocksResponse](
 			httpClient,
-			baseURL+WalletServiceCreateWalletProcedure,
-			connect.WithSchema(walletServiceMethods.ByName("CreateWallet")),
+			baseURL+WalletServiceGenerateBlocksProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GenerateBlocks")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -179,12 +189,13 @@ type walletServiceClient struct {
 	createDepositTransaction         *connect.Client[v1.CreateDepositTransactionRequest, v1.CreateDepositTransactionResponse]
 	createNewAddress                 *connect.Client[v1.CreateNewAddressRequest, v1.CreateNewAddressResponse]
 	createSidechainProposal          *connect.Client[v1.CreateSidechainProposalRequest, v1.CreateSidechainProposalResponse]
+	createWallet                     *connect.Client[v1.CreateWalletRequest, v1.CreateWalletResponse]
 	getBalance                       *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
+	listSidechainDepositTransactions *connect.Client[v1.ListSidechainDepositTransactionsRequest, v1.ListSidechainDepositTransactionsResponse]
 	listTransactions                 *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
 	sendTransaction                  *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
-	generateBlocks                   *connect.Client[v1.GenerateBlocksRequest, v1.GenerateBlocksResponse]
 	unlockWallet                     *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
-	createWallet                     *connect.Client[v1.CreateWalletRequest, v1.CreateWalletResponse]
+	generateBlocks                   *connect.Client[v1.GenerateBlocksRequest, v1.GenerateBlocksResponse]
 }
 
 // BroadcastWithdrawalBundle calls cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle.
@@ -213,9 +224,20 @@ func (c *walletServiceClient) CreateSidechainProposal(ctx context.Context, req *
 	return c.createSidechainProposal.CallServerStream(ctx, req)
 }
 
+// CreateWallet calls cusf.mainchain.v1.WalletService.CreateWallet.
+func (c *walletServiceClient) CreateWallet(ctx context.Context, req *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error) {
+	return c.createWallet.CallUnary(ctx, req)
+}
+
 // GetBalance calls cusf.mainchain.v1.WalletService.GetBalance.
 func (c *walletServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
 	return c.getBalance.CallUnary(ctx, req)
+}
+
+// ListSidechainDepositTransactions calls
+// cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions.
+func (c *walletServiceClient) ListSidechainDepositTransactions(ctx context.Context, req *connect.Request[v1.ListSidechainDepositTransactionsRequest]) (*connect.Response[v1.ListSidechainDepositTransactionsResponse], error) {
+	return c.listSidechainDepositTransactions.CallUnary(ctx, req)
 }
 
 // ListTransactions calls cusf.mainchain.v1.WalletService.ListTransactions.
@@ -228,19 +250,14 @@ func (c *walletServiceClient) SendTransaction(ctx context.Context, req *connect.
 	return c.sendTransaction.CallUnary(ctx, req)
 }
 
-// GenerateBlocks calls cusf.mainchain.v1.WalletService.GenerateBlocks.
-func (c *walletServiceClient) GenerateBlocks(ctx context.Context, req *connect.Request[v1.GenerateBlocksRequest]) (*connect.ServerStreamForClient[v1.GenerateBlocksResponse], error) {
-	return c.generateBlocks.CallServerStream(ctx, req)
-}
-
 // UnlockWallet calls cusf.mainchain.v1.WalletService.UnlockWallet.
 func (c *walletServiceClient) UnlockWallet(ctx context.Context, req *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error) {
 	return c.unlockWallet.CallUnary(ctx, req)
 }
 
-// CreateWallet calls cusf.mainchain.v1.WalletService.CreateWallet.
-func (c *walletServiceClient) CreateWallet(ctx context.Context, req *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error) {
-	return c.createWallet.CallUnary(ctx, req)
+// GenerateBlocks calls cusf.mainchain.v1.WalletService.GenerateBlocks.
+func (c *walletServiceClient) GenerateBlocks(ctx context.Context, req *connect.Request[v1.GenerateBlocksRequest]) (*connect.ServerStreamForClient[v1.GenerateBlocksResponse], error) {
+	return c.generateBlocks.CallServerStream(ctx, req)
 }
 
 // WalletServiceHandler is an implementation of the cusf.mainchain.v1.WalletService service.
@@ -256,13 +273,14 @@ type WalletServiceHandler interface {
 	// been able to generate a new block.
 	// Returns a stream of (non-)confirmation events for the sidechain proposal.
 	CreateSidechainProposal(context.Context, *connect.Request[v1.CreateSidechainProposalRequest], *connect.ServerStream[v1.CreateSidechainProposalResponse]) error
+	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
 	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
+	ListSidechainDepositTransactions(context.Context, *connect.Request[v1.ListSidechainDepositTransactionsRequest]) (*connect.Response[v1.ListSidechainDepositTransactionsResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
 	// Regtest only
 	GenerateBlocks(context.Context, *connect.Request[v1.GenerateBlocksRequest], *connect.ServerStream[v1.GenerateBlocksResponse]) error
-	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
-	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -302,10 +320,22 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("CreateSidechainProposal")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceCreateWalletHandler := connect.NewUnaryHandler(
+		WalletServiceCreateWalletProcedure,
+		svc.CreateWallet,
+		connect.WithSchema(walletServiceMethods.ByName("CreateWallet")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletServiceGetBalanceHandler := connect.NewUnaryHandler(
 		WalletServiceGetBalanceProcedure,
 		svc.GetBalance,
 		connect.WithSchema(walletServiceMethods.ByName("GetBalance")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceListSidechainDepositTransactionsHandler := connect.NewUnaryHandler(
+		WalletServiceListSidechainDepositTransactionsProcedure,
+		svc.ListSidechainDepositTransactions,
+		connect.WithSchema(walletServiceMethods.ByName("ListSidechainDepositTransactions")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletServiceListTransactionsHandler := connect.NewUnaryHandler(
@@ -320,22 +350,16 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("SendTransaction")),
 		connect.WithHandlerOptions(opts...),
 	)
-	walletServiceGenerateBlocksHandler := connect.NewServerStreamHandler(
-		WalletServiceGenerateBlocksProcedure,
-		svc.GenerateBlocks,
-		connect.WithSchema(walletServiceMethods.ByName("GenerateBlocks")),
-		connect.WithHandlerOptions(opts...),
-	)
 	walletServiceUnlockWalletHandler := connect.NewUnaryHandler(
 		WalletServiceUnlockWalletProcedure,
 		svc.UnlockWallet,
 		connect.WithSchema(walletServiceMethods.ByName("UnlockWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
-	walletServiceCreateWalletHandler := connect.NewUnaryHandler(
-		WalletServiceCreateWalletProcedure,
-		svc.CreateWallet,
-		connect.WithSchema(walletServiceMethods.ByName("CreateWallet")),
+	walletServiceGenerateBlocksHandler := connect.NewServerStreamHandler(
+		WalletServiceGenerateBlocksProcedure,
+		svc.GenerateBlocks,
+		connect.WithSchema(walletServiceMethods.ByName("GenerateBlocks")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/cusf.mainchain.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -350,18 +374,20 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceCreateNewAddressHandler.ServeHTTP(w, r)
 		case WalletServiceCreateSidechainProposalProcedure:
 			walletServiceCreateSidechainProposalHandler.ServeHTTP(w, r)
+		case WalletServiceCreateWalletProcedure:
+			walletServiceCreateWalletHandler.ServeHTTP(w, r)
 		case WalletServiceGetBalanceProcedure:
 			walletServiceGetBalanceHandler.ServeHTTP(w, r)
+		case WalletServiceListSidechainDepositTransactionsProcedure:
+			walletServiceListSidechainDepositTransactionsHandler.ServeHTTP(w, r)
 		case WalletServiceListTransactionsProcedure:
 			walletServiceListTransactionsHandler.ServeHTTP(w, r)
 		case WalletServiceSendTransactionProcedure:
 			walletServiceSendTransactionHandler.ServeHTTP(w, r)
-		case WalletServiceGenerateBlocksProcedure:
-			walletServiceGenerateBlocksHandler.ServeHTTP(w, r)
 		case WalletServiceUnlockWalletProcedure:
 			walletServiceUnlockWalletHandler.ServeHTTP(w, r)
-		case WalletServiceCreateWalletProcedure:
-			walletServiceCreateWalletHandler.ServeHTTP(w, r)
+		case WalletServiceGenerateBlocksProcedure:
+			walletServiceGenerateBlocksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -391,8 +417,16 @@ func (UnimplementedWalletServiceHandler) CreateSidechainProposal(context.Context
 	return connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.CreateSidechainProposal is not implemented"))
 }
 
+func (UnimplementedWalletServiceHandler) CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.CreateWallet is not implemented"))
+}
+
 func (UnimplementedWalletServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.GetBalance is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) ListSidechainDepositTransactions(context.Context, *connect.Request[v1.ListSidechainDepositTransactionsRequest]) (*connect.Response[v1.ListSidechainDepositTransactionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions is not implemented"))
 }
 
 func (UnimplementedWalletServiceHandler) ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
@@ -403,14 +437,10 @@ func (UnimplementedWalletServiceHandler) SendTransaction(context.Context, *conne
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.SendTransaction is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) GenerateBlocks(context.Context, *connect.Request[v1.GenerateBlocksRequest], *connect.ServerStream[v1.GenerateBlocksResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.GenerateBlocks is not implemented"))
-}
-
 func (UnimplementedWalletServiceHandler) UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.UnlockWallet is not implemented"))
 }
 
-func (UnimplementedWalletServiceHandler) CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.CreateWallet is not implemented"))
+func (UnimplementedWalletServiceHandler) GenerateBlocks(context.Context, *connect.Request[v1.GenerateBlocksRequest], *connect.ServerStream[v1.GenerateBlocksResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.GenerateBlocks is not implemented"))
 }

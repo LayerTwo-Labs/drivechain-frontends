@@ -33,8 +33,7 @@ func main() {
 
 	zerolog.DefaultContextLogger = &logger
 
-	if err := realMain(ctx); err != nil {
-		cancel()
+	if err := realMain(ctx, cancel); err != nil {
 
 		// Error has been printed to the console!
 		if _, ok := lo.ErrorsAs[*flags.Error](err); ok {
@@ -47,7 +46,7 @@ func main() {
 	}
 }
 
-func realMain(ctx context.Context) error {
+func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	conf, err := readConfig()
 	if err != nil {
 		if !flags.WroteHelp(err) {
@@ -108,7 +107,11 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
-	srv, err := server.New(ctx, proxy, wallet, enforcer, db)
+	srv, err := server.New(ctx, proxy, wallet, enforcer, db, func() {
+		log.Info().Msg("shutting down")
+		// cancelling this context will trigger the server to shutdown
+		cancelCtx()
+	})
 	if err != nil {
 		return err
 	}

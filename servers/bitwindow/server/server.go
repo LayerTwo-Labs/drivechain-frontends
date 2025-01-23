@@ -15,10 +15,12 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	api_bitcoind "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/bitcoind"
+	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/bitwindowd"
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/drivechain"
 	api_misc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/misc"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1/bitcoindv1connect"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1/bitwindowdv1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1/drivechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/misc/v1/miscv1connect"
@@ -34,11 +36,14 @@ import (
 func New(
 	ctx context.Context, bitcoind *server.Bitcoind,
 	wallet validatorrpc.WalletServiceClient, enforcer validatorrpc.ValidatorServiceClient,
-	database *sql.DB,
+	database *sql.DB, onShutdown func(),
 ) (*Server, error) {
 	mux := http.NewServeMux()
 	srv := &Server{mux: mux}
 
+	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
+		onShutdown,
+	)))
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
 		bitcoind,
 	)))
