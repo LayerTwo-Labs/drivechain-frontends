@@ -1,4 +1,4 @@
-bitwindowd
+./bitwindowd
 bin/
 .crates*
 /*.mdb

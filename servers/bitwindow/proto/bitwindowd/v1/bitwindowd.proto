@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package bitwindowd.v1;
+
+import "google/protobuf/empty.proto";
+
+service BitwindowdService {
+  rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
