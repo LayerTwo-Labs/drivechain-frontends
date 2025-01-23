@@ -210,13 +210,21 @@ class BinaryProvider extends ChangeNotifier {
       case Thunder():
         await thunderRPC.initBinary(context);
         if (useStarter) {
-          await _setStarterSeed(binary);
+          try {
+            await _setStarterSeed(binary);
+          } catch (e) {
+            log.e('Error setting starter seed: $e');
+          }
         }
 
       case Bitnames():
         await bitnamesRPC.initBinary(context);
         if (useStarter) {
-          await _setStarterSeed(binary);
+          try {
+            await _setStarterSeed(binary);
+          } catch (e) {
+            log.e('Error setting starter seed: $e');
+          }
         }
 
       default:
@@ -225,9 +233,8 @@ class BinaryProvider extends ChangeNotifier {
     Future.delayed(const Duration(seconds: 3), () {
       // give it a bit of time to clean fucked up error messages
       _explicitlyLaunched[binary.name] = true;
+      notifyListeners();
     });
-
-    notifyListeners();
 
     // Wait for connection or timeout
     await Future.any([
@@ -286,8 +293,6 @@ class BinaryProvider extends ChangeNotifier {
       if (_activeDownloads.values.where((active) => active).length == 1) {
         await _cleanUp(appDir);
       }
-      // after 3 seconds, set the download state to false
-      await Future.delayed(const Duration(seconds: 3));
 
       _activeDownloads[binary.name] = false;
     }
