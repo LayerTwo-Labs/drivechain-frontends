@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
-import 'package:launcher/services/wallet_service.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 import 'package:path/path.dart' as path;
@@ -31,8 +28,6 @@ class ChainSettingsModal extends StatefulWidget {
 
 class _ChainSettingsModalState extends State<ChainSettingsModal> {
   OS get os => getOS();
-  BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
-  WalletService get _walletService => GetIt.I.get<WalletService>();
   bool _useStarter = false;
 
   @override
