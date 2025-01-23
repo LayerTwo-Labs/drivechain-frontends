@@ -121,7 +121,9 @@ class ChainSettingsModal extends StatelessWidget {
             onTap: isPath || isUrl ? () async {
               if (isPath) {
                 final fullPath = switch (label) {
-                  'Installation Directory' => chain.datadir(),
+                  'Installation Directory' => Platform.isWindows && chain is ParentChain
+                    ? path.join(Platform.environment['USERPROFILE']!, 'AppData', 'Local', 'drivechain')
+                    : chain.datadir(),
                   'Binary Path' => path.dirname(chain.assetPath(await Environment.appDir())),
                   'Download File' => path.dirname(path.join((await Environment.appDir()).path, 'assets', 'downloads', value)),
                   _ => null
