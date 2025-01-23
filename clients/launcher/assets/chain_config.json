@@ -4,7 +4,7 @@
       "version": "latest",
       "name": "Bitcoin Core (Patched)",
       "description": "Modified Bitcoin implementation for drivechain support",
-      "repo_url": "",
+      "repo_url": "https://github.com/LayerTwo-Labs/bitcoin",
       "directories": {
         "linux": ".drivechain",
         "darwin": "Drivechain",
@@ -32,7 +32,7 @@
       "version": "0.1.0",
       "name": "BIP300301 Enforcer",
       "description": "Manages drivechain validation rules",
-      "repo_url": "",
+      "repo_url": "https://github.com/LayerTwo-Labs/mainchain",
       "directories": {
         "linux": ".bip300301_enforcer",
         "darwin": "bip300301_enforcer",
@@ -60,7 +60,7 @@
       "version": "latest",
       "name": "BitWindow",
       "description": "GUI for managing drivechain operations",
-      "repo_url": "",
+      "repo_url": "https://github.com/LayerTwo-Labs/bitwindow",
       "directories": {
         "linux": ".bitwindow",
         "darwin": "bitwindow",
@@ -88,7 +88,7 @@
       "version": "latest",
       "name": "Thunder",
       "description": "Layer 2 sidechain implementation",
-      "repo_url": "",
+      "repo_url": "https://github.com/LayerTwo-Labs/thunder-rust",
       "directories": {
         "linux": ".thunder",
         "darwin": "Thunder",
@@ -117,7 +117,7 @@
       "version": "latest",
       "name": "Bitnames",
       "description": "",
-      "repo_url": "",
+      "repo_url": "https://github.com/LayerTwo-Labs/plain-bitnames",
       "directories": {
         "linux": ".plain_bitnames",
         "darwin": "plain_bitnames",
