@@ -68,9 +68,7 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
-  Future<void> _downloadUninstalledL1Binaries(Map<String, DownloadState>? statusData) async {
-    if (statusData == null) return;
-
+  Future<void> _downloadUninstalledL1Binaries() async {
     final uninstalledBinaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1 && !b.isDownloaded);
 
     // Start downloads concurrently for uninstalled/failed binaries
@@ -81,14 +79,14 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Future<void> _runL1(BuildContext context, Map<String, DownloadState>? statusData) async {
+  Future<void> _runL1(BuildContext context) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final log = GetIt.I.get<Logger>();
     log.i('Starting L1 binaries sequence');
 
     try {
       // First ensure all binaries are downloaded
-      await _downloadUninstalledL1Binaries(statusData);
+      await _downloadUninstalledL1Binaries();
 
       // Ensure we have all required binaries
       final parentChain = _binaryProvider.binaries.whereType<ParentChain>().firstOrNull;
@@ -133,7 +131,39 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Future<void> _updateBinary(Binary binary) async {
-    await _stopBinary(binary);
+    // Check if binary is running
+    final isRunning = switch (binary) {
+      var b when b is ParentChain => _binaryProvider.mainchainConnected,
+      var b when b is Enforcer => _binaryProvider.enforcerConnected,
+      var b when b is BitWindow => _binaryProvider.bitwindowConnected,
+      var b when b is Thunder => _binaryProvider.thunderConnected,
+      var b when b is Bitnames => _binaryProvider.bitnamesConnected,
+      _ => false,
+    };
+
+    // Check if binary is initializing
+    final isInitializing = switch (binary) {
+      var b when b is ParentChain => _binaryProvider.mainchainInitializing,
+      var b when b is Enforcer => _binaryProvider.enforcerInitializing,
+      var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
+      var b when b is Thunder => _binaryProvider.thunderInitializing,
+      var b when b is Bitnames => _binaryProvider.bitnamesInitializing,
+      _ => false,
+    };
+
+    final stopping = switch (binary) {
+      var b when b is ParentChain => _binaryProvider.mainchainStopping,
+      var b when b is Enforcer => _binaryProvider.enforcerStopping,
+      var b when b is BitWindow => _binaryProvider.bitwindowStopping,
+      var b when b is Thunder => _binaryProvider.thunderStopping,
+      var b when b is Bitnames => _binaryProvider.bitnamesStopping,
+      _ => false,
+    };
+
+    if (isRunning || isInitializing || stopping) {
+      await _stopBinary(binary);
+    }
+
     await _binaryProvider.downloadBinary(binary);
   }
 
@@ -251,6 +281,7 @@ class _OverviewPageState extends State<OverviewPage> {
       'Download',
       onPressed: () => _downloadBinary(context, binary),
       size: ButtonSize.regular,
+      loading: status != null && status.progress != 1.0 && status.progress != 0.0,
     );
   }
 
@@ -589,9 +620,8 @@ class _OverviewPageState extends State<OverviewPage> {
 
                                             return SailButton.primary(
                                               allL1Downloaded ? 'Boot Layer 1' : 'Download Layer 1',
-                                              onPressed: () => allL1Downloaded
-                                                  ? _runL1(context, statusSnapshot.data)
-                                                  : _downloadUninstalledL1Binaries(statusSnapshot.data),
+                                              onPressed: () =>
+                                                  allL1Downloaded ? _runL1(context) : _downloadUninstalledL1Binaries(),
                                               size: ButtonSize.regular,
                                             );
                                           },
