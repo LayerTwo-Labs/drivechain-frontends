@@ -23,6 +23,7 @@ abstract class Binary {
   final String binary;
   final NetworkConfig network;
   final int chainLayer;
+  String? mnemonicSeedPhrasePath;
 
   Binary({
     required this.name,
@@ -34,6 +35,7 @@ abstract class Binary {
     required this.binary,
     required this.network,
     required this.chainLayer,
+    this.mnemonicSeedPhrasePath,
   });
 
   // Runtime properties
