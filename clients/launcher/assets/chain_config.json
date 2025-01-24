@@ -8,7 +8,7 @@
       "directories": {
         "linux": ".drivechain",
         "darwin": "Drivechain",
-        "win32": "Drivechain"
+        "win32": "drivechain"
       },
       "download": {
         "base_url": "https://releases.drivechain.info/",
