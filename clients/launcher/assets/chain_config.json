@@ -121,7 +121,7 @@
       "directories": {
         "linux": ".plain_bitnames",
         "darwin": "plain_bitnames",
-        "win32": "plain_bitnames"
+        "win32": "Bitnames"
       },
       "download": {
         "base_url": "https://releases.drivechain.info/",
