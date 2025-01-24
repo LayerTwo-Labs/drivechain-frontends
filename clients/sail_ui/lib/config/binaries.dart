@@ -286,22 +286,6 @@ abstract class Binary {
       if (await Directory(expectedDirPath).exists()) {
         final innerDir = Directory(expectedDirPath);
 
-        // Special handling for Parent Chain on Windows - look in Release directory
-        if (Platform.isWindows && name == 'Bitcoin Core (Patched)') {
-          final releaseDir = Directory(path.join(innerDir.path, 'Release'));
-          if (await releaseDir.exists()) {
-            _log('Found Windows Release directory, moving contents up');
-            for (final entity in releaseDir.listSync()) {
-              final newPath = path.join(extractDir.path, path.basename(entity.path));
-              await safeMove(entity, newPath);
-            }
-            await releaseDir.delete(recursive: true);
-            await innerDir.delete(recursive: true);
-            return;
-          }
-        }
-
-        // Normal extraction logic for other cases
         for (final entity in innerDir.listSync()) {
           final newPath = path.join(extractDir.path, path.basename(entity.path));
           await safeMove(entity, newPath);
@@ -707,9 +691,6 @@ extension BinaryPaths on Binary {
       case OS.macos:
         return filePath([home, 'Library', 'Application Support', subdir]);
       case OS.windows:
-        if (name == 'Bitcoin Core (Patched)') {
-          return filePath([home, 'AppData', 'Local', subdir]);
-        }
         return filePath([home, 'AppData', 'Roaming', subdir]);
     }
   }
