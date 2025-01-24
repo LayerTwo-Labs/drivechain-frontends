@@ -136,16 +136,7 @@ class ChainSettingsModal extends StatelessWidget {
                 await url_launcher.launchUrl(uri);
               }
             } : null,
-            child: isPath || isUrl
-              ? Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: theme.colors.primary,
-                    decoration: TextDecoration.underline,
-                  ),
-                )
-              : SailText.primary13(value),
+            child: SailText.primary13(value, underline: isPath || isUrl, decoration: isPath || isUrl ? TextDecoration.underline : null),
           ),
         ],
       ),
