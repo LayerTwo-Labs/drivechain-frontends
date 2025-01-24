@@ -34,7 +34,7 @@
       "description": "Manages drivechain validation rules",
       "repo_url": "",
       "directories": {
-        "linux": ".bip300301_enforcer",
+        "linux": "bip300301_enforcer",
         "darwin": "bip300301_enforcer",
         "win32": "bip300301_enforcer"
       },
@@ -62,7 +62,7 @@
       "description": "GUI for managing drivechain operations",
       "repo_url": "",
       "directories": {
-        "linux": ".bitwindow",
+        "linux": "bitwindow",
         "darwin": "bitwindow",
         "win32": "bitwindow"
       },
@@ -90,9 +90,9 @@
       "description": "Layer 2 sidechain implementation",
       "repo_url": "",
       "directories": {
-        "linux": ".thunder",
+        "linux": "thunder",
         "darwin": "Thunder",
-        "win32": "Thunder"
+        "win32": "thunder"
       },
       "download": {
         "base_url": "https://releases.drivechain.info/",
@@ -119,7 +119,7 @@
       "description": "",
       "repo_url": "",
       "directories": {
-        "linux": ".plain_bitnames",
+        "linux": "plain_bitnames",
         "darwin": "plain_bitnames",
         "win32": "Bitnames"
       },
