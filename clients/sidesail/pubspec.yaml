@@ -120,9 +120,11 @@ msix_config:
   windows_build_args: --dart-define-from-file=build-vars.env
   publisher_display_name: LayerTwo Labs
   identity_name: com.layertwolabs.sidesail
+  msix_version: 1.0.0.0
   logo_path: logo.png
   capabilities: internetClientServer
   output_name: SideSail
-  install_certificate: false
-  certificate_path: CERTIFICATE.pfx
-  certificate_password: ""
+  store_certificate: false  # Use a test certificate instead of store certificate
+  install_certificate: false # Don't install certificate during CI builds
+  os_min_version: 10.0.17763.0
+  store: false  # Not publishing to Microsoft Store

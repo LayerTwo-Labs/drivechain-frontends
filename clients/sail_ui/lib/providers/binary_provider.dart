@@ -252,12 +252,16 @@ class BinaryProvider extends ChangeNotifier {
         },
       );
     } finally {
-      // Only clean up if this was the only active download
-      if (_activeDownloads.values.where((active) => active).length == 1) {
-        await _cleanUp(appDir);
+      try {
+        // Only clean up if this was the only active download
+        if (_activeDownloads.values.where((active) => active).length == 1) {
+          await _cleanUp(appDir);
+        }
+      } finally {
+        binaries = await loadBinaryMetadata(binaries, appDir);
+        _activeDownloads[binary.name] = false;
+        notifyListeners();
       }
-
-      _activeDownloads[binary.name] = false;
     }
   }
 

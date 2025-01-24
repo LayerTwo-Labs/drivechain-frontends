@@ -93,7 +93,9 @@ abstract class RPCConnection extends ChangeNotifier {
         }
       }
 
-      if (newError.contains('Connection refused')) {
+      if (newError.contains('Connection refused') ||
+          newError.contains('SocketException') ||
+          newError.contains('computer refused the network')) {
         if (connectionError != null) {
           // an error is already set, and we don't want to override it with
           // a generic non-informative message!

@@ -43,6 +43,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   auto_route_generator: ^9.3.1
   build_runner: ^2.4.13
+  msix: ^3.16.8
 
 flutter:
   uses-material-design: true
@@ -113,9 +114,10 @@ msix_config:
   windows_build_args: --dart-define-from-file=build-vars.env
   publisher_display_name: LayerTwo Labs
   identity_name: com.layertwolabs.bitwindow
-  logo_path: logo.png
-  capabilities: internetClientServer
-  output_name: BitWindow
-  install_certificate: false
-  certificate_path: CERTIFICATE.pfx
-  certificate_password: ""
+  msix_version: 1.0.0.0
+  logo_path: windows/runner/resources/app_icon.ico
+  capabilities: internetClient,internetClientServer
+  os_min_version: 10.0.17763.0
+  store_certificate: false  # Use a test certificate instead of store certificate
+  install_certificate: false # Don't install certificate during CI builds
+  store: false  # Not publishing to Microsoft Store

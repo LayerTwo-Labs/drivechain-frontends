@@ -758,6 +758,11 @@ extension BinaryDownload on Binary {
       return Directory(appPath).existsSync();
     }
 
+    if (Platform.isWindows && binary.endsWith('.msix')) {
+      final appPath = path.join(datadir.path, 'assets', binary);
+      return Directory(appPath).existsSync();
+    }
+
     // For regular binaries, check both with and without extension
     final baseNameToFind = path.basenameWithoutExtension(binary).toLowerCase();
 

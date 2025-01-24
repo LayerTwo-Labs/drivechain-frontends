@@ -77,7 +77,7 @@
       "binary": {
         "linux": "bitwindow",
         "darwin": "bitwindow.app",
-        "win32": "bitwindow.exe"
+        "win32": "bitwindow.msix"
       },
       "network": {
         "port": 8080
