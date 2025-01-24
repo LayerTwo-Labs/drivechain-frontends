@@ -291,13 +291,7 @@ abstract class RPCConnection extends ChangeNotifier {
       notifyListeners();
       // Try graceful shutdown first
       try {
-        await stopRPC().timeout(
-          const Duration(seconds: 7),
-          onTimeout: () {
-            log.w('Graceful shutdown timed out after 2 seconds');
-            throw TimeoutException('Graceful shutdown timed out');
-          },
-        );
+        await stopRPC();
 
         _connectionTimer?.cancel();
       } catch (e) {
@@ -312,6 +306,11 @@ abstract class RPCConnection extends ChangeNotifier {
     } catch (e) {
       log.e('could not stop rpc: $e');
     } finally {
+      log.i('waiting for shutdown to complete...');
+      await Future.delayed(const Duration(seconds: 8)).then((_) {
+        log.w('Done waiting for graceful shutdown');
+      });
+
       log.i('stopping rpc successfully');
       connected = false;
       connectionError = null;
