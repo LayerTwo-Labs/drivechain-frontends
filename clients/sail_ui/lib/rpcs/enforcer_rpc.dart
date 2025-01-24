@@ -88,9 +88,6 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<void> stopRPC() async {
-    // Wait forever by using an infinite delay
-    while (true) {
-      await Future.delayed(const Duration(days: 1));
-    }
+    throw Exception('stop not implemented');
   }
 }
