@@ -707,6 +707,9 @@ extension BinaryPaths on Binary {
       case OS.macos:
         return filePath([home, 'Library', 'Application Support', subdir]);
       case OS.windows:
+        if (name == 'Bitcoin Core (Patched)') {
+          return filePath([home, 'AppData', 'Local', subdir]);
+        }
         return filePath([home, 'AppData', 'Roaming', subdir]);
     }
   }
