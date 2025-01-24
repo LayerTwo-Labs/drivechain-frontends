@@ -548,7 +548,7 @@ class BitWindow extends Binary {
           directories: directories ??
               DirectoryConfig(
                 base: {
-                  OS.linux: '.bitwindow',
+                  OS.linux: 'bitwindow',
                   OS.macos: 'bitwindow',
                   OS.windows: 'bitwindow',
                 },
@@ -608,7 +608,7 @@ class Enforcer extends Binary {
           directories: directories ??
               DirectoryConfig(
                 base: {
-                  OS.linux: '.enforcer',
+                  OS.linux: 'bip300301_enforcer',
                   OS.macos: 'bip300301_enforcer',
                   OS.windows: 'bip300301_enforcer',
                 },
@@ -687,7 +687,13 @@ extension BinaryPaths on Binary {
 
     switch (OS.current) {
       case OS.linux:
-        return filePath([home, subdir]);
+        if (name == 'Bitcoin Core (Patched)') {
+          // in good style, this is different than all the others
+          return filePath([home, subdir]);
+        }
+
+        return filePath([home, '.local', 'share', subdir]);
+
       case OS.macos:
         return filePath([home, 'Library', 'Application Support', subdir]);
       case OS.windows:

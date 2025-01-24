@@ -242,9 +242,9 @@ class Thunder extends Sidechain {
           directories: directories ??
               DirectoryConfig(
                 base: {
-                  OS.linux: '.thunder',
+                  OS.linux: 'thunder',
                   OS.macos: 'Thunder',
-                  OS.windows: 'Thunder',
+                  OS.windows: 'thunder',
                 },
               ),
           download: download ??
@@ -305,7 +305,7 @@ class Bitnames extends Sidechain {
           directories: directories ??
               DirectoryConfig(
                 base: {
-                  OS.linux: '.plain_bitnames',
+                  OS.linux: 'plain_bitnames',
                   OS.macos: 'plain_bitnames',
                   OS.windows: 'plain_bitnames',
                 },
