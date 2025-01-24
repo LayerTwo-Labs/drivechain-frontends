@@ -265,8 +265,7 @@ class ProcessProvider extends ChangeNotifier {
       // Try nice shutdown with timeout
       await Future.any([
         process.cleanup(),
-        Future.delayed(const Duration(milliseconds: 500))
-            .then((_) => throw TimeoutException('Nice shutdown timed out')),
+        Future.delayed(const Duration(seconds: 2)).then((_) => throw TimeoutException('Nice shutdown timed out')),
       ]);
       log.d('nice shutdown successful for pid=${process.pid}');
     } catch (error) {
