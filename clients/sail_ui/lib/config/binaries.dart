@@ -23,6 +23,7 @@ abstract class Binary {
   final String binary;
   final NetworkConfig network;
   final int chainLayer;
+  String? mnemonicSeedPhrasePath;
 
   Binary({
     required this.name,
@@ -34,6 +35,7 @@ abstract class Binary {
     required this.binary,
     required this.network,
     required this.chainLayer,
+    this.mnemonicSeedPhrasePath,
   });
 
   // Runtime properties
@@ -167,7 +169,7 @@ abstract class Binary {
   }
 
   /// Downloads and installs a binary
-  Future<DateTime?> downloadAndExtract(
+  Future<void> downloadAndExtract(
     Directory datadir,
     void Function({
       double progress,
@@ -219,8 +221,6 @@ abstract class Binary {
       onStatusUpdate(
         message: 'Installed $name)',
       );
-
-      return releaseDate;
     } catch (e) {
       onStatusUpdate(
         error: e.toString(),
@@ -231,7 +231,13 @@ abstract class Binary {
 
   Future<void> _extract(Directory extractDir, String zipPath, Directory downloadsDir) async {
     // Create a temporary directory for extraction
-    final tempDir = await Directory(path.join(extractDir.path, 'temp_extract')).create();
+    final tempDir = Directory(path.join(extractDir.path, 'temp', binary.split('.').first));
+    try {
+      await tempDir.delete(recursive: true);
+    } catch (e) {
+      // directory probably doesn't exist, swallow!
+    }
+    await tempDir.create(recursive: true);
 
     final inputStream = InputFileStream(zipPath);
     final archive = ZipDecoder().decodeBuffer(inputStream);
@@ -242,16 +248,32 @@ abstract class Binary {
         tempDir.path,
       );
 
-      // Move files from temp directory to final location
+      // Helper function to safely move files/directories
+      Future<void> safeMove(FileSystemEntity entity, String newPath) async {
+        _log('Moving ${entity.path} to $newPath');
+        try {
+          await entity.rename(newPath);
+        } on FileSystemException catch (e) {
+          if (e.message.contains('Directory not empty') || e.message.contains('Rename failed')) {
+            if (entity is File) {
+              await File(newPath).delete();
+              await entity.rename(newPath);
+            } else {
+              await Directory(newPath).delete(recursive: true);
+              await entity.rename(newPath);
+            }
+          } else {
+            _log('Failed to move: ${e.message}');
+            rethrow;
+          }
+        }
+      }
+
+      _log('Moving files from temp directory to final location');
       await for (final entity in tempDir.list()) {
         final baseName = path.basename(entity.path);
         final targetPath = path.join(extractDir.path, baseName);
-        try {
-          await Directory(targetPath).delete(recursive: true);
-        } catch (e) {
-          // directory probably doesn't exist, swallow!
-        }
-        await entity.rename(targetPath);
+        await safeMove(entity, targetPath);
       }
 
       // Clean up temp directory
@@ -268,11 +290,10 @@ abstract class Binary {
         if (Platform.isWindows && name == 'Bitcoin Core (Patched)') {
           final releaseDir = Directory(path.join(innerDir.path, 'Release'));
           if (await releaseDir.exists()) {
-            // Move files from Release directory up two levels
+            _log('Found Windows Release directory, moving contents up');
             for (final entity in releaseDir.listSync()) {
               final newPath = path.join(extractDir.path, path.basename(entity.path));
-              // Move the file/directory up
-              await entity.rename(newPath);
+              await safeMove(entity, newPath);
             }
             await releaseDir.delete(recursive: true);
             await innerDir.delete(recursive: true);
@@ -283,8 +304,7 @@ abstract class Binary {
         // Normal extraction logic for other cases
         for (final entity in innerDir.listSync()) {
           final newPath = path.join(extractDir.path, path.basename(entity.path));
-          // Now move the new file/directory
-          await entity.rename(newPath);
+          await safeMove(entity, newPath);
         }
         await innerDir.delete(recursive: true);
       }
@@ -329,11 +349,11 @@ abstract class Binary {
           }
 
           final newPath = path.join(path.dirname(entity.path), targetName);
-          await entity.rename(newPath);
+          await safeMove(entity, newPath);
         }
       }
     } catch (e) {
-      _log('Extraction error: $e');
+      _log('Extraction error: $e\nStack trace: ${StackTrace.current}');
       rethrow;
     }
   }
@@ -446,30 +466,6 @@ abstract class Binary {
           'thunder.zip',
           'thunder_app',
         ]);
-    }
-  }
-
-  Future<void> wipeWallet() async {
-    _log('Starting wallet wipe for $name');
-
-    final dir = datadir();
-
-    switch (this) {
-      case ParentChain():
-        final signetDir = path.join(dir, 'signet');
-        await _deleteFilesInDir(signetDir, ['wallet.dat']);
-
-      case Enforcer():
-        await _deleteFilesInDir(dir, ['wallet']);
-
-      case Bitnames():
-        await _deleteFilesInDir(dir, ['wallet.mdb']);
-
-      case Thunder():
-        await _deleteFilesInDir(dir, ['data', 'thunder', 'wallet.mdb']);
-
-      case BitWindow():
-        await _deleteFilesInDir(dir, ['']); // Bitwindow does not have a wallet file
     }
   }
 
@@ -711,6 +707,9 @@ extension BinaryPaths on Binary {
       case OS.macos:
         return filePath([home, 'Library', 'Application Support', subdir]);
       case OS.windows:
+        if (name == 'Bitcoin Core (Patched)') {
+          return filePath([home, 'AppData', 'Local', subdir]);
+        }
         return filePath([home, 'AppData', 'Roaming', subdir]);
     }
   }
@@ -888,14 +887,14 @@ class DownloadConfig {
   DownloadConfig copyWith({
     String? baseUrl,
     Map<OS, String>? files,
-    DateTime? remoteTimestamp,
-    DateTime? downloadedTimestamp,
+    required DateTime? remoteTimestamp,
+    required DateTime? downloadedTimestamp,
   }) {
     return DownloadConfig(
       baseUrl: baseUrl ?? this.baseUrl,
       files: files ?? this.files,
-      remoteTimestamp: remoteTimestamp ?? this.remoteTimestamp,
-      downloadedTimestamp: downloadedTimestamp ?? this.downloadedTimestamp,
+      remoteTimestamp: remoteTimestamp,
+      downloadedTimestamp: downloadedTimestamp,
     );
   }
 }

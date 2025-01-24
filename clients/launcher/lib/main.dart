@@ -167,27 +167,5 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
           .toList() ??
       [];
 
-  for (var i = 0; i < binaries.length; i++) {
-    final binary = binaries[i];
-    try {
-      // Check release date from server
-      var updatedConfig = binary.download;
-
-      // Load metadata from assets/
-      final metadata = await binary.loadMetadata(appDir);
-
-      if (metadata != null) {
-        // Update the binary's download config with the downloaded timestamp
-        updatedConfig = updatedConfig.copyWith(downloadedTimestamp: metadata.releaseDate);
-      }
-
-      // Update binary with all timestamp info
-      binaries[i] = binary.copyWith(download: updatedConfig);
-    } catch (e) {
-      // Log error but continue with other binaries
-      GetIt.I.get<Logger>().e('Error loading binary state for ${binary.name}: $e');
-    }
-  }
-
-  return binaries;
+  return await loadBinaryMetadata(binaries, appDir);
 }

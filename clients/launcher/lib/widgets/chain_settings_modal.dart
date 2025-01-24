@@ -8,18 +8,67 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
-class ChainSettingsModal extends StatelessWidget {
+class ChainSettingsModal extends StatefulWidget {
   final Binary chain;
   final Function() onWipeAppDir;
-  final Function() onWipeWallet;
-  OS get os => getOS();
+  final bool useStarter;
+  final Function(bool) onUseStarterChanged;
 
   const ChainSettingsModal({
     super.key,
     required this.chain,
     required this.onWipeAppDir,
-    required this.onWipeWallet,
+    required this.useStarter,
+    required this.onUseStarterChanged,
   });
+
+  // Assuming master branch does not have createState and State class
+  // If master lacks these, you might need to keep them for the widget to function properly
+  @override
+  State<ChainSettingsModal> createState() => _ChainSettingsModalState();
+}
+
+class _ChainSettingsModalState extends State<ChainSettingsModal> {
+  OS get os => getOS();
+  bool _useStarter = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _useStarter = widget.useStarter;
+  }
+
+  void _openDownloadLocation(Binary binary) async {
+    final baseDir = binary.directories.base[os];
+    if (baseDir == null) return;
+
+    final appDir = await Environment.appDir();
+
+    await openDir(appDir);
+  }
+
+  Future<bool> _starterExists(Binary binary) async {
+    if (binary.chainLayer != 2) {
+      return false;
+    }
+
+    if (binary is! Sidechain) return false;
+
+    try {
+      final appDir = await Environment.appDir();
+      final starterDir = path.join(appDir.path, 'wallet_starters');
+      final starterFile = File(
+        path.join(
+          starterDir,
+          'sidechain_${binary.slot}_starter.txt',
+        ),
+      );
+
+      return starterFile.existsSync();
+    } catch (e) {
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +112,7 @@ class ChainSettingsModal extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           icon: const Icon(Icons.wallet, color: SailColorScheme.red),
-                          onPressed: onWipeWallet,
+                          onPressed: onWipeWallet, // Ensure onWipeWallet is defined
                         ),
                         const SizedBox(width: 16),
                         IconButton(
@@ -118,25 +167,31 @@ class ChainSettingsModal extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           InkWell(
-            onTap: isPath || isUrl ? () async {
-              if (isPath) {
-                final fullPath = switch (label) {
-                  'Installation Directory' => Platform.isWindows && chain is ParentChain
-                    ? path.join(Platform.environment['USERPROFILE']!, 'AppData', 'Local', 'drivechain')
-                    : chain.datadir(),
-                  'Binary Path' => path.dirname(chain.assetPath(await Environment.appDir())),
-                  'Download File' => path.dirname(path.join((await Environment.appDir()).path, 'assets', 'downloads', value)),
-                  _ => null
-                };
-                if (fullPath != null) {
-                  await openDir(Directory(fullPath));
-                }
-              } else if (isUrl) {
-                final uri = Uri.parse(value);
-                await url_launcher.launchUrl(uri);
-              }
-            } : null,
-            child: SailText.primary13(value, underline: isPath || isUrl, decoration: isPath || isUrl ? TextDecoration.underline : null),
+            onTap: isPath || isUrl
+                ? () async {
+                    if (isPath) {
+                      final fullPath = switch (label) {
+                        'Installation Directory' => Platform.isWindows && chain is ParentChain
+                            ? path.join(Platform.environment['USERPROFILE']!, 'AppData', 'Local', 'drivechain')
+                            : chain.datadir(),
+                        'Binary Path' => path.dirname(chain.assetPath(await Environment.appDir())),
+                        'Download File' => path.dirname(path.join((await Environment.appDir()).path, 'assets', 'downloads', value)),
+                        _ => null
+                      };
+                      if (fullPath != null) {
+                        await openDir(Directory(fullPath));
+                      }
+                    } else if (isUrl) {
+                      final uri = Uri.parse(value);
+                      await url_launcher.launchUrl(uri);
+                    }
+                  }
+                : null,
+            child: SailText.primary13(
+              value,
+              underline: isPath || isUrl,
+              decoration: isPath || isUrl ? TextDecoration.underline : null,
+            ),
           ),
         ],
       ),

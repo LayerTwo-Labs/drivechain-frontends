@@ -267,9 +267,7 @@ class MockThunderRPC extends ThunderRPC {
 
   @override
   Future<void> stopRPC() async {}
-
-  @override
-  Future<void> setSeedFromMnemonic(String mnemonic) async {}
+  
 
   @override
   Future<(double, double)> balance() {
@@ -327,8 +325,6 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<void> stopRPC() async {}
 
-  @override
-  Future<void> setSeedFromMnemonic(String mnemonic) async {}
 
   @override
   Future<(double, double)> balance() {
