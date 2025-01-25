@@ -12,8 +12,8 @@ import (
 type Config struct {
 	BitcoinCoreHost        string `long:"bitcoincore.host" description:"host:port for connecting to Bitcoin Core" default:"localhost:38332"`
 	BitcoinCoreCookie      string `long:"bitcoincore.cookie" description:"Path to Bitcoin Core cookie file" `
-	BitcoinCoreRpcUser     string `long:"bitcoincore.rpcuser"`
-	BitcoinCoreRpcPassword string `long:"bitcoincore.rpcpassword"`
+	BitcoinCoreRpcUser     string `long:"bitcoincore.rpcuser" default:"user"`
+	BitcoinCoreRpcPassword string `long:"bitcoincore.rpcpassword" default:"password"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 

@@ -180,17 +180,25 @@ func connectEnforcerWithRetry(ctx context.Context, host string) (rpc.ValidatorSe
 	var enforcer rpc.ValidatorServiceClient
 	var wallet rpc.WalletServiceClient
 
+	// Try connecting immediately first
+	enforcer, wallet, err := dial.Enforcer(ctx, host)
+	if err == nil {
+		log.Info().Msg("successfully connected to enforcer")
+		return enforcer, wallet, nil
+	}
+	log.Debug().Err(err).Msg("could not connect to enforcer, retrying")
+
 	timeout := time.After(1 * time.Minute)
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	// if initial connection fails, retry for 1 minute. enforcer might be syncing
 	for {
 		select {
 		case <-timeout:
 			log.Warn().Msg("could not connect to enforcer after 1 minute, continuing without enforcer")
 			return nil, nil, nil
 		case <-ticker.C:
-			var err error
 			enforcer, wallet, err = dial.Enforcer(ctx, host)
 			if err != nil {
 				log.Debug().Err(err).Msg("could not connect to enforcer, retrying")
