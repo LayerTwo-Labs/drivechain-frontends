@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/learn_page.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/root_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
@@ -41,6 +42,10 @@ class AppRouter extends RootStackRouter {
             AutoRoute(
               path: 'overview',
               page: OverviewRoute.page,
+            ),
+            AutoRoute(
+              path: 'learn',
+              page: LearnRoute.page,
             ),
             AutoRoute(
               path: 'wallet',

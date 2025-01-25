@@ -1315,11 +1315,9 @@ class MeltAndCastHelp extends StatelessWidget {
           'On this page, you can "melt" and "cast" your UTXOs. The diagram below explains the process.',
         ),
         const SailSpacing(SailStyleValues.padding20),
-        Image.asset(
-          SailSVGAsset.meltCastDiagram.toAssetPath(),
-          package: 'sail_ui',
+        SailSVG.png(
+          SailPNGAsset.meltCastDiagram,
           width: MediaQuery.of(context).size.width,
-          fit: BoxFit.contain,
         ),
         const SailSpacing(SailStyleValues.padding20),
         const QuestionTitle('What is melting?'),

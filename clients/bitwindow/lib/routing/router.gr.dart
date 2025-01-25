@@ -1,3 +1,4 @@
+// dart format width=80
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 // **************************************************************************
@@ -10,13 +11,24 @@
 part of 'router.dart';
 
 /// generated route for
+/// [LearnPage]
+class LearnRoute extends PageRouteInfo<void> {
+  const LearnRoute({List<PageRouteInfo>? children}) : super(LearnRoute.name, initialChildren: children);
+
+  static const String name = 'LearnRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const LearnPage();
+    },
+  );
+}
+
+/// generated route for
 /// [OverviewPage]
 class OverviewRoute extends PageRouteInfo<void> {
-  const OverviewRoute({List<PageRouteInfo>? children})
-      : super(
-          OverviewRoute.name,
-          initialChildren: children,
-        );
+  const OverviewRoute({List<PageRouteInfo>? children}) : super(OverviewRoute.name, initialChildren: children);
 
   static const String name = 'OverviewRoute';
 
@@ -31,11 +43,7 @@ class OverviewRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [RootPage]
 class RootRoute extends PageRouteInfo<void> {
-  const RootRoute({List<PageRouteInfo>? children})
-      : super(
-          RootRoute.name,
-          initialChildren: children,
-        );
+  const RootRoute({List<PageRouteInfo>? children}) : super(RootRoute.name, initialChildren: children);
 
   static const String name = 'RootRoute';
 
@@ -51,10 +59,7 @@ class RootRoute extends PageRouteInfo<void> {
 /// [SidechainActivationManagementPage]
 class SidechainActivationManagementRoute extends PageRouteInfo<void> {
   const SidechainActivationManagementRoute({List<PageRouteInfo>? children})
-      : super(
-          SidechainActivationManagementRoute.name,
-          initialChildren: children,
-        );
+      : super(SidechainActivationManagementRoute.name, initialChildren: children);
 
   static const String name = 'SidechainActivationManagementRoute';
 
@@ -70,10 +75,7 @@ class SidechainActivationManagementRoute extends PageRouteInfo<void> {
 /// [SidechainProposalPage]
 class SidechainProposalRoute extends PageRouteInfo<void> {
   const SidechainProposalRoute({List<PageRouteInfo>? children})
-      : super(
-          SidechainProposalRoute.name,
-          initialChildren: children,
-        );
+      : super(SidechainProposalRoute.name, initialChildren: children);
 
   static const String name = 'SidechainProposalRoute';
 
@@ -88,11 +90,7 @@ class SidechainProposalRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [SidechainsPage]
 class SidechainsRoute extends PageRouteInfo<void> {
-  const SidechainsRoute({List<PageRouteInfo>? children})
-      : super(
-          SidechainsRoute.name,
-          initialChildren: children,
-        );
+  const SidechainsRoute({List<PageRouteInfo>? children}) : super(SidechainsRoute.name, initialChildren: children);
 
   static const String name = 'SidechainsRoute';
 
@@ -107,11 +105,7 @@ class SidechainsRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [WalletPage]
 class WalletRoute extends PageRouteInfo<void> {
-  const WalletRoute({List<PageRouteInfo>? children})
-      : super(
-          WalletRoute.name,
-          initialChildren: children,
-        );
+  const WalletRoute({List<PageRouteInfo>? children}) : super(WalletRoute.name, initialChildren: children);
 
   static const String name = 'WalletRoute';
 

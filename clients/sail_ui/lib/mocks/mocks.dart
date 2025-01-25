@@ -267,7 +267,6 @@ class MockThunderRPC extends ThunderRPC {
 
   @override
   Future<void> stopRPC() async {}
-  
 
   @override
   Future<(double, double)> balance() {
@@ -324,7 +323,6 @@ class MockBitnamesRPC extends BitnamesRPC {
 
   @override
   Future<void> stopRPC() async {}
-
 
   @override
   Future<(double, double)> balance() {

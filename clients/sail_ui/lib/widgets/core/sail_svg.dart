@@ -37,6 +37,7 @@ enum SailSVGAsset {
   iconReceive,
   iconTransactions,
   iconSidechains,
+  iconLearn,
 
   iconSuccess,
   iconPending,
@@ -58,6 +59,11 @@ enum SailSVGAsset {
   meltCastDiagram,
 
   dividerDot,
+}
+
+enum SailPNGAsset {
+  meltCastDiagram,
+  articleBeginner,
 }
 
 /// If you don't want to overwrite the color of the svg, put it in here!
@@ -106,6 +112,21 @@ class SailSVG {
       width: width,
       colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
       height: height,
+    );
+  }
+
+  static Widget png(
+    SailPNGAsset asset, {
+    double? width,
+    double? height,
+    BoxFit? fit,
+  }) {
+    return Image.asset(
+      asset.toAssetPath(),
+      package: 'sail_ui',
+      width: width,
+      height: height,
+      fit: fit ?? BoxFit.contain,
     );
   }
 }
@@ -176,6 +197,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_transactions.svg';
       case SailSVGAsset.iconSidechains:
         return 'assets/svgs/icon_sidechains.svg';
+      case SailSVGAsset.iconLearn:
+        return 'assets/svgs/icon_learn.svg';
 
       case SailSVGAsset.iconSuccess:
         return 'assets/svgs/icon_success.svg';
@@ -214,6 +237,17 @@ extension AsAssetPath on SailSVGAsset {
 
       case SailSVGAsset.dividerDot:
         return 'assets/svgs/divider_dot.svg';
+    }
+  }
+}
+
+extension PNGAsAssetPath on SailPNGAsset {
+  String toAssetPath() {
+    switch (this) {
+      case SailPNGAsset.meltCastDiagram:
+        return 'assets/pngs/meltcastdiagram.png';
+      case SailPNGAsset.articleBeginner:
+        return 'assets/pngs/article-beginner.png';
     }
   }
 }
