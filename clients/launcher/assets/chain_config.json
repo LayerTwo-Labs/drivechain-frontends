@@ -87,7 +87,7 @@
     {
       "version": "latest",
       "name": "Thunder",
-      "description": "Layer 2 sidechain implementation",
+      "description": "Large & growing blocksize, plus fraud proofs",
       "repo_url": "",
       "directories": {
         "linux": "thunder",
@@ -116,7 +116,7 @@
     {
       "version": "latest",
       "name": "Bitnames",
-      "description": "",
+      "description": "Variant of BitDNS that aims to replace ICANN",
       "repo_url": "",
       "directories": {
         "linux": "plain_bitnames",
