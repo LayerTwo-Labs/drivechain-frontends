@@ -212,10 +212,12 @@ jobs:
           mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
           mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
           mv bitwindow-binaries-Windows/bitwindow-win64.msix BitWindow-latest-x86_64-pc-windows-msvc.msix || true
+          mv bitwindow-binaries-Windows/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip || true
           # Launcher
           mv launcher-binaries-macOS/launcher-osx64.zip Launcher-latest-x86_64-apple-darwin.zip || true
           mv launcher-binaries-Linux/launcher-x86_64-linux-gnu.zip Launcher-latest-x86_64-unknown-linux-gnu.zip || true
           mv launcher-binaries-Windows/launcher-win64.msix Launcher-latest-x86_64-pc-windows-msvc.msix || true
+          mv launcher-binaries-Windows/launcher-win64.zip Launcher-latest-x86_64-pc-windows-msvc.zip || true
 
       - name: Upload artifacts to releases.drivechain.info
         uses: cross-the-world/ssh-scp-ssh-pipelines@latest
