@@ -7,3 +7,5 @@ A collection of various Drivechain-related applications.
 
 - [Bitwindow frontend](clients/bitwindow/README.md)
 - [Bitwindow server](servers/bitwindow/README.md)
+
+- [Drivechain launcher](clients/launcher/README.md)
