@@ -11,7 +11,6 @@ import (
 	"connectrpc.com/connect"
 	faucetv1 "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1"
 	"github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1/faucetv1connect"
-	faucet_ip "github.com/LayerTwo-Labs/sidesail/servers/faucet/ip"
 	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
@@ -27,7 +26,6 @@ func New(
 	s := &Server{
 		bitcoind:       bitcoind,
 		dispensed:      make(map[string]float64),
-		dispensedIP:    make(map[string]float64),
 		totalDispensed: 0,
 	}
 	return s
@@ -37,21 +35,18 @@ type Server struct {
 	bitcoind       *coreproxy.Bitcoind
 	mu             sync.Mutex
 	dispensed      map[string]float64
-	dispensedIP    map[string]float64
 	totalDispensed float64
 }
 
 const (
-	MaxCoinsPerIP      = 5
-	MaxCoinsPer5Min    = 100
-	MaxCoinsPerRequest = 1
+	MaxCoinsPer5Min    = 100_000
+	MaxCoinsPerRequest = 5
 )
 
 func NewClient(ctx context.Context, bitcoind *coreproxy.Bitcoind) *Server {
 	faucet := &Server{
 		bitcoind:       bitcoind,
 		dispensed:      make(map[string]float64),
-		dispensedIP:    make(map[string]float64),
 		totalDispensed: 0,
 	}
 
@@ -73,7 +68,6 @@ func (s *Server) resetHandler(ctx context.Context) {
 			s.mu.Lock()
 			s.totalDispensed = 0
 			s.dispensed = make(map[string]float64)
-			s.dispensedIP = make(map[string]float64)
 			s.mu.Unlock()
 			log.Println("faucet reset: cleared total dispensed coins, address list, and IP list.")
 		case <-connectionTicker.C:
@@ -92,17 +86,12 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ip, err := faucet_ip.FromContext(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse IP: %w", err))
-	}
-
-	amount, err := s.validateDispenseArgs(c.Msg, ip)
+	amount, err := s.validateDispenseArgs(c.Msg)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	s.recordDispensation(c.Msg.Destination, ip.IP.String(), amount.ToBTC())
+	s.recordDispensation(c.Msg.Destination, amount.ToBTC())
 
 	txid, err := s.bitcoind.SendToAddress(ctx, &connect.Request[bitcoindv1alpha.SendToAddressRequest]{
 		Msg: &bitcoindv1alpha.SendToAddressRequest{
@@ -111,7 +100,7 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.
 		},
 	})
 	if err != nil {
-		s.undoDispensation(c.Msg.Destination, ip.IP.String(), amount.ToBTC())
+		s.undoDispensation(c.Msg.Destination, amount.ToBTC())
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not dispense coins: %w", err))
 	}
 
@@ -122,24 +111,17 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.
 	}), nil
 }
 
-func (s *Server) recordDispensation(destination, ipString string, amount float64) {
+func (s *Server) recordDispensation(destination string, amount float64) {
 	s.dispensed[destination] += amount
-	s.dispensedIP[ipString] += amount
 	s.totalDispensed += amount
 }
 
-func (s *Server) undoDispensation(destination, ipString string, amount float64) {
+func (s *Server) undoDispensation(destination string, amount float64) {
 	s.dispensed[destination] -= amount
-	s.dispensedIP[ipString] -= amount
 	s.totalDispensed -= amount
 }
 
-func (s *Server) validateDispenseArgs(req *faucetv1.DispenseCoinsRequest, ip faucet_ip.IP) (btcutil.Amount, error) {
-	log.Printf("Dispensing coins to IP: %s", ip.IP.String())
-
-	if s.dispensedIP[ip.IP.String()] >= MaxCoinsPerIP {
-		return 0, connect.NewError(connect.CodeResourceExhausted, fmt.Errorf("dispense threshold exceeded for this IP"))
-	}
+func (s *Server) validateDispenseArgs(req *faucetv1.DispenseCoinsRequest) (btcutil.Amount, error) {
 
 	if req.Amount > MaxCoinsPerRequest || req.Amount <= 0 {
 		return 0, fmt.Errorf("amount must be less than or equal to %d, and greater than zero", MaxCoinsPerRequest)
@@ -152,10 +134,6 @@ func (s *Server) validateDispenseArgs(req *faucetv1.DispenseCoinsRequest, ip fau
 
 	if s.totalDispensed >= MaxCoinsPer5Min {
 		return 0, fmt.Errorf("faucet limit reached, try again later")
-	}
-
-	if s.dispensedIP[ip.IP.String()]+amount.ToBTC() > MaxCoinsPerIP {
-		return 0, fmt.Errorf("this request would exceed the maximum allowed coins per IP")
 	}
 
 	return amount, nil
