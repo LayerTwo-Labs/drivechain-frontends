@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
+import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -61,11 +62,15 @@ void main() async {
       },
       initMethod: (context) async {
         try {
+          // Load content first since it doesn't depend on binaries
+          await GetIt.I.get<ContentProvider>().load(context);
+
           // first, set all binaries as initializing
           mainchain.initializingBinary = true;
           GetIt.I.get<EnforcerRPC>().initializingBinary = true;
           GetIt.I.get<BitwindowRPC>().initializingBinary = true;
 
+          if (!context.mounted) return;
           await initMainchainBinary(context, log, mainchain);
           log.i(
             'mainchain inited: ibd complete, ready to start enforcer',
@@ -110,6 +115,10 @@ Future<void> initDependencies(Logger log, File logFile) async {
 
   GetIt.I.registerLazySingleton<ProcessProvider>(
     () => ProcessProvider(),
+  );
+
+  GetIt.I.registerLazySingleton<ContentProvider>(
+    () => ContentProvider(),
   );
 
   var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);

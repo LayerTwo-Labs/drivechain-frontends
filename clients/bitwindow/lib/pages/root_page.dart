@@ -28,6 +28,7 @@ class RootPage extends StatelessWidget {
         OverviewRoute(),
         WalletRoute(),
         SidechainsRoute(),
+        LearnRoute(),
       ],
       builder: (context, child, controller) {
         final theme = SailTheme.of(context);
@@ -62,6 +63,13 @@ class RootPage extends StatelessWidget {
                         label: 'Sidechains',
                         active: tabsRouter.activeIndex == 2,
                         onTap: () => tabsRouter.setActiveIndex(2),
+                        end: true,
+                      ),
+                      QtTab(
+                        icon: SailSVGAsset.iconLearn,
+                        label: 'Learn',
+                        active: tabsRouter.activeIndex == 3,
+                        onTap: () => tabsRouter.setActiveIndex(3),
                         end: true,
                       ),
                       Expanded(child: Container()),
@@ -137,13 +145,6 @@ class _StatusBarState extends State<StatusBar> {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => BottomNavViewModel(),
       fireOnViewModelReadyOnce: true,
-      onViewModelReady: (model) {
-        if (!model.mainchainConnected || !model.enforcerConnected || !model.serverConnected) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            displayConnectionStatusDialog(context);
-          });
-        }
-      },
       builder: ((context, model, child) {
         return SizedBox(
           height: 36,
@@ -199,9 +200,22 @@ class _StatusBarState extends State<StatusBar> {
                   loading: false,
                   child: Tooltip(
                     message: model.connectionStatus,
-                    child: SailSVG.fromAsset(
-                      SailSVGAsset.iconConnectionStatus,
-                      color: model.connectionColor,
+                    child: DecoratedBox(
+                      decoration: model.connectionColor == SailColorScheme.red
+                          ? BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: SailColorScheme.red.withValues(alpha: 0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            )
+                          : const BoxDecoration(),
+                      child: SailSVG.fromAsset(
+                        SailSVGAsset.iconConnectionStatus,
+                        color: model.connectionColor,
+                      ),
                     ),
                   ),
                 ),
@@ -414,7 +428,7 @@ class BottomNavViewModel extends BaseViewModel {
     if (mainchainConnected && enforcerConnected && serverConnected) {
       return SailColorScheme.green;
     }
-    if (!mainchainConnected || !serverConnected) {
+    if (!mainchainConnected || !enforcerConnected || !serverConnected) {
       return SailColorScheme.red;
     }
 
