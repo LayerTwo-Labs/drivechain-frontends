@@ -14,6 +14,7 @@ import (
 	drivechainrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1/drivechainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
@@ -28,9 +29,10 @@ var _ rpc.WalletServiceHandler = new(Server)
 
 // New creates a new Server and starts the balance update loop
 func New(
-	ctx context.Context, bitcoind *coreproxy.Bitcoind, wallet validatorrpc.WalletServiceClient,
-	drivechain drivechainrpc.DrivechainServiceClient,
-
+	ctx context.Context,
+	bitcoind *service.Service[*coreproxy.Bitcoind],
+	wallet *service.Service[validatorrpc.WalletServiceClient],
+	drivechain drivechainrpc.DrivechainServiceHandler,
 ) *Server {
 	s := &Server{
 		bitcoind:   bitcoind,
@@ -41,9 +43,9 @@ func New(
 }
 
 type Server struct {
-	bitcoind   *coreproxy.Bitcoind
-	wallet     validatorrpc.WalletServiceClient
-	drivechain drivechainrpc.DrivechainServiceClient
+	bitcoind   *service.Service[*coreproxy.Bitcoind]
+	wallet     *service.Service[validatorrpc.WalletServiceClient]
+	drivechain drivechainrpc.DrivechainServiceHandler
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
@@ -99,7 +101,11 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}
 	}
 
-	created, err := s.wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get wallet: %w", err)
+	}
+	created, err := wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
 		Destinations:    destinations,
 		FeeRate:         feeRate,
 		OpReturnMessage: opReturnMessage,
@@ -121,7 +127,11 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.E
 		return nil, errors.New("wallet not connected")
 	}
 
-	address, err := s.wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get wallet: %w", err)
+	}
+	address, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +147,11 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empt
 		return nil, errors.New("wallet not connected")
 	}
 
-	balance, err := s.wallet.GetBalance(ctx, connect.NewRequest(&validatorpb.GetBalanceRequest{}))
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get wallet: %w", err)
+	}
+	balance, err := wallet.GetBalance(ctx, connect.NewRequest(&validatorpb.GetBalanceRequest{}))
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +168,11 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 		return nil, errors.New("wallet not connected")
 	}
 
-	txs, err := s.wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get wallet: %w", err)
+	}
+	txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +219,11 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 			continue
 		}
 
-		rawTxResponse, err := s.bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
+		bitcoind, err := s.bitcoind.Get(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("could not get bitcoind: %w", err)
+		}
+		rawTxResponse, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
 			Msg: &corepb.GetRawTransactionRequest{
 				Txid: tx.Txid,
 			},
@@ -253,7 +275,11 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
 	}
 
-	created, err := s.wallet.CreateDepositTransaction(ctx, connect.NewRequest(&validatorpb.CreateDepositTransactionRequest{
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get wallet: %w", err)
+	}
+	created, err := wallet.CreateDepositTransaction(ctx, connect.NewRequest(&validatorpb.CreateDepositTransactionRequest{
 		SidechainId: &wrapperspb.UInt32Value{Value: uint32(*slot)},
 		Address:     &wrapperspb.StringValue{Value: depositAddress},
 		ValueSats:   &wrapperspb.UInt64Value{Value: uint64(amount)},

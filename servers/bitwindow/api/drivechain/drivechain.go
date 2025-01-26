@@ -9,6 +9,7 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1/drivechainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
@@ -20,18 +21,19 @@ var _ rpc.DrivechainServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
-	bitcoind *coreproxy.Bitcoind, enforcer validatorrpc.ValidatorServiceClient,
-
+	bitcoind *service.Service[*coreproxy.Bitcoind],
+	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
 ) *Server {
 	s := &Server{
-		bitcoind: bitcoind, enforcer: enforcer,
+		bitcoind: bitcoind,
+		enforcer: enforcer,
 	}
 	return s
 }
 
 type Server struct {
-	bitcoind *coreproxy.Bitcoind
-	enforcer validatorrpc.ValidatorServiceClient
+	bitcoind *service.Service[*coreproxy.Bitcoind]
+	enforcer *service.Service[validatorrpc.ValidatorServiceClient]
 }
 
 // ListSidechainProposals implements drivechainv1connect.DrivechainServiceHandler.
@@ -40,7 +42,12 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 		return nil, errors.New("enforcer not connected")
 	}
 
-	sidechainProposals, err := s.enforcer.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
+	enforcer, err := s.enforcer.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sidechainProposals, err := enforcer.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +73,12 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 		return nil, errors.New("enforcer not connected")
 	}
 
-	sidechains, err := s.enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	enforcer, err := s.enforcer.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sidechains, err := enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +86,7 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	// Loop over all sidechains and get their chaintiptxid using s.enforcer.GetCtip()
 	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Msg.Sidechains))
 	for _, sidechain := range sidechains.Msg.Sidechains {
-		ctipResponse, err := s.enforcer.GetCtip(ctx, connect.NewRequest(
+		ctipResponse, err := enforcer.GetCtip(ctx, connect.NewRequest(
 			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber.Value)},
 		))
 		if err != nil {
