@@ -546,11 +546,12 @@ class ReceiveTab extends StatelessWidget {
                               ),
                             ],
                           ),
-                          QtButton(
-                            label: 'Generate new address',
-                            onPressed: model.generateNewAddress,
-                            loading: model.isBusy,
-                          ),
+                          if (model.addressController.text.isEmpty)
+                            QtButton(
+                              label: 'Generate new address',
+                              onPressed: model.generateNewAddress,
+                              loading: model.isBusy,
+                            ),
                         ],
                       ),
                     ),
