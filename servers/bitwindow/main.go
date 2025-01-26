@@ -8,18 +8,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"connectrpc.com/connect"
 	database "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dial"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
 	bitcoind_engine "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/engines"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/server"
-	pb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 )
 
@@ -88,35 +85,40 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 	defer db.Close()
 
-	proxy, err := startCoreProxy(ctx, conf)
+	bitcoindConnector := func(ctx context.Context) (*coreproxy.Bitcoind, error) {
+		return startCoreProxy(ctx, conf)
+	}
+
+	enforcerConnector := func(ctx context.Context) (rpc.ValidatorServiceClient, error) {
+		enforcer, _, err := dial.Enforcer(ctx, conf.EnforcerHost)
+		return enforcer, err
+	}
+
+	walletConnector := func(ctx context.Context) (rpc.WalletServiceClient, error) {
+		_, wallet, err := dial.Enforcer(ctx, conf.EnforcerHost)
+		return wallet, err
+	}
+
+	srv, err := server.NewServer(
+		ctx,
+		bitcoindConnector,
+		walletConnector,
+		enforcerConnector,
+		db,
+		func() {
+			log.Info().Msg("shutting down")
+			cancelCtx()
+		},
+	)
 	if err != nil {
-		log.Error().Err(err).Msg("start core proxy")
 		return err
 	}
 
-	info, err := proxy.GetBlockchainInfo(ctx, connect.NewRequest(&pb.GetBlockchainInfoRequest{}))
+	bitcoind, err := bitcoindConnector(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("get blockchain info")
-		return err
+		return fmt.Errorf("failed to connect to bitcoind: %w", err)
 	}
-	log.Info().Msgf("blockchain info: %s", info.Msg.String())
-
-	enforcer, wallet, err := connectEnforcerWithRetry(ctx, conf.EnforcerHost)
-	if err != nil {
-		log.Error().Err(err).Msg("connect to enforcer")
-		return err
-	}
-
-	srv, err := server.New(ctx, proxy, wallet, enforcer, db, func() {
-		log.Info().Msg("shutting down")
-		// cancelling this context will trigger the server to shutdown
-		cancelCtx()
-	})
-	if err != nil {
-		return err
-	}
-
-	bitcoinEngine := bitcoind_engine.New(proxy, db)
+	bitcoinEngine := bitcoind_engine.New(bitcoind, db)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
@@ -173,41 +175,4 @@ func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, erro
 	}
 
 	return core, nil
-}
-
-// connectEnforcerWithRetry attempts to connect to the enforcer for up to 1 minute
-func connectEnforcerWithRetry(ctx context.Context, host string) (rpc.ValidatorServiceClient, rpc.WalletServiceClient, error) {
-	var enforcer rpc.ValidatorServiceClient
-	var wallet rpc.WalletServiceClient
-
-	// Try connecting immediately first
-	enforcer, wallet, err := dial.Enforcer(ctx, host)
-	if err == nil {
-		log.Info().Msg("successfully connected to enforcer")
-		return enforcer, wallet, nil
-	}
-	log.Debug().Err(err).Msg("could not connect to enforcer, retrying")
-
-	timeout := time.After(1 * time.Minute)
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	// if initial connection fails, retry for 1 minute. enforcer might be syncing
-	for {
-		select {
-		case <-timeout:
-			log.Warn().Msg("could not connect to enforcer after 1 minute, continuing without enforcer")
-			return nil, nil, nil
-		case <-ticker.C:
-			enforcer, wallet, err = dial.Enforcer(ctx, host)
-			if err != nil {
-				log.Debug().Err(err).Msg("could not connect to enforcer, retrying")
-				continue
-			}
-			log.Info().Msg("successfully connected to enforcer")
-			return enforcer, wallet, nil
-		case <-ctx.Done():
-			return nil, nil, ctx.Err()
-		}
-	}
 }

@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1/bitcoindv1connect"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
@@ -21,7 +22,7 @@ var _ rpc.BitcoindServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
-	bitcoind *coreproxy.Bitcoind,
+	bitcoind *service.Service[*coreproxy.Bitcoind],
 ) *Server {
 	s := &Server{
 		bitcoind: bitcoind,
@@ -30,12 +31,17 @@ func New(
 }
 
 type Server struct {
-	bitcoind *coreproxy.Bitcoind
+	bitcoind *service.Service[*coreproxy.Bitcoind]
 }
 
 // EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) EstimateSmartFee(ctx context.Context, req *connect.Request[pb.EstimateSmartFeeRequest]) (*connect.Response[pb.EstimateSmartFeeResponse], error) {
-	estimate, err := s.bitcoind.EstimateSmartFee(ctx, connect.NewRequest(&corepb.EstimateSmartFeeRequest{
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin service unavailable: %w", err))
+	}
+
+	estimate, err := bitcoind.EstimateSmartFee(ctx, connect.NewRequest(&corepb.EstimateSmartFeeRequest{
 		ConfTarget: req.Msg.ConfTarget,
 	}))
 	if err != nil {
@@ -50,7 +56,12 @@ func (s *Server) EstimateSmartFee(ctx context.Context, req *connect.Request[pb.E
 
 // ListRecentBlocks implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.ListRecentBlocksRequest]) (*connect.Response[pb.ListRecentBlocksResponse], error) {
-	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
 		return nil, err
 	}
@@ -67,14 +78,14 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 	for i := range c.Msg.Count {
 		p.Go(func(ctx context.Context) (*pb.Block, error) {
 			height := info.Msg.Blocks - uint32(i)
-			hash, err := s.bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+			hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
 				Height: height,
 			}))
 			if err != nil {
 				return nil, fmt.Errorf("get block hash %d: %w", height, err)
 			}
 
-			block, err := s.bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+			block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 				Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 				Hash:      hash.Msg.Hash,
 			}))
@@ -106,8 +117,13 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 
 // ListRecentTransactions implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[pb.ListRecentTransactionsRequest]) (*connect.Response[pb.ListRecentTransactionsResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// First get mempool transactions
-	mempoolRes, err := s.bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
+	mempoolRes, err := bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
 		Verbose: true,
 	}))
 	if err != nil {
@@ -131,13 +147,13 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 			ConfirmedInBlock: nil,
 		})
 	}
-	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("could not get blockchain info: %w", err)
 	}
 
 	// Get block at latest height
-	blockHashRes, err := s.bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+	blockHashRes, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 		Hash:      info.Msg.BestBlockHash,
 		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
 	}))
@@ -148,7 +164,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 	// Extract transactions from the 100 most recent blocks
 	currentHash := blockHashRes.Msg.Hash
 	for i := 0; i < 100 && currentHash != ""; i++ {
-		blockRes, err := s.bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+		blockRes, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
 			Hash:      currentHash,
 			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO, // Get full transaction details
 		}))
@@ -157,14 +173,14 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		}
 		for _, txid := range blockRes.Msg.Txids {
 			// Get full transaction details
-			txRes, err := s.bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+			txRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
 				Txid: txid,
 			}))
 			if err != nil {
 				return nil, fmt.Errorf("could not get transaction %s: %w", txid, err)
 			}
 
-			recentTx, isCoinbase, err := s.recentTransactionFromRaw(ctx, txRes.Msg.Tx.Data)
+			recentTx, isCoinbase, err := s.recentTransactionFromRaw(ctx, bitcoind, txRes.Msg.Tx.Data)
 			if err != nil {
 				return nil, fmt.Errorf("could not get recent transaction: %w", err)
 			}
@@ -208,7 +224,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		Transactions: transactions,
 	}), nil
 }
-func (s *Server) recentTransactionFromRaw(ctx context.Context, data []byte) (*pb.RecentTransaction, bool, error) {
+func (s *Server) recentTransactionFromRaw(ctx context.Context, bitcoind *coreproxy.Bitcoind, data []byte) (*pb.RecentTransaction, bool, error) {
 	tx, err := btcutil.NewTxFromBytes(data)
 	if err != nil {
 		return nil, false, fmt.Errorf("could not decode transaction hex: %w", err)
@@ -221,7 +237,7 @@ func (s *Server) recentTransactionFromRaw(ctx context.Context, data []byte) (*pb
 		// Calculate total input value by looking up value of each input transaction
 		var totalIn int64
 		for _, txIn := range tx.MsgTx().TxIn {
-			prevTxRes, err := s.bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+			prevTxRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
 				Txid: txIn.PreviousOutPoint.Hash.String(),
 			}))
 			if err != nil {
@@ -258,7 +274,12 @@ func (s *Server) recentTransactionFromRaw(ctx context.Context, data []byte) (*pb
 
 // GetBlockchainInfo implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetBlockchainInfo(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBlockchainInfoResponse], error) {
-	info, err := s.bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +295,12 @@ func (s *Server) GetBlockchainInfo(ctx context.Context, c *connect.Request[empty
 
 // ListPeers implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListPeers(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListPeersResponse], error) {
-	info, err := s.bitcoind.GetPeerInfo(ctx, connect.NewRequest(&corepb.GetPeerInfoRequest{}))
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := bitcoind.GetPeerInfo(ctx, connect.NewRequest(&corepb.GetPeerInfoRequest{}))
 	if err != nil {
 		return nil, err
 	}

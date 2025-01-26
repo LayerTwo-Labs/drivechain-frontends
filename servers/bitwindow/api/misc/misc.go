@@ -15,6 +15,7 @@ import (
 	miscv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/misc/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -29,21 +30,20 @@ var _ rpc.MiscServiceHandler = new(Server)
 // anything else just yet.
 func New(
 	database *sql.DB,
-	bitcoind *coreproxy.Bitcoind,
-	wallet validatorrpc.WalletServiceClient,
+	bitcoind *service.Service[*coreproxy.Bitcoind],
+	wallet *service.Service[validatorrpc.WalletServiceClient],
 ) *Server {
-	s := &Server{
+	return &Server{
 		database: database,
 		bitcoind: bitcoind,
 		wallet:   wallet,
 	}
-	return s
 }
 
 type Server struct {
 	database *sql.DB
-	bitcoind *coreproxy.Bitcoind
-	wallet   validatorrpc.WalletServiceClient
+	bitcoind *service.Service[*coreproxy.Bitcoind]
+	wallet   *service.Service[validatorrpc.WalletServiceClient]
 }
 
 // ListOPReturn implements miscv1connect.MiscServiceHandler.
@@ -94,7 +94,11 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	// Format the OP_RETURN message: <topic> <headline> <message>
 	message := []byte(req.Msg.Topic + req.Msg.Headline)
 
-	resp, err := s.wallet.SendTransaction(ctx,
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get wallet: %w", err)
+	}
+	resp, err := wallet.SendTransaction(ctx,
 		connect.NewRequest(&validatorpb.SendTransactionRequest{
 			OpReturnMessage: &commonv1.Hex{
 				Hex: &wrapperspb.StringValue{
@@ -147,7 +151,11 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	message.WriteString(req.Msg.Name)
 
 	// Send the transaction
-	resp, err := s.wallet.SendTransaction(ctx,
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get wallet: %w", err)
+	}
+	resp, err := wallet.SendTransaction(ctx,
 		connect.NewRequest(&validatorpb.SendTransactionRequest{
 			OpReturnMessage: &commonv1.Hex{
 				Hex: &wrapperspb.StringValue{
