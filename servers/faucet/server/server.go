@@ -72,7 +72,10 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 
 		corsHandler := cors.New(cors.Options{
 			AllowedOrigins: []string{
-				"*", // For development. In production, specify exact origins
+				"*",
+				"https://drivechain.live",
+				"https://api.drivechain.live",
+				"http://localhost:3000", // For local development
 			},
 			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PATCH"},
 			AllowedHeaders: []string{
@@ -81,16 +84,14 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 				"Connect-Content-Encoding", "Grpc-Timeout", "X-Grpc-Web",
 				"X-User-Agent", "Access-Control-Allow-Origin",
 				"Access-Control-Request-Headers",
-				"Content-Security-Policy", // Allow CSP header
-				"Origin",                  // Important for CORS preflight
-				"Accept-Encoding",         // Allow compression negotiation
+				"Origin",          // Important for CORS preflight
+				"Accept-Encoding", // Allow compression negotiation
 			},
 			ExposedHeaders: []string{
 				"Content-Encoding", "Connect-Content-Encoding",
 				"Grpc-Status", "Grpc-Message",
 				"Access-Control-Allow-Origin",
 				"Access-Control-Request-Headers",
-				"Content-Security-Policy", // Expose CSP header
 			},
 			AllowCredentials: true, // Allow credentials
 		})

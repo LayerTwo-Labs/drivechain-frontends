@@ -112,6 +112,7 @@ class _FaucetPageState extends State<FaucetPage> {
             children: <Widget>[
               SailRawCard(
                 title: 'Dispense Drivechain Coins',
+                subtitle: 'Send Drivechain coins to your L1-address',
                 child: Column(
                   children: [
                     Row(
@@ -232,6 +233,7 @@ class _FaucetPageState extends State<FaucetPage> {
                 child: SailRawCard(
                   bottomPadding: false,
                   title: 'Latest Transactions',
+                  subtitle: 'View the latest faucet dispensations',
                   child: SizedBox(
                     height: 300,
                     child: LatestTransactionTable(
