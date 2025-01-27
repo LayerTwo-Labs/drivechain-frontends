@@ -63,7 +63,6 @@ class RootPage extends StatelessWidget {
                         label: 'Sidechains',
                         active: tabsRouter.activeIndex == 2,
                         onTap: () => tabsRouter.setActiveIndex(2),
-                        end: true,
                       ),
                       QtTab(
                         icon: SailSVGAsset.iconLearn,

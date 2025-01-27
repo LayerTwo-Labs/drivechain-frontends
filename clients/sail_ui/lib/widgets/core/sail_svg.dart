@@ -31,6 +31,7 @@ enum SailSVGAsset {
   iconDropdown,
   iconDeposit,
   iconWithdraw,
+  iconFormat,
 
   iconHome,
   iconSend,
@@ -186,6 +187,9 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_deposit.svg';
       case SailSVGAsset.iconWithdraw:
         return 'assets/svgs/icon_withdraw.svg';
+
+      case SailSVGAsset.iconFormat:
+        return 'assets/svgs/icon_format.svg';
 
       case SailSVGAsset.iconHome:
         return 'assets/svgs/icon_home.svg';

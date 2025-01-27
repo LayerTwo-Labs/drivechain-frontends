@@ -19,11 +19,13 @@ class APILive extends API {
 
   @override
   CallOptions createOptions() {
-    final timeout = Duration(
-      seconds: 3,
-    );
+    final timeout = Duration(seconds: 3);
     final providers = [
-      (metadata, uri) async {},
+      (metadata, uri) async {
+        // Add any headers needed for CORS
+        metadata['Origin'] = 'https://${Environment.apiHost}';
+        metadata['Accept-Encoding'] = 'gzip';
+      },
     ];
     try {
       return getCallOptions(
@@ -33,7 +35,7 @@ class APILive extends API {
     } catch (error) {
       log.e('could not create callOptions: ${error.toString()}');
       return CallOptions();
-    } finally {}
+    }
   }
 }
 

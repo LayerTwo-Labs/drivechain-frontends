@@ -347,6 +347,11 @@ class SidechainsViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  void formatAddress() {
+    addressController.text = formatDepositAddress(addressController.text, _selectedIndex ?? 254);
+    notifyListeners();
+  }
+
   void deposit(BuildContext context) async {
     if (double.tryParse(depositAmountController.text) == null) {
       showSnackBar(context, 'Invalid amount, enter a number');
@@ -456,11 +461,11 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                 ),
               ),
               QtIconButton(
-                tooltip: 'Clear',
-                onPressed: viewModel.clearAddress,
-                icon: Icon(
-                  Icons.cancel_outlined,
-                  size: 20.0,
+                tooltip: 'Format Deposit Address',
+                onPressed: viewModel.formatAddress,
+                icon: SailSVG.fromAsset(
+                  SailSVGAsset.iconFormat,
+                  width: 20,
                   color: context.sailTheme.colors.text,
                 ),
               ),
