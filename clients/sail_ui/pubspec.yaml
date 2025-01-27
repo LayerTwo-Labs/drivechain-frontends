@@ -22,7 +22,7 @@ dependencies:
     fixnum: ^1.1.0
     path: ^1.8.3
     archive: ^3.4.10  
-    intl: ^0.20.1
+    intl: ^0.20.2
     crypto: ^3.0.6
     logger: ^2.5.0
     grpc: ^4.0.1
