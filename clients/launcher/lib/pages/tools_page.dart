@@ -12,6 +12,13 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:logger/logger.dart';
 
+const List<Widget> fast_withdraw_servers = <Widget>[
+	Text('L2L 1 : 172.105.148.135'),
+	Text('L2L 2 : N/A'),
+	Text('localhost')
+];
+
+
 @RoutePage()
 class ToolsPage extends StatelessWidget {
   const ToolsPage({
@@ -73,38 +80,34 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
             ),
             const SizedBox(height: 24),
 
-            // Connection Status
-            Row(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: viewModel.isConnected ? Colors.green : SailColorScheme.red,
-                    shape: BoxShape.circle,
+            // Fast Withdraw server selection: Let the user choose between
+            // available servers and localhost for debugging
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                // ToggleButtons with a single selection.
+                Text('Select Server'),
+                const SizedBox(height: 5),
+                ToggleButtons(
+                  direction: Axis.horizontal,
+                  onPressed: (int index) {
+                    for (int i = 0; i < viewModel.selectedFastWithdrawServer.length; i++) {
+                      viewModel.selectedFastWithdrawServer[i] = i == index;
+                    }
+                    viewModel.notifyListeners();
+                  },
+                  borderRadius: const BorderRadius.all(Radius.circular(8)),
+                  constraints: const BoxConstraints(
+                  minHeight: 40.0,
+                  minWidth: 180.0,
                   ),
-                ),
-                const SizedBox(width: 8),
-                SailText.secondary13(viewModel.connectionStatus),
-                const SizedBox(width: 24),
-                Switch(
-                  value: viewModel.useLocalhost,
-                  onChanged: (value) {
-                    viewModel.setUseLocalhost(value);
-                  },
-                ),
-                const SizedBox(width: 8),
-                SailText.secondary13('Use localhost (debug) server'),
-                const SizedBox(width: 24),
-                SailButton.secondary(
-                  viewModel.isConnected ? 'Disconnect' : 'Connect',
-                  onPressed: () {
-                    viewModel.connectToServerDummy();
-                  },
-                  size: ButtonSize.small,
+                  isSelected: viewModel.selectedFastWithdrawServer,
+                  children: fast_withdraw_servers,
                 ),
               ],
             ),
+
             const SizedBox(height: 24),
 
             // Withdrawal Details
@@ -693,13 +696,11 @@ class ToolsPageViewModel extends BaseViewModel {
   final Set<String> _revealedStarters = {};
   final WalletService _walletService = GetIt.I.get<WalletService>();
   final _logger = Logger();
+  
   Map<String, dynamic>? _chainConfig;
 
-  /// Whether to use localhost for the debug server.
-  bool useLocalhost = false;
-
-  /// Simple boolean for dummy connection state.
-  bool isConnected = false;
+  // Which fast withdrawal server to send requests
+  List<bool> selectedFastWithdrawServer = <bool>[true, false, false];
 
   /// Human-readable status: "Not Connected", "Connected", etc.
   String connectionStatus = 'Not Connected';
@@ -739,26 +740,27 @@ class ToolsPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void setUseLocalhost(bool value) {
-    useLocalhost = value;
-    notifyListeners();
-  }
-
-  /// Dummy method to connect/disconnect from server
-  void connectToServerDummy() {
-    // Flip the connection state to simulate connecting/disconnecting
-    isConnected = !isConnected;
-    connectionStatus = isConnected ? 'Connected' : 'Not Connected';
-    notifyListeners();
-  }
-
   /// Dummy method to request a fast withdrawal
   void requestWithdrawalDummy() {
-    // Simulate receiving an invoice from the server
-    invoiceText = 'Fast withdraw request received!\n'
-        'Send L2 coins to [some-sidechain-address]\n'
-        "Once paid, enter the L2 txid and press 'Invoice Paid'.";
-    invoiceStatus = 'Awaiting Payment';
+    // Which server should we send the request to?
+    if (selectedFastWithdrawServer.length != 3)
+		  return;
+
+    String withdraw_server = "";
+    if (selectedFastWithdrawServer[0]) {
+      withdraw_server = "172.105.148.135";
+    }
+    if (selectedFastWithdrawServer[1]) {
+      withdraw_server = "na.na.na.na";
+    }
+    if (selectedFastWithdrawServer[2]) {
+      withdraw_server = "localhost";
+    }
+
+    // Simulate sending fast withdraw request to server
+    invoiceText = 'Fast withdraw request created!\n'
+        'Waiting for invoice from $withdraw_server.\n';
+    invoiceStatus = 'Awaiting Invoice';
     notifyListeners();
   }
 
