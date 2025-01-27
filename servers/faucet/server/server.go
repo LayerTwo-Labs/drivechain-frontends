@@ -55,8 +55,14 @@ type Server struct {
 }
 
 func (s *Server) Handler(ctx context.Context) http.Handler {
-
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Add CSP header
+		w.Header().Set("Content-Security-Policy",
+			"default-src 'self'; "+
+				"connect-src 'self' ws: wss: http: https:; "+
+				"script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; "+ // Allow eval for gRPC-web
+				"style-src 'self' 'unsafe-inline'")
+
 		// If the body is completely empty, replace it with the
 		// empty object. This makes it possible to send requests
 		// without a body, without getting a cryptic error.
@@ -66,27 +72,27 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 
 		corsHandler := cors.New(cors.Options{
 			AllowedOrigins: []string{
-				"https://drivechain.live",
+				"*", // For development. In production, specify exact origins
 			},
 			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PATCH"},
 			AllowedHeaders: []string{
-				"Connect-Protocol-Version", "Content-Type", "Connect-Protocol-Version", "Content-Type", "Accept",
-
-				"Connect-Accept-Encoding", "Connect-Content-Encoding",
-				"Grpc-Timeout",
-
-				"X-Grpc-Web", "X-User-Agent",
-				"Access-Control-Allow-Origin",
+				"Connect-Protocol-Version", "Content-Type", "Connect-Protocol-Version",
+				"Content-Type", "Accept", "Connect-Accept-Encoding",
+				"Connect-Content-Encoding", "Grpc-Timeout", "X-Grpc-Web",
+				"X-User-Agent", "Access-Control-Allow-Origin",
 				"Access-Control-Request-Headers",
+				"Content-Security-Policy", // Allow CSP header
+				"Origin",                  // Important for CORS preflight
+				"Accept-Encoding",         // Allow compression negotiation
 			},
 			ExposedHeaders: []string{
-				"Content-Encoding",
-				"Connect-Content-Encoding",
-				"Grpc-Status",
-				"Grpc-Message",
+				"Content-Encoding", "Connect-Content-Encoding",
+				"Grpc-Status", "Grpc-Message",
 				"Access-Control-Allow-Origin",
 				"Access-Control-Request-Headers",
+				"Content-Security-Policy", // Expose CSP header
 			},
+			AllowCredentials: true, // Allow credentials
 		})
 
 		withCORS := corsHandler.Handler(s.mux)
