@@ -4,21 +4,21 @@ on:
   push:
     branches: [master]
     paths:
-      - 'servers/**'
-      - 'clients/scripts/**'
-      - 'clients/bitwindow/**'
-      - 'clients/sidesail/**'
-      - 'clients/launcher/**'
-      - '.github/workflows/**'
+      - "servers/**"
+      - "clients/scripts/**"
+      - "clients/bitwindow/**"
+      - "clients/sidesail/**"
+      - "clients/launcher/**"
+      - ".github/workflows/**"
   pull_request:
     branches: [master]
     paths:
-      - 'servers/**'
-      - 'clients/scripts/**'
-      - 'clients/bitwindow/**'
-      - 'clients/sidesail/**'
-      - 'clients/launcher/**'
-      - '.github/workflows/**'
+      - "servers/**"
+      - "clients/scripts/**"
+      - "clients/bitwindow/**"
+      - "clients/sidesail/**"
+      - "clients/launcher/**"
+      - ".github/workflows/**"
 
 jobs:
   build:
@@ -57,23 +57,23 @@ jobs:
           # BitWindow builds for all os'es
           - os: ubuntu-latest
             client: bitwindow
-            chain: ''
+            chain: ""
           - os: macos-latest
             client: bitwindow
-            chain: ''
+            chain: ""
           - os: windows-latest
             client: bitwindow
-            chain: ''
+            chain: ""
           # Launcher builds for all os'es
           - os: ubuntu-latest
             client: launcher
-            chain: ''
+            chain: ""
           - os: macos-latest
             client: launcher
-            chain: ''
+            chain: ""
           - os: windows-latest
             client: launcher
-            chain: ''
+            chain: ""
 
     name: Build ${{ matrix.client }} ${{ matrix.chain }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -90,10 +90,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
-      # Setup go for building bdk-cli
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
 
       - name: Create assets/bin directory
         run: |
@@ -106,7 +102,7 @@ jobs:
           cd ${{ matrix.client }}
           flutter pub get
 
-       # standard macOS sed has subtle differences from gnu
+        # standard macOS sed has subtle differences from gnu
       - name: Install GNU sed on macOS
         if: runner.os == 'macOS'
         run: |
@@ -162,7 +158,7 @@ jobs:
           if [ -z "$chain_param" ]; then
             chain_param="none"
           fi
-          
+
           # Everything after the first line is only relevant for macOS
           ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} "$chain_param" \
             "$CODESIGN_IDENTITY" $PWD/notarization_api_key.p8 \
@@ -171,7 +167,9 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.client }}-binaries-${{ runner.os }}${{ matrix.chain != '' && format('-{0}', matrix.chain) || '' }}
+          name:
+            ${{ matrix.client }}-binaries-${{ runner.os }}${{ matrix.chain != ''
+            && format('-{0}', matrix.chain) || '' }}
           if-no-files-found: error
           path: clients/${{ matrix.client }}/release/*
 
@@ -191,8 +189,8 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
-        continue-on-error: true 
-     
+        continue-on-error: true
+
       - name: Rename and move artifacts
         working-directory: .
         continue-on-error: true
