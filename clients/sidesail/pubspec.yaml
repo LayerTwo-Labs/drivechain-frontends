@@ -27,7 +27,7 @@ dependencies:
   get_it: ^7.7.0
   collection: ^1.18.0
   stacked: ^3.4.3
-  intl: ^0.20.1
+  intl: ^0.20.2
   web3dart:
     git:
       url: https://github.com/xclud/web3dart.git
