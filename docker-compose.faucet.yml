@@ -23,7 +23,7 @@ services:
       platforms: [linux/amd64]
 
     command:
-      - faucet-backend
+      - faucetd
       - --bitcoincore.host=mainchain:38332
       - --bitcoincore.rpcuser=user
       - --bitcoincore.rpcpassword=password
