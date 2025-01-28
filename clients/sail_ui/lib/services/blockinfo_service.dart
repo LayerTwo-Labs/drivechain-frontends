@@ -1,0 +1,92 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
+
+class BlockInfoService extends ChangeNotifier {
+  Logger get log => GetIt.I.get<Logger>();
+  final RPCConnection connection;
+
+  // raw data go here
+  BlockchainInfo blockchainInfo = BlockchainInfo(
+    chain: '',
+    blocks: 0,
+    headers: 0,
+    bestBlockHash: '',
+    difficulty: 0,
+    time: 0,
+    medianTime: 0,
+    verificationProgress: 0,
+    initialBlockDownload: false,
+    chainWork: '',
+    sizeOnDisk: 0,
+    pruned: false,
+    warnings: [],
+  );
+
+  // computed field go here
+  String get verificationProgress => ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
+
+  bool _isFetching = false;
+  Timer? _fetchTimer;
+
+  String? error;
+
+  BlockInfoService({
+    required this.connection,
+    bool startTimer = true,
+  }) {
+    if (startTimer) {
+      _startFetchTimer();
+    }
+  }
+
+  // call this function from anywhere to refetch blockchain info
+  Future<void> fetch() async {
+    if (!connection.connected) {
+      return;
+    }
+
+    if (_isFetching) {
+      return;
+    }
+    _isFetching = true;
+
+    try {
+      await _fetchBlockchainInfo();
+    } catch (e) {
+      log.e('Error fetching blockchain data: $e');
+      error = e.toString();
+    } finally {
+      _isFetching = false;
+    }
+  }
+
+  Future<void> _fetchBlockchainInfo() async {
+    final newBlockchainInfo = await connection.getBlockchainInfo();
+    blockchainInfo = newBlockchainInfo;
+    notifyListeners();
+  }
+
+  void _startFetchTimer() {
+    void tick() async {
+      try {
+        await fetch();
+      } catch (e) {
+        // do nothing, swallov!
+      }
+    }
+
+    final Duration interval = const Duration(seconds: 5);
+    _fetchTimer = Timer.periodic(interval, (_) => tick());
+  }
+
+  @override
+  void dispose() {
+    _fetchTimer?.cancel();
+    _fetchTimer = null;
+    super.dispose();
+  }
+}

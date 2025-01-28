@@ -1,13 +1,20 @@
 import 'dart:io';
 
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart' as protobuf;
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sidesail/config/runtime_args.dart';
-import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/notification_provider.dart';
@@ -15,7 +22,6 @@ import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
-import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
@@ -50,30 +56,36 @@ Future<void> initDependencies(Sidechain chain) async {
     () => sidechainContainer,
   );
 
-  NodeConnectionSettings mainchainConf = NodeConnectionSettings.empty();
-  try {
-    final network = RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
-    mainchainConf = await readRPCConfig(ParentChain().datadir(), 'drivechain.conf', ParentChain(), network);
-  } catch (error) {
-    // do nothing
-  }
   final mainchainRPC = await MainchainRPCLive.create(
-    mainchainConf,
     ParentChain(),
-    ParentChain().logDir(),
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
   );
+
+  final binary = Enforcer();
+  final httpClient = createHttpClient();
+  final transport = grpc.Transport(
+    baseUrl: 'http://127.0.0.1:${binary.port}',
+    codec: const ProtoCodec(),
+    httpClient: httpClient,
+    statusParser: const protobuf.StatusParser(),
+  );
+  final enforcer = await EnforcerLive.create(
+    binary: binary,
+    logPath: path.join(binary.datadir(), 'bip300301_enforcer.log'),
+    transport: transport,
+  );
+  GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
   GetIt.I.registerLazySingleton<AppRouter>(
     () => AppRouter(),
   );
 
   GetIt.I.registerLazySingleton<BalanceProvider>(
-    // by registering an instance of the balance provider,
-    // we start polling for balance updates
-    () => BalanceProvider(),
+    () => BalanceProvider(
+      connections: [enforcer],
+    ),
   );
 
   GetIt.I.registerLazySingleton<TransactionsProvider>(

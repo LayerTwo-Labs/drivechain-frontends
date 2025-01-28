@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
-import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:stacked/stacked.dart';
 
@@ -49,15 +49,6 @@ class _TopNavState extends State<TopNav> {
                   },
                   icon: SailSVGAsset.iconTabPeg,
                 ),
-                if (_sidechain.rpc.chain == TestSidechain())
-                  QtTab(
-                    label: 'Withdrawal Explorer',
-                    active: widget.tabsRouter.activeIndex == Tabs.ParentChainWithdrawalExplorer.index,
-                    onTap: () {
-                      widget.tabsRouter.setActiveIndex(Tabs.ParentChainWithdrawalExplorer.index);
-                    },
-                    icon: SailSVGAsset.iconTabWithdrawalExplorer,
-                  ),
                 if (_sidechain.rpc.chain == TestSidechain())
                   QtTab(
                     label: 'Blind Merged Mining',

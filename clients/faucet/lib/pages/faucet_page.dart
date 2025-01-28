@@ -122,7 +122,7 @@ class _FaucetPageState extends State<FaucetPage> {
                           child: SailTextField(
                             label: 'Pay To',
                             controller: model.addressController,
-                            hintText: 'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                            hintText: 'Enter a L1-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
                             size: TextFieldSize.small,
                           ),
                         ),

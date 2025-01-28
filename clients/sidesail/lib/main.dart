@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/dependencies.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/models/active_sidechains.dart';
-import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/storage/sail_settings/font_settings.dart';
 
@@ -64,42 +64,6 @@ Future<void> initMainchainBinary(
   await mainchain.initBinary(
     context,
   );
-  await mainchain.waitForIBD();
-
-  log.d('mainchain init: checking if ${sidechain.rpc.chain.name} is an active sidechain');
-  final activeSidechains = await mainchain.listActiveSidechains();
-  final ourSidechain = isCurrentChainActive(activeChains: activeSidechains, currentChain: sidechain.rpc.chain);
-  if (ourSidechain) {
-    log.i('mainchain init: ${sidechain.rpc.chain.name} is active');
-    return;
-  }
-
-  if (!mainchain.conf.isLocalNetwork) {
-    log.w("${sidechain.rpc.chain.name} chain is not active, and we're unable to activate it");
-    return;
-  }
-
-  log.i(
-    'mainchain init: we are NOT an active sidechain, creating proposal ${activeSidechains.map((e) => e.toJson())}',
-  );
-
-  await mainchain.createSidechainProposal(sidechain.rpc.chain.slot, sidechain.rpc.chain.name);
-
-  const numBlocks = 144;
-  log.i('mainchain init: generating $numBlocks blocks to broadcast proposal and give user some balance');
-  await mainchain.generate(numBlocks);
-
-  log.i('mainchain init: verifying sidechain is active');
-  final chains = await mainchain.listActiveSidechains();
-  final isActive = isCurrentChainActive(activeChains: chains, currentChain: sidechain.rpc.chain);
-  if (!isActive) {
-    log.e(
-      'mainchain init: was not able to activate sidechain ${await mainchain.listActiveSidechains().then((xs) => xs.map((chain) => chain.toJson()))}',
-    );
-    throw 'Was not able to activate sidechain';
-  }
-
-  log.i('mainchain init: successfully activated sidechain');
 }
 
 Future<void> initSidechainBinary(

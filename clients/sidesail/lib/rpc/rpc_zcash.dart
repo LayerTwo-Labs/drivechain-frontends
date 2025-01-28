@@ -173,106 +173,23 @@ class ZcashRPCLive extends ZCashRPC {
     return await _client().call(method, params);
   }
 
-  Future<double> _balanceForAccount(int account, int confirmations) async {
-    final saplingBalance = await _client().call('z_getbalanceforaccount', [account, confirmations]).then(
-      (res) {
-        final pools = res['pools'];
-        num zBalanceSat = 0;
-        if (pools.containsKey('transparent')) {
-          zBalanceSat += pools['transparent']['valueZat'];
-        }
-        if (pools.containsKey('sapling')) {
-          zBalanceSat += pools['sapling']['valueZat'];
-        }
-        if (pools.containsKey('orchard')) {
-          zBalanceSat += pools['orchard']['valueZat'];
-        }
-
-        return satoshiToBTC(zBalanceSat.toInt());
-      },
-    );
-
-    var balance = saplingBalance;
-
-    // sometimes we end up with multiple z_addresses. Maybe it's a change-
-    // address, maybe it's something else, who knows!
-    // Balance in those addresses does not show up when calling
-    // z_getbalanceforaccount.
-    // To get the correct balance, we must supplement the sapling balance
-    // from above with the balance of each of the addresses returned from
-    // z_listaddresses.
-    final addresses = await _client().call('z_listaddresses') as List<dynamic>;
-    for (final address in addresses) {
-      final addressBalance = await _client().call('z_getbalance', [address, confirmations]);
-      balance += addressBalance;
-    }
-
-    return balance;
-  }
-
-  Future<(double, double)> _transparentBalance(int account) async {
+  @override
+  Future<(double, double)> balance() async {
     final confirmedFut = _client().call('getbalance');
     final unconfirmedFut = _client().call('getunconfirmedbalance');
 
     return (await confirmedFut as double, await unconfirmedFut as double);
   }
 
-  @override
-  Future<(double, double)> balance() async {
-    final acc = await account();
-
-    final (transparentConfirmed, transparentUnconfirmed) = await _transparentBalance(acc);
-
-    final confirmed = await _balanceForAccount(acc, 1);
-    final confirmedAndUnconfirmed = await _balanceForAccount(acc, 0);
-
-    return (confirmed + transparentConfirmed, transparentUnconfirmed + confirmedAndUnconfirmed - confirmed);
-  }
-
   int? cachedAccount;
-
-  @override
-  Future<int> account() async {
-    if (cachedAccount != null) {
-      return cachedAccount!;
-    }
-
-    final existing = await _client().call('z_listaccounts') as List<dynamic>;
-
-    if (existing.isNotEmpty) {
-      cachedAccount = existing.first['account'];
-    } else {
-      final newAccount = await _client().call('z_getnewaccount');
-      cachedAccount = newAccount['account'];
-    }
-
-    return cachedAccount!;
-  }
 
   @override
   Future<(String, String)> deshield(ShieldedUTXO utxo, double amount) async {
     amount = cleanAmount(amount);
 
-    var from = utxo.address;
-    if (from == '') {
-      from = await getPrivateAddress();
-    }
+    final to = await getDepositAddress();
 
-    final regularAddress = await getSideAddress();
-    final operationID = await _client().call('z_sendmany', [
-      from,
-      [
-        {
-          'address': regularAddress,
-          'amount': amount,
-        }
-      ],
-      1,
-      zcashFee,
-      'AllowRevealedRecipients',
-    ]);
-
-    return (operationID as String, regularAddress);
+    return (await sendTransparent(to, amount, false), to);
   }
 
   @override
@@ -372,20 +289,7 @@ class ZcashRPCLive extends ZCashRPC {
       throw Exception('must shield full amount for coinbase outputs');
     }
 
-    final zAddress = await getPrivateAddress();
-    final operationID = await _client().call('z_sendmany', [
-      utxo.address,
-      [
-        {
-          'address': zAddress,
-          'amount': amount,
-        }
-      ],
-      1,
-      zcashFee,
-    ]);
-
-    return operationID as String;
+    return await sendTransparent(utxo.address, amount, false);
   }
 
   @override
@@ -393,25 +297,13 @@ class ZcashRPCLive extends ZCashRPC {
     return zcashFee;
   }
 
-  Future<String> _getNewShieldedAddress() async {
-    return await _client().call('z_getnewaddress');
-  }
-
   @override
   Future<String> getPrivateAddress() async {
-    final addresses = await _client().call('z_listaddresses') as List<dynamic>;
-    if (addresses.isEmpty) {
-      return _getNewShieldedAddress();
-    }
-
-    return addresses.first as String;
+    return await getDepositAddress();
   }
 
   @override
   Future<int> ping() async {
-    // the network keeps gettin fooked in regtest, adding the remote node
-    // as a bad peer. We don't want that, so we try to clear banned every time
-    // the block count is refetched
     final oldBlockHeight = blockCount;
     final newBlockHeight = await _client().call('getblockcount') as int;
 
@@ -428,25 +320,7 @@ class ZcashRPCLive extends ZCashRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    var fee = await sideEstimateFee();
-
-    amount = cleanAmount(amount);
-    fee = cleanAmount(fee);
-
-    final zAddress = await getPrivateAddress();
-    final txid = await _client().call('z_sendmany', [
-      zAddress,
-      [
-        {
-          'address': address,
-          'amount': double.parse(amount.toStringAsFixed(8)),
-        }
-      ],
-      1,
-      fee,
-    ]);
-
-    return txid;
+    return sendTransparent(address, amount, subtractFeeFromAmount);
   }
 
   @override
@@ -477,6 +351,34 @@ class ZcashRPCLive extends ZCashRPC {
     await _client().call('stop');
     // can't trust the rpc, give it a moment to stop
     await Future.delayed(const Duration(seconds: 5));
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    // TODO!
+    final blocks = await _client().call('get-blockcount') as int;
+    // can't trust the rpc, give it a moment to stop
+    await Future.delayed(const Duration(seconds: 5));
+    return BlockchainInfo(
+      chain: 'signet',
+      blocks: blocks,
+      headers: blocks,
+      bestBlockHash: '',
+      difficulty: 0,
+      time: 0,
+      medianTime: 0,
+      verificationProgress: 100.0,
+      initialBlockDownload: false,
+      chainWork: '',
+      sizeOnDisk: 0,
+      pruned: false,
+      warnings: [],
+    );
+  }
+
+  @override
+  Future<int> account() {
+    return Future.value(0);
   }
 }
 

@@ -91,4 +91,26 @@ class BitnamesLive extends BitnamesRPC {
     // can't trust the rpc, give it a moment to stop
     await Future.delayed(const Duration(seconds: 5));
   }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    final blocks = await _client().call('get-blockcount') as int;
+    // can't trust the rpc, give it a moment to stop
+    await Future.delayed(const Duration(seconds: 5));
+    return BlockchainInfo(
+      chain: 'signet',
+      blocks: blocks,
+      headers: blocks,
+      bestBlockHash: '',
+      difficulty: 0,
+      time: 0,
+      medianTime: 0,
+      verificationProgress: 100.0,
+      initialBlockDownload: false,
+      chainWork: '',
+      sizeOnDisk: 0,
+      pruned: false,
+      warnings: [],
+    );
+  }
 }

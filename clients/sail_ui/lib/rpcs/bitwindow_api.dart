@@ -149,6 +149,11 @@ class BitwindowRPCLive extends BitwindowRPC {
     // can't trust the rpc, give it a moment to stop
     await Future.delayed(const Duration(seconds: 5));
   }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    throw Exception('getBlockchainInfo not implemented');
+  }
 }
 
 class _BitwindowAPILive implements BitwindowAPI {

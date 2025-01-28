@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:connectrpc/connect.dart';
-import 'package:sail_ui/gen/cusf/mainchain/v1/validator.connect.client.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/gen/cusf/mainchain/v1/validator.connect.client.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pb.dart';
 
 /// API to the enforcer server
@@ -83,5 +83,10 @@ class EnforcerLive extends EnforcerRPC {
   @override
   Future<void> stopRPC() async {
     throw Exception('stop not implemented');
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    throw Exception('getBlockchainInfo not implemented');
   }
 }

@@ -15,12 +15,11 @@ abstract class MainchainRPC extends RPCConnection {
     required super.logPath,
   });
 
-  Future<void> waitForIBD();
-  Future<BlockchainInfo> getBlockchainInfo();
-
   final chain = ParentChain();
 
   bool inIBD = true;
+
+  Future<void> waitForIBD();
 }
 
 class MainchainRPCLive extends MainchainRPC {

@@ -208,44 +208,6 @@ class TestchainRPCTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [TransferMainchainTabPage]
-class TransferMainchainTabRoute extends PageRouteInfo<void> {
-  const TransferMainchainTabRoute({List<PageRouteInfo>? children})
-      : super(
-          TransferMainchainTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'TransferMainchainTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const TransferMainchainTabPage();
-    },
-  );
-}
-
-/// generated route for
-/// [WithdrawalExplorerTabPage]
-class WithdrawalExplorerTabRoute extends PageRouteInfo<void> {
-  const WithdrawalExplorerTabRoute({List<PageRouteInfo>? children})
-      : super(
-          WithdrawalExplorerTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'WithdrawalExplorerTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const WithdrawalExplorerTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [ZCashBillPage]
 class ZCashBillRoute extends PageRouteInfo<void> {
   const ZCashBillRoute({List<PageRouteInfo>? children})

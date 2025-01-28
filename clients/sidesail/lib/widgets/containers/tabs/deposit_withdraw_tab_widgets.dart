@@ -6,12 +6,11 @@ import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
-import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
@@ -82,7 +81,6 @@ class PegOutViewModel extends BaseViewModel {
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
-  MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
@@ -136,7 +134,7 @@ class PegOutViewModel extends BaseViewModel {
   }
 
   Future<void> estimateMainchainFee() async {
-    mainchainFee = await _mainchain.estimateFee();
+    mainchainFee = 0.0001;
     notifyListeners();
   }
 
@@ -491,8 +489,6 @@ class EasyRegtestDeposit extends StatelessWidget {
 
 class ZCashWidgetTitleViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
-  MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
-  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
@@ -506,21 +502,21 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
   Future<void> easyDeposit() async {
     setBusy(true);
     // step 1, get mainchain balance
-    final balance = await _mainchain.balance();
-    final confirmedBalance = balance.$1;
+    // final balance = await _mainchain.balance();
+    // final confirmedBalance = balance.$1;
 
     // step 2, get sidechain deposit address
-    final depositAddress = await _sidechainContainer.rpc.getDepositAddress();
+    // final depositAddress = await _sidechainContainer.rpc.getDepositAddress();
 
     // step 3, query createsidechaindeposit with the current chain params
-    final _ = await _mainchain.createSidechainDeposit(
-      _sidechainContainer.rpc.chain.slot,
-      depositAddress,
-      confirmedBalance / 3 * 2,
-    );
+    // final _ = await _mainchain.createSidechainDeposit(
+    //   _sidechainContainer.rpc.chain.slot,
+    //   depositAddress,
+    //   confirmedBalance / 3 * 2,
+    // );
 
     // step 4 confirm the deposit
-    await _mainchain.generate(22);
+    // await _mainchain.generate(22);
 
     setBusy(false);
   }
@@ -623,9 +619,6 @@ class WithdrawalExplorer extends StatelessWidget {
 }
 
 class WithdrawalBundleViewViewModel extends BaseViewModel {
-  TestchainRPC get _sidechain => GetIt.I.get<TestchainRPC>();
-  MainchainRPC get _mainchain => GetIt.I.get<MainchainRPC>();
-
   final searchController = TextEditingController();
 
   WithdrawalBundleViewViewModel() {
@@ -639,7 +632,6 @@ class WithdrawalBundleViewViewModel extends BaseViewModel {
   WithdrawalBundle? currentBundle;
   int? votesCurrentBundle;
 
-  List<MainchainWithdrawalStatus> statuses = [];
   List<WithdrawalBundle> successfulBundles = [];
   List<WithdrawalBundle> failedBundles = [];
 
@@ -659,7 +651,7 @@ class WithdrawalBundleViewViewModel extends BaseViewModel {
           )
           .reversed; // we want the newest first!
 
-  List<Withdrawal> _unbundledTransactions = [];
+  final List<Withdrawal> _unbundledTransactions = [];
   Iterable<Withdrawal> get unbundledTransactions => _unbundledTransactions
       .where((element) => searchController.text == '' || element.hashBlindTx.contains(searchController.text));
 
@@ -683,54 +675,12 @@ class WithdrawalBundleViewViewModel extends BaseViewModel {
 
   /// Block count until a bundle times out
   int timesOutIn(String hash) {
-    final stat = statuses.firstWhereOrNull((element) => element.hash == hash);
-    return stat?.blocksLeft ?? 0;
+    return 0;
   }
 
   void _fetchWithdrawalBundle() async {
     try {
-      final statusesFut = _mainchain.listWithdrawalStatus(_sidechain.chain.slot);
-      final currentFut = _sidechain.mainCurrentWithdrawalBundle();
-      final rawSuccessfulBundlesFut = _mainchain.listSpentWithdrawals();
-      final rawFailedBundlesFut = _mainchain.listFailedWithdrawals();
-      final nextFut = _sidechain.mainNextWithdrawalBundle();
-
-      statuses = await statusesFut;
-      final rawSuccessfulBundles = await rawSuccessfulBundlesFut;
-      final rawFailedBundles = await rawFailedBundlesFut;
-
-      bool removeOtherChains(MainchainWithdrawal w) => w.sidechain == _sidechain.chain.slot;
-      Future<WithdrawalBundle> Function(MainchainWithdrawal w) getBundle(BundleStatus status) =>
-          (MainchainWithdrawal w) => _sidechain.lookupWithdrawalBundle(w.hash, status);
-
-      // Cooky town: passing in a status parameter to this...
-      final successfulBundlesFut = Future.wait(
-        rawSuccessfulBundles.where(removeOtherChains).map(getBundle(BundleStatus.success)),
-      );
-
-      final failedBundlesFut = Future.wait(
-        rawFailedBundles.where(removeOtherChains).map(getBundle(BundleStatus.failed)),
-      );
-
-      successfulBundles = await successfulBundlesFut;
-      failedBundles = await failedBundlesFut;
-
-      currentBundle = await currentFut.then((bundle) {
-        // `testchain-cli getwithdrawalbundle` continues to return the most recent bundle, also
-        // after it shows up in `drivechain-cli listspentwithdrawals/listfailedwithdrawals`.
-        // Filter that out, so it doesn't show up twice.
-        final allBundles = [...successfulBundles, ...failedBundles];
-        if (allBundles.firstWhereOrNull((success) => success.hash == (bundle?.hash ?? '')) != null) {
-          return null;
-        }
-        return bundle;
-      });
-
-      if (currentBundle != null) {
-        votesCurrentBundle = await _mainchain.getWithdrawalBundleWorkScore(_sidechain.chain.slot, currentBundle!.hash);
-      }
-
-      _unbundledTransactions = (await nextFut).withdrawals;
+      return;
     } on RPCException catch (err) {
       if (err.errorCode != TestchainRPCError.errNoWithdrawalBundle) {
         rethrow;

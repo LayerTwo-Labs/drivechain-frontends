@@ -7,9 +7,10 @@ import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/widgets/containers/tabs/home/bottom_nav.dart';
+import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down
@@ -18,7 +19,6 @@ enum Tabs {
   SidechainExplorer,
 
   ParentChainPeg,
-  ParentChainWithdrawalExplorer,
   ParentChainBMM,
 
   SidechainSend,
@@ -46,6 +46,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   ProcessProvider get _proccessProvider => GetIt.I.get<ProcessProvider>();
+  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
 
@@ -83,7 +84,6 @@ class _HomePageState extends State<HomePage> {
 
       // parent chain routes
       DepositWithdrawTabRoute(),
-      WithdrawalExplorerTabRoute(),
       BlindMergedMiningTabRoute(),
 
       // testchain routes
@@ -134,7 +134,19 @@ class _HomePageState extends State<HomePage> {
                   color: Colors.grey,
                 ),
                 Expanded(child: children[tabsRouter.activeIndex]),
-                BottomNav(navigateToSettings: () => tabsRouter.setActiveIndex(Tabs.SettingsHome.index)),
+                BottomNav(
+                  mainchainInfo: false,
+                  additionalConnection: ConnectionMonitor(
+                    rpc: sidechain.rpc,
+                    name: sidechain.rpc.chain.name,
+                  ),
+                  endWidgets: [
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
+                    ),
+                  ],
+                ),
               ],
             ),
           );

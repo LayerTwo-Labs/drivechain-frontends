@@ -267,6 +267,7 @@ class TestchainRPCLive extends TestchainRPC {
     await Future.delayed(const Duration(seconds: 5));
   }
 
+  @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final confirmedFut = await _client().call('getblockchaininfo');
     return BlockchainInfo.fromMap(confirmedFut);

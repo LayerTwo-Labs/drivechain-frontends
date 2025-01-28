@@ -2,11 +2,10 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/main.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/deposit_withdraw_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
@@ -86,8 +85,8 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
   }
 
   Future<void> checkChainActive() async {
-    final chains = await _mainchain.listActiveSidechains();
-    currenctChainActive = isCurrentChainActive(activeChains: chains, currentChain: _sidechain.rpc.chain);
+    // final chains = await _mainchain.listActiveSidechains();
+    // currenctChainActive = isCurrentChainActive(activeChains: chains, currentChain: _sidechain.rpc.chain);
     notifyListeners();
   }
 
@@ -130,8 +129,8 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
       // why bother!
       return;
     }
-    await _mainchain.createSidechainProposal(_sidechain.rpc.chain.slot, _sidechain.rpc.chain.name);
-    await _mainchain.generate(144);
+    // await _mainchain.createSidechainProposal(_sidechain.rpc.chain.slot, _sidechain.rpc.chain.name);
+    // await _mainchain.generate(144);
     await checkChainActive();
   }
 

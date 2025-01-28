@@ -8,15 +8,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/mocks/mocks.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/process_provider.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
-import 'package:sidesail/providers/balance_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
-import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
-import 'mocks/rpc_mock_mainchain.dart';
 import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
 
@@ -41,7 +41,7 @@ void main() {
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
     GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
-    final balanceProvider = BalanceProvider();
+    final balanceProvider = BalanceProvider(connections: [sidechainRPC]);
     GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
     // don't start test until balance is fetched
     await balanceProvider.fetch();
