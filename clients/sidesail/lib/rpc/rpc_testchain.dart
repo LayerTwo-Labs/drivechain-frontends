@@ -7,6 +7,7 @@ import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
+import 'package:flutter/material.dart';
 
 /// RPC connection the sidechain node.
 abstract class TestchainRPC extends SidechainRPC {

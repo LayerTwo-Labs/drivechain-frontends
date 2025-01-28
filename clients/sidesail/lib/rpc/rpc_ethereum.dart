@@ -3,6 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/json_rpc.dart' as jsonrpc;
 import 'package:web3dart/web3dart.dart';
+import 'package:flutter/material.dart';
 
 abstract class EthereumRPC extends SidechainRPC {
   EthereumRPC({
