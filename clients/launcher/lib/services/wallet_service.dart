@@ -59,6 +59,51 @@ class WalletService extends ChangeNotifier {
         'bip39_csum': checksumBits,
         'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
         ...initFlags,
+      final walletData = {
+        'mnemonic': mnemonicObj.sentence,
+        'seed_hex': seedHex,
+        'master_key': masterKey.privateKeyHex(),
+        'chain_code': hex.encode(masterKey.chainCode!),
+        'bip39_binary': _bytesToBinary(mnemonicObj.entropy),
+        'bip39_checksum': _calculateChecksumBits(mnemonicObj.entropy),
+        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
+      };
+
+      return walletData;
+    } catch (e) {
+      if (e.toString().contains('is not in the wordlist')) {
+        return {'error': 'One or more words are not valid BIP39 words'};
+      }
+      return {'error': e.toString()};
+    }
+  }
+
+  Future<Map<String, dynamic>> generateWalletFromEntropy(List<int> entropy, {String? passphrase}) async {
+    try {
+      // Create mnemonic from entropy
+      final mnemonic = Mnemonic(entropy, Language.english);
+      
+      // Generate seed using PBKDF2-HMAC-SHA512
+      final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
+      final params = Pbkdf2Parameters(utf8.encode('Bitcoin seed'), 2048, 64);
+      pbkdf2.init(params);
+      
+      // Use mnemonic sentence as the input key material
+      final seedBytes = pbkdf2.process(utf8.encode(mnemonic.sentence + (passphrase ?? '')));
+      final seedHex = hex.encode(seedBytes);
+      
+      // Create master key from seed
+      final chain = Chain.seed(seedHex);
+      final masterKey = chain.forPath('m') as ExtendedPrivateKey;
+
+      return {
+        'mnemonic': mnemonic.sentence,
+        'seed_hex': seedHex,
+        'bip39_binary': _bytesToBinary(mnemonic.entropy),
+        'bip39_checksum': _calculateChecksumBits(mnemonic.entropy),
+        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonic.entropy), radix: 2)]),
+        'master_key': masterKey.privateKeyHex(),
+        'chain_code': hex.encode(masterKey.chainCode!),
       };
     } catch (e) {
       return {'error': e.toString()};
