@@ -8,12 +8,7 @@ class APILive extends API {
 
   APILive() {
     clients = ServiceClients.setup(
-      baseUrl: getApiBaseUrl(),
+      baseUrl: Environment.baseUrl,
     );
   }
-}
-
-String getApiBaseUrl() {
-  const protocol = Environment.apiSSL ? 'https' : 'http';
-  return '$protocol://${Environment.apiHost}:${Environment.apiPort}';
 }
