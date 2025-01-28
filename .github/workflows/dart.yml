@@ -3,12 +3,12 @@ name: Dart
 on:
   pull_request:
     paths:
-      - 'clients/sail_ui/**'
-      - 'clients/sidesail/**'
-      - 'clients/bitwindow/**'
-      - 'clients/faucet/**'
-      - 'clients/launcher/**'
-      - '.github/workflows/**'
+      - "clients/sail_ui/**"
+      - "clients/sidesail/**"
+      - "clients/bitwindow/**"
+      - "clients/faucet/**"
+      - "clients/launcher/**"
+      - ".github/workflows/**"
 
 jobs:
   format-lint-test:
@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-      
+
       - uses: dart-lang/setup-dart@v1
 
       - name: Install dependencies for ${{ matrix.package }}
@@ -37,7 +37,9 @@ jobs:
           mkdir -p assets/bin
 
       - name: Verify formatting for ${{ matrix.package }}
-        run: find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
+        run:
+          find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l
+          120
 
       - name: Analyze project source for ${{ matrix.package }}
         run: dart analyze
@@ -53,8 +55,12 @@ jobs:
 
       - name: Run tests for ${{ matrix.package }}
         run: |
+          if [ ${{ matrix.package }} == 'faucet' ]; then
+            TEST_ARGS="--platform chrome"
+          fi
+
           if [ -d "test" ]; then
-            flutter test
+            flutter test $TEST_ARGS
           else
             echo "Test directory not found. Skipping tests."
           fi
