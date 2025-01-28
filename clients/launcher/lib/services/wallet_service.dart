@@ -12,6 +12,10 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:pointycastle/key_derivators/api.dart' show Pbkdf2Parameters;
+import 'package:pointycastle/key_derivators/pbkdf2.dart';
+import 'package:pointycastle/macs/hmac.dart';
+import 'package:pointycastle/digests/sha512.dart';
 
 class WalletService extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
@@ -26,47 +30,63 @@ class WalletService extends ChangeNotifier {
 
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
     try {
-      final Mnemonic mnemonicObj;
-
-      if (customMnemonic != null) {
-        try {
-          mnemonicObj = Mnemonic.fromSentence(
-            customMnemonic,
-            Language.english,
-            passphrase: passphrase ?? '', // Empty string if no passphrase
-          );
-        } catch (e) {
-          if (e.toString().contains('is not in the wordlist')) {
-            return {'error': 'One or more words are not valid BIP39 words'};
-          }
-          rethrow;
-        }
-      } else {
-        mnemonicObj = Mnemonic.generate(
-          Language.english,
-          entropyLength: 128,
-          passphrase: passphrase ?? '',
-        );
-      }
+      final Mnemonic mnemonicObj = customMnemonic != null 
+        ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
+        : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
 
       final seedHex = hex.encode(mnemonicObj.seed);
-
+      
+      // Create chain from seed
       final chain = Chain.seed(seedHex);
       final masterKey = chain.forPath('m') as ExtendedPrivateKey;
 
-      final bip39Bin = _bytesToBinary(mnemonicObj.entropy);
-      final checksumBits = _calculateChecksumBits(mnemonicObj.entropy);
-
-      return {
+      final walletData = {
         'mnemonic': mnemonicObj.sentence,
         'seed_hex': seedHex,
-        'xprv': masterKey.toString(),
-        'bip39_bin': bip39Bin,
-        'bip39_csum': checksumBits,
-        'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
+        'master_key': masterKey.privateKeyHex(),
+        'chain_code': hex.encode(masterKey.chainCode!),
+        'bip39_binary': _bytesToBinary(mnemonicObj.entropy),
+        'bip39_checksum': _calculateChecksumBits(mnemonicObj.entropy),
+        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
+      };
+
+      return walletData;
+    } catch (e) {
+      if (e.toString().contains('is not in the wordlist')) {
+        return {'error': 'One or more words are not valid BIP39 words'};
+      }
+      return {'error': e.toString()};
+    }
+  }
+
+  Future<Map<String, dynamic>> generateWalletFromEntropy(List<int> entropy, {String? passphrase}) async {
+    try {
+      // Create mnemonic from entropy
+      final mnemonic = Mnemonic(entropy, Language.english);
+      
+      // Generate seed using PBKDF2-HMAC-SHA512
+      final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
+      final params = Pbkdf2Parameters(utf8.encode('Bitcoin seed'), 2048, 64);
+      pbkdf2.init(params);
+      
+      // Use mnemonic sentence as the input key material
+      final seedBytes = pbkdf2.process(utf8.encode(mnemonic.sentence + (passphrase ?? '')));
+      final seedHex = hex.encode(seedBytes);
+      
+      // Create master key from seed
+      final chain = Chain.seed(seedHex);
+      final masterKey = chain.forPath('m') as ExtendedPrivateKey;
+
+      return {
+        'mnemonic': mnemonic.sentence,
+        'seed_hex': seedHex,
+        'bip39_binary': _bytesToBinary(mnemonic.entropy),
+        'bip39_checksum': _calculateChecksumBits(mnemonic.entropy),
+        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonic.entropy), radix: 2)]),
+        'master_key': masterKey.privateKeyHex(),
+        'chain_code': hex.encode(masterKey.chainCode!),
       };
     } catch (e) {
-      _logger.e('Error generating wallet: $e');
       return {'error': e.toString()};
     }
   }
@@ -86,11 +106,9 @@ class WalletService extends ChangeNotifier {
 
   Future<bool> saveWallet(Map<String, dynamic> walletData) async {
     try {
-      // Add name field for master starter
       walletData['name'] = 'Master';
 
-      // Validate required fields
-      final requiredFields = ['mnemonic', 'seed_hex', 'xprv'];
+      final requiredFields = ['mnemonic', 'seed_hex', 'master_key'];
       for (final field in requiredFields) {
         if (!walletData.containsKey(field) || walletData[field] == null) {
           throw Exception('Missing required wallet field: $field');
@@ -130,7 +148,7 @@ class WalletService extends ChangeNotifier {
       final walletJson = await walletFile.readAsString();
       final walletData = jsonDecode(walletJson) as Map<String, dynamic>;
 
-      if (!walletData.containsKey('mnemonic') || !walletData.containsKey('xprv')) {
+      if (!walletData.containsKey('mnemonic') || !walletData.containsKey('master_key')) {
         throw Exception('Invalid wallet data format');
       }
 
@@ -143,34 +161,41 @@ class WalletService extends ChangeNotifier {
 
   /// Derive a starter from the master wallet using a specific derivation path
   Future<Map<String, dynamic>> _deriveStarter(String derivationPath, {String? name}) async {
-    // Load and validate master wallet
-    final masterWallet = await loadWallet();
-    if (masterWallet == null) {
-      throw Exception('Master starter not found');
+    try {
+      // Load and validate master wallet
+      final masterWallet = await loadWallet();
+      if (masterWallet == null) {
+        throw Exception('Master starter not found');
+      }
+      if (!masterWallet.containsKey('seed_hex')) {
+        throw Exception('Master starter is missing required field: seed_hex');
+      }
+
+      // Create chain from seed hex and derive key
+      final chain = Chain.seed(masterWallet['seed_hex']);
+      final derivedKey = chain.forPath(derivationPath) as ExtendedPrivateKey;
+
+      // Generate new entropy from derived key
+      final privateKeyBytes = hex.decode(derivedKey.privateKeyHex());
+      final hashedKey = sha256.convert(privateKeyBytes).bytes;
+      final entropy = hashedKey.sublist(0, 16);
+
+      // Create new mnemonic from entropy
+      final mnemonic = Mnemonic(entropy, Language.english);
+      final seedHex = hex.encode(mnemonic.seed);
+
+      return {
+        'mnemonic': mnemonic.sentence,
+        'seed_hex': seedHex,
+        'master_key': derivedKey.privateKeyHex(),
+        'chain_code': hex.encode(derivedKey.chainCode!),
+        'parent_master_key': masterWallet['master_key'],
+        'derivation_path': derivationPath,
+        if (name != null) 'name': name,
+      };
+    } catch (e) {
+      rethrow;
     }
-    if (!masterWallet.containsKey('xprv')) {
-      throw Exception('Master starter is missing required field: xprv');
-    }
-
-    // Import master key and derive new key
-    final chain = Chain.import(masterWallet['xprv']);
-    final derivedKey = chain.forPath(derivationPath) as ExtendedPrivateKey;
-
-    // Hash the private key and take first 16 bytes for 128-bit entropy
-    final privateKeyBytes = hex.decode(derivedKey.privateKeyHex());
-    final hashedKey = sha256.convert(privateKeyBytes).bytes;
-    final entropy = hashedKey.sublist(0, 16);
-
-    final mnemonic = Mnemonic(entropy, Language.english);
-
-    return {
-      'mnemonic': mnemonic.sentence,
-      'seed_hex': hex.encode(mnemonic.seed),
-      'xprv': derivedKey.toString(),
-      'parent_xprv': masterWallet['xprv'],
-      'derivation_path': derivationPath,
-      if (name != null) 'name': name,
-    };
   }
 
   Future<Map<String, dynamic>?> deriveSidechainStarter(int sidechainSlot) async {
@@ -291,6 +316,7 @@ class WalletService extends ChangeNotifier {
 
       // Check for downloaded L1 chain first
       final l1Chain = binaries.firstWhere((b) => b.chainLayer == 1);
+      
       final appDir = await Environment.appDir();
       final assetsDir = Directory(path.join(appDir.path, 'assets'));
       final binaryPath = path.join(assetsDir.path, l1Chain.binary);
@@ -300,11 +326,18 @@ class WalletService extends ChangeNotifier {
       }
 
       // For each L2 chain in binaries
-      for (final chain in binaryProvider.getL2Chains()) {
+      final l2Chains = binaryProvider.getL2Chains();
+      
+      for (final chain in l2Chains) {
         if (chain is Sidechain) {
           final binaryPath = path.join(assetsDir.path, chain.binary);
+          
           if (File(binaryPath).existsSync()) {
-            await deriveSidechainStarter(chain.slot);
+            try {
+              await deriveSidechainStarter(chain.slot);
+            } catch (e) {
+              _logger.e('Error deriving starter for ${chain.name}: $e');
+            }
           }
         }
       }
@@ -312,7 +345,7 @@ class WalletService extends ChangeNotifier {
       // Notify listeners after all starters are generated
       notifyListeners();
     } catch (e, stack) {
-      debugPrint('Error generating starters: $e\n$stack');
+      _logger.e('Error generating starters for downloaded chains: $e\n$stack');
     }
   }
 }
