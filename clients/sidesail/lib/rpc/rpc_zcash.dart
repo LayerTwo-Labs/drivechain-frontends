@@ -96,6 +96,7 @@ abstract class ZCashRPC extends SidechainRPC {
   Future<void> initBinary(
     BuildContext context, {
     List<String>? arg,
+    String? mnemonicPath,
   }) async {
     final args = await binaryArgs(conf);
     args.addAll(arg ?? []);

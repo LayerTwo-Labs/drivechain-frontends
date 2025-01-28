@@ -272,6 +272,15 @@ class TestchainRPCLive extends TestchainRPC {
     final confirmedFut = await _client().call('getblockchaininfo');
     return BlockchainInfo.fromMap(confirmedFut);
   }
+
+  @override
+  Future<void> initBinary(
+    BuildContext context, {
+    List<String>? arg,
+    String? mnemonicPath,
+  }) async {
+    await super.initBinary(context, arg: arg, mnemonicPath: mnemonicPath);
+  }
 }
 
 class TestchainRPCError {
