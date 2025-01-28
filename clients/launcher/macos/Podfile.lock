@@ -46,14 +46,14 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/window_manager/macos
 
 SPEC CHECKSUMS:
-  flutter_platform_alert: 8fa7a7c21f95b26d08b4a3891936ca27e375f284
-  flutter_window_close: bd408414cbbf0d39f0d3076c4da0cdbf1c527168
+  flutter_platform_alert: 49f22b31593e29e7a5e65f1b80f8d3de02b95dd4
+  flutter_window_close: a0f4f388e956ebafa866e3e171ce837c166eab9c
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
-  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
-  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
-  url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
-  window_manager: 1d01fa7ac65a6e6f83b965471b1a7fdd3f06166c
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  screen_retriever_macos: 776e0fa5d42c6163d2bf772d22478df4b302b161
+  shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
+  url_launcher_macos: c82c93949963e55b228a30115bd219499a6fe404
+  window_manager: 3a1844359a6295ab1e47659b1a777e36773cd6e8
 
 PODFILE CHECKSUM: 236401fc2c932af29a9fcf0e97baeeb2d750d367
 
