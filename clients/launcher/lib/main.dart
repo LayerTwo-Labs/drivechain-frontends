@@ -173,9 +173,9 @@ Future<void> initDependencies(Logger log) async {
     QuotesProvider(prefs),
   );
 
-  // Register services
-  GetIt.I.registerLazySingleton<WalletService>(
-    () => WalletService(),
+  // Register wallet service
+  GetIt.I.registerSingleton<WalletService>(
+    WalletService(binaryProvider),
   );
 }
 
