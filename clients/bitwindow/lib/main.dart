@@ -2,20 +2,20 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:bitwindow/env.dart';
-import 'package:bitwindow/providers/balance_provider.dart';
-import 'package:connectrpc/protocol/grpc.dart' as grpc;
-import 'package:connectrpc/protocol/connect.dart' as connect;
-import 'package:connectrpc/protobuf.dart' as protobuf;
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart' as protobuf;
+import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -127,7 +127,7 @@ Future<void> initDependencies(Logger log, File logFile) async {
 
   var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
   log.i('logging server logs to: $serverLogFile');
-  final baseUrl = 'http://${Environment.bitwindowdHost}:${Environment.bitwindowdPort}';
+  final baseUrl = 'http://${Environment.bitwindowdHost.value}:${Environment.bitwindowdPort.value}';
   final httpClient = createHttpClient();
   final connectTransport = connect.Transport(
     baseUrl: baseUrl,
@@ -155,11 +155,20 @@ Future<void> initDependencies(Logger log, File logFile) async {
     logPath: serverLogFile,
   );
 
+  final mainchainRPC = await MainchainRPCLive.create(
+    ParentChain(),
+  );
+  GetIt.I.registerLazySingleton<MainchainRPC>(
+    () => mainchainRPC,
+  );
+
   GetIt.I.registerLazySingleton<EnforcerRPC>(
     () => enforcer,
   );
 
-  final balanceProvider = BalanceProvider();
+  final balanceProvider = BalanceProvider(
+    connections: [bitwindow],
+  );
   GetIt.I.registerLazySingleton<BalanceProvider>(
     () => balanceProvider,
   );
@@ -188,13 +197,6 @@ Future<void> initDependencies(Logger log, File logFile) async {
     () => sidechainProvider,
   );
   unawaited(sidechainProvider.fetch());
-
-  final mainchainRPC = await MainchainRPCLive.create(
-    ParentChain(),
-  );
-  GetIt.I.registerLazySingleton<MainchainRPC>(
-    () => mainchainRPC,
-  );
 }
 
 Future<void> initMainchainBinary(

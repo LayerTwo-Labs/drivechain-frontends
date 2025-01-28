@@ -72,4 +72,25 @@ class MockSidechainRPC extends SidechainRPC {
   Future<String> getSideAddress() async {
     return 'taddress';
   }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    // can't trust the rpc, give it a moment to stop
+    await Future.delayed(const Duration(seconds: 5));
+    return BlockchainInfo(
+      chain: 'mocknet',
+      blocks: 100,
+      headers: 100,
+      bestBlockHash: '',
+      difficulty: 0,
+      time: 0,
+      medianTime: 0,
+      verificationProgress: 100.0,
+      initialBlockDownload: false,
+      chainWork: '',
+      sizeOnDisk: 0,
+      pruned: false,
+      warnings: [],
+    );
+  }
 }

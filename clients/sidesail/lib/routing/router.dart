@@ -9,8 +9,6 @@ import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
 import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/deposit_withdraw_tab_route.dart';
-import 'package:sidesail/pages/tabs/testchain/mainchain/transfer_mainchain_tab_route.dart';
-import 'package:sidesail/pages/tabs/testchain/mainchain/withdrawal_explorer.dart';
 import 'package:sidesail/pages/tabs/testchain/testchain_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_bill_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_melt_cast_page.dart';
@@ -51,9 +49,6 @@ class AppRouter extends RootStackRouter {
             ),
             AutoRoute(
               page: DepositWithdrawTabRoute.page,
-            ),
-            AutoRoute(
-              page: WithdrawalExplorerTabRoute.page,
             ),
             AutoRoute(
               page: BlindMergedMiningTabRoute.page,

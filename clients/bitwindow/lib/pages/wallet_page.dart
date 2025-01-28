@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +9,7 @@ import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -70,7 +70,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                 child: SailTextField(
                   label: 'Pay To',
                   controller: viewModel.addressController,
-                  hintText: 'Enter a Drivechain address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                  hintText: 'Enter a L1 bitcoin-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
                   size: TextFieldSize.small,
                 ),
               ),
@@ -360,7 +360,7 @@ class SendPageViewModel extends BaseViewModel {
     // Get the balance from the node
     try {
       subtractFee = true;
-      final balance = satoshiToBTC(balanceProvider.balance) - feeRate;
+      final balance = balanceProvider.balance - feeRate;
       amountController.text = balance.toStringAsFixed(8);
       notifyListeners();
     } catch (error) {

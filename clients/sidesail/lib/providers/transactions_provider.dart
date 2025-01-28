@@ -4,11 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/rpc/rpc_mainchain.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class TransactionsProvider extends ChangeNotifier {
-  MainchainRPC get _mainchainRPC => GetIt.I.get<MainchainRPC>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   Logger get log => GetIt.I.get<Logger>();
 
@@ -22,7 +20,6 @@ class TransactionsProvider extends ChangeNotifier {
   bool _isFetching = false;
 
   TransactionsProvider() {
-    _mainchainRPC.addListener(fetch);
     sidechain.rpc.addListener(fetch);
     fetch();
   }
@@ -35,12 +32,10 @@ class TransactionsProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newUnspentMainchainUTXOs = (await _mainchainRPC.listUnspent()).reversed.take(100).toList();
       final newSidechainTransactions = (await sidechain.rpc.listTransactions()).reversed.toList();
       const newInitialized = true;
 
-      if (_dataHasChanged(newUnspentMainchainUTXOs, newSidechainTransactions, newInitialized)) {
-        unspentMainchainUTXOs = newUnspentMainchainUTXOs;
+      if (_dataHasChanged(newSidechainTransactions, newInitialized)) {
         sidechainTransactions = newSidechainTransactions;
         initialized = newInitialized;
         notifyListeners();
@@ -51,15 +46,10 @@ class TransactionsProvider extends ChangeNotifier {
   }
 
   bool _dataHasChanged(
-    List<UTXO> newUnspentMainchainUTXOs,
     List<CoreTransaction> newSidechainTransactions,
     bool newInitialized,
   ) {
     if (newInitialized != initialized) {
-      return true;
-    }
-
-    if (!listEquals(unspentMainchainUTXOs, newUnspentMainchainUTXOs)) {
       return true;
     }
 

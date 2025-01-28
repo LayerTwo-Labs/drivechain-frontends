@@ -156,6 +156,11 @@ class MockEnforcerRPC extends EnforcerRPC {
 
   @override
   ValidatorServiceClient get validator => throw UnimplementedError();
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() {
+    throw UnimplementedError();
+  }
 }
 
 class MockBitwindowRPC extends BitwindowRPC {
@@ -226,6 +231,11 @@ class MockBitwindowRPC extends BitwindowRPC {
   WalletAPI get wallet => throw UnimplementedError();
   @override
   BitwindowAPI get bitwindowd => throw UnimplementedError();
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() {
+    throw UnimplementedError();
+  }
 }
 
 class MockThunderRPC extends ThunderRPC {
@@ -282,6 +292,11 @@ class MockThunderRPC extends ThunderRPC {
   Future<int> ping() {
     return Future.value(0);
   }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() {
+    throw UnimplementedError();
+  }
 }
 
 class MockBitnamesRPC extends BitnamesRPC {
@@ -337,6 +352,11 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<int> ping() {
     return Future.value(0);
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() {
+    throw UnimplementedError();
   }
 }
 

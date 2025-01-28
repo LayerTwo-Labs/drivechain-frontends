@@ -43,6 +43,9 @@ abstract class RPCConnection extends ChangeNotifier {
   /// Returns confirmed and unconfirmed balance.
   Future<(double, double)> balance();
 
+  /// Fetches the latest blockchain info.
+  Future<BlockchainInfo> getBlockchainInfo();
+
   bool initializingBinary = false;
   bool stoppingBinary = false;
   bool _testing = false;
@@ -446,4 +449,9 @@ String extractConnectException(
   } else {
     return messageIfUnknown;
   }
+}
+
+/// Interface for RPCs that can fetch balance information
+abstract class BalanceCapableRPC {
+  Future<(int confirmedBalance, int pendingBalance)> getBalance();
 }

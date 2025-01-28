@@ -176,6 +176,7 @@ class EthereumRPCLive extends EthereumRPC {
     throw UnimplementedError();
   }
 
+  @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     return BlockchainInfo(
       chain: chain.name,

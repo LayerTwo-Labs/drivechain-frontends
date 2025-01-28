@@ -1,9 +1,9 @@
-import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/file_utils.dart';
@@ -60,11 +60,12 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<BalanceProvider>()) {
-    GetIt.I.registerLazySingleton<BalanceProvider>(
-      () => BalanceProvider(),
-    );
-  }
+  final balanceProvider = BalanceProvider(
+    connections: [MockAPI(conf: NodeConnectionSettings.empty(), binary: MockBinary(), logPath: '')],
+  );
+  GetIt.I.registerLazySingleton<BalanceProvider>(
+    () => balanceProvider,
+  );
 
   if (!GetIt.I.isRegistered<BlockchainProvider>()) {
     GetIt.I.registerLazySingleton<BlockchainProvider>(
