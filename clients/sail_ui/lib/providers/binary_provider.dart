@@ -164,9 +164,31 @@ class BinaryProvider extends ChangeNotifier {
     _statusController.add(Map.from(_downloadStates));
   }
 
+  /// Check if a binary can be started based on its dependencies
+  String? canStart(Binary binary) {
+    final mainchainReady = mainchainConnected && !inIBD;
+    return switch (binary) {
+      Enforcer() =>
+        mainchainReady ? null : 'Mainchain must be started and fully synced before starting Enforcer',
+      BitWindow() => 
+        enforcerConnected && mainchainReady ? null : 'Mainchain and Enforcer must be running and fully synced before starting BitWindow',
+      Thunder() => 
+        enforcerConnected && mainchainReady ? null : 'Mainchain and Enforcer must be running and fully synced before starting Thunder',
+      Bitnames() => 
+        enforcerConnected && mainchainReady ? null : 'Mainchain and Enforcer must be running and fully synced before starting Bitnames',
+      _ => null, // No requirements for mainchain
+    };
+  }
+
   // Start a binary, and set starter seeds (if set)
   Future<void> startBinary(BuildContext context, Binary binary, {bool useStarter = false}) async {
     if (!context.mounted) return;
+
+    final startError = canStart(binary);
+    if (startError != null) {
+      log.e('Cannot start ${binary.name}: $startError');
+      throw Exception(startError);
+    }
 
     if (useStarter && (binary is Thunder || binary is Bitnames)) {
       try {
@@ -272,18 +294,6 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> _cleanUp(Directory datadir) async {
     final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads'));
     await downloadsDir.delete(recursive: true);
-  }
-
-  /// Check if a binary can be started based on its dependencies
-  String? canStart(Binary binary) {
-    return switch (binary) {
-      Enforcer() =>
-        mainchainConnected && !inIBD ? null : 'Mainchain must be started and fully synced before starting Enforcer',
-      BitWindow() => enforcerConnected ? null : 'Enforcer must be running and fully synced before starting BitWindow',
-      Thunder() => enforcerConnected ? null : 'Enforcer must be running and fully synced before starting Thunder',
-      Bitnames() => enforcerConnected ? null : 'Enforcer must be running and fully synced before starting Bitnames',
-      _ => null, // No requirements for mainchain
-    };
   }
 
   Future<bool> _isSidechainInitialized(int slot) async {

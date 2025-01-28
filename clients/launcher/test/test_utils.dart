@@ -116,7 +116,7 @@ Future<void> registerTestDependencies() async {
 
   if (!GetIt.I.isRegistered<WalletService>()) {
     GetIt.I.registerLazySingleton<WalletService>(
-      () => WalletService(GetIt.I.get<BinaryProvider>()),
+      () => WalletService(),
     );
   }
 }

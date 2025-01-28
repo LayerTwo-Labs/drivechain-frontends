@@ -132,16 +132,7 @@ abstract class RPCConnection extends ChangeNotifier {
   Future<void> initBinary(
     BuildContext context, {
     List<String>? arg,
-    String? mnemonicPath,
   }) async {
-    if (mnemonicPath != null && binary is Sidechain) {
-      final sidechain = binary as Sidechain;
-      // Only set the mnemonic path if it's not already set
-      if (sidechain.mnemonicSeedPhrasePath == null) {
-        sidechain.mnemonicSeedPhrasePath = mnemonicPath;
-      }
-    }
-
     final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
 
