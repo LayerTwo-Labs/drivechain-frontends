@@ -324,16 +324,16 @@ class BinaryProvider extends ChangeNotifier {
     if (binary is! Sidechain) return;
 
     try {
-      // Skip if mnemonic path is already set
-      if (binary.mnemonicSeedPhrasePath != null) {
-        log.i('Sidechain ${binary.name} already has mnemonic path set, skipping seed setup');
-        return;
-      }
-
       // Check if this sidechain has already been initialized
       final isInitialized = await _isSidechainInitialized(binary.slot);
       if (isInitialized) {
         log.i('Sidechain ${binary.name} already initialized, skipping seed setup');
+        return;
+      }
+
+      // Skip if mnemonic path is already set
+      if (binary.mnemonicSeedPhrasePath != null) {
+        log.i('Sidechain ${binary.name} already has mnemonic path set, skipping seed setup');
         return;
       }
 
