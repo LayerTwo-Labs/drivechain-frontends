@@ -13,13 +13,13 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../../google/protobuf/wrappers.pb.dart' as $4;
-import '../../common/v1/common.pb.dart' as $5;
+import '../../../google/protobuf/wrappers.pb.dart' as $0;
+import '../../common/v1/common.pb.dart' as $1;
 
 class OutPoint extends $pb.GeneratedMessage {
   factory OutPoint({
-    $5.ReverseHex? txid,
-    $4.UInt32Value? vout,
+    $1.ReverseHex? txid,
+    $0.UInt32Value? vout,
   }) {
     final $result = create();
     if (txid != null) {
@@ -35,8 +35,8 @@ class OutPoint extends $pb.GeneratedMessage {
   factory OutPoint.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'OutPoint', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $5.ReverseHex.create)
-    ..aOM<$4.UInt32Value>(2, _omitFieldNames ? '' : 'vout', subBuilder: $4.UInt32Value.create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $1.ReverseHex.create)
+    ..aOM<$0.UInt32Value>(2, _omitFieldNames ? '' : 'vout', subBuilder: $0.UInt32Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -62,34 +62,34 @@ class OutPoint extends $pb.GeneratedMessage {
   static OutPoint? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.ReverseHex get txid => $_getN(0);
+  $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($5.ReverseHex v) { setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
-  $5.ReverseHex ensureTxid() => $_ensure(0);
+  $1.ReverseHex ensureTxid() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.UInt32Value get vout => $_getN(1);
+  $0.UInt32Value get vout => $_getN(1);
   @$pb.TagNumber(2)
-  set vout($4.UInt32Value v) { setField(2, v); }
+  set vout($0.UInt32Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
   void clearVout() => clearField(2);
   @$pb.TagNumber(2)
-  $4.UInt32Value ensureVout() => $_ensure(1);
+  $0.UInt32Value ensureVout() => $_ensure(1);
 }
 
 class SidechainDeclaration_V0 extends $pb.GeneratedMessage {
   factory SidechainDeclaration_V0({
-    $4.StringValue? title,
-    $4.StringValue? description,
-    $5.ConsensusHex? hashId1,
-    $5.Hex? hashId2,
+    $0.StringValue? title,
+    $0.StringValue? description,
+    $1.ConsensusHex? hashId1,
+    $1.Hex? hashId2,
   }) {
     final $result = create();
     if (title != null) {
@@ -111,10 +111,10 @@ class SidechainDeclaration_V0 extends $pb.GeneratedMessage {
   factory SidechainDeclaration_V0.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SidechainDeclaration.V0', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.StringValue>(1, _omitFieldNames ? '' : 'title', subBuilder: $4.StringValue.create)
-    ..aOM<$4.StringValue>(2, _omitFieldNames ? '' : 'description', subBuilder: $4.StringValue.create)
-    ..aOM<$5.ConsensusHex>(3, _omitFieldNames ? '' : 'hashId1', protoName: 'hash_id_1', subBuilder: $5.ConsensusHex.create)
-    ..aOM<$5.Hex>(4, _omitFieldNames ? '' : 'hashId2', protoName: 'hash_id_2', subBuilder: $5.Hex.create)
+    ..aOM<$0.StringValue>(1, _omitFieldNames ? '' : 'title', subBuilder: $0.StringValue.create)
+    ..aOM<$0.StringValue>(2, _omitFieldNames ? '' : 'description', subBuilder: $0.StringValue.create)
+    ..aOM<$1.ConsensusHex>(3, _omitFieldNames ? '' : 'hashId1', protoName: 'hash_id_1', subBuilder: $1.ConsensusHex.create)
+    ..aOM<$1.Hex>(4, _omitFieldNames ? '' : 'hashId2', protoName: 'hash_id_2', subBuilder: $1.Hex.create)
     ..hasRequiredFields = false
   ;
 
@@ -140,48 +140,48 @@ class SidechainDeclaration_V0 extends $pb.GeneratedMessage {
   static SidechainDeclaration_V0? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.StringValue get title => $_getN(0);
+  $0.StringValue get title => $_getN(0);
   @$pb.TagNumber(1)
-  set title($4.StringValue v) { setField(1, v); }
+  set title($0.StringValue v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTitle() => $_has(0);
   @$pb.TagNumber(1)
   void clearTitle() => clearField(1);
   @$pb.TagNumber(1)
-  $4.StringValue ensureTitle() => $_ensure(0);
+  $0.StringValue ensureTitle() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.StringValue get description => $_getN(1);
+  $0.StringValue get description => $_getN(1);
   @$pb.TagNumber(2)
-  set description($4.StringValue v) { setField(2, v); }
+  set description($0.StringValue v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasDescription() => $_has(1);
   @$pb.TagNumber(2)
   void clearDescription() => clearField(2);
   @$pb.TagNumber(2)
-  $4.StringValue ensureDescription() => $_ensure(1);
+  $0.StringValue ensureDescription() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $5.ConsensusHex get hashId1 => $_getN(2);
+  $1.ConsensusHex get hashId1 => $_getN(2);
   @$pb.TagNumber(3)
-  set hashId1($5.ConsensusHex v) { setField(3, v); }
+  set hashId1($1.ConsensusHex v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasHashId1() => $_has(2);
   @$pb.TagNumber(3)
   void clearHashId1() => clearField(3);
   @$pb.TagNumber(3)
-  $5.ConsensusHex ensureHashId1() => $_ensure(2);
+  $1.ConsensusHex ensureHashId1() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $5.Hex get hashId2 => $_getN(3);
+  $1.Hex get hashId2 => $_getN(3);
   @$pb.TagNumber(4)
-  set hashId2($5.Hex v) { setField(4, v); }
+  set hashId2($1.Hex v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasHashId2() => $_has(3);
   @$pb.TagNumber(4)
   void clearHashId2() => clearField(4);
   @$pb.TagNumber(4)
-  $5.Hex ensureHashId2() => $_ensure(3);
+  $1.Hex ensureHashId2() => $_ensure(3);
 }
 
 enum SidechainDeclaration_SidechainDeclaration {

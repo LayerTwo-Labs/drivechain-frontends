@@ -9,12 +9,14 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
+import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/timestamp.pb.dart' as $5;
+import '../../google/protobuf/empty.pb.dart' as $1;
+import '../../google/protobuf/timestamp.pb.dart' as $0;
 
 class ListOPReturnResponse extends $pb.GeneratedMessage {
   factory ListOPReturnResponse({
@@ -68,7 +70,7 @@ class OPReturn extends $pb.GeneratedMessage {
     $core.int? vout,
     $core.int? height,
     $fixnum.Int64? feeSats,
-    $5.Timestamp? createTime,
+    $0.Timestamp? createTime,
   }) {
     final $result = create();
     if (id != null) {
@@ -105,7 +107,7 @@ class OPReturn extends $pb.GeneratedMessage {
     ..a<$core.int>(4, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.O3)
     ..a<$core.int>(5, _omitFieldNames ? '' : 'height', $pb.PbFieldType.O3)
     ..aInt64(6, _omitFieldNames ? '' : 'feeSats')
-    ..aOM<$5.Timestamp>(7, _omitFieldNames ? '' : 'createTime', subBuilder: $5.Timestamp.create)
+    ..aOM<$0.Timestamp>(7, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -185,15 +187,15 @@ class OPReturn extends $pb.GeneratedMessage {
   void clearFeeSats() => clearField(6);
 
   @$pb.TagNumber(7)
-  $5.Timestamp get createTime => $_getN(6);
+  $0.Timestamp get createTime => $_getN(6);
   @$pb.TagNumber(7)
-  set createTime($5.Timestamp v) { setField(7, v); }
+  set createTime($0.Timestamp v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasCreateTime() => $_has(6);
   @$pb.TagNumber(7)
   void clearCreateTime() => clearField(7);
   @$pb.TagNumber(7)
-  $5.Timestamp ensureCreateTime() => $_ensure(6);
+  $0.Timestamp ensureCreateTime() => $_ensure(6);
 }
 
 class BroadcastNewsRequest extends $pb.GeneratedMessage {
@@ -429,7 +431,7 @@ class Topic extends $pb.GeneratedMessage {
     $fixnum.Int64? id,
     $core.String? topic,
     $core.String? name,
-    $5.Timestamp? createTime,
+    $0.Timestamp? createTime,
   }) {
     final $result = create();
     if (id != null) {
@@ -454,7 +456,7 @@ class Topic extends $pb.GeneratedMessage {
     ..aInt64(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'topic')
     ..aOS(3, _omitFieldNames ? '' : 'name')
-    ..aOM<$5.Timestamp>(4, _omitFieldNames ? '' : 'createTime', subBuilder: $5.Timestamp.create)
+    ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -507,15 +509,15 @@ class Topic extends $pb.GeneratedMessage {
   void clearName() => clearField(3);
 
   @$pb.TagNumber(4)
-  $5.Timestamp get createTime => $_getN(3);
+  $0.Timestamp get createTime => $_getN(3);
   @$pb.TagNumber(4)
-  set createTime($5.Timestamp v) { setField(4, v); }
+  set createTime($0.Timestamp v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasCreateTime() => $_has(3);
   @$pb.TagNumber(4)
   void clearCreateTime() => clearField(4);
   @$pb.TagNumber(4)
-  $5.Timestamp ensureCreateTime() => $_ensure(3);
+  $0.Timestamp ensureCreateTime() => $_ensure(3);
 }
 
 class ListTopicsResponse extends $pb.GeneratedMessage {
@@ -620,7 +622,7 @@ class CoinNews extends $pb.GeneratedMessage {
     $core.String? headline,
     $core.String? content,
     $fixnum.Int64? feeSats,
-    $5.Timestamp? createTime,
+    $0.Timestamp? createTime,
   }) {
     final $result = create();
     if (id != null) {
@@ -653,7 +655,7 @@ class CoinNews extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'headline')
     ..aOS(4, _omitFieldNames ? '' : 'content')
     ..aInt64(5, _omitFieldNames ? '' : 'feeSats')
-    ..aOM<$5.Timestamp>(6, _omitFieldNames ? '' : 'createTime', subBuilder: $5.Timestamp.create)
+    ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -724,15 +726,15 @@ class CoinNews extends $pb.GeneratedMessage {
   void clearFeeSats() => clearField(5);
 
   @$pb.TagNumber(6)
-  $5.Timestamp get createTime => $_getN(5);
+  $0.Timestamp get createTime => $_getN(5);
   @$pb.TagNumber(6)
-  set createTime($5.Timestamp v) { setField(6, v); }
+  set createTime($0.Timestamp v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasCreateTime() => $_has(5);
   @$pb.TagNumber(6)
   void clearCreateTime() => clearField(6);
   @$pb.TagNumber(6)
-  $5.Timestamp ensureCreateTime() => $_ensure(5);
+  $0.Timestamp ensureCreateTime() => $_ensure(5);
 }
 
 class ListCoinNewsResponse extends $pb.GeneratedMessage {
@@ -777,6 +779,27 @@ class ListCoinNewsResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $core.List<CoinNews> get coinNews => $_getList(0);
+}
+
+class MiscServiceApi {
+  $pb.RpcClient _client;
+  MiscServiceApi(this._client);
+
+  $async.Future<ListOPReturnResponse> listOPReturn($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<ListOPReturnResponse>(ctx, 'MiscService', 'ListOPReturn', request, ListOPReturnResponse())
+  ;
+  $async.Future<BroadcastNewsResponse> broadcastNews($pb.ClientContext? ctx, BroadcastNewsRequest request) =>
+    _client.invoke<BroadcastNewsResponse>(ctx, 'MiscService', 'BroadcastNews', request, BroadcastNewsResponse())
+  ;
+  $async.Future<CreateTopicResponse> createTopic($pb.ClientContext? ctx, CreateTopicRequest request) =>
+    _client.invoke<CreateTopicResponse>(ctx, 'MiscService', 'CreateTopic', request, CreateTopicResponse())
+  ;
+  $async.Future<ListTopicsResponse> listTopics($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<ListTopicsResponse>(ctx, 'MiscService', 'ListTopics', request, ListTopicsResponse())
+  ;
+  $async.Future<ListCoinNewsResponse> listCoinNews($pb.ClientContext? ctx, ListCoinNewsRequest request) =>
+    _client.invoke<ListCoinNewsResponse>(ctx, 'MiscService', 'ListCoinNews', request, ListCoinNewsResponse())
+  ;
 }
 
 

@@ -1,11 +1,13 @@
 version: v2
 
+managed:
+  enabled: true
+
 plugins:
-  - remote: buf.build/protocolbuffers/dart:v21.1.2
+  - remote: buf.build/connectrpc/dart
+    out: lib/gen
+
+  - remote: buf.build/protocolbuffers/dart
     out: lib/gen
     include_wkt: true
     include_imports: true
-    # Closest I can get to 'docs' for the available options
-    # https://github.com/google/protobuf.dart/blob/ccf104dbc36929c0f8708285d5f3a8fae206343e/protoc_plugin/lib/src/options.dart#L114
-    opt:
-      - grpc

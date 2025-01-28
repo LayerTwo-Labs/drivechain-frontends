@@ -5,8 +5,8 @@ import 'package:bitwindow/widgets/error_container.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
+import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -17,7 +17,7 @@ class OverviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return QtPage(
+    return const QtPage(
       child: SingleChildScrollView(
         child: SailColumn(
           spacing: SailStyleValues.padding16,
@@ -384,9 +384,9 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
     return SailTable(
       getRowId: (index) => widget.blocks[index].hash,
       headerBuilder: (context) => [
-        SailTableHeaderCell(name: 'Time'),
-        SailTableHeaderCell(name: 'Height'),
-        SailTableHeaderCell(name: 'Block Hash'),
+        const SailTableHeaderCell(name: 'Time'),
+        const SailTableHeaderCell(name: 'Height'),
+        const SailTableHeaderCell(name: 'Block Hash'),
       ],
       rowBuilder: (context, row, selected) {
         final entry = widget.blocks[row];
@@ -464,11 +464,11 @@ class CoinNewsView extends StatelessWidget {
       builder: (context, viewModel, child) {
         return SailRawCard(
           header: Padding(
-            padding: EdgeInsets.only(bottom: SailStyleValues.padding16),
+            padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
             child: SailRow(
               spacing: SailStyleValues.padding08,
               children: [
-                CardHeader(
+                const CardHeader(
                   title: 'Coin News',
                   subtitle: 'Stay up-to-date on the latest world developments',
                 ),
@@ -568,7 +568,7 @@ class CoinNewsView extends StatelessWidget {
       context: context,
       title: 'Broadcast News',
       subtitle: 'Broadcast News to the whole world, in the list you prefer.',
-      child: BroadcastNewsView(),
+      child: const BroadcastNewsView(),
     );
   }
 
@@ -577,7 +577,7 @@ class CoinNewsView extends StatelessWidget {
       context: context,
       title: 'Create Topic',
       subtitle: 'Create a new topic, that you and others can subscribe to, and post news for.',
-      child: CreateTopicView(),
+      child: const CreateTopicView(),
     );
   }
 
@@ -587,7 +587,7 @@ class CoinNewsView extends StatelessWidget {
       title: 'Graffitti Explorer',
       subtitle: 'List all previous OP_RETURN messages found in the blockchain.',
       maxWidth: MediaQuery.of(context).size.width - 100,
-      child: GraffittiExplorerView(),
+      child: const GraffittiExplorerView(),
     );
   }
 }
@@ -877,9 +877,9 @@ class CoinNewsTable extends StatelessWidget {
     return SailTable(
       getRowId: (index) => entries[index].id.toString(),
       headerBuilder: (context) => [
-        SailTableHeaderCell(name: 'Fee'),
-        SailTableHeaderCell(name: 'Time'),
-        SailTableHeaderCell(name: 'Headline'),
+        const SailTableHeaderCell(name: 'Fee'),
+        const SailTableHeaderCell(name: 'Time'),
+        const SailTableHeaderCell(name: 'Headline'),
       ],
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
@@ -936,7 +936,7 @@ class GraffittiExplorerView extends StatelessWidget {
     await widgetDialog(
       context: context,
       title: 'New Graffitti',
-      child: NewGraffittiView(),
+      child: const NewGraffittiView(),
     );
   }
 }

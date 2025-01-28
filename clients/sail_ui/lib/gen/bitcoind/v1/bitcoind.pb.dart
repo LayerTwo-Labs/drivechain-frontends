@@ -9,12 +9,14 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
+import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/timestamp.pb.dart' as $5;
+import '../../google/protobuf/empty.pb.dart' as $1;
+import '../../google/protobuf/timestamp.pb.dart' as $0;
 
 class ListRecentBlocksRequest extends $pb.GeneratedMessage {
   factory ListRecentBlocksRequest({
@@ -68,7 +70,7 @@ class ListRecentBlocksRequest extends $pb.GeneratedMessage {
 
 class Block extends $pb.GeneratedMessage {
   factory Block({
-    $5.Timestamp? blockTime,
+    $0.Timestamp? blockTime,
     $core.int? blockHeight,
     $core.String? hash,
   }) {
@@ -89,7 +91,7 @@ class Block extends $pb.GeneratedMessage {
   factory Block.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Block', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
-    ..aOM<$5.Timestamp>(1, _omitFieldNames ? '' : 'blockTime', subBuilder: $5.Timestamp.create)
+    ..aOM<$0.Timestamp>(1, _omitFieldNames ? '' : 'blockTime', subBuilder: $0.Timestamp.create)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'blockHeight', $pb.PbFieldType.OU3)
     ..aOS(3, _omitFieldNames ? '' : 'hash')
     ..hasRequiredFields = false
@@ -117,15 +119,15 @@ class Block extends $pb.GeneratedMessage {
   static Block? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.Timestamp get blockTime => $_getN(0);
+  $0.Timestamp get blockTime => $_getN(0);
   @$pb.TagNumber(1)
-  set blockTime($5.Timestamp v) { setField(1, v); }
+  set blockTime($0.Timestamp v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockTime() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockTime() => clearField(1);
   @$pb.TagNumber(1)
-  $5.Timestamp ensureBlockTime() => $_ensure(0);
+  $0.Timestamp ensureBlockTime() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $core.int get blockHeight => $_getIZ(1);
@@ -287,7 +289,7 @@ class ListRecentTransactionsResponse extends $pb.GeneratedMessage {
 class RecentTransaction extends $pb.GeneratedMessage {
   factory RecentTransaction({
     $core.int? virtualSize,
-    $5.Timestamp? time,
+    $0.Timestamp? time,
     $core.String? txid,
     $fixnum.Int64? feeSats,
     Block? confirmedInBlock,
@@ -316,7 +318,7 @@ class RecentTransaction extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RecentTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoind.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'virtualSize', $pb.PbFieldType.OU3)
-    ..aOM<$5.Timestamp>(2, _omitFieldNames ? '' : 'time', subBuilder: $5.Timestamp.create)
+    ..aOM<$0.Timestamp>(2, _omitFieldNames ? '' : 'time', subBuilder: $0.Timestamp.create)
     ..aOS(3, _omitFieldNames ? '' : 'txid')
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'feeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOM<Block>(5, _omitFieldNames ? '' : 'confirmedInBlock', subBuilder: Block.create)
@@ -354,15 +356,15 @@ class RecentTransaction extends $pb.GeneratedMessage {
   void clearVirtualSize() => clearField(1);
 
   @$pb.TagNumber(2)
-  $5.Timestamp get time => $_getN(1);
+  $0.Timestamp get time => $_getN(1);
   @$pb.TagNumber(2)
-  set time($5.Timestamp v) { setField(2, v); }
+  set time($0.Timestamp v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasTime() => $_has(1);
   @$pb.TagNumber(2)
   void clearTime() => clearField(2);
   @$pb.TagNumber(2)
-  $5.Timestamp ensureTime() => $_ensure(1);
+  $0.Timestamp ensureTime() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $core.String get txid => $_getSZ(2);
@@ -728,6 +730,27 @@ class EstimateSmartFeeResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $core.List<$core.String> get errors => $_getList(1);
+}
+
+class BitcoindServiceApi {
+  $pb.RpcClient _client;
+  BitcoindServiceApi(this._client);
+
+  $async.Future<ListRecentTransactionsResponse> listRecentTransactions($pb.ClientContext? ctx, ListRecentTransactionsRequest request) =>
+    _client.invoke<ListRecentTransactionsResponse>(ctx, 'BitcoindService', 'ListRecentTransactions', request, ListRecentTransactionsResponse())
+  ;
+  $async.Future<ListRecentBlocksResponse> listRecentBlocks($pb.ClientContext? ctx, ListRecentBlocksRequest request) =>
+    _client.invoke<ListRecentBlocksResponse>(ctx, 'BitcoindService', 'ListRecentBlocks', request, ListRecentBlocksResponse())
+  ;
+  $async.Future<GetBlockchainInfoResponse> getBlockchainInfo($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetBlockchainInfoResponse>(ctx, 'BitcoindService', 'GetBlockchainInfo', request, GetBlockchainInfoResponse())
+  ;
+  $async.Future<ListPeersResponse> listPeers($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<ListPeersResponse>(ctx, 'BitcoindService', 'ListPeers', request, ListPeersResponse())
+  ;
+  $async.Future<EstimateSmartFeeResponse> estimateSmartFee($pb.ClientContext? ctx, EstimateSmartFeeRequest request) =>
+    _client.invoke<EstimateSmartFeeResponse>(ctx, 'BitcoindService', 'EstimateSmartFee', request, EstimateSmartFeeResponse())
+  ;
 }
 
 

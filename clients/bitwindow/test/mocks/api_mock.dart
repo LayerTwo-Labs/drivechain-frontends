@@ -1,8 +1,8 @@
 import 'package:sail_ui/classes/node_connection_settings.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:sail_ui/gen/drivechain/v1/drivechain.pbgrpc.dart';
-import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
+import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
+import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class MockAPI extends BitwindowRPC {

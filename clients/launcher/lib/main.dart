@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:connectrpc/http2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -103,16 +104,20 @@ Future<void> initDependencies(Logger log) async {
         GetIt.I.registerSingleton<MainchainRPC>(mainchain);
 
       case Enforcer():
+        final httpClient = createHttpClient();
         final enforcer = await EnforcerLive.create(
           binary: binary,
           logPath: path.join(binary.datadir(), 'enforcer.log'),
+          httpClient: httpClient,
         );
         GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
       case BitWindow():
+        final baseUrl = 'http://127.0.0.1:${binary.port}';
+        final httpClient = createHttpClient();
         final bitwindow = await BitwindowRPCLive.create(
-          host: '127.0.0.1',
-          port: binary.port,
+          baseUrl: baseUrl,
+          httpClient: httpClient,
           binary: binary,
           logPath: path.join(binary.datadir(), 'bitwindow.log'),
         );

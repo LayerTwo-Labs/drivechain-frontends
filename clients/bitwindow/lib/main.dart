@@ -8,6 +8,7 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:connectrpc/http2.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -123,9 +124,11 @@ Future<void> initDependencies(Logger log, File logFile) async {
 
   var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
   log.i('logging server logs to: $serverLogFile');
+  final baseUrl = 'http://${Environment.bitwindowdHost}:${Environment.bitwindowdPort}';
+  final httpClient = createHttpClient();
   final bitwindow = await BitwindowRPCLive.create(
-    host: env(Environment.bitwindowdHost),
-    port: env(Environment.bitwindowdPort),
+    baseUrl: baseUrl,
+    httpClient: httpClient,
     binary: BitWindow(),
     logPath: serverLogFile,
   );
@@ -136,6 +139,7 @@ Future<void> initDependencies(Logger log, File logFile) async {
   final enforcer = await EnforcerLive.create(
     binary: Enforcer(),
     logPath: serverLogFile,
+    httpClient: httpClient,
   );
 
   GetIt.I.registerLazySingleton<EnforcerRPC>(

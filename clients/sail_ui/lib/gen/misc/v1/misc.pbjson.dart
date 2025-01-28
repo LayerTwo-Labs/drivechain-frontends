@@ -13,6 +13,9 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+import '../../google/protobuf/empty.pbjson.dart' as $1;
+import '../../google/protobuf/timestamp.pbjson.dart' as $0;
+
 @$core.Deprecated('Use listOPReturnResponseDescriptor instead')
 const ListOPReturnResponse$json = {
   '1': 'ListOPReturnResponse',
@@ -180,4 +183,42 @@ const ListCoinNewsResponse$json = {
 final $typed_data.Uint8List listCoinNewsResponseDescriptor = $convert.base64Decode(
     'ChRMaXN0Q29pbk5ld3NSZXNwb25zZRIuCgljb2luX25ld3MYASADKAsyES5taXNjLnYxLkNvaW'
     '5OZXdzUghjb2luTmV3cw==');
+
+const $core.Map<$core.String, $core.dynamic> MiscServiceBase$json = {
+  '1': 'MiscService',
+  '2': [
+    {'1': 'ListOPReturn', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListOPReturnResponse'},
+    {'1': 'BroadcastNews', '2': '.misc.v1.BroadcastNewsRequest', '3': '.misc.v1.BroadcastNewsResponse'},
+    {'1': 'CreateTopic', '2': '.misc.v1.CreateTopicRequest', '3': '.misc.v1.CreateTopicResponse'},
+    {'1': 'ListTopics', '2': '.google.protobuf.Empty', '3': '.misc.v1.ListTopicsResponse'},
+    {'1': 'ListCoinNews', '2': '.misc.v1.ListCoinNewsRequest', '3': '.misc.v1.ListCoinNewsResponse'},
+  ],
+};
+
+@$core.Deprecated('Use miscServiceDescriptor instead')
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> MiscServiceBase$messageJson = {
+  '.google.protobuf.Empty': $1.Empty$json,
+  '.misc.v1.ListOPReturnResponse': ListOPReturnResponse$json,
+  '.misc.v1.OPReturn': OPReturn$json,
+  '.google.protobuf.Timestamp': $0.Timestamp$json,
+  '.misc.v1.BroadcastNewsRequest': BroadcastNewsRequest$json,
+  '.misc.v1.BroadcastNewsResponse': BroadcastNewsResponse$json,
+  '.misc.v1.CreateTopicRequest': CreateTopicRequest$json,
+  '.misc.v1.CreateTopicResponse': CreateTopicResponse$json,
+  '.misc.v1.ListTopicsResponse': ListTopicsResponse$json,
+  '.misc.v1.Topic': Topic$json,
+  '.misc.v1.ListCoinNewsRequest': ListCoinNewsRequest$json,
+  '.misc.v1.ListCoinNewsResponse': ListCoinNewsResponse$json,
+  '.misc.v1.CoinNews': CoinNews$json,
+};
+
+/// Descriptor for `MiscService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
+final $typed_data.Uint8List miscServiceDescriptor = $convert.base64Decode(
+    'CgtNaXNjU2VydmljZRJFCgxMaXN0T1BSZXR1cm4SFi5nb29nbGUucHJvdG9idWYuRW1wdHkaHS'
+    '5taXNjLnYxLkxpc3RPUFJldHVyblJlc3BvbnNlEk4KDUJyb2FkY2FzdE5ld3MSHS5taXNjLnYx'
+    'LkJyb2FkY2FzdE5ld3NSZXF1ZXN0Gh4ubWlzYy52MS5Ccm9hZGNhc3ROZXdzUmVzcG9uc2USSA'
+    'oLQ3JlYXRlVG9waWMSGy5taXNjLnYxLkNyZWF0ZVRvcGljUmVxdWVzdBocLm1pc2MudjEuQ3Jl'
+    'YXRlVG9waWNSZXNwb25zZRJBCgpMaXN0VG9waWNzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh'
+    'subWlzYy52MS5MaXN0VG9waWNzUmVzcG9uc2USSwoMTGlzdENvaW5OZXdzEhwubWlzYy52MS5M'
+    'aXN0Q29pbk5ld3NSZXF1ZXN0Gh0ubWlzYy52MS5MaXN0Q29pbk5ld3NSZXNwb25zZQ==');
 

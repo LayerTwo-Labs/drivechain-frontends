@@ -9,11 +9,12 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
+import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' as $0;
+import '../../bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' as $3;
 
 class DispenseCoinsRequest extends $pb.GeneratedMessage {
   factory DispenseCoinsRequest({
@@ -163,7 +164,7 @@ class ListClaimsRequest extends $pb.GeneratedMessage {
 
 class ListClaimsResponse extends $pb.GeneratedMessage {
   factory ListClaimsResponse({
-    $core.Iterable<$0.GetTransactionResponse>? transactions,
+    $core.Iterable<$3.GetTransactionResponse>? transactions,
   }) {
     final $result = create();
     if (transactions != null) {
@@ -176,7 +177,7 @@ class ListClaimsResponse extends $pb.GeneratedMessage {
   factory ListClaimsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListClaimsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'faucet.v1'), createEmptyInstance: create)
-    ..pc<$0.GetTransactionResponse>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: $0.GetTransactionResponse.create)
+    ..pc<$3.GetTransactionResponse>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: $3.GetTransactionResponse.create)
     ..hasRequiredFields = false
   ;
 
@@ -202,7 +203,19 @@ class ListClaimsResponse extends $pb.GeneratedMessage {
   static ListClaimsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<$0.GetTransactionResponse> get transactions => $_getList(0);
+  $core.List<$3.GetTransactionResponse> get transactions => $_getList(0);
+}
+
+class FaucetServiceApi {
+  $pb.RpcClient _client;
+  FaucetServiceApi(this._client);
+
+  $async.Future<DispenseCoinsResponse> dispenseCoins($pb.ClientContext? ctx, DispenseCoinsRequest request) =>
+    _client.invoke<DispenseCoinsResponse>(ctx, 'FaucetService', 'DispenseCoins', request, DispenseCoinsResponse())
+  ;
+  $async.Future<ListClaimsResponse> listClaims($pb.ClientContext? ctx, ListClaimsRequest request) =>
+    _client.invoke<ListClaimsResponse>(ctx, 'FaucetService', 'ListClaims', request, ListClaimsResponse())
+  ;
 }
 
 

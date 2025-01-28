@@ -2,4 +2,11 @@ format:
     find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
 
 gen:
-    buf generate ../../faucet-backend
+    buf generate ../../servers/faucet 
+
+build:
+    flutter build web
+
+run: 
+    # specify port 3000 for CORS to work properly against the remote server
+    flutter run -d chrome --web-port 3000

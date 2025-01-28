@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -25,7 +25,7 @@ class SidechainsPage extends StatelessWidget {
         viewModelBuilder: () => SidechainsViewModel(),
         builder: (context, model, child) => LayoutBuilder(
           builder: (context, constraints) {
-            final spacing = SailStyleValues.padding08;
+            const spacing = SailStyleValues.padding08;
             final sidechainsWidth = max(400, constraints.maxWidth * 0.25);
             final depositsWidth = constraints.maxWidth - sidechainsWidth - spacing;
 
@@ -38,7 +38,7 @@ class SidechainsPage extends StatelessWidget {
                 } else ...{
                   SizedBox(
                     width: sidechainsWidth.toDouble(),
-                    child: SidechainsList(),
+                    child: const SidechainsList(),
                   ),
                 },
                 SizedBox(
@@ -398,7 +398,7 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return InlineTabBar(
+    return const InlineTabBar(
       tabs: [
         TabItem(
           label: 'Create Deposits',
@@ -498,7 +498,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
             ],
           ),
           SailPadding(
-            padding: EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
+            padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
             child: SailText.secondary13(
               'The sidechain may also deduct a fee from your deposit.',
               color: context.sailTheme.colors.textTertiary,
@@ -513,7 +513,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
             loading: viewModel.isBusy,
           ),
           const SizedBox(height: SailStyleValues.padding16),
-          Expanded(
+          const Expanded(
             child: SailRawCard(
               title: 'Your Recent Deposits',
               subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
@@ -533,7 +533,7 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return SailRawCard(
+    return const SailRawCard(
       bottomPadding: false,
       child: RecentWithdrawalsTable(),
     );

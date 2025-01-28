@@ -9,12 +9,14 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
+import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../google/protobuf/timestamp.pb.dart' as $5;
+import '../../google/protobuf/empty.pb.dart' as $1;
+import '../../google/protobuf/timestamp.pb.dart' as $0;
 
 class GetNewAddressResponse extends $pb.GeneratedMessage {
   factory GetNewAddressResponse({
@@ -317,7 +319,7 @@ class ListTransactionsResponse extends $pb.GeneratedMessage {
 class Confirmation extends $pb.GeneratedMessage {
   factory Confirmation({
     $core.int? height,
-    $5.Timestamp? timestamp,
+    $0.Timestamp? timestamp,
   }) {
     final $result = create();
     if (height != null) {
@@ -334,7 +336,7 @@ class Confirmation extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Confirmation', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'height', $pb.PbFieldType.OU3)
-    ..aOM<$5.Timestamp>(2, _omitFieldNames ? '' : 'timestamp', subBuilder: $5.Timestamp.create)
+    ..aOM<$0.Timestamp>(2, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -369,15 +371,15 @@ class Confirmation extends $pb.GeneratedMessage {
   void clearHeight() => clearField(1);
 
   @$pb.TagNumber(2)
-  $5.Timestamp get timestamp => $_getN(1);
+  $0.Timestamp get timestamp => $_getN(1);
   @$pb.TagNumber(2)
-  set timestamp($5.Timestamp v) { setField(2, v); }
+  set timestamp($0.Timestamp v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasTimestamp() => $_has(1);
   @$pb.TagNumber(2)
   void clearTimestamp() => clearField(2);
   @$pb.TagNumber(2)
-  $5.Timestamp ensureTimestamp() => $_ensure(1);
+  $0.Timestamp ensureTimestamp() => $_ensure(1);
 }
 
 class WalletTransaction extends $pb.GeneratedMessage {
@@ -832,6 +834,30 @@ class CreateSidechainDepositResponse extends $pb.GeneratedMessage {
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
+}
+
+class WalletServiceApi {
+  $pb.RpcClient _client;
+  WalletServiceApi(this._client);
+
+  $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
+    _client.invoke<SendTransactionResponse>(ctx, 'WalletService', 'SendTransaction', request, SendTransactionResponse())
+  ;
+  $async.Future<GetBalanceResponse> getBalance($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetBalanceResponse>(ctx, 'WalletService', 'GetBalance', request, GetBalanceResponse())
+  ;
+  $async.Future<GetNewAddressResponse> getNewAddress($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetNewAddressResponse>(ctx, 'WalletService', 'GetNewAddress', request, GetNewAddressResponse())
+  ;
+  $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<ListTransactionsResponse>(ctx, 'WalletService', 'ListTransactions', request, ListTransactionsResponse())
+  ;
+  $async.Future<ListSidechainDepositsResponse> listSidechainDeposits($pb.ClientContext? ctx, ListSidechainDepositsRequest request) =>
+    _client.invoke<ListSidechainDepositsResponse>(ctx, 'WalletService', 'ListSidechainDeposits', request, ListSidechainDepositsResponse())
+  ;
+  $async.Future<CreateSidechainDepositResponse> createSidechainDeposit($pb.ClientContext? ctx, CreateSidechainDepositRequest request) =>
+    _client.invoke<CreateSidechainDepositResponse>(ctx, 'WalletService', 'CreateSidechainDeposit', request, CreateSidechainDepositResponse())
+  ;
 }
 
 

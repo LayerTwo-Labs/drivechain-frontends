@@ -4,7 +4,7 @@ import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -16,7 +16,7 @@ class SidechainActivationManagementPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
       viewModelBuilder: () => SidechainActivationManagementViewModel(),
-      builder: (context, model, child) => QtPage(
+      builder: (context, model, child) => const QtPage(
         child: SidechainActivationManagementView(),
       ),
     );
@@ -208,16 +208,16 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
     return SailTable(
       getRowId: (index) => blocks[index].slot.toString(),
       headerBuilder: (context) => [
-        SailTableHeaderCell(name: '#'),
-        SailTableHeaderCell(name: 'Active'),
-        SailTableHeaderCell(name: 'Name'),
-        SailTableHeaderCell(name: 'CTIP TxID'),
+        const SailTableHeaderCell(name: '#'),
+        const SailTableHeaderCell(name: 'Active'),
+        const SailTableHeaderCell(name: 'Name'),
+        const SailTableHeaderCell(name: 'CTIP TxID'),
       ],
       rowBuilder: (context, row, selected) {
         final sidechain = blocks[row];
         return [
           SailTableCell(value: '${sidechain.slot}'),
-          SailTableCell(value: 'Yes'),
+          const SailTableCell(value: 'Yes'),
           SailTableCell(value: sidechain.title),
           SailTableCell(value: sidechain.chaintipTxid.isEmpty ? 'N/A' : sidechain.chaintipTxid),
         ];
@@ -345,23 +345,23 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
     return SailTable(
       getRowId: (index) => widget.proposals[index].slot.toString(),
       headerBuilder: (context) => [
-        SailTableHeaderCell(name: 'Vote'),
-        SailTableHeaderCell(name: 'SC #'),
-        SailTableHeaderCell(name: 'Replacement'),
-        SailTableHeaderCell(name: 'Title'),
-        SailTableHeaderCell(name: 'Description'),
-        SailTableHeaderCell(name: 'Age'),
-        SailTableHeaderCell(name: 'Fails'),
-        SailTableHeaderCell(name: 'Hash'),
+        const SailTableHeaderCell(name: 'Vote'),
+        const SailTableHeaderCell(name: 'SC #'),
+        const SailTableHeaderCell(name: 'Replacement'),
+        const SailTableHeaderCell(name: 'Title'),
+        const SailTableHeaderCell(name: 'Description'),
+        const SailTableHeaderCell(name: 'Age'),
+        const SailTableHeaderCell(name: 'Fails'),
+        const SailTableHeaderCell(name: 'Hash'),
       ],
       rowBuilder: (context, row, selected) {
         final proposal = widget.proposals[row];
         return [
           SailTableCell(value: proposal.voteCount.toString()),
           SailTableCell(value: proposal.slot.toString()),
-          SailTableCell(value: 'Replacement'),
+          const SailTableCell(value: 'Replacement'),
           SailTableCell(value: proposal.data.toString()),
-          SailTableCell(value: 'Description'),
+          const SailTableCell(value: 'Description'),
           SailTableCell(value: proposal.proposalAge.toString()),
           SailTableCell(value: proposal.proposalHeight.toString()),
           SailTableCell(value: proposal.dataHash),

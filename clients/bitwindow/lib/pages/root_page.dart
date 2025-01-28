@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -161,7 +161,7 @@ class _StatusBarState extends State<StatusBar> {
               leadingSpacing: true,
               trailingSpacing: true,
               children: [
-                SailSpacing(SailStyleValues.padding04),
+                const SailSpacing(SailStyleValues.padding04),
                 Tooltip(
                   message: 'Confirmed balance',
                   child: SailRow(
@@ -245,7 +245,7 @@ class _StatusBarState extends State<StatusBar> {
                     formatTimeDifference(blockchainProvider.peers.length, 'peer'),
                   ),
                 ),
-                SailSpacing(SailStyleValues.padding04),
+                const SailSpacing(SailStyleValues.padding04),
               ],
             ),
           ),
@@ -495,8 +495,8 @@ class Separator extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         border: Border(
-          left: right ? BorderSide.none : BorderSide(color: Colors.grey),
-          right: right ? BorderSide(color: Colors.grey) : BorderSide.none,
+          left: right ? BorderSide.none : const BorderSide(color: Colors.grey),
+          right: right ? const BorderSide(color: Colors.grey) : BorderSide.none,
         ),
       ),
       child: child,

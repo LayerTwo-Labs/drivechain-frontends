@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:bitwindow/providers/balance_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/blockchain_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 

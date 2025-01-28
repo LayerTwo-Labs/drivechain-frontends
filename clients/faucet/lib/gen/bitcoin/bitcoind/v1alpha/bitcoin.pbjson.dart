@@ -13,6 +13,10 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+import '../../../google/protobuf/empty.pbjson.dart' as $2;
+import '../../../google/protobuf/timestamp.pbjson.dart' as $0;
+import '../../../google/protobuf/wrappers.pbjson.dart' as $1;
+
 @$core.Deprecated('Use getBlockchainInfoRequestDescriptor instead')
 const GetBlockchainInfoRequest$json = {
   '1': 'GetBlockchainInfoRequest',
@@ -1001,4 +1005,142 @@ final $typed_data.Uint8List getAddressInfoResponseDescriptor = $convert.base64De
     '92ZXJzaW9uGAkgASgNUg53aXRuZXNzVmVyc2lvbhInCg93aXRuZXNzX3Byb2dyYW0YCiABKAlS'
     'DndpdG5lc3NQcm9ncmFtEh8KC3NjcmlwdF90eXBlGAsgASgJUgpzY3JpcHRUeXBlEiMKDWlzX2'
     'NvbXByZXNzZWQYDCABKAhSDGlzQ29tcHJlc3NlZA==');
+
+const $core.Map<$core.String, $core.dynamic> BitcoinServiceBase$json = {
+  '1': 'BitcoinService',
+  '2': [
+    {'1': 'GetBlockchainInfo', '2': '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoResponse'},
+    {'1': 'GetPeerInfo', '2': '.bitcoin.bitcoind.v1alpha.GetPeerInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetPeerInfoResponse'},
+    {'1': 'GetTransaction', '2': '.bitcoin.bitcoind.v1alpha.GetTransactionRequest', '3': '.bitcoin.bitcoind.v1alpha.GetTransactionResponse'},
+    {'1': 'ListSinceBlock', '2': '.bitcoin.bitcoind.v1alpha.ListSinceBlockRequest', '3': '.bitcoin.bitcoind.v1alpha.ListSinceBlockResponse'},
+    {'1': 'GetNewAddress', '2': '.bitcoin.bitcoind.v1alpha.GetNewAddressRequest', '3': '.bitcoin.bitcoind.v1alpha.GetNewAddressResponse'},
+    {'1': 'GetWalletInfo', '2': '.bitcoin.bitcoind.v1alpha.GetWalletInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetWalletInfoResponse'},
+    {'1': 'GetBalances', '2': '.bitcoin.bitcoind.v1alpha.GetBalancesRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBalancesResponse'},
+    {'1': 'Send', '2': '.bitcoin.bitcoind.v1alpha.SendRequest', '3': '.bitcoin.bitcoind.v1alpha.SendResponse'},
+    {'1': 'SendToAddress', '2': '.bitcoin.bitcoind.v1alpha.SendToAddressRequest', '3': '.bitcoin.bitcoind.v1alpha.SendToAddressResponse'},
+    {'1': 'BumpFee', '2': '.bitcoin.bitcoind.v1alpha.BumpFeeRequest', '3': '.bitcoin.bitcoind.v1alpha.BumpFeeResponse'},
+    {'1': 'EstimateSmartFee', '2': '.bitcoin.bitcoind.v1alpha.EstimateSmartFeeRequest', '3': '.bitcoin.bitcoind.v1alpha.EstimateSmartFeeResponse'},
+    {'1': 'ImportDescriptors', '2': '.bitcoin.bitcoind.v1alpha.ImportDescriptorsRequest', '3': '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse'},
+    {'1': 'ListWallets', '2': '.google.protobuf.Empty', '3': '.bitcoin.bitcoind.v1alpha.ListWalletsResponse'},
+    {'1': 'ListTransactions', '2': '.bitcoin.bitcoind.v1alpha.ListTransactionsRequest', '3': '.bitcoin.bitcoind.v1alpha.ListTransactionsResponse'},
+    {'1': 'GetDescriptorInfo', '2': '.bitcoin.bitcoind.v1alpha.GetDescriptorInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetDescriptorInfoResponse'},
+    {'1': 'GetAddressInfo', '2': '.bitcoin.bitcoind.v1alpha.GetAddressInfoRequest', '3': '.bitcoin.bitcoind.v1alpha.GetAddressInfoResponse'},
+    {'1': 'GetRawMempool', '2': '.bitcoin.bitcoind.v1alpha.GetRawMempoolRequest', '3': '.bitcoin.bitcoind.v1alpha.GetRawMempoolResponse'},
+    {'1': 'GetRawTransaction', '2': '.bitcoin.bitcoind.v1alpha.GetRawTransactionRequest', '3': '.bitcoin.bitcoind.v1alpha.GetRawTransactionResponse'},
+    {'1': 'DecodeRawTransaction', '2': '.bitcoin.bitcoind.v1alpha.DecodeRawTransactionRequest', '3': '.bitcoin.bitcoind.v1alpha.DecodeRawTransactionResponse'},
+    {'1': 'GetBlock', '2': '.bitcoin.bitcoind.v1alpha.GetBlockRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBlockResponse'},
+    {'1': 'GetBlockHash', '2': '.bitcoin.bitcoind.v1alpha.GetBlockHashRequest', '3': '.bitcoin.bitcoind.v1alpha.GetBlockHashResponse'},
+  ],
+};
+
+@$core.Deprecated('Use bitcoinServiceDescriptor instead')
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinServiceBase$messageJson = {
+  '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoRequest': GetBlockchainInfoRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetBlockchainInfoResponse': GetBlockchainInfoResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetPeerInfoRequest': GetPeerInfoRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetPeerInfoResponse': GetPeerInfoResponse$json,
+  '.bitcoin.bitcoind.v1alpha.Peer': Peer$json,
+  '.bitcoin.bitcoind.v1alpha.GetTransactionRequest': GetTransactionRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetTransactionResponse': GetTransactionResponse$json,
+  '.google.protobuf.Timestamp': $0.Timestamp$json,
+  '.bitcoin.bitcoind.v1alpha.GetTransactionResponse.Details': GetTransactionResponse_Details$json,
+  '.bitcoin.bitcoind.v1alpha.ListSinceBlockRequest': ListSinceBlockRequest$json,
+  '.bitcoin.bitcoind.v1alpha.ListSinceBlockResponse': ListSinceBlockResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetNewAddressRequest': GetNewAddressRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetNewAddressResponse': GetNewAddressResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetWalletInfoRequest': GetWalletInfoRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetWalletInfoResponse': GetWalletInfoResponse$json,
+  '.bitcoin.bitcoind.v1alpha.WalletScan': WalletScan$json,
+  '.bitcoin.bitcoind.v1alpha.GetBalancesRequest': GetBalancesRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetBalancesResponse': GetBalancesResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetBalancesResponse.Mine': GetBalancesResponse_Mine$json,
+  '.bitcoin.bitcoind.v1alpha.GetBalancesResponse.Watchonly': GetBalancesResponse_Watchonly$json,
+  '.bitcoin.bitcoind.v1alpha.SendRequest': SendRequest$json,
+  '.bitcoin.bitcoind.v1alpha.SendRequest.DestinationsEntry': SendRequest_DestinationsEntry$json,
+  '.google.protobuf.BoolValue': $1.BoolValue$json,
+  '.bitcoin.bitcoind.v1alpha.SendResponse': SendResponse$json,
+  '.bitcoin.bitcoind.v1alpha.RawTransaction': RawTransaction$json,
+  '.bitcoin.bitcoind.v1alpha.SendToAddressRequest': SendToAddressRequest$json,
+  '.bitcoin.bitcoind.v1alpha.SendToAddressResponse': SendToAddressResponse$json,
+  '.bitcoin.bitcoind.v1alpha.BumpFeeRequest': BumpFeeRequest$json,
+  '.bitcoin.bitcoind.v1alpha.BumpFeeResponse': BumpFeeResponse$json,
+  '.bitcoin.bitcoind.v1alpha.EstimateSmartFeeRequest': EstimateSmartFeeRequest$json,
+  '.bitcoin.bitcoind.v1alpha.EstimateSmartFeeResponse': EstimateSmartFeeResponse$json,
+  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsRequest': ImportDescriptorsRequest$json,
+  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsRequest.Request': ImportDescriptorsRequest_Request$json,
+  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse': ImportDescriptorsResponse$json,
+  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse.Response': ImportDescriptorsResponse_Response$json,
+  '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse.Error': ImportDescriptorsResponse_Error$json,
+  '.google.protobuf.Empty': $2.Empty$json,
+  '.bitcoin.bitcoind.v1alpha.ListWalletsResponse': ListWalletsResponse$json,
+  '.bitcoin.bitcoind.v1alpha.ListTransactionsRequest': ListTransactionsRequest$json,
+  '.bitcoin.bitcoind.v1alpha.ListTransactionsResponse': ListTransactionsResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetDescriptorInfoRequest': GetDescriptorInfoRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetDescriptorInfoResponse': GetDescriptorInfoResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetAddressInfoRequest': GetAddressInfoRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetAddressInfoResponse': GetAddressInfoResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetRawMempoolRequest': GetRawMempoolRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetRawMempoolResponse': GetRawMempoolResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetRawMempoolResponse.TransactionsEntry': GetRawMempoolResponse_TransactionsEntry$json,
+  '.bitcoin.bitcoind.v1alpha.MempoolEntry': MempoolEntry$json,
+  '.bitcoin.bitcoind.v1alpha.MempoolEntry.Fees': MempoolEntry_Fees$json,
+  '.bitcoin.bitcoind.v1alpha.GetRawTransactionRequest': GetRawTransactionRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetRawTransactionResponse': GetRawTransactionResponse$json,
+  '.bitcoin.bitcoind.v1alpha.Input': Input$json,
+  '.bitcoin.bitcoind.v1alpha.Output': Output$json,
+  '.bitcoin.bitcoind.v1alpha.ScriptPubKey': ScriptPubKey$json,
+  '.bitcoin.bitcoind.v1alpha.DecodeRawTransactionRequest': DecodeRawTransactionRequest$json,
+  '.bitcoin.bitcoind.v1alpha.DecodeRawTransactionResponse': DecodeRawTransactionResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetBlockRequest': GetBlockRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetBlockResponse': GetBlockResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetBlockHashRequest': GetBlockHashRequest$json,
+  '.bitcoin.bitcoind.v1alpha.GetBlockHashResponse': GetBlockHashResponse$json,
+};
+
+/// Descriptor for `BitcoinService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
+final $typed_data.Uint8List bitcoinServiceDescriptor = $convert.base64Decode(
+    'Cg5CaXRjb2luU2VydmljZRJ8ChFHZXRCbG9ja2NoYWluSW5mbxIyLmJpdGNvaW4uYml0Y29pbm'
+    'QudjFhbHBoYS5HZXRCbG9ja2NoYWluSW5mb1JlcXVlc3QaMy5iaXRjb2luLmJpdGNvaW5kLnYx'
+    'YWxwaGEuR2V0QmxvY2tjaGFpbkluZm9SZXNwb25zZRJqCgtHZXRQZWVySW5mbxIsLmJpdGNvaW'
+    '4uYml0Y29pbmQudjFhbHBoYS5HZXRQZWVySW5mb1JlcXVlc3QaLS5iaXRjb2luLmJpdGNvaW5k'
+    'LnYxYWxwaGEuR2V0UGVlckluZm9SZXNwb25zZRJzCg5HZXRUcmFuc2FjdGlvbhIvLmJpdGNvaW'
+    '4uYml0Y29pbmQudjFhbHBoYS5HZXRUcmFuc2FjdGlvblJlcXVlc3QaMC5iaXRjb2luLmJpdGNv'
+    'aW5kLnYxYWxwaGEuR2V0VHJhbnNhY3Rpb25SZXNwb25zZRJzCg5MaXN0U2luY2VCbG9jaxIvLm'
+    'JpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0U2luY2VCbG9ja1JlcXVlc3QaMC5iaXRjb2lu'
+    'LmJpdGNvaW5kLnYxYWxwaGEuTGlzdFNpbmNlQmxvY2tSZXNwb25zZRJwCg1HZXROZXdBZGRyZX'
+    'NzEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE5ld0FkZHJlc3NSZXF1ZXN0Gi8uYml0'
+    'Y29pbi5iaXRjb2luZC52MWFscGhhLkdldE5ld0FkZHJlc3NSZXNwb25zZRJwCg1HZXRXYWxsZX'
+    'RJbmZvEi4uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFdhbGxldEluZm9SZXF1ZXN0Gi8u'
+    'Yml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFdhbGxldEluZm9SZXNwb25zZRJqCgtHZXRCYW'
+    'xhbmNlcxIsLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRCYWxhbmNlc1JlcXVlc3QaLS5i'
+    'aXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0QmFsYW5jZXNSZXNwb25zZRJVCgRTZW5kEiUuYm'
+    'l0Y29pbi5iaXRjb2luZC52MWFscGhhLlNlbmRSZXF1ZXN0GiYuYml0Y29pbi5iaXRjb2luZC52'
+    'MWFscGhhLlNlbmRSZXNwb25zZRJwCg1TZW5kVG9BZGRyZXNzEi4uYml0Y29pbi5iaXRjb2luZC'
+    '52MWFscGhhLlNlbmRUb0FkZHJlc3NSZXF1ZXN0Gi8uYml0Y29pbi5iaXRjb2luZC52MWFscGhh'
+    'LlNlbmRUb0FkZHJlc3NSZXNwb25zZRJeCgdCdW1wRmVlEiguYml0Y29pbi5iaXRjb2luZC52MW'
+    'FscGhhLkJ1bXBGZWVSZXF1ZXN0GikuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkJ1bXBGZWVS'
+    'ZXNwb25zZRJ5ChBFc3RpbWF0ZVNtYXJ0RmVlEjEuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLk'
+    'VzdGltYXRlU21hcnRGZWVSZXF1ZXN0GjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkVzdGlt'
+    'YXRlU21hcnRGZWVSZXNwb25zZRJ8ChFJbXBvcnREZXNjcmlwdG9ycxIyLmJpdGNvaW4uYml0Y2'
+    '9pbmQudjFhbHBoYS5JbXBvcnREZXNjcmlwdG9yc1JlcXVlc3QaMy5iaXRjb2luLmJpdGNvaW5k'
+    'LnYxYWxwaGEuSW1wb3J0RGVzY3JpcHRvcnNSZXNwb25zZRJUCgtMaXN0V2FsbGV0cxIWLmdvb2'
+    'dsZS5wcm90b2J1Zi5FbXB0eRotLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5MaXN0V2FsbGV0'
+    'c1Jlc3BvbnNlEnkKEExpc3RUcmFuc2FjdGlvbnMSMS5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaG'
+    'EuTGlzdFRyYW5zYWN0aW9uc1JlcXVlc3QaMi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuTGlz'
+    'dFRyYW5zYWN0aW9uc1Jlc3BvbnNlEnwKEUdldERlc2NyaXB0b3JJbmZvEjIuYml0Y29pbi5iaX'
+    'Rjb2luZC52MWFscGhhLkdldERlc2NyaXB0b3JJbmZvUmVxdWVzdBozLmJpdGNvaW4uYml0Y29p'
+    'bmQudjFhbHBoYS5HZXREZXNjcmlwdG9ySW5mb1Jlc3BvbnNlEnMKDkdldEFkZHJlc3NJbmZvEi'
+    '8uYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldEFkZHJlc3NJbmZvUmVxdWVzdBowLmJpdGNv'
+    'aW4uYml0Y29pbmQudjFhbHBoYS5HZXRBZGRyZXNzSW5mb1Jlc3BvbnNlEnAKDUdldFJhd01lbX'
+    'Bvb2wSLi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0UmF3TWVtcG9vbFJlcXVlc3QaLy5i'
+    'aXRjb2luLmJpdGNvaW5kLnYxYWxwaGEuR2V0UmF3TWVtcG9vbFJlc3BvbnNlEnwKEUdldFJhd1'
+    'RyYW5zYWN0aW9uEjIuYml0Y29pbi5iaXRjb2luZC52MWFscGhhLkdldFJhd1RyYW5zYWN0aW9u'
+    'UmVxdWVzdBozLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZXRSYXdUcmFuc2FjdGlvblJlc3'
+    'BvbnNlEoUBChREZWNvZGVSYXdUcmFuc2FjdGlvbhI1LmJpdGNvaW4uYml0Y29pbmQudjFhbHBo'
+    'YS5EZWNvZGVSYXdUcmFuc2FjdGlvblJlcXVlc3QaNi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaG'
+    'EuRGVjb2RlUmF3VHJhbnNhY3Rpb25SZXNwb25zZRJhCghHZXRCbG9jaxIpLmJpdGNvaW4uYml0'
+    'Y29pbmQudjFhbHBoYS5HZXRCbG9ja1JlcXVlc3QaKi5iaXRjb2luLmJpdGNvaW5kLnYxYWxwaG'
+    'EuR2V0QmxvY2tSZXNwb25zZRJtCgxHZXRCbG9ja0hhc2gSLS5iaXRjb2luLmJpdGNvaW5kLnYx'
+    'YWxwaGEuR2V0QmxvY2tIYXNoUmVxdWVzdBouLmJpdGNvaW4uYml0Y29pbmQudjFhbHBoYS5HZX'
+    'RCbG9ja0hhc2hSZXNwb25zZQ==');
 

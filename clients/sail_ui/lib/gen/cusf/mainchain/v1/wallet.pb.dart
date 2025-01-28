@@ -9,21 +9,22 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
+import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../../google/protobuf/timestamp.pb.dart' as $7;
-import '../../../google/protobuf/wrappers.pb.dart' as $4;
-import '../../common/v1/common.pb.dart' as $5;
-import 'common.pb.dart' as $6;
+import '../../../google/protobuf/timestamp.pb.dart' as $5;
+import '../../../google/protobuf/wrappers.pb.dart' as $0;
+import '../../common/v1/common.pb.dart' as $1;
+import 'common.pb.dart' as $3;
 
 class WalletTransaction_Confirmation extends $pb.GeneratedMessage {
   factory WalletTransaction_Confirmation({
     $core.int? height,
-    $5.ReverseHex? blockHash,
-    $7.Timestamp? timestamp,
+    $1.ReverseHex? blockHash,
+    $5.Timestamp? timestamp,
   }) {
     final $result = create();
     if (height != null) {
@@ -43,8 +44,8 @@ class WalletTransaction_Confirmation extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WalletTransaction.Confirmation', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'height', $pb.PbFieldType.OU3)
-    ..aOM<$5.ReverseHex>(2, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
-    ..aOM<$7.Timestamp>(3, _omitFieldNames ? '' : 'timestamp', subBuilder: $7.Timestamp.create)
+    ..aOM<$1.ReverseHex>(2, _omitFieldNames ? '' : 'blockHash', subBuilder: $1.ReverseHex.create)
+    ..aOM<$5.Timestamp>(3, _omitFieldNames ? '' : 'timestamp', subBuilder: $5.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -79,31 +80,31 @@ class WalletTransaction_Confirmation extends $pb.GeneratedMessage {
   void clearHeight() => clearField(1);
 
   @$pb.TagNumber(2)
-  $5.ReverseHex get blockHash => $_getN(1);
+  $1.ReverseHex get blockHash => $_getN(1);
   @$pb.TagNumber(2)
-  set blockHash($5.ReverseHex v) { setField(2, v); }
+  set blockHash($1.ReverseHex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasBlockHash() => $_has(1);
   @$pb.TagNumber(2)
   void clearBlockHash() => clearField(2);
   @$pb.TagNumber(2)
-  $5.ReverseHex ensureBlockHash() => $_ensure(1);
+  $1.ReverseHex ensureBlockHash() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $7.Timestamp get timestamp => $_getN(2);
+  $5.Timestamp get timestamp => $_getN(2);
   @$pb.TagNumber(3)
-  set timestamp($7.Timestamp v) { setField(3, v); }
+  set timestamp($5.Timestamp v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasTimestamp() => $_has(2);
   @$pb.TagNumber(3)
   void clearTimestamp() => clearField(3);
   @$pb.TagNumber(3)
-  $7.Timestamp ensureTimestamp() => $_ensure(2);
+  $5.Timestamp ensureTimestamp() => $_ensure(2);
 }
 
 class WalletTransaction extends $pb.GeneratedMessage {
   factory WalletTransaction({
-    $5.ReverseHex? txid,
+    $1.ReverseHex? txid,
     $fixnum.Int64? feeSats,
     $fixnum.Int64? receivedSats,
     $fixnum.Int64? sentSats,
@@ -132,7 +133,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
   factory WalletTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WalletTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $5.ReverseHex.create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $1.ReverseHex.create)
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'feeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'receivedSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'sentSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
@@ -162,15 +163,15 @@ class WalletTransaction extends $pb.GeneratedMessage {
   static WalletTransaction? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.ReverseHex get txid => $_getN(0);
+  $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($5.ReverseHex v) { setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
-  $5.ReverseHex ensureTxid() => $_ensure(0);
+  $1.ReverseHex ensureTxid() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $fixnum.Int64 get feeSats => $_getI64(1);
@@ -213,8 +214,8 @@ class WalletTransaction extends $pb.GeneratedMessage {
 
 class BroadcastWithdrawalBundleRequest extends $pb.GeneratedMessage {
   factory BroadcastWithdrawalBundleRequest({
-    $4.UInt32Value? sidechainId,
-    $4.BytesValue? transaction,
+    $0.UInt32Value? sidechainId,
+    $0.BytesValue? transaction,
   }) {
     final $result = create();
     if (sidechainId != null) {
@@ -230,8 +231,8 @@ class BroadcastWithdrawalBundleRequest extends $pb.GeneratedMessage {
   factory BroadcastWithdrawalBundleRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BroadcastWithdrawalBundleRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
-    ..aOM<$4.BytesValue>(2, _omitFieldNames ? '' : 'transaction', subBuilder: $4.BytesValue.create)
+    ..aOM<$0.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $0.UInt32Value.create)
+    ..aOM<$0.BytesValue>(2, _omitFieldNames ? '' : 'transaction', subBuilder: $0.BytesValue.create)
     ..hasRequiredFields = false
   ;
 
@@ -257,26 +258,26 @@ class BroadcastWithdrawalBundleRequest extends $pb.GeneratedMessage {
   static BroadcastWithdrawalBundleRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.UInt32Value get sidechainId => $_getN(0);
+  $0.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($4.UInt32Value v) { setField(1, v); }
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
-  $4.UInt32Value ensureSidechainId() => $_ensure(0);
+  $0.UInt32Value ensureSidechainId() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.BytesValue get transaction => $_getN(1);
+  $0.BytesValue get transaction => $_getN(1);
   @$pb.TagNumber(2)
-  set transaction($4.BytesValue v) { setField(2, v); }
+  set transaction($0.BytesValue v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasTransaction() => $_has(1);
   @$pb.TagNumber(2)
   void clearTransaction() => clearField(2);
   @$pb.TagNumber(2)
-  $4.BytesValue ensureTransaction() => $_ensure(1);
+  $0.BytesValue ensureTransaction() => $_ensure(1);
 }
 
 class BroadcastWithdrawalBundleResponse extends $pb.GeneratedMessage {
@@ -313,11 +314,11 @@ class BroadcastWithdrawalBundleResponse extends $pb.GeneratedMessage {
 
 class CreateBmmCriticalDataTransactionRequest extends $pb.GeneratedMessage {
   factory CreateBmmCriticalDataTransactionRequest({
-    $4.UInt32Value? sidechainId,
-    $4.UInt64Value? valueSats,
-    $4.UInt32Value? height,
-    $5.ConsensusHex? criticalHash,
-    $5.ReverseHex? prevBytes,
+    $0.UInt32Value? sidechainId,
+    $0.UInt64Value? valueSats,
+    $0.UInt32Value? height,
+    $1.ConsensusHex? criticalHash,
+    $1.ReverseHex? prevBytes,
   }) {
     final $result = create();
     if (sidechainId != null) {
@@ -342,11 +343,11 @@ class CreateBmmCriticalDataTransactionRequest extends $pb.GeneratedMessage {
   factory CreateBmmCriticalDataTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateBmmCriticalDataTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
-    ..aOM<$4.UInt64Value>(2, _omitFieldNames ? '' : 'valueSats', subBuilder: $4.UInt64Value.create)
-    ..aOM<$4.UInt32Value>(3, _omitFieldNames ? '' : 'height', subBuilder: $4.UInt32Value.create)
-    ..aOM<$5.ConsensusHex>(4, _omitFieldNames ? '' : 'criticalHash', subBuilder: $5.ConsensusHex.create)
-    ..aOM<$5.ReverseHex>(5, _omitFieldNames ? '' : 'prevBytes', subBuilder: $5.ReverseHex.create)
+    ..aOM<$0.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $0.UInt32Value.create)
+    ..aOM<$0.UInt64Value>(2, _omitFieldNames ? '' : 'valueSats', subBuilder: $0.UInt64Value.create)
+    ..aOM<$0.UInt32Value>(3, _omitFieldNames ? '' : 'height', subBuilder: $0.UInt32Value.create)
+    ..aOM<$1.ConsensusHex>(4, _omitFieldNames ? '' : 'criticalHash', subBuilder: $1.ConsensusHex.create)
+    ..aOM<$1.ReverseHex>(5, _omitFieldNames ? '' : 'prevBytes', subBuilder: $1.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -372,64 +373,64 @@ class CreateBmmCriticalDataTransactionRequest extends $pb.GeneratedMessage {
   static CreateBmmCriticalDataTransactionRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.UInt32Value get sidechainId => $_getN(0);
+  $0.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($4.UInt32Value v) { setField(1, v); }
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
-  $4.UInt32Value ensureSidechainId() => $_ensure(0);
+  $0.UInt32Value ensureSidechainId() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.UInt64Value get valueSats => $_getN(1);
+  $0.UInt64Value get valueSats => $_getN(1);
   @$pb.TagNumber(2)
-  set valueSats($4.UInt64Value v) { setField(2, v); }
+  set valueSats($0.UInt64Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasValueSats() => $_has(1);
   @$pb.TagNumber(2)
   void clearValueSats() => clearField(2);
   @$pb.TagNumber(2)
-  $4.UInt64Value ensureValueSats() => $_ensure(1);
+  $0.UInt64Value ensureValueSats() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $4.UInt32Value get height => $_getN(2);
+  $0.UInt32Value get height => $_getN(2);
   @$pb.TagNumber(3)
-  set height($4.UInt32Value v) { setField(3, v); }
+  set height($0.UInt32Value v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasHeight() => $_has(2);
   @$pb.TagNumber(3)
   void clearHeight() => clearField(3);
   @$pb.TagNumber(3)
-  $4.UInt32Value ensureHeight() => $_ensure(2);
+  $0.UInt32Value ensureHeight() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $5.ConsensusHex get criticalHash => $_getN(3);
+  $1.ConsensusHex get criticalHash => $_getN(3);
   @$pb.TagNumber(4)
-  set criticalHash($5.ConsensusHex v) { setField(4, v); }
+  set criticalHash($1.ConsensusHex v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasCriticalHash() => $_has(3);
   @$pb.TagNumber(4)
   void clearCriticalHash() => clearField(4);
   @$pb.TagNumber(4)
-  $5.ConsensusHex ensureCriticalHash() => $_ensure(3);
+  $1.ConsensusHex ensureCriticalHash() => $_ensure(3);
 
   @$pb.TagNumber(5)
-  $5.ReverseHex get prevBytes => $_getN(4);
+  $1.ReverseHex get prevBytes => $_getN(4);
   @$pb.TagNumber(5)
-  set prevBytes($5.ReverseHex v) { setField(5, v); }
+  set prevBytes($1.ReverseHex v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasPrevBytes() => $_has(4);
   @$pb.TagNumber(5)
   void clearPrevBytes() => clearField(5);
   @$pb.TagNumber(5)
-  $5.ReverseHex ensurePrevBytes() => $_ensure(4);
+  $1.ReverseHex ensurePrevBytes() => $_ensure(4);
 }
 
 class CreateBmmCriticalDataTransactionResponse extends $pb.GeneratedMessage {
   factory CreateBmmCriticalDataTransactionResponse({
-    $5.ReverseHex? txid,
+    $1.ReverseHex? txid,
   }) {
     final $result = create();
     if (txid != null) {
@@ -442,7 +443,7 @@ class CreateBmmCriticalDataTransactionResponse extends $pb.GeneratedMessage {
   factory CreateBmmCriticalDataTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateBmmCriticalDataTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $5.ReverseHex.create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $1.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -468,23 +469,23 @@ class CreateBmmCriticalDataTransactionResponse extends $pb.GeneratedMessage {
   static CreateBmmCriticalDataTransactionResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.ReverseHex get txid => $_getN(0);
+  $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($5.ReverseHex v) { setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
-  $5.ReverseHex ensureTxid() => $_ensure(0);
+  $1.ReverseHex ensureTxid() => $_ensure(0);
 }
 
 class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
   factory CreateDepositTransactionRequest({
-    $4.UInt32Value? sidechainId,
-    $4.StringValue? address,
-    $4.UInt64Value? valueSats,
-    $4.UInt64Value? feeSats,
+    $0.UInt32Value? sidechainId,
+    $0.StringValue? address,
+    $0.UInt64Value? valueSats,
+    $0.UInt64Value? feeSats,
   }) {
     final $result = create();
     if (sidechainId != null) {
@@ -506,10 +507,10 @@ class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
   factory CreateDepositTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateDepositTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
-    ..aOM<$4.StringValue>(2, _omitFieldNames ? '' : 'address', subBuilder: $4.StringValue.create)
-    ..aOM<$4.UInt64Value>(3, _omitFieldNames ? '' : 'valueSats', subBuilder: $4.UInt64Value.create)
-    ..aOM<$4.UInt64Value>(4, _omitFieldNames ? '' : 'feeSats', subBuilder: $4.UInt64Value.create)
+    ..aOM<$0.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $0.UInt32Value.create)
+    ..aOM<$0.StringValue>(2, _omitFieldNames ? '' : 'address', subBuilder: $0.StringValue.create)
+    ..aOM<$0.UInt64Value>(3, _omitFieldNames ? '' : 'valueSats', subBuilder: $0.UInt64Value.create)
+    ..aOM<$0.UInt64Value>(4, _omitFieldNames ? '' : 'feeSats', subBuilder: $0.UInt64Value.create)
     ..hasRequiredFields = false
   ;
 
@@ -535,15 +536,15 @@ class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
   static CreateDepositTransactionRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.UInt32Value get sidechainId => $_getN(0);
+  $0.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($4.UInt32Value v) { setField(1, v); }
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
-  $4.UInt32Value ensureSidechainId() => $_ensure(0);
+  $0.UInt32Value ensureSidechainId() => $_ensure(0);
 
   /// Addresses are encoded in UTF8.
   /// *Sidechain deposit addresses* (not sidechain addresses) are typically
@@ -555,42 +556,42 @@ class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
   /// The address used here is a sidechain address, the middle component of a
   /// sidechain deposit address.
   @$pb.TagNumber(2)
-  $4.StringValue get address => $_getN(1);
+  $0.StringValue get address => $_getN(1);
   @$pb.TagNumber(2)
-  set address($4.StringValue v) { setField(2, v); }
+  set address($0.StringValue v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasAddress() => $_has(1);
   @$pb.TagNumber(2)
   void clearAddress() => clearField(2);
   @$pb.TagNumber(2)
-  $4.StringValue ensureAddress() => $_ensure(1);
+  $0.StringValue ensureAddress() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $4.UInt64Value get valueSats => $_getN(2);
+  $0.UInt64Value get valueSats => $_getN(2);
   @$pb.TagNumber(3)
-  set valueSats($4.UInt64Value v) { setField(3, v); }
+  set valueSats($0.UInt64Value v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasValueSats() => $_has(2);
   @$pb.TagNumber(3)
   void clearValueSats() => clearField(3);
   @$pb.TagNumber(3)
-  $4.UInt64Value ensureValueSats() => $_ensure(2);
+  $0.UInt64Value ensureValueSats() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $4.UInt64Value get feeSats => $_getN(3);
+  $0.UInt64Value get feeSats => $_getN(3);
   @$pb.TagNumber(4)
-  set feeSats($4.UInt64Value v) { setField(4, v); }
+  set feeSats($0.UInt64Value v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasFeeSats() => $_has(3);
   @$pb.TagNumber(4)
   void clearFeeSats() => clearField(4);
   @$pb.TagNumber(4)
-  $4.UInt64Value ensureFeeSats() => $_ensure(3);
+  $0.UInt64Value ensureFeeSats() => $_ensure(3);
 }
 
 class CreateDepositTransactionResponse extends $pb.GeneratedMessage {
   factory CreateDepositTransactionResponse({
-    $5.ReverseHex? txid,
+    $1.ReverseHex? txid,
   }) {
     final $result = create();
     if (txid != null) {
@@ -603,7 +604,7 @@ class CreateDepositTransactionResponse extends $pb.GeneratedMessage {
   factory CreateDepositTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateDepositTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $5.ReverseHex.create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $1.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -629,15 +630,15 @@ class CreateDepositTransactionResponse extends $pb.GeneratedMessage {
   static CreateDepositTransactionResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.ReverseHex get txid => $_getN(0);
+  $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($5.ReverseHex v) { setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
-  $5.ReverseHex ensureTxid() => $_ensure(0);
+  $1.ReverseHex ensureTxid() => $_ensure(0);
 }
 
 class CreateNewAddressRequest extends $pb.GeneratedMessage {
@@ -724,8 +725,8 @@ class CreateNewAddressResponse extends $pb.GeneratedMessage {
 
 class CreateSidechainProposalRequest extends $pb.GeneratedMessage {
   factory CreateSidechainProposalRequest({
-    $4.UInt32Value? sidechainId,
-    $6.SidechainDeclaration? declaration,
+    $0.UInt32Value? sidechainId,
+    $3.SidechainDeclaration? declaration,
   }) {
     final $result = create();
     if (sidechainId != null) {
@@ -741,8 +742,8 @@ class CreateSidechainProposalRequest extends $pb.GeneratedMessage {
   factory CreateSidechainProposalRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSidechainProposalRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $4.UInt32Value.create)
-    ..aOM<$6.SidechainDeclaration>(2, _omitFieldNames ? '' : 'declaration', subBuilder: $6.SidechainDeclaration.create)
+    ..aOM<$0.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainId', subBuilder: $0.UInt32Value.create)
+    ..aOM<$3.SidechainDeclaration>(2, _omitFieldNames ? '' : 'declaration', subBuilder: $3.SidechainDeclaration.create)
     ..hasRequiredFields = false
   ;
 
@@ -768,35 +769,35 @@ class CreateSidechainProposalRequest extends $pb.GeneratedMessage {
   static CreateSidechainProposalRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.UInt32Value get sidechainId => $_getN(0);
+  $0.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($4.UInt32Value v) { setField(1, v); }
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
-  $4.UInt32Value ensureSidechainId() => $_ensure(0);
+  $0.UInt32Value ensureSidechainId() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $6.SidechainDeclaration get declaration => $_getN(1);
+  $3.SidechainDeclaration get declaration => $_getN(1);
   @$pb.TagNumber(2)
-  set declaration($6.SidechainDeclaration v) { setField(2, v); }
+  set declaration($3.SidechainDeclaration v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasDeclaration() => $_has(1);
   @$pb.TagNumber(2)
   void clearDeclaration() => clearField(2);
   @$pb.TagNumber(2)
-  $6.SidechainDeclaration ensureDeclaration() => $_ensure(1);
+  $3.SidechainDeclaration ensureDeclaration() => $_ensure(1);
 }
 
 class CreateSidechainProposalResponse_Confirmed extends $pb.GeneratedMessage {
   factory CreateSidechainProposalResponse_Confirmed({
-    $5.ReverseHex? blockHash,
-    $4.UInt32Value? confirmations,
-    $4.UInt32Value? height,
-    $6.OutPoint? outpoint,
-    $5.ReverseHex? prevBlockHash,
+    $1.ReverseHex? blockHash,
+    $0.UInt32Value? confirmations,
+    $0.UInt32Value? height,
+    $3.OutPoint? outpoint,
+    $1.ReverseHex? prevBlockHash,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -821,11 +822,11 @@ class CreateSidechainProposalResponse_Confirmed extends $pb.GeneratedMessage {
   factory CreateSidechainProposalResponse_Confirmed.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSidechainProposalResponse.Confirmed', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
-    ..aOM<$4.UInt32Value>(2, _omitFieldNames ? '' : 'confirmations', subBuilder: $4.UInt32Value.create)
-    ..aOM<$4.UInt32Value>(3, _omitFieldNames ? '' : 'height', subBuilder: $4.UInt32Value.create)
-    ..aOM<$6.OutPoint>(4, _omitFieldNames ? '' : 'outpoint', subBuilder: $6.OutPoint.create)
-    ..aOM<$5.ReverseHex>(5, _omitFieldNames ? '' : 'prevBlockHash', subBuilder: $5.ReverseHex.create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $1.ReverseHex.create)
+    ..aOM<$0.UInt32Value>(2, _omitFieldNames ? '' : 'confirmations', subBuilder: $0.UInt32Value.create)
+    ..aOM<$0.UInt32Value>(3, _omitFieldNames ? '' : 'height', subBuilder: $0.UInt32Value.create)
+    ..aOM<$3.OutPoint>(4, _omitFieldNames ? '' : 'outpoint', subBuilder: $3.OutPoint.create)
+    ..aOM<$1.ReverseHex>(5, _omitFieldNames ? '' : 'prevBlockHash', subBuilder: $1.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -851,66 +852,66 @@ class CreateSidechainProposalResponse_Confirmed extends $pb.GeneratedMessage {
   static CreateSidechainProposalResponse_Confirmed? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.ReverseHex get blockHash => $_getN(0);
+  $1.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($5.ReverseHex v) { setField(1, v); }
+  set blockHash($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $5.ReverseHex ensureBlockHash() => $_ensure(0);
+  $1.ReverseHex ensureBlockHash() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.UInt32Value get confirmations => $_getN(1);
+  $0.UInt32Value get confirmations => $_getN(1);
   @$pb.TagNumber(2)
-  set confirmations($4.UInt32Value v) { setField(2, v); }
+  set confirmations($0.UInt32Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasConfirmations() => $_has(1);
   @$pb.TagNumber(2)
   void clearConfirmations() => clearField(2);
   @$pb.TagNumber(2)
-  $4.UInt32Value ensureConfirmations() => $_ensure(1);
+  $0.UInt32Value ensureConfirmations() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $4.UInt32Value get height => $_getN(2);
+  $0.UInt32Value get height => $_getN(2);
   @$pb.TagNumber(3)
-  set height($4.UInt32Value v) { setField(3, v); }
+  set height($0.UInt32Value v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasHeight() => $_has(2);
   @$pb.TagNumber(3)
   void clearHeight() => clearField(3);
   @$pb.TagNumber(3)
-  $4.UInt32Value ensureHeight() => $_ensure(2);
+  $0.UInt32Value ensureHeight() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $6.OutPoint get outpoint => $_getN(3);
+  $3.OutPoint get outpoint => $_getN(3);
   @$pb.TagNumber(4)
-  set outpoint($6.OutPoint v) { setField(4, v); }
+  set outpoint($3.OutPoint v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasOutpoint() => $_has(3);
   @$pb.TagNumber(4)
   void clearOutpoint() => clearField(4);
   @$pb.TagNumber(4)
-  $6.OutPoint ensureOutpoint() => $_ensure(3);
+  $3.OutPoint ensureOutpoint() => $_ensure(3);
 
   @$pb.TagNumber(5)
-  $5.ReverseHex get prevBlockHash => $_getN(4);
+  $1.ReverseHex get prevBlockHash => $_getN(4);
   @$pb.TagNumber(5)
-  set prevBlockHash($5.ReverseHex v) { setField(5, v); }
+  set prevBlockHash($1.ReverseHex v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasPrevBlockHash() => $_has(4);
   @$pb.TagNumber(5)
   void clearPrevBlockHash() => clearField(5);
   @$pb.TagNumber(5)
-  $5.ReverseHex ensurePrevBlockHash() => $_ensure(4);
+  $1.ReverseHex ensurePrevBlockHash() => $_ensure(4);
 }
 
 class CreateSidechainProposalResponse_NotConfirmed extends $pb.GeneratedMessage {
   factory CreateSidechainProposalResponse_NotConfirmed({
-    $5.ReverseHex? blockHash,
-    $4.UInt32Value? height,
-    $5.ReverseHex? prevBlockHash,
+    $1.ReverseHex? blockHash,
+    $0.UInt32Value? height,
+    $1.ReverseHex? prevBlockHash,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -929,9 +930,9 @@ class CreateSidechainProposalResponse_NotConfirmed extends $pb.GeneratedMessage 
   factory CreateSidechainProposalResponse_NotConfirmed.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSidechainProposalResponse.NotConfirmed', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
-    ..aOM<$4.UInt32Value>(2, _omitFieldNames ? '' : 'height', subBuilder: $4.UInt32Value.create)
-    ..aOM<$5.ReverseHex>(3, _omitFieldNames ? '' : 'prevBlockHash', subBuilder: $5.ReverseHex.create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $1.ReverseHex.create)
+    ..aOM<$0.UInt32Value>(2, _omitFieldNames ? '' : 'height', subBuilder: $0.UInt32Value.create)
+    ..aOM<$1.ReverseHex>(3, _omitFieldNames ? '' : 'prevBlockHash', subBuilder: $1.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -957,37 +958,37 @@ class CreateSidechainProposalResponse_NotConfirmed extends $pb.GeneratedMessage 
   static CreateSidechainProposalResponse_NotConfirmed? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.ReverseHex get blockHash => $_getN(0);
+  $1.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($5.ReverseHex v) { setField(1, v); }
+  set blockHash($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $5.ReverseHex ensureBlockHash() => $_ensure(0);
+  $1.ReverseHex ensureBlockHash() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $4.UInt32Value get height => $_getN(1);
+  $0.UInt32Value get height => $_getN(1);
   @$pb.TagNumber(2)
-  set height($4.UInt32Value v) { setField(2, v); }
+  set height($0.UInt32Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasHeight() => $_has(1);
   @$pb.TagNumber(2)
   void clearHeight() => clearField(2);
   @$pb.TagNumber(2)
-  $4.UInt32Value ensureHeight() => $_ensure(1);
+  $0.UInt32Value ensureHeight() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $5.ReverseHex get prevBlockHash => $_getN(2);
+  $1.ReverseHex get prevBlockHash => $_getN(2);
   @$pb.TagNumber(3)
-  set prevBlockHash($5.ReverseHex v) { setField(3, v); }
+  set prevBlockHash($1.ReverseHex v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasPrevBlockHash() => $_has(2);
   @$pb.TagNumber(3)
   void clearPrevBlockHash() => clearField(3);
   @$pb.TagNumber(3)
-  $5.ReverseHex ensurePrevBlockHash() => $_ensure(2);
+  $1.ReverseHex ensurePrevBlockHash() => $_ensure(2);
 }
 
 enum CreateSidechainProposalResponse_Event {
@@ -1311,7 +1312,7 @@ class ListSidechainDepositTransactionsRequest extends $pb.GeneratedMessage {
 
 class ListSidechainDepositTransactionsResponse_SidechainDepositTransaction extends $pb.GeneratedMessage {
   factory ListSidechainDepositTransactionsResponse_SidechainDepositTransaction({
-    $4.UInt32Value? sidechainNumber,
+    $0.UInt32Value? sidechainNumber,
     WalletTransaction? tx,
   }) {
     final $result = create();
@@ -1328,7 +1329,7 @@ class ListSidechainDepositTransactionsResponse_SidechainDepositTransaction exten
   factory ListSidechainDepositTransactionsResponse_SidechainDepositTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListSidechainDepositTransactionsResponse.SidechainDepositTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $4.UInt32Value.create)
+    ..aOM<$0.UInt32Value>(1, _omitFieldNames ? '' : 'sidechainNumber', subBuilder: $0.UInt32Value.create)
     ..aOM<WalletTransaction>(2, _omitFieldNames ? '' : 'tx', subBuilder: WalletTransaction.create)
     ..hasRequiredFields = false
   ;
@@ -1355,15 +1356,15 @@ class ListSidechainDepositTransactionsResponse_SidechainDepositTransaction exten
   static ListSidechainDepositTransactionsResponse_SidechainDepositTransaction? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.UInt32Value get sidechainNumber => $_getN(0);
+  $0.UInt32Value get sidechainNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainNumber($4.UInt32Value v) { setField(1, v); }
+  set sidechainNumber($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainNumber() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechainNumber() => clearField(1);
   @$pb.TagNumber(1)
-  $4.UInt32Value ensureSidechainNumber() => $_ensure(0);
+  $0.UInt32Value ensureSidechainNumber() => $_ensure(0);
 
   @$pb.TagNumber(2)
   WalletTransaction get tx => $_getN(1);
@@ -1582,7 +1583,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest({
     $core.Map<$core.String, $fixnum.Int64>? destinations,
     SendTransactionRequest_FeeRate? feeRate,
-    $5.Hex? opReturnMessage,
+    $1.Hex? opReturnMessage,
   }) {
     final $result = create();
     if (destinations != null) {
@@ -1603,7 +1604,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..m<$core.String, $fixnum.Int64>(1, _omitFieldNames ? '' : 'destinations', entryClassName: 'SendTransactionRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OU6, packageName: const $pb.PackageName('cusf.mainchain.v1'))
     ..aOM<SendTransactionRequest_FeeRate>(2, _omitFieldNames ? '' : 'feeRate', subBuilder: SendTransactionRequest_FeeRate.create)
-    ..aOM<$5.Hex>(3, _omitFieldNames ? '' : 'opReturnMessage', subBuilder: $5.Hex.create)
+    ..aOM<$1.Hex>(3, _omitFieldNames ? '' : 'opReturnMessage', subBuilder: $1.Hex.create)
     ..hasRequiredFields = false
   ;
 
@@ -1647,20 +1648,20 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   /// if set, the transaction will add a separate OP_RETURN output with this
   /// message.
   @$pb.TagNumber(3)
-  $5.Hex get opReturnMessage => $_getN(2);
+  $1.Hex get opReturnMessage => $_getN(2);
   @$pb.TagNumber(3)
-  set opReturnMessage($5.Hex v) { setField(3, v); }
+  set opReturnMessage($1.Hex v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasOpReturnMessage() => $_has(2);
   @$pb.TagNumber(3)
   void clearOpReturnMessage() => clearField(3);
   @$pb.TagNumber(3)
-  $5.Hex ensureOpReturnMessage() => $_ensure(2);
+  $1.Hex ensureOpReturnMessage() => $_ensure(2);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
   factory SendTransactionResponse({
-    $5.ReverseHex? txid,
+    $1.ReverseHex? txid,
   }) {
     final $result = create();
     if (txid != null) {
@@ -1673,7 +1674,7 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   factory SendTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $5.ReverseHex.create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $1.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -1699,15 +1700,15 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   static SendTransactionResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.ReverseHex get txid => $_getN(0);
+  $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($5.ReverseHex v) { setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
-  $5.ReverseHex ensureTxid() => $_ensure(0);
+  $1.ReverseHex ensureTxid() => $_ensure(0);
 }
 
 class UnlockWalletRequest extends $pb.GeneratedMessage {
@@ -1794,7 +1795,7 @@ class UnlockWalletResponse extends $pb.GeneratedMessage {
 
 class GenerateBlocksRequest extends $pb.GeneratedMessage {
   factory GenerateBlocksRequest({
-    $4.UInt32Value? blocks,
+    $0.UInt32Value? blocks,
     $core.bool? ackAllProposals,
   }) {
     final $result = create();
@@ -1811,7 +1812,7 @@ class GenerateBlocksRequest extends $pb.GeneratedMessage {
   factory GenerateBlocksRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateBlocksRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$4.UInt32Value>(1, _omitFieldNames ? '' : 'blocks', subBuilder: $4.UInt32Value.create)
+    ..aOM<$0.UInt32Value>(1, _omitFieldNames ? '' : 'blocks', subBuilder: $0.UInt32Value.create)
     ..aOB(2, _omitFieldNames ? '' : 'ackAllProposals')
     ..hasRequiredFields = false
   ;
@@ -1839,15 +1840,15 @@ class GenerateBlocksRequest extends $pb.GeneratedMessage {
 
   /// Number of blocks to generate.
   @$pb.TagNumber(1)
-  $4.UInt32Value get blocks => $_getN(0);
+  $0.UInt32Value get blocks => $_getN(0);
   @$pb.TagNumber(1)
-  set blocks($4.UInt32Value v) { setField(1, v); }
+  set blocks($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlocks() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlocks() => clearField(1);
   @$pb.TagNumber(1)
-  $4.UInt32Value ensureBlocks() => $_ensure(0);
+  $0.UInt32Value ensureBlocks() => $_ensure(0);
 
   /// ACK all sidechain proposals, irregardless of if they are already
   /// in the wallet DB.
@@ -1863,7 +1864,7 @@ class GenerateBlocksRequest extends $pb.GeneratedMessage {
 
 class GenerateBlocksResponse extends $pb.GeneratedMessage {
   factory GenerateBlocksResponse({
-    $5.ReverseHex? blockHash,
+    $1.ReverseHex? blockHash,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -1876,7 +1877,7 @@ class GenerateBlocksResponse extends $pb.GeneratedMessage {
   factory GenerateBlocksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateBlocksResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<$5.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $5.ReverseHex.create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $1.ReverseHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -1902,15 +1903,57 @@ class GenerateBlocksResponse extends $pb.GeneratedMessage {
   static GenerateBlocksResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $5.ReverseHex get blockHash => $_getN(0);
+  $1.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($5.ReverseHex v) { setField(1, v); }
+  set blockHash($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
-  $5.ReverseHex ensureBlockHash() => $_ensure(0);
+  $1.ReverseHex ensureBlockHash() => $_ensure(0);
+}
+
+class WalletServiceApi {
+  $pb.RpcClient _client;
+  WalletServiceApi(this._client);
+
+  $async.Future<BroadcastWithdrawalBundleResponse> broadcastWithdrawalBundle($pb.ClientContext? ctx, BroadcastWithdrawalBundleRequest request) =>
+    _client.invoke<BroadcastWithdrawalBundleResponse>(ctx, 'WalletService', 'BroadcastWithdrawalBundle', request, BroadcastWithdrawalBundleResponse())
+  ;
+  $async.Future<CreateBmmCriticalDataTransactionResponse> createBmmCriticalDataTransaction($pb.ClientContext? ctx, CreateBmmCriticalDataTransactionRequest request) =>
+    _client.invoke<CreateBmmCriticalDataTransactionResponse>(ctx, 'WalletService', 'CreateBmmCriticalDataTransaction', request, CreateBmmCriticalDataTransactionResponse())
+  ;
+  $async.Future<CreateDepositTransactionResponse> createDepositTransaction($pb.ClientContext? ctx, CreateDepositTransactionRequest request) =>
+    _client.invoke<CreateDepositTransactionResponse>(ctx, 'WalletService', 'CreateDepositTransaction', request, CreateDepositTransactionResponse())
+  ;
+  $async.Future<CreateNewAddressResponse> createNewAddress($pb.ClientContext? ctx, CreateNewAddressRequest request) =>
+    _client.invoke<CreateNewAddressResponse>(ctx, 'WalletService', 'CreateNewAddress', request, CreateNewAddressResponse())
+  ;
+  $async.Future<CreateSidechainProposalResponse> createSidechainProposal($pb.ClientContext? ctx, CreateSidechainProposalRequest request) =>
+    _client.invoke<CreateSidechainProposalResponse>(ctx, 'WalletService', 'CreateSidechainProposal', request, CreateSidechainProposalResponse())
+  ;
+  $async.Future<CreateWalletResponse> createWallet($pb.ClientContext? ctx, CreateWalletRequest request) =>
+    _client.invoke<CreateWalletResponse>(ctx, 'WalletService', 'CreateWallet', request, CreateWalletResponse())
+  ;
+  $async.Future<GetBalanceResponse> getBalance($pb.ClientContext? ctx, GetBalanceRequest request) =>
+    _client.invoke<GetBalanceResponse>(ctx, 'WalletService', 'GetBalance', request, GetBalanceResponse())
+  ;
+  $async.Future<ListSidechainDepositTransactionsResponse> listSidechainDepositTransactions($pb.ClientContext? ctx, ListSidechainDepositTransactionsRequest request) =>
+    _client.invoke<ListSidechainDepositTransactionsResponse>(ctx, 'WalletService', 'ListSidechainDepositTransactions', request, ListSidechainDepositTransactionsResponse())
+  ;
+  $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, ListTransactionsRequest request) =>
+    _client.invoke<ListTransactionsResponse>(ctx, 'WalletService', 'ListTransactions', request, ListTransactionsResponse())
+  ;
+  $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
+    _client.invoke<SendTransactionResponse>(ctx, 'WalletService', 'SendTransaction', request, SendTransactionResponse())
+  ;
+  $async.Future<UnlockWalletResponse> unlockWallet($pb.ClientContext? ctx, UnlockWalletRequest request) =>
+    _client.invoke<UnlockWalletResponse>(ctx, 'WalletService', 'UnlockWallet', request, UnlockWalletResponse())
+  ;
+  $async.Future<GenerateBlocksResponse> generateBlocks($pb.ClientContext? ctx, GenerateBlocksRequest request) =>
+    _client.invoke<GenerateBlocksResponse>(ctx, 'WalletService', 'GenerateBlocks', request, GenerateBlocksResponse())
+  ;
 }
 
 
