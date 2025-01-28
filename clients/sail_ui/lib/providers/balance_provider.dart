@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sail_ui/env.dart';
 
 class BalanceProvider extends ChangeNotifier {
   final log = GetIt.I.get<Logger>();
@@ -73,6 +74,9 @@ class BalanceProvider extends ChangeNotifier {
   }
 
   void _startFetchTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
     _fetchTimer?.cancel();
     _fetchTimer = Timer.periodic(const Duration(seconds: 1), (_) => fetch());
   }
