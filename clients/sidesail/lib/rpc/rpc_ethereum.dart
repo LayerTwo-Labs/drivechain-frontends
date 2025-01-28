@@ -200,9 +200,8 @@ class EthereumRPCLive extends EthereumRPC {
   Future<void> initBinary(
     BuildContext context, {
     List<String>? arg,
-    String? mnemonicPath,
   }) async {
-    await super.initBinary(context, arg: arg, mnemonicPath: mnemonicPath);
+    await super.initBinary(context, arg: arg);
   }
 }
 
