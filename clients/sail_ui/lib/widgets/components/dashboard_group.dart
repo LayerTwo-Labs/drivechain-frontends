@@ -26,13 +26,14 @@ class DashboardGroup extends StatelessWidget {
       children: [
         Container(
           height: 36,
-          color: theme.colors.actionHeader,
+          color: theme.colors.backgroundSecondary,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 05, horizontal: 30),
             child: Row(
               children: [
                 SailRow(
                   spacing: SailStyleValues.padding10,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     SailText.primary13(
                       title,

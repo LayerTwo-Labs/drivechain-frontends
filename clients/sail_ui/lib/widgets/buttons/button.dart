@@ -138,7 +138,7 @@ class SailTextButton extends StatelessWidget {
 
     return SailScaleButton(
       onPressed: onPressed,
-      child: SailText.secondary12(label, bold: true, color: theme.colors.background),
+      child: SailText.secondary12(label, bold: true, color: theme.colors.text),
     );
   }
 }
@@ -298,7 +298,8 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final backgroundColor = widget.style == SailButtonStyle.secondary ? theme.colors.background : theme.colors.text;
+    final backgroundColor =
+        widget.style == SailButtonStyle.secondary ? theme.colors.background : theme.colors.backgroundSecondary;
 
     Widget buttonContent = Listener(
       onPointerDown: (_) async {

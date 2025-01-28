@@ -17,8 +17,8 @@ class SailToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return SailScaleButton(
-      onPressed: () {
+    return InkWell(
+      onTap: () {
         onChanged(!value);
       },
       child: SailRow(

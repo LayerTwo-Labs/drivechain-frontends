@@ -18,14 +18,12 @@ import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class ZCashMeltCastTabPage extends StatelessWidget {
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
   const ZCashMeltCastTabPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZCashShieldCastViewModel(),
+      viewModelBuilder: () => ZCashMeltCastViewModel(),
       builder: ((context, model, child) {
         final tabsRouter = AutoTabsRouter.of(context);
 
@@ -34,7 +32,78 @@ class ZCashMeltCastTabPage extends StatelessWidget {
           widgetTitle: ZCashWidgetTitle(
             depositNudgeAction: () => tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index),
           ),
-          body: const ZCashMeltCast(),
+          body: Padding(
+            padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
+            child: SailColumn(
+              spacing: SailStyleValues.padding32,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          MeltButton(
+                            onPressed: () => model.melt(context),
+                          ),
+                          const SizedBox(height: SailStyleValues.padding16),
+                          SailRawCard(
+                            bottomPadding: false,
+                            title: 'Melt',
+                            subtitle: 'Click here to Melt ALL of your transparent Coins',
+                            widgetHeaderEnd: HelpButton(onPressed: () => model.meltHelp(context)),
+                            child: SizedBox(
+                              height: 300,
+                              child: PendingMeltTable(
+                                entries: model.pendingMelts,
+                                onMelt: () => model.melt(context),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: SailStyleValues.padding16),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CastButton(
+                            onPressed: () => model.cast(context),
+                          ),
+                          const SizedBox(height: SailStyleValues.padding16),
+                          SailRawCard(
+                            title: 'Cast',
+                            subtitle: 'Click here to Cast 95-100% of your z-value as 4 new Coins',
+                            bottomPadding: false,
+                            widgetHeaderEnd: SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                HelpButton(onPressed: () => model.castHelp(context)),
+                                SailScaleButton(
+                                  child: SailSVG.icon(SailSVGAsset.iconCalendar),
+                                  onPressed: () => model.viewBills(),
+                                ),
+                              ],
+                            ),
+                            child: SizedBox(
+                              height: 300,
+                              child: PendingCastTable(
+                                entries: model.pendingNonEmptyBills,
+                                onCast: () => model.cast(context),
+                                chain: model.chain,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         );
       }),
     );
@@ -362,5 +431,178 @@ class ZCashMeltCastViewModel extends BaseViewModel {
     _zcashProvider.removeListener(notifyListeners);
     _castProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
+  }
+}
+
+class PendingMeltTable extends StatefulWidget {
+  final List<PendingShield> entries;
+  final VoidCallback onMelt;
+
+  const PendingMeltTable({
+    super.key,
+    required this.entries,
+    required this.onMelt,
+  });
+
+  @override
+  State<PendingMeltTable> createState() => _PendingMeltTableState();
+}
+
+class _PendingMeltTableState extends State<PendingMeltTable> {
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      getRowId: (index) => widget.entries[index].utxo.raw,
+      headerBuilder: (context) => const [
+        SailTableHeaderCell(name: 'Amount'),
+        SailTableHeaderCell(name: 'Address'),
+        SailTableHeaderCell(name: 'Date'),
+        SailTableHeaderCell(name: '# Conf'),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = widget.entries[row];
+        return [
+          SailTableCell(value: formatBitcoin(entry.utxo.amount)),
+          SailTableCell(value: entry.utxo.address),
+          SailTableCell(value: entry.executeTime.format()),
+          SailTableCell(value: entry.utxo.confirmations.toString()),
+        ];
+      },
+      rowCount: widget.entries.length,
+      columnWidths: const [100, 200, 150, 100],
+      drawGrid: true,
+    );
+  }
+}
+
+class PendingCastTable extends StatefulWidget {
+  final List<PendingCastBill> entries;
+  final VoidCallback onCast;
+  final Binary chain;
+
+  const PendingCastTable({
+    super.key,
+    required this.entries,
+    required this.onCast,
+    required this.chain,
+  });
+
+  @override
+  State<PendingCastTable> createState() => _PendingCastTableState();
+}
+
+class _PendingCastTableState extends State<PendingCastTable> {
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      getRowId: (index) => widget.entries[index].powerOf.toString(),
+      headerBuilder: (context) => const [
+        SailTableHeaderCell(name: 'Bill Amount'),
+        SailTableHeaderCell(name: 'Broadcast Day'),
+        SailTableHeaderCell(name: 'ETA'),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = widget.entries[row];
+        return [
+          SailTableCell(value: formatBitcoin(entry.castAmount)),
+          SailTableCell(value: entry.executeTime.toLocal().format()),
+          SailTableCell(value: entry.executeIn.inDays.toString()),
+        ];
+      },
+      rowCount: widget.entries.length,
+      columnWidths: const [150, 150, 100],
+      drawGrid: true,
+    );
+  }
+}
+
+class MeltButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const MeltButton({
+    super.key,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return InkWell(
+      onTap: onPressed,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6.0),
+          gradient: LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              theme.colors.orange.withValues(alpha: 0.25),
+              theme.colors.orangeLight.withValues(alpha: 0.25),
+            ],
+          ),
+          border: Border.all(
+            color: theme.colors.orange,
+            width: 1.0,
+          ),
+        ),
+        child: Column(
+          children: [
+            SailRow(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.icon(SailSVGAsset.iconMelt, color: theme.colors.text, height: 24),
+                SailText.primary24('Melt', bold: true),
+              ],
+            ),
+            SailText.secondary13(
+              'Click here to Melt ALL of your transparent Coins',
+              color: theme.colors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CastButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const CastButton({
+    super.key,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return SailScaleButton(
+      onPressed: onPressed,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          children: [
+            SailRow(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: SailStyleValues.padding08,
+              children: [
+                SailSVG.icon(SailSVGAsset.iconCast, color: theme.colors.text, height: 24),
+                SailText.primary24('Cast', bold: true),
+              ],
+            ),
+            SailText.secondary13(
+              'Click here to Cast 95-100% of your z-value as 4 new Coins',
+              color: theme.colors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

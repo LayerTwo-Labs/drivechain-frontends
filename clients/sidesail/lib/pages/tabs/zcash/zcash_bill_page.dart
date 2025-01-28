@@ -125,7 +125,7 @@ class ZCashBillPage extends StatelessWidget {
             (cell) => TableCell(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: SailText.primary12(cell, textAlign: TextAlign.right),
+                child: SailText.primary12(cell, textAlign: TextAlign.right, monospace: true),
               ),
             ),
           )
