@@ -374,14 +374,8 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     }
 
     final words = _currentWalletData['mnemonic'].split(' ');
-    final binaryString = _currentWalletData['bip39_binary'] ?? '';
-    final binaryStrings = <String>[];
-    
-    // Split binary string into 11-bit chunks
-    for (int i = 0; i < binaryString.length; i += 11) {
-      final end = i + 11 > binaryString.length ? binaryString.length : i + 11;
-      binaryStrings.add(binaryString.substring(i, end).padRight(11, '0'));
-    }
+    final binaryStrings = _currentWalletData['binary_strings'] as List<String>;
+    final checksumBits = _currentWalletData['bip39_checksum'] as String;
 
     return SailRawCard(
       padding: true,
@@ -403,10 +397,24 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                           children: [
                             SailText.primary10(words[row * 6 + col], bold: true),
                             if (row * 6 + col < binaryStrings.length)
-                              SailText.primary10(
-                                binaryStrings[row * 6 + col],
-                                color: SailTheme.of(context).colors.textSecondary,
-                              ),
+                              row * 6 + col == words.length - 1
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SailText.primary10(
+                                        binaryStrings[row * 6 + col].substring(0, 7),
+                                        color: SailTheme.of(context).colors.textSecondary,
+                                      ),
+                                      SailText.primary10(
+                                        binaryStrings[row * 6 + col].substring(7),
+                                        color: SailTheme.of(context).colors.success,
+                                      ),
+                                    ],
+                                  )
+                                : SailText.primary10(
+                                    binaryStrings[row * 6 + col],
+                                    color: SailTheme.of(context).colors.textSecondary,
+                                  ),
                           ],
                         ),
                       ),
@@ -423,6 +431,8 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   Widget _buildInfoPanel() {
     final theme = SailTheme.of(context);
+    final binaryString = _currentWalletData['bip39_binary'] as String?;
+    final checksumBits = _currentWalletData['bip39_checksum'] as String?;
 
     return SailRawCard(
       padding: true,
@@ -441,7 +451,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
               ),
               Expanded(
                 child: SailText.primary10(
-                  _currentWalletData['bip39_binary'] ?? '',
+                  binaryString ?? '',
                   color: theme.colors.textSecondary,
                 ),
               ),
@@ -453,18 +463,18 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             children: [
               SizedBox(
                 width: 100,
-                child: SailText.primary10('Checksum:', bold: true),
+                child: SailText.primary10('BIP39 Checksum:', bold: true),
               ),
               SailText.primary10(
                 _currentWalletData['bip39_checksum'] ?? '',
-                color: theme.colors.textSecondary,
+                color: theme.colors.success,
               ),
               const SizedBox(width: SailStyleValues.padding16),
               SailText.primary10('Hex:', bold: true),
               const SizedBox(width: SailStyleValues.padding04),
               SailText.primary10(
                 _currentWalletData['bip39_checksum_hex'] ?? '',
-                color: theme.colors.textSecondary,
+                color: theme.colors.success,
               ),
               Expanded(child: Container()),
             ],
@@ -721,6 +731,31 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         return;
       }
 
+      // Process binary representation
+      final binaryString = wallet['bip39_binary'] as String;
+      final words = (wallet['mnemonic'] as String).split(' ');
+      final binaryStrings = <String>[];
+      
+      // For 12 words: 11 words × 11 bits + 7 bits + 4 checksum bits = 132 bits
+      final checksumBits = wallet['bip39_checksum'] as String;
+      final entropyBits = binaryString.substring(0, binaryString.length - checksumBits.length);
+      
+      // Split into 11-bit chunks for each word
+      for (int i = 0; i < words.length - 1; i++) {
+        final start = i * 11;
+        final end = start + 11;
+        final chunk = entropyBits.substring(start, end);
+        binaryStrings.add(chunk);
+      }
+      
+      // Handle last word specially (7 bits entropy + 4 bits checksum)
+      final lastEntropyBits = entropyBits.substring(entropyBits.length - 7);
+      final lastWord = lastEntropyBits + checksumBits;
+      binaryStrings.add(lastWord);
+
+      // Update wallet data with processed binary strings
+      wallet['binary_strings'] = binaryStrings;
+      
       setState(() {
         _currentWalletData = Map<String, dynamic>.from(wallet);
         _isValidInput = true;
