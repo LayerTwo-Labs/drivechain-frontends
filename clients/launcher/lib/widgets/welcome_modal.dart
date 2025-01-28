@@ -373,21 +373,44 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       return const SizedBox.shrink();
     }
 
+    final theme = SailTheme.of(context);
     final words = _currentWalletData['mnemonic'].split(' ');
     final binaryString = _currentWalletData['bip39_binary'] ?? '';
+    final checksumBinary = _currentWalletData['bip39_checksum'] ?? '';
+    
+    // Calculate total length for verification
+    final entropyBits = binaryString.length;
+    final checksumBits = entropyBits ~/ 32; // BIP39 spec: checksum length = entropy length / 32
+    final totalBits = entropyBits + checksumBits;
+    final expectedWords = totalBits ~/ 11; // Each word represents 11 bits
+    
+    if (words.length != expectedWords) {
+      return const SizedBox.shrink(); // Invalid state
+    }
+
+    final fullBinary = binaryString + checksumBinary;
     final binaryStrings = <String>[];
     
-    // Split binary string into 11-bit chunks
-    for (int i = 0; i < binaryString.length; i += 11) {
-      final end = i + 11 > binaryString.length ? binaryString.length : i + 11;
-      binaryStrings.add(binaryString.substring(i, end).padRight(11, '0'));
+    // Split into 11-bit chunks as per BIP39
+    for (int i = 0; i < fullBinary.length; i += 11) {
+      final end = i + 11 > fullBinary.length ? fullBinary.length : i + 11;
+      final chunk = fullBinary.substring(i, end).padRight(11, '0');
+      binaryStrings.add(chunk);
     }
 
     return SailRawCard(
       padding: true,
       secondary: true,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SailText.primary10(
+              'Entropy (${entropyBits} bits) + Checksum (${checksumBits} bits) = ${totalBits} bits ÷ 11 = ${expectedWords} words',
+              color: theme.colors.textSecondary,
+            ),
+          ),
           for (int row = 0; row < (words.length ~/ 6); row++)
             Padding(
               padding: EdgeInsets.only(bottom: row < (words.length ~/ 6) - 1 ? 4 : 0),
@@ -403,10 +426,33 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                           children: [
                             SailText.primary10(words[row * 6 + col], bold: true),
                             if (row * 6 + col < binaryStrings.length)
-                              SailText.primary10(
-                                binaryStrings[row * 6 + col],
-                                color: SailTheme.of(context).colors.textSecondary,
-                              ),
+                              row * 6 + col == words.length - 1 
+                                ? RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: binaryStrings[row * 6 + col].substring(0, 7),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: theme.colors.textSecondary,
+                                            fontFamily: 'IBM Plex Mono',
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: binaryStrings[row * 6 + col].substring(7),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: theme.colors.success,
+                                            fontFamily: 'IBM Plex Mono',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : SailText.primary10(
+                                    binaryStrings[row * 6 + col],
+                                    color: theme.colors.textSecondary,
+                                  ),
                           ],
                         ),
                       ),
@@ -423,6 +469,8 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   Widget _buildInfoPanel() {
     final theme = SailTheme.of(context);
+    final binaryString = _currentWalletData['bip39_binary'] ?? '';
+    final checksumBinary = _currentWalletData['bip39_checksum'] ?? '';
 
     return SailRawCard(
       padding: true,
@@ -441,7 +489,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
               ),
               Expanded(
                 child: SailText.primary10(
-                  _currentWalletData['bip39_binary'] ?? '',
+                  binaryString,
                   color: theme.colors.textSecondary,
                 ),
               ),
@@ -456,15 +504,15 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                 child: SailText.primary10('Checksum:', bold: true),
               ),
               SailText.primary10(
-                _currentWalletData['bip39_checksum'] ?? '',
-                color: theme.colors.textSecondary,
+                checksumBinary,
+                color: theme.colors.success,
               ),
               const SizedBox(width: SailStyleValues.padding16),
               SailText.primary10('Hex:', bold: true),
               const SizedBox(width: SailStyleValues.padding04),
               SailText.primary10(
                 _currentWalletData['bip39_checksum_hex'] ?? '',
-                color: theme.colors.textSecondary,
+                color: theme.colors.success,
               ),
               Expanded(child: Container()),
             ],
