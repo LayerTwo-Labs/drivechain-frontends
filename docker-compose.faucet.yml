@@ -19,7 +19,7 @@ services:
     image: faucet-backend
     restart: unless-stopped
     build:
-      context: ./faucet-backend
+      context: ./servers/faucet
       platforms: [linux/amd64]
 
     command:
