@@ -194,6 +194,15 @@ class EthereumRPCLive extends EthereumRPC {
       warnings: [],
     );
   }
+
+  @override
+  Future<void> initBinary(
+    BuildContext context, {
+    List<String>? arg,
+    String? mnemonicPath,
+  }) async {
+    await super.initBinary(context, arg: arg, mnemonicPath: mnemonicPath);
+  }
 }
 
 /// List of all known RPC methods available /
