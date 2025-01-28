@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/balance_provider.dart';
+import 'package:connectrpc/protocol/grpc.dart' as grpc;
+import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:connectrpc/protobuf.dart' as protobuf;
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
@@ -126,9 +129,13 @@ Future<void> initDependencies(Logger log, File logFile) async {
   log.i('logging server logs to: $serverLogFile');
   final baseUrl = 'http://${Environment.bitwindowdHost}:${Environment.bitwindowdPort}';
   final httpClient = createHttpClient();
-  final bitwindow = await BitwindowRPCLive.create(
+  final connectTransport = connect.Transport(
     baseUrl: baseUrl,
+    codec: const protobuf.ProtoCodec(),
     httpClient: httpClient,
+  );
+  final bitwindow = await BitwindowRPCLive.create(
+    transport: connectTransport,
     binary: BitWindow(),
     logPath: serverLogFile,
   );
@@ -136,10 +143,16 @@ Future<void> initDependencies(Logger log, File logFile) async {
     () => bitwindow,
   );
 
+  final enforerBinary = Enforcer();
   final enforcer = await EnforcerLive.create(
-    binary: Enforcer(),
+    transport: grpc.Transport(
+      baseUrl: 'http://127.0.0.1:${enforerBinary.port}',
+      codec: const protobuf.ProtoCodec(),
+      httpClient: httpClient,
+      statusParser: const protobuf.StatusParser(),
+    ),
+    binary: enforerBinary,
     logPath: serverLogFile,
-    httpClient: httpClient,
   );
 
   GetIt.I.registerLazySingleton<EnforcerRPC>(
