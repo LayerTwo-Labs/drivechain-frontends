@@ -13,13 +13,13 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../../google/protobuf/wrappers.pb.dart' as $4;
+import '../../../google/protobuf/wrappers.pb.dart' as $0;
 
 /// / Consensus-encoded hex.
 /// / Variable length data uses a length prefix.
 class ConsensusHex extends $pb.GeneratedMessage {
   factory ConsensusHex({
-    $4.StringValue? hex,
+    $0.StringValue? hex,
   }) {
     final $result = create();
     if (hex != null) {
@@ -32,7 +32,7 @@ class ConsensusHex extends $pb.GeneratedMessage {
   factory ConsensusHex.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConsensusHex', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.common.v1'), createEmptyInstance: create)
-    ..aOM<$4.StringValue>(1, _omitFieldNames ? '' : 'hex', subBuilder: $4.StringValue.create)
+    ..aOM<$0.StringValue>(1, _omitFieldNames ? '' : 'hex', subBuilder: $0.StringValue.create)
     ..hasRequiredFields = false
   ;
 
@@ -58,22 +58,22 @@ class ConsensusHex extends $pb.GeneratedMessage {
   static ConsensusHex? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.StringValue get hex => $_getN(0);
+  $0.StringValue get hex => $_getN(0);
   @$pb.TagNumber(1)
-  set hex($4.StringValue v) { setField(1, v); }
+  set hex($0.StringValue v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHex() => $_has(0);
   @$pb.TagNumber(1)
   void clearHex() => clearField(1);
   @$pb.TagNumber(1)
-  $4.StringValue ensureHex() => $_ensure(0);
+  $0.StringValue ensureHex() => $_ensure(0);
 }
 
 /// / Hex encoding of byte arrays/vectors.
 /// / Length prefixes are not used.
 class Hex extends $pb.GeneratedMessage {
   factory Hex({
-    $4.StringValue? hex,
+    $0.StringValue? hex,
   }) {
     final $result = create();
     if (hex != null) {
@@ -86,7 +86,7 @@ class Hex extends $pb.GeneratedMessage {
   factory Hex.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Hex', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.common.v1'), createEmptyInstance: create)
-    ..aOM<$4.StringValue>(1, _omitFieldNames ? '' : 'hex', subBuilder: $4.StringValue.create)
+    ..aOM<$0.StringValue>(1, _omitFieldNames ? '' : 'hex', subBuilder: $0.StringValue.create)
     ..hasRequiredFields = false
   ;
 
@@ -112,21 +112,21 @@ class Hex extends $pb.GeneratedMessage {
   static Hex? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.StringValue get hex => $_getN(0);
+  $0.StringValue get hex => $_getN(0);
   @$pb.TagNumber(1)
-  set hex($4.StringValue v) { setField(1, v); }
+  set hex($0.StringValue v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHex() => $_has(0);
   @$pb.TagNumber(1)
   void clearHex() => clearField(1);
   @$pb.TagNumber(1)
-  $4.StringValue ensureHex() => $_ensure(0);
+  $0.StringValue ensureHex() => $_ensure(0);
 }
 
 /// / Reverse consensus-encoded hex
 class ReverseHex extends $pb.GeneratedMessage {
   factory ReverseHex({
-    $4.StringValue? hex,
+    $0.StringValue? hex,
   }) {
     final $result = create();
     if (hex != null) {
@@ -139,7 +139,7 @@ class ReverseHex extends $pb.GeneratedMessage {
   factory ReverseHex.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ReverseHex', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.common.v1'), createEmptyInstance: create)
-    ..aOM<$4.StringValue>(1, _omitFieldNames ? '' : 'hex', subBuilder: $4.StringValue.create)
+    ..aOM<$0.StringValue>(1, _omitFieldNames ? '' : 'hex', subBuilder: $0.StringValue.create)
     ..hasRequiredFields = false
   ;
 
@@ -165,15 +165,15 @@ class ReverseHex extends $pb.GeneratedMessage {
   static ReverseHex? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.StringValue get hex => $_getN(0);
+  $0.StringValue get hex => $_getN(0);
   @$pb.TagNumber(1)
-  set hex($4.StringValue v) { setField(1, v); }
+  set hex($0.StringValue v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHex() => $_has(0);
   @$pb.TagNumber(1)
   void clearHex() => clearField(1);
   @$pb.TagNumber(1)
-  $4.StringValue ensureHex() => $_ensure(0);
+  $0.StringValue ensureHex() => $_ensure(0);
 }
 
 

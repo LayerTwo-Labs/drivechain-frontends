@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:auto_route/auto_route.dart';
 import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
-import 'package:faucet/gen/faucet/v1/faucet.pbgrpc.dart';
+import 'package:faucet/gen/faucet/v1/faucet.pb.dart';
 import 'package:faucet/providers/transactions_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

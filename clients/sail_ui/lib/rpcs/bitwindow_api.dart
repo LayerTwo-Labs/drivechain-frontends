@@ -1,17 +1,23 @@
+import 'package:connectrpc/connect.dart';
+import 'package:connectrpc/protocol/connect.dart' as protocol;
+import 'package:connectrpc/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
-import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbgrpc.dart';
-import 'package:sail_ui/gen/drivechain/v1/drivechain.pbgrpc.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.connect.client.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
+import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.connect.client.dart';
+import 'package:sail_ui/gen/drivechain/v1/drivechain.connect.client.dart';
+import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/google/protobuf/empty.pb.dart';
-import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/gen/misc/v1/misc.connect.client.dart';
+import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
@@ -91,8 +97,10 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   // Async factory
   static Future<BitwindowRPCLive> create({
-    required String host,
-    required int port,
+    required String baseUrl,
+    // This is taken in here because the different platforms will
+    // use different transport mechanisms.
+    required HttpClient httpClient,
     required Binary binary,
     required String logPath,
   }) async {
@@ -104,24 +112,23 @@ class BitwindowRPCLive extends BitwindowRPC {
       logPath: logPath,
     );
 
-    await instance._init(host, port);
+    await instance._init(baseUrl, httpClient);
     return instance;
   }
 
-  Future<void> _init(String host, int port) async {
-    final channel = ClientChannel(
-      host,
-      port: port,
-      options: const ChannelOptions(
-        credentials: ChannelCredentials.insecure(),
-      ),
+  Future<void> _init(String baseUrl, HttpClient httpClient) async {
+    final transport = protocol.Transport(
+      baseUrl: baseUrl,
+      codec: const JsonCodec(),
+      httpClient: httpClient,
+      useHttpGet: true,
     );
 
-    bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(channel));
-    wallet = _WalletAPILive(WalletServiceClient(channel));
-    bitcoind = _BitcoindAPILive(BitcoindServiceClient(channel));
-    drivechain = _DrivechainAPILive(DrivechainServiceClient(channel));
-    misc = _MiscAPILive(MiscServiceClient(channel));
+    bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
+    wallet = _WalletAPILive(WalletServiceClient(transport));
+    bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));
+    drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
+    misc = _MiscAPILive(MiscServiceClient(transport));
 
     await startConnectionTimer();
   }
@@ -189,7 +196,7 @@ class _WalletAPILive implements WalletAPI {
       final response = await _client.sendTransaction(request);
       return response.txid;
     } catch (e) {
-      final error = 'could not send transaction: ${extractGRPCError(e)}';
+      final error = 'could not send transaction: ${extractConnectException(e)}';
       log.e(error);
       throw WalletException(error);
     }
@@ -200,7 +207,7 @@ class _WalletAPILive implements WalletAPI {
     try {
       return await _client.getBalance(Empty());
     } catch (e) {
-      final error = 'could not get balance: ${extractGRPCError(e)}';
+      final error = 'could not get balance: ${extractConnectException(e)}';
       log.e(error);
       throw WalletException(error);
     }
@@ -212,7 +219,7 @@ class _WalletAPILive implements WalletAPI {
       final response = await _client.getNewAddress(Empty());
       return response.address;
     } catch (e) {
-      final error = 'could not get new address: ${extractGRPCError(e)}';
+      final error = 'could not get new address: ${extractConnectException(e)}';
       log.e(error);
       throw WalletException(error);
     }
@@ -224,7 +231,7 @@ class _WalletAPILive implements WalletAPI {
       final response = await _client.listTransactions(Empty());
       return response.transactions;
     } catch (e) {
-      final error = 'could not list transactions: ${extractGRPCError(e)}';
+      final error = 'could not list transactions: ${extractConnectException(e)}';
       log.e(error);
       throw WalletException(error);
     }
@@ -236,7 +243,7 @@ class _WalletAPILive implements WalletAPI {
       final response = await _client.listSidechainDeposits(ListSidechainDepositsRequest()..slot = slot);
       return response.deposits;
     } catch (e) {
-      final error = 'could not list sidechain deposits: ${extractGRPCError(e)}';
+      final error = 'could not list sidechain deposits: ${extractConnectException(e)}';
       log.e(error);
       throw WalletException(error);
     }
@@ -254,7 +261,7 @@ class _WalletAPILive implements WalletAPI {
       );
       return response.txid;
     } catch (e) {
-      final error = extractGRPCError(e);
+      final error = extractConnectException(e);
       log.e('could not create deposit: $error');
       throw WalletException(error);
     }
@@ -273,7 +280,7 @@ class _BitcoindAPILive implements BitcoindAPI {
       final response = await _client.listRecentTransactions(ListRecentTransactionsRequest()..count = Int64(20));
       return response.transactions;
     } catch (e) {
-      final error = 'could not list unconfirmed transactions: ${extractGRPCError(e)}';
+      final error = 'could not list unconfirmed transactions: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -285,7 +292,7 @@ class _BitcoindAPILive implements BitcoindAPI {
       final response = await _client.listRecentBlocks(ListRecentBlocksRequest()..count = Int64(20));
       return response.recentBlocks;
     } catch (e) {
-      final error = 'could not list recent blocks: ${extractGRPCError(e)}';
+      final error = 'could not list recent blocks: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -305,7 +312,7 @@ class _BitcoindAPILive implements BitcoindAPI {
       final response = await _client.listPeers(Empty());
       return response.peers;
     } catch (e) {
-      final error = 'could not list peers: ${extractGRPCError(e)}';
+      final error = 'could not list peers: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -317,7 +324,7 @@ class _BitcoindAPILive implements BitcoindAPI {
       final response = await _client.estimateSmartFee(EstimateSmartFeeRequest()..confTarget = Int64(confTarget));
       return response;
     } catch (e) {
-      final error = 'could not estimate smart fee: ${extractGRPCError(e)}';
+      final error = 'could not estimate smart fee: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -336,7 +343,7 @@ class _DrivechainAPILive implements DrivechainAPI {
       final response = await _client.listSidechains(ListSidechainsRequest());
       return response.sidechains;
     } catch (e) {
-      final error = 'could not list sidechains: ${extractGRPCError(e)}';
+      final error = 'could not list sidechains: ${extractConnectException(e)}';
       log.e(error);
       throw DrivechainException(error);
     }
@@ -348,7 +355,7 @@ class _DrivechainAPILive implements DrivechainAPI {
       final response = await _client.listSidechainProposals(ListSidechainProposalsRequest());
       return response.proposals;
     } catch (e) {
-      final error = 'could not list sidechain proposals: ${extractGRPCError(e)}';
+      final error = 'could not list sidechain proposals: ${extractConnectException(e)}';
       log.e(error);
       throw DrivechainException(error);
     }
@@ -367,7 +374,7 @@ class _MiscAPILive implements MiscAPI {
       final response = await _client.listOPReturn(Empty());
       return response.opReturns;
     } catch (e) {
-      final error = 'could not list op returns: ${extractGRPCError(e)}';
+      final error = 'could not list op returns: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -383,7 +390,7 @@ class _MiscAPILive implements MiscAPI {
       );
       return response;
     } catch (e) {
-      final error = 'could not broadcast news: ${extractGRPCError(e)}';
+      final error = 'could not broadcast news: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -399,7 +406,7 @@ class _MiscAPILive implements MiscAPI {
       );
       return response;
     } catch (e) {
-      final error = 'could not create topic: ${extractGRPCError(e)}';
+      final error = 'could not create topic: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -411,7 +418,7 @@ class _MiscAPILive implements MiscAPI {
       final response = await _client.listCoinNews(ListCoinNewsRequest());
       return response.coinNews;
     } catch (e) {
-      final error = 'could not list coin news: ${extractGRPCError(e)}';
+      final error = 'could not list coin news: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -423,7 +430,7 @@ class _MiscAPILive implements MiscAPI {
       final response = await _client.listTopics(Empty());
       return response.topics;
     } catch (e) {
-      final error = 'could not list topics: ${extractGRPCError(e)}';
+      final error = 'could not list topics: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }

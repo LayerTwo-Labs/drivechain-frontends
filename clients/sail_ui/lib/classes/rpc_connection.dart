@@ -5,9 +5,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:connectrpc/connect.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:grpc/grpc.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -67,11 +67,11 @@ abstract class RPCConnection extends ChangeNotifier {
     } catch (error) {
       String? newError = error.toString();
 
-      if (error is GrpcError) {
+      if (error is ConnectException) {
         // if it's a grpc error, we're talking to a binary that
         // has a grpc server. That is initialized whenever it
         // responds, so we know it's no longer initializing
-        newError = extractGRPCError(error);
+        newError = extractConnectException(error);
       } else if (!initializingBinary) {
         // If it's not a grpc error however, we're probably talking
         // to a bitcoin core based binary. That will return a bunch of
@@ -177,10 +177,10 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.i('init binaries: waiting for $binary connection');
 
-    var timeout = Duration(seconds: 60);
+    var timeout = const Duration(seconds: 60);
     if (binary.binary == 'zsided') {
       // zcash can take a long time. initial sync as well
-      timeout = Duration(seconds: 5 * 60);
+      timeout = const Duration(seconds: 5 * 60);
     }
     try {
       await Future.any([
@@ -431,13 +431,16 @@ class BlockchainInfo {
       };
 }
 
-String extractGRPCError(
+String extractConnectException(
   Object error,
 ) {
   const messageIfUnknown = "We couldn't figure out exactly what went wrong. Reach out to the devs.";
 
-  if (error is GrpcError) {
-    return error.message ?? messageIfUnknown;
+  if (error is ConnectException) {
+    if (error.message.isEmpty) {
+      return messageIfUnknown;
+    }
+    return error.message;
   } else if (error is String) {
     return error.toString();
   } else {

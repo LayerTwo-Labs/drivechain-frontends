@@ -8,8 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pbgrpc.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -27,7 +27,7 @@ class WalletPage extends StatelessWidget {
         viewModelBuilder: () => SendPageViewModel(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
-          return InlineTabBar(
+          return const InlineTabBar(
             tabs: [
               TabItem(
                 label: 'Send',
@@ -721,7 +721,7 @@ class _TransactionTableState extends State<TransactionTable> {
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   vertical: SailStyleValues.padding16,
                 ),
                 child: widget.searchWidget,

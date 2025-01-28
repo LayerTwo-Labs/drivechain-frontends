@@ -1,26 +1,14 @@
-import 'package:faucet/gen/faucet/v1/faucet.pbgrpc.dart';
-import 'package:grpc/grpc.dart';
-import 'package:grpc/grpc_or_grpcweb.dart';
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/connect.dart' as protocol;
+import 'package:connectrpc/web.dart';
+
+import 'package:faucet/gen/faucet/v1/faucet.connect.client.dart';
 
 /// RPC connection to the mainchain node.
 abstract class API {
   late ServiceClients clients;
 
   API();
-
-  CallOptions createOptions();
-}
-
-CallOptions getCallOptions({
-  Duration? timeout,
-  Map<String, String>? metadata,
-  List<MetadataProvider>? providers,
-}) {
-  return CallOptions(
-    timeout: timeout,
-    metadata: metadata,
-    providers: providers,
-  );
 }
 
 class ServiceClients {
@@ -31,12 +19,17 @@ class ServiceClients {
   });
 
   factory ServiceClients.setup({
-    required GrpcOrGrpcWebClientChannel channel,
-    required CallOptions callOptions,
-    required List<ClientInterceptor> Function() interceptorFactory,
+    required String baseUrl,
   }) {
+    final httpClient = createHttpClient();
+    var transport = protocol.Transport(
+      baseUrl: baseUrl,
+      codec: const JsonCodec(),
+      httpClient: httpClient,
+      useHttpGet: true,
+    );
     return ServiceClients._(
-      faucet: FaucetServiceClient(channel, options: callOptions, interceptors: interceptorFactory()),
+      faucet: FaucetServiceClient(transport),
     );
   }
 }
