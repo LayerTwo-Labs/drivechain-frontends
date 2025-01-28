@@ -375,7 +375,6 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
     final words = _currentWalletData['mnemonic'].split(' ');
     final binaryStrings = _currentWalletData['binary_strings'] as List<String>;
-    final checksumBits = _currentWalletData['bip39_checksum'] as String;
 
     return SailRawCard(
       padding: true,
@@ -432,7 +431,6 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   Widget _buildInfoPanel() {
     final theme = SailTheme.of(context);
     final binaryString = _currentWalletData['bip39_binary'] as String?;
-    final checksumBits = _currentWalletData['bip39_checksum'] as String?;
 
     return SailRawCard(
       padding: true,
@@ -455,28 +453,6 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                   color: theme.colors.textSecondary,
                 ),
               ),
-            ],
-          ),
-          // BIP39 Checksum
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SizedBox(
-                width: 100,
-                child: SailText.primary10('BIP39 Checksum:', bold: true),
-              ),
-              SailText.primary10(
-                _currentWalletData['bip39_checksum'] ?? '',
-                color: theme.colors.success,
-              ),
-              const SizedBox(width: SailStyleValues.padding16),
-              SailText.primary10('Hex:', bold: true),
-              const SizedBox(width: SailStyleValues.padding04),
-              SailText.primary10(
-                _currentWalletData['bip39_checksum_hex'] ?? '',
-                color: theme.colors.success,
-              ),
-              Expanded(child: Container()),
             ],
           ),
           // Master Key
