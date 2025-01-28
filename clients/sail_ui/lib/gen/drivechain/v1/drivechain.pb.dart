@@ -9,6 +9,7 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
+import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
@@ -502,6 +503,18 @@ class ListSidechainProposalsResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $core.List<SidechainProposal> get proposals => $_getList(0);
+}
+
+class DrivechainServiceApi {
+  $pb.RpcClient _client;
+  DrivechainServiceApi(this._client);
+
+  $async.Future<ListSidechainsResponse> listSidechains($pb.ClientContext? ctx, ListSidechainsRequest request) =>
+    _client.invoke<ListSidechainsResponse>(ctx, 'DrivechainService', 'ListSidechains', request, ListSidechainsResponse())
+  ;
+  $async.Future<ListSidechainProposalsResponse> listSidechainProposals($pb.ClientContext? ctx, ListSidechainProposalsRequest request) =>
+    _client.invoke<ListSidechainProposalsResponse>(ctx, 'DrivechainService', 'ListSidechainProposals', request, ListSidechainProposalsResponse())
+  ;
 }
 
 

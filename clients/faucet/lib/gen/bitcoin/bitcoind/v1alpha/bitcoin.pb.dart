@@ -9,13 +9,15 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
+import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../../google/protobuf/timestamp.pb.dart' as $3;
-import '../../../google/protobuf/wrappers.pb.dart' as $4;
+import '../../../google/protobuf/empty.pb.dart' as $2;
+import '../../../google/protobuf/timestamp.pb.dart' as $0;
+import '../../../google/protobuf/wrappers.pb.dart' as $1;
 import 'bitcoin.pbenum.dart';
 
 export 'bitcoin.pbenum.dart';
@@ -1313,13 +1315,13 @@ class GetTransactionResponse extends $pb.GeneratedMessage {
     $core.int? confirmations,
     $core.String? blockHash,
     $core.int? blockIndex,
-    $3.Timestamp? blockTime,
+    $0.Timestamp? blockTime,
     $core.String? txid,
     $core.Iterable<$core.String>? walletConflicts,
     $core.String? replacedByTxid,
     $core.String? replacesTxid,
-    $3.Timestamp? time,
-    $3.Timestamp? timeReceived,
+    $0.Timestamp? time,
+    $0.Timestamp? timeReceived,
     GetTransactionResponse_Replaceable? bip125Replaceable,
     $core.Iterable<GetTransactionResponse_Details>? details,
     $core.String? hex,
@@ -1382,13 +1384,13 @@ class GetTransactionResponse extends $pb.GeneratedMessage {
     ..a<$core.int>(3, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
     ..aOS(6, _omitFieldNames ? '' : 'blockHash')
     ..a<$core.int>(8, _omitFieldNames ? '' : 'blockIndex', $pb.PbFieldType.OU3)
-    ..aOM<$3.Timestamp>(9, _omitFieldNames ? '' : 'blockTime', subBuilder: $3.Timestamp.create)
+    ..aOM<$0.Timestamp>(9, _omitFieldNames ? '' : 'blockTime', subBuilder: $0.Timestamp.create)
     ..aOS(10, _omitFieldNames ? '' : 'txid')
     ..pPS(12, _omitFieldNames ? '' : 'walletConflicts')
     ..aOS(13, _omitFieldNames ? '' : 'replacedByTxid')
     ..aOS(14, _omitFieldNames ? '' : 'replacesTxid')
-    ..aOM<$3.Timestamp>(17, _omitFieldNames ? '' : 'time', subBuilder: $3.Timestamp.create)
-    ..aOM<$3.Timestamp>(18, _omitFieldNames ? '' : 'timeReceived', subBuilder: $3.Timestamp.create)
+    ..aOM<$0.Timestamp>(17, _omitFieldNames ? '' : 'time', subBuilder: $0.Timestamp.create)
+    ..aOM<$0.Timestamp>(18, _omitFieldNames ? '' : 'timeReceived', subBuilder: $0.Timestamp.create)
     ..e<GetTransactionResponse_Replaceable>(19, _omitFieldNames ? '' : 'bip125Replaceable', $pb.PbFieldType.OE, defaultOrMaker: GetTransactionResponse_Replaceable.REPLACEABLE_UNSPECIFIED, valueOf: GetTransactionResponse_Replaceable.valueOf, enumValues: GetTransactionResponse_Replaceable.values)
     ..pc<GetTransactionResponse_Details>(21, _omitFieldNames ? '' : 'details', $pb.PbFieldType.PM, subBuilder: GetTransactionResponse_Details.create)
     ..aOS(22, _omitFieldNames ? '' : 'hex')
@@ -1468,15 +1470,15 @@ class GetTransactionResponse extends $pb.GeneratedMessage {
   void clearBlockIndex() => clearField(8);
 
   @$pb.TagNumber(9)
-  $3.Timestamp get blockTime => $_getN(5);
+  $0.Timestamp get blockTime => $_getN(5);
   @$pb.TagNumber(9)
-  set blockTime($3.Timestamp v) { setField(9, v); }
+  set blockTime($0.Timestamp v) { setField(9, v); }
   @$pb.TagNumber(9)
   $core.bool hasBlockTime() => $_has(5);
   @$pb.TagNumber(9)
   void clearBlockTime() => clearField(9);
   @$pb.TagNumber(9)
-  $3.Timestamp ensureBlockTime() => $_ensure(5);
+  $0.Timestamp ensureBlockTime() => $_ensure(5);
 
   @$pb.TagNumber(10)
   $core.String get txid => $_getSZ(6);
@@ -1512,26 +1514,26 @@ class GetTransactionResponse extends $pb.GeneratedMessage {
   /// string comment = 15;
   /// string to = 16;
   @$pb.TagNumber(17)
-  $3.Timestamp get time => $_getN(10);
+  $0.Timestamp get time => $_getN(10);
   @$pb.TagNumber(17)
-  set time($3.Timestamp v) { setField(17, v); }
+  set time($0.Timestamp v) { setField(17, v); }
   @$pb.TagNumber(17)
   $core.bool hasTime() => $_has(10);
   @$pb.TagNumber(17)
   void clearTime() => clearField(17);
   @$pb.TagNumber(17)
-  $3.Timestamp ensureTime() => $_ensure(10);
+  $0.Timestamp ensureTime() => $_ensure(10);
 
   @$pb.TagNumber(18)
-  $3.Timestamp get timeReceived => $_getN(11);
+  $0.Timestamp get timeReceived => $_getN(11);
   @$pb.TagNumber(18)
-  set timeReceived($3.Timestamp v) { setField(18, v); }
+  set timeReceived($0.Timestamp v) { setField(18, v); }
   @$pb.TagNumber(18)
   $core.bool hasTimeReceived() => $_has(11);
   @$pb.TagNumber(18)
   void clearTimeReceived() => clearField(18);
   @$pb.TagNumber(18)
-  $3.Timestamp ensureTimeReceived() => $_ensure(11);
+  $0.Timestamp ensureTimeReceived() => $_ensure(11);
 
   ///  Whether this transaction signals BIP125 (Replace-by-fee, RBF) replaceability
   ///  or has an unconfirmed ancestor signaling BIP125 replaceability. May be unspecified
@@ -1967,7 +1969,7 @@ class SendRequest extends $pb.GeneratedMessage {
     $core.String? wallet,
     $core.bool? includeUnsafe,
     $core.Iterable<$core.String>? subtractFeeFromOutputs,
-    $4.BoolValue? addToWallet,
+    $1.BoolValue? addToWallet,
     $core.double? feeRate,
   }) {
     final $result = create();
@@ -2004,7 +2006,7 @@ class SendRequest extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'wallet')
     ..aOB(4, _omitFieldNames ? '' : 'includeUnsafe')
     ..pPS(5, _omitFieldNames ? '' : 'subtractFeeFromOutputs')
-    ..aOM<$4.BoolValue>(6, _omitFieldNames ? '' : 'addToWallet', subBuilder: $4.BoolValue.create)
+    ..aOM<$1.BoolValue>(6, _omitFieldNames ? '' : 'addToWallet', subBuilder: $1.BoolValue.create)
     ..a<$core.double>(7, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
@@ -2084,15 +2086,15 @@ class SendRequest extends $pb.GeneratedMessage {
   ///
   ///  Both of these seem bad.
   @$pb.TagNumber(6)
-  $4.BoolValue get addToWallet => $_getN(5);
+  $1.BoolValue get addToWallet => $_getN(5);
   @$pb.TagNumber(6)
-  set addToWallet($4.BoolValue v) { setField(6, v); }
+  set addToWallet($1.BoolValue v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasAddToWallet() => $_has(5);
   @$pb.TagNumber(6)
   void clearAddToWallet() => clearField(6);
   @$pb.TagNumber(6)
-  $4.BoolValue ensureAddToWallet() => $_ensure(5);
+  $1.BoolValue ensureAddToWallet() => $_ensure(5);
 
   /// Satoshis per virtual byte (sat/vB).
   @$pb.TagNumber(7)
@@ -2764,7 +2766,7 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
     $core.bool? active,
     $core.int? rangeStart,
     $core.int? rangeEnd,
-    $3.Timestamp? timestamp,
+    $0.Timestamp? timestamp,
     $core.bool? internal,
     $core.String? label,
   }) {
@@ -2801,7 +2803,7 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
     ..aOB(2, _omitFieldNames ? '' : 'active')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'rangeStart', $pb.PbFieldType.OU3)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'rangeEnd', $pb.PbFieldType.OU3)
-    ..aOM<$3.Timestamp>(5, _omitFieldNames ? '' : 'timestamp', subBuilder: $3.Timestamp.create)
+    ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
     ..aOB(6, _omitFieldNames ? '' : 'internal')
     ..aOS(7, _omitFieldNames ? '' : 'label')
     ..hasRequiredFields = false
@@ -2868,15 +2870,15 @@ class ImportDescriptorsRequest_Request extends $pb.GeneratedMessage {
 
   /// Nil passes 'now' to Bitcoin Core, which bypasses scanning.
   @$pb.TagNumber(5)
-  $3.Timestamp get timestamp => $_getN(4);
+  $0.Timestamp get timestamp => $_getN(4);
   @$pb.TagNumber(5)
-  set timestamp($3.Timestamp v) { setField(5, v); }
+  set timestamp($0.Timestamp v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasTimestamp() => $_has(4);
   @$pb.TagNumber(5)
   void clearTimestamp() => clearField(5);
   @$pb.TagNumber(5)
-  $3.Timestamp ensureTimestamp() => $_ensure(4);
+  $0.Timestamp ensureTimestamp() => $_ensure(4);
 
   /// Whether matching outputs should be treated as not incoming payments (e.g. change)
   @$pb.TagNumber(6)
@@ -3372,7 +3374,7 @@ class GetBlockResponse extends $pb.GeneratedMessage {
     $core.int? version,
     $core.String? versionHex,
     $core.String? merkleRoot,
-    $3.Timestamp? time,
+    $0.Timestamp? time,
     $core.int? nonce,
     $core.String? bits,
     $core.double? difficulty,
@@ -3449,7 +3451,7 @@ class GetBlockResponse extends $pb.GeneratedMessage {
     ..a<$core.int>(5, _omitFieldNames ? '' : 'version', $pb.PbFieldType.O3)
     ..aOS(6, _omitFieldNames ? '' : 'versionHex')
     ..aOS(7, _omitFieldNames ? '' : 'merkleRoot')
-    ..aOM<$3.Timestamp>(8, _omitFieldNames ? '' : 'time', subBuilder: $3.Timestamp.create)
+    ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'time', subBuilder: $0.Timestamp.create)
     ..a<$core.int>(9, _omitFieldNames ? '' : 'nonce', $pb.PbFieldType.OU3)
     ..aOS(10, _omitFieldNames ? '' : 'bits')
     ..a<$core.double>(11, _omitFieldNames ? '' : 'difficulty', $pb.PbFieldType.OD)
@@ -3547,15 +3549,15 @@ class GetBlockResponse extends $pb.GeneratedMessage {
   void clearMerkleRoot() => clearField(7);
 
   @$pb.TagNumber(8)
-  $3.Timestamp get time => $_getN(7);
+  $0.Timestamp get time => $_getN(7);
   @$pb.TagNumber(8)
-  set time($3.Timestamp v) { setField(8, v); }
+  set time($0.Timestamp v) { setField(8, v); }
   @$pb.TagNumber(8)
   $core.bool hasTime() => $_has(7);
   @$pb.TagNumber(8)
   void clearTime() => clearField(8);
   @$pb.TagNumber(8)
-  $3.Timestamp ensureTime() => $_ensure(7);
+  $0.Timestamp ensureTime() => $_ensure(7);
 
   @$pb.TagNumber(9)
   $core.int get nonce => $_getIZ(8);
@@ -4043,7 +4045,7 @@ class MempoolEntry extends $pb.GeneratedMessage {
   factory MempoolEntry({
     $core.int? virtualSize,
     $core.int? weight,
-    $3.Timestamp? time,
+    $0.Timestamp? time,
     $core.int? descendantCount,
     $core.int? descendantSize,
     $core.int? ancestorCount,
@@ -4104,7 +4106,7 @@ class MempoolEntry extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MempoolEntry', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitcoin.bitcoind.v1alpha'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'virtualSize', $pb.PbFieldType.OU3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'weight', $pb.PbFieldType.OU3)
-    ..aOM<$3.Timestamp>(3, _omitFieldNames ? '' : 'time', subBuilder: $3.Timestamp.create)
+    ..aOM<$0.Timestamp>(3, _omitFieldNames ? '' : 'time', subBuilder: $0.Timestamp.create)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'descendantCount', $pb.PbFieldType.OU3)
     ..a<$core.int>(5, _omitFieldNames ? '' : 'descendantSize', $pb.PbFieldType.OU3)
     ..a<$core.int>(6, _omitFieldNames ? '' : 'ancestorCount', $pb.PbFieldType.OU3)
@@ -4158,15 +4160,15 @@ class MempoolEntry extends $pb.GeneratedMessage {
   void clearWeight() => clearField(2);
 
   @$pb.TagNumber(3)
-  $3.Timestamp get time => $_getN(2);
+  $0.Timestamp get time => $_getN(2);
   @$pb.TagNumber(3)
-  set time($3.Timestamp v) { setField(3, v); }
+  set time($0.Timestamp v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasTime() => $_has(2);
   @$pb.TagNumber(3)
   void clearTime() => clearField(3);
   @$pb.TagNumber(3)
-  $3.Timestamp ensureTime() => $_ensure(2);
+  $0.Timestamp ensureTime() => $_ensure(2);
 
   @$pb.TagNumber(4)
   $core.int get descendantCount => $_getIZ(3);
@@ -4842,6 +4844,75 @@ class GetAddressInfoResponse extends $pb.GeneratedMessage {
   $core.bool hasIsCompressed() => $_has(11);
   @$pb.TagNumber(12)
   void clearIsCompressed() => clearField(12);
+}
+
+class BitcoinServiceApi {
+  $pb.RpcClient _client;
+  BitcoinServiceApi(this._client);
+
+  $async.Future<GetBlockchainInfoResponse> getBlockchainInfo($pb.ClientContext? ctx, GetBlockchainInfoRequest request) =>
+    _client.invoke<GetBlockchainInfoResponse>(ctx, 'BitcoinService', 'GetBlockchainInfo', request, GetBlockchainInfoResponse())
+  ;
+  $async.Future<GetPeerInfoResponse> getPeerInfo($pb.ClientContext? ctx, GetPeerInfoRequest request) =>
+    _client.invoke<GetPeerInfoResponse>(ctx, 'BitcoinService', 'GetPeerInfo', request, GetPeerInfoResponse())
+  ;
+  $async.Future<GetTransactionResponse> getTransaction($pb.ClientContext? ctx, GetTransactionRequest request) =>
+    _client.invoke<GetTransactionResponse>(ctx, 'BitcoinService', 'GetTransaction', request, GetTransactionResponse())
+  ;
+  $async.Future<ListSinceBlockResponse> listSinceBlock($pb.ClientContext? ctx, ListSinceBlockRequest request) =>
+    _client.invoke<ListSinceBlockResponse>(ctx, 'BitcoinService', 'ListSinceBlock', request, ListSinceBlockResponse())
+  ;
+  $async.Future<GetNewAddressResponse> getNewAddress($pb.ClientContext? ctx, GetNewAddressRequest request) =>
+    _client.invoke<GetNewAddressResponse>(ctx, 'BitcoinService', 'GetNewAddress', request, GetNewAddressResponse())
+  ;
+  $async.Future<GetWalletInfoResponse> getWalletInfo($pb.ClientContext? ctx, GetWalletInfoRequest request) =>
+    _client.invoke<GetWalletInfoResponse>(ctx, 'BitcoinService', 'GetWalletInfo', request, GetWalletInfoResponse())
+  ;
+  $async.Future<GetBalancesResponse> getBalances($pb.ClientContext? ctx, GetBalancesRequest request) =>
+    _client.invoke<GetBalancesResponse>(ctx, 'BitcoinService', 'GetBalances', request, GetBalancesResponse())
+  ;
+  $async.Future<SendResponse> send($pb.ClientContext? ctx, SendRequest request) =>
+    _client.invoke<SendResponse>(ctx, 'BitcoinService', 'Send', request, SendResponse())
+  ;
+  $async.Future<SendToAddressResponse> sendToAddress($pb.ClientContext? ctx, SendToAddressRequest request) =>
+    _client.invoke<SendToAddressResponse>(ctx, 'BitcoinService', 'SendToAddress', request, SendToAddressResponse())
+  ;
+  $async.Future<BumpFeeResponse> bumpFee($pb.ClientContext? ctx, BumpFeeRequest request) =>
+    _client.invoke<BumpFeeResponse>(ctx, 'BitcoinService', 'BumpFee', request, BumpFeeResponse())
+  ;
+  $async.Future<EstimateSmartFeeResponse> estimateSmartFee($pb.ClientContext? ctx, EstimateSmartFeeRequest request) =>
+    _client.invoke<EstimateSmartFeeResponse>(ctx, 'BitcoinService', 'EstimateSmartFee', request, EstimateSmartFeeResponse())
+  ;
+  $async.Future<ImportDescriptorsResponse> importDescriptors($pb.ClientContext? ctx, ImportDescriptorsRequest request) =>
+    _client.invoke<ImportDescriptorsResponse>(ctx, 'BitcoinService', 'ImportDescriptors', request, ImportDescriptorsResponse())
+  ;
+  $async.Future<ListWalletsResponse> listWallets($pb.ClientContext? ctx, $2.Empty request) =>
+    _client.invoke<ListWalletsResponse>(ctx, 'BitcoinService', 'ListWallets', request, ListWalletsResponse())
+  ;
+  $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, ListTransactionsRequest request) =>
+    _client.invoke<ListTransactionsResponse>(ctx, 'BitcoinService', 'ListTransactions', request, ListTransactionsResponse())
+  ;
+  $async.Future<GetDescriptorInfoResponse> getDescriptorInfo($pb.ClientContext? ctx, GetDescriptorInfoRequest request) =>
+    _client.invoke<GetDescriptorInfoResponse>(ctx, 'BitcoinService', 'GetDescriptorInfo', request, GetDescriptorInfoResponse())
+  ;
+  $async.Future<GetAddressInfoResponse> getAddressInfo($pb.ClientContext? ctx, GetAddressInfoRequest request) =>
+    _client.invoke<GetAddressInfoResponse>(ctx, 'BitcoinService', 'GetAddressInfo', request, GetAddressInfoResponse())
+  ;
+  $async.Future<GetRawMempoolResponse> getRawMempool($pb.ClientContext? ctx, GetRawMempoolRequest request) =>
+    _client.invoke<GetRawMempoolResponse>(ctx, 'BitcoinService', 'GetRawMempool', request, GetRawMempoolResponse())
+  ;
+  $async.Future<GetRawTransactionResponse> getRawTransaction($pb.ClientContext? ctx, GetRawTransactionRequest request) =>
+    _client.invoke<GetRawTransactionResponse>(ctx, 'BitcoinService', 'GetRawTransaction', request, GetRawTransactionResponse())
+  ;
+  $async.Future<DecodeRawTransactionResponse> decodeRawTransaction($pb.ClientContext? ctx, DecodeRawTransactionRequest request) =>
+    _client.invoke<DecodeRawTransactionResponse>(ctx, 'BitcoinService', 'DecodeRawTransaction', request, DecodeRawTransactionResponse())
+  ;
+  $async.Future<GetBlockResponse> getBlock($pb.ClientContext? ctx, GetBlockRequest request) =>
+    _client.invoke<GetBlockResponse>(ctx, 'BitcoinService', 'GetBlock', request, GetBlockResponse())
+  ;
+  $async.Future<GetBlockHashResponse> getBlockHash($pb.ClientContext? ctx, GetBlockHashRequest request) =>
+    _client.invoke<GetBlockHashResponse>(ctx, 'BitcoinService', 'GetBlockHash', request, GetBlockHashResponse())
+  ;
 }
 
 

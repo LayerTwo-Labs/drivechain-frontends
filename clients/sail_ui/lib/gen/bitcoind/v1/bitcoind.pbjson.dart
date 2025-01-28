@@ -13,6 +13,9 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+import '../../google/protobuf/empty.pbjson.dart' as $1;
+import '../../google/protobuf/timestamp.pbjson.dart' as $0;
+
 @$core.Deprecated('Use listRecentBlocksRequestDescriptor instead')
 const ListRecentBlocksRequest$json = {
   '1': 'ListRecentBlocksRequest',
@@ -175,4 +178,44 @@ const EstimateSmartFeeResponse$json = {
 final $typed_data.Uint8List estimateSmartFeeResponseDescriptor = $convert.base64Decode(
     'ChhFc3RpbWF0ZVNtYXJ0RmVlUmVzcG9uc2USGQoIZmVlX3JhdGUYASABKAFSB2ZlZVJhdGUSFg'
     'oGZXJyb3JzGAIgAygJUgZlcnJvcnM=');
+
+const $core.Map<$core.String, $core.dynamic> BitcoindServiceBase$json = {
+  '1': 'BitcoindService',
+  '2': [
+    {'1': 'ListRecentTransactions', '2': '.bitcoind.v1.ListRecentTransactionsRequest', '3': '.bitcoind.v1.ListRecentTransactionsResponse'},
+    {'1': 'ListRecentBlocks', '2': '.bitcoind.v1.ListRecentBlocksRequest', '3': '.bitcoind.v1.ListRecentBlocksResponse'},
+    {'1': 'GetBlockchainInfo', '2': '.google.protobuf.Empty', '3': '.bitcoind.v1.GetBlockchainInfoResponse'},
+    {'1': 'ListPeers', '2': '.google.protobuf.Empty', '3': '.bitcoind.v1.ListPeersResponse'},
+    {'1': 'EstimateSmartFee', '2': '.bitcoind.v1.EstimateSmartFeeRequest', '3': '.bitcoind.v1.EstimateSmartFeeResponse'},
+  ],
+};
+
+@$core.Deprecated('Use bitcoindServiceDescriptor instead')
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoindServiceBase$messageJson = {
+  '.bitcoind.v1.ListRecentTransactionsRequest': ListRecentTransactionsRequest$json,
+  '.bitcoind.v1.ListRecentTransactionsResponse': ListRecentTransactionsResponse$json,
+  '.bitcoind.v1.RecentTransaction': RecentTransaction$json,
+  '.google.protobuf.Timestamp': $0.Timestamp$json,
+  '.bitcoind.v1.Block': Block$json,
+  '.bitcoind.v1.ListRecentBlocksRequest': ListRecentBlocksRequest$json,
+  '.bitcoind.v1.ListRecentBlocksResponse': ListRecentBlocksResponse$json,
+  '.google.protobuf.Empty': $1.Empty$json,
+  '.bitcoind.v1.GetBlockchainInfoResponse': GetBlockchainInfoResponse$json,
+  '.bitcoind.v1.ListPeersResponse': ListPeersResponse$json,
+  '.bitcoind.v1.Peer': Peer$json,
+  '.bitcoind.v1.EstimateSmartFeeRequest': EstimateSmartFeeRequest$json,
+  '.bitcoind.v1.EstimateSmartFeeResponse': EstimateSmartFeeResponse$json,
+};
+
+/// Descriptor for `BitcoindService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
+final $typed_data.Uint8List bitcoindServiceDescriptor = $convert.base64Decode(
+    'Cg9CaXRjb2luZFNlcnZpY2UScQoWTGlzdFJlY2VudFRyYW5zYWN0aW9ucxIqLmJpdGNvaW5kLn'
+    'YxLkxpc3RSZWNlbnRUcmFuc2FjdGlvbnNSZXF1ZXN0GisuYml0Y29pbmQudjEuTGlzdFJlY2Vu'
+    'dFRyYW5zYWN0aW9uc1Jlc3BvbnNlEl8KEExpc3RSZWNlbnRCbG9ja3MSJC5iaXRjb2luZC52MS'
+    '5MaXN0UmVjZW50QmxvY2tzUmVxdWVzdBolLmJpdGNvaW5kLnYxLkxpc3RSZWNlbnRCbG9ja3NS'
+    'ZXNwb25zZRJTChFHZXRCbG9ja2NoYWluSW5mbxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRomLm'
+    'JpdGNvaW5kLnYxLkdldEJsb2NrY2hhaW5JbmZvUmVzcG9uc2USQwoJTGlzdFBlZXJzEhYuZ29v'
+    'Z2xlLnByb3RvYnVmLkVtcHR5Gh4uYml0Y29pbmQudjEuTGlzdFBlZXJzUmVzcG9uc2USXwoQRX'
+    'N0aW1hdGVTbWFydEZlZRIkLmJpdGNvaW5kLnYxLkVzdGltYXRlU21hcnRGZWVSZXF1ZXN0GiUu'
+    'Yml0Y29pbmQudjEuRXN0aW1hdGVTbWFydEZlZVJlc3BvbnNl');
 

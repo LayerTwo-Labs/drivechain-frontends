@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
-import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
+import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -40,7 +40,7 @@ class BlockchainProvider extends ChangeNotifier {
   Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.first.blockTime : null;
   String get verificationProgress => ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
 
-  Duration _currentInterval = Duration(seconds: 5);
+  Duration _currentInterval = const Duration(seconds: 5);
 
   bool _isFetching = false;
   Timer? _fetchTimer;
@@ -126,7 +126,7 @@ class BlockchainProvider extends ChangeNotifier {
         // we check every 5 seconds.
 
         // Check if we need to change the interval
-        final newInterval = mainchain.inIBD ? Duration(milliseconds: 200) : Duration(seconds: 5);
+        final newInterval = mainchain.inIBD ? const Duration(milliseconds: 200) : const Duration(seconds: 5);
         if (newInterval != _currentInterval) {
           // IBD-status changed!
           _currentInterval = newInterval;
