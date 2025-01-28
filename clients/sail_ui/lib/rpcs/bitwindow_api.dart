@@ -1,6 +1,4 @@
 import 'package:connectrpc/connect.dart';
-import 'package:connectrpc/protocol/connect.dart' as protocol;
-import 'package:connectrpc/protobuf.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -97,10 +95,9 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   // Async factory
   static Future<BitwindowRPCLive> create({
-    required String baseUrl,
     // This is taken in here because the different platforms will
-    // use different transport mechanisms.
-    required HttpClient httpClient,
+    // use different transport mechanisms + codecs
+    required Transport transport,
     required Binary binary,
     required String logPath,
   }) async {
@@ -112,18 +109,11 @@ class BitwindowRPCLive extends BitwindowRPC {
       logPath: logPath,
     );
 
-    await instance._init(baseUrl, httpClient);
+    await instance._init(transport);
     return instance;
   }
 
-  Future<void> _init(String baseUrl, HttpClient httpClient) async {
-    final transport = protocol.Transport(
-      baseUrl: baseUrl,
-      codec: const JsonCodec(),
-      httpClient: httpClient,
-      useHttpGet: true,
-    );
-
+  Future<void> _init(Transport transport) async {
     bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
     wallet = _WalletAPILive(WalletServiceClient(transport));
     bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));
