@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,7 +13,6 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
-
 /// Represents the current status of a binary download
 class DownloadState {
   final double progress; // Only used during installing
@@ -168,6 +168,14 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> startBinary(BuildContext context, Binary binary, {bool useStarter = false}) async {
     if (!context.mounted) return;
 
+    if (useStarter && (binary is Thunder || binary is Bitnames)) {
+      try {
+        await _setStarterSeed(binary);
+      } catch (e) {
+        log.e('Error setting starter seed: $e');
+      }
+    }
+
     switch (binary) {
       case ParentChain():
         await mainchainRPC.initBinary(context);
@@ -179,24 +187,16 @@ class BinaryProvider extends ChangeNotifier {
         await bitwindowRPC.initBinary(context);
 
       case Thunder():
-        await thunderRPC.initBinary(context);
-        if (useStarter) {
-          try {
-            await _setStarterSeed(binary);
-          } catch (e) {
-            log.e('Error setting starter seed: $e');
-          }
-        }
+        await thunderRPC.initBinary(
+          context,
+          mnemonicPath: (binary as Thunder).mnemonicSeedPhrasePath,
+        );
 
       case Bitnames():
-        await bitnamesRPC.initBinary(context);
-        if (useStarter) {
-          try {
-            await _setStarterSeed(binary);
-          } catch (e) {
-            log.e('Error setting starter seed: $e');
-          }
-        }
+        await bitnamesRPC.initBinary(
+          context,
+          mnemonicPath: (binary as Bitnames).mnemonicSeedPhrasePath,
+        );
 
       default:
         log.i('is $binary');
@@ -282,10 +282,57 @@ class BinaryProvider extends ChangeNotifier {
     };
   }
 
+  Future<bool> _isSidechainInitialized(int slot) async {
+    try {
+      final masterStarterPath = path.join(appDir.path, 'wallet_starters', 'master_starter.json');
+      final masterStarterFile = File(masterStarterPath);
+      
+      if (!masterStarterFile.existsSync()) {
+        return false;
+      }
+
+      final masterData = jsonDecode(await masterStarterFile.readAsString()) as Map<String, dynamic>;
+      return masterData['sidechain_${slot}_init'] ?? false;
+    } catch (e) {
+      log.e('Error checking sidechain initialization: $e');
+      return false;
+    }
+  }
+
+  Future<void> _setSidechainInitialized(int slot) async {
+    try {
+      final masterStarterPath = path.join(appDir.path, 'wallet_starters', 'master_starter.json');
+      final masterStarterFile = File(masterStarterPath);
+      
+      if (!masterStarterFile.existsSync()) {
+        return;
+      }
+
+      final masterData = jsonDecode(await masterStarterFile.readAsString()) as Map<String, dynamic>;
+      masterData['sidechain_${slot}_init'] = true;
+      await masterStarterFile.writeAsString(jsonEncode(masterData));
+    } catch (e) {
+      log.e('Error setting sidechain initialization: $e');
+    }
+  }
+
   Future<void> _setStarterSeed(Binary binary) async {
     if (binary is! Sidechain) return;
 
     try {
+      // Skip if mnemonic path is already set
+      if (binary.mnemonicSeedPhrasePath != null) {
+        log.i('Sidechain ${binary.name} already has mnemonic path set, skipping seed setup');
+        return;
+      }
+
+      // Check if this sidechain has already been initialized
+      final isInitialized = await _isSidechainInitialized(binary.slot);
+      if (isInitialized) {
+        log.i('Sidechain ${binary.name} already initialized, skipping seed setup');
+        return;
+      }
+
       final starterDir = path.join(appDir.path, 'wallet_starters');
       final starterFile = File(
         path.join(
@@ -302,6 +349,10 @@ class BinaryProvider extends ChangeNotifier {
       log.i('Found starter file, setting mnemonic seed phrase path');
       binary.mnemonicSeedPhrasePath = starterFile.path;
       log.i('Successfully set mnemonic seed phrase path to: ${starterFile.path}');
+
+      // Mark this sidechain as initialized
+      await _setSidechainInitialized(binary.slot);
+      notifyListeners();
     } catch (e, st) {
       log.e('Error setting starter seed', error: e, stackTrace: st);
       rethrow;
