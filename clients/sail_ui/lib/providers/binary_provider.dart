@@ -176,8 +176,6 @@ class BinaryProvider extends ChangeNotifier {
       }
     }
 
-    if (!context.mounted) return;
-
     switch (binary) {
       case ParentChain():
         if (!context.mounted) return;
@@ -192,17 +190,19 @@ class BinaryProvider extends ChangeNotifier {
         await bitwindowRPC.initBinary(context);
 
       case Thunder():
-        if (!context.mounted) return;
         await thunderRPC.initBinary(
           context,
-          mnemonicPath: binary.mnemonicSeedPhrasePath,
+          arg: binary.mnemonicSeedPhrasePath != null 
+            ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
+            : null,
         );
 
       case Bitnames():
-        if (!context.mounted) return;
         await bitnamesRPC.initBinary(
           context,
-          mnemonicPath: binary.mnemonicSeedPhrasePath,
+          arg: binary.mnemonicSeedPhrasePath != null 
+            ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
+            : null,
         );
 
       default:

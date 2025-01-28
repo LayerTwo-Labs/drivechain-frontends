@@ -96,14 +96,25 @@ class WalletService extends ChangeNotifier {
       final chain = Chain.seed(seedHex);
       final masterKey = chain.forPath('m') as ExtendedPrivateKey;
 
+      final bip39Bin = _bytesToBinary(mnemonic.entropy);
+      final checksumBits = _calculateChecksumBits(mnemonic.entropy);
+
+      // Add initialization flags for all available sidechains
+      final initFlags = <String, bool>{};
+      for (final chain in binaryProvider.getL2Chains()) {
+        if (chain is Sidechain) {
+          initFlags['sidechain_${chain.slot}_init'] = false;
+        }
+      }
+
       return {
         'mnemonic': mnemonic.sentence,
         'seed_hex': seedHex,
-        'bip39_binary': _bytesToBinary(mnemonic.entropy),
-        'bip39_checksum': _calculateChecksumBits(mnemonic.entropy),
-        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonic.entropy), radix: 2)]),
-        'master_key': masterKey.privateKeyHex(),
-        'chain_code': hex.encode(masterKey.chainCode!),
+        'xprv': masterKey.toString(),
+        'bip39_bin': bip39Bin,
+        'bip39_csum': checksumBits,
+        'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
+        ...initFlags,
       };
     } catch (e) {
       return {'error': e.toString()};

@@ -144,7 +144,7 @@ abstract class RPCConnection extends ChangeNotifier {
     log.i('init binaries: binary path: ${binary.binary}');
     log.i('init binaries: command line args: ${args.join(" ")}');
     if (binary is Sidechain) {
-      log.i('init binaries: mnemonic path: ${(binary as Sidechain).mnemonicSeedPhrasePath}');
+      log.i('init binaries: mnemonic path: ${binary.mnemonicSeedPhrasePath}');
     }
 
     final processes = GetIt.I.get<ProcessProvider>();
