@@ -6,3 +6,7 @@ gen:
 
 build:
     flutter build web
+
+run: 
+    # specify port 3000 for CORS to work properly against the remote server
+    flutter run -d chrome --web-port 3000
