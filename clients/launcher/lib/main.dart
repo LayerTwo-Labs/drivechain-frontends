@@ -174,9 +174,7 @@ Future<void> initDependencies(Logger log) async {
   );
 
   // Register wallet service
-  GetIt.I.registerSingleton<WalletService>(
-    WalletService(binaryProvider),
-  );
+  GetIt.I.registerSingleton<WalletService>(WalletService());
 }
 
 Future<List<Binary>> _loadBinaries(Directory appDir) async {
