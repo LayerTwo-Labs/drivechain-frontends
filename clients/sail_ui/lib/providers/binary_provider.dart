@@ -176,26 +176,33 @@ class BinaryProvider extends ChangeNotifier {
       }
     }
 
+    if (!context.mounted) return;
+
     switch (binary) {
       case ParentChain():
+        if (!context.mounted) return;
         await mainchainRPC.initBinary(context);
 
       case Enforcer():
+        if (!context.mounted) return;
         await enforcerRPC.initBinary(context);
 
       case BitWindow():
+        if (!context.mounted) return;
         await bitwindowRPC.initBinary(context);
 
       case Thunder():
+        if (!context.mounted) return;
         await thunderRPC.initBinary(
           context,
-          mnemonicPath: (binary as Thunder).mnemonicSeedPhrasePath,
+          mnemonicPath: binary.mnemonicSeedPhrasePath,
         );
 
       case Bitnames():
+        if (!context.mounted) return;
         await bitnamesRPC.initBinary(
           context,
-          mnemonicPath: (binary as Bitnames).mnemonicSeedPhrasePath,
+          mnemonicPath: binary.mnemonicSeedPhrasePath,
         );
 
       default:
