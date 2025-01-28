@@ -6,7 +6,6 @@ import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
-import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
@@ -14,10 +13,11 @@ import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 
 class WalletService extends ChangeNotifier {
-  BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
-
+  final BinaryProvider binaryProvider;
   final _logger = Logger();
   static const String defaultBip32Path = "m/44'/0'/0'";
+
+  WalletService(this.binaryProvider);
 
   Future<bool> hasExistingWallet() async {
     final walletFile = await _getWalletFile('master_starter.json');
@@ -57,6 +57,14 @@ class WalletService extends ChangeNotifier {
       final bip39Bin = _bytesToBinary(mnemonicObj.entropy);
       final checksumBits = _calculateChecksumBits(mnemonicObj.entropy);
 
+      // Add initialization flags for all available sidechains
+      final initFlags = <String, bool>{};
+      for (final chain in binaryProvider.getL2Chains()) {
+        if (chain is Sidechain) {
+          initFlags['sidechain_${chain.slot}_init'] = false;
+        }
+      }
+
       return {
         'mnemonic': mnemonicObj.sentence,
         'seed_hex': seedHex,
@@ -64,6 +72,7 @@ class WalletService extends ChangeNotifier {
         'bip39_bin': bip39Bin,
         'bip39_csum': checksumBits,
         'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
+        ...initFlags,
       };
     } catch (e) {
       _logger.e('Error generating wallet: $e');
@@ -100,7 +109,6 @@ class WalletService extends ChangeNotifier {
       await _ensureWalletDir();
       final walletFile = await _getWalletFile('master_starter.json');
       await walletFile.writeAsString(jsonEncode(walletData));
-      notifyListeners();
       return true;
     } catch (e) {
       _logger.e('Error saving wallet: $e');
@@ -113,7 +121,6 @@ class WalletService extends ChangeNotifier {
       final walletFile = await _getWalletFile('master_starter.json');
       if (await walletFile.exists()) {
         await walletFile.delete();
-        notifyListeners();
       }
       return true;
     } catch (e) {
@@ -189,12 +196,17 @@ class WalletService extends ChangeNotifier {
       // Save to sidechain-specific file
       await _saveMnemonicStarter('sidechain_${sidechainSlot}_starter.txt', starterData['mnemonic']);
 
+      // Mark this sidechain as initialized in master_starter.json
+      final masterWallet = await loadWallet();
+      if (masterWallet != null) {
+        masterWallet['sidechain_${sidechainSlot}_init'] = true;
+        await saveWallet(masterWallet);
+      }
+
       return starterData;
     } catch (e, stackTrace) {
       _logger.e('Error deriving sidechain starter: $e\n$stackTrace');
       rethrow;
-    } finally {
-      notifyListeners();
     }
   }
 
@@ -248,7 +260,6 @@ class WalletService extends ChangeNotifier {
       await _ensureWalletDir();
       final file = await _getWalletFile(fileName);
       await file.writeAsString(mnemonic);
-      notifyListeners();
     } catch (e, stackTrace) {
       _logger.e('Error saving starter $fileName: $e\n$stackTrace');
       rethrow;
@@ -260,7 +271,6 @@ class WalletService extends ChangeNotifier {
       final file = await _getWalletFile(fileName);
       if (file.existsSync()) {
         await file.delete();
-        notifyListeners();
       }
     } catch (e, stackTrace) {
       _logger.e('Error deleting starter $fileName: $e\n$stackTrace');
@@ -308,11 +318,22 @@ class WalletService extends ChangeNotifier {
           }
         }
       }
-
-      // Notify listeners after all starters are generated
-      notifyListeners();
     } catch (e, stack) {
       debugPrint('Error generating starters: $e\n$stack');
     }
+  }
+
+  Future<bool> isSidechainInitialized(int slot) async {
+    final masterWallet = await loadWallet();
+    if (masterWallet == null) return false;
+    return masterWallet['sidechain_${slot}_init'] ?? false;
+  }
+
+  Future<void> setSidechainInitialized(int slot) async {
+    final masterWallet = await loadWallet();
+    if (masterWallet == null) return;
+
+    masterWallet['sidechain_${slot}_init'] = true;
+    await saveWallet(masterWallet);
   }
 }
