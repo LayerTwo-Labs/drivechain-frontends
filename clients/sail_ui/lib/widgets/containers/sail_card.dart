@@ -9,11 +9,13 @@ class SailRawCard extends StatelessWidget {
   final bool padding;
   final bool bottomPadding;
   final Widget child;
+  final Widget? widgetHeaderEnd;
   final double? width;
   final Color? color;
   final BorderRadius? borderRadius;
   final ShadowSize shadowSize;
   final bool secondary;
+
   const SailRawCard({
     super.key,
     this.title,
@@ -22,6 +24,7 @@ class SailRawCard extends StatelessWidget {
     this.onPressed,
     this.padding = true,
     this.bottomPadding = true,
+    this.widgetHeaderEnd,
     required this.child,
     this.width = double.infinity,
     this.color,
@@ -61,9 +64,20 @@ class SailRawCard extends StatelessWidget {
               children: [
                 if (header != null) header!,
                 if (title != null)
-                  CardHeader(
-                    title: title!,
-                    subtitle: subtitle,
+                  SizedBox(
+                    width: double.infinity,
+                    child: SailRow(
+                      spacing: 0,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CardHeader(
+                          title: title!,
+                          subtitle: subtitle,
+                        ),
+                        if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                      ],
+                    ),
                   ),
                 if (title != null) const SailSpacing(SailStyleValues.padding16),
                 Flexible(

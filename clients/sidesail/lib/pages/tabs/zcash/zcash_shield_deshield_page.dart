@@ -21,8 +21,6 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashShieldTabViewModel(),
       builder: ((context, model, child) {
@@ -38,58 +36,49 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
             child: SailColumn(
               spacing: SailStyleValues.padding32,
               children: [
-                SailRow(
-                  spacing: 0,
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Flexible(
-                      child: DashboardGroup(
-                        title: 'Transparent UTXOs',
-                        widgetTrailing: SailText.secondary13(model.unshieldedUTXOs.length.toString()),
-                        widgetEnd: SailToggle(
-                          label: 'Hide dust UTXOs',
-                          value: model.hideDust,
-                          onChanged: (to) => model.setShowAll(to),
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SailColumn(
-                            spacing: 0,
-                            withDivider: true,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (final utxo in model.unshieldedUTXOs)
-                                UnshieldedUTXOView(
-                                  utxo: utxo,
-                                  shieldAction: () => model.shield(context, utxo),
-                                  meltMode: false,
-                                ),
-                            ],
+                          SailRawCard(
+                            bottomPadding: false,
+                            title: 'Transparent UTXOs ${model.unshieldedUTXOs.length}',
+                            subtitle: 'View and shield your transparent UTXOs',
+                            widgetHeaderEnd: SailToggle(
+                              label: 'Hide dust UTXOs',
+                              value: model.hideDust,
+                              onChanged: (to) => model.setShowAll(to),
+                            ),
+                            child: SizedBox(
+                              height: 300,
+                              child: UnshieldedUTXOTable(
+                                entries: model.unshieldedUTXOs,
+                                onShield: (utxo) => model.shield(context, utxo),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    VerticalDivider(
-                      width: 1,
-                      thickness: 1,
-                      color: theme.colors.divider,
-                    ),
+                    const SizedBox(width: SailStyleValues.padding16),
                     Flexible(
-                      child: DashboardGroup(
-                        title: 'Private UTXOs',
-                        widgetTrailing: SailText.secondary13(model.shieldedUTXOs.length.toString()),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SailColumn(
-                            spacing: 0,
-                            withDivider: true,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (final utxo in model.shieldedUTXOs)
-                                ShieldedUTXOView(
-                                  utxo: utxo,
-                                  deshieldAction: () => model.deshield(context, utxo),
-                                  castMode: false,
-                                ),
-                            ],
+                          SailRawCard(
+                            title: 'Private UTXOs ${model.shieldedUTXOs.length}',
+                            subtitle: 'View and deshield your private UTXOs',
+                            bottomPadding: false,
+                            child: SizedBox(
+                              height: 300,
+                              child: ShieldedUTXOTable(
+                                entries: model.shieldedUTXOs,
+                                onDeshield: (utxo) => model.deshield(context, utxo),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -172,5 +161,177 @@ class ZCashShieldTabViewModel extends BaseViewModel {
     super.dispose();
     _zcashProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
+  }
+}
+
+class UnshieldedUTXOTable extends StatefulWidget {
+  final List<UnshieldedUTXO> entries;
+  final Function(UnshieldedUTXO) onShield;
+
+  const UnshieldedUTXOTable({
+    super.key,
+    required this.entries,
+    required this.onShield,
+  });
+
+  @override
+  State<UnshieldedUTXOTable> createState() => _UnshieldedUTXOTableState();
+}
+
+class _UnshieldedUTXOTableState extends State<UnshieldedUTXOTable> {
+  String sortColumn = 'amount';
+  bool sortAscending = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    onSort(sortColumn);
+  }
+
+  void onSort(String column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
+    sortEntries();
+    setState(() {});
+  }
+
+  void sortEntries() {
+    widget.entries.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (sortColumn) {
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      getRowId: (index) => widget.entries[index].txid,
+      headerBuilder: (context) => [
+        const SailTableHeaderCell(name: 'Actions'),
+        SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
+        SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = widget.entries[row];
+        return [
+          SailTableCell(
+            value: '',
+            child: QtButton(
+              label: 'Shield',
+              onPressed: () => widget.onShield(entry),
+              size: ButtonSize.small,
+            ),
+          ),
+          SailTableCell(value: formatBitcoin(entry.amount)),
+          SailTableCell(value: entry.txid),
+        ];
+      },
+      rowCount: widget.entries.length,
+      columnWidths: const [100, 200, 100],
+      drawGrid: true,
+    );
+  }
+}
+
+class ShieldedUTXOTable extends StatefulWidget {
+  final List<ShieldedUTXO> entries;
+  final Function(ShieldedUTXO) onDeshield;
+
+  const ShieldedUTXOTable({
+    super.key,
+    required this.entries,
+    required this.onDeshield,
+  });
+
+  @override
+  State<ShieldedUTXOTable> createState() => _ShieldedUTXOTableState();
+}
+
+class _ShieldedUTXOTableState extends State<ShieldedUTXOTable> {
+  String sortColumn = 'amount';
+  bool sortAscending = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    onSort(sortColumn);
+  }
+
+  void onSort(String column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
+    sortEntries();
+    setState(() {});
+  }
+
+  void sortEntries() {
+    widget.entries.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (sortColumn) {
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailTable(
+      getRowId: (index) => widget.entries[index].txid,
+      headerBuilder: (context) => [
+        const SailTableHeaderCell(name: 'Actions'),
+        SailTableHeaderCell(name: 'Amount', onSort: () => onSort('amount')),
+        SailTableHeaderCell(name: 'TxID', onSort: () => onSort('txid')),
+      ],
+      rowBuilder: (context, row, selected) {
+        final entry = widget.entries[row];
+        return [
+          SailTableCell(
+            value: '',
+            child: QtButton(
+              label: 'Deshield',
+              onPressed: () => widget.onDeshield(entry),
+              size: ButtonSize.small,
+            ),
+          ),
+          SailTableCell(value: formatBitcoin(entry.amount)),
+          SailTableCell(value: entry.txid),
+        ];
+      },
+      rowCount: widget.entries.length,
+      columnWidths: const [100, 200, 100],
+      drawGrid: true,
+    );
   }
 }

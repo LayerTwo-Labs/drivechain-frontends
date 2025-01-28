@@ -628,6 +628,7 @@ class _TableRow extends StatelessWidget {
 class SailTableCell extends StatelessWidget {
   const SailTableCell({
     required this.value,
+    this.child,
     this.alignment = Alignment.centerLeft,
     this.padding = const EdgeInsets.symmetric(horizontal: 8),
     this.plainIconTheme,
@@ -638,6 +639,7 @@ class SailTableCell extends StatelessWidget {
   });
 
   final String value;
+  final Widget? child;
   final Alignment alignment;
   final EdgeInsets padding;
   final IconThemeData? plainIconTheme;
@@ -672,11 +674,12 @@ class SailTableCell extends StatelessWidget {
       padding: padding,
       child: IconTheme(
         data: iconTheme,
-        child: SailText.primary12(
-          value,
-          color: textColor,
-          monospace: monospace,
-        ),
+        child: child ??
+            SailText.primary12(
+              value,
+              color: textColor,
+              monospace: monospace,
+            ),
       ),
     );
   }
