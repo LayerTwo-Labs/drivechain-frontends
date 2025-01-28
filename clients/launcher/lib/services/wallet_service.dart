@@ -6,7 +6,6 @@ import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
-import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
@@ -18,10 +17,11 @@ import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/digests/sha512.dart';
 
 class WalletService extends ChangeNotifier {
-  BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
-
+  final BinaryProvider binaryProvider;
   final _logger = Logger();
   static const String defaultBip32Path = "m/44'/0'/0'";
+
+  WalletService(this.binaryProvider);
 
   Future<bool> hasExistingWallet() async {
     final walletFile = await _getWalletFile('master_starter.json');
@@ -40,51 +40,25 @@ class WalletService extends ChangeNotifier {
       final chain = Chain.seed(seedHex);
       final masterKey = chain.forPath('m') as ExtendedPrivateKey;
 
-      final walletData = {
-        'mnemonic': mnemonicObj.sentence,
-        'seed_hex': seedHex,
-        'master_key': masterKey.privateKeyHex(),
-        'chain_code': hex.encode(masterKey.chainCode!),
-        'bip39_binary': _bytesToBinary(mnemonicObj.entropy),
-        'bip39_checksum': _calculateChecksumBits(mnemonicObj.entropy),
-        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonicObj.entropy), radix: 2)]),
-      };
+      final bip39Bin = _bytesToBinary(mnemonicObj.entropy);
+      final checksumBits = _calculateChecksumBits(mnemonicObj.entropy);
 
-      return walletData;
-    } catch (e) {
-      if (e.toString().contains('is not in the wordlist')) {
-        return {'error': 'One or more words are not valid BIP39 words'};
+      // Add initialization flags for all available sidechains
+      final initFlags = <String, bool>{};
+      for (final chain in binaryProvider.getL2Chains()) {
+        if (chain is Sidechain) {
+          initFlags['sidechain_${chain.slot}_init'] = false;
+        }
       }
-      return {'error': e.toString()};
-    }
-  }
-
-  Future<Map<String, dynamic>> generateWalletFromEntropy(List<int> entropy, {String? passphrase}) async {
-    try {
-      // Create mnemonic from entropy
-      final mnemonic = Mnemonic(entropy, Language.english);
-      
-      // Generate seed using PBKDF2-HMAC-SHA512
-      final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
-      final params = Pbkdf2Parameters(utf8.encode('Bitcoin seed'), 2048, 64);
-      pbkdf2.init(params);
-      
-      // Use mnemonic sentence as the input key material
-      final seedBytes = pbkdf2.process(utf8.encode(mnemonic.sentence + (passphrase ?? '')));
-      final seedHex = hex.encode(seedBytes);
-      
-      // Create master key from seed
-      final chain = Chain.seed(seedHex);
-      final masterKey = chain.forPath('m') as ExtendedPrivateKey;
 
       return {
-        'mnemonic': mnemonic.sentence,
+        'mnemonic': mnemonicObj.sentence,
         'seed_hex': seedHex,
-        'bip39_binary': _bytesToBinary(mnemonic.entropy),
-        'bip39_checksum': _calculateChecksumBits(mnemonic.entropy),
-        'bip39_checksum_hex': hex.encode([int.parse(_calculateChecksumBits(mnemonic.entropy), radix: 2)]),
-        'master_key': masterKey.privateKeyHex(),
-        'chain_code': hex.encode(masterKey.chainCode!),
+        'xprv': masterKey.toString(),
+        'bip39_bin': bip39Bin,
+        'bip39_csum': checksumBits,
+        'bip39_csum_hex': hex.encode([int.parse(checksumBits, radix: 2)]),
+        ...initFlags,
       };
     } catch (e) {
       return {'error': e.toString()};
@@ -118,7 +92,6 @@ class WalletService extends ChangeNotifier {
       await _ensureWalletDir();
       final walletFile = await _getWalletFile('master_starter.json');
       await walletFile.writeAsString(jsonEncode(walletData));
-      notifyListeners();
       return true;
     } catch (e) {
       _logger.e('Error saving wallet: $e');
@@ -131,7 +104,6 @@ class WalletService extends ChangeNotifier {
       final walletFile = await _getWalletFile('master_starter.json');
       if (await walletFile.exists()) {
         await walletFile.delete();
-        notifyListeners();
       }
       return true;
     } catch (e) {
@@ -214,12 +186,17 @@ class WalletService extends ChangeNotifier {
       // Save to sidechain-specific file
       await _saveMnemonicStarter('sidechain_${sidechainSlot}_starter.txt', starterData['mnemonic']);
 
+      // Mark this sidechain as initialized in master_starter.json
+      final masterWallet = await loadWallet();
+      if (masterWallet != null) {
+        masterWallet['sidechain_${sidechainSlot}_init'] = true;
+        await saveWallet(masterWallet);
+      }
+
       return starterData;
     } catch (e, stackTrace) {
       _logger.e('Error deriving sidechain starter: $e\n$stackTrace');
       rethrow;
-    } finally {
-      notifyListeners();
     }
   }
 
@@ -273,7 +250,6 @@ class WalletService extends ChangeNotifier {
       await _ensureWalletDir();
       final file = await _getWalletFile(fileName);
       await file.writeAsString(mnemonic);
-      notifyListeners();
     } catch (e, stackTrace) {
       _logger.e('Error saving starter $fileName: $e\n$stackTrace');
       rethrow;
@@ -285,7 +261,6 @@ class WalletService extends ChangeNotifier {
       final file = await _getWalletFile(fileName);
       if (file.existsSync()) {
         await file.delete();
-        notifyListeners();
       }
     } catch (e, stackTrace) {
       _logger.e('Error deleting starter $fileName: $e\n$stackTrace');
@@ -341,11 +316,22 @@ class WalletService extends ChangeNotifier {
           }
         }
       }
-
-      // Notify listeners after all starters are generated
-      notifyListeners();
     } catch (e, stack) {
       _logger.e('Error generating starters for downloaded chains: $e\n$stack');
     }
+  }
+
+  Future<bool> isSidechainInitialized(int slot) async {
+    final masterWallet = await loadWallet();
+    if (masterWallet == null) return false;
+    return masterWallet['sidechain_${slot}_init'] ?? false;
+  }
+
+  Future<void> setSidechainInitialized(int slot) async {
+    final masterWallet = await loadWallet();
+    if (masterWallet == null) return;
+
+    masterWallet['sidechain_${slot}_init'] = true;
+    await saveWallet(masterWallet);
   }
 }

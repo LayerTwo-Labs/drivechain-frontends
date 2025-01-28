@@ -132,9 +132,20 @@ abstract class RPCConnection extends ChangeNotifier {
   Future<void> initBinary(
     BuildContext context, {
     List<String>? arg,
+    String? mnemonicPath,
   }) async {
+    if (mnemonicPath != null && binary is Sidechain) {
+      (binary as Sidechain).mnemonicSeedPhrasePath = mnemonicPath;
+    }
+
     final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
+
+    log.i('init binaries: binary path: ${binary.binary}');
+    log.i('init binaries: command line args: ${args.join(" ")}');
+    if (binary is Sidechain) {
+      log.i('init binaries: mnemonic path: ${(binary as Sidechain).mnemonicSeedPhrasePath}');
+    }
 
     final processes = GetIt.I.get<ProcessProvider>();
 
