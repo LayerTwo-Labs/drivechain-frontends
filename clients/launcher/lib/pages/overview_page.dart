@@ -48,7 +48,6 @@ class _OverviewPageState extends State<OverviewPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _binaryProvider.addListener(_onBinaryProviderUpdate);
       _processProvider.addListener(_onBinaryProviderUpdate);
-      _walletService.addListener(_onBinaryProviderUpdate);
       _blockchainProvider.addListener(_onBinaryProviderUpdate);
     });
   }
@@ -57,7 +56,6 @@ class _OverviewPageState extends State<OverviewPage> {
   void dispose() {
     _binaryProvider.removeListener(_onBinaryProviderUpdate);
     _processProvider.removeListener(_onBinaryProviderUpdate);
-    _walletService.removeListener(_onBinaryProviderUpdate);
     _blockchainProvider.removeListener(_onBinaryProviderUpdate);
     super.dispose();
   }
