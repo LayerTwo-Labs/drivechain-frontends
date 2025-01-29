@@ -27,7 +27,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final log = Logger();
-  final router = AppRouter();
   await initDependencies(log);
 
   await windowManager.ensureInitialized();
@@ -43,6 +42,8 @@ void main() async {
       await windowManager.focus();
     }),
   );
+
+  final router = GetIt.I.get<AppRouter>();
 
   return runApp(
     ChangeNotifierProvider(
@@ -73,6 +74,9 @@ Future<void> initDependencies(Logger log) async {
 
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
+
+  // Register the router
+  GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
 
   // Needed for sidesail_ui to work
   GetIt.I.registerLazySingleton<ClientSettings>(

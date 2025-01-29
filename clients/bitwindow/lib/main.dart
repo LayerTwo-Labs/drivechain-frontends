@@ -121,6 +121,13 @@ Future<void> initDependencies(Logger log, File logFile) async {
     () => ContentProvider(),
   );
 
+  final mainchain = await MainchainRPCLive.create(
+    ParentChain(),
+  );
+  GetIt.I.registerLazySingleton<MainchainRPC>(
+    () => mainchain,
+  );
+
   var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
   log.i('logging server logs to: $serverLogFile');
   final bitwindow = await BitwindowRPCLive.create(

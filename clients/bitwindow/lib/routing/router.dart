@@ -60,5 +60,8 @@ class AppRouter extends RootStackRouter {
         AutoRoute(
           page: SailLogRoute.page,
         ),
+        AutoRoute(
+          page: ShuttingDownRoute.page,
+        ),
       ];
 }

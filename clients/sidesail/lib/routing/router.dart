@@ -91,6 +91,9 @@ class AppRouter extends RootStackRouter {
         AutoRoute(
           page: SailLogRoute.page,
         ),
+        AutoRoute(
+          page: ShuttingDownRoute.page,
+        ),
 
         /// This route is used in tests so that we can pump a widget into a route
         /// and use the real router for our test
