@@ -13,10 +13,6 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../../google/protobuf/wrappers.pbjson.dart' as $0;
-import '../../common/v1/common.pbjson.dart' as $1;
-import 'common.pbjson.dart' as $3;
-
 @$core.Deprecated('Use networkDescriptor instead')
 const Network$json = {
   '1': 'Network',
@@ -696,107 +692,4 @@ final $typed_data.Uint8List subscribeEventsResponseDescriptor = $convert.base64D
     'VySW5mb1IKaGVhZGVySW5mbxI7CgpibG9ja19pbmZvGAIgASgLMhwuY3VzZi5tYWluY2hhaW4u'
     'djEuQmxvY2tJbmZvUglibG9ja0luZm8aTAoPRGlzY29ubmVjdEJsb2NrEjkKCmJsb2NrX2hhc2'
     'gYASABKAsyGi5jdXNmLmNvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2hCBwoFZXZlbnQ=');
-
-const $core.Map<$core.String, $core.dynamic> ValidatorServiceBase$json = {
-  '1': 'ValidatorService',
-  '2': [
-    {'1': 'GetBlockHeaderInfo', '2': '.cusf.mainchain.v1.GetBlockHeaderInfoRequest', '3': '.cusf.mainchain.v1.GetBlockHeaderInfoResponse'},
-    {'1': 'GetBlockInfo', '2': '.cusf.mainchain.v1.GetBlockInfoRequest', '3': '.cusf.mainchain.v1.GetBlockInfoResponse'},
-    {'1': 'GetBmmHStarCommitment', '2': '.cusf.mainchain.v1.GetBmmHStarCommitmentRequest', '3': '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse'},
-    {'1': 'GetChainInfo', '2': '.cusf.mainchain.v1.GetChainInfoRequest', '3': '.cusf.mainchain.v1.GetChainInfoResponse'},
-    {'1': 'GetChainTip', '2': '.cusf.mainchain.v1.GetChainTipRequest', '3': '.cusf.mainchain.v1.GetChainTipResponse'},
-    {'1': 'GetCoinbasePSBT', '2': '.cusf.mainchain.v1.GetCoinbasePSBTRequest', '3': '.cusf.mainchain.v1.GetCoinbasePSBTResponse'},
-    {'1': 'GetCtip', '2': '.cusf.mainchain.v1.GetCtipRequest', '3': '.cusf.mainchain.v1.GetCtipResponse'},
-    {'1': 'GetSidechainProposals', '2': '.cusf.mainchain.v1.GetSidechainProposalsRequest', '3': '.cusf.mainchain.v1.GetSidechainProposalsResponse'},
-    {'1': 'GetSidechains', '2': '.cusf.mainchain.v1.GetSidechainsRequest', '3': '.cusf.mainchain.v1.GetSidechainsResponse'},
-    {'1': 'GetTwoWayPegData', '2': '.cusf.mainchain.v1.GetTwoWayPegDataRequest', '3': '.cusf.mainchain.v1.GetTwoWayPegDataResponse'},
-    {'1': 'SubscribeEvents', '2': '.cusf.mainchain.v1.SubscribeEventsRequest', '3': '.cusf.mainchain.v1.SubscribeEventsResponse', '6': true},
-  ],
-};
-
-@$core.Deprecated('Use validatorServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ValidatorServiceBase$messageJson = {
-  '.cusf.mainchain.v1.GetBlockHeaderInfoRequest': GetBlockHeaderInfoRequest$json,
-  '.cusf.common.v1.ReverseHex': $1.ReverseHex$json,
-  '.google.protobuf.StringValue': $0.StringValue$json,
-  '.cusf.mainchain.v1.GetBlockHeaderInfoResponse': GetBlockHeaderInfoResponse$json,
-  '.cusf.mainchain.v1.BlockHeaderInfo': BlockHeaderInfo$json,
-  '.cusf.common.v1.ConsensusHex': $1.ConsensusHex$json,
-  '.cusf.mainchain.v1.GetBlockInfoRequest': GetBlockInfoRequest$json,
-  '.google.protobuf.UInt32Value': $0.UInt32Value$json,
-  '.cusf.mainchain.v1.GetBlockInfoResponse': GetBlockInfoResponse$json,
-  '.cusf.mainchain.v1.BlockInfo': BlockInfo$json,
-  '.cusf.mainchain.v1.BlockInfo.Event': BlockInfo_Event$json,
-  '.cusf.mainchain.v1.Deposit': Deposit$json,
-  '.google.protobuf.UInt64Value': $0.UInt64Value$json,
-  '.cusf.mainchain.v1.OutPoint': $3.OutPoint$json,
-  '.cusf.mainchain.v1.Deposit.Output': Deposit_Output$json,
-  '.cusf.common.v1.Hex': $1.Hex$json,
-  '.cusf.mainchain.v1.WithdrawalBundleEvent': WithdrawalBundleEvent$json,
-  '.cusf.mainchain.v1.WithdrawalBundleEvent.Event': WithdrawalBundleEvent_Event$json,
-  '.cusf.mainchain.v1.WithdrawalBundleEvent.Event.Failed': WithdrawalBundleEvent_Event_Failed$json,
-  '.cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded': WithdrawalBundleEvent_Event_Succeeded$json,
-  '.cusf.mainchain.v1.WithdrawalBundleEvent.Event.Submitted': WithdrawalBundleEvent_Event_Submitted$json,
-  '.cusf.mainchain.v1.GetBmmHStarCommitmentRequest': GetBmmHStarCommitmentRequest$json,
-  '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse': GetBmmHStarCommitmentResponse$json,
-  '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError': GetBmmHStarCommitmentResponse_BlockNotFoundError$json,
-  '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment': GetBmmHStarCommitmentResponse_Commitment$json,
-  '.cusf.mainchain.v1.GetChainInfoRequest': GetChainInfoRequest$json,
-  '.cusf.mainchain.v1.GetChainInfoResponse': GetChainInfoResponse$json,
-  '.cusf.mainchain.v1.GetChainTipRequest': GetChainTipRequest$json,
-  '.cusf.mainchain.v1.GetChainTipResponse': GetChainTipResponse$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTRequest': GetCoinbasePSBTRequest$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain': GetCoinbasePSBTRequest_ProposeSidechain$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain': GetCoinbasePSBTRequest_AckSidechain$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle': GetCoinbasePSBTRequest_ProposeBundle$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles': GetCoinbasePSBTRequest_AckBundles$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.RepeatPrevious': GetCoinbasePSBTRequest_AckBundles_RepeatPrevious$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.LeadingBy50': GetCoinbasePSBTRequest_AckBundles_LeadingBy50$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.Upvotes': GetCoinbasePSBTRequest_AckBundles_Upvotes$json,
-  '.cusf.mainchain.v1.GetCoinbasePSBTResponse': GetCoinbasePSBTResponse$json,
-  '.cusf.mainchain.v1.GetCtipRequest': GetCtipRequest$json,
-  '.cusf.mainchain.v1.GetCtipResponse': GetCtipResponse$json,
-  '.cusf.mainchain.v1.GetCtipResponse.Ctip': GetCtipResponse_Ctip$json,
-  '.cusf.mainchain.v1.GetSidechainProposalsRequest': GetSidechainProposalsRequest$json,
-  '.cusf.mainchain.v1.GetSidechainProposalsResponse': GetSidechainProposalsResponse$json,
-  '.cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal': GetSidechainProposalsResponse_SidechainProposal$json,
-  '.cusf.mainchain.v1.SidechainDeclaration': $3.SidechainDeclaration$json,
-  '.cusf.mainchain.v1.SidechainDeclaration.V0': $3.SidechainDeclaration_V0$json,
-  '.cusf.mainchain.v1.GetSidechainsRequest': GetSidechainsRequest$json,
-  '.cusf.mainchain.v1.GetSidechainsResponse': GetSidechainsResponse$json,
-  '.cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo': GetSidechainsResponse_SidechainInfo$json,
-  '.cusf.mainchain.v1.GetTwoWayPegDataRequest': GetTwoWayPegDataRequest$json,
-  '.cusf.mainchain.v1.GetTwoWayPegDataResponse': GetTwoWayPegDataResponse$json,
-  '.cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem': GetTwoWayPegDataResponse_ResponseItem$json,
-  '.cusf.mainchain.v1.SubscribeEventsRequest': SubscribeEventsRequest$json,
-  '.cusf.mainchain.v1.SubscribeEventsResponse': SubscribeEventsResponse$json,
-  '.cusf.mainchain.v1.SubscribeEventsResponse.Event': SubscribeEventsResponse_Event$json,
-  '.cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock': SubscribeEventsResponse_Event_ConnectBlock$json,
-  '.cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock': SubscribeEventsResponse_Event_DisconnectBlock$json,
-};
-
-/// Descriptor for `ValidatorService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List validatorServiceDescriptor = $convert.base64Decode(
-    'ChBWYWxpZGF0b3JTZXJ2aWNlEnEKEkdldEJsb2NrSGVhZGVySW5mbxIsLmN1c2YubWFpbmNoYW'
-    'luLnYxLkdldEJsb2NrSGVhZGVySW5mb1JlcXVlc3QaLS5jdXNmLm1haW5jaGFpbi52MS5HZXRC'
-    'bG9ja0hlYWRlckluZm9SZXNwb25zZRJfCgxHZXRCbG9ja0luZm8SJi5jdXNmLm1haW5jaGFpbi'
-    '52MS5HZXRCbG9ja0luZm9SZXF1ZXN0GicuY3VzZi5tYWluY2hhaW4udjEuR2V0QmxvY2tJbmZv'
-    'UmVzcG9uc2USegoVR2V0Qm1tSFN0YXJDb21taXRtZW50Ei8uY3VzZi5tYWluY2hhaW4udjEuR2'
-    'V0Qm1tSFN0YXJDb21taXRtZW50UmVxdWVzdBowLmN1c2YubWFpbmNoYWluLnYxLkdldEJtbUhT'
-    'dGFyQ29tbWl0bWVudFJlc3BvbnNlEl8KDEdldENoYWluSW5mbxImLmN1c2YubWFpbmNoYWluLn'
-    'YxLkdldENoYWluSW5mb1JlcXVlc3QaJy5jdXNmLm1haW5jaGFpbi52MS5HZXRDaGFpbkluZm9S'
-    'ZXNwb25zZRJcCgtHZXRDaGFpblRpcBIlLmN1c2YubWFpbmNoYWluLnYxLkdldENoYWluVGlwUm'
-    'VxdWVzdBomLmN1c2YubWFpbmNoYWluLnYxLkdldENoYWluVGlwUmVzcG9uc2USaAoPR2V0Q29p'
-    'bmJhc2VQU0JUEikuY3VzZi5tYWluY2hhaW4udjEuR2V0Q29pbmJhc2VQU0JUUmVxdWVzdBoqLm'
-    'N1c2YubWFpbmNoYWluLnYxLkdldENvaW5iYXNlUFNCVFJlc3BvbnNlElAKB0dldEN0aXASIS5j'
-    'dXNmLm1haW5jaGFpbi52MS5HZXRDdGlwUmVxdWVzdBoiLmN1c2YubWFpbmNoYWluLnYxLkdldE'
-    'N0aXBSZXNwb25zZRJ6ChVHZXRTaWRlY2hhaW5Qcm9wb3NhbHMSLy5jdXNmLm1haW5jaGFpbi52'
-    'MS5HZXRTaWRlY2hhaW5Qcm9wb3NhbHNSZXF1ZXN0GjAuY3VzZi5tYWluY2hhaW4udjEuR2V0U2'
-    'lkZWNoYWluUHJvcG9zYWxzUmVzcG9uc2USYgoNR2V0U2lkZWNoYWlucxInLmN1c2YubWFpbmNo'
-    'YWluLnYxLkdldFNpZGVjaGFpbnNSZXF1ZXN0GiguY3VzZi5tYWluY2hhaW4udjEuR2V0U2lkZW'
-    'NoYWluc1Jlc3BvbnNlEmsKEEdldFR3b1dheVBlZ0RhdGESKi5jdXNmLm1haW5jaGFpbi52MS5H'
-    'ZXRUd29XYXlQZWdEYXRhUmVxdWVzdBorLmN1c2YubWFpbmNoYWluLnYxLkdldFR3b1dheVBlZ0'
-    'RhdGFSZXNwb25zZRJqCg9TdWJzY3JpYmVFdmVudHMSKS5jdXNmLm1haW5jaGFpbi52MS5TdWJz'
-    'Y3JpYmVFdmVudHNSZXF1ZXN0GiouY3VzZi5tYWluY2hhaW4udjEuU3Vic2NyaWJlRXZlbnRzUm'
-    'VzcG9uc2UwAQ==');
 

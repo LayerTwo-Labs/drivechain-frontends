@@ -106,29 +106,3 @@ final $typed_data.Uint8List listSidechainProposalsResponseDescriptor = $convert.
     'Ch5MaXN0U2lkZWNoYWluUHJvcG9zYWxzUmVzcG9uc2USPgoJcHJvcG9zYWxzGAEgAygLMiAuZH'
     'JpdmVjaGFpbi52MS5TaWRlY2hhaW5Qcm9wb3NhbFIJcHJvcG9zYWxz');
 
-const $core.Map<$core.String, $core.dynamic> DrivechainServiceBase$json = {
-  '1': 'DrivechainService',
-  '2': [
-    {'1': 'ListSidechains', '2': '.drivechain.v1.ListSidechainsRequest', '3': '.drivechain.v1.ListSidechainsResponse'},
-    {'1': 'ListSidechainProposals', '2': '.drivechain.v1.ListSidechainProposalsRequest', '3': '.drivechain.v1.ListSidechainProposalsResponse'},
-  ],
-};
-
-@$core.Deprecated('Use drivechainServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> DrivechainServiceBase$messageJson = {
-  '.drivechain.v1.ListSidechainsRequest': ListSidechainsRequest$json,
-  '.drivechain.v1.ListSidechainsResponse': ListSidechainsResponse$json,
-  '.drivechain.v1.ListSidechainsResponse.Sidechain': ListSidechainsResponse_Sidechain$json,
-  '.drivechain.v1.ListSidechainProposalsRequest': ListSidechainProposalsRequest$json,
-  '.drivechain.v1.ListSidechainProposalsResponse': ListSidechainProposalsResponse$json,
-  '.drivechain.v1.SidechainProposal': SidechainProposal$json,
-};
-
-/// Descriptor for `DrivechainService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List drivechainServiceDescriptor = $convert.base64Decode(
-    'ChFEcml2ZWNoYWluU2VydmljZRJdCg5MaXN0U2lkZWNoYWlucxIkLmRyaXZlY2hhaW4udjEuTG'
-    'lzdFNpZGVjaGFpbnNSZXF1ZXN0GiUuZHJpdmVjaGFpbi52MS5MaXN0U2lkZWNoYWluc1Jlc3Bv'
-    'bnNlEnUKFkxpc3RTaWRlY2hhaW5Qcm9wb3NhbHMSLC5kcml2ZWNoYWluLnYxLkxpc3RTaWRlY2'
-    'hhaW5Qcm9wb3NhbHNSZXF1ZXN0Gi0uZHJpdmVjaGFpbi52MS5MaXN0U2lkZWNoYWluUHJvcG9z'
-    'YWxzUmVzcG9uc2U=');
-

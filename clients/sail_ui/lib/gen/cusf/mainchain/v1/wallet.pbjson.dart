@@ -13,11 +13,6 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../../google/protobuf/timestamp.pbjson.dart' as $5;
-import '../../../google/protobuf/wrappers.pbjson.dart' as $0;
-import '../../common/v1/common.pbjson.dart' as $1;
-import 'common.pbjson.dart' as $3;
-
 @$core.Deprecated('Use walletTransactionDescriptor instead')
 const WalletTransaction$json = {
   '1': 'WalletTransaction',
@@ -448,98 +443,4 @@ const GenerateBlocksResponse$json = {
 final $typed_data.Uint8List generateBlocksResponseDescriptor = $convert.base64Decode(
     'ChZHZW5lcmF0ZUJsb2Nrc1Jlc3BvbnNlEjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLmNvbW'
     '1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2g=');
-
-const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
-  '1': 'WalletService',
-  '2': [
-    {'1': 'BroadcastWithdrawalBundle', '2': '.cusf.mainchain.v1.BroadcastWithdrawalBundleRequest', '3': '.cusf.mainchain.v1.BroadcastWithdrawalBundleResponse'},
-    {'1': 'CreateBmmCriticalDataTransaction', '2': '.cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest', '3': '.cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse'},
-    {'1': 'CreateDepositTransaction', '2': '.cusf.mainchain.v1.CreateDepositTransactionRequest', '3': '.cusf.mainchain.v1.CreateDepositTransactionResponse'},
-    {'1': 'CreateNewAddress', '2': '.cusf.mainchain.v1.CreateNewAddressRequest', '3': '.cusf.mainchain.v1.CreateNewAddressResponse'},
-    {'1': 'CreateSidechainProposal', '2': '.cusf.mainchain.v1.CreateSidechainProposalRequest', '3': '.cusf.mainchain.v1.CreateSidechainProposalResponse', '6': true},
-    {'1': 'CreateWallet', '2': '.cusf.mainchain.v1.CreateWalletRequest', '3': '.cusf.mainchain.v1.CreateWalletResponse'},
-    {'1': 'GetBalance', '2': '.cusf.mainchain.v1.GetBalanceRequest', '3': '.cusf.mainchain.v1.GetBalanceResponse'},
-    {'1': 'ListSidechainDepositTransactions', '2': '.cusf.mainchain.v1.ListSidechainDepositTransactionsRequest', '3': '.cusf.mainchain.v1.ListSidechainDepositTransactionsResponse'},
-    {'1': 'ListTransactions', '2': '.cusf.mainchain.v1.ListTransactionsRequest', '3': '.cusf.mainchain.v1.ListTransactionsResponse'},
-    {'1': 'SendTransaction', '2': '.cusf.mainchain.v1.SendTransactionRequest', '3': '.cusf.mainchain.v1.SendTransactionResponse'},
-    {'1': 'UnlockWallet', '2': '.cusf.mainchain.v1.UnlockWalletRequest', '3': '.cusf.mainchain.v1.UnlockWalletResponse'},
-    {'1': 'GenerateBlocks', '2': '.cusf.mainchain.v1.GenerateBlocksRequest', '3': '.cusf.mainchain.v1.GenerateBlocksResponse', '6': true},
-  ],
-};
-
-@$core.Deprecated('Use walletServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServiceBase$messageJson = {
-  '.cusf.mainchain.v1.BroadcastWithdrawalBundleRequest': BroadcastWithdrawalBundleRequest$json,
-  '.google.protobuf.UInt32Value': $0.UInt32Value$json,
-  '.google.protobuf.BytesValue': $0.BytesValue$json,
-  '.cusf.mainchain.v1.BroadcastWithdrawalBundleResponse': BroadcastWithdrawalBundleResponse$json,
-  '.cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest': CreateBmmCriticalDataTransactionRequest$json,
-  '.google.protobuf.UInt64Value': $0.UInt64Value$json,
-  '.cusf.common.v1.ConsensusHex': $1.ConsensusHex$json,
-  '.google.protobuf.StringValue': $0.StringValue$json,
-  '.cusf.common.v1.ReverseHex': $1.ReverseHex$json,
-  '.cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse': CreateBmmCriticalDataTransactionResponse$json,
-  '.cusf.mainchain.v1.CreateDepositTransactionRequest': CreateDepositTransactionRequest$json,
-  '.cusf.mainchain.v1.CreateDepositTransactionResponse': CreateDepositTransactionResponse$json,
-  '.cusf.mainchain.v1.CreateNewAddressRequest': CreateNewAddressRequest$json,
-  '.cusf.mainchain.v1.CreateNewAddressResponse': CreateNewAddressResponse$json,
-  '.cusf.mainchain.v1.CreateSidechainProposalRequest': CreateSidechainProposalRequest$json,
-  '.cusf.mainchain.v1.SidechainDeclaration': $3.SidechainDeclaration$json,
-  '.cusf.mainchain.v1.SidechainDeclaration.V0': $3.SidechainDeclaration_V0$json,
-  '.cusf.common.v1.Hex': $1.Hex$json,
-  '.cusf.mainchain.v1.CreateSidechainProposalResponse': CreateSidechainProposalResponse$json,
-  '.cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed': CreateSidechainProposalResponse_Confirmed$json,
-  '.cusf.mainchain.v1.OutPoint': $3.OutPoint$json,
-  '.cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed': CreateSidechainProposalResponse_NotConfirmed$json,
-  '.cusf.mainchain.v1.CreateWalletRequest': CreateWalletRequest$json,
-  '.cusf.mainchain.v1.CreateWalletResponse': CreateWalletResponse$json,
-  '.cusf.mainchain.v1.GetBalanceRequest': GetBalanceRequest$json,
-  '.cusf.mainchain.v1.GetBalanceResponse': GetBalanceResponse$json,
-  '.cusf.mainchain.v1.ListSidechainDepositTransactionsRequest': ListSidechainDepositTransactionsRequest$json,
-  '.cusf.mainchain.v1.ListSidechainDepositTransactionsResponse': ListSidechainDepositTransactionsResponse$json,
-  '.cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransaction': ListSidechainDepositTransactionsResponse_SidechainDepositTransaction$json,
-  '.cusf.mainchain.v1.WalletTransaction': WalletTransaction$json,
-  '.cusf.mainchain.v1.WalletTransaction.Confirmation': WalletTransaction_Confirmation$json,
-  '.google.protobuf.Timestamp': $5.Timestamp$json,
-  '.cusf.mainchain.v1.ListTransactionsRequest': ListTransactionsRequest$json,
-  '.cusf.mainchain.v1.ListTransactionsResponse': ListTransactionsResponse$json,
-  '.cusf.mainchain.v1.SendTransactionRequest': SendTransactionRequest$json,
-  '.cusf.mainchain.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
-  '.cusf.mainchain.v1.SendTransactionRequest.FeeRate': SendTransactionRequest_FeeRate$json,
-  '.cusf.mainchain.v1.SendTransactionResponse': SendTransactionResponse$json,
-  '.cusf.mainchain.v1.UnlockWalletRequest': UnlockWalletRequest$json,
-  '.cusf.mainchain.v1.UnlockWalletResponse': UnlockWalletResponse$json,
-  '.cusf.mainchain.v1.GenerateBlocksRequest': GenerateBlocksRequest$json,
-  '.cusf.mainchain.v1.GenerateBlocksResponse': GenerateBlocksResponse$json,
-};
-
-/// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
-    'Cg1XYWxsZXRTZXJ2aWNlEoYBChlCcm9hZGNhc3RXaXRoZHJhd2FsQnVuZGxlEjMuY3VzZi5tYW'
-    'luY2hhaW4udjEuQnJvYWRjYXN0V2l0aGRyYXdhbEJ1bmRsZVJlcXVlc3QaNC5jdXNmLm1haW5j'
-    'aGFpbi52MS5Ccm9hZGNhc3RXaXRoZHJhd2FsQnVuZGxlUmVzcG9uc2USmwEKIENyZWF0ZUJtbU'
-    'NyaXRpY2FsRGF0YVRyYW5zYWN0aW9uEjouY3VzZi5tYWluY2hhaW4udjEuQ3JlYXRlQm1tQ3Jp'
-    'dGljYWxEYXRhVHJhbnNhY3Rpb25SZXF1ZXN0GjsuY3VzZi5tYWluY2hhaW4udjEuQ3JlYXRlQm'
-    '1tQ3JpdGljYWxEYXRhVHJhbnNhY3Rpb25SZXNwb25zZRKDAQoYQ3JlYXRlRGVwb3NpdFRyYW5z'
-    'YWN0aW9uEjIuY3VzZi5tYWluY2hhaW4udjEuQ3JlYXRlRGVwb3NpdFRyYW5zYWN0aW9uUmVxdW'
-    'VzdBozLmN1c2YubWFpbmNoYWluLnYxLkNyZWF0ZURlcG9zaXRUcmFuc2FjdGlvblJlc3BvbnNl'
-    'EmsKEENyZWF0ZU5ld0FkZHJlc3MSKi5jdXNmLm1haW5jaGFpbi52MS5DcmVhdGVOZXdBZGRyZX'
-    'NzUmVxdWVzdBorLmN1c2YubWFpbmNoYWluLnYxLkNyZWF0ZU5ld0FkZHJlc3NSZXNwb25zZRKC'
-    'AQoXQ3JlYXRlU2lkZWNoYWluUHJvcG9zYWwSMS5jdXNmLm1haW5jaGFpbi52MS5DcmVhdGVTaW'
-    'RlY2hhaW5Qcm9wb3NhbFJlcXVlc3QaMi5jdXNmLm1haW5jaGFpbi52MS5DcmVhdGVTaWRlY2hh'
-    'aW5Qcm9wb3NhbFJlc3BvbnNlMAESXwoMQ3JlYXRlV2FsbGV0EiYuY3VzZi5tYWluY2hhaW4udj'
-    'EuQ3JlYXRlV2FsbGV0UmVxdWVzdBonLmN1c2YubWFpbmNoYWluLnYxLkNyZWF0ZVdhbGxldFJl'
-    'c3BvbnNlElkKCkdldEJhbGFuY2USJC5jdXNmLm1haW5jaGFpbi52MS5HZXRCYWxhbmNlUmVxdW'
-    'VzdBolLmN1c2YubWFpbmNoYWluLnYxLkdldEJhbGFuY2VSZXNwb25zZRKbAQogTGlzdFNpZGVj'
-    'aGFpbkRlcG9zaXRUcmFuc2FjdGlvbnMSOi5jdXNmLm1haW5jaGFpbi52MS5MaXN0U2lkZWNoYW'
-    'luRGVwb3NpdFRyYW5zYWN0aW9uc1JlcXVlc3QaOy5jdXNmLm1haW5jaGFpbi52MS5MaXN0U2lk'
-    'ZWNoYWluRGVwb3NpdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEmsKEExpc3RUcmFuc2FjdGlvbnMSKi'
-    '5jdXNmLm1haW5jaGFpbi52MS5MaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBorLmN1c2YubWFpbmNo'
-    'YWluLnYxLkxpc3RUcmFuc2FjdGlvbnNSZXNwb25zZRJoCg9TZW5kVHJhbnNhY3Rpb24SKS5jdX'
-    'NmLm1haW5jaGFpbi52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZXN0GiouY3VzZi5tYWluY2hhaW4u'
-    'djEuU2VuZFRyYW5zYWN0aW9uUmVzcG9uc2USXwoMVW5sb2NrV2FsbGV0EiYuY3VzZi5tYWluY2'
-    'hhaW4udjEuVW5sb2NrV2FsbGV0UmVxdWVzdBonLmN1c2YubWFpbmNoYWluLnYxLlVubG9ja1dh'
-    'bGxldFJlc3BvbnNlEmcKDkdlbmVyYXRlQmxvY2tzEiguY3VzZi5tYWluY2hhaW4udjEuR2VuZX'
-    'JhdGVCbG9ja3NSZXF1ZXN0GikuY3VzZi5tYWluY2hhaW4udjEuR2VuZXJhdGVCbG9ja3NSZXNw'
-    'b25zZTAB');
 

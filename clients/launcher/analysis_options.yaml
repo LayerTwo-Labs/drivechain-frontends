@@ -26,5 +26,10 @@ linter:
 
 analyzer:
     exclude:
-        - "**/lib/gen**"
+        - "**/*.g.dart"
+        - "**/*.pb.dart"
+        - "**/*.pbenum.dart"
+        - "**/*.pbserver.dart"
+        - "**/*.pbjson.dart"
+        - "**/*.pbgrpc.dart"
         - '**/build/**'

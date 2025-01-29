@@ -37,7 +37,6 @@ dependencies:
   path_provider: ^2.1.5
   crypto: ^3.0.5
   shared_preferences: ^2.4.0
-  connectrpc: ^0.1.0
   path: ^1.8.3
 
 # Needed for silencing complaints from adding the web3dart lib
