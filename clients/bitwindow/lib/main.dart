@@ -68,6 +68,7 @@ void main() async {
           // first, set all binaries as initializing
           mainchain.initializingBinary = true;
           GetIt.I.get<EnforcerRPC>().initializingBinary = true;
+
           GetIt.I.get<BitwindowRPC>().initializingBinary = true;
 
           if (!context.mounted) return;
