@@ -75,30 +75,30 @@ abstract class RPCConnection extends ChangeNotifier {
         // has a grpc server. That is initialized whenever it
         // responds, so we know it's no longer initializing
         newError = extractGRPCError(error);
-      } else if (!initializingBinary) {
-        // If it's not a grpc error however, we're probably talking
-        // to a bitcoin core based binary. That will return a bunch of
-        // uninteresting errors during initialization, such as "indexing blocks...",
-        // As long as it does that, we want to keep showing the orange spinner!
+      }
+      // If it's not a grpc error however, we're probably talking
+      // to a bitcoin core based binary. That will return a bunch of
+      // uninteresting errors during initialization, such as "indexing blocks...",
+      // As long as it does that, we want to keep showing the orange spinner!
 
-        if (error is SocketException) {
-          newError = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
-        } else if (error is HttpException) {
-          // Error looks like this, lets parse the interesting bits:
-          // SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
+      else if (error is SocketException) {
+        newError = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
+      } else if (error is HttpException) {
+        // Error looks like this, lets parse the interesting bits:
+        // SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
 
-          newError = error.message;
-          RegExp regExp = RegExp(r'\(([^)]+)\)');
-          final match = regExp.firstMatch(error.message);
-          if (match != null) {
-            newError = match.group(1)!;
-          }
+        newError = error.message;
+        RegExp regExp = RegExp(r'\(([^)]+)\)');
+        final match = regExp.firstMatch(error.message);
+        if (match != null) {
+          newError = match.group(1)!;
         }
       }
 
       if (newError.contains('Connection refused') ||
           newError.contains('SocketException') ||
-          newError.contains('computer refused the network')) {
+          newError.contains('computer refused the network') ||
+          newError.contains('could not connect at')) {
         // don't show a generic Connection refused as the first error
         newError = connectionError;
       }
