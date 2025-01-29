@@ -13,6 +13,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
+
 /// Represents the current status of a binary download
 class DownloadState {
   final double progress; // Only used during installing
@@ -168,14 +169,16 @@ class BinaryProvider extends ChangeNotifier {
   String? canStart(Binary binary) {
     final mainchainReady = mainchainConnected && !inIBD;
     return switch (binary) {
-      Enforcer() =>
-        mainchainReady ? null : 'Mainchain must be started and fully synced before starting Enforcer',
-      BitWindow() => 
-        enforcerConnected && mainchainReady ? null : 'Mainchain and Enforcer must be running and fully synced before starting BitWindow',
-      Thunder() => 
-        enforcerConnected && mainchainReady ? null : 'Mainchain and Enforcer must be running and fully synced before starting Thunder',
-      Bitnames() => 
-        enforcerConnected && mainchainReady ? null : 'Mainchain and Enforcer must be running and fully synced before starting Bitnames',
+      Enforcer() => mainchainReady ? null : 'Mainchain must be started and fully synced before starting Enforcer',
+      BitWindow() => enforcerConnected && mainchainReady
+          ? null
+          : 'Mainchain and Enforcer must be running and fully synced before starting BitWindow',
+      Thunder() => enforcerConnected && mainchainReady
+          ? null
+          : 'Mainchain and Enforcer must be running and fully synced before starting Thunder',
+      Bitnames() => enforcerConnected && mainchainReady
+          ? null
+          : 'Mainchain and Enforcer must be running and fully synced before starting Bitnames',
       _ => null, // No requirements for mainchain
     };
   }
@@ -211,17 +214,17 @@ class BinaryProvider extends ChangeNotifier {
       case Thunder():
         await thunderRPC.initBinary(
           context,
-          arg: binary.mnemonicSeedPhrasePath != null 
-            ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
-            : null,
+          arg: binary.mnemonicSeedPhrasePath != null
+              ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
+              : null,
         );
 
       case Bitnames():
         await bitnamesRPC.initBinary(
           context,
-          arg: binary.mnemonicSeedPhrasePath != null 
-            ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
-            : null,
+          arg: binary.mnemonicSeedPhrasePath != null
+              ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
+              : null,
         );
 
       default:
@@ -300,7 +303,7 @@ class BinaryProvider extends ChangeNotifier {
     try {
       final masterStarterPath = path.join(appDir.path, 'wallet_starters', 'master_starter.json');
       final masterStarterFile = File(masterStarterPath);
-      
+
       if (!masterStarterFile.existsSync()) {
         return false;
       }
@@ -317,7 +320,7 @@ class BinaryProvider extends ChangeNotifier {
     try {
       final masterStarterPath = path.join(appDir.path, 'wallet_starters', 'master_starter.json');
       final masterStarterFile = File(masterStarterPath);
-      
+
       if (!masterStarterFile.existsSync()) {
         return;
       }

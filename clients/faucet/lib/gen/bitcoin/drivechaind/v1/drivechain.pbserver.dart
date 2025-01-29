@@ -1,6 +1,6 @@
 //
 //  Generated code. Do not modify.
-//  source: drivechain/v1/drivechain.proto
+//  source: bitcoin/drivechaind/v1/drivechain.proto
 //
 // @dart = 2.12
 
@@ -21,21 +21,18 @@ import 'drivechain.pbjson.dart';
 export 'drivechain.pb.dart';
 
 abstract class DrivechainServiceBase extends $pb.GeneratedService {
-  $async.Future<$3.ListSidechainsResponse> listSidechains($pb.ServerContext ctx, $3.ListSidechainsRequest request);
-  $async.Future<$3.ListSidechainProposalsResponse> listSidechainProposals($pb.ServerContext ctx, $3.ListSidechainProposalsRequest request);
+  $async.Future<$3.CreateSidechainDepositResponse> createSidechainDeposit($pb.ServerContext ctx, $3.CreateSidechainDepositRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'ListSidechains': return $3.ListSidechainsRequest();
-      case 'ListSidechainProposals': return $3.ListSidechainProposalsRequest();
+      case 'CreateSidechainDeposit': return $3.CreateSidechainDepositRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'ListSidechains': return this.listSidechains(ctx, request as $3.ListSidechainsRequest);
-      case 'ListSidechainProposals': return this.listSidechainProposals(ctx, request as $3.ListSidechainProposalsRequest);
+      case 'CreateSidechainDeposit': return this.createSidechainDeposit(ctx, request as $3.CreateSidechainDepositRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

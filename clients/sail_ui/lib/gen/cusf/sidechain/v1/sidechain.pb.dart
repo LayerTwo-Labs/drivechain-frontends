@@ -9,7 +9,6 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
-import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
@@ -854,24 +853,6 @@ class SubscribeEventsResponse extends $pb.GeneratedMessage {
   void clearEvent() => clearField(2);
   @$pb.TagNumber(2)
   SubscribeEventsResponse_Event ensureEvent() => $_ensure(1);
-}
-
-class SidechainServiceApi {
-  $pb.RpcClient _client;
-  SidechainServiceApi(this._client);
-
-  $async.Future<GetMempoolTxsResponse> getMempoolTxs($pb.ClientContext? ctx, GetMempoolTxsRequest request) =>
-    _client.invoke<GetMempoolTxsResponse>(ctx, 'SidechainService', 'GetMempoolTxs', request, GetMempoolTxsResponse())
-  ;
-  $async.Future<GetUtxosResponse> getUtxos($pb.ClientContext? ctx, GetUtxosRequest request) =>
-    _client.invoke<GetUtxosResponse>(ctx, 'SidechainService', 'GetUtxos', request, GetUtxosResponse())
-  ;
-  $async.Future<SubmitTransactionResponse> submitTransaction($pb.ClientContext? ctx, SubmitTransactionRequest request) =>
-    _client.invoke<SubmitTransactionResponse>(ctx, 'SidechainService', 'SubmitTransaction', request, SubmitTransactionResponse())
-  ;
-  $async.Future<SubscribeEventsResponse> subscribeEvents($pb.ClientContext? ctx, SubscribeEventsRequest request) =>
-    _client.invoke<SubscribeEventsResponse>(ctx, 'SidechainService', 'SubscribeEvents', request, SubscribeEventsResponse())
-  ;
 }
 
 

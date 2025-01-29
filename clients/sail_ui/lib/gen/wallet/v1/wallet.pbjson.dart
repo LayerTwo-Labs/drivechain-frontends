@@ -13,9 +13,6 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $1;
-import '../../google/protobuf/timestamp.pbjson.dart' as $0;
-
 @$core.Deprecated('Use getNewAddressResponseDescriptor instead')
 const GetNewAddressResponse$json = {
   '1': 'GetNewAddressResponse',
@@ -203,48 +200,4 @@ const CreateSidechainDepositResponse$json = {
 /// Descriptor for `CreateSidechainDepositResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createSidechainDepositResponseDescriptor = $convert.base64Decode(
     'Ch5DcmVhdGVTaWRlY2hhaW5EZXBvc2l0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
-
-const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
-  '1': 'WalletService',
-  '2': [
-    {'1': 'SendTransaction', '2': '.wallet.v1.SendTransactionRequest', '3': '.wallet.v1.SendTransactionResponse'},
-    {'1': 'GetBalance', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetBalanceResponse'},
-    {'1': 'GetNewAddress', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetNewAddressResponse'},
-    {'1': 'ListTransactions', '2': '.google.protobuf.Empty', '3': '.wallet.v1.ListTransactionsResponse'},
-    {'1': 'ListSidechainDeposits', '2': '.wallet.v1.ListSidechainDepositsRequest', '3': '.wallet.v1.ListSidechainDepositsResponse'},
-    {'1': 'CreateSidechainDeposit', '2': '.wallet.v1.CreateSidechainDepositRequest', '3': '.wallet.v1.CreateSidechainDepositResponse'},
-  ],
-};
-
-@$core.Deprecated('Use walletServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServiceBase$messageJson = {
-  '.wallet.v1.SendTransactionRequest': SendTransactionRequest$json,
-  '.wallet.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
-  '.wallet.v1.SendTransactionResponse': SendTransactionResponse$json,
-  '.google.protobuf.Empty': $1.Empty$json,
-  '.wallet.v1.GetBalanceResponse': GetBalanceResponse$json,
-  '.wallet.v1.GetNewAddressResponse': GetNewAddressResponse$json,
-  '.wallet.v1.ListTransactionsResponse': ListTransactionsResponse$json,
-  '.wallet.v1.WalletTransaction': WalletTransaction$json,
-  '.wallet.v1.Confirmation': Confirmation$json,
-  '.google.protobuf.Timestamp': $0.Timestamp$json,
-  '.wallet.v1.ListSidechainDepositsRequest': ListSidechainDepositsRequest$json,
-  '.wallet.v1.ListSidechainDepositsResponse': ListSidechainDepositsResponse$json,
-  '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit': ListSidechainDepositsResponse_SidechainDeposit$json,
-  '.wallet.v1.CreateSidechainDepositRequest': CreateSidechainDepositRequest$json,
-  '.wallet.v1.CreateSidechainDepositResponse': CreateSidechainDepositResponse$json,
-};
-
-/// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
-    'Cg1XYWxsZXRTZXJ2aWNlElgKD1NlbmRUcmFuc2FjdGlvbhIhLndhbGxldC52MS5TZW5kVHJhbn'
-    'NhY3Rpb25SZXF1ZXN0GiIud2FsbGV0LnYxLlNlbmRUcmFuc2FjdGlvblJlc3BvbnNlEkMKCkdl'
-    'dEJhbGFuY2USFi5nb29nbGUucHJvdG9idWYuRW1wdHkaHS53YWxsZXQudjEuR2V0QmFsYW5jZV'
-    'Jlc3BvbnNlEkkKDUdldE5ld0FkZHJlc3MSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaIC53YWxs'
-    'ZXQudjEuR2V0TmV3QWRkcmVzc1Jlc3BvbnNlEk8KEExpc3RUcmFuc2FjdGlvbnMSFi5nb29nbG'
-    'UucHJvdG9idWYuRW1wdHkaIy53YWxsZXQudjEuTGlzdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEmoK'
-    'FUxpc3RTaWRlY2hhaW5EZXBvc2l0cxInLndhbGxldC52MS5MaXN0U2lkZWNoYWluRGVwb3NpdH'
-    'NSZXF1ZXN0Gigud2FsbGV0LnYxLkxpc3RTaWRlY2hhaW5EZXBvc2l0c1Jlc3BvbnNlEm0KFkNy'
-    'ZWF0ZVNpZGVjaGFpbkRlcG9zaXQSKC53YWxsZXQudjEuQ3JlYXRlU2lkZWNoYWluRGVwb3NpdF'
-    'JlcXVlc3QaKS53YWxsZXQudjEuQ3JlYXRlU2lkZWNoYWluRGVwb3NpdFJlc3BvbnNl');
 

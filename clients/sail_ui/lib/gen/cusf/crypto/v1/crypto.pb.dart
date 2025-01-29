@@ -9,17 +9,16 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
-import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../common/v1/common.pb.dart' as $1;
+import '../../common/v1/common.pb.dart' as $5;
 
 class HmacSha512Request extends $pb.GeneratedMessage {
   factory HmacSha512Request({
-    $1.Hex? key,
-    $1.Hex? msg,
+    $5.Hex? key,
+    $5.Hex? msg,
   }) {
     final $result = create();
     if (key != null) {
@@ -35,8 +34,8 @@ class HmacSha512Request extends $pb.GeneratedMessage {
   factory HmacSha512Request.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'HmacSha512Request', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.Hex>(1, _omitFieldNames ? '' : 'key', subBuilder: $1.Hex.create)
-    ..aOM<$1.Hex>(2, _omitFieldNames ? '' : 'msg', subBuilder: $1.Hex.create)
+    ..aOM<$5.Hex>(1, _omitFieldNames ? '' : 'key', subBuilder: $5.Hex.create)
+    ..aOM<$5.Hex>(2, _omitFieldNames ? '' : 'msg', subBuilder: $5.Hex.create)
     ..hasRequiredFields = false
   ;
 
@@ -62,31 +61,31 @@ class HmacSha512Request extends $pb.GeneratedMessage {
   static HmacSha512Request? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.Hex get key => $_getN(0);
+  $5.Hex get key => $_getN(0);
   @$pb.TagNumber(1)
-  set key($1.Hex v) { setField(1, v); }
+  set key($5.Hex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasKey() => $_has(0);
   @$pb.TagNumber(1)
   void clearKey() => clearField(1);
   @$pb.TagNumber(1)
-  $1.Hex ensureKey() => $_ensure(0);
+  $5.Hex ensureKey() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $1.Hex get msg => $_getN(1);
+  $5.Hex get msg => $_getN(1);
   @$pb.TagNumber(2)
-  set msg($1.Hex v) { setField(2, v); }
+  set msg($5.Hex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasMsg() => $_has(1);
   @$pb.TagNumber(2)
   void clearMsg() => clearField(2);
   @$pb.TagNumber(2)
-  $1.Hex ensureMsg() => $_ensure(1);
+  $5.Hex ensureMsg() => $_ensure(1);
 }
 
 class HmacSha512Response extends $pb.GeneratedMessage {
   factory HmacSha512Response({
-    $1.Hex? hmac,
+    $5.Hex? hmac,
   }) {
     final $result = create();
     if (hmac != null) {
@@ -99,7 +98,7 @@ class HmacSha512Response extends $pb.GeneratedMessage {
   factory HmacSha512Response.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'HmacSha512Response', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.Hex>(1, _omitFieldNames ? '' : 'hmac', subBuilder: $1.Hex.create)
+    ..aOM<$5.Hex>(1, _omitFieldNames ? '' : 'hmac', subBuilder: $5.Hex.create)
     ..hasRequiredFields = false
   ;
 
@@ -125,20 +124,20 @@ class HmacSha512Response extends $pb.GeneratedMessage {
   static HmacSha512Response? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.Hex get hmac => $_getN(0);
+  $5.Hex get hmac => $_getN(0);
   @$pb.TagNumber(1)
-  set hmac($1.Hex v) { setField(1, v); }
+  set hmac($5.Hex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHmac() => $_has(0);
   @$pb.TagNumber(1)
   void clearHmac() => clearField(1);
   @$pb.TagNumber(1)
-  $1.Hex ensureHmac() => $_ensure(0);
+  $5.Hex ensureHmac() => $_ensure(0);
 }
 
 class Ripemd160Request extends $pb.GeneratedMessage {
   factory Ripemd160Request({
-    $1.Hex? msg,
+    $5.Hex? msg,
   }) {
     final $result = create();
     if (msg != null) {
@@ -151,7 +150,7 @@ class Ripemd160Request extends $pb.GeneratedMessage {
   factory Ripemd160Request.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Ripemd160Request', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.Hex>(1, _omitFieldNames ? '' : 'msg', subBuilder: $1.Hex.create)
+    ..aOM<$5.Hex>(1, _omitFieldNames ? '' : 'msg', subBuilder: $5.Hex.create)
     ..hasRequiredFields = false
   ;
 
@@ -177,20 +176,20 @@ class Ripemd160Request extends $pb.GeneratedMessage {
   static Ripemd160Request? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.Hex get msg => $_getN(0);
+  $5.Hex get msg => $_getN(0);
   @$pb.TagNumber(1)
-  set msg($1.Hex v) { setField(1, v); }
+  set msg($5.Hex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasMsg() => $_has(0);
   @$pb.TagNumber(1)
   void clearMsg() => clearField(1);
   @$pb.TagNumber(1)
-  $1.Hex ensureMsg() => $_ensure(0);
+  $5.Hex ensureMsg() => $_ensure(0);
 }
 
 class Ripemd160Response extends $pb.GeneratedMessage {
   factory Ripemd160Response({
-    $1.Hex? digest,
+    $5.Hex? digest,
   }) {
     final $result = create();
     if (digest != null) {
@@ -203,7 +202,7 @@ class Ripemd160Response extends $pb.GeneratedMessage {
   factory Ripemd160Response.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Ripemd160Response', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.Hex>(1, _omitFieldNames ? '' : 'digest', subBuilder: $1.Hex.create)
+    ..aOM<$5.Hex>(1, _omitFieldNames ? '' : 'digest', subBuilder: $5.Hex.create)
     ..hasRequiredFields = false
   ;
 
@@ -229,20 +228,20 @@ class Ripemd160Response extends $pb.GeneratedMessage {
   static Ripemd160Response? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.Hex get digest => $_getN(0);
+  $5.Hex get digest => $_getN(0);
   @$pb.TagNumber(1)
-  set digest($1.Hex v) { setField(1, v); }
+  set digest($5.Hex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasDigest() => $_has(0);
   @$pb.TagNumber(1)
   void clearDigest() => clearField(1);
   @$pb.TagNumber(1)
-  $1.Hex ensureDigest() => $_ensure(0);
+  $5.Hex ensureDigest() => $_ensure(0);
 }
 
 class Secp256k1SecretKeyToPublicKeyRequest extends $pb.GeneratedMessage {
   factory Secp256k1SecretKeyToPublicKeyRequest({
-    $1.ConsensusHex? secretKey,
+    $5.ConsensusHex? secretKey,
   }) {
     final $result = create();
     if (secretKey != null) {
@@ -255,7 +254,7 @@ class Secp256k1SecretKeyToPublicKeyRequest extends $pb.GeneratedMessage {
   factory Secp256k1SecretKeyToPublicKeyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Secp256k1SecretKeyToPublicKeyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.ConsensusHex>(1, _omitFieldNames ? '' : 'secretKey', subBuilder: $1.ConsensusHex.create)
+    ..aOM<$5.ConsensusHex>(1, _omitFieldNames ? '' : 'secretKey', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -281,20 +280,20 @@ class Secp256k1SecretKeyToPublicKeyRequest extends $pb.GeneratedMessage {
   static Secp256k1SecretKeyToPublicKeyRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.ConsensusHex get secretKey => $_getN(0);
+  $5.ConsensusHex get secretKey => $_getN(0);
   @$pb.TagNumber(1)
-  set secretKey($1.ConsensusHex v) { setField(1, v); }
+  set secretKey($5.ConsensusHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSecretKey() => $_has(0);
   @$pb.TagNumber(1)
   void clearSecretKey() => clearField(1);
   @$pb.TagNumber(1)
-  $1.ConsensusHex ensureSecretKey() => $_ensure(0);
+  $5.ConsensusHex ensureSecretKey() => $_ensure(0);
 }
 
 class Secp256k1SecretKeyToPublicKeyResponse extends $pb.GeneratedMessage {
   factory Secp256k1SecretKeyToPublicKeyResponse({
-    $1.ConsensusHex? publicKey,
+    $5.ConsensusHex? publicKey,
   }) {
     final $result = create();
     if (publicKey != null) {
@@ -307,7 +306,7 @@ class Secp256k1SecretKeyToPublicKeyResponse extends $pb.GeneratedMessage {
   factory Secp256k1SecretKeyToPublicKeyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Secp256k1SecretKeyToPublicKeyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.ConsensusHex>(1, _omitFieldNames ? '' : 'publicKey', subBuilder: $1.ConsensusHex.create)
+    ..aOM<$5.ConsensusHex>(1, _omitFieldNames ? '' : 'publicKey', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -333,21 +332,21 @@ class Secp256k1SecretKeyToPublicKeyResponse extends $pb.GeneratedMessage {
   static Secp256k1SecretKeyToPublicKeyResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.ConsensusHex get publicKey => $_getN(0);
+  $5.ConsensusHex get publicKey => $_getN(0);
   @$pb.TagNumber(1)
-  set publicKey($1.ConsensusHex v) { setField(1, v); }
+  set publicKey($5.ConsensusHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasPublicKey() => $_has(0);
   @$pb.TagNumber(1)
   void clearPublicKey() => clearField(1);
   @$pb.TagNumber(1)
-  $1.ConsensusHex ensurePublicKey() => $_ensure(0);
+  $5.ConsensusHex ensurePublicKey() => $_ensure(0);
 }
 
 class Secp256k1SignRequest extends $pb.GeneratedMessage {
   factory Secp256k1SignRequest({
-    $1.Hex? message,
-    $1.ConsensusHex? secretKey,
+    $5.Hex? message,
+    $5.ConsensusHex? secretKey,
   }) {
     final $result = create();
     if (message != null) {
@@ -363,8 +362,8 @@ class Secp256k1SignRequest extends $pb.GeneratedMessage {
   factory Secp256k1SignRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Secp256k1SignRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.Hex>(1, _omitFieldNames ? '' : 'message', subBuilder: $1.Hex.create)
-    ..aOM<$1.ConsensusHex>(2, _omitFieldNames ? '' : 'secretKey', subBuilder: $1.ConsensusHex.create)
+    ..aOM<$5.Hex>(1, _omitFieldNames ? '' : 'message', subBuilder: $5.Hex.create)
+    ..aOM<$5.ConsensusHex>(2, _omitFieldNames ? '' : 'secretKey', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -390,31 +389,31 @@ class Secp256k1SignRequest extends $pb.GeneratedMessage {
   static Secp256k1SignRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.Hex get message => $_getN(0);
+  $5.Hex get message => $_getN(0);
   @$pb.TagNumber(1)
-  set message($1.Hex v) { setField(1, v); }
+  set message($5.Hex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasMessage() => $_has(0);
   @$pb.TagNumber(1)
   void clearMessage() => clearField(1);
   @$pb.TagNumber(1)
-  $1.Hex ensureMessage() => $_ensure(0);
+  $5.Hex ensureMessage() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $1.ConsensusHex get secretKey => $_getN(1);
+  $5.ConsensusHex get secretKey => $_getN(1);
   @$pb.TagNumber(2)
-  set secretKey($1.ConsensusHex v) { setField(2, v); }
+  set secretKey($5.ConsensusHex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasSecretKey() => $_has(1);
   @$pb.TagNumber(2)
   void clearSecretKey() => clearField(2);
   @$pb.TagNumber(2)
-  $1.ConsensusHex ensureSecretKey() => $_ensure(1);
+  $5.ConsensusHex ensureSecretKey() => $_ensure(1);
 }
 
 class Secp256k1SignResponse extends $pb.GeneratedMessage {
   factory Secp256k1SignResponse({
-    $1.Hex? signature,
+    $5.Hex? signature,
   }) {
     final $result = create();
     if (signature != null) {
@@ -427,7 +426,7 @@ class Secp256k1SignResponse extends $pb.GeneratedMessage {
   factory Secp256k1SignResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Secp256k1SignResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.Hex>(1, _omitFieldNames ? '' : 'signature', subBuilder: $1.Hex.create)
+    ..aOM<$5.Hex>(1, _omitFieldNames ? '' : 'signature', subBuilder: $5.Hex.create)
     ..hasRequiredFields = false
   ;
 
@@ -453,22 +452,22 @@ class Secp256k1SignResponse extends $pb.GeneratedMessage {
   static Secp256k1SignResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.Hex get signature => $_getN(0);
+  $5.Hex get signature => $_getN(0);
   @$pb.TagNumber(1)
-  set signature($1.Hex v) { setField(1, v); }
+  set signature($5.Hex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSignature() => $_has(0);
   @$pb.TagNumber(1)
   void clearSignature() => clearField(1);
   @$pb.TagNumber(1)
-  $1.Hex ensureSignature() => $_ensure(0);
+  $5.Hex ensureSignature() => $_ensure(0);
 }
 
 class Secp256k1VerifyRequest extends $pb.GeneratedMessage {
   factory Secp256k1VerifyRequest({
-    $1.Hex? message,
-    $1.Hex? signature,
-    $1.ConsensusHex? publicKey,
+    $5.Hex? message,
+    $5.Hex? signature,
+    $5.ConsensusHex? publicKey,
   }) {
     final $result = create();
     if (message != null) {
@@ -487,9 +486,9 @@ class Secp256k1VerifyRequest extends $pb.GeneratedMessage {
   factory Secp256k1VerifyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Secp256k1VerifyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.crypto.v1'), createEmptyInstance: create)
-    ..aOM<$1.Hex>(1, _omitFieldNames ? '' : 'message', subBuilder: $1.Hex.create)
-    ..aOM<$1.Hex>(2, _omitFieldNames ? '' : 'signature', subBuilder: $1.Hex.create)
-    ..aOM<$1.ConsensusHex>(3, _omitFieldNames ? '' : 'publicKey', subBuilder: $1.ConsensusHex.create)
+    ..aOM<$5.Hex>(1, _omitFieldNames ? '' : 'message', subBuilder: $5.Hex.create)
+    ..aOM<$5.Hex>(2, _omitFieldNames ? '' : 'signature', subBuilder: $5.Hex.create)
+    ..aOM<$5.ConsensusHex>(3, _omitFieldNames ? '' : 'publicKey', subBuilder: $5.ConsensusHex.create)
     ..hasRequiredFields = false
   ;
 
@@ -515,37 +514,37 @@ class Secp256k1VerifyRequest extends $pb.GeneratedMessage {
   static Secp256k1VerifyRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $1.Hex get message => $_getN(0);
+  $5.Hex get message => $_getN(0);
   @$pb.TagNumber(1)
-  set message($1.Hex v) { setField(1, v); }
+  set message($5.Hex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasMessage() => $_has(0);
   @$pb.TagNumber(1)
   void clearMessage() => clearField(1);
   @$pb.TagNumber(1)
-  $1.Hex ensureMessage() => $_ensure(0);
+  $5.Hex ensureMessage() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $1.Hex get signature => $_getN(1);
+  $5.Hex get signature => $_getN(1);
   @$pb.TagNumber(2)
-  set signature($1.Hex v) { setField(2, v); }
+  set signature($5.Hex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasSignature() => $_has(1);
   @$pb.TagNumber(2)
   void clearSignature() => clearField(2);
   @$pb.TagNumber(2)
-  $1.Hex ensureSignature() => $_ensure(1);
+  $5.Hex ensureSignature() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  $1.ConsensusHex get publicKey => $_getN(2);
+  $5.ConsensusHex get publicKey => $_getN(2);
   @$pb.TagNumber(3)
-  set publicKey($1.ConsensusHex v) { setField(3, v); }
+  set publicKey($5.ConsensusHex v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasPublicKey() => $_has(2);
   @$pb.TagNumber(3)
   void clearPublicKey() => clearField(3);
   @$pb.TagNumber(3)
-  $1.ConsensusHex ensurePublicKey() => $_ensure(2);
+  $5.ConsensusHex ensurePublicKey() => $_ensure(2);
 }
 
 class Secp256k1VerifyResponse extends $pb.GeneratedMessage {
@@ -596,27 +595,6 @@ class Secp256k1VerifyResponse extends $pb.GeneratedMessage {
   $core.bool hasValid() => $_has(0);
   @$pb.TagNumber(1)
   void clearValid() => clearField(1);
-}
-
-class CryptoServiceApi {
-  $pb.RpcClient _client;
-  CryptoServiceApi(this._client);
-
-  $async.Future<HmacSha512Response> hmacSha512($pb.ClientContext? ctx, HmacSha512Request request) =>
-    _client.invoke<HmacSha512Response>(ctx, 'CryptoService', 'HmacSha512', request, HmacSha512Response())
-  ;
-  $async.Future<Ripemd160Response> ripemd160($pb.ClientContext? ctx, Ripemd160Request request) =>
-    _client.invoke<Ripemd160Response>(ctx, 'CryptoService', 'Ripemd160', request, Ripemd160Response())
-  ;
-  $async.Future<Secp256k1SecretKeyToPublicKeyResponse> secp256k1SecretKeyToPublicKey($pb.ClientContext? ctx, Secp256k1SecretKeyToPublicKeyRequest request) =>
-    _client.invoke<Secp256k1SecretKeyToPublicKeyResponse>(ctx, 'CryptoService', 'Secp256k1SecretKeyToPublicKey', request, Secp256k1SecretKeyToPublicKeyResponse())
-  ;
-  $async.Future<Secp256k1SignResponse> secp256k1Sign($pb.ClientContext? ctx, Secp256k1SignRequest request) =>
-    _client.invoke<Secp256k1SignResponse>(ctx, 'CryptoService', 'Secp256k1Sign', request, Secp256k1SignResponse())
-  ;
-  $async.Future<Secp256k1VerifyResponse> secp256k1Verify($pb.ClientContext? ctx, Secp256k1VerifyRequest request) =>
-    _client.invoke<Secp256k1VerifyResponse>(ctx, 'CryptoService', 'Secp256k1Verify', request, Secp256k1VerifyResponse())
-  ;
 }
 
 
