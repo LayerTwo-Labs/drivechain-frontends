@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -9,6 +10,7 @@ import 'package:launcher/widgets/wallet_button.dart';
 import 'package:launcher/widgets/welcome_modal.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
@@ -126,6 +128,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   }
 
   Future<bool> onShutdown(BuildContext context) async {
+    final router = GetIt.I.get<AppRouter>();
+    unawaited(router.push(const sailroutes.ShuttingDownRoute()));
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     final proccessProvider = GetIt.I.get<ProcessProvider>();
 

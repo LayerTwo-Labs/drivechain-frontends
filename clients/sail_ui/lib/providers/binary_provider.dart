@@ -73,15 +73,12 @@ class BinaryProvider extends ChangeNotifier {
   bool get thunderStopping => thunderRPC.stoppingBinary;
   bool get bitnamesStopping => bitnamesRPC.stoppingBinary;
 
-  // Add a flag to track if binaries were explicitly launched
-  final Map<String, bool> _explicitlyLaunched = {};
-
   // Only show errors for explicitly launched binaries
-  String? get mainchainError => _explicitlyLaunched[ParentChain().name] == true ? mainchainRPC.connectionError : null;
-  String? get enforcerError => _explicitlyLaunched[Enforcer().name] == true ? enforcerRPC.connectionError : null;
-  String? get bitwindowError => _explicitlyLaunched[BitWindow().name] == true ? bitwindowRPC.connectionError : null;
-  String? get thunderError => _explicitlyLaunched[Thunder().name] == true ? thunderRPC.connectionError : null;
-  String? get bitnamesError => _explicitlyLaunched[Bitnames().name] == true ? bitnamesRPC.connectionError : null;
+  String? get mainchainError => mainchainRPC.connectionError;
+  String? get enforcerError => enforcerRPC.connectionError;
+  String? get bitwindowError => bitwindowRPC.connectionError;
+  String? get thunderError => thunderRPC.connectionError;
+  String? get bitnamesError => bitnamesRPC.connectionError;
 
   bool get inIBD => mainchainRPC.inIBD;
 
@@ -230,12 +227,6 @@ class BinaryProvider extends ChangeNotifier {
       default:
         log.i('is $binary');
     }
-    Future.delayed(const Duration(seconds: 3), () {
-      // give it a bit of time to clean fucked up error messages
-      _explicitlyLaunched[binary.name] = true;
-      notifyListeners();
-    });
-
     // Wait for connection or timeout
     await Future.any([
       () async {
@@ -377,7 +368,6 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> stop(Binary binary) async {
-    _explicitlyLaunched[binary.name] = false;
     switch (binary) {
       case ParentChain():
         await mainchainRPC.stop();

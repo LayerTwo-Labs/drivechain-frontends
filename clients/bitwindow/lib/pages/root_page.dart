@@ -6,6 +6,7 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
+import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -115,6 +116,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   }
 
   Future<bool> onShutdown(BuildContext context) async {
+    final router = GetIt.I.get<AppRouter>();
+    unawaited(router.push(const sailroutes.ShuttingDownRoute()));
     final bitwindow = GetIt.I.get<BitwindowRPC>();
     final processProvider = GetIt.I.get<ProcessProvider>();
 
