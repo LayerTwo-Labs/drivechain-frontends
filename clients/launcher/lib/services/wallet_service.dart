@@ -30,12 +30,12 @@ class WalletService extends ChangeNotifier {
 
   Future<Map<String, dynamic>> generateWallet({String? customMnemonic, String? passphrase}) async {
     try {
-      final Mnemonic mnemonicObj = customMnemonic != null 
-        ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
-        : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
+      final Mnemonic mnemonicObj = customMnemonic != null
+          ? Mnemonic.fromSentence(customMnemonic, Language.english, passphrase: passphrase ?? '')
+          : Mnemonic.generate(Language.english, entropyLength: 128, passphrase: passphrase ?? '');
 
       final seedHex = hex.encode(mnemonicObj.seed);
-      
+
       // Create chain from seed
       final chain = Chain.seed(seedHex);
       final masterKey = chain.forPath('m') as ExtendedPrivateKey;
@@ -63,16 +63,16 @@ class WalletService extends ChangeNotifier {
     try {
       // Create mnemonic from entropy
       final mnemonic = Mnemonic(entropy, Language.english);
-      
+
       // Generate seed using PBKDF2-HMAC-SHA512
       final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
       final params = Pbkdf2Parameters(utf8.encode('Bitcoin seed'), 2048, 64);
       pbkdf2.init(params);
-      
+
       // Use mnemonic sentence as the input key material
       final seedBytes = pbkdf2.process(utf8.encode(mnemonic.sentence + (passphrase ?? '')));
       final seedHex = hex.encode(seedBytes);
-      
+
       // Create master key from seed
       final chain = Chain.seed(seedHex);
       final masterKey = chain.forPath('m') as ExtendedPrivateKey;
@@ -316,7 +316,7 @@ class WalletService extends ChangeNotifier {
 
       // Check for downloaded L1 chain first
       final l1Chain = binaries.firstWhere((b) => b.chainLayer == 1);
-      
+
       final appDir = await Environment.appDir();
       final assetsDir = Directory(path.join(appDir.path, 'assets'));
       final binaryPath = path.join(assetsDir.path, l1Chain.binary);
@@ -327,11 +327,11 @@ class WalletService extends ChangeNotifier {
 
       // For each L2 chain in binaries
       final l2Chains = binaryProvider.getL2Chains();
-      
+
       for (final chain in l2Chains) {
         if (chain is Sidechain) {
           final binaryPath = path.join(assetsDir.path, chain.binary);
-          
+
           if (File(binaryPath).existsSync()) {
             try {
               await deriveSidechainStarter(chain.slot);
