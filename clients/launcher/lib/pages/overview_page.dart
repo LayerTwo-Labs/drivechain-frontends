@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
@@ -32,11 +31,6 @@ class _OverviewPageState extends State<OverviewPage> {
   @override
   void initState() {
     super.initState();
-
-    FlutterWindowClose.setWindowShouldCloseHandler(() async {
-      return await onShutdown(context);
-    });
-
     // Initialize starter state
     for (final binary in GetIt.I.get<BinaryProvider>().binaries) {
       if (binary.chainLayer == 2) {
@@ -505,24 +499,6 @@ class _OverviewPageState extends State<OverviewPage> {
         SailText.secondary13(status.message ?? ''),
       ],
     );
-  }
-
-  Future<bool> onShutdown(BuildContext context) async {
-    final futures = <Future>[];
-    // Try to stop all binaries regardless of state
-    for (final binary in _binaryProvider.binaries) {
-      futures.add(_binaryProvider.stop(binary));
-    }
-
-    // If no processes are running, return immediately
-    if (futures.isEmpty) {
-      return true;
-    }
-
-    // Wait for all stop operations to complete
-    await Future.wait(futures);
-
-    return true;
   }
 
   @override
