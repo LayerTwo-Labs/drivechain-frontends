@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -43,7 +43,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   ProcessProvider get _proccessProvider => GetIt.I.get<ProcessProvider>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
@@ -55,11 +55,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _notificationProvider.addListener(rebuildNotifications);
-    FlutterWindowClose.setWindowShouldCloseHandler(() async {
-      return await displayShutdownModal(context);
-    });
   }
 
   void rebuildNotifications() {
@@ -213,5 +211,21 @@ class _HomePageState extends State<HomePage> {
 
     await processesExited.future;
     return true;
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    final shutdown = await displayShutdownModal(context);
+    if (shutdown) {
+      return AppExitResponse.exit;
+    }
+
+    return AppExitResponse.cancel;
   }
 }

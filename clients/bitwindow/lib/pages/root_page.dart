@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/routing/router.dart';
@@ -12,8 +13,19 @@ import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 
 @RoutePage()
-class RootPage extends StatelessWidget {
+class RootPage extends StatefulWidget {
   const RootPage({super.key});
+
+  @override
+  State<RootPage> createState() => _RootPageState();
+}
+
+class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,6 +100,28 @@ class RootPage extends StatelessWidget {
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    await onShutdown(context);
+    return AppExitResponse.exit;
+  }
+
+  Future<bool> onShutdown(BuildContext context) async {
+    final bitwindow = GetIt.I.get<BitwindowRPC>();
+    final processProvider = GetIt.I.get<ProcessProvider>();
+
+    await bitwindow.stop();
+    await processProvider.shutdown();
+
+    return true;
   }
 }
 
