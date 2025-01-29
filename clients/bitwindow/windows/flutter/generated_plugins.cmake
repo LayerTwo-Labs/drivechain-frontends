@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  flutter_platform_alert
   screen_retriever_windows
   url_launcher_windows
   window_manager

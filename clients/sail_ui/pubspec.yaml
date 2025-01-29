@@ -17,7 +17,6 @@ dependencies:
     sdk: flutter
   flutter_custom_tabs: ^2.1.0
   flutter_svg: ^2.0.17
-  flutter_platform_alert: ^0.6.1
   dio: ^5.7.0
   fixnum: ^1.1.0
   path: ^1.8.3
