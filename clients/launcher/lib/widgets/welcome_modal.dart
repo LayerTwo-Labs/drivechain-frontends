@@ -78,7 +78,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
   void _onPassphraseChanged() {
     if (_currentScreen != WelcomeScreen.advanced) return;
     if (_mnemonicController.text.isEmpty) return;
-    
+
     // For hex mode, use the current entropy directly
     if (_isHexMode) {
       final entropyHex = _mnemonicController.text.trim();
@@ -98,9 +98,9 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   void _onEntropyChanged() {
     if (_currentScreen != WelcomeScreen.advanced) return;
-    
+
     final input = _mnemonicController.text.trim();
-    
+
     if (input.isEmpty) {
       _clearWalletData();
       return;
@@ -168,21 +168,21 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   bool _isValidEntropy(String entropyHex) {
     if (entropyHex.isEmpty) return false;
-    
+
     try {
       // First check if the string contains only valid hex characters
       if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(entropyHex)) {
         return false;
       }
-      
+
       // Check if input is too long
       if (entropyHex.length > 64) {
         return false;
       }
-      
+
       // Pad with zeros to nearest 32 chars if needed
       final paddedHex = entropyHex.padRight(((entropyHex.length + 31) ~/ 32) * 32, '0');
-      
+
       // Try decoding it - no need to store the result
       hex.decode(paddedHex);
       return true;
@@ -377,20 +377,20 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     final words = _currentWalletData['mnemonic'].split(' ');
     final binaryString = _currentWalletData['bip39_binary'] ?? '';
     final checksumBinary = _currentWalletData['bip39_checksum'] ?? '';
-    
+
     // Calculate total length for verification
     final entropyBits = binaryString.length;
     final checksumBits = entropyBits ~/ 32; // BIP39 spec: checksum length = entropy length / 32
     final totalBits = entropyBits + checksumBits;
     final expectedWords = totalBits ~/ 11; // Each word represents 11 bits
-    
+
     if (words.length != expectedWords) {
       return const SizedBox.shrink(); // Invalid state
     }
 
     final fullBinary = binaryString + checksumBinary;
     final binaryStrings = <String>[];
-    
+
     // Split into 11-bit chunks as per BIP39
     for (int i = 0; i < fullBinary.length; i += 11) {
       final end = i + 11 > fullBinary.length ? fullBinary.length : i + 11;
@@ -407,7 +407,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: SailText.primary10(
-              'Entropy (${entropyBits} bits) + Checksum (${checksumBits} bits) = ${totalBits} bits ÷ 11 = ${expectedWords} words',
+              'Entropy ($entropyBits bits) + Checksum ($checksumBits bits) = $totalBits bits ÷ 11 = $expectedWords words',
               color: theme.colors.textSecondary,
             ),
           ),
@@ -426,38 +426,37 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                           children: [
                             SailText.primary10(words[row * 6 + col], bold: true),
                             if (row * 6 + col < binaryStrings.length)
-                              row * 6 + col == words.length - 1 
-                                ? RichText(
-                                    text: TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: binaryStrings[row * 6 + col].substring(0, 7),
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: theme.colors.textSecondary,
-                                            fontFamily: 'IBM Plex Mono',
+                              row * 6 + col == words.length - 1
+                                  ? RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: binaryStrings[row * 6 + col].substring(0, 7),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: theme.colors.textSecondary,
+                                              fontFamily: 'IBM Plex Mono',
+                                            ),
                                           ),
-                                        ),
-                                        TextSpan(
-                                          text: binaryStrings[row * 6 + col].substring(7),
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: theme.colors.success,
-                                            fontFamily: 'IBM Plex Mono',
+                                          TextSpan(
+                                            text: binaryStrings[row * 6 + col].substring(7),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: theme.colors.success,
+                                              fontFamily: 'IBM Plex Mono',
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
+                                    )
+                                  : SailText.primary10(
+                                      binaryStrings[row * 6 + col],
+                                      color: theme.colors.textSecondary,
                                     ),
-                                  )
-                                : SailText.primary10(
-                                    binaryStrings[row * 6 + col],
-                                    color: theme.colors.textSecondary,
-                                  ),
                           ],
                         ),
                       ),
-                    if (col < 5 && row * 6 + col < words.length - 1) 
-                      const SizedBox(width: 2),
+                    if (col < 5 && row * 6 + col < words.length - 1) const SizedBox(width: 2),
                   ],
                 ],
               ),
@@ -560,7 +559,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
   Widget _buildAdvancedScreen() {
     final theme = SailTheme.of(context);
-    
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 900, maxHeight: 950),
       child: SingleChildScrollView(
@@ -596,18 +595,19 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                         const Spacer(),
                         if (_isHexMode)
                           SailText.secondary12(
-                            _mnemonicController.text.isEmpty 
-                              ? 'Enter up to 64 hex characters (0-9 and A-F)'
-                              : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text)
-                                  ? 'Invalid hex characters (only 0-9 and A-F allowed)'
-                                  : (_mnemonicController.text.length > 64
-                                      ? 'Too many characters (maximum 64)'
-                                      : 'Valid hex input')),
-                            color: _mnemonicController.text.isEmpty 
-                              ? theme.colors.textSecondary 
-                              : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text) || _mnemonicController.text.length > 64
-                                  ? theme.colors.error
-                                  : theme.colors.success),
+                            _mnemonicController.text.isEmpty
+                                ? 'Enter up to 64 hex characters (0-9 and A-F)'
+                                : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text)
+                                    ? 'Invalid hex characters (only 0-9 and A-F allowed)'
+                                    : (_mnemonicController.text.length > 64
+                                        ? 'Too many characters (maximum 64)'
+                                        : 'Valid hex input')),
+                            color: _mnemonicController.text.isEmpty
+                                ? theme.colors.textSecondary
+                                : (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(_mnemonicController.text) ||
+                                        _mnemonicController.text.length > 64
+                                    ? theme.colors.error
+                                    : theme.colors.success),
                           ),
                       ],
                     ),
@@ -625,12 +625,10 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
               ),
 
               // Mnemonic Display
-              if (_currentWalletData.containsKey('mnemonic'))
-                _buildMnemonicDisplay(),
+              if (_currentWalletData.containsKey('mnemonic')) _buildMnemonicDisplay(),
 
               // Combined Info Panel
-              if (_currentWalletData.containsKey('mnemonic'))
-                _buildInfoPanel(),
+              if (_currentWalletData.containsKey('mnemonic')) _buildInfoPanel(),
 
               // Action Buttons
               SailRow(
@@ -753,7 +751,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       // Pad with zeros to nearest 32 chars if needed
       final paddedHex = entropyHex.trim().padRight(((entropyHex.length + 31) ~/ 32) * 32, '0');
       final entropy = hex.decode(paddedHex);
-      
+
       if (entropy.isEmpty) {
         _clearWalletData();
         return;
@@ -763,7 +761,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         entropy,
         passphrase: _currentScreen == WelcomeScreen.restore ? _passphraseController.text : null,
       );
-      
+
       if (wallet.containsKey('error')) {
         _clearWalletData();
         return;
@@ -773,7 +771,6 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         _currentWalletData = Map<String, dynamic>.from(wallet);
         _isValidInput = true;
       });
-      
     } catch (e) {
       _clearWalletData();
     }
@@ -785,7 +782,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     try {
       final entropyHex = _mnemonicController.text.trim();
       List<int> entropy;
-      
+
       if (_isHexMode) {
         entropy = hex.decode(entropyHex);
         if (entropy.length < 16 || entropy.length > 32 || entropy.length % 4 != 0) {
@@ -800,7 +797,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
       final wallet = await _walletService.generateWalletFromEntropy(
         entropy,
-        passphrase: null,  // No passphrase in advanced mode
+        passphrase: null, // No passphrase in advanced mode
       );
 
       if (wallet.containsKey('error')) {
