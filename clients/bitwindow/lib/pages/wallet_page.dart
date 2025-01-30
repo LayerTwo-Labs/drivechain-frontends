@@ -650,7 +650,7 @@ class TransactionTable extends StatefulWidget {
 }
 
 class _TransactionTableState extends State<TransactionTable> {
-  String sortColumn = 'height';
+  String sortColumn = 'date';
   bool sortAscending = true;
   List<WalletTransaction> entries = [];
 
@@ -751,6 +751,10 @@ class _TransactionTableState extends State<TransactionTable> {
                   ],
                   rowBuilder: (context, row, selected) {
                     final entry = widget.entries[row];
+                    final amount = entry.receivedSatoshi != 0
+                        ? formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt()))
+                        : formatBitcoin(satoshiToBTC(entry.sentSatoshi.toInt()));
+
                     return [
                       SailTableCell(
                         value: entry.confirmationTime.height == 0
@@ -767,7 +771,7 @@ class _TransactionTableState extends State<TransactionTable> {
                         monospace: true,
                       ),
                       SailTableCell(
-                        value: formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt())),
+                        value: amount,
                         monospace: true,
                       ),
                     ];
@@ -801,10 +805,9 @@ class AddressMenuViewModel extends BaseViewModel {
       .where(
         (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
       )
-      // if empty, mock some data
       .toList();
 
-  String sortColumn = 'height';
+  String sortColumn = 'date';
   bool sortAscending = true;
 
   final TextEditingController searchController = TextEditingController();
