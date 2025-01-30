@@ -201,7 +201,9 @@ abstract class RPCConnection extends ChangeNotifier {
           return res != null;
         }).then(
           (_) {
-            throw processes.exited(pid)?.message ?? "'$binary' exited";
+            initializingBinary = false;
+            connectionError = processes.exited(pid)?.message ?? "'$binary' exited";
+            throw connectionError!;
           },
         ),
 
@@ -216,7 +218,7 @@ abstract class RPCConnection extends ChangeNotifier {
       log.e("init binaries: couldn't connect to $binary", error: err);
 
       // We've quit! Assuming there's error logs, somewhere.
-      if (!processes.running(pid)) {
+      if (!processes.running(pid) && connectionError == null) {
         final logs = await processes.stderr(pid).toList();
         log.e('$binary exited before we could connect, dumping logs');
         for (var line in logs) {
@@ -226,12 +228,11 @@ abstract class RPCConnection extends ChangeNotifier {
         var lastLine = _stripFromString(logs.last, ': ');
         connectionError = lastLine;
       } else {
-        connectionError = err.toString();
+        connectionError ??= err.toString();
       }
     }
 
     initializingBinary = false;
-
     notifyListeners();
   }
 
