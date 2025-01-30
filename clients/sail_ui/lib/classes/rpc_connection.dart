@@ -49,6 +49,7 @@ abstract class RPCConnection extends ChangeNotifier {
   bool initializingBinary = false;
   bool stoppingBinary = false;
   bool _testing = false;
+  bool _shouldNotify = false;
 
   Future<(bool, String?)> testConnection() async {
     try {
@@ -56,16 +57,21 @@ abstract class RPCConnection extends ChangeNotifier {
         return (connected, connectionError);
       }
       _testing = true;
+      _shouldNotify = false;
+
       final newBlockCount = await ping();
-      connectionError = null;
+      if (!connected || connectionError != null) {
+        // We were previously disconnected, or had an error. Wipe that,
+        // set the correct new state, and notify listeners
+        _shouldNotify = true;
+      }
       connected = true;
+      connectionError = null;
 
       if (blockCount != newBlockCount) {
+        // we got a new block count! set it and notify listeners
         blockCount = newBlockCount;
-        notifyListeners();
-      } else {
-        // nothing has changed, don't notify any listeners!
-        return (connected, connectionError);
+        _shouldNotify = true;
       }
     } catch (error) {
       String? newError = error.toString();
@@ -86,7 +92,6 @@ abstract class RPCConnection extends ChangeNotifier {
       } else if (error is HttpException) {
         // Error looks like this, lets parse the interesting bits:
         // SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
-
         newError = error.message;
         RegExp regExp = RegExp(r'\(([^)]+)\)');
         final match = regExp.firstMatch(error.message);
@@ -98,21 +103,32 @@ abstract class RPCConnection extends ChangeNotifier {
       if (newError.contains('Connection refused') ||
           newError.contains('SocketException') ||
           newError.contains('computer refused the network') ||
-          newError.contains('could not connect at')) {
-        // don't show a generic Connection refused as the first error
+          newError.contains('could not connect at') ||
+          newError.contains('forcefully terminated') ||
+          stoppingBinary) {
+        // don't show a generic Connection refused as the first error or when
+        // we're in the middle of stopping
         newError = connectionError;
       }
 
-      connected = false;
-      if (connectionError != newError) {
-        // we have a new error on our hands!
-        log.e('could not test connection: ${newError!}!');
-        connectionError = newError;
+      // Notify if we were connected or have a new error
+      if (connected || connectionError != newError) {
+        // we were previously connected, and should notify listeners
+        // or we have a new error on our hands that must be shown
         initializingBinary = false;
-        notifyListeners();
+        _shouldNotify = true;
+        // we have a new error on our hands!
+        log.e('could not test connection: ${newError ?? ''}!');
       }
+      connected = false;
+      connectionError = newError;
     } finally {
       _testing = false;
+      if (_shouldNotify) {
+        // Only notify listeners if something actually changed
+        notifyListeners();
+      }
+      _shouldNotify = false;
     }
 
     return (connected, connectionError);
