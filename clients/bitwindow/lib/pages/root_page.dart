@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
@@ -127,6 +128,16 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                   },
                 ),
                 PlatformMenuItem(
+                  label: 'See Wallet Transactions',
+                  onSelected: () {
+                    final tabsRouter = _routerKey.currentState?.controller;
+                    tabsRouter?.setActiveIndex(1);
+                    if (WalletPage.tabKey.currentState != null) {
+                      WalletPage.tabKey.currentState!.setIndex(2);
+                    }
+                  },
+                ),
+                PlatformMenuItem(
                   label: 'Open URI Link',
                   onSelected: null,
                 ),
@@ -163,7 +174,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
               members: [
                 PlatformMenuItem(
                   label: 'Broadcast CoinNews',
-                  onSelected: null,
+                  onSelected: () => displayBroadcastNewsDialog(context),
                 ),
               ],
             ),
@@ -179,7 +190,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                 ),
                 PlatformMenuItem(
                   label: 'Sidechains',
-                  onSelected: null,
+                  onSelected: () {
+                    final tabsRouter = _routerKey.currentState?.controller;
+                    tabsRouter?.setActiveIndex(2);
+                  },
                 ),
               ],
             ),
