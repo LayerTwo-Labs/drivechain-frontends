@@ -7,8 +7,9 @@ import (
 	"runtime"
 )
 
-func GetDataDir(appName string) (string, error) {
+func GetDataDir() (string, error) {
 	var dir string
+	const appName = "com.layertwolabs.bitwindow"
 
 	switch runtime.GOOS {
 	case "linux":

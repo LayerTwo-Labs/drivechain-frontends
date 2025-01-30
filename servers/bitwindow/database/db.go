@@ -13,7 +13,7 @@ import (
 
 // New creates a new SQLite database and runs all migrations
 func New(ctx context.Context) (*sql.DB, error) {
-	datadir, err := dir.GetDataDir("bitwindow")
+	datadir, err := dir.GetDataDir()
 	if err != nil {
 		return nil, fmt.Errorf("could not get data directory: %v", err)
 	}
