@@ -3,6 +3,7 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pbgrpc.dart';
@@ -562,34 +563,34 @@ class CoinNewsView extends StatelessWidget {
       },
     );
   }
+}
 
-  Future<void> displayBroadcastNewsDialog(BuildContext context) async {
-    await widgetDialog(
-      context: context,
-      title: 'Broadcast News',
-      subtitle: 'Broadcast News to the whole world, in the list you prefer.',
-      child: const BroadcastNewsView(),
-    );
-  }
+Future<void> displayBroadcastNewsDialog(BuildContext context) async {
+  await widgetDialog(
+    context: context,
+    title: 'Broadcast News',
+    subtitle: 'Broadcast News to the whole world, in the list you prefer.',
+    child: const BroadcastNewsView(),
+  );
+}
 
-  Future<void> displayCreateTopicDialog(BuildContext context) async {
-    await widgetDialog(
-      context: context,
-      title: 'Create Topic',
-      subtitle: 'Create a new topic, that you and others can subscribe to, and post news for.',
-      child: const CreateTopicView(),
-    );
-  }
+Future<void> displayCreateTopicDialog(BuildContext context) async {
+  await widgetDialog(
+    context: context,
+    title: 'Create Topic',
+    subtitle: 'Create a new topic, that you and others can subscribe to, and post news for.',
+    child: const CreateTopicView(),
+  );
+}
 
-  Future<void> displayGraffittiExplorerDialog(BuildContext context) async {
-    await widgetDialog(
-      context: context,
-      title: 'Graffitti Explorer',
-      subtitle: 'List all previous OP_RETURN messages found in the blockchain.',
-      maxWidth: MediaQuery.of(context).size.width - 100,
-      child: const GraffittiExplorerView(),
-    );
-  }
+Future<void> displayGraffittiExplorerDialog(BuildContext context) async {
+  await widgetDialog(
+    context: context,
+    title: 'Graffitti Explorer',
+    subtitle: 'List all previous OP_RETURN messages found in the blockchain.',
+    maxWidth: MediaQuery.of(context).size.width - 100,
+    child: const GraffittiExplorerView(),
+  );
 }
 
 class BroadcastNewsView extends StatelessWidget {
@@ -621,16 +622,19 @@ class BroadcastNewsView extends StatelessWidget {
               value: viewModel.topic,
             ),
             SailTextField(
-              label: 'Headline (max 72 characters)',
+              label: 'Headline (max 64 characters)',
               controller: viewModel.headlineController,
               hintText: 'Enter a headline',
               size: TextFieldSize.small,
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(64),
+              ],
             ),
             QtButton(
               label: 'Broadcast',
               onPressed: () => viewModel.broadcastNews(context),
               size: ButtonSize.small,
-              disabled: viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 72,
+              disabled: viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 64,
             ),
           ],
         );
@@ -890,10 +894,10 @@ class CoinNewsTable extends StatelessWidget {
         ];
       },
       rowCount: entries.length,
-      columnWidths: const [150, 200, 150],
+      columnWidths: const [50, 100, 250],
       drawGrid: true,
       onSort: (columnIndex, ascending) {
-        onSort(['fe', 'time', 'headline'][columnIndex]);
+        onSort(['fee', 'time', 'headline'][columnIndex]);
       },
     );
   }
@@ -1034,7 +1038,7 @@ class GraffittiTable extends StatelessWidget {
         ];
       },
       rowCount: entries.length,
-      columnWidths: const [100, 200, 250, 150, 100],
+      columnWidths: const [50, 200, 250, 150, 100],
       onSort: (columnIndex, ascending) {
         onSort(['fee', 'message', 'time', 'height'][columnIndex]);
       },

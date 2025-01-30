@@ -99,7 +99,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                 ];
               },
               rowCount: 255, // Show all possible slots
-              columnWidths: const [21, 150, 100],
+              columnWidths: const [37, 130, 100],
               backgroundColor: context.sailTheme.colors.backgroundSecondary,
               sortAscending: viewModel.sortAscending,
               sortColumnIndex: ['slot', 'name', 'balance'].indexOf(viewModel.sortColumn),

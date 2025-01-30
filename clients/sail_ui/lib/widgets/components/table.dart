@@ -10,7 +10,7 @@ class SailTable extends StatefulWidget {
     required this.columnWidths,
     this.columnMinWidths,
     this.columnMaxWidths,
-    this.defaultMinColumnWidth = 80,
+    this.defaultMinColumnWidth = 50,
     this.backgroundColor,
     this.altBackgroundColor,
     this.headerDecoration,
@@ -115,18 +115,19 @@ class _SailTableState extends State<SailTable> {
   void _scaleColumnsToFit(double parentWidth, List<double> columnWidths, double totalWidth) {
     final scaleFactor = parentWidth / totalWidth;
     _widths.clear();
-    for (var width in columnWidths) {
-      _widths.add(width * scaleFactor);
+    for (var i = 0; i < columnWidths.length; i++) {
+      final scaledWidth = columnWidths[i] * scaleFactor;
+      // Never go smaller than the original width
+      _widths.add(scaledWidth < columnWidths[i] ? columnWidths[i] : scaledWidth);
     }
   }
 
   void _expandColumnsToFill(double parentWidth, List<double> columnWidths) {
-    final numColumns = columnWidths.length;
-    final extraWidth = parentWidth - columnWidths.fold(0.0, (sum, width) => sum + width);
-    final widthPerColumn = extraWidth / numColumns;
+    final totalWidth = columnWidths.fold(0.0, (sum, width) => sum + width);
+    final scaleFactor = parentWidth / totalWidth; // This will be > 1.0
     _widths.clear();
     for (var width in columnWidths) {
-      _widths.add(width + widthPerColumn);
+      _widths.add(width * scaleFactor); // Scale proportionally to original size
     }
   }
 
