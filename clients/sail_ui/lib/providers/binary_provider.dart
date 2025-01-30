@@ -33,6 +33,7 @@ class BinaryProvider extends ChangeNotifier {
   final Directory appDir;
   late List<Binary> binaries;
   StreamSubscription<FileSystemEvent>? _dirWatcher;
+  Timer? _releaseCheckTimer;
 
   final mainchainRPC = GetIt.I.get<MainchainRPC>();
   final enforcerRPC = GetIt.I.get<EnforcerRPC>();
@@ -95,6 +96,12 @@ class BinaryProvider extends ChangeNotifier {
 
     _setupDirectoryWatcher();
     _checkReleaseDates();
+
+    // Set up periodic release date checks
+    _releaseCheckTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _checkReleaseDates(),
+    );
   }
 
   void _setupDirectoryWatcher() {
@@ -133,6 +140,8 @@ class BinaryProvider extends ChangeNotifier {
         }
       } catch (e) {
         log.e('Error checking release date: $e');
+      } finally {
+        notifyListeners();
       }
     }
   }
@@ -385,6 +394,7 @@ class BinaryProvider extends ChangeNotifier {
   @override
   void dispose() {
     _dirWatcher?.cancel();
+    _releaseCheckTimer?.cancel();
     mainchainRPC.removeListener(notifyListeners);
     enforcerRPC.removeListener(notifyListeners);
     bitwindowRPC.removeListener(notifyListeners);

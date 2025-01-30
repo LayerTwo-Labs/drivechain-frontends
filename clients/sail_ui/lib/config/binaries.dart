@@ -273,6 +273,15 @@ abstract class Binary {
       await for (final entity in tempDir.list()) {
         final baseName = path.basename(entity.path);
         final targetPath = path.join(extractDir.path, baseName);
+
+        if (entity is Directory && baseName == path.basenameWithoutExtension(zipPath)) {
+          await for (final innerEntity in entity.list()) {
+            await safeMove(innerEntity, path.join(extractDir.path, path.basename(innerEntity.path)));
+          }
+          await entity.delete(recursive: true);
+          continue;
+        }
+
         await safeMove(entity, targetPath);
       }
 

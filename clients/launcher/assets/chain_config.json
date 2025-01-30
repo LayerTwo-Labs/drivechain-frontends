@@ -47,9 +47,9 @@
         }
       },
       "binary": {
-        "linux": "bip300301_enforcer",
-        "darwin": "bip300301_enforcer",
-        "win32": "bip300301_enforcer.exe"
+        "linux": "bip300301-enforcer",
+        "darwin": "bip300301-enforcer",
+        "win32": "bip300301-enforcer.exe"
       },
       "network": {
         "port": 50051
