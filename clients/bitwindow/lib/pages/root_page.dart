@@ -15,6 +15,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
+import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 
 @RoutePage()
 class RootPage extends StatefulWidget {
@@ -212,7 +213,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                 ),
                 PlatformMenuItem(
                   label: 'Hash Calculator',
-                  onSelected: null,
+                  onSelected: () {
+                    showDialog(
+                      context: _routerKey.currentContext!,
+                      builder: (context) => const HashCalculatorModal(),
+                    );
+                  },
                 ),
                 PlatformMenuItem(
                   label: 'Merkle Tree',
