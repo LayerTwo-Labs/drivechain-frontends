@@ -15,46 +15,42 @@ import 'package:sail_ui/pages/log_page.dart' as _i1;
 import 'package:sail_ui/pages/shutdown_page.dart' as _i2;
 
 /// generated route for
-/// [_i1.SailLogPage]
-class SailLogRoute extends _i3.PageRouteInfo<SailLogRouteArgs> {
-  SailLogRoute({
-    _i4.Key? key,
+/// [_i1.LogPage]
+class LogRoute extends _i3.PageRouteInfo<LogRouteArgs> {
+  LogRoute({
     required String name,
     required String logPath,
+    _i4.Key? key,
     List<_i3.PageRouteInfo>? children,
   }) : super(
-          SailLogRoute.name,
-          args: SailLogRouteArgs(key: key, name: name, logPath: logPath),
-          initialChildren: children,
-        );
+         LogRoute.name,
+         args: LogRouteArgs(name: name, logPath: logPath, key: key),
+         initialChildren: children,
+       );
 
-  static const String name = 'SailLogRoute';
+  static const String name = 'LogRoute';
 
   static _i3.PageInfo page = _i3.PageInfo(
     name,
     builder: (data) {
-      final args = data.argsAs<SailLogRouteArgs>();
-      return _i1.SailLogPage(
-        key: args.key,
-        name: args.name,
-        logPath: args.logPath,
-      );
+      final args = data.argsAs<LogRouteArgs>();
+      return _i1.LogPage(name: args.name, logPath: args.logPath, key: args.key);
     },
   );
 }
 
-class SailLogRouteArgs {
-  const SailLogRouteArgs({this.key, required this.name, required this.logPath});
-
-  final _i4.Key? key;
+class LogRouteArgs {
+  const LogRouteArgs({required this.name, required this.logPath, this.key});
 
   final String name;
 
   final String logPath;
 
+  final _i4.Key? key;
+
   @override
   String toString() {
-    return 'SailLogRouteArgs{key: $key, name: $name, logPath: $logPath}';
+    return 'LogRouteArgs{name: $name, logPath: $logPath, key: $key}';
   }
 }
 
@@ -62,7 +58,7 @@ class SailLogRouteArgs {
 /// [_i2.ShuttingDownPage]
 class ShuttingDownRoute extends _i3.PageRouteInfo<void> {
   const ShuttingDownRoute({List<_i3.PageRouteInfo>? children})
-      : super(ShuttingDownRoute.name, initialChildren: children);
+    : super(ShuttingDownRoute.name, initialChildren: children);
 
   static const String name = 'ShuttingDownRoute';
 

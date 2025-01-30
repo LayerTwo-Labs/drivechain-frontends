@@ -401,6 +401,14 @@ class _StatusBarState extends State<StatusBar> {
         rpc: bitwindow,
         name: 'BitWindow',
       ),
+      navigateToLogs: (name, logPath) {
+        GetIt.I.get<AppRouter>().push(
+              LogRoute(
+                name: name,
+                logPath: logPath,
+              ),
+            );
+      },
       mainchainInfo: true,
       endWidgets: [
         Tooltip(

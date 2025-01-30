@@ -10,7 +10,7 @@ class AppRouter extends RootStackRouter {
   List<AutoRoute> get routes => [
         // HomeScreen is generated as HomeRoute because
         // of the replaceInRouteName property
-        AutoRoute(page: SailLogRoute.page),
+        AutoRoute(page: LogRoute.page),
         AutoRoute(page: ShuttingDownRoute.page),
       ];
 

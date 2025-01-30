@@ -1,5 +1,10 @@
+fix:
+    dart fix --apply
+
 format:
-   find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
+    find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
+
+lint: format fix
 
 gen-enforcer:
     buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git

@@ -6,6 +6,7 @@ import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
+import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 class StatusBar extends StatefulWidget {
@@ -60,6 +61,14 @@ class _StatusBarState extends State<StatusBar> {
         rpc: sidechain.rpc,
         name: sidechain.rpc.chain.name,
       ),
+      navigateToLogs: (name, logPath) {
+        GetIt.I.get<AppRouter>().push(
+              LogRoute(
+                name: name,
+                logPath: logPath,
+              ),
+            );
+      },
       endWidgets: [
         Tooltip(
           message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
