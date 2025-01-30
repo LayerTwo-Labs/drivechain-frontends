@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,8 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
+  final _routerKey = GlobalKey<AutoTabsRouterState>();
+
   @override
   void initState() {
     super.initState();
@@ -104,11 +107,24 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
               members: [
                 PlatformMenuItem(
                   label: 'Send Money',
-                  onSelected: null,
+                  onSelected: () {
+                    final tabsRouter = _routerKey.currentState?.controller;
+                    tabsRouter?.setActiveIndex(1);
+
+                    if (WalletPage.tabKey.currentState != null) {
+                      WalletPage.tabKey.currentState!.setIndex(0);
+                    }
+                  },
                 ),
                 PlatformMenuItem(
                   label: 'Request Money',
-                  onSelected: null,
+                  onSelected: () {
+                    final tabsRouter = _routerKey.currentState?.controller;
+                    tabsRouter?.setActiveIndex(1);
+                    if (WalletPage.tabKey.currentState != null) {
+                      WalletPage.tabKey.currentState!.setIndex(1);
+                    }
+                  },
                 ),
                 PlatformMenuItem(
                   label: 'Open URI Link',
@@ -221,6 +237,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
         ),
       ],
       child: AutoTabsRouter.tabBar(
+        key: _routerKey,
         animatePageTransition: false,
         routes: const [
           OverviewRoute(),

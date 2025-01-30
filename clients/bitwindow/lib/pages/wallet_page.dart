@@ -17,8 +17,11 @@ import 'package:stacked/stacked.dart';
 @RoutePage()
 class WalletPage extends StatelessWidget {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  static final GlobalKey<InlineTabBarState> tabKey = GlobalKey<InlineTabBarState>();
 
-  const WalletPage({super.key});
+  const WalletPage({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +30,9 @@ class WalletPage extends StatelessWidget {
         viewModelBuilder: () => SendPageViewModel(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
-          return const InlineTabBar(
-            tabs: [
+          return InlineTabBar(
+            key: tabKey,
+            tabs: const [
               TabItem(
                 label: 'Send',
                 icon: SailSVGAsset.iconWallet,

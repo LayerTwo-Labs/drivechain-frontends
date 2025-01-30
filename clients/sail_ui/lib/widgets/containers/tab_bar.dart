@@ -12,16 +12,24 @@ class InlineTabBar extends StatefulWidget {
   });
 
   @override
-  State<InlineTabBar> createState() => _InlineTabBarState();
+  State<InlineTabBar> createState() => InlineTabBarState();
 }
 
-class _InlineTabBarState extends State<InlineTabBar> {
+class InlineTabBarState extends State<InlineTabBar> {
   late int _selectedIndex;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+  }
+
+  void setIndex(int index) {
+    if (index >= 0 && index < widget.tabs.length) {
+      setState(() => _selectedIndex = index);
+    } else {
+      throw Exception('Index out of bounds: index=$index, tabs.length=${widget.tabs.length}');
+    }
   }
 
   @override
