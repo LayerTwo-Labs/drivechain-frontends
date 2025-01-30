@@ -13,7 +13,8 @@ part of 'router.dart';
 /// generated route for
 /// [OverviewPage]
 class OverviewRoute extends PageRouteInfo<void> {
-  const OverviewRoute({List<PageRouteInfo>? children}) : super(OverviewRoute.name, initialChildren: children);
+  const OverviewRoute({List<PageRouteInfo>? children})
+    : super(OverviewRoute.name, initialChildren: children);
 
   static const String name = 'OverviewRoute';
 
@@ -28,7 +29,8 @@ class OverviewRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [RootPage]
 class RootRoute extends PageRouteInfo<void> {
-  const RootRoute({List<PageRouteInfo>? children}) : super(RootRoute.name, initialChildren: children);
+  const RootRoute({List<PageRouteInfo>? children})
+    : super(RootRoute.name, initialChildren: children);
 
   static const String name = 'RootRoute';
 
@@ -43,7 +45,8 @@ class RootRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [SettingsPage]
 class SettingsRoute extends PageRouteInfo<void> {
-  const SettingsRoute({List<PageRouteInfo>? children}) : super(SettingsRoute.name, initialChildren: children);
+  const SettingsRoute({List<PageRouteInfo>? children})
+    : super(SettingsRoute.name, initialChildren: children);
 
   static const String name = 'SettingsRoute';
 
@@ -58,7 +61,8 @@ class SettingsRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [ToolsPage]
 class ToolsRoute extends PageRouteInfo<void> {
-  const ToolsRoute({List<PageRouteInfo>? children}) : super(ToolsRoute.name, initialChildren: children);
+  const ToolsRoute({List<PageRouteInfo>? children})
+    : super(ToolsRoute.name, initialChildren: children);
 
   static const String name = 'ToolsRoute';
 

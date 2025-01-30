@@ -5,18 +5,20 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
-class SailLogPage extends StatelessWidget {
+class LogPage extends StatelessWidget {
   final String name;
   final String logPath;
 
-  const SailLogPage({
-    super.key,
+  const LogPage({
     required this.name,
     required this.logPath,
+    super.key,
   });
 
   @override
@@ -26,7 +28,7 @@ class SailLogPage extends StatelessWidget {
       onViewModelReady: (model) => model.init(),
       builder: (context, model, child) {
         return SailPage(
-          widgetTitle: SailText.primary15('$name logs'),
+          widgetTitle: SailText.primary20('$name logs'),
           body: KeyboardListener(
             focusNode: model.focusNode,
             onKeyEvent: (KeyEvent event) {
@@ -72,6 +74,8 @@ class SailLogPage extends StatelessWidget {
 }
 
 class LogPageViewModel extends BaseViewModel {
+  final Logger log = GetIt.I.get<Logger>();
+
   final String logPath;
   final List<String> _logLines = [];
   List<String> get logLines => _logLines;
@@ -116,6 +120,11 @@ class LogPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  String _stripAnsiCodes(String text) {
+    // This regex matches ANSI escape codes
+    return text.replaceAll(RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'), '');
+  }
+
   Stream<String> watchLogFile(String logFilePath) async* {
     final file = File(logFilePath);
     if (!await file.exists()) {
@@ -124,22 +133,18 @@ class LogPageViewModel extends BaseViewModel {
     }
 
     _raf = await file.open(mode: FileMode.read);
+
+    // Read initial lines
     final initialLines = await _readLastNLines(_raf!, 100);
     for (var line in initialLines) {
       yield line;
     }
 
-    var doneInitialScroll = false;
-
-    while (true) {
+    // Watch for file changes
+    await for (final _ in file.watch(events: FileSystemEvent.modify)) {
       final newLines = await _readNewLines(_raf!);
       for (var line in newLines) {
         yield line;
-      }
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (!doneInitialScroll) {
-        _scrollToBottom(overrideBottom: true);
-        doneInitialScroll = true;
       }
     }
   }
@@ -155,8 +160,17 @@ class LogPageViewModel extends BaseViewModel {
     while (lines.length < n && start >= 0) {
       raf.setPositionSync(start);
       final buffer = raf.readSync(end - start);
-      final chunk = utf8.decode(buffer.toList()).split('\n').reversed;
-      lines.insertAll(0, chunk);
+      try {
+        final chunk = utf8
+            .decode(buffer.toList(), allowMalformed: true)
+            .split('\n')
+            .map(_stripAnsiCodes) // Strip ANSI codes from each line
+            .toList() // Convert to List before reversing
+            .reversed;
+        lines.insertAll(0, chunk);
+      } catch (e) {
+        log.e('Error decoding log file chunk: $e');
+      }
       end = start;
       start -= bufferSize;
       if (start < 0) start = 0;
@@ -172,8 +186,17 @@ class LogPageViewModel extends BaseViewModel {
 
     if (fileLength > currentPosition) {
       final buffer = await raf.read(fileLength - currentPosition);
-      final chunk = utf8.decode(buffer);
-      newLines.addAll(chunk.split('\n').where((line) => line.isNotEmpty));
+      try {
+        final chunk = utf8.decode(buffer, allowMalformed: true);
+        newLines.addAll(
+          chunk
+              .split('\n')
+              .map(_stripAnsiCodes) // Strip ANSI codes from each line
+              .where((line) => line.isNotEmpty),
+        );
+      } catch (e) {
+        log.e('Error decoding new log lines: $e');
+      }
       await raf.setPosition(fileLength);
     }
 
@@ -193,7 +216,6 @@ class LogPageViewModel extends BaseViewModel {
   @override
   void dispose() {
     _logSubscription?.cancel();
-    _raf?.close();
     scrollController.dispose();
     focusNode.dispose();
     super.dispose();

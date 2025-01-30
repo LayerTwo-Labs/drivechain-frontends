@@ -345,7 +345,7 @@ class ThemeSettingsViewModel extends BaseViewModel {
 
   void openLogRoute() {
     _router.push(
-      SailLogRoute(
+      LogRoute(
         name: 'Sidesail',
         logPath: logdir,
       ),

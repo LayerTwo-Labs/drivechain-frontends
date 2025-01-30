@@ -89,7 +89,7 @@ class AppRouter extends RootStackRouter {
           page: ZCashBillRoute.page,
         ),
         AutoRoute(
-          page: SailLogRoute.page,
+          page: LogRoute.page,
         ),
         AutoRoute(
           page: ShuttingDownRoute.page,

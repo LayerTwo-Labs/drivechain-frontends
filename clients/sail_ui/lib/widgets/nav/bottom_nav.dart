@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -13,12 +12,14 @@ class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
   final ConnectionMonitor additionalConnection;
   final bool mainchainInfo;
+  final Function(String, String) navigateToLogs;
 
   const BottomNav({
     super.key,
     required this.endWidgets,
     required this.additionalConnection,
     required this.mainchainInfo,
+    required this.navigateToLogs,
   });
 
   @override
@@ -27,6 +28,7 @@ class BottomNav extends StatelessWidget {
       viewModelBuilder: () => BottomNavViewModel(
         additionalConnection: additionalConnection,
         mainchainInfo: mainchainInfo,
+        navigateToLogs: navigateToLogs,
       ),
       fireOnViewModelReadyOnce: true,
       builder: ((context, model, child) {
@@ -141,6 +143,7 @@ class BottomNav extends StatelessWidget {
         viewModelBuilder: () => BottomNavViewModel(
           mainchainInfo: mainchainInfo,
           additionalConnection: additionalConnection,
+          navigateToLogs: navigateToLogs,
         ),
         builder: ((context, model, child) {
           return SailColumn(
@@ -243,16 +246,17 @@ class BottomNavViewModel extends BaseViewModel {
   final ConnectionMonitor additionalConnection;
 
   // Required connections
-  AppRouter get router => GetIt.I.get<AppRouter>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   late BlockInfoService infoService;
   final bool mainchainInfo;
+  final Function(String, String) navigateToLogs;
 
   BottomNavViewModel({
     required this.additionalConnection,
     required this.mainchainInfo,
+    required this.navigateToLogs,
   }) {
     infoService = BlockInfoService(connection: mainchainInfo ? mainchain : additionalConnection.rpc);
     // Add listeners for required connections
@@ -301,15 +305,6 @@ class BottomNavViewModel extends BaseViewModel {
     }
 
     return errors.isEmpty ? '' : errors.join('\n');
-  }
-
-  void navigateToLogs(String name, String logPath) {
-    router.push(
-      SailLogRoute(
-        name: name,
-        logPath: logPath,
-      ),
-    );
   }
 
   @override

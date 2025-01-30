@@ -119,7 +119,7 @@ Future<void> initDependencies(Logger log) async {
             host: '127.0.0.1',
             port: binary.port,
             binary: binary,
-            logPath: path.join(binary.datadir(), 'bitwindow.log'),
+            logPath: path.join(binary.datadir(), 'debug.log'),
           );
           GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
 
