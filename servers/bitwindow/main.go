@@ -52,8 +52,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return err
 	}
 
-	const binaryName = "bitwindowd"
-	datadir, err := dir.GetDataDir(binaryName)
+	datadir, err := dir.GetDataDir()
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get data dir")
 		return err
