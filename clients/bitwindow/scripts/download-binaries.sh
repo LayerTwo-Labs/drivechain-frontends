@@ -90,7 +90,7 @@ if ! test -f $assets_dir/$enforcer; then
     $unpack_cmd $enforcer_file
 
     # Use find to locate the enforcer binary. The naming is not always consistent..
-    enforcer_binary=$(find . -name "bip300301_enforcer*$bin_name_postfix" -print -quit)
+    enforcer_binary=$(find . -name "bip300301-enforcer*$bin_name_postfix" -print -quit)
 
     if [ -z "$enforcer_binary" ]; then
         echo "Error: Could not find the enforcer binary in the extracted files."
