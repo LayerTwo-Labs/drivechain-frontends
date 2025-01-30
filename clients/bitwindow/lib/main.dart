@@ -68,7 +68,6 @@ void main() async {
           // first, set all binaries as initializing
           mainchain.initializingBinary = true;
           GetIt.I.get<EnforcerRPC>().initializingBinary = true;
-
           GetIt.I.get<BitwindowRPC>().initializingBinary = true;
 
           if (!context.mounted) return;
@@ -78,9 +77,7 @@ void main() async {
           );
 
           if (!context.mounted) return;
-          await initEnforcer(context, log);
-
-          if (!context.mounted) return;
+          unawaited(initEnforcer(context, log));
           await initBitwindow(context, log);
           log.i(
             'server inited: ready to serve frontend',
