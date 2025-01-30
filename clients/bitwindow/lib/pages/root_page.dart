@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
@@ -30,76 +31,266 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return AutoTabsRouter.tabBar(
-      animatePageTransition: false,
-      routes: const [
-        OverviewRoute(),
-        WalletRoute(),
-        SidechainsRoute(),
-        LearnRoute(),
-      ],
-      builder: (context, child, controller) {
-        final theme = SailTheme.of(context);
+    return PlatformMenuBar(
+      menus: [
+        // First menu will be Apple menu (system provided)
 
-        return Scaffold(
-          backgroundColor: theme.colors.background,
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(80),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: theme.colors.background,
-              ),
-              child: Builder(
-                builder: (context) {
-                  final tabsRouter = AutoTabsRouter.of(context);
-                  return Row(
-                    children: [
-                      QtTab(
-                        icon: SailSVGAsset.iconHome,
-                        label: 'Overview',
-                        active: tabsRouter.activeIndex == 0,
-                        onTap: () => tabsRouter.setActiveIndex(0),
-                      ),
-                      QtTab(
-                        icon: SailSVGAsset.iconSend,
-                        label: 'Send/Receive',
-                        active: tabsRouter.activeIndex == 1,
-                        onTap: () => tabsRouter.setActiveIndex(1),
-                      ),
-                      QtTab(
-                        icon: SailSVGAsset.iconSidechains,
-                        label: 'Sidechains',
-                        active: tabsRouter.activeIndex == 2,
-                        onTap: () => tabsRouter.setActiveIndex(2),
-                      ),
-                      QtTab(
-                        icon: SailSVGAsset.iconLearn,
-                        label: 'Learn',
-                        active: tabsRouter.activeIndex == 3,
-                        onTap: () => tabsRouter.setActiveIndex(3),
-                        end: true,
-                      ),
-                      Expanded(child: Container()),
-                      const ToggleThemeButton(),
-                    ],
-                  );
-                },
+        // This will be captured as the application menu
+        PlatformMenu(
+          label: 'bitwindow',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'About bitwindow',
+                  onSelected: null,
+                ),
+              ],
+            ),
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Hide bitwindow',
+                  shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true),
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Hide Others',
+                  shortcut: const SingleActivator(LogicalKeyboardKey.keyH, meta: true, shift: true),
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Show All',
+                  onSelected: null,
+                ),
+              ],
+            ),
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Quit bitwindow',
+                  shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
+                  onSelected: () => onShutdown(context),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // Now our actual menus start
+        PlatformMenu(
+          label: 'Your Wallet',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Sending Addresses',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Receiving Addresses',
+                  onSelected: null,
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // Banking menu (first custom menu)
+        PlatformMenu(
+          label: 'Banking',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Send Money',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Request Money',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Open URI Link',
+                  onSelected: null,
+                ),
+              ],
+            ),
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Deniability',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Proof of Funds',
+                  onSelected: null,
+                ),
+              ],
+            ),
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Write a Check',
+                  onSelected: null,
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // Use Bitcoin menu
+        PlatformMenu(
+          label: 'Use Bitcoin',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Broadcast CoinNews',
+                  onSelected: null,
+                ),
+              ],
+            ),
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Sign / Verify Message',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Chain Merchants',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Sidechains',
+                  onSelected: null,
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // Crypto Tools menu
+        PlatformMenu(
+          label: 'Crypto Tools',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Block Explorer',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Hash Calculator',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Merkle Tree',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Signatures',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Base58Check Decoder',
+                  onSelected: null,
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // This Node menu
+        PlatformMenu(
+          label: 'This Node',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Debug window',
+                  onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Command-line options',
+                  onSelected: null,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+      child: AutoTabsRouter.tabBar(
+        animatePageTransition: false,
+        routes: const [
+          OverviewRoute(),
+          WalletRoute(),
+          SidechainsRoute(),
+          LearnRoute(),
+        ],
+        builder: (context, child, controller) {
+          final theme = SailTheme.of(context);
+
+          return Scaffold(
+            backgroundColor: theme.colors.background,
+            appBar: PreferredSize(
+              preferredSize: const Size.fromHeight(80),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colors.background,
+                ),
+                child: Builder(
+                  builder: (context) {
+                    final tabsRouter = AutoTabsRouter.of(context);
+                    return Row(
+                      children: [
+                        QtTab(
+                          icon: SailSVGAsset.iconHome,
+                          label: 'Overview',
+                          active: tabsRouter.activeIndex == 0,
+                          onTap: () => tabsRouter.setActiveIndex(0),
+                        ),
+                        QtTab(
+                          icon: SailSVGAsset.iconSend,
+                          label: 'Send/Receive',
+                          active: tabsRouter.activeIndex == 1,
+                          onTap: () => tabsRouter.setActiveIndex(1),
+                        ),
+                        QtTab(
+                          icon: SailSVGAsset.iconSidechains,
+                          label: 'Sidechains',
+                          active: tabsRouter.activeIndex == 2,
+                          onTap: () => tabsRouter.setActiveIndex(2),
+                        ),
+                        QtTab(
+                          icon: SailSVGAsset.iconLearn,
+                          label: 'Learn',
+                          active: tabsRouter.activeIndex == 3,
+                          onTap: () => tabsRouter.setActiveIndex(3),
+                          end: true,
+                        ),
+                        Expanded(child: Container()),
+                        const ToggleThemeButton(),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          body: Column(
-            children: [
-              const Divider(
-                height: 1,
-                thickness: 1,
-                color: Colors.grey,
-              ),
-              Expanded(child: child),
-              const StatusBar(),
-            ],
-          ),
-        );
-      },
+            body: Column(
+              children: [
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Colors.grey,
+                ),
+                Expanded(child: child),
+                const StatusBar(),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
