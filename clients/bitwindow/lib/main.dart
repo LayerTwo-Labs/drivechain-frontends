@@ -190,7 +190,7 @@ Future<void> initMainchainBinary(
     context,
   );
   log.i('mainchain init: started node, waiting for ibd');
-  await mainchain.waitForIBD();
+  await mainchain.waitForHeaderSync();
 
   log.i('mainchain init: successfully started node blocks=${mainchain.blockCount}');
 }

@@ -94,8 +94,8 @@ class _OverviewPageState extends State<OverviewPage> {
       await _binaryProvider.startBinary(context, parentChain, useStarter: false);
 
       log.i('Waiting for mainchain to connect...');
-      await _binaryProvider.mainchainRPC.waitForIBD();
-      log.i('Mainchain connected and synced');
+      await _binaryProvider.mainchainRPC.waitForHeaderSync();
+      log.i('Mainchain headers synced, starting enforcer');
 
       // 2. Start enforcer after mainchain is ready
       if (!context.mounted) return;
@@ -151,8 +151,9 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is Bitnames => _binaryProvider.bitnamesStopping,
       _ => false,
     };
+    final isProcessRunning = _processProvider.isRunning(binary);
 
-    if (isRunning || isInitializing || stopping) {
+    if (isRunning || isInitializing || stopping || isProcessRunning) {
       await _stopBinary(binary);
     }
 
@@ -225,6 +226,8 @@ class _OverviewPageState extends State<OverviewPage> {
       _ => false,
     };
 
+    final isProcessRunning = _processProvider.isRunning(binary);
+
     final isDownloaded = binary.isDownloaded;
 
     if (stopping) {
@@ -252,6 +255,16 @@ class _OverviewPageState extends State<OverviewPage> {
         onPressed: () {}, // Disable button while initializing
         size: ButtonSize.regular,
         loading: true,
+      );
+    }
+
+    if (isProcessRunning) {
+      return SailButton.secondary(
+        'Kill',
+        onPressed: () async {
+          await _stopBinary(binary);
+        },
+        size: ButtonSize.regular,
       );
     }
 
@@ -319,9 +332,16 @@ class _OverviewPageState extends State<OverviewPage> {
     if (confirmed != true) {
       return;
     }
+    // Check if binary is running before stopping
+    final isRunning = _binaryProvider.isRunning(binary);
+    final isInitializing = _binaryProvider.isInitializing(binary);
+    final isStopping = _binaryProvider.isStopping(binary);
+    final isProcessRunning = _binaryProvider.isProcessRunning(binary);
 
-    // First stop the binary
-    await _stopBinary(binary);
+    if (isRunning || isInitializing || isStopping || isProcessRunning) {
+      // First stop the binary if it's running
+      await _stopBinary(binary);
+    }
 
     // Then wipe it
     await binary.wipeAppDir();
@@ -353,9 +373,10 @@ class _OverviewPageState extends State<OverviewPage> {
         stopping = _binaryProvider.mainchainRPC.stoppingBinary;
         error = _binaryProvider.mainchainError;
 
-        if (_binaryProvider.inIBD && _blockchainProvider.blockchainInfo.headers != 0) {
+        if (connected && _binaryProvider.mainchainRPC.inIBD) {
           final info = _blockchainProvider.blockchainInfo;
-          description = 'Syncing... ${_blockchainProvider.verificationProgress}%\n'
+          final progress = _blockchainProvider.verificationProgress;
+          description = 'Syncing...$progress %\n'
               'Blocks: ${info.blocks} / ${info.headers}';
         }
       case Enforcer():
@@ -363,8 +384,8 @@ class _OverviewPageState extends State<OverviewPage> {
         initializing = _binaryProvider.enforcerRPC.initializingBinary;
         stopping = _binaryProvider.enforcerRPC.stoppingBinary;
         error = _binaryProvider.enforcerError;
-        if (_binaryProvider.inIBD && _blockchainProvider.blockchainInfo.headers != 0) {
-          description = 'Bitcoin Core in IBD, waiting...';
+        if (_binaryProvider.mainchainRPC.connected && _binaryProvider.mainchainRPC.inHeaderSync) {
+          description = 'Bitcoin Core syncing headers, waiting...';
         }
       case BitWindow():
         connected = _binaryProvider.bitwindowRPC.connected;

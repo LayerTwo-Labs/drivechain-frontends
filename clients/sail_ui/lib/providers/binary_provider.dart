@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/providers/process_provider.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
@@ -35,6 +36,7 @@ class BinaryProvider extends ChangeNotifier {
   StreamSubscription<FileSystemEvent>? _dirWatcher;
   Timer? _releaseCheckTimer;
 
+  final _processProvider = GetIt.I.get<ProcessProvider>();
   final mainchainRPC = GetIt.I.get<MainchainRPC>();
   final enforcerRPC = GetIt.I.get<EnforcerRPC>();
   final bitwindowRPC = GetIt.I.get<BitwindowRPC>();
@@ -88,6 +90,7 @@ class BinaryProvider extends ChangeNotifier {
     required List<Binary> initialBinaries,
   }) {
     binaries = initialBinaries;
+    _processProvider.addListener(notifyListeners);
     mainchainRPC.addListener(notifyListeners);
     enforcerRPC.addListener(notifyListeners);
     bitwindowRPC.addListener(notifyListeners);
@@ -173,9 +176,9 @@ class BinaryProvider extends ChangeNotifier {
 
   /// Check if a binary can be started based on its dependencies
   String? canStart(Binary binary) {
-    final mainchainReady = mainchainConnected && !inIBD;
+    final mainchainReady = mainchainConnected && !mainchainRPC.inHeaderSync;
     return switch (binary) {
-      Enforcer() => mainchainReady ? null : 'Mainchain must be started and fully synced before starting Enforcer',
+      Enforcer() => mainchainReady ? null : 'Mainchain must be started and headers synced before starting Enforcer',
       BitWindow() => enforcerConnected && mainchainReady
           ? null
           : 'Mainchain and Enforcer must be running and fully synced before starting BitWindow',
@@ -207,6 +210,7 @@ class BinaryProvider extends ChangeNotifier {
       }
     }
 
+    if (!context.mounted) return;
     switch (binary) {
       case ParentChain():
         await mainchainRPC.initBinary(context);
@@ -389,6 +393,50 @@ class BinaryProvider extends ChangeNotifier {
       case Bitnames():
         await bitnamesRPC.stop();
     }
+  }
+
+  bool isRunning(Binary binary) {
+    return switch (binary) {
+      var b when b is ParentChain => mainchainRPC.connected,
+      var b when b is Enforcer => enforcerRPC.connected,
+      var b when b is BitWindow => bitwindowRPC.connected,
+      var b when b is Thunder => thunderRPC.connected,
+      var b when b is Bitnames => bitnamesRPC.connected,
+      _ => false,
+    };
+  }
+
+  bool isInitializing(Binary binary) {
+    return switch (binary) {
+      var b when b is ParentChain => mainchainRPC.initializingBinary,
+      var b when b is Enforcer => enforcerRPC.initializingBinary,
+      var b when b is BitWindow => bitwindowRPC.initializingBinary,
+      var b when b is Thunder => thunderRPC.initializingBinary,
+      var b when b is Bitnames => bitnamesRPC.initializingBinary,
+      _ => false,
+    };
+  }
+
+  bool isStopping(Binary binary) {
+    return switch (binary) {
+      var b when b is ParentChain => mainchainRPC.stoppingBinary,
+      var b when b is Enforcer => enforcerRPC.stoppingBinary,
+      var b when b is BitWindow => bitwindowRPC.stoppingBinary,
+      var b when b is Thunder => thunderRPC.stoppingBinary,
+      var b when b is Bitnames => bitnamesRPC.stoppingBinary,
+      _ => false,
+    };
+  }
+
+  bool isProcessRunning(Binary binary) {
+    return switch (binary) {
+      var b when b is ParentChain => _processProvider.isRunning(ParentChain()),
+      var b when b is Enforcer => _processProvider.isRunning(Enforcer()),
+      var b when b is BitWindow => _processProvider.isRunning(BitWindow()),
+      var b when b is Thunder => _processProvider.isRunning(Thunder()),
+      var b when b is Bitnames => _processProvider.isRunning(Bitnames()),
+      _ => false,
+    };
   }
 
   @override

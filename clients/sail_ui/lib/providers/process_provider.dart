@@ -10,28 +10,6 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 
-class SailProcess {
-  final String binary;
-  final int pid;
-  Future<void> Function() cleanup;
-
-  SailProcess({
-    required this.binary,
-    required this.pid,
-    required this.cleanup,
-  });
-}
-
-class ExitTuple {
-  final int code;
-  final String message;
-
-  ExitTuple({
-    required this.code,
-    required this.message,
-  });
-}
-
 class ProcessProvider extends ChangeNotifier {
   final Directory? datadir;
 
@@ -253,6 +231,13 @@ class ProcessProvider extends ChangeNotifier {
     }
   }
 
+  bool isRunning(Binary binary) {
+    return runningProcesses.values.any((p) {
+      final matched = Binary.fromBinary(p.binary);
+      return matched?.runtimeType == binary.runtimeType;
+    });
+  }
+
   Future<void> shutdown() async {
     log.d('dispose process provider: killing processes $runningProcesses');
     await Future.wait(runningProcesses.values.map((process) => _shutdownSingle(process)));
@@ -285,4 +270,26 @@ bool isSpam(String data) {
   }
 
   return false;
+}
+
+class SailProcess {
+  final String binary;
+  final int pid;
+  Future<void> Function() cleanup;
+
+  SailProcess({
+    required this.binary,
+    required this.pid,
+    required this.cleanup,
+  });
+}
+
+class ExitTuple {
+  final int code;
+  final String message;
+
+  ExitTuple({
+    required this.code,
+    required this.message,
+  });
 }

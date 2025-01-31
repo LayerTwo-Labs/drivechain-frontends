@@ -56,23 +56,34 @@ abstract class Binary {
   int get hashCode => Object.hash(name, version);
 
   static Binary? fromBinary(String binary) {
-    switch (binary.toLowerCase()) {
+    final name = binary.toLowerCase();
+    switch (name) {
       case 'bitcoind':
+      case 'bitcoind.exe':
         return ParentChain();
-      case 'sidegeth':
-        return EthereumSidechain();
-      case 'testchaind':
-        return TestSidechain();
-      case 'zsided':
-        return ZCashSidechain();
-      case 'bitwindow':
-        return BitWindow();
-      case 'bip300301_enforcer':
+      case 'bip300301-enforcer':
+      case 'bip300301-enforcer.exe':
         return Enforcer();
+      case 'bitwindow':
+      case 'bitwindow.exe':
+      case 'bitwindow.app':
+        return BitWindow();
       case 'thunder':
+      case 'thunder.exe':
+      case 'l2-s9-thunder':
         return Thunder();
       case 'bitnames':
+      case 'bitnames.exe':
         return Bitnames();
+      case 'sidegeth':
+      case 'sidegeth.exe':
+        return EthereumSidechain();
+      case 'testchaind':
+      case 'testchaind.exe':
+        return TestSidechain();
+      case 'zsided':
+      case 'zsided.exe':
+        return ZCashSidechain();
     }
     return null;
   }

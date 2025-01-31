@@ -443,6 +443,22 @@ class BlockchainInfo {
         'pruned': pruned,
         'warnings': warnings,
       };
+
+  static BlockchainInfo empty() => BlockchainInfo(
+        chain: '',
+        blocks: 0,
+        headers: 0,
+        bestBlockHash: '',
+        difficulty: 0,
+        time: 0,
+        medianTime: 0,
+        verificationProgress: 0,
+        initialBlockDownload: true,
+        chainWork: '',
+        sizeOnDisk: 0,
+        pruned: false,
+        warnings: [],
+      );
 }
 
 /// Interface for RPCs that can fetch balance information

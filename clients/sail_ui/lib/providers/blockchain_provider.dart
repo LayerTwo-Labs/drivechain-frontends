@@ -38,7 +38,10 @@ class BlockchainProvider extends ChangeNotifier {
 
   // computed field go here
   Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.first.blockTime : null;
-  String get verificationProgress => ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
+  String get verificationProgress {
+    if (blockchainInfo.headers == 0 || blockchainInfo.blocks == 0) return '0';
+    return ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
+  }
 
   Duration _currentInterval = const Duration(seconds: 5);
 
@@ -49,6 +52,7 @@ class BlockchainProvider extends ChangeNotifier {
 
   BlockchainProvider() {
     _startFetchTimer();
+    mainchain.addListener(fetch);
   }
 
   // call this function from anywhere to refetch blockchain info
@@ -145,6 +149,7 @@ class BlockchainProvider extends ChangeNotifier {
   void dispose() {
     _fetchTimer?.cancel();
     _fetchTimer = null;
+    mainchain.removeListener(fetch);
     super.dispose();
   }
 }

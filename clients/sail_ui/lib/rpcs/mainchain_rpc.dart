@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// RPC connection to the mainchain node. Only really used
@@ -18,8 +19,10 @@ abstract class MainchainRPC extends RPCConnection {
   final chain = ParentChain();
 
   bool inIBD = true;
+  bool inHeaderSync = true;
 
   Future<void> waitForIBD();
+  Future<void> waitForHeaderSync();
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -60,40 +63,40 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   Future<void> init() async {
-    await startConnectionTimer();
+    if (Environment.isInTest) {
+      return;
+    }
     pollIBDStatus();
+    await startConnectionTimer();
   }
 
-  void pollIBDStatus() async {
+  void pollIBDStatus() {
     // start off with the assumption that the parent chain is in IBD
     inIBD = true;
-    log.i('mainchain init: waiting for initial block download to finish');
-    DateTime lastLogTime = DateTime.now();
-    while (inIBD) {
+    inHeaderSync = true;
+    log.i('mainchain init: starting IBD status polling');
+
+    Timer.periodic(const Duration(seconds: 1), (timer) async {
       try {
         final info = await getBlockchainInfo();
-        // if block height is small, the node have probably not synced headers yet
-        inIBD = info.blocks <= 10;
 
-        // Log height every 10 seconds
-        if (DateTime.now().difference(lastLogTime).inSeconds >= 10) {
-          log.i('Current block height: ${info.blocks}');
-          lastLogTime = DateTime.now();
+        // Update header sync status
+        final wasInHeaderSync = inHeaderSync;
+        inHeaderSync = info.blocks < 10;
+
+        // Update IBD status
+        final wasInIBD = inIBD;
+        inIBD = inHeaderSync || info.initialBlockDownload;
+
+        // Only notify if status changed
+        if (wasInHeaderSync != inHeaderSync || wasInIBD != inIBD) {
+          log.i('IBD status changed - inHeaderSync: $inHeaderSync, inIBD: $inIBD');
+          notifyListeners();
         }
-        inIBD = info.initialBlockDownload;
       } catch (error) {
         // probably just cant connect, and is in bootup-phase, which is okay
-      } finally {
-        // retry querying blockchain info until chain is finished syncing
-        await Future.delayed(const Duration(seconds: 1));
       }
-    }
-
-    log.i('mainchain init: initial block download finished');
-
-    notifyListeners();
-
-    // ibd is done, and mainchain has successfully started
+    });
   }
 
   @override
@@ -110,6 +113,14 @@ class MainchainRPCLive extends MainchainRPC {
       } finally {
         await Future.delayed(const Duration(seconds: 1));
       }
+    }
+  }
+
+  @override
+  Future<void> waitForHeaderSync() async {
+    while (inHeaderSync) {
+      // pollIBDStatus() is responsible for updating the syncedHeaders
+      await Future.delayed(const Duration(seconds: 1));
     }
   }
 
