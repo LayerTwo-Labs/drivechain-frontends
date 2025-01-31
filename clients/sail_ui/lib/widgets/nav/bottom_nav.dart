@@ -167,8 +167,8 @@ class BottomNav extends StatelessWidget {
                     connection: model.enforcer,
                     infoMessage: model.mainchain.initializingBinary
                         ? 'Waiting for mainchain to finish init'
-                        : model.mainchain.inIBD
-                            ? 'Waiting for L1 initial block download to complete...'
+                        : model.mainchain.inHeaderSync
+                            ? 'Waiting for L1 to sync headers...'
                             : null,
                     restartDaemon: () => model.enforcer.initBinary(context),
                     navigateToLogs: model.navigateToLogs,

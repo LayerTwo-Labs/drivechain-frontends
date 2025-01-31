@@ -81,7 +81,7 @@ class _StatusBarState extends State<StatusBar> {
             message:
                 'Current height: ${blockchainProvider.blockchainInfo.blocks}\nHeader height: ${blockchainProvider.blockchainInfo.headers}',
             child: SailText.primary12(
-              'Downloading blocks (${blockchainProvider.verificationProgress}%)',
+              'Downloading blocks (${blockchainProvider.verificationProgress} %)',
             ),
           ),
         if (blockchainProvider.blockchainInfo.initialBlockDownload &&

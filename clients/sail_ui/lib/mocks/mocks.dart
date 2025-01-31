@@ -97,6 +97,11 @@ class MockMainchainRPC extends MainchainRPC {
   Future<int> ping() {
     return Future.value(0);
   }
+
+  @override
+  Future<void> waitForHeaderSync() async {
+    return;
+  }
 }
 
 class MockEnforcerRPC extends EnforcerRPC {

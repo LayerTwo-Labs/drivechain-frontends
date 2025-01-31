@@ -22,6 +22,9 @@ class Environment {
     return await getApplicationSupportDirectory();
   }
 
+  static bool get isInTest =>
+      Platform.environment.containsKey('FLUTTER_TEST') || const String.fromEnvironment('FLUTTER_TEST').isNotEmpty;
+
   const Environment._();
 }
 
