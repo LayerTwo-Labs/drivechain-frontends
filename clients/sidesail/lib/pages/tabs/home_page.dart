@@ -138,10 +138,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     rpc: sidechain.rpc,
                     name: sidechain.rpc.chain.name,
                   ),
-                  navigateToLogs: (name, logPath) {
+                  navigateToLogs: (title, logPath) {
                     GetIt.I.get<AppRouter>().push(
                           LogRoute(
-                            name: name,
+                            title: title,
                             logPath: logPath,
                           ),
                         );

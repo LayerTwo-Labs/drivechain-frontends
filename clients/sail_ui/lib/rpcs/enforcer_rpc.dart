@@ -31,9 +31,9 @@ class EnforcerLive extends EnforcerRPC {
   // Async factory
   static Future<EnforcerLive> create({
     required Binary binary,
-    required String logPath,
   }) async {
     final conf = await getMainchainConf();
+    final logPath = binary.logPath();
 
     final instance = EnforcerLive._create(
       conf: conf,

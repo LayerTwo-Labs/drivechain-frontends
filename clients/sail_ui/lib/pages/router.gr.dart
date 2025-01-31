@@ -18,13 +18,13 @@ import 'package:sail_ui/pages/shutdown_page.dart' as _i2;
 /// [_i1.LogPage]
 class LogRoute extends _i3.PageRouteInfo<LogRouteArgs> {
   LogRoute({
-    required String name,
-    required String logPath,
     _i4.Key? key,
+    required String logPath,
+    required String title,
     List<_i3.PageRouteInfo>? children,
   }) : super(
          LogRoute.name,
-         args: LogRouteArgs(name: name, logPath: logPath, key: key),
+         args: LogRouteArgs(key: key, logPath: logPath, title: title),
          initialChildren: children,
        );
 
@@ -34,23 +34,27 @@ class LogRoute extends _i3.PageRouteInfo<LogRouteArgs> {
     name,
     builder: (data) {
       final args = data.argsAs<LogRouteArgs>();
-      return _i1.LogPage(name: args.name, logPath: args.logPath, key: args.key);
+      return _i1.LogPage(
+        key: args.key,
+        logPath: args.logPath,
+        title: args.title,
+      );
     },
   );
 }
 
 class LogRouteArgs {
-  const LogRouteArgs({required this.name, required this.logPath, this.key});
-
-  final String name;
-
-  final String logPath;
+  const LogRouteArgs({this.key, required this.logPath, required this.title});
 
   final _i4.Key? key;
 
+  final String logPath;
+
+  final String title;
+
   @override
   String toString() {
-    return 'LogRouteArgs{name: $name, logPath: $logPath, key: $key}';
+    return 'LogRouteArgs{key: $key, logPath: $logPath, title: $title}';
   }
 }
 

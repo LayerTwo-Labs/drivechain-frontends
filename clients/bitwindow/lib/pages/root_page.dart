@@ -5,9 +5,11 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pbgrpc.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/balance_provider.dart';
@@ -15,7 +17,6 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
-import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 
 @RoutePage()
 class RootPage extends StatefulWidget {
@@ -244,12 +245,21 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(
-                  label: 'Debug window',
+                  label: 'Debug Window',
                   onSelected: null,
                 ),
                 PlatformMenuItem(
                   label: 'Command-line options',
                   onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'View Logs',
+                  onSelected: () => GetIt.I.get<AppRouter>().push(
+                        LogRoute(
+                          title: 'Bitwindow Logs',
+                          logPath: BitWindow().logPath(),
+                        ),
+                      ),
                 ),
               ],
             ),
@@ -407,10 +417,10 @@ class _StatusBarState extends State<StatusBar> {
         rpc: bitwindow,
         name: 'BitWindow',
       ),
-      navigateToLogs: (name, logPath) {
+      navigateToLogs: (title, logPath) {
         GetIt.I.get<AppRouter>().push(
               LogRoute(
-                name: name,
+                title: title,
                 logPath: logPath,
               ),
             );

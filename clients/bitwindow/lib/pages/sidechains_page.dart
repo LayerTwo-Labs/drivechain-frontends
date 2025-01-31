@@ -34,7 +34,10 @@ class SidechainsPage extends StatelessWidget {
               spacing: spacing,
               children: [
                 if (model.hasErrorForKey('sidechain')) ...{
-                  ErrorContainer(error: model.error('sidechain').toString()),
+                  SizedBox(
+                    width: sidechainsWidth.toDouble(),
+                    child: ErrorContainer(error: model.error('sidechain').toString()),
+                  ),
                 } else ...{
                   SizedBox(
                     width: sidechainsWidth.toDouble(),

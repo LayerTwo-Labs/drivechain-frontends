@@ -132,7 +132,6 @@ Future<void> initDependencies(Logger log, File logFile) async {
     host: env(Environment.bitwindowdHost),
     port: env(Environment.bitwindowdPort),
     binary: BitWindow(),
-    logPath: serverLogFile,
   );
   GetIt.I.registerLazySingleton<BitwindowRPC>(
     () => bitwindow,
@@ -141,7 +140,6 @@ Future<void> initDependencies(Logger log, File logFile) async {
   final enforerBinary = Enforcer();
   final enforcer = await EnforcerLive.create(
     binary: enforerBinary,
-    logPath: serverLogFile,
   );
 
   GetIt.I.registerLazySingleton<EnforcerRPC>(

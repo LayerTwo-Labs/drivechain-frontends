@@ -110,7 +110,6 @@ Future<void> initDependencies(Logger log) async {
         case Enforcer():
           final enforcer = await EnforcerLive.create(
             binary: binary,
-            logPath: path.join(binary.datadir(), 'bip300301_enforcer.log'),
           );
           GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
@@ -119,7 +118,6 @@ Future<void> initDependencies(Logger log) async {
             host: '127.0.0.1',
             port: binary.port,
             binary: binary,
-            logPath: path.join(binary.datadir(), 'debug.log'),
           );
           GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
 

@@ -94,9 +94,9 @@ class BitwindowRPCLive extends BitwindowRPC {
     required String host,
     required int port,
     required Binary binary,
-    required String logPath,
   }) async {
     final conf = await getMainchainConf();
+    final logPath = binary.logPath();
 
     final instance = BitwindowRPCLive._create(
       conf: conf,
