@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
@@ -62,7 +61,6 @@ Future<void> initDependencies(Sidechain chain) async {
   final binary = Enforcer();
   final enforcer = await EnforcerLive.create(
     binary: binary,
-    logPath: path.join(binary.datadir(), 'bip300301_enforcer.log'),
   );
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
@@ -111,7 +109,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
     final testchain = TestchainRPCLive(
       conf: conf,
       binary: TestSidechain(),
-      logPath: TestSidechain().logDir(),
+      logPath: TestSidechain().logPath(),
     );
     sidechain = testchain;
 
@@ -128,7 +126,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
     final ethChain = EthereumRPCLive(
       conf: conf,
       binary: EthereumSidechain(),
-      logPath: EthereumSidechain().logDir(),
+      logPath: EthereumSidechain().logPath(),
     );
     sidechain = ethChain;
 
@@ -145,7 +143,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
     final zChain = ZcashRPCLive(
       conf: conf,
       binary: ZCashSidechain(),
-      logPath: ZCashSidechain().logDir(),
+      logPath: ZCashSidechain().logPath(),
     );
     sidechain = zChain;
 

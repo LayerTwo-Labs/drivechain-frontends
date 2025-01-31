@@ -568,9 +568,9 @@ class BitWindow extends Binary {
           directories: directories ??
               DirectoryConfig(
                 base: {
-                  OS.linux: 'bitwindow',
-                  OS.macos: 'bitwindow',
-                  OS.windows: 'bitwindow',
+                  OS.linux: 'com.layertwolabs.bitwindow',
+                  OS.macos: 'com.layertwolabs.bitwindow',
+                  OS.windows: 'com.layertwolabs.bitwindow',
                 },
               ),
           download: download ??
@@ -684,12 +684,14 @@ extension BinaryPaths on Binary {
     };
   }
 
-  String logDir() {
+  String logPath() {
     return switch (this) {
       var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
       var b when b is EthereumSidechain => filePath([datadir(), 'ethereum.log']),
       var b when b is ZCashSidechain => filePath([datadir(), 'regtest', 'debug.log']),
       var b when b is ParentChain => filePath([datadir(), 'debug.log']),
+      var b when b is BitWindow => filePath([datadir(), 'debug.log']),
+      var b when b is Enforcer => filePath([datadir(), 'bip300301_enforcer.log']),
       _ => throw 'unsupported binary type: $runtimeType',
     };
   }

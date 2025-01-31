@@ -62,9 +62,9 @@
       "description": "GUI for managing drivechain operations",
       "repo_url": "",
       "directories": {
-        "linux": "bitwindow",
-        "darwin": "bitwindow",
-        "win32": "bitwindow"
+        "linux": "com.layertwolabs.bitwindow",
+        "darwin": "com.layertwolabs.bitwindow",
+        "win32": "com.layertwolabs.bitwindow"
       },
       "download": {
         "base_url": "https://releases.drivechain.info/",
