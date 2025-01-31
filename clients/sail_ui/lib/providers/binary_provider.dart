@@ -101,10 +101,12 @@ class BinaryProvider extends ChangeNotifier {
     _checkReleaseDates();
 
     // Set up periodic release date checks
-    _releaseCheckTimer = Timer.periodic(
-      const Duration(minutes: 1),
-      (_) => _checkReleaseDates(),
-    );
+    if (!Environment.isInTest) {
+      _releaseCheckTimer = Timer.periodic(
+        const Duration(minutes: 1),
+        (_) => _checkReleaseDates(),
+      );
+    }
   }
 
   void _setupDirectoryWatcher() {
