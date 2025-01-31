@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -275,10 +276,6 @@ func (p *Parser) findOPReturns(
 	isCoinbase := len(decodedTx.MsgTx().TxIn) > 0 && decodedTx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
 	// every coinbase transaction has a OP_RETURN output we don't care about
 	if isCoinbase && len(decodedTx.MsgTx().TxOut) == 2 {
-		zerolog.Ctx(ctx).Info().
-			Str("txid", txid).
-			Msgf("bitcoind_engine/parser: skipping coinbase transaction with no extra outputs")
-
 		return nil, nil
 	}
 
@@ -291,9 +288,9 @@ func (p *Parser) findOPReturns(
 		isOPReturn := txout.PkScript[0] == txscript.OP_RETURN
 		isCoinbaseReturn := isOPReturn && txout.PkScript[1] == txscript.OP_DATA_36
 		if isCoinbaseReturn {
-			zerolog.Ctx(ctx).Info().
-				Str("txid", txid).
-				Msgf("bitcoind_engine/parser: skipping coinbase OP_RETURN")
+			continue
+		}
+		if shouldSkip(txout.PkScript) {
 			continue
 		}
 
@@ -344,6 +341,17 @@ func (p *Parser) findOPReturns(
 	}
 
 	return opReturns, nil
+}
+
+func shouldSkip(pkScript []byte) bool {
+	data := pkScript[2:]
+	switch {
+	case strings.HasPrefix(opreturns.OPReturnToReadable(data), "d1617368"): // something something not interesting
+		return true
+	case opreturns.OPReturnToReadable(data) == "d77d177601ffff": // something else not interesting
+		return true
+	}
+	return false
 }
 
 // detectChainDeletion checks if the hash of block at height 1 differs

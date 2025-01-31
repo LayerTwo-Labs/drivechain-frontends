@@ -32,13 +32,11 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
     if (_isHexMode) {
       final inputError = _getHexValidationError(_inputController.text);
       final keyError = _useHmac ? _getHexValidationError(_hmacKeyController.text) : '';
-      
+
       if (inputError.isNotEmpty || (_useHmac && keyError.isNotEmpty)) {
         setState(() {
           _output = '';
-          _hexValidationError = inputError.isNotEmpty 
-            ? 'Input: $inputError' 
-            : 'Key: $keyError';
+          _hexValidationError = inputError.isNotEmpty ? 'Input: $inputError' : 'Key: $keyError';
         });
         return;
       }
@@ -94,22 +92,54 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
     final result = StringBuffer();
     for (var i = 0; i < hex.length; i++) {
       switch (hex[i].toLowerCase()) {
-        case '0': result.write('0000'); break;
-        case '1': result.write('0001'); break;
-        case '2': result.write('0010'); break;
-        case '3': result.write('0011'); break;
-        case '4': result.write('0100'); break;
-        case '5': result.write('0101'); break;
-        case '6': result.write('0110'); break;
-        case '7': result.write('0111'); break;
-        case '8': result.write('1000'); break;
-        case '9': result.write('1001'); break;
-        case 'a': result.write('1010'); break;
-        case 'b': result.write('1011'); break;
-        case 'c': result.write('1100'); break;
-        case 'd': result.write('1101'); break;
-        case 'e': result.write('1110'); break;
-        case 'f': result.write('1111'); break;
+        case '0':
+          result.write('0000');
+          break;
+        case '1':
+          result.write('0001');
+          break;
+        case '2':
+          result.write('0010');
+          break;
+        case '3':
+          result.write('0011');
+          break;
+        case '4':
+          result.write('0100');
+          break;
+        case '5':
+          result.write('0101');
+          break;
+        case '6':
+          result.write('0110');
+          break;
+        case '7':
+          result.write('0111');
+          break;
+        case '8':
+          result.write('1000');
+          break;
+        case '9':
+          result.write('1001');
+          break;
+        case 'a':
+          result.write('1010');
+          break;
+        case 'b':
+          result.write('1011');
+          break;
+        case 'c':
+          result.write('1100');
+          break;
+        case 'd':
+          result.write('1101');
+          break;
+        case 'e':
+          result.write('1110');
+          break;
+        case 'f':
+          result.write('1111');
+          break;
       }
     }
     return result.toString();
@@ -117,7 +147,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
 
   String _generateOutput() {
     final bytes = _getInputBytes();
-    
+
     if (_isHexMode && bytes.isEmpty) {
       return '';
     }
@@ -185,7 +215,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
     final key = _hmacKeyController.text;
     final bytes = _getInputBytes();
     final keyBytes = _isHexMode ? _hexToBytes(key) : utf8.encode(key);
-    
+
     if (_isHexMode && (bytes.isEmpty || keyBytes.isEmpty)) {
       return '';
     }
@@ -328,7 +358,8 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                                 onPressed: () {
                                   if (_isValidHex(_inputController.text)) {
                                     final bytes = _getInputBytes().toList().reversed.toList();
-                                    _inputController.text = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+                                    _inputController.text =
+                                        bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
                                   }
                                 },
                                 size: ButtonSize.small,
@@ -379,7 +410,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
 
   List<Widget> _buildHashResults(SailThemeData theme) {
     final results = <Widget>[];
-    
+
     // SHA256D
     results.add(
       SailRow(
@@ -593,7 +624,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
         ],
       ),
     );
-    
+
     return results;
   }
 
@@ -728,4 +759,4 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
     _hmacKeyController.dispose();
     super.dispose();
   }
-} 
+}
