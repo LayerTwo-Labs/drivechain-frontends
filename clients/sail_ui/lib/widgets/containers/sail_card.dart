@@ -71,9 +71,11 @@ class SailRawCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CardHeader(
-                          title: title!,
-                          subtitle: subtitle,
+                        Flexible(
+                          child: CardHeader(
+                            title: title!,
+                            subtitle: subtitle,
+                          ),
                         ),
                         if (widgetHeaderEnd != null) widgetHeaderEnd!,
                       ],

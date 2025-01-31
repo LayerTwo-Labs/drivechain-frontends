@@ -129,6 +129,7 @@ class CardHeader extends StatelessWidget {
     return SailColumn(
       spacing: 0,
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.primary20(
           title,
@@ -138,6 +139,7 @@ class CardHeader extends StatelessWidget {
           SailText.primary12(
             subtitle!,
             color: theme.colors.textTertiary,
+            overflow: TextOverflow.visible,
           ),
       ],
     );
@@ -162,9 +164,11 @@ class DialogHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return SailRow(
       spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CardHeader(title: title, subtitle: subtitle),
-        Expanded(child: Container()),
+        Expanded(
+          child: CardHeader(title: title, subtitle: subtitle),
+        ),
         SailScaleButton(
           onPressed: onClose,
           style: SailButtonStyle.secondary,

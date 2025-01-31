@@ -4,7 +4,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/widgets/error_container.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,17 +32,10 @@ class SidechainsPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: spacing,
               children: [
-                if (model.hasErrorForKey('sidechain')) ...{
-                  SizedBox(
-                    width: sidechainsWidth.toDouble(),
-                    child: ErrorContainer(error: model.error('sidechain').toString()),
-                  ),
-                } else ...{
-                  SizedBox(
-                    width: sidechainsWidth.toDouble(),
-                    child: const SidechainsList(),
-                  ),
-                },
+                SizedBox(
+                  width: sidechainsWidth.toDouble(),
+                  child: const SidechainsList(),
+                ),
                 SizedBox(
                   width: depositsWidth,
                   child: const DepositWithdrawView(),
@@ -62,9 +54,11 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    final error = viewModel.error('sidechain');
+
     return SailRawCard(
       title: 'Sidechains',
-      subtitle: 'List of sidechains and their current status',
+      subtitle: error ?? 'List of sidechains and their current status',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -266,9 +260,7 @@ class SidechainsViewModel extends BaseViewModel {
   }
 
   void errorListener() {
-    if (sidechainProvider.error != null) {
-      setErrorForObject('sidechain', sidechainProvider.error);
-    }
+    setErrorForObject('sidechain', sidechainProvider.error);
   }
 
   void decrementSelectedIndex() {
