@@ -23,10 +23,10 @@ class LogRoute extends _i3.PageRouteInfo<LogRouteArgs> {
     required String title,
     List<_i3.PageRouteInfo>? children,
   }) : super(
-         LogRoute.name,
-         args: LogRouteArgs(key: key, logPath: logPath, title: title),
-         initialChildren: children,
-       );
+          LogRoute.name,
+          args: LogRouteArgs(key: key, logPath: logPath, title: title),
+          initialChildren: children,
+        );
 
   static const String name = 'LogRoute';
 
@@ -62,7 +62,7 @@ class LogRouteArgs {
 /// [_i2.ShuttingDownPage]
 class ShuttingDownRoute extends _i3.PageRouteInfo<void> {
   const ShuttingDownRoute({List<_i3.PageRouteInfo>? children})
-    : super(ShuttingDownRoute.name, initialChildren: children);
+      : super(ShuttingDownRoute.name, initialChildren: children);
 
   static const String name = 'ShuttingDownRoute';
 
