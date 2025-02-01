@@ -2,18 +2,14 @@
 
 set -e
 
-cd servers/faucet/
-docker build -t faucet .
-cd ../../
-docker compose --file docker-compose.faucet.yml up -d --force-recreate
-
 cd ./clients/faucet
 flutter clean
-flutter pub get --enforce-lockfile
-flutter build web --profile \
-    --dart-define=Dart2jsOptimization=O0 \
-    --dart-define=FAUCET_BASE_URL=/api \
-    --output=./build/web
+flutter pub get
+flutter build web --dart-define=FAUCET_BASE_URL=/api --output=./build/web
+
+# Replace GIT_COMMIT_HASH_FLUTTER_BUILD with actual hash in the built index.html
+COMMIT_HASH=$(git rev-parse --short HEAD)
+sed -i "s/GIT_COMMIT_HASH_FLUTTER_BUILD/$COMMIT_HASH/g" ./build/web/index.html
 
 # Clean old stuff
 sudo rm -rf /var/www/drivechain-live/*

@@ -32,8 +32,8 @@ class TransactionsProvider extends ChangeNotifier {
 
       if (_dataHasChanged(newClaims, newInitialized)) {
         claims = newClaims;
-
         initialized = newInitialized;
+
         notifyListeners();
       }
     } finally {
