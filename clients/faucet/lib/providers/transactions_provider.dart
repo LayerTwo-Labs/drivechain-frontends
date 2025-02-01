@@ -18,7 +18,6 @@ class TransactionsProvider extends ChangeNotifier {
     poll();
   }
 
-  // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
     if (_isFetching) {
       return;
@@ -26,14 +25,13 @@ class TransactionsProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newClaims =
-          (await api.clients.faucet.listClaims(ListClaimsRequest())).transactions.reversed.take(100).toList();
+      final response = await api.clients.faucet.listClaims(ListClaimsRequest());
+      final newClaims = response.transactions.toList();
       const newInitialized = true;
 
       if (_dataHasChanged(newClaims, newInitialized)) {
         claims = newClaims;
         initialized = newInitialized;
-
         notifyListeners();
       }
     } finally {
@@ -49,8 +47,15 @@ class TransactionsProvider extends ChangeNotifier {
       return true;
     }
 
-    if (!listEquals(claims, newClaims)) {
+    if (newClaims.length != claims.length) {
       return true;
+    }
+
+    // Compare txids to check if data has changed
+    for (var i = 0; i < newClaims.length; i++) {
+      if (newClaims[i].txid != claims[i].txid) {
+        return true;
+      }
     }
 
     return false;
