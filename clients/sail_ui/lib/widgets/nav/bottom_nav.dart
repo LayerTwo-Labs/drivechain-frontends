@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
@@ -51,32 +52,58 @@ class BottomNav extends StatelessWidget {
                 const SailSpacing(SailStyleValues.padding04),
                 Tooltip(
                   message: 'Confirmed balance',
-                  child: SailRow(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      SailSVG.icon(
-                        SailSVGAsset.iconCoins,
-                        color: SailColorScheme.green,
-                        width: SailStyleValues.iconSizeSecondary,
-                        height: SailStyleValues.iconSizeSecondary,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(
+                          ClipboardData(
+                            text: model.balance.toString(),
+                          ),
+                        );
+                        showSnackBar(context, 'Copied confirmed balance to clipboard', duration: 1);
+                      },
+                      child: SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailSVG.icon(
+                            SailSVGAsset.iconCoins,
+                            color: SailColorScheme.green,
+                            width: SailStyleValues.iconSizeSecondary,
+                            height: SailStyleValues.iconSizeSecondary,
+                          ),
+                          SailText.secondary12(formatBitcoin(model.balance, symbol: 'BTC')),
+                        ],
                       ),
-                      SailText.secondary12(formatBitcoin(model.balance, symbol: 'BTC')),
-                    ],
+                    ),
                   ),
                 ),
                 const DividerDot(),
                 Tooltip(
                   message: 'Unconfirmed balance',
-                  child: SailRow(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      SailSVG.icon(
-                        SailSVGAsset.iconCoins,
-                        width: SailStyleValues.iconSizeSecondary,
-                        height: SailStyleValues.iconSizeSecondary,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(
+                          ClipboardData(
+                            text: model.pendingBalance.toString(),
+                          ),
+                        );
+                        showSnackBar(context, 'Copied unconfirmed balance to clipboard', duration: 1);
+                      },
+                      child: SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailSVG.icon(
+                            SailSVGAsset.iconCoins,
+                            width: SailStyleValues.iconSizeSecondary,
+                            height: SailStyleValues.iconSizeSecondary,
+                          ),
+                          SailText.secondary12(formatBitcoin(model.pendingBalance, symbol: 'BTC')),
+                        ],
                       ),
-                      SailText.secondary12(formatBitcoin(model.pendingBalance, symbol: 'BTC')),
-                    ],
+                    ),
                   ),
                 ),
                 Expanded(child: Container()),

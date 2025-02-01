@@ -464,16 +464,13 @@ class CoinNewsView extends StatelessWidget {
       viewModelBuilder: () => CoinNewsViewModel(),
       builder: (context, viewModel, child) {
         return SailRawCard(
-          header: Padding(
+          title: 'Coin News',
+          subtitle: 'Stay up-to-date on the latest world developments',
+          widgetHeaderEnd: Padding(
             padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
             child: SailRow(
               spacing: SailStyleValues.padding08,
               children: [
-                const CardHeader(
-                  title: 'Coin News',
-                  subtitle: 'Stay up-to-date on the latest world developments',
-                ),
-                Expanded(child: Container()),
                 QtButton(
                   label: 'Broadcast News',
                   onPressed: () => displayBroadcastNewsDialog(context),

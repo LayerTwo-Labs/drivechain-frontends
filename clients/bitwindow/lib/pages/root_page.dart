@@ -149,7 +149,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
               members: [
                 PlatformMenuItem(
                   label: 'Deniability',
-                  onSelected: null,
+                  onSelected: () {
+                    final tabsRouter = _routerKey.currentState?.controller;
+                    tabsRouter?.setActiveIndex(1);
+                    if (WalletPage.tabKey.currentState != null) {
+                      WalletPage.tabKey.currentState!.setIndex(3);
+                    }
+                  },
                 ),
                 PlatformMenuItem(
                   label: 'Proof of Funds',

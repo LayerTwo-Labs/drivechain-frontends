@@ -9,6 +9,7 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.connect.client.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.connect.client.dart';
+import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.connect.client.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/google/protobuf/empty.pb.dart';
@@ -34,6 +35,12 @@ abstract class BitwindowRPC extends RPCConnection {
 
 abstract class BitwindowAPI {
   Future<void> stop();
+  Future<void> createDenial({
+    required int numHops,
+    required int delaySeconds,
+  });
+  Future<void> cancelDenial(Int64 id);
+  Future<List<Denial>> listDenials();
 }
 
 abstract class WalletAPI {
@@ -165,6 +172,30 @@ class _BitwindowAPILive implements BitwindowAPI {
   @override
   Future<void> stop() async {
     await _client.stop(Empty());
+  }
+
+  @override
+  Future<void> createDenial({
+    required int numHops,
+    required int delaySeconds,
+  }) async {
+    await _client.createDenial(
+      CreateDenialRequest(
+        numHops: numHops,
+        delaySeconds: delaySeconds,
+      ),
+    );
+  }
+
+  @override
+  Future<void> cancelDenial(Int64 id) async {
+    await _client.cancelDenial(CancelDenialRequest()..id = id);
+  }
+
+  @override
+  Future<List<Denial>> listDenials() async {
+    final response = await _client.listDenials(Empty());
+    return response.denials;
   }
 }
 

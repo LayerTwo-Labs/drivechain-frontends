@@ -1,6 +1,8 @@
+import 'package:fixnum/src/int64.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
+import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -54,6 +56,21 @@ class MockBitwindowdAPI implements BitwindowAPI {
   @override
   Future<void> stop() async {
     return;
+  }
+
+  @override
+  Future<void> cancelDenial(Int64 id) {
+    return Future.value();
+  }
+
+  @override
+  Future<void> createDenial({required int numHops, required int delaySeconds}) {
+    return Future.value();
+  }
+
+  @override
+  Future<List<Denial>> listDenials() {
+    return Future.value([]);
   }
 }
 

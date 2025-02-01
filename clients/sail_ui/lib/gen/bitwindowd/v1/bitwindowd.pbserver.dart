@@ -16,16 +16,23 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
+import 'bitwindowd.pb.dart' as $3;
 import 'bitwindowd.pbjson.dart';
 
 export 'bitwindowd.pb.dart';
 
 abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> stop($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$3.CreateDenialResponse> createDenial($pb.ServerContext ctx, $3.CreateDenialRequest request);
+  $async.Future<$3.ListDenialsResponse> listDenials($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $3.CancelDenialRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'Stop': return $1.Empty();
+      case 'CreateDenial': return $3.CreateDenialRequest();
+      case 'ListDenials': return $1.Empty();
+      case 'CancelDenial': return $3.CancelDenialRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -33,6 +40,9 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'Stop': return this.stop(ctx, request as $1.Empty);
+      case 'CreateDenial': return this.createDenial(ctx, request as $3.CreateDenialRequest);
+      case 'ListDenials': return this.listDenials(ctx, request as $1.Empty);
+      case 'CancelDenial': return this.cancelDenial(ctx, request as $3.CancelDenialRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
