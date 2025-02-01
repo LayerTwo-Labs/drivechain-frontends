@@ -41,13 +41,6 @@ const (
 	FaucetServiceListClaimsProcedure = "/faucet.v1.FaucetService/ListClaims"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	faucetServiceServiceDescriptor             = v1.File_faucet_v1_faucet_proto.Services().ByName("FaucetService")
-	faucetServiceDispenseCoinsMethodDescriptor = faucetServiceServiceDescriptor.Methods().ByName("DispenseCoins")
-	faucetServiceListClaimsMethodDescriptor    = faucetServiceServiceDescriptor.Methods().ByName("ListClaims")
-)
-
 // FaucetServiceClient is a client for the faucet.v1.FaucetService service.
 type FaucetServiceClient interface {
 	DispenseCoins(context.Context, *connect.Request[v1.DispenseCoinsRequest]) (*connect.Response[v1.DispenseCoinsResponse], error)
@@ -63,17 +56,18 @@ type FaucetServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewFaucetServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) FaucetServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	faucetServiceMethods := v1.File_faucet_v1_faucet_proto.Services().ByName("FaucetService").Methods()
 	return &faucetServiceClient{
 		dispenseCoins: connect.NewClient[v1.DispenseCoinsRequest, v1.DispenseCoinsResponse](
 			httpClient,
 			baseURL+FaucetServiceDispenseCoinsProcedure,
-			connect.WithSchema(faucetServiceDispenseCoinsMethodDescriptor),
+			connect.WithSchema(faucetServiceMethods.ByName("DispenseCoins")),
 			connect.WithClientOptions(opts...),
 		),
 		listClaims: connect.NewClient[v1.ListClaimsRequest, v1.ListClaimsResponse](
 			httpClient,
 			baseURL+FaucetServiceListClaimsProcedure,
-			connect.WithSchema(faucetServiceListClaimsMethodDescriptor),
+			connect.WithSchema(faucetServiceMethods.ByName("ListClaims")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -107,16 +101,17 @@ type FaucetServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewFaucetServiceHandler(svc FaucetServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	faucetServiceMethods := v1.File_faucet_v1_faucet_proto.Services().ByName("FaucetService").Methods()
 	faucetServiceDispenseCoinsHandler := connect.NewUnaryHandler(
 		FaucetServiceDispenseCoinsProcedure,
 		svc.DispenseCoins,
-		connect.WithSchema(faucetServiceDispenseCoinsMethodDescriptor),
+		connect.WithSchema(faucetServiceMethods.ByName("DispenseCoins")),
 		connect.WithHandlerOptions(opts...),
 	)
 	faucetServiceListClaimsHandler := connect.NewUnaryHandler(
 		FaucetServiceListClaimsProcedure,
 		svc.ListClaims,
-		connect.WithSchema(faucetServiceListClaimsMethodDescriptor),
+		connect.WithSchema(faucetServiceMethods.ByName("ListClaims")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/faucet.v1.FaucetService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

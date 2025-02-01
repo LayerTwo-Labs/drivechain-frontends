@@ -1,11 +1,8 @@
-import 'dart:convert';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:faucet/gen/faucet/v1/faucet.pb.dart';
 import 'package:faucet/providers/transactions_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -23,7 +20,7 @@ class FaucetViewModel extends BaseViewModel {
   bool hideDeposits = true;
   SailThemeValues theme = SailThemeValues.light;
 
-  List<GetTransactionResponse> get utxos => _transactionsProvider.claims;
+  List<GetTransactionResponse> get claims => _transactionsProvider.claims;
 
   FaucetViewModel() {
     _init();
@@ -89,6 +86,16 @@ class FaucetViewModel extends BaseViewModel {
     amountController.selection = TextSelection.fromPosition(TextPosition(offset: amountController.text.length));
     notifyListeners();
   }
+
+  @override
+  void dispose() {
+    _transactionsProvider.removeListener(notifyListeners);
+    addressController.removeListener(notifyListeners);
+    amountController.removeListener(_capAmount);
+    addressController.dispose();
+    amountController.dispose();
+    super.dispose();
+  }
 }
 
 @RoutePage()
@@ -133,7 +140,8 @@ class _FaucetPageState extends State<FaucetPage> {
                             try {
                               final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
                               if (clipboardData?.text != null) {
-                                model.addressController.text = clipboardData!.text!;
+                                final address = clipboardData!.text!.trim();
+                                model.addressController.text = address;
                               }
                             } catch (e) {
                               if (!context.mounted) return;
@@ -237,7 +245,7 @@ class _FaucetPageState extends State<FaucetPage> {
                   child: SizedBox(
                     height: 300,
                     child: LatestTransactionTable(
-                      entries: model.utxos,
+                      entries: model.claims,
                     ),
                   ),
                 ),
@@ -265,21 +273,13 @@ class LatestTransactionTable extends StatefulWidget {
 class _LatestTransactionTableState extends State<LatestTransactionTable> {
   String sortColumn = 'time';
   bool sortAscending = true;
-  List<CoreTransaction> entries = [];
-
-  @override
-  void initState() {
-    super.initState();
-    entries = List<CoreTransaction>.from(widget.entries);
-  }
+  late List<CoreTransaction> entries;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!listEquals(entries, widget.entries)) {
-      entries = List<CoreTransaction>.from(widget.entries);
-      onSort(sortColumn);
-    }
+    entries = List<CoreTransaction>.from(widget.entries);
+    sortEntries();
   }
 
   void onSort(String column) {
@@ -371,37 +371,4 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       },
     );
   }
-}
-
-CoreTransaction transactionResponseToUTXO(GetTransactionResponse response) {
-  // Extract details, assuming first detail is the relevant one.
-  var detail = response.details.isNotEmpty ? response.details[0] : null;
-
-  return CoreTransaction(
-    txid: response.txid,
-    vout: detail?.vout ?? 0,
-    address: detail?.address ?? '',
-    category: extractNameFromEnum(
-      detail?.category.name ?? '',
-    ),
-    amount: detail?.amount ?? 0,
-    fee: detail?.fee ?? 0,
-    confirmations: response.confirmations,
-    blockhash: response.blockHash,
-    blockindex: response.blockIndex,
-    blocktime: response.blockTime.seconds.toInt(),
-    time: DateTime.fromMillisecondsSinceEpoch(response.time.seconds.toInt() * 1000),
-    timereceived: DateTime.fromMillisecondsSinceEpoch(response.timeReceived.seconds.toInt() * 1000),
-    bip125Replaceable: extractNameFromEnum(response.bip125Replaceable.name),
-    raw: jsonEncode(response.toProto3Json()), // Convert to raw JSON
-
-    label: '', // Not available in GetTransactionResponse
-    abandoned: false, // Not available in GetTransactionResponse
-    comment: '', // Not available in GetTransactionResponse
-    trusted: false, // Not available in GetTransactionResponse
-  );
-}
-
-String extractNameFromEnum(String enumName) {
-  return enumName.split('_').last;
 }
