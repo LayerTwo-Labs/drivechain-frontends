@@ -158,13 +158,6 @@ Future<void> initDependencies(Logger log, File logFile) async {
     binary: enforerBinary,
   );
 
-  final mainchainRPC = await MainchainRPCLive.create(
-    ParentChain(),
-  );
-  GetIt.I.registerLazySingleton<MainchainRPC>(
-    () => mainchainRPC,
-  );
-
   GetIt.I.registerLazySingleton<EnforcerRPC>(
     () => enforcer,
   );
