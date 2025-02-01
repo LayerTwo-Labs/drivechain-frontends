@@ -36,11 +36,24 @@ const (
 const (
 	// BitwindowdServiceStopProcedure is the fully-qualified name of the BitwindowdService's Stop RPC.
 	BitwindowdServiceStopProcedure = "/bitwindowd.v1.BitwindowdService/Stop"
+	// BitwindowdServiceCreateDenialProcedure is the fully-qualified name of the BitwindowdService's
+	// CreateDenial RPC.
+	BitwindowdServiceCreateDenialProcedure = "/bitwindowd.v1.BitwindowdService/CreateDenial"
+	// BitwindowdServiceListDenialsProcedure is the fully-qualified name of the BitwindowdService's
+	// ListDenials RPC.
+	BitwindowdServiceListDenialsProcedure = "/bitwindowd.v1.BitwindowdService/ListDenials"
+	// BitwindowdServiceCancelDenialProcedure is the fully-qualified name of the BitwindowdService's
+	// CancelDenial RPC.
+	BitwindowdServiceCancelDenialProcedure = "/bitwindowd.v1.BitwindowdService/CancelDenial"
 )
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceClient interface {
 	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	// Deniability operations
+	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[v1.CreateDenialResponse], error)
+	ListDenials(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListDenialsResponse], error)
+	CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewBitwindowdServiceClient constructs a client for the bitwindowd.v1.BitwindowdService service.
@@ -60,12 +73,33 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
 			connect.WithClientOptions(opts...),
 		),
+		createDenial: connect.NewClient[v1.CreateDenialRequest, v1.CreateDenialResponse](
+			httpClient,
+			baseURL+BitwindowdServiceCreateDenialProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("CreateDenial")),
+			connect.WithClientOptions(opts...),
+		),
+		listDenials: connect.NewClient[emptypb.Empty, v1.ListDenialsResponse](
+			httpClient,
+			baseURL+BitwindowdServiceListDenialsProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ListDenials")),
+			connect.WithClientOptions(opts...),
+		),
+		cancelDenial: connect.NewClient[v1.CancelDenialRequest, emptypb.Empty](
+			httpClient,
+			baseURL+BitwindowdServiceCancelDenialProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("CancelDenial")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // bitwindowdServiceClient implements BitwindowdServiceClient.
 type bitwindowdServiceClient struct {
-	stop *connect.Client[emptypb.Empty, emptypb.Empty]
+	stop         *connect.Client[emptypb.Empty, emptypb.Empty]
+	createDenial *connect.Client[v1.CreateDenialRequest, v1.CreateDenialResponse]
+	listDenials  *connect.Client[emptypb.Empty, v1.ListDenialsResponse]
+	cancelDenial *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
@@ -73,9 +107,28 @@ func (c *bitwindowdServiceClient) Stop(ctx context.Context, req *connect.Request
 	return c.stop.CallUnary(ctx, req)
 }
 
+// CreateDenial calls bitwindowd.v1.BitwindowdService.CreateDenial.
+func (c *bitwindowdServiceClient) CreateDenial(ctx context.Context, req *connect.Request[v1.CreateDenialRequest]) (*connect.Response[v1.CreateDenialResponse], error) {
+	return c.createDenial.CallUnary(ctx, req)
+}
+
+// ListDenials calls bitwindowd.v1.BitwindowdService.ListDenials.
+func (c *bitwindowdServiceClient) ListDenials(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListDenialsResponse], error) {
+	return c.listDenials.CallUnary(ctx, req)
+}
+
+// CancelDenial calls bitwindowd.v1.BitwindowdService.CancelDenial.
+func (c *bitwindowdServiceClient) CancelDenial(ctx context.Context, req *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.cancelDenial.CallUnary(ctx, req)
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
+	// Deniability operations
+	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[v1.CreateDenialResponse], error)
+	ListDenials(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListDenialsResponse], error)
+	CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewBitwindowdServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -91,10 +144,34 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("Stop")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceCreateDenialHandler := connect.NewUnaryHandler(
+		BitwindowdServiceCreateDenialProcedure,
+		svc.CreateDenial,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("CreateDenial")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceListDenialsHandler := connect.NewUnaryHandler(
+		BitwindowdServiceListDenialsProcedure,
+		svc.ListDenials,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ListDenials")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceCancelDenialHandler := connect.NewUnaryHandler(
+		BitwindowdServiceCancelDenialProcedure,
+		svc.CancelDenial,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("CancelDenial")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitwindowd.v1.BitwindowdService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitwindowdServiceStopProcedure:
 			bitwindowdServiceStopHandler.ServeHTTP(w, r)
+		case BitwindowdServiceCreateDenialProcedure:
+			bitwindowdServiceCreateDenialHandler.ServeHTTP(w, r)
+		case BitwindowdServiceListDenialsProcedure:
+			bitwindowdServiceListDenialsHandler.ServeHTTP(w, r)
+		case BitwindowdServiceCancelDenialProcedure:
+			bitwindowdServiceCancelDenialHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,4 +183,16 @@ type UnimplementedBitwindowdServiceHandler struct{}
 
 func (UnimplementedBitwindowdServiceHandler) Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.Stop is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[v1.CreateDenialResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.CreateDenial is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ListDenials(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListDenialsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListDenials is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.CancelDenial is not implemented"))
 }

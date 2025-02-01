@@ -1,4 +1,4 @@
-package bitcoind_engine
+package engines
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func New(
+func NewBitcoind(
 	bitcoind *coreproxy.Bitcoind,
 	db *sql.DB,
 ) *Parser {

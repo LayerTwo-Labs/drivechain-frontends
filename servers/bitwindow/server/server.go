@@ -57,11 +57,11 @@ func NewServer(
 		mux:      mux,
 		bitcoind: bitcoindSvc,
 		enforcer: enforcerSvc,
-		wallet:   walletSvc,
+		Wallet:   walletSvc,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
-		onShutdown,
+		onShutdown, database,
 	)))
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
 		bitcoindSvc,
@@ -92,7 +92,7 @@ type Server struct {
 
 	bitcoind *service.Service[*server.Bitcoind]
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet   *service.Service[validatorrpc.WalletServiceClient]
+	Wallet   *service.Service[validatorrpc.WalletServiceClient]
 }
 
 func (s *Server) Handler() http.Handler {
