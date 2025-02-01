@@ -164,6 +164,8 @@ func (s *Server) ListClaims(ctx context.Context, req *connect.Request[faucetv1.L
 		return tx
 	})
 
+	transactions = lo.Reverse(transactions)
+
 	return connect.NewResponse(&faucetv1.ListClaimsResponse{
 		Transactions: transactions,
 	}), nil

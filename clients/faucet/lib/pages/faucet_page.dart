@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:faucet/api/api_base.dart';
 import 'package:faucet/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart';
 import 'package:faucet/gen/faucet/v1/faucet.pb.dart';
+import 'package:faucet/gen/google/protobuf/timestamp.pb.dart';
 import 'package:faucet/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -50,7 +51,7 @@ class FaucetViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<String?> claim() async {
+  Future<String?> claim(BuildContext context) async {
     try {
       dispenseErr = null;
       if (isBusy) {
@@ -65,6 +66,10 @@ class FaucetViewModel extends BaseViewModel {
           amount: amount,
         ),
       );
+
+      if (!context.mounted) return '';
+      showSnackBar(context, 'Dispensed $amount BTC in ${txid.txid}');
+
       return txid.txid;
     } catch (error) {
       dispenseErr = error.toString();
@@ -215,7 +220,7 @@ class _FaucetPageState extends State<FaucetPage> {
                           children: [
                             QtButton(
                               label: 'Send',
-                              onPressed: () => model.claim(),
+                              onPressed: () => model.claim(context),
                               size: ButtonSize.small,
                               disabled: model.isBusy ||
                                   model.amountController.text == '' ||
@@ -273,12 +278,12 @@ class LatestTransactionTable extends StatefulWidget {
 class _LatestTransactionTableState extends State<LatestTransactionTable> {
   String sortColumn = 'time';
   bool sortAscending = true;
-  late List<CoreTransaction> entries;
+  List<GetTransactionResponse> entries = [];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    entries = List<CoreTransaction>.from(widget.entries);
+    entries = widget.entries;
     sortEntries();
   }
 
@@ -300,8 +305,8 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
 
       switch (sortColumn) {
         case 'time':
-          aValue = a.time.millisecondsSinceEpoch;
-          bValue = b.time.millisecondsSinceEpoch;
+          aValue = a.time.toDateTime().millisecondsSinceEpoch;
+          bValue = b.time.toDateTime().millisecondsSinceEpoch;
           break;
         case 'amount':
           aValue = a.amount;
@@ -316,13 +321,19 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           bValue = b.confirmations;
           break;
         case 'category':
-          aValue = a.category;
-          bValue = b.category;
+          aValue = a.details.isEmpty ? '' : a.details.first.category;
+          bValue = b.details.isEmpty ? '' : b.details.first.category;
           break;
       }
 
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
+  }
+
+  String formatTime(Timestamp timestamp) {
+    final dateTime = timestamp.toDateTime();
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -354,9 +365,11 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
         return [
-          SailTableCell(value: entry.time.format()),
+          SailTableCell(value: formatTime(entry.time)),
           SailTableCell(value: entry.amount.toString()),
-          SailTableCell(value: entry.category),
+          SailTableCell(
+            value: entry.details.isEmpty ? '' : entry.details.first.category.toString().replaceAll('CATEGORY_', ''),
+          ),
           SailTableCell(value: entry.confirmations.toString()),
           SailTableCell(value: entry.txid),
         ];
@@ -370,5 +383,15 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         onSort(['time', 'amount', 'category', 'confirmations', 'txid'][columnIndex]);
       },
     );
+  }
+
+  @override
+  void didUpdateWidget(LatestTransactionTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.entries != oldWidget.entries) {
+      entries = widget.entries;
+      sortEntries();
+      setState(() {});
+    }
   }
 }
