@@ -7,6 +7,10 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart' as protobuf;
+import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -128,9 +132,15 @@ Future<void> initDependencies(Logger log, File logFile) async {
 
   var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
   log.i('logging server logs to: $serverLogFile');
+  final baseUrl = 'http://${Environment.bitwindowdHost.value}:${Environment.bitwindowdPort.value}';
+  final httpClient = createHttpClient();
+  final connectTransport = connect.Transport(
+    baseUrl: baseUrl,
+    codec: const protobuf.ProtoCodec(),
+    httpClient: httpClient,
+  );
   final bitwindow = await BitwindowRPCLive.create(
-    host: env(Environment.bitwindowdHost),
-    port: env(Environment.bitwindowdPort),
+    transport: connectTransport,
     binary: BitWindow(),
   );
   GetIt.I.registerLazySingleton<BitwindowRPC>(
@@ -139,7 +149,20 @@ Future<void> initDependencies(Logger log, File logFile) async {
 
   final enforerBinary = Enforcer();
   final enforcer = await EnforcerLive.create(
+    transport: grpc.Transport(
+      baseUrl: 'http://127.0.0.1:${enforerBinary.port}',
+      codec: const protobuf.ProtoCodec(),
+      httpClient: httpClient,
+      statusParser: const protobuf.StatusParser(),
+    ),
     binary: enforerBinary,
+  );
+
+  final mainchainRPC = await MainchainRPCLive.create(
+    ParentChain(),
+  );
+  GetIt.I.registerLazySingleton<MainchainRPC>(
+    () => mainchainRPC,
   );
 
   GetIt.I.registerLazySingleton<EnforcerRPC>(

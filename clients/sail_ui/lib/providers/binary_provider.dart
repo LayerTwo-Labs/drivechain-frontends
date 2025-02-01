@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/providers/process_provider.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
@@ -180,7 +181,7 @@ class BinaryProvider extends ChangeNotifier {
   String? canStart(Binary binary) {
     final mainchainReady = mainchainConnected && !mainchainRPC.inHeaderSync;
     return switch (binary) {
-      Enforcer() => mainchainReady ? null : 'Mainchain must be started and headers synced before starting Enforcer',
+      Enforcer() => mainchainReady ? null : 'Mainchain must be started and fully synced before starting Enforcer',
       BitWindow() => enforcerConnected && mainchainReady
           ? null
           : 'Mainchain and Enforcer must be running and fully synced before starting BitWindow',

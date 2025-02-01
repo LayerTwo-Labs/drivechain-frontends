@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
-import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pbgrpc.dart';
+import 'package:sail_ui/gen/cusf/mainchain/v1/validator.connect.client.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';

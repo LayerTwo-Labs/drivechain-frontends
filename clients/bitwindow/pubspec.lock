@@ -182,6 +182,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.0"
+  connectrpc:
+    dependency: "direct main"
+    description:
+      name: connectrpc
+      sha256: "22dce99cc292b43b5996ad914ea4bcfb85d9095d0486e4442c51b87ff212fcb8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
   console:
     dependency: transitive
     description:
@@ -406,22 +414,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.2.1"
-  google_identity_services_web:
-    dependency: transitive
-    description:
-      name: google_identity_services_web
-      sha256: "55580f436822d64c8ff9a77e37d61f5fb1e6c7ec9d632a43ee324e2a05c3c6c9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.3"
-  googleapis_auth:
-    dependency: transitive
-    description:
-      name: googleapis_auth
-      sha256: befd71383a955535060acde8792e7efc11d2fccd03dd1d3ec434e85b68775938
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.6.0"
   graphs:
     dependency: transitive
     description:
@@ -430,14 +422,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
-  grpc:
-    dependency: "direct main"
-    description:
-      name: grpc
-      sha256: "5b99b7a420937d4361ece68b798c9af8e04b5bc128a7859f2a4be87427694813"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.1"
   http:
     dependency: transitive
     description:

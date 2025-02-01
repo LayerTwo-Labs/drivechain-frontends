@@ -2,6 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart' as protobuf;
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -108,15 +113,29 @@ Future<void> initDependencies(Logger log) async {
           GetIt.I.registerSingleton<MainchainRPC>(mainchain);
 
         case Enforcer():
+          final httpClient = createHttpClient();
+          final transport = grpc.Transport(
+            baseUrl: 'http://127.0.0.1:${binary.port}',
+            codec: const ProtoCodec(),
+            httpClient: httpClient,
+            statusParser: const protobuf.StatusParser(),
+          );
           final enforcer = await EnforcerLive.create(
             binary: binary,
+            transport: transport,
           );
           GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
         case BitWindow():
+          final baseUrl = 'http://127.0.0.1:${binary.port}';
+          final httpClient = createHttpClient();
+          final transport = connect.Transport(
+            baseUrl: baseUrl,
+            codec: const ProtoCodec(),
+            httpClient: httpClient,
+          );
           final bitwindow = await BitwindowRPCLive.create(
-            host: '127.0.0.1',
-            port: binary.port,
+            transport: transport,
             binary: binary,
           );
           GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
