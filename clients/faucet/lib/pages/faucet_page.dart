@@ -277,7 +277,7 @@ class LatestTransactionTable extends StatefulWidget {
 
 class _LatestTransactionTableState extends State<LatestTransactionTable> {
   String sortColumn = 'time';
-  bool sortAscending = true;
+  bool sortAscending = false;
   List<GetTransactionResponse> entries = [];
 
   @override
