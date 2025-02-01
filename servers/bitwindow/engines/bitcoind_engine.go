@@ -271,16 +271,25 @@ func (p *Parser) findOPReturns(
 	if err != nil {
 		return nil, fmt.Errorf("could not decode raw transaction: %w", err)
 	}
-	txid := decodedTx.MsgTx().TxID()
+	msgTx := decodedTx.MsgTx()
+	txid := msgTx.TxID()
 
-	isCoinbase := len(decodedTx.MsgTx().TxIn) > 0 && decodedTx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
+	isCoinbase := len(msgTx.TxIn) > 0 && msgTx.TxIn[0].PreviousOutPoint.Hash.String() == "0000000000000000000000000000000000000000000000000000000000000000"
 	// every coinbase transaction has a OP_RETURN output we don't care about
-	if isCoinbase && len(decodedTx.MsgTx().TxOut) == 2 {
+	if isCoinbase && len(msgTx.TxOut) == 2 {
 		return nil, nil
 	}
 
+	// Check outputs for OP_NOP5
+	for _, txout := range msgTx.TxOut {
+		script := txout.PkScript
+		if len(script) > 0 && script[0] == txscript.OP_NOP5 {
+			return nil, nil // OP_DRIVECHAIN, skipping
+		}
+	}
+
 	var opReturns []opreturns.OPReturn
-	for vout, txout := range decodedTx.MsgTx().TxOut {
+	for vout, txout := range msgTx.TxOut {
 		if len(txout.PkScript) < 2 {
 			continue
 		}
@@ -297,7 +306,7 @@ func (p *Parser) findOPReturns(
 		if isOPReturn {
 			// Calculate fee by getting all inputs and outputs
 			var inputSum int64
-			for _, txin := range decodedTx.MsgTx().TxIn {
+			for _, txin := range msgTx.TxIn {
 				if isCoinbase {
 					continue // Coinbase input has no previous output to look up
 				}
@@ -314,7 +323,7 @@ func (p *Parser) findOPReturns(
 			}
 
 			var outputSum int64
-			for _, txout := range decodedTx.MsgTx().TxOut {
+			for _, txout := range msgTx.TxOut {
 				outputSum += txout.Value
 			}
 
