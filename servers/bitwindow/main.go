@@ -11,7 +11,7 @@ import (
 	database "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dial"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
-	bitcoind_engine "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/engines"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/engines"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/server"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -117,16 +117,20 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to bitcoind: %w", err)
 	}
-	bitcoinEngine := bitcoind_engine.New(bitcoind, db)
+	bitcoinEngine := engines.NewBitcoind(bitcoind, db)
+	deniabilityEngine := engines.NewDeniability(srv.Wallet, db)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
 	errs := make(chan error)
 	go func() {
+		errs <- srv.Serve(ctx, conf.APIHost)
+	}()
+	go func() {
 		errs <- bitcoinEngine.Run(ctx)
 	}()
 	go func() {
-		errs <- srv.Serve(ctx, conf.APIHost)
+		errs <- deniabilityEngine.Run(ctx)
 	}()
 	go func() {
 		<-ctx.Done()
