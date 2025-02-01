@@ -9,11 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 @RoutePage()
 class SidechainsPage extends StatelessWidget {
@@ -177,7 +175,6 @@ class SelectableListTile extends StatelessWidget {
 class SidechainsViewModel extends BaseViewModel {
   final TransactionProvider transactionsProvider = GetIt.I.get<TransactionProvider>();
   final SidechainProvider sidechainProvider = GetIt.I.get<SidechainProvider>();
-  final BalanceProvider balanceProvider = GetIt.I.get<BalanceProvider>();
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
 
   final TextEditingController addressController = TextEditingController();
@@ -362,34 +359,11 @@ class SidechainsViewModel extends BaseViewModel {
 
     try {
       setBusy(true);
-      final txid = await api.wallet.createSidechainDeposit(
+      await api.wallet.createSidechainDeposit(
         _selectedIndex ?? 254,
         addressController.text,
         double.parse(depositAmountController.text),
         double.parse(feeController.text),
-      );
-
-      if (!context.mounted) return;
-      final url = 'https://mempool.drivechain.live/tx/$txid';
-      showSnackBar(
-        context,
-        '',
-        widget: Row(
-          children: [
-            SailText.primary13('Dispensed ${double.parse(depositAmountController.text)} BTC in '),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => launchUrl(Uri.parse(url)),
-                child: SailText.primary13(
-                  txid,
-                  color: context.sailTheme.colors.info,
-                  underline: true,
-                ),
-              ),
-            ),
-          ],
-        ),
       );
     } catch (e) {
       if (context.mounted) {
@@ -401,7 +375,6 @@ class SidechainsViewModel extends BaseViewModel {
 
     // refetch sidechain transaction list & transaction list
     await sidechainProvider.fetch();
-    await balanceProvider.fetch();
     await transactionsProvider.fetch();
   }
 

@@ -16,39 +16,39 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
-import 'wallet.pb.dart' as $5;
+import 'wallet.pb.dart' as $6;
 import 'wallet.pbjson.dart';
 
 export 'wallet.pb.dart';
 
 abstract class WalletServiceBase extends $pb.GeneratedService {
-  $async.Future<$5.SendTransactionResponse> sendTransaction($pb.ServerContext ctx, $5.SendTransactionRequest request);
-  $async.Future<$5.GetBalanceResponse> getBalance($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$5.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$5.ListTransactionsResponse> listTransactions($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$5.ListSidechainDepositsResponse> listSidechainDeposits($pb.ServerContext ctx, $5.ListSidechainDepositsRequest request);
-  $async.Future<$5.CreateSidechainDepositResponse> createSidechainDeposit($pb.ServerContext ctx, $5.CreateSidechainDepositRequest request);
+  $async.Future<$6.SendTransactionResponse> sendTransaction($pb.ServerContext ctx, $6.SendTransactionRequest request);
+  $async.Future<$6.GetBalanceResponse> getBalance($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$6.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$6.ListTransactionsResponse> listTransactions($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$6.ListSidechainDepositsResponse> listSidechainDeposits($pb.ServerContext ctx, $6.ListSidechainDepositsRequest request);
+  $async.Future<$6.CreateSidechainDepositResponse> createSidechainDeposit($pb.ServerContext ctx, $6.CreateSidechainDepositRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'SendTransaction': return $5.SendTransactionRequest();
+      case 'SendTransaction': return $6.SendTransactionRequest();
       case 'GetBalance': return $1.Empty();
       case 'GetNewAddress': return $1.Empty();
       case 'ListTransactions': return $1.Empty();
-      case 'ListSidechainDeposits': return $5.ListSidechainDepositsRequest();
-      case 'CreateSidechainDeposit': return $5.CreateSidechainDepositRequest();
+      case 'ListSidechainDeposits': return $6.ListSidechainDepositsRequest();
+      case 'CreateSidechainDeposit': return $6.CreateSidechainDepositRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'SendTransaction': return this.sendTransaction(ctx, request as $5.SendTransactionRequest);
+      case 'SendTransaction': return this.sendTransaction(ctx, request as $6.SendTransactionRequest);
       case 'GetBalance': return this.getBalance(ctx, request as $1.Empty);
       case 'GetNewAddress': return this.getNewAddress(ctx, request as $1.Empty);
       case 'ListTransactions': return this.listTransactions(ctx, request as $1.Empty);
-      case 'ListSidechainDeposits': return this.listSidechainDeposits(ctx, request as $5.ListSidechainDepositsRequest);
-      case 'CreateSidechainDeposit': return this.createSidechainDeposit(ctx, request as $5.CreateSidechainDepositRequest);
+      case 'ListSidechainDeposits': return this.listSidechainDeposits(ctx, request as $6.ListSidechainDepositsRequest);
+      case 'CreateSidechainDeposit': return this.createSidechainDeposit(ctx, request as $6.CreateSidechainDepositRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

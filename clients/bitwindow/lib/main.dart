@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/content_provider.dart';
+import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -181,6 +182,10 @@ Future<void> initDependencies(Logger log, File logFile) async {
     () => txProvider,
   );
   unawaited(txProvider.fetch());
+
+  GetIt.I.registerLazySingleton<DenialProvider>(
+    () => DenialProvider(),
+  );
 
   final newsProvider = NewsProvider();
   GetIt.I.registerLazySingleton<NewsProvider>(
