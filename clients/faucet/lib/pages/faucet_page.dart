@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FaucetViewModel extends BaseViewModel {
   ClientSettings get _clientSettings => GetIt.I.get<ClientSettings>();
@@ -68,7 +69,28 @@ class FaucetViewModel extends BaseViewModel {
       );
 
       if (!context.mounted) return '';
-      showSnackBar(context, 'Dispensed $amount BTC in ${txid.txid}');
+
+      final url = 'https://mempool.drivechain.live/tx/${txid.txid}';
+      showSnackBar(
+        context,
+        '',
+        widget: Row(
+          children: [
+            SailText.primary13('Dispensed $amount BTC in '),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => launchUrl(Uri.parse(url)),
+                child: SailText.primary13(
+                  txid.txid,
+                  color: context.sailTheme.colors.info,
+                  underline: true,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 
       return txid.txid;
     } catch (error) {

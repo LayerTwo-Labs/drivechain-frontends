@@ -144,7 +144,6 @@ func (s *Server) ListClaims(ctx context.Context, req *connect.Request[faucetv1.L
 	txs, err := s.bitcoind.ListTransactions(ctx, &connect.Request[bitcoindv1alpha.ListTransactionsRequest]{
 		Msg: &bitcoindv1alpha.ListTransactionsRequest{
 			Count: 1000,
-			Skip:  180,
 		},
 	})
 	if err != nil {
@@ -164,8 +163,6 @@ func (s *Server) ListClaims(ctx context.Context, req *connect.Request[faucetv1.L
 		tx.Fee = math.Abs(tx.Fee)
 		return tx
 	})
-
-	transactions = lo.Reverse(transactions)
 
 	return connect.NewResponse(&faucetv1.ListClaimsResponse{
 		Transactions: transactions,
