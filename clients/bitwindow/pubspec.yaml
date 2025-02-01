@@ -6,7 +6,7 @@ publish_to: "none"
 version: 0.0.1
 
 environment:
-  sdk: '>=3.4.1 <4.0.0'
+  sdk: ">=3.4.1 <4.0.0"
 
 dependencies:
   flutter:
@@ -21,7 +21,6 @@ dependencies:
   stacked: ^3.4.3
   qr_flutter: ^4.1.0
   cupertino_icons: ^1.0.8
-  grpc: ^4.0.1
   path_provider: ^2.1.5
   sail_ui:
     path: ../sail_ui
@@ -41,7 +40,8 @@ dependencies:
   url_launcher: ^6.3.1
   pointycastle: ^3.9.1
   crypto: ^3.0.6
-  
+  connectrpc: ^0.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -109,11 +109,10 @@ flutter:
           style: italic
           weight: 600
 
-
 # Windows release stuff.
 # This currently relies on having a self-signed certificate
 # locally available, which must be changed before this is
-# properly deployed (either published to the MS store or 
+# properly deployed (either published to the MS store or
 # as an installer on a website somewhere).
 # https://pub.dev/packages/msix
 msix_config:
@@ -126,6 +125,6 @@ msix_config:
   logo_path: windows/runner/resources/app_icon.ico
   capabilities: internetClient,internetClientServer
   os_min_version: 10.0.17763.0
-  store_certificate: false  # Use a test certificate instead of store certificate
+  store_certificate: false # Use a test certificate instead of store certificate
   install_certificate: false # Don't install certificate during CI builds
-  store: false  # Not publishing to Microsoft Store
+  store: false # Not publishing to Microsoft Store

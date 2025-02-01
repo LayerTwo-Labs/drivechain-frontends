@@ -13,3 +13,22 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+import '../../google/protobuf/empty.pbjson.dart' as $1;
+
+const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
+  '1': 'BitwindowdService',
+  '2': [
+    {'1': 'Stop', '2': '.google.protobuf.Empty', '3': '.google.protobuf.Empty'},
+  ],
+};
+
+@$core.Deprecated('Use bitwindowdServiceDescriptor instead')
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitwindowdServiceBase$messageJson = {
+  '.google.protobuf.Empty': $1.Empty$json,
+};
+
+/// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
+final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
+    'ChFCaXR3aW5kb3dkU2VydmljZRI2CgRTdG9wEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GhYuZ2'
+    '9vZ2xlLnByb3RvYnVmLkVtcHR5');
+

@@ -1,5 +1,9 @@
 import 'dart:io';
 
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart' as protobuf;
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -59,8 +63,16 @@ Future<void> initDependencies(Sidechain chain) async {
   );
 
   final binary = Enforcer();
+  final httpClient = createHttpClient();
+  final transport = grpc.Transport(
+    baseUrl: 'http://127.0.0.1:${binary.port}',
+    codec: const ProtoCodec(),
+    httpClient: httpClient,
+    statusParser: const protobuf.StatusParser(),
+  );
   final enforcer = await EnforcerLive.create(
     binary: binary,
+    transport: transport,
   );
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 

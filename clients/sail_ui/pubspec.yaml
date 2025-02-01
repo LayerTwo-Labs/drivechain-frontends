@@ -4,45 +4,45 @@ version: 0.0.1
 publish_to: none
 
 environment:
-    sdk: '>=3.3.0 <4.0.0'
-    flutter: '>=1.17.0'
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=1.17.0"
 
 dependencies:
-    dart_coin_rpc:
-        git:
-            url: https://github.com/barebitcoin/dart_coin_rpc.git
-            # master, as of 08.06.2024
-            ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
-    flutter:
-        sdk: flutter
-    flutter_custom_tabs: ^2.1.0
-    flutter_svg: ^2.0.17
-    dio: ^5.7.0
-    fixnum: ^1.1.0
-    path: ^1.8.3
-    archive: ^3.4.10  
-    intl: ^0.20.2
-    crypto: ^3.0.6
-    logger: ^2.5.0
-    grpc: ^4.0.1
-    shared_preferences: ^2.4.0
-    stacked: ^3.4.3
-    auto_route: ^9.3.0+1
-    get_it: ^7.7.0
-    collection: ^1.18.0
-    path_provider: ^2.1.5
-    synchronized: ^3.3.0+3
-    flutter_markdown: ^0.7.5
-    url_launcher: ^6.3.1
+  dart_coin_rpc:
+    git:
+      url: https://github.com/barebitcoin/dart_coin_rpc.git
+      # master, as of 08.06.2024
+      ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
+  flutter:
+    sdk: flutter
+  flutter_custom_tabs: ^2.1.0
+  flutter_svg: ^2.0.17
+  dio: ^5.7.0
+  fixnum: ^1.1.0
+  path: ^1.8.3
+  archive: ^3.4.10
+  intl: ^0.20.2
+  crypto: ^3.0.6
+  logger: ^2.5.0
+  shared_preferences: ^2.4.0
+  stacked: ^3.4.3
+  auto_route: ^9.3.0+1
+  get_it: ^7.7.0
+  collection: ^1.18.0
+  path_provider: ^2.1.5
+  synchronized: ^3.3.0+3
+  flutter_markdown: ^0.7.5
+  url_launcher: ^6.3.1
+  connectrpc: ^0.2.0
 
 dev_dependencies:
-    flutter_test:
-        sdk: flutter
-    flutter_lints: ^5.0.0
-    auto_route_generator: ^9.3.1
-    build_runner: ^2.4.14
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  auto_route_generator: ^9.3.1
+  build_runner: ^2.4.14
 
 flutter:
-    assets:
-        - assets/svgs/
-        - assets/pngs/
+  assets:
+    - assets/svgs/
+    - assets/pngs/

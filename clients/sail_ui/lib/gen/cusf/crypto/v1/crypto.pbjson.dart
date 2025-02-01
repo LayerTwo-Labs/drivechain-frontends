@@ -13,6 +13,9 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+import '../../../google/protobuf/wrappers.pbjson.dart' as $0;
+import '../../common/v1/common.pbjson.dart' as $1;
+
 @$core.Deprecated('Use hmacSha512RequestDescriptor instead')
 const HmacSha512Request$json = {
   '1': 'HmacSha512Request',
@@ -148,4 +151,45 @@ const Secp256k1VerifyResponse$json = {
 /// Descriptor for `Secp256k1VerifyResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List secp256k1VerifyResponseDescriptor = $convert.base64Decode(
     'ChdTZWNwMjU2azFWZXJpZnlSZXNwb25zZRIUCgV2YWxpZBgBIAEoCFIFdmFsaWQ=');
+
+const $core.Map<$core.String, $core.dynamic> CryptoServiceBase$json = {
+  '1': 'CryptoService',
+  '2': [
+    {'1': 'HmacSha512', '2': '.cusf.crypto.v1.HmacSha512Request', '3': '.cusf.crypto.v1.HmacSha512Response'},
+    {'1': 'Ripemd160', '2': '.cusf.crypto.v1.Ripemd160Request', '3': '.cusf.crypto.v1.Ripemd160Response'},
+    {'1': 'Secp256k1SecretKeyToPublicKey', '2': '.cusf.crypto.v1.Secp256k1SecretKeyToPublicKeyRequest', '3': '.cusf.crypto.v1.Secp256k1SecretKeyToPublicKeyResponse'},
+    {'1': 'Secp256k1Sign', '2': '.cusf.crypto.v1.Secp256k1SignRequest', '3': '.cusf.crypto.v1.Secp256k1SignResponse'},
+    {'1': 'Secp256k1Verify', '2': '.cusf.crypto.v1.Secp256k1VerifyRequest', '3': '.cusf.crypto.v1.Secp256k1VerifyResponse'},
+  ],
+};
+
+@$core.Deprecated('Use cryptoServiceDescriptor instead')
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> CryptoServiceBase$messageJson = {
+  '.cusf.crypto.v1.HmacSha512Request': HmacSha512Request$json,
+  '.cusf.common.v1.Hex': $1.Hex$json,
+  '.google.protobuf.StringValue': $0.StringValue$json,
+  '.cusf.crypto.v1.HmacSha512Response': HmacSha512Response$json,
+  '.cusf.crypto.v1.Ripemd160Request': Ripemd160Request$json,
+  '.cusf.crypto.v1.Ripemd160Response': Ripemd160Response$json,
+  '.cusf.crypto.v1.Secp256k1SecretKeyToPublicKeyRequest': Secp256k1SecretKeyToPublicKeyRequest$json,
+  '.cusf.common.v1.ConsensusHex': $1.ConsensusHex$json,
+  '.cusf.crypto.v1.Secp256k1SecretKeyToPublicKeyResponse': Secp256k1SecretKeyToPublicKeyResponse$json,
+  '.cusf.crypto.v1.Secp256k1SignRequest': Secp256k1SignRequest$json,
+  '.cusf.crypto.v1.Secp256k1SignResponse': Secp256k1SignResponse$json,
+  '.cusf.crypto.v1.Secp256k1VerifyRequest': Secp256k1VerifyRequest$json,
+  '.cusf.crypto.v1.Secp256k1VerifyResponse': Secp256k1VerifyResponse$json,
+};
+
+/// Descriptor for `CryptoService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
+final $typed_data.Uint8List cryptoServiceDescriptor = $convert.base64Decode(
+    'Cg1DcnlwdG9TZXJ2aWNlElMKCkhtYWNTaGE1MTISIS5jdXNmLmNyeXB0by52MS5IbWFjU2hhNT'
+    'EyUmVxdWVzdBoiLmN1c2YuY3J5cHRvLnYxLkhtYWNTaGE1MTJSZXNwb25zZRJQCglSaXBlbWQx'
+    'NjASIC5jdXNmLmNyeXB0by52MS5SaXBlbWQxNjBSZXF1ZXN0GiEuY3VzZi5jcnlwdG8udjEuUm'
+    'lwZW1kMTYwUmVzcG9uc2USjAEKHVNlY3AyNTZrMVNlY3JldEtleVRvUHVibGljS2V5EjQuY3Vz'
+    'Zi5jcnlwdG8udjEuU2VjcDI1NmsxU2VjcmV0S2V5VG9QdWJsaWNLZXlSZXF1ZXN0GjUuY3VzZi'
+    '5jcnlwdG8udjEuU2VjcDI1NmsxU2VjcmV0S2V5VG9QdWJsaWNLZXlSZXNwb25zZRJcCg1TZWNw'
+    'MjU2azFTaWduEiQuY3VzZi5jcnlwdG8udjEuU2VjcDI1NmsxU2lnblJlcXVlc3QaJS5jdXNmLm'
+    'NyeXB0by52MS5TZWNwMjU2azFTaWduUmVzcG9uc2USYgoPU2VjcDI1NmsxVmVyaWZ5EiYuY3Vz'
+    'Zi5jcnlwdG8udjEuU2VjcDI1NmsxVmVyaWZ5UmVxdWVzdBonLmN1c2YuY3J5cHRvLnYxLlNlY3'
+    'AyNTZrMVZlcmlmeVJlc3BvbnNl');
 

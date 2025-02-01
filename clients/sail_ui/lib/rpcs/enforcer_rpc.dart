@@ -1,10 +1,11 @@
 import 'dart:io';
 
-import 'package:grpc/grpc.dart';
+import 'package:connectrpc/connect.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pbgrpc.dart';
+import 'package:sail_ui/gen/cusf/mainchain/v1/validator.connect.client.dart';
+import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pb.dart';
 
 /// API to the enforcer server
 abstract class EnforcerRPC extends RPCConnection {
@@ -31,6 +32,7 @@ class EnforcerLive extends EnforcerRPC {
   // Async factory
   static Future<EnforcerLive> create({
     required Binary binary,
+    required Transport transport,
   }) async {
     final conf = await getMainchainConf();
     final logPath = binary.logPath();
@@ -41,22 +43,12 @@ class EnforcerLive extends EnforcerRPC {
       logPath: logPath,
     );
 
-    await instance._init();
+    await instance._init(transport);
     return instance;
   }
 
-  Future<void> _init() async {
-    final channel = ClientChannel(
-      '127.0.0.1',
-      port: binary.port,
-      options: const ChannelOptions(
-        credentials: ChannelCredentials.insecure(),
-        idleTimeout: Duration(seconds: 5),
-        connectionTimeout: Duration(seconds: 5),
-      ),
-    );
-
-    validator = ValidatorServiceClient(channel);
+  Future<void> _init(Transport transport) async {
+    validator = ValidatorServiceClient(transport);
     await startConnectionTimer();
   }
 
