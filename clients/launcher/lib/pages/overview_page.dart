@@ -451,14 +451,7 @@ class _OverviewPageState extends State<OverviewPage> {
               ),
               const SizedBox(height: 12),
               _buildProgressIndicator(binary, status),
-              if (status?.error != null || error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: SailText.secondary13(
-                    status?.error ?? error!,
-                    color: SailColorScheme.red,
-                  ),
-                ),
+              ErrorComponent(error: status?.error ?? error ?? ''),
             ],
           ),
           SailSpacing(SailStyleValues.padding08),

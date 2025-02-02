@@ -27,6 +27,7 @@ export './widgets/chips/connection_success_chip.dart';
 export './widgets/components/core_transaction.dart';
 export './widgets/components/daemon_connection_card.dart';
 export './widgets/components/dashboard_group.dart';
+export './widgets/components/error_component.dart';
 export './widgets/components/expanded_tx_view.dart';
 export './widgets/components/raw_transaction.dart';
 export './widgets/components/table.dart';
