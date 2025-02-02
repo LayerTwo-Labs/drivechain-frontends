@@ -128,6 +128,7 @@ class SailText {
     bool bold = false,
     Color? color,
     bool underline = false,
+    bool monospace = false,
   }) {
     return Builder(
       builder: (context) {
@@ -139,6 +140,7 @@ class SailText {
             fontWeight: bold ? SailStyleValues.boldWeight : null,
             decoration: underline ? TextDecoration.underline : TextDecoration.none,
             decorationColor: underline ? (color ?? theme.colors.text) : null,
+            fontFamily: monospace ? 'SourceCodePro' : 'Inter',
           ),
           textAlign: textAlign,
         );

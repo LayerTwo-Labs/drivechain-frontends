@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/modals/daemon_settings_modal.dart';
 
 class DaemonConnectionCard extends StatelessWidget {
   final void Function(String name, String logPath)? navigateToLogs;
@@ -42,6 +43,19 @@ class DaemonConnectionCard extends StatelessWidget {
                         : theme.colors.error,
           ),
           Expanded(child: Container()),
+          SailScaleButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => DaemonConnectionDetailsModal(
+                  connection: connection,
+                ),
+              );
+            },
+            style: SailButtonStyle.secondary,
+            pressed: connection.initializingBinary,
+            child: SailSVG.fromAsset(SailSVGAsset.iconTabSettings, width: 18),
+          ),
           SailScaleButton(
             onPressed: restartDaemon,
             style: SailButtonStyle.secondary,
