@@ -2,6 +2,63 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+class StaticField extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool copyable;
+
+  const StaticField({
+    super.key,
+    required this.label,
+    required this.value,
+    this.copyable = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary13(
+          label,
+          color: context.sailTheme.colors.textSecondary,
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: SailText.primary13(
+                value,
+                color: context.sailTheme.colors.text,
+                monospace: true,
+              ),
+            ),
+            if (copyable)
+              QtIconButton(
+                tooltip: 'Copy to clipboard',
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: value));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Copied $label to clipboard'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  Icons.copy,
+                  size: 16,
+                  color: context.sailTheme.colors.text,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
 class StaticActionField extends StatelessWidget {
   final String? label;
   final String value;
