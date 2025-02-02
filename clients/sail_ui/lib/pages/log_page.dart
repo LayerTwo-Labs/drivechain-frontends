@@ -140,6 +140,7 @@ class _LogPageState extends State<LogPage> {
         final newLines = newContent
             .split('\n')
             .where((line) => line.isNotEmpty)
+            .where((line) => !isSpam(line))
             .map((line) => line.replaceAll(RegExp(r'^flutter: '), '')); // Just remove flutter prefix
 
         setState(() {
@@ -239,8 +240,10 @@ class LogPageViewModel extends BaseViewModel {
     focusNode = FocusNode();
 
     _logSubscription = watchLogFile(logPath).listen((line) {
-      _logLines.add(line);
-      _scrollToBottom();
+      if (!isSpam(line)) {
+        _logLines.add(line);
+        _scrollToBottom();
+      }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

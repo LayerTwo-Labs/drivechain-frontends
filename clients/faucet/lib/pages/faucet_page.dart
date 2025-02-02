@@ -148,6 +148,8 @@ class _FaucetPageState extends State<FaucetPage> {
                 title: 'Dispense Drivechain Coins',
                 subtitle: 'Send Drivechain coins to your L1-address',
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -260,7 +262,8 @@ class _FaucetPageState extends State<FaucetPage> {
                         // Balance
                       ],
                     ),
-                    SailText.primary13(model.dispenseErr ?? '', color: SailColorScheme.red),
+                    if (model.dispenseErr != null) const SizedBox(height: SailStyleValues.padding16),
+                    ErrorComponent(error: model.dispenseErr ?? ''),
                   ],
                 ),
               ),

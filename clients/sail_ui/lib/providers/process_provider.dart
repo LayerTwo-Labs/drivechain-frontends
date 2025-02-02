@@ -270,6 +270,10 @@ class ProcessProvider extends ChangeNotifier {
 }
 
 bool isSpam(String data) {
+  if (data.contains('tower_http::trace::on_response')) {
+    return true;
+  }
+
   if (data.contains('tower_http') && data.contains('registry')) {
     return true;
   }
