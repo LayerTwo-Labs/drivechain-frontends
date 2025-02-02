@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
-import 'package:flutter/material.dart';
 
 /// RPC connection the sidechain node.
 abstract class TestchainRPC extends SidechainRPC {
@@ -265,7 +265,7 @@ class TestchainRPCLive extends TestchainRPC {
   Future<void> stopRPC() async {
     await _client().call('stop');
     // can't trust the rpc, give it a moment to stop
-    await Future.delayed(const Duration(seconds: 5));
+    await Future.delayed(const Duration(seconds: 2));
   }
 
   @override

@@ -153,103 +153,105 @@ abstract class RPCConnection extends ChangeNotifier {
 
     log.i('init binaries: checking $binary connection ${conf.host}:${conf.port}');
 
-    await startConnectionTimer();
-    // If we managed to connect to an already running daemon, we're finished here!
-    if (connected) {
-      log.i('init binaries: $binary is already running, not doing anything');
-      initializingBinary = false;
-      notifyListeners();
-      return;
-    }
-
-    if (!context.mounted) {
-      initializingBinary = false;
-      notifyListeners();
-      return;
-    }
-
-    log.i('init binaries: starting $binary ${args.join(" ")}');
-
-    int pid;
     try {
-      pid = await processes.start(
-        context,
-        binary.binary,
-        args,
-        stopRPC,
-      );
-      log.i('init binaries: started $binary with PID $pid');
-    } catch (err) {
-      log.e('init binaries: could not start $binary daemon', error: err);
-      initializingBinary = false;
-      connectionError = 'could not start $binary daemon: $err';
-      connected = false;
-      notifyListeners();
-      return;
-    }
-
-    log.i('init binaries: waiting for $binary connection');
-
-    var timeout = const Duration(seconds: 60);
-    if (binary.binary == 'zsided') {
-      // zcash can take a long time. initial sync as well
-      timeout = const Duration(seconds: 5 * 60);
-    }
-    try {
-      await Future.any([
-        // Happy case: able to connect. we start a poller at the
-        // beginning of this function that sets the connected variable
-        // we return here
-        waitForBoolToBeTrue(() async {
-          return connected;
-        }),
-
-        // A sad case: Binary is running, but not working for some reason
-        waitForBoolToBeTrue(() async {
-          return connectionError != null && !initializingBinary;
-        }),
-
-        // Not so happy case: process exited
-        // Throw an error, which causes the error message to be shown
-        // in the daemon status chip
-        waitForBoolToBeTrue(() async {
-          final res = processes.exited(pid);
-          return res != null;
-        }).then(
-          (_) {
-            initializingBinary = false;
-            connectionError = processes.exited(pid)?.message ?? "'$binary' exited";
-            throw connectionError!;
-          },
-        ),
-
-        Future.delayed(timeout).then(
-          (_) => throw "'$binary' connection timed out after ${timeout.inSeconds}s",
-        ),
-        // Timeout case!
-      ]);
-
-      log.i('init binaries: $binary connected');
-    } catch (err) {
-      log.e("init binaries: couldn't connect to $binary", error: err);
-
-      // We've quit! Assuming there's error logs, somewhere.
-      if (!processes.running(pid) && connectionError == null) {
-        final logs = await processes.stderr(pid).toList();
-        log.e('$binary exited before we could connect, dumping logs');
-        for (var line in logs) {
-          log.e('$binary: $line');
-        }
-
-        var lastLine = _stripFromString(logs.last, ': ');
-        connectionError = lastLine;
-      } else {
-        connectionError ??= err.toString();
+      await startConnectionTimer();
+      // If we managed to connect to an already running daemon, we're finished here!
+      if (connected) {
+        log.i('init binaries: $binary is already running, not doing anything');
+        initializingBinary = false;
+        notifyListeners();
+        return;
       }
-    }
 
-    initializingBinary = false;
-    notifyListeners();
+      if (!context.mounted) {
+        initializingBinary = false;
+        notifyListeners();
+        return;
+      }
+
+      log.i('init binaries: starting $binary ${args.join(" ")}');
+
+      int pid;
+      try {
+        pid = await processes.start(
+          context,
+          binary.binary,
+          args,
+          stopRPC,
+        );
+        log.i('init binaries: started $binary with PID $pid');
+      } catch (err) {
+        log.e('init binaries: could not start $binary daemon', error: err);
+        _connectionTimer?.cancel();
+        initializingBinary = false;
+        connectionError = 'could not start $binary daemon: $err';
+        connected = false;
+        notifyListeners();
+        return;
+      }
+
+      log.i('init binaries: waiting for $binary connection');
+
+      var timeout = const Duration(seconds: 60);
+      if (binary.binary == 'zsided') {
+        // zcash can take a long time. initial sync as well
+        timeout = const Duration(seconds: 5 * 60);
+      }
+      try {
+        await Future.any([
+          // Happy case: able to connect. we start a poller at the
+          // beginning of this function that sets the connected variable
+          // we return here
+          waitForBoolToBeTrue(() async {
+            return connected;
+          }),
+
+          // A sad case: Binary is running, but not working for some reason
+          waitForBoolToBeTrue(() async {
+            return connectionError != null && !initializingBinary;
+          }),
+
+          // Not so happy case: process exited
+          // Throw an error, which causes the error message to be shown
+          // in the daemon status chip
+          waitForBoolToBeTrue(() async {
+            final res = processes.exited(pid);
+            if (res != null) {
+              log.i('process exited with message: ${res.message}');
+              initializingBinary = false;
+              connectionError = res.message;
+            }
+            return res != null;
+          }),
+
+          Future.delayed(timeout).then(
+            (_) => throw "'$binary' connection timed out after ${timeout.inSeconds}s",
+          ),
+          // Timeout case!
+        ]);
+
+        log.i('init binaries: $binary connected');
+      } catch (err) {
+        log.e("init binaries: couldn't connect to $binary", error: err);
+
+        // We've quit! Assuming there's error logs, somewhere.
+        if (!processes.running(pid) && connectionError == null) {
+          final logs = await processes.stderr(pid).toList();
+          log.e('$binary exited before we could connect, dumping logs');
+          for (var line in logs) {
+            log.e('$binary: $line');
+          }
+
+          var lastLine = _stripFromString(logs.last, ': ');
+          connectionError = lastLine;
+        } else {
+          connectionError ??= err.toString();
+        }
+      }
+    } finally {
+      initializingBinary = false;
+      notifyListeners();
+    }
   }
 
   // responsible for pinging the node every x seconds,
@@ -308,29 +310,26 @@ abstract class RPCConnection extends ChangeNotifier {
       // Try graceful shutdown first
       try {
         await stopRPC();
-
         _connectionTimer?.cancel();
       } catch (e) {
-        log.w('Graceful shutdown failed: $e');
+        log.w('Killing process, graceful shutdown failed: $e');
+        final processes = GetIt.I.get<ProcessProvider>();
+        await processes.kill(binary);
+        _connectionTimer?.cancel();
       }
-
-      log.w('Killing process');
-      final processes = GetIt.I.get<ProcessProvider>();
-      await processes.kill(binary);
-
-      _connectionTimer?.cancel();
     } catch (e) {
       log.e('could not stop rpc: $e');
+      connectionError = 'could not stop nor kill rpc, process might still be running: $e';
     } finally {
-      log.i('waiting for shutdown to complete...');
-      await Future.delayed(const Duration(seconds: 8)).then((_) {
-        log.w('Done waiting for graceful shutdown');
-      });
-
-      log.i('stopping rpc successfully');
       connected = false;
-      connectionError = null;
       stoppingBinary = false;
+      if (connectionError != null && connectionError!.contains('not found for binary')) {
+        _connectionTimer?.cancel();
+      } else {
+        log.i('stopped rpc successfully');
+        connectionError = null;
+      }
+
       notifyListeners();
     }
   }
