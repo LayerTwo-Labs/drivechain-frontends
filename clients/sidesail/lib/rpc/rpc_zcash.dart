@@ -350,7 +350,7 @@ class ZcashRPCLive extends ZCashRPC {
   Future<void> stopRPC() async {
     await _client().call('stop');
     // can't trust the rpc, give it a moment to stop
-    await Future.delayed(const Duration(seconds: 5));
+    await Future.delayed(const Duration(seconds: 2));
   }
 
   @override

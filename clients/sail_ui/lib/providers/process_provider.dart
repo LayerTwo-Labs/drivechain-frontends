@@ -167,34 +167,36 @@ class ProcessProvider extends ChangeNotifier {
     // Register a handler for when the process stops.
     unawaited(
       process.exitCode.then((code) async {
-        var level = Level.error;
-        // Node software exited with a success code. Someone stopped it?
-        if (code == 0) {
-          level = Level.info;
-        }
+        try {
+          log.i('process exit handler for pid=${process.pid} triggered');
+          // Node software exited with a success code. Someone stopped it?
+          var level = Level.info;
+          var message = '';
+          if (code != 0) {
+            // exit code, it crashed!
+            final errLogs = await (_stderrStreams[process.pid] ?? const Stream<String>.empty()).take(1).toList();
+            if (errLogs.isNotEmpty) {
+              message = errLogs.last;
+            }
+          }
 
-        final errLogs = await (_stderrStreams[process.pid] ?? const Stream.empty()).toList();
-        if (errLogs.isNotEmpty) {
-          log.log(level, '"${file.path}" exited with code $code: ${errLogs.last}');
-        } else {
           log.log(level, '"${file.path}" exited with code $code');
+
+          // Resolve the process exit future
+          processExited.complete(true);
+
+          // Forward to listeners that the process finished.
+          _exitTuples[process.pid] = ExitTuple(
+            code: code,
+            message: message,
+          );
+          runningProcesses.remove(process.pid);
+          // Close the stream controllers
+          await stdoutController.close();
+          await stderrController.close();
+        } finally {
+          notifyListeners();
         }
-
-        // Resolve the process exit future
-        processExited.complete(true);
-
-        // Forward to listeners that the process finished.
-        _exitTuples[process.pid] = ExitTuple(
-          code: code,
-          message: errLogs.isNotEmpty ? errLogs.last : 'no error message',
-        );
-        runningProcesses.remove(process.pid);
-
-        // Close the stream controllers
-        await stdoutController.close();
-        await stderrController.close();
-
-        notifyListeners();
       }),
     );
 
@@ -219,7 +221,10 @@ class ProcessProvider extends ChangeNotifier {
 
   Future<void> kill(Binary binary) async {
     final process = runningProcesses.values.firstWhere(
-      (p) => p.binary == binary.binary,
+      (p) {
+        final matched = Binary.fromBinary(p.binary);
+        return matched?.runtimeType == binary.runtimeType;
+      },
       orElse: () => throw Exception('Process not found for binary ${binary.binary}'),
     );
 
