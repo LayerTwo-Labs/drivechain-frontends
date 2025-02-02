@@ -14,6 +14,7 @@ class TransactionProvider extends ChangeNotifier {
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
+  String address = '';
   List<WalletTransaction> walletTransactions = [];
   bool initialized = false;
   String? error;
@@ -35,9 +36,11 @@ class TransactionProvider extends ChangeNotifier {
 
     try {
       final newTXs = await api.wallet.listTransactions();
+      final newAddress = await api.wallet.getNewAddress();
 
-      if (_dataHasChanged(newTXs)) {
+      if (_dataHasChanged(newTXs, newAddress)) {
         walletTransactions = newTXs;
+        address = newAddress;
         initialized = true;
         error = null;
         notifyListeners();
@@ -52,8 +55,9 @@ class TransactionProvider extends ChangeNotifier {
 
   bool _dataHasChanged(
     List<WalletTransaction> newTXs,
+    String newAddress,
   ) {
-    return !listEquals(walletTransactions, newTXs);
+    return !listEquals(walletTransactions, newTXs) || address != newAddress;
   }
 
   @override
