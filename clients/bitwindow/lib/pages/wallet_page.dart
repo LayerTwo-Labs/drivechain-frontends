@@ -549,17 +549,17 @@ class ReceiveTab extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: SailTextField(
-                                  controller: model.addressController,
+                                  controller: TextEditingController(text: model.address),
                                   hintText: 'A Drivechain address',
                                   readOnly: true,
                                 ),
                               ),
                               CopyButton(
-                                text: model.addressController.text,
+                                text: model.address,
                               ),
                             ],
                           ),
-                          if (model.addressController.text.isEmpty)
+                          if (model.address.isEmpty)
                             QtButton(
                               label: 'Generate new address',
                               onPressed: model.generateNewAddress,
@@ -580,7 +580,7 @@ class ReceiveTab extends StatelessWidget {
                           eyeShape: QrEyeShape.square,
                         ),
                         dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
-                        data: model.addressController.text,
+                        data: model.address,
                         version: QrVersions.auto,
                       ),
                     ),
@@ -597,30 +597,17 @@ class ReceiveTab extends StatelessWidget {
 }
 
 class ReceivePageViewModel extends BaseViewModel {
-  final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
+  TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
 
-  TextEditingController addressController = TextEditingController();
+  String get address => transactionsProvider.address;
 
   void init() {
+    transactionsProvider.addListener(notifyListeners);
     generateNewAddress();
   }
 
-  @override
-  void dispose() {
-    addressController.dispose();
-    super.dispose();
-  }
-
   void generateNewAddress() async {
-    setBusy(true);
-    try {
-      final address = await api.wallet.getNewAddress();
-      addressController.text = address;
-    } catch (e) {
-      setError(e.toString());
-    } finally {
-      setBusy(false);
-    }
+    await transactionsProvider.fetch();
   }
 }
 
@@ -946,7 +933,6 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
           return sortAscending
               ? a.nextExecution.toDateTime().compareTo(b.nextExecution.toDateTime())
               : b.nextExecution.toDateTime().compareTo(a.nextExecution.toDateTime());
-          break;
         case 'hops':
           aValue = a.numHops - a.executions.length;
           bValue = b.numHops - b.executions.length;
