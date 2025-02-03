@@ -181,10 +181,10 @@ packages:
     dependency: "direct main"
     description:
       name: connectrpc
-      sha256: "22dce99cc292b43b5996ad914ea4bcfb85d9095d0486e4442c51b87ff212fcb8"
+      sha256: "032dff1e98029deafa291e4a08213932522e82248057a61ace5356309798f548"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.1"
   console:
     dependency: transitive
     description:
