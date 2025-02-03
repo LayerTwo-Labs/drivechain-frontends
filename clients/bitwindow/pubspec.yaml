@@ -40,7 +40,7 @@ dependencies:
   url_launcher: ^6.3.1
   pointycastle: ^3.9.1
   crypto: ^3.0.6
-  connectrpc: ^0.2.0
+  connectrpc: ^0.2.1
 
 dev_dependencies:
   flutter_test:
