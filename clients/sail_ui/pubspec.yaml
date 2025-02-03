@@ -33,7 +33,7 @@ dependencies:
   synchronized: ^3.3.0+3
   flutter_markdown: ^0.7.5
   url_launcher: ^6.3.1
-  connectrpc: ^0.2.0
+  connectrpc: ^0.2.1
 
 dev_dependencies:
   flutter_test:
