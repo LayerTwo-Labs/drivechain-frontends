@@ -31,6 +31,7 @@ message OPReturn {
 message BroadcastNewsRequest {
   string topic = 1;
   string headline = 2;
+  string content = 3;
 }
 
 message BroadcastNewsResponse {
