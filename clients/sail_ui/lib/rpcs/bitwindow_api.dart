@@ -78,7 +78,7 @@ abstract class MiscAPI {
   Future<List<CoinNews>> listCoinNews();
   Future<List<Topic>> listTopics();
   Future<CreateTopicResponse> createTopic(String topic, String name);
-  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline);
+  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content);
 }
 
 class BitwindowRPCLive extends BitwindowRPC {
@@ -407,12 +407,13 @@ class _MiscAPILive implements MiscAPI {
   }
 
   @override
-  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline) async {
+  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content) async {
     try {
       final response = await _client.broadcastNews(
         BroadcastNewsRequest()
           ..topic = topic
-          ..headline = headline,
+          ..headline = headline
+          ..content = content,
       );
       return response;
     } catch (e) {

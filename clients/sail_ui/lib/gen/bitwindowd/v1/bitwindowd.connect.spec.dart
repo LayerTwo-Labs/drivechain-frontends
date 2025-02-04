@@ -3,9 +3,9 @@
 //  source: bitwindowd/v1/bitwindowd.proto
 //
 
-import 'package:connectrpc/connect.dart' as connect;
-import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as googleprotobufempty;
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart' as bitwindowdv1bitwindowd;
+import "package:connectrpc/connect.dart" as connect;
+import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import "bitwindowd.pb.dart" as bitwindowdv1bitwindowd;
 
 abstract final class BitwindowdService {
   /// Fully-qualified name of the BitwindowdService service.

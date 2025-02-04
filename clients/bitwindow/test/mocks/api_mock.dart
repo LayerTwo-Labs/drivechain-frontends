@@ -157,7 +157,7 @@ class MockMiscAPI implements MiscAPI {
   }
 
   @override
-  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline) async {
+  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content) async {
     return BroadcastNewsResponse();
   }
 
