@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -29,8 +28,8 @@ class OverviewPage extends StatelessWidget {
             SailColumn(
               spacing: SailStyleValues.padding16,
               children: [
-                TransactionsView(),
                 CoinNewsView(),
+                TransactionsView(),
               ],
             ),
           ],
@@ -472,11 +471,6 @@ class CoinNewsView extends StatelessWidget {
               spacing: SailStyleValues.padding08,
               children: [
                 QtButton(
-                  label: 'Broadcast News',
-                  onPressed: () => displayBroadcastNewsDialog(context),
-                  size: ButtonSize.small,
-                ),
-                QtButton(
                   label: 'Create Topic',
                   onPressed: () => displayCreateTopicDialog(context),
                   size: ButtonSize.small,
@@ -501,17 +495,29 @@ class CoinNewsView extends StatelessWidget {
                   spacing: SailStyleValues.padding16,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SailDropdownButton<Topic>(
-                      items: [
-                        ...viewModel.topics.map(
-                          (topic) => SailDropdownItem(
-                            value: topic,
-                            child: SailText.primary12(topic.name),
-                          ),
+                    SailRow(
+                      spacing: 0,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        SailDropdownButton<Topic>(
+                          items: [
+                            ...viewModel.topics.map(
+                              (topic) => SailDropdownItem(
+                                value: topic,
+                                child: SailText.primary12(topic.name),
+                              ),
+                            ),
+                          ],
+                          onChanged: viewModel.setLeftTopic,
+                          value: viewModel.leftTopic,
+                        ),
+                        QtButton(
+                          label: 'Broadcast to ${viewModel.leftTopic.name}',
+                          onPressed: () => displayBroadcastNewsDialog(context, initialTopic: viewModel.leftTopic),
+                          size: ButtonSize.small,
                         ),
                       ],
-                      onChanged: viewModel.setLeftTopic,
-                      value: viewModel.leftTopic,
                     ),
                     QtContainer(
                       child: SizedBox(
@@ -530,17 +536,29 @@ class CoinNewsView extends StatelessWidget {
                   spacing: SailStyleValues.padding16,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SailDropdownButton<Topic>(
-                      items: [
-                        ...viewModel.topics.map(
-                          (topic) => SailDropdownItem(
-                            value: topic,
-                            child: SailText.primary12(topic.name),
-                          ),
+                    SailRow(
+                      spacing: 0,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        SailDropdownButton<Topic>(
+                          items: [
+                            ...viewModel.topics.map(
+                              (topic) => SailDropdownItem(
+                                value: topic,
+                                child: SailText.primary12(topic.name),
+                              ),
+                            ),
+                          ],
+                          onChanged: viewModel.setRightTopic,
+                          value: viewModel.rightTopic,
+                        ),
+                        QtButton(
+                          label: 'Broadcast to ${viewModel.rightTopic.name}',
+                          onPressed: () => displayBroadcastNewsDialog(context, initialTopic: viewModel.rightTopic),
+                          size: ButtonSize.small,
                         ),
                       ],
-                      onChanged: viewModel.setRightTopic,
-                      value: viewModel.rightTopic,
                     ),
                     QtContainer(
                       child: SizedBox(
@@ -562,12 +580,12 @@ class CoinNewsView extends StatelessWidget {
   }
 }
 
-Future<void> displayBroadcastNewsDialog(BuildContext context) async {
+Future<void> displayBroadcastNewsDialog(BuildContext context, {required Topic initialTopic}) async {
   await widgetDialog(
     context: context,
     title: 'Broadcast News',
     subtitle: 'Broadcast News to the whole world, in the list you prefer.',
-    child: const BroadcastNewsView(),
+    child: BroadcastNewsView(initialTopic: initialTopic),
   );
 }
 
@@ -591,14 +609,17 @@ Future<void> displayGraffittiExplorerDialog(BuildContext context) async {
 }
 
 class BroadcastNewsView extends StatelessWidget {
+  final Topic initialTopic;
+
   const BroadcastNewsView({
     super.key,
+    required this.initialTopic,
   });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<BroadcastNewsViewModel>.reactive(
-      viewModelBuilder: () => BroadcastNewsViewModel(),
+      viewModelBuilder: () => BroadcastNewsViewModel(initialTopic: initialTopic),
       builder: (context, viewModel, child) {
         return SailColumn(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,14 +669,8 @@ class BroadcastNewsViewModel extends BaseViewModel {
 
   List<Topic> get topics => _newsProvider.topics;
 
-  BroadcastNewsViewModel() {
-    topic = topics.isNotEmpty
-        ? topics[0]
-        : Topic(
-            id: Int64(1),
-            topic: 'US',
-            name: 'US Weekly',
-          );
+  BroadcastNewsViewModel({required Topic initialTopic}) {
+    topic = initialTopic;
     headlineController.addListener(notifyListeners);
   }
 

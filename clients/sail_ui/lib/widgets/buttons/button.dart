@@ -485,8 +485,8 @@ class QtButton extends StatelessWidget {
 
     final buttonPadding = padding ??
         EdgeInsets.symmetric(
-          vertical: SailStyleValues.padding08,
-          horizontal: SailStyleValues.padding16,
+          vertical: SailStyleValues.padding04,
+          horizontal: SailStyleValues.padding08,
         );
 
     final content = Row(
@@ -496,7 +496,7 @@ class QtButton extends StatelessWidget {
         if (child != null) child!,
         if (child != null && label != null) SizedBox(width: SailStyleValues.padding08),
         if (label != null)
-          SailText.primary15(
+          SailText.primary12(
             label!,
             bold: true,
             color: foregroundColor,

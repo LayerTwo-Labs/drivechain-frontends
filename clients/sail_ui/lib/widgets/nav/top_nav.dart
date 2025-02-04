@@ -47,8 +47,8 @@ class QtTab extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              vertical: SailStyleValues.padding16,
-              horizontal: SailStyleValues.padding64,
+              vertical: SailStyleValues.padding08,
+              horizontal: SailStyleValues.padding25,
             ),
             child: SailColumn(
               mainAxisSize: MainAxisSize.max,
