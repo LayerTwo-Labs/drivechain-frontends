@@ -178,10 +178,10 @@ packages:
     dependency: "direct main"
     description:
       name: connectrpc
-      sha256: "22dce99cc292b43b5996ad914ea4bcfb85d9095d0486e4442c51b87ff212fcb8"
+      sha256: "032dff1e98029deafa291e4a08213932522e82248057a61ace5356309798f548"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.1"
   convert:
     dependency: transitive
     description:
@@ -227,10 +227,10 @@ packages:
     dependency: transitive
     description:
       name: dio
-      sha256: "5598aa796bbf4699afd5c67c0f5f6e2ed542afc956884b9cd58c306966efc260"
+      sha256: "253a18bbd4851fecba42f7343a1df3a9a4c1d31a2c1b37e221086b4fa8c8dbc9"
       url: "https://pub.dev"
     source: hosted
-    version: "5.7.0"
+    version: "5.8.0+1"
   dio_smart_retry:
     dependency: transitive
     description:
@@ -336,10 +336,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_markdown
-      sha256: e37f4c69a07b07bb92622ef6b131a53c9aae48f64b176340af9e8e5238718487
+      sha256: "46cdcdcd216f15ac04c80e24e814a89ea7143654442c53ba67fec349b4d44565"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.5"
+    version: "0.7.6"
   flutter_svg:
     dependency: transitive
     description:
@@ -705,10 +705,10 @@ packages:
     dependency: "direct main"
     description:
       name: shared_preferences
-      sha256: c59819dacc6669a1165d54d2735a9543f136f9b3cec94ca65cea6ab8dffc422e
+      sha256: "688ee90fbfb6989c980254a56cb26ebe9bb30a3a2dff439a78894211f73de67a"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.0"
+    version: "2.5.1"
   shared_preferences_android:
     dependency: transitive
     description:
