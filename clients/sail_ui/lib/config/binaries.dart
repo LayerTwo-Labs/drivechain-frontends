@@ -473,6 +473,59 @@ abstract class Binary {
     }
   }
 
+  Future<void> wipeAssets(Directory assetsDir) async {
+    _log('Starting asset wipe for $name in ${assetsDir.path}');
+
+    final dir = assetsDir.path;
+
+    // delete raw binary assets
+    await _deleteFilesInDir(dir, [
+      binary,
+      binary.replaceAll('.exe', ''),
+      '$binary.exe',
+      '$binary.app',
+      '$binary.meta',
+    ]);
+
+    // then any extra files for that specific chain
+    switch (this) {
+      case ParentChain():
+        await _deleteFilesInDir(dir, [
+          'bitcoin-cli',
+          'bitcoin-util',
+          'bitcoin-cli.exe',
+          'bitcoin-util.exe',
+          'qt', // a directory!
+        ]);
+
+      case Enforcer():
+      // nothing extra
+
+      case BitWindow():
+        await _deleteFilesInDir(dir, [
+          'data',
+          'lib',
+          'bitwindow.msix',
+          'flutter_platform_alert_plugin.dll',
+          'flutter_windows.dll',
+          'screen_retriever_windows_plugin.dll',
+          'url_launcher_windows_plugin.dll',
+          'window_manager_plugin.dll',
+        ]);
+
+      case Bitnames():
+        await _deleteFilesInDir(dir, [
+          'bitnames-cli',
+          'logs',
+        ]);
+
+      case Thunder():
+        await _deleteFilesInDir(dir, [
+          'thunder-cli',
+        ]);
+    }
+  }
+
   Future<void> _deleteFilesInDir(String dir, List<String> filesToWipe) async {
     for (final file in filesToWipe) {
       final filePath = path.join(dir, file);
