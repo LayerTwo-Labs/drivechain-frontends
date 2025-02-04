@@ -81,8 +81,8 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	if req.Msg.Headline == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("headline must be set"))
 	}
-	if len(req.Msg.Headline) > 72 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("headline cannot be longer than 72 characters"))
+	if len(req.Msg.Headline) > 64 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("headline cannot be longer than 64 characters"))
 	}
 	exists, err := opreturns.TopicExists(ctx, s.database, req.Msg.Topic)
 	if err != nil {
@@ -91,8 +91,19 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	if !exists {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic does not exist"))
 	}
-	// Format the OP_RETURN message: <topic> <headline> <message>
-	message := []byte(req.Msg.Topic + req.Msg.Headline)
+	// Format the OP_RETURN message: <topic (8 bytes)> <headline (64 bytes)> <message>
+	message := []byte(req.Msg.Topic)
+
+	// pad headline to always be 64 bytes
+	headline := make([]byte, 64)
+	for i := range headline {
+		headline[i] = 0x20 // Fill with spaces
+	}
+	copy(headline, []byte(req.Msg.Headline))
+	message = append(message, headline...)
+
+	// add content
+	message = append(message, []byte(req.Msg.Content)...)
 
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
