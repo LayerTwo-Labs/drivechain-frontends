@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:launcher/env.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -299,13 +302,13 @@ class _OverviewPageState extends State<OverviewPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Data Wipe'),
+        title: const Text('Confirm Data And Asset Wipe'),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             SailText.primary15(
-              'Are you sure you want to wipe all data recursively for ${binary.name}?',
+              'Confirming will wipe all chain data recursively for ${binary.name}, and can not be undone. Wallet data will not be touched.',
             ),
             const SizedBox(height: 8),
             SailText.primary22(
@@ -345,6 +348,9 @@ class _OverviewPageState extends State<OverviewPage> {
 
     // Then wipe it
     await binary.wipeAppDir();
+    final appDir = await Environment.appDir();
+    final assetsDir = Directory(path.join(appDir.path, 'assets'));
+    await binary.wipeAssets(assetsDir);
 
     // Show success message
     if (context.mounted) {
@@ -501,17 +507,18 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Widget _buildProgressIndicator(Binary binary, DownloadState? status) {
-    if (status == null || status.progress == 0.0 || status.progress == 1.0) {
-      return const SizedBox();
-    }
+    final hide = status == null || status.progress == 0.0 || status.progress == 1.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        LinearProgressIndicator(value: status.progress),
-        const SizedBox(height: 4),
-        SailText.secondary13(status.message ?? ''),
-      ],
+    return Opacity(
+      opacity: hide ? 0 : 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LinearProgressIndicator(value: status?.progress),
+          const SizedBox(height: 4),
+          SailText.secondary13(status?.message ?? ''),
+        ],
+      ),
     );
   }
 

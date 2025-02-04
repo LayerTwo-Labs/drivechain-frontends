@@ -181,16 +181,16 @@ class BinaryProvider extends ChangeNotifier {
   String? canStart(Binary binary) {
     final mainchainReady = mainchainConnected && !mainchainRPC.inHeaderSync;
     return switch (binary) {
-      Enforcer() => mainchainReady ? null : 'Mainchain must be started and fully synced before starting Enforcer',
+      Enforcer() => mainchainReady ? null : 'Mainchain must be started and headers synced before starting Enforcer',
       BitWindow() => enforcerConnected && mainchainReady
           ? null
-          : 'Mainchain and Enforcer must be running and fully synced before starting BitWindow',
+          : 'Mainchain and Enforcer must be running and headers synced before starting BitWindow',
       Thunder() => enforcerConnected && mainchainReady
           ? null
-          : 'Mainchain and Enforcer must be running and fully synced before starting Thunder',
+          : 'Mainchain and Enforcer must be running and headers synced before starting Thunder',
       Bitnames() => enforcerConnected && mainchainReady
           ? null
-          : 'Mainchain and Enforcer must be running and fully synced before starting Bitnames',
+          : 'Mainchain and Enforcer must be running and headers synced before starting Bitnames',
       _ => null, // No requirements for mainchain
     };
   }

@@ -103,6 +103,7 @@ abstract class RPCConnection extends ChangeNotifier {
       if (newError.contains('Connection refused') ||
           newError.contains('SocketException') ||
           newError.contains('computer refused the network') ||
+          newError.contains('Unknown Error') ||
           newError.contains('could not connect at') ||
           newError.contains('forcefully terminated') ||
           stoppingBinary) {
