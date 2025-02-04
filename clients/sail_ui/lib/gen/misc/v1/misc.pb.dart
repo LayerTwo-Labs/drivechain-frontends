@@ -202,6 +202,7 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
   factory BroadcastNewsRequest({
     $core.String? topic,
     $core.String? headline,
+    $core.String? content,
   }) {
     final $result = create();
     if (topic != null) {
@@ -209,6 +210,9 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
     }
     if (headline != null) {
       $result.headline = headline;
+    }
+    if (content != null) {
+      $result.content = content;
     }
     return $result;
   }
@@ -219,6 +223,7 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BroadcastNewsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'misc.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'topic')
     ..aOS(2, _omitFieldNames ? '' : 'headline')
+    ..aOS(3, _omitFieldNames ? '' : 'content')
     ..hasRequiredFields = false
   ;
 
@@ -260,6 +265,15 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
   $core.bool hasHeadline() => $_has(1);
   @$pb.TagNumber(2)
   void clearHeadline() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get content => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set content($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasContent() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearContent() => clearField(3);
 }
 
 class BroadcastNewsResponse extends $pb.GeneratedMessage {

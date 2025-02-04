@@ -23,6 +23,7 @@ class SailTextField extends StatelessWidget {
   final bool readOnly;
   final bool dense;
   final bool enabled;
+  final int? minLines;
   final int? maxLines;
   final List<TextInputFormatter>? inputFormatters;
 
@@ -44,6 +45,7 @@ class SailTextField extends StatelessWidget {
     this.readOnly = false,
     this.dense = false,
     this.enabled = true,
+    this.minLines,
     this.maxLines,
     this.inputFormatters,
   });
@@ -87,6 +89,7 @@ class SailTextField extends StatelessWidget {
             if (textFieldType == TextFieldType.bitcoin) FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
             ...?inputFormatters,
           ],
+          minLines: minLines,
           maxLines: maxLines,
           decoration: InputDecoration(
             isDense: true, // This helps reduce the minimum height

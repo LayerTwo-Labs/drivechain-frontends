@@ -408,7 +408,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
   }
 }
 
-class CoinNewsViewModel extends ChangeNotifier {
+class CoinNewsViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   List<CoinNews> get leftEntries => _newsProvider.news.where((news) => news.topic == leftTopic.topic).toList();
   List<CoinNews> get rightEntries => _newsProvider.news.where((news) => news.topic == rightTopic.topic).toList();
@@ -589,6 +589,15 @@ Future<void> displayBroadcastNewsDialog(BuildContext context, {required Topic in
   );
 }
 
+Future<void> displayNewsOverviewDialog(BuildContext context, {required CoinNews news}) async {
+  await widgetDialog(
+    context: context,
+    title: news.headline,
+    subtitle: '',
+    child: NewsOverviewView(news: news),
+  );
+}
+
 Future<void> displayCreateTopicDialog(BuildContext context) async {
   await widgetDialog(
     context: context,
@@ -648,6 +657,12 @@ class BroadcastNewsView extends StatelessWidget {
                 LengthLimitingTextInputFormatter(64),
               ],
             ),
+            SailTextField(
+              label: 'Content',
+              controller: viewModel.contentController,
+              hintText: 'Enter news content',
+              minLines: 10,
+            ),
             QtButton(
               label: 'Broadcast',
               onPressed: () => viewModel.broadcastNews(context),
@@ -665,6 +680,9 @@ class BroadcastNewsViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
 
+  final TextEditingController headlineController = TextEditingController();
+  final TextEditingController contentController = TextEditingController();
+
   late Topic topic;
 
   List<Topic> get topics => _newsProvider.topics;
@@ -672,9 +690,8 @@ class BroadcastNewsViewModel extends BaseViewModel {
   BroadcastNewsViewModel({required Topic initialTopic}) {
     topic = initialTopic;
     headlineController.addListener(notifyListeners);
+    contentController.addListener(notifyListeners);
   }
-
-  final TextEditingController headlineController = TextEditingController();
 
   void setTopic(Topic newTopic) {
     topic = newTopic;
@@ -692,7 +709,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
     }
 
     try {
-      await _api.misc.broadcastNews(topic.topic, headlineController.text);
+      await _api.misc.broadcastNews(topic.topic, headlineController.text, contentController.text);
       if (!context.mounted) return;
       showSnackBar(context, 'news broadcast successfully!');
     } catch (e) {
@@ -704,7 +721,23 @@ class BroadcastNewsViewModel extends BaseViewModel {
   void dispose() {
     headlineController.removeListener(notifyListeners);
     headlineController.dispose();
+    contentController.removeListener(notifyListeners);
+    contentController.dispose();
     super.dispose();
+  }
+}
+
+class NewsOverviewView extends StatelessWidget {
+  final CoinNews news;
+
+  const NewsOverviewView({
+    super.key,
+    required this.news,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailText.primary12(news.content);
   }
 }
 
@@ -891,7 +924,7 @@ class CoinNewsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailTable(
-      getRowId: (index) => entries[index].id.toString(),
+      getRowId: (index) => index.toString(),
       headerBuilder: (context) => [
         const SailTableHeaderCell(name: 'Fee'),
         const SailTableHeaderCell(name: 'Time'),
@@ -910,6 +943,17 @@ class CoinNewsTable extends StatelessWidget {
       drawGrid: true,
       onSort: (columnIndex, ascending) {
         onSort(['fee', 'time', 'headline'][columnIndex]);
+      },
+      onDoubleTap: (rowId) {},
+      contextMenuItems: (rowId) {
+        return [
+          SailMenuItem(
+            onSelected: () {
+              displayNewsOverviewDialog(context, news: entries[int.parse(rowId)]);
+            },
+            child: SailText.primary12('Show Details'),
+          ),
+        ];
       },
     );
   }

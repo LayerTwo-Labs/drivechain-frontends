@@ -3,9 +3,9 @@
 //  source: misc/v1/misc.proto
 //
 
-import 'package:connectrpc/connect.dart' as connect;
-import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as googleprotobufempty;
-import 'package:sail_ui/gen/misc/v1/misc.pb.dart' as miscv1misc;
+import "package:connectrpc/connect.dart" as connect;
+import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import "misc.pb.dart" as miscv1misc;
 
 abstract final class MiscService {
   /// Fully-qualified name of the MiscService service.

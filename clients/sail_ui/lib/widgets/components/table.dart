@@ -17,6 +17,8 @@ class SailTable extends StatefulWidget {
     this.selectedRowId,
     this.selectableRows = true,
     this.onSelectedRow,
+    this.onDoubleTap,
+    this.contextMenuItems,
     this.cellHeight = 24.0,
     this.shrinkWrap = false,
     this.physics,
@@ -45,6 +47,8 @@ class SailTable extends StatefulWidget {
   final String? selectedRowId;
   final bool selectableRows;
   final ValueChanged<String?>? onSelectedRow;
+  final void Function(String rowId)? onDoubleTap;
+  final List<SailMenuItem> Function(String rowId)? contextMenuItems;
   final double cellHeight;
   final bool shrinkWrap;
   final ScrollPhysics? physics;
@@ -187,6 +191,9 @@ class _SailTableState extends State<SailTable> {
                       widget.onSelectedRow?.call(_selectedId);
                     }
                   },
+                  onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
+                  contextMenuItems: widget.contextMenuItems,
+                  rowId: rowId,
                 ),
               );
             }
@@ -228,6 +235,9 @@ class _SailTableState extends State<SailTable> {
                       widget.onSelectedRow?.call(_selectedId);
                     }
                   },
+                  onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
+                  contextMenuItems: widget.contextMenuItems,
+                  rowId: rowId,
                 );
               },
             );
@@ -508,6 +518,9 @@ class _TableRow extends StatelessWidget {
     required this.grid,
     required this.drawBorder,
     this.backgroundColor,
+    this.onDoubleTap,
+    this.contextMenuItems,
+    required this.rowId,
   });
 
   final List<Widget> cells;
@@ -518,8 +531,11 @@ class _TableRow extends StatelessWidget {
   final double height;
   final bool grid;
   final bool drawBorder;
+  final void Function()? onDoubleTap;
+  final List<SailMenuItem> Function(String rowId)? contextMenuItems;
+  final String rowId;
 
-  void _showContextMenu(BuildContext context, Offset position, String value) {
+  void _showContextMenu(BuildContext context, Offset position, String value, String rowId) {
     showSailMenu(
       context: context,
       preferredAnchorPoint: position,
@@ -531,6 +547,8 @@ class _TableRow extends StatelessWidget {
             },
             child: SailText.primary12('Copy value'),
           ),
+          // Add custom menu items if provided
+          if (contextMenuItems != null) ...contextMenuItems!(rowId),
         ],
       ),
     );
@@ -554,8 +572,9 @@ class _TableRow extends StatelessWidget {
             cursor: cellValue != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown:
-                  cellValue != null ? (details) => _showContextMenu(context, details.globalPosition, cellValue) : null,
+              onSecondaryTapDown: cellValue != null
+                  ? (details) => _showContextMenu(context, details.globalPosition, cellValue, rowId)
+                  : null,
               child: Container(
                 decoration: grid
                     ? BoxDecoration(
@@ -620,6 +639,7 @@ class _TableRow extends StatelessWidget {
 
     return GestureDetector(
       onTap: onPressed,
+      onDoubleTapDown: onDoubleTap == null ? null : (_) => onDoubleTap!(),
       behavior: HitTestBehavior.opaque,
       child: contents,
     );

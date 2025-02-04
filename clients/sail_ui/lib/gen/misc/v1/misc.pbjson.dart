@@ -59,13 +59,14 @@ const BroadcastNewsRequest$json = {
   '2': [
     {'1': 'topic', '3': 1, '4': 1, '5': 9, '10': 'topic'},
     {'1': 'headline', '3': 2, '4': 1, '5': 9, '10': 'headline'},
+    {'1': 'content', '3': 3, '4': 1, '5': 9, '10': 'content'},
   ],
 };
 
 /// Descriptor for `BroadcastNewsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List broadcastNewsRequestDescriptor = $convert.base64Decode(
     'ChRCcm9hZGNhc3ROZXdzUmVxdWVzdBIUCgV0b3BpYxgBIAEoCVIFdG9waWMSGgoIaGVhZGxpbm'
-    'UYAiABKAlSCGhlYWRsaW5l');
+    'UYAiABKAlSCGhlYWRsaW5lEhgKB2NvbnRlbnQYAyABKAlSB2NvbnRlbnQ=');
 
 @$core.Deprecated('Use broadcastNewsResponseDescriptor instead')
 const BroadcastNewsResponse$json = {
