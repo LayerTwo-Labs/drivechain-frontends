@@ -21,7 +21,7 @@ class RootPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: theme.colors.background,
           appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(80),
+            preferredSize: const Size.fromHeight(60),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

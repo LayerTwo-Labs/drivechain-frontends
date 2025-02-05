@@ -712,6 +712,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
       await _api.misc.broadcastNews(topic.topic, headlineController.text, contentController.text);
       if (!context.mounted) return;
       showSnackBar(context, 'news broadcast successfully!');
+      Navigator.of(context).pop();
     } catch (e) {
       showSnackBar(context, 'could not broadcast news: $e');
     }
