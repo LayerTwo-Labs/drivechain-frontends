@@ -72,6 +72,26 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<List<Denial>> listDenials() {
     return Future.value([]);
   }
+
+  @override
+  Future<List<AddressBookEntry>> listAddressBook() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<void> createAddressBookEntry(String label, String address, Direction direction) {
+    return Future.value();
+  }
+
+  @override
+  Future<void> updateAddressBookEntry(Int64 id, String label) {
+    return Future.value();
+  }
+
+  @override
+  Future<void> deleteAddressBookEntry(Int64 id) {
+    return Future.value();
+  }
 }
 
 class MockWalletAPI implements WalletAPI {

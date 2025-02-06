@@ -3,8 +3,8 @@
 //  source: cusf/crypto/v1/crypto.proto
 //
 
-import "package:connectrpc/connect.dart" as connect;
-import "crypto.pb.dart" as cusfcryptov1crypto;
+import 'package:connectrpc/connect.dart' as connect;
+import 'package:sail_ui/gen/cusf/crypto/v1/crypto.pb.dart' as cusfcryptov1crypto;
 
 abstract final class CryptoService {
   /// Fully-qualified name of the CryptoService service.

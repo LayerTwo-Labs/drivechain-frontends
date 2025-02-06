@@ -3,8 +3,8 @@
 //  source: cusf/sidechain/v1/sidechain.proto
 //
 
-import "package:connectrpc/connect.dart" as connect;
-import "sidechain.pb.dart" as cusfsidechainv1sidechain;
+import 'package:connectrpc/connect.dart' as connect;
+import 'package:sail_ui/gen/cusf/sidechain/v1/sidechain.pb.dart' as cusfsidechainv1sidechain;
 
 abstract final class SidechainService {
   /// Fully-qualified name of the SidechainService service.

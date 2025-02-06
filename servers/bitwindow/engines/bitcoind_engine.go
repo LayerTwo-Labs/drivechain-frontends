@@ -329,7 +329,12 @@ func (p *Parser) findOPReturns(
 
 			fee := inputSum - outputSum
 
-			data := txout.PkScript[2:]
+			// Parse the OP_RETURN data correctly
+			data, err := parseOPReturnData(txout.PkScript)
+			if err != nil {
+				return nil, fmt.Errorf("could not parse OP_RETURN data: %w", err)
+			}
+
 			// Log both hex and string representation for easier debugging
 			logger := zerolog.Ctx(ctx).Info()
 			logger.
@@ -340,7 +345,7 @@ func (p *Parser) findOPReturns(
 
 			opReturns = append(opReturns, opreturns.OPReturn{
 				TxID:      txid,
-				Data:      txout.PkScript[2:],
+				Data:      data,
 				FeeSats:   fee,
 				Vout:      int32(vout),
 				Height:    height,
@@ -352,12 +357,89 @@ func (p *Parser) findOPReturns(
 	return opReturns, nil
 }
 
+// parseOPReturnData extracts the actual data from an OP_RETURN script by handling
+// different PUSHDATA opcodes correctly
+func parseOPReturnData(script []byte) ([]byte, error) {
+	if len(script) < 2 || script[0] != txscript.OP_RETURN {
+		return nil, fmt.Errorf("not an OP_RETURN script")
+	}
+
+	// Skip OP_RETURN
+	script = script[1:]
+
+	// Handle different PUSHDATA opcodes
+	opcode := script[0]
+	script = script[1:] // Skip the opcode
+
+	switch {
+	case opcode >= txscript.OP_DATA_1 && opcode <= txscript.OP_DATA_75:
+		// OP_DATA_1 through OP_DATA_75 directly push X bytes
+		dataLen := int(opcode)
+		if len(script) < dataLen {
+			return nil, fmt.Errorf("script too short for OP_DATA_%d: need %d bytes but have %d", dataLen, dataLen, len(script))
+		}
+		return script[:dataLen], nil
+
+	case opcode == txscript.OP_PUSHDATA1:
+		if len(script) < 1 {
+			return nil, fmt.Errorf("script too short for PUSHDATA1")
+		}
+		dataLen := int(script[0])
+		script = script[1:] // Skip length byte
+		if len(script) < dataLen {
+			return nil, fmt.Errorf("script too short for PUSHDATA1: need %d bytes but have %d", dataLen, len(script))
+		}
+		return script[:dataLen], nil
+
+	case opcode == txscript.OP_PUSHDATA2:
+		if len(script) < 2 {
+			return nil, fmt.Errorf("script too short for PUSHDATA2")
+		}
+		dataLen := int(script[0]) | int(script[1])<<8
+		script = script[2:] // Skip length bytes
+		if len(script) < dataLen {
+			return nil, fmt.Errorf("script too short for PUSHDATA2: need %d bytes but have %d", dataLen, len(script))
+		}
+		return script[:dataLen], nil
+
+	case opcode == txscript.OP_PUSHDATA4:
+		if len(script) < 4 {
+			return nil, fmt.Errorf("script too short for PUSHDATA4")
+		}
+		dataLen := int(script[0]) | int(script[1])<<8 | int(script[2])<<16 | int(script[3])<<24
+		script = script[4:] // Skip length bytes
+		if len(script) < dataLen {
+			return nil, fmt.Errorf("script too short for PUSHDATA4: need %d bytes but have %d", dataLen, len(script))
+		}
+		return script[:dataLen], nil
+
+	default:
+		return nil, fmt.Errorf("unexpected opcode 0x%x after OP_RETURN", opcode)
+	}
+}
+
 func shouldSkip(pkScript []byte) bool {
 	data := pkScript[2:]
+	// heck if i know what these are, but they are related to sidechains!
 	switch {
-	case strings.HasPrefix(opreturns.OPReturnToReadable(data), "d1617368"): // something something not interesting
+	case strings.HasPrefix(opreturns.OPReturnToReadable(data), "d1617368"):
 		return true
-	case opreturns.OPReturnToReadable(data) == "d77d177601ffff": // something else not interesting
+	case strings.HasPrefix(opreturns.OPReturnToReadable(data), "d77d177601"):
+		return true
+		// thunder sidechain creation
+	case opreturns.OPReturnToReadable(data) == "d6e1c5df09879b5f8ebc8bab50ca9218849c2e173a596d1ac0e84b9f10981c3078da6571af":
+		return true
+	case opreturns.OPReturnToReadable(data) == "d6e1c5df02f82573d5420e910fe350d5e1b61da16551a269d682b51f35f2343c265285c056":
+		return true
+	case opreturns.OPReturnToReadable(data) == "64656164626565664e6f7277656769616e2042c3b8726765204272656e6465206265636f6d657320707265736964656e74206f6620574546":
+		return true
+	case opreturns.OPReturnToReadable(data) == "d5e0c4af0900077468756e6465727468756e646572206465736372697074696f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":
+		return true
+	case opreturns.OPReturnToReadable(data) == "d5e0c4af0900077468756e6465727468756e646572206465736372697074696f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":
+		return true
+	case opreturns.OPReturnToReadable(data) == "d5e0c4af0900077468756e6465727468756e646572206465736372697074696f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":
+		return true
+	case opreturns.OPReturnToReadable(data) == "d45aa943091303c6de5739c2fb3a021a8bd2b8c9fa8bcd8f8c18954bec00aa8f9b2cf13602":
 		return true
 	}
 	return false

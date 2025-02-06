@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1/bitwindowdv1connect"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/deniability"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -119,6 +120,57 @@ func (s *Server) CancelDenial(
 ) (*connect.Response[emptypb.Empty], error) {
 	err := deniability.Cancel(ctx, s.db, req.Msg.Id)
 	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Request[pb.CreateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	direction, err := addressbook.DirectionFromProto(req.Msg.Direction)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if err := addressbook.Create(ctx, s.db, req.Msg.Label, req.Msg.Address, direction); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListAddressBookResponse], error) {
+	entries, err := addressbook.List(ctx, s.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	var pbEntries []*pb.AddressBookEntry
+	for _, entry := range entries {
+		pbEntries = append(pbEntries, &pb.AddressBookEntry{
+			Id:        entry.ID,
+			Label:     entry.Label,
+			Address:   entry.Address,
+			Direction: addressbook.DirectionToProto(entry.Direction),
+			CreatedAt: timestamppb.New(entry.CreatedAt),
+		})
+	}
+
+	return connect.NewResponse(&pb.ListAddressBookResponse{
+		Entries: pbEntries,
+	}), nil
+}
+
+func (s *Server) UpdateAddressBookEntry(ctx context.Context, req *connect.Request[pb.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	if err := addressbook.UpdateLabel(ctx, s.db, req.Msg.Id, req.Msg.Label); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *Server) DeleteAddressBookEntry(ctx context.Context, req *connect.Request[pb.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	if err := addressbook.Delete(ctx, s.db, req.Msg.Id); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 

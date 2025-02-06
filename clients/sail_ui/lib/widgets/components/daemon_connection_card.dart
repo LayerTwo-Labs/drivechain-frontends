@@ -54,7 +54,11 @@ class DaemonConnectionCard extends StatelessWidget {
             },
             style: SailButtonStyle.secondary,
             pressed: connection.initializingBinary,
-            child: SailSVG.fromAsset(SailSVGAsset.iconTabSettings, width: 18),
+            child: SailSVG.fromAsset(
+              SailSVGAsset.iconTabSettings,
+              width: 18,
+              color: theme.colors.text,
+            ),
           ),
           SailScaleButton(
             onPressed: restartDaemon,
@@ -69,7 +73,11 @@ class DaemonConnectionCard extends StatelessWidget {
               onPressed: deleteFunction,
               style: SailButtonStyle.secondary,
               pressed: false,
-              child: SailSVG.fromAsset(SailSVGAsset.iconDelete, width: 18),
+              child: SailSVG.fromAsset(
+                SailSVGAsset.iconDelete,
+                width: 18,
+                color: theme.colors.text,
+              ),
             ),
         ],
       ),

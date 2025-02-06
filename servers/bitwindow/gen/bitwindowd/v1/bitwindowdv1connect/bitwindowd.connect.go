@@ -45,6 +45,18 @@ const (
 	// BitwindowdServiceCancelDenialProcedure is the fully-qualified name of the BitwindowdService's
 	// CancelDenial RPC.
 	BitwindowdServiceCancelDenialProcedure = "/bitwindowd.v1.BitwindowdService/CancelDenial"
+	// BitwindowdServiceCreateAddressBookEntryProcedure is the fully-qualified name of the
+	// BitwindowdService's CreateAddressBookEntry RPC.
+	BitwindowdServiceCreateAddressBookEntryProcedure = "/bitwindowd.v1.BitwindowdService/CreateAddressBookEntry"
+	// BitwindowdServiceListAddressBookProcedure is the fully-qualified name of the BitwindowdService's
+	// ListAddressBook RPC.
+	BitwindowdServiceListAddressBookProcedure = "/bitwindowd.v1.BitwindowdService/ListAddressBook"
+	// BitwindowdServiceUpdateAddressBookEntryProcedure is the fully-qualified name of the
+	// BitwindowdService's UpdateAddressBookEntry RPC.
+	BitwindowdServiceUpdateAddressBookEntryProcedure = "/bitwindowd.v1.BitwindowdService/UpdateAddressBookEntry"
+	// BitwindowdServiceDeleteAddressBookEntryProcedure is the fully-qualified name of the
+	// BitwindowdService's DeleteAddressBookEntry RPC.
+	BitwindowdServiceDeleteAddressBookEntryProcedure = "/bitwindowd.v1.BitwindowdService/DeleteAddressBookEntry"
 )
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
@@ -54,6 +66,11 @@ type BitwindowdServiceClient interface {
 	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[v1.CreateDenialResponse], error)
 	ListDenials(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListDenialsResponse], error)
 	CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error)
+	// Wallet operations
+	CreateAddressBookEntry(context.Context, *connect.Request[v1.CreateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
+	ListAddressBook(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error)
+	UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
+	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewBitwindowdServiceClient constructs a client for the bitwindowd.v1.BitwindowdService service.
@@ -91,15 +108,43 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("CancelDenial")),
 			connect.WithClientOptions(opts...),
 		),
+		createAddressBookEntry: connect.NewClient[v1.CreateAddressBookEntryRequest, emptypb.Empty](
+			httpClient,
+			baseURL+BitwindowdServiceCreateAddressBookEntryProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("CreateAddressBookEntry")),
+			connect.WithClientOptions(opts...),
+		),
+		listAddressBook: connect.NewClient[emptypb.Empty, v1.ListAddressBookResponse](
+			httpClient,
+			baseURL+BitwindowdServiceListAddressBookProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("ListAddressBook")),
+			connect.WithClientOptions(opts...),
+		),
+		updateAddressBookEntry: connect.NewClient[v1.UpdateAddressBookEntryRequest, emptypb.Empty](
+			httpClient,
+			baseURL+BitwindowdServiceUpdateAddressBookEntryProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("UpdateAddressBookEntry")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteAddressBookEntry: connect.NewClient[v1.DeleteAddressBookEntryRequest, emptypb.Empty](
+			httpClient,
+			baseURL+BitwindowdServiceDeleteAddressBookEntryProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("DeleteAddressBookEntry")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // bitwindowdServiceClient implements BitwindowdServiceClient.
 type bitwindowdServiceClient struct {
-	stop         *connect.Client[emptypb.Empty, emptypb.Empty]
-	createDenial *connect.Client[v1.CreateDenialRequest, v1.CreateDenialResponse]
-	listDenials  *connect.Client[emptypb.Empty, v1.ListDenialsResponse]
-	cancelDenial *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
+	stop                   *connect.Client[emptypb.Empty, emptypb.Empty]
+	createDenial           *connect.Client[v1.CreateDenialRequest, v1.CreateDenialResponse]
+	listDenials            *connect.Client[emptypb.Empty, v1.ListDenialsResponse]
+	cancelDenial           *connect.Client[v1.CancelDenialRequest, emptypb.Empty]
+	createAddressBookEntry *connect.Client[v1.CreateAddressBookEntryRequest, emptypb.Empty]
+	listAddressBook        *connect.Client[emptypb.Empty, v1.ListAddressBookResponse]
+	updateAddressBookEntry *connect.Client[v1.UpdateAddressBookEntryRequest, emptypb.Empty]
+	deleteAddressBookEntry *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
@@ -122,6 +167,26 @@ func (c *bitwindowdServiceClient) CancelDenial(ctx context.Context, req *connect
 	return c.cancelDenial.CallUnary(ctx, req)
 }
 
+// CreateAddressBookEntry calls bitwindowd.v1.BitwindowdService.CreateAddressBookEntry.
+func (c *bitwindowdServiceClient) CreateAddressBookEntry(ctx context.Context, req *connect.Request[v1.CreateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.createAddressBookEntry.CallUnary(ctx, req)
+}
+
+// ListAddressBook calls bitwindowd.v1.BitwindowdService.ListAddressBook.
+func (c *bitwindowdServiceClient) ListAddressBook(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error) {
+	return c.listAddressBook.CallUnary(ctx, req)
+}
+
+// UpdateAddressBookEntry calls bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry.
+func (c *bitwindowdServiceClient) UpdateAddressBookEntry(ctx context.Context, req *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.updateAddressBookEntry.CallUnary(ctx, req)
+}
+
+// DeleteAddressBookEntry calls bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry.
+func (c *bitwindowdServiceClient) DeleteAddressBookEntry(ctx context.Context, req *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.deleteAddressBookEntry.CallUnary(ctx, req)
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
@@ -129,6 +194,11 @@ type BitwindowdServiceHandler interface {
 	CreateDenial(context.Context, *connect.Request[v1.CreateDenialRequest]) (*connect.Response[v1.CreateDenialResponse], error)
 	ListDenials(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListDenialsResponse], error)
 	CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error)
+	// Wallet operations
+	CreateAddressBookEntry(context.Context, *connect.Request[v1.CreateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
+	ListAddressBook(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error)
+	UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
+	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewBitwindowdServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -162,6 +232,30 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("CancelDenial")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceCreateAddressBookEntryHandler := connect.NewUnaryHandler(
+		BitwindowdServiceCreateAddressBookEntryProcedure,
+		svc.CreateAddressBookEntry,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("CreateAddressBookEntry")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceListAddressBookHandler := connect.NewUnaryHandler(
+		BitwindowdServiceListAddressBookProcedure,
+		svc.ListAddressBook,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("ListAddressBook")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceUpdateAddressBookEntryHandler := connect.NewUnaryHandler(
+		BitwindowdServiceUpdateAddressBookEntryProcedure,
+		svc.UpdateAddressBookEntry,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("UpdateAddressBookEntry")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitwindowdServiceDeleteAddressBookEntryHandler := connect.NewUnaryHandler(
+		BitwindowdServiceDeleteAddressBookEntryProcedure,
+		svc.DeleteAddressBookEntry,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("DeleteAddressBookEntry")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitwindowd.v1.BitwindowdService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitwindowdServiceStopProcedure:
@@ -172,6 +266,14 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceListDenialsHandler.ServeHTTP(w, r)
 		case BitwindowdServiceCancelDenialProcedure:
 			bitwindowdServiceCancelDenialHandler.ServeHTTP(w, r)
+		case BitwindowdServiceCreateAddressBookEntryProcedure:
+			bitwindowdServiceCreateAddressBookEntryHandler.ServeHTTP(w, r)
+		case BitwindowdServiceListAddressBookProcedure:
+			bitwindowdServiceListAddressBookHandler.ServeHTTP(w, r)
+		case BitwindowdServiceUpdateAddressBookEntryProcedure:
+			bitwindowdServiceUpdateAddressBookEntryHandler.ServeHTTP(w, r)
+		case BitwindowdServiceDeleteAddressBookEntryProcedure:
+			bitwindowdServiceDeleteAddressBookEntryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -195,4 +297,20 @@ func (UnimplementedBitwindowdServiceHandler) ListDenials(context.Context, *conne
 
 func (UnimplementedBitwindowdServiceHandler) CancelDenial(context.Context, *connect.Request[v1.CancelDenialRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.CancelDenial is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) CreateAddressBookEntry(context.Context, *connect.Request[v1.CreateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.CreateAddressBookEntry is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) ListAddressBook(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.ListAddressBook is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry is not implemented"))
 }

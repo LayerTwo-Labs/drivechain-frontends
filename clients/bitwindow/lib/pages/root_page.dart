@@ -6,6 +6,7 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
+import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbenum.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/balance_provider.dart';
@@ -97,11 +99,31 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
               members: [
                 PlatformMenuItem(
                   label: 'Sending Addresses',
-                  onSelected: null,
+                  onSelected: () {
+                    final theme = SailTheme.of(context);
+                    showDialog(
+                      context: context,
+                      barrierColor: theme.colors.background.withValues(alpha: 0.4),
+                      builder: (context) => const SailPadding(
+                        padding: EdgeInsets.all(SailStyleValues.padding64),
+                        child: AddressBookTable(direction: Direction.DIRECTION_SEND),
+                      ),
+                    );
+                  },
                 ),
                 PlatformMenuItem(
                   label: 'Receiving Addresses',
-                  onSelected: null,
+                  onSelected: () {
+                    final theme = SailTheme.of(context);
+                    showDialog(
+                      context: context,
+                      barrierColor: theme.colors.background.withValues(alpha: 0.4),
+                      builder: (context) => const SailPadding(
+                        padding: EdgeInsets.all(SailStyleValues.padding64),
+                        child: AddressBookTable(direction: Direction.DIRECTION_RECEIVE),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

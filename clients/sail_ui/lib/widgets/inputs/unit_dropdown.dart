@@ -33,7 +33,13 @@ class UnitDropdown extends StatelessWidget {
           child: SailText.primary12('SAT'),
         ),
       ],
-      onChanged: onChanged,
+      onChanged: (value) {
+        if (value == null) {
+          return;
+        }
+
+        onChanged(value);
+      },
       value: value,
       enabled: enabled,
     );

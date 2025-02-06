@@ -26,6 +26,10 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$3.CreateDenialResponse> createDenial($pb.ServerContext ctx, $3.CreateDenialRequest request);
   $async.Future<$3.ListDenialsResponse> listDenials($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $3.CancelDenialRequest request);
+  $async.Future<$1.Empty> createAddressBookEntry($pb.ServerContext ctx, $3.CreateAddressBookEntryRequest request);
+  $async.Future<$3.ListAddressBookResponse> listAddressBook($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$1.Empty> updateAddressBookEntry($pb.ServerContext ctx, $3.UpdateAddressBookEntryRequest request);
+  $async.Future<$1.Empty> deleteAddressBookEntry($pb.ServerContext ctx, $3.DeleteAddressBookEntryRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -33,6 +37,10 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'CreateDenial': return $3.CreateDenialRequest();
       case 'ListDenials': return $1.Empty();
       case 'CancelDenial': return $3.CancelDenialRequest();
+      case 'CreateAddressBookEntry': return $3.CreateAddressBookEntryRequest();
+      case 'ListAddressBook': return $1.Empty();
+      case 'UpdateAddressBookEntry': return $3.UpdateAddressBookEntryRequest();
+      case 'DeleteAddressBookEntry': return $3.DeleteAddressBookEntryRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -43,6 +51,10 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'CreateDenial': return this.createDenial(ctx, request as $3.CreateDenialRequest);
       case 'ListDenials': return this.listDenials(ctx, request as $1.Empty);
       case 'CancelDenial': return this.cancelDenial(ctx, request as $3.CancelDenialRequest);
+      case 'CreateAddressBookEntry': return this.createAddressBookEntry(ctx, request as $3.CreateAddressBookEntryRequest);
+      case 'ListAddressBook': return this.listAddressBook(ctx, request as $1.Empty);
+      case 'UpdateAddressBookEntry': return this.updateAddressBookEntry(ctx, request as $3.UpdateAddressBookEntryRequest);
+      case 'DeleteAddressBookEntry': return this.deleteAddressBookEntry(ctx, request as $3.DeleteAddressBookEntryRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

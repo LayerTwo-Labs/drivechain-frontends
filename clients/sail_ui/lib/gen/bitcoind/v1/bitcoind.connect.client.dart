@@ -3,10 +3,10 @@
 //  source: bitcoind/v1/bitcoind.proto
 //
 
-import "package:connectrpc/connect.dart" as connect;
-import "bitcoind.pb.dart" as bitcoindv1bitcoind;
-import "bitcoind.connect.spec.dart" as specs;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import 'package:connectrpc/connect.dart' as connect;
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart' as bitcoindv1bitcoind;
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.connect.spec.dart' as specs;
+import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as googleprotobufempty;
 
 extension type BitcoindServiceClient (connect.Transport _transport) {
   /// Lists the ten most recent transactions, both confirmed and unconfirmed.

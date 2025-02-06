@@ -3,10 +3,10 @@
 //  source: wallet/v1/wallet.proto
 //
 
-import "package:connectrpc/connect.dart" as connect;
-import "wallet.pb.dart" as walletv1wallet;
-import "wallet.connect.spec.dart" as specs;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import 'package:connectrpc/connect.dart' as connect;
+import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as walletv1wallet;
+import 'package:sail_ui/gen/wallet/v1/wallet.connect.spec.dart' as specs;
+import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as googleprotobufempty;
 
 extension type WalletServiceClient (connect.Transport _transport) {
   Future<walletv1wallet.SendTransactionResponse> sendTransaction(

@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/wallet/denial_dialog.dart';
+import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
@@ -78,6 +79,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
+            spacing: SailStyleValues.padding08,
             children: [
               Expanded(
                 child: SailTextField(
@@ -87,7 +89,17 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                   size: TextFieldSize.small,
                 ),
               ),
-              const SizedBox(width: 4.0),
+              SailDropdownButton<AddressBookEntry>(
+                value: null,
+                hint: SailText.primary13(viewModel.selectedEntry?.label ?? 'Address Book'),
+                items: viewModel.addressBookEntries.map((entry) {
+                  return SailDropdownItem<AddressBookEntry>(
+                    value: entry,
+                    child: SailText.primary13(entry.label),
+                  );
+                }).toList(),
+                onChanged: viewModel.onAddressSelected,
+              ),
               QtIconButton(
                 tooltip: 'Paste from clipboard',
                 onPressed: () async {
@@ -325,6 +337,7 @@ class SendPageViewModel extends BaseViewModel {
   BalanceProvider get balanceProvider => GetIt.I<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I<BlockchainProvider>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
+  AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
   BitwindowRPC get api => GetIt.I<BitwindowRPC>();
   Logger get log => GetIt.I<Logger>();
   late TextEditingController addressController;
@@ -337,17 +350,21 @@ class SendPageViewModel extends BaseViewModel {
   bool useMinimumFee = false;
   Unit feeUnit = Unit.BTC;
   EstimateSmartFeeResponse feeEstimate = EstimateSmartFeeResponse();
-
-  SendPageViewModel();
+  List<AddressBookEntry> get addressBookEntries => addressBookProvider.sendEntries;
+  AddressBookEntry? selectedEntry;
+  SendPageViewModel() {
+    addressController = TextEditingController(text: '');
+    amountController = TextEditingController(text: '0.00');
+    customFeeController = TextEditingController(text: '');
+    fetchEstimate();
+    addressBookProvider.addListener(notifyListeners);
+  }
 
   // Amount of blocks to confirm the transaction in
   List<int> get confirmationTargets => [1, 2, 4, 6, 12, 24, 48, 144, 432, 1008];
   double get feeRate => feeEstimate.feeRate == 0 ? 0.0002 : feeEstimate.feeRate;
 
   void init() {
-    addressController = TextEditingController(text: '');
-    amountController = TextEditingController(text: '0.00');
-    customFeeController = TextEditingController(text: '');
     fetchEstimate();
   }
 
@@ -356,6 +373,7 @@ class SendPageViewModel extends BaseViewModel {
     addressController.dispose();
     amountController.dispose();
     customFeeController.dispose();
+    addressBookProvider.removeListener(notifyListeners);
     super.dispose();
   }
 
@@ -395,7 +413,11 @@ class SendPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void setConfirmationTarget(int value) {
+  void setConfirmationTarget(int? value) {
+    if (value == null) {
+      return;
+    }
+
     confirmationTarget = value;
     notifyListeners();
     fetchEstimate();
@@ -506,6 +528,14 @@ class SendPageViewModel extends BaseViewModel {
     confirmationTarget = 2;
     useMinimumFee = false;
     notifyListeners();
+  }
+
+  void onAddressSelected(AddressBookEntry? entry) {
+    if (entry != null) {
+      addressController.text = entry.address;
+      selectedEntry = entry;
+      notifyListeners();
+    }
   }
 }
 

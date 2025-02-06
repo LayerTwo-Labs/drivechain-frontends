@@ -75,23 +75,36 @@ func List(ctx context.Context, db *sql.DB) ([]OPReturn, error) {
 }
 
 func OPReturnToReadable(data []byte) string {
-	// Convert to string first to properly handle UTF-8 encoding
-	str := string(data)
+	// First try to decode as hex
+	decoded, err := hex.DecodeString(string(data))
+	if err == nil {
+		// Check if decoded data is human readable
+		isHumanReadable := true
+		for _, r := range string(decoded) {
+			if !unicode.IsPrint(r) || r > 127 {
+				isHumanReadable = false
+				break
+			}
+		}
+		if isHumanReadable {
+			return string(decoded)
+		}
+	}
 
+	// If not hex or not human readable when decoded, try direct string
+	str := string(data)
 	isHumanReadable := true
 	for _, r := range str {
-		// Check if character is printable AND in basic ASCII range
-		// This prevents invalid UTF-8 sequences from being considered readable
 		if !unicode.IsPrint(r) || r > 127 {
 			isHumanReadable = false
 			break
 		}
 	}
-
 	if isHumanReadable {
 		return str
 	}
 
+	// If all else fails, return as hex
 	return hex.EncodeToString(data)
 }
 

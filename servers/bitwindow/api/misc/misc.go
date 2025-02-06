@@ -91,8 +91,6 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 	if !exists {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic does not exist"))
 	}
-	// Format the OP_RETURN message: <topic (8 bytes)> <headline (64 bytes)> <message>
-	message := []byte(req.Msg.Topic)
 
 	// pad headline to always be 64 bytes
 	headline := make([]byte, 64)
@@ -100,6 +98,9 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 		headline[i] = 0x20 // Fill with spaces
 	}
 	copy(headline, []byte(req.Msg.Headline))
+
+	// Format the OP_RETURN message: <topic (8 bytes)><headline (64 bytes)><message>
+	message := []byte(req.Msg.Topic)
 	message = append(message, headline...)
 
 	// add content

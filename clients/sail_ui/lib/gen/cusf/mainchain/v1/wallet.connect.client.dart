@@ -3,9 +3,9 @@
 //  source: cusf/mainchain/v1/wallet.proto
 //
 
-import "package:connectrpc/connect.dart" as connect;
-import "wallet.pb.dart" as cusfmainchainv1wallet;
-import "wallet.connect.spec.dart" as specs;
+import 'package:connectrpc/connect.dart' as connect;
+import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.pb.dart' as cusfmainchainv1wallet;
+import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.connect.spec.dart' as specs;
 
 extension type WalletServiceClient (connect.Transport _transport) {
   Future<cusfmainchainv1wallet.BroadcastWithdrawalBundleResponse> broadcastWithdrawalBundle(
