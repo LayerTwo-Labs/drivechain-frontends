@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
@@ -198,6 +199,12 @@ Future<void> initDependencies(Logger log, File logFile) async {
     () => sidechainProvider,
   );
   unawaited(sidechainProvider.fetch());
+
+  final addressBookProvider = AddressBookProvider();
+  GetIt.I.registerLazySingleton<AddressBookProvider>(
+    () => addressBookProvider,
+  );
+  unawaited(addressBookProvider.fetch());
 }
 
 Future<void> initMainchainBinary(

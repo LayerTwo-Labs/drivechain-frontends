@@ -34,9 +34,6 @@ func Enforcer(ctx context.Context, url string) (
 	)
 	tip, err := client.GetChainInfo(ctx, connect.NewRequest(&pb.GetChainInfoRequest{}))
 	if err != nil {
-		zerolog.Ctx(ctx).Info().
-			Err(err).
-			Msg("failed to get chain info")
 		return nil, nil, fmt.Errorf("get chain info: %w", err)
 	}
 

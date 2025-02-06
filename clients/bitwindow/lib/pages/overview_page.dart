@@ -431,12 +431,20 @@ class CoinNewsViewModel extends BaseViewModel {
     _newsProvider.addListener(notifyListeners);
   }
 
-  void setLeftTopic(Topic topic) {
+  void setLeftTopic(Topic? topic) {
+    if (topic == null) {
+      return;
+    }
+
     _leftTopic = topic;
     notifyListeners();
   }
 
-  void setRightTopic(Topic topic) {
+  void setRightTopic(Topic? topic) {
+    if (topic == null) {
+      return;
+    }
+
     _rightTopic = topic;
     notifyListeners();
   }
@@ -693,7 +701,11 @@ class BroadcastNewsViewModel extends BaseViewModel {
     contentController.addListener(notifyListeners);
   }
 
-  void setTopic(Topic newTopic) {
+  void setTopic(Topic? newTopic) {
+    if (newTopic == null) {
+      return;
+    }
+
     topic = newTopic;
     notifyListeners();
   }
@@ -855,7 +867,7 @@ class NewGraffittiView extends StatelessWidget {
           leadingSpacing: true,
           children: [
             SailTextField(
-              label: 'Message (max 80 characters)',
+              label: 'Message',
               controller: viewModel.messageController,
               hintText: 'Enter a message',
               size: TextFieldSize.small,
@@ -945,12 +957,30 @@ class CoinNewsTable extends StatelessWidget {
       onSort: (columnIndex, ascending) {
         onSort(['fee', 'time', 'headline'][columnIndex]);
       },
-      onDoubleTap: (rowId) {},
+      onDoubleTap: (rowId) {
+        final news = entries[int.parse(rowId)];
+
+        final article = Article(
+          title: news.headline,
+          markdown: news.content,
+          filename: '',
+        );
+
+        showArticleDetails(context, article, 'Coin News');
+      },
       contextMenuItems: (rowId) {
         return [
           SailMenuItem(
             onSelected: () {
-              displayNewsOverviewDialog(context, news: entries[int.parse(rowId)]);
+              final news = entries[int.parse(rowId)];
+
+              final article = Article(
+                title: news.headline,
+                markdown: news.content,
+                filename: '',
+              );
+
+              showArticleDetails(context, article, 'Coin News');
             },
             child: SailText.primary12('Show Details'),
           ),

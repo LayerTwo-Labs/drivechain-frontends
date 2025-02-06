@@ -59,16 +59,6 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                 spacing: 0,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon grid at the top - no padding
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: theme.colors.backgroundSecondary,
-                    ),
-                    child: SailSVG.png(
-                      SailPNGAsset.articleBeginner,
-                      width: double.infinity,
-                    ),
-                  ),
                   // Content below image - with padding
                   SailPadding(
                     padding: const EdgeInsets.symmetric(

@@ -3,9 +3,9 @@
 //  source: cusf/crypto/v1/crypto.proto
 //
 
-import "package:connectrpc/connect.dart" as connect;
-import "crypto.pb.dart" as cusfcryptov1crypto;
-import "crypto.connect.spec.dart" as specs;
+import 'package:connectrpc/connect.dart' as connect;
+import 'package:sail_ui/gen/cusf/crypto/v1/crypto.pb.dart' as cusfcryptov1crypto;
+import 'package:sail_ui/gen/cusf/crypto/v1/crypto.connect.spec.dart' as specs;
 
 extension type CryptoServiceClient (connect.Transport _transport) {
   Future<cusfcryptov1crypto.HmacSha512Response> hmacSha512(

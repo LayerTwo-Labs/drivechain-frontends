@@ -3,9 +3,9 @@
 //  source: bitcoind/v1/bitcoind.proto
 //
 
-import "package:connectrpc/connect.dart" as connect;
-import "bitcoind.pb.dart" as bitcoindv1bitcoind;
-import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import 'package:connectrpc/connect.dart' as connect;
+import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart' as bitcoindv1bitcoind;
+import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as googleprotobufempty;
 
 abstract final class BitcoindService {
   /// Fully-qualified name of the BitcoindService service.

@@ -6,6 +6,7 @@ class SailDropdownButton<T> extends StatefulWidget {
     required this.items,
     required this.onChanged,
     required this.value,
+    this.hint,
     this.icon = const Icon(
       Icons.expand_more,
       size: 16,
@@ -16,11 +17,13 @@ class SailDropdownButton<T> extends StatefulWidget {
   });
 
   final List<SailDropdownItem<T>> items;
-  final ValueChanged<T> onChanged;
-  final T value;
+  final ValueChanged<T?> onChanged;
+  final T? value;
+  final Widget? hint;
   final Widget? icon;
   final bool large;
   final bool enabled;
+
   @override
   State<StatefulWidget> createState() => _SailDropdownButtonState<T>();
 }
@@ -41,8 +44,17 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
         )
         .toList();
 
-    var currentIndex = widget.items.indexWhere((element) => element.value == widget.value);
-    Widget currentItem = widget.items[currentIndex];
+    Widget currentDisplay;
+    if (widget.value != null) {
+      var currentIndex = widget.items.indexWhere((element) => element.value == widget.value);
+      if (currentIndex >= 0) {
+        currentDisplay = widget.items[currentIndex];
+      } else {
+        currentDisplay = widget.hint ?? const SizedBox();
+      }
+    } else {
+      currentDisplay = widget.hint ?? const SizedBox();
+    }
 
     return QtButton(
       size: ButtonSize.small,
@@ -66,7 +78,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         mainAxisSize: MainAxisSize.max,
         children: [
-          currentItem,
+          currentDisplay,
           SailSVG.fromAsset(
             SailSVGAsset.iconDropdown,
             color: theme.colors.textSecondary,

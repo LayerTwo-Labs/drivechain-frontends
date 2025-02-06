@@ -16,6 +16,21 @@ import 'dart:typed_data' as $typed_data;
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
+@$core.Deprecated('Use directionDescriptor instead')
+const Direction$json = {
+  '1': 'Direction',
+  '2': [
+    {'1': 'DIRECTION_UNSPECIFIED', '2': 0},
+    {'1': 'DIRECTION_SEND', '2': 1},
+    {'1': 'DIRECTION_RECEIVE', '2': 2},
+  ],
+};
+
+/// Descriptor for `Direction`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List directionDescriptor = $convert.base64Decode(
+    'CglEaXJlY3Rpb24SGQoVRElSRUNUSU9OX1VOU1BFQ0lGSUVEEAASEgoORElSRUNUSU9OX1NFTk'
+    'QQARIVChFESVJFQ1RJT05fUkVDRUlWRRAC');
+
 @$core.Deprecated('Use createDenialRequestDescriptor instead')
 const CreateDenialRequest$json = {
   '1': 'CreateDenialRequest',
@@ -112,6 +127,81 @@ final $typed_data.Uint8List executedDenialDescriptor = $convert.base64Decode(
     '5pYWxJZBIlCg50cmFuc2FjdGlvbl9pZBgDIAEoCVINdHJhbnNhY3Rpb25JZBI5CgpjcmVhdGVk'
     'X2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0');
 
+@$core.Deprecated('Use createAddressBookEntryRequestDescriptor instead')
+const CreateAddressBookEntryRequest$json = {
+  '1': 'CreateAddressBookEntryRequest',
+  '2': [
+    {'1': 'label', '3': 1, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'address', '3': 2, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'direction', '3': 3, '4': 1, '5': 14, '6': '.bitwindowd.v1.Direction', '10': 'direction'},
+  ],
+};
+
+/// Descriptor for `CreateAddressBookEntryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createAddressBookEntryRequestDescriptor = $convert.base64Decode(
+    'Ch1DcmVhdGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBIUCgVsYWJlbBgBIAEoCVIFbGFiZWwSGA'
+    'oHYWRkcmVzcxgCIAEoCVIHYWRkcmVzcxI2CglkaXJlY3Rpb24YAyABKA4yGC5iaXR3aW5kb3dk'
+    'LnYxLkRpcmVjdGlvblIJZGlyZWN0aW9u');
+
+@$core.Deprecated('Use addressBookEntryDescriptor instead')
+const AddressBookEntry$json = {
+  '1': 'AddressBookEntry',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'direction', '3': 4, '4': 1, '5': 14, '6': '.bitwindowd.v1.Direction', '10': 'direction'},
+    {'1': 'created_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+  ],
+};
+
+/// Descriptor for `AddressBookEntry`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List addressBookEntryDescriptor = $convert.base64Decode(
+    'ChBBZGRyZXNzQm9va0VudHJ5Eg4KAmlkGAEgASgDUgJpZBIUCgVsYWJlbBgCIAEoCVIFbGFiZW'
+    'wSGAoHYWRkcmVzcxgDIAEoCVIHYWRkcmVzcxI2CglkaXJlY3Rpb24YBCABKA4yGC5iaXR3aW5k'
+    'b3dkLnYxLkRpcmVjdGlvblIJZGlyZWN0aW9uEjkKCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbG'
+    'UucHJvdG9idWYuVGltZXN0YW1wUgljcmVhdGVkQXQ=');
+
+@$core.Deprecated('Use listAddressBookResponseDescriptor instead')
+const ListAddressBookResponse$json = {
+  '1': 'ListAddressBookResponse',
+  '2': [
+    {'1': 'entries', '3': 1, '4': 3, '5': 11, '6': '.bitwindowd.v1.AddressBookEntry', '10': 'entries'},
+  ],
+};
+
+/// Descriptor for `ListAddressBookResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listAddressBookResponseDescriptor = $convert.base64Decode(
+    'ChdMaXN0QWRkcmVzc0Jvb2tSZXNwb25zZRI5CgdlbnRyaWVzGAEgAygLMh8uYml0d2luZG93ZC'
+    '52MS5BZGRyZXNzQm9va0VudHJ5UgdlbnRyaWVz');
+
+@$core.Deprecated('Use updateAddressBookEntryRequestDescriptor instead')
+const UpdateAddressBookEntryRequest$json = {
+  '1': 'UpdateAddressBookEntryRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
+  ],
+};
+
+/// Descriptor for `UpdateAddressBookEntryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateAddressBookEntryRequestDescriptor = $convert.base64Decode(
+    'Ch1VcGRhdGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBIOCgJpZBgBIAEoA1ICaWQSFAoFbGFiZW'
+    'wYAiABKAlSBWxhYmVsEhgKB2FkZHJlc3MYAyABKAlSB2FkZHJlc3M=');
+
+@$core.Deprecated('Use deleteAddressBookEntryRequestDescriptor instead')
+const DeleteAddressBookEntryRequest$json = {
+  '1': 'DeleteAddressBookEntryRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+  ],
+};
+
+/// Descriptor for `DeleteAddressBookEntryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteAddressBookEntryRequestDescriptor = $convert.base64Decode(
+    'Ch1EZWxldGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBIOCgJpZBgBIAEoA1ICaWQ=');
+
 const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
   '1': 'BitwindowdService',
   '2': [
@@ -119,6 +209,10 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'CreateDenial', '2': '.bitwindowd.v1.CreateDenialRequest', '3': '.bitwindowd.v1.CreateDenialResponse'},
     {'1': 'ListDenials', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.ListDenialsResponse'},
     {'1': 'CancelDenial', '2': '.bitwindowd.v1.CancelDenialRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'CreateAddressBookEntry', '2': '.bitwindowd.v1.CreateAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'ListAddressBook', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.ListAddressBookResponse'},
+    {'1': 'UpdateAddressBookEntry', '2': '.bitwindowd.v1.UpdateAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'DeleteAddressBookEntry', '2': '.bitwindowd.v1.DeleteAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
   ],
 };
 
@@ -132,6 +226,11 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.google.protobuf.Timestamp': $0.Timestamp$json,
   '.bitwindowd.v1.ExecutedDenial': ExecutedDenial$json,
   '.bitwindowd.v1.CancelDenialRequest': CancelDenialRequest$json,
+  '.bitwindowd.v1.CreateAddressBookEntryRequest': CreateAddressBookEntryRequest$json,
+  '.bitwindowd.v1.ListAddressBookResponse': ListAddressBookResponse$json,
+  '.bitwindowd.v1.AddressBookEntry': AddressBookEntry$json,
+  '.bitwindowd.v1.UpdateAddressBookEntryRequest': UpdateAddressBookEntryRequest$json,
+  '.bitwindowd.v1.DeleteAddressBookEntryRequest': DeleteAddressBookEntryRequest$json,
 };
 
 /// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -141,5 +240,12 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     'YXRlRGVuaWFsUmVxdWVzdBojLmJpdHdpbmRvd2QudjEuQ3JlYXRlRGVuaWFsUmVzcG9uc2USSQ'
     'oLTGlzdERlbmlhbHMSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaIi5iaXR3aW5kb3dkLnYxLkxp'
     'c3REZW5pYWxzUmVzcG9uc2USSgoMQ2FuY2VsRGVuaWFsEiIuYml0d2luZG93ZC52MS5DYW5jZW'
-    'xEZW5pYWxSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5');
+    'xEZW5pYWxSZXF1ZXN0GhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5El4KFkNyZWF0ZUFkZHJlc3NC'
+    'b29rRW50cnkSLC5iaXR3aW5kb3dkLnYxLkNyZWF0ZUFkZHJlc3NCb29rRW50cnlSZXF1ZXN0Gh'
+    'YuZ29vZ2xlLnByb3RvYnVmLkVtcHR5ElEKD0xpc3RBZGRyZXNzQm9vaxIWLmdvb2dsZS5wcm90'
+    'b2J1Zi5FbXB0eRomLmJpdHdpbmRvd2QudjEuTGlzdEFkZHJlc3NCb29rUmVzcG9uc2USXgoWVX'
+    'BkYXRlQWRkcmVzc0Jvb2tFbnRyeRIsLmJpdHdpbmRvd2QudjEuVXBkYXRlQWRkcmVzc0Jvb2tF'
+    'bnRyeVJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW1wdHkSXgoWRGVsZXRlQWRkcmVzc0Jvb2'
+    'tFbnRyeRIsLmJpdHdpbmRvd2QudjEuRGVsZXRlQWRkcmVzc0Jvb2tFbnRyeVJlcXVlc3QaFi5n'
+    'b29nbGUucHJvdG9idWYuRW1wdHk=');
 

@@ -35,12 +35,20 @@ abstract class BitwindowRPC extends RPCConnection {
 
 abstract class BitwindowAPI {
   Future<void> stop();
+
+  // Denial methods here
   Future<void> createDenial({
     required int numHops,
     required int delaySeconds,
   });
   Future<void> cancelDenial(Int64 id);
   Future<List<Denial>> listDenials();
+
+  // Address book methods here
+  Future<List<AddressBookEntry>> listAddressBook();
+  Future<void> createAddressBookEntry(String label, String address, Direction direction);
+  Future<void> updateAddressBookEntry(Int64 id, String label);
+  Future<void> deleteAddressBookEntry(Int64 id);
 }
 
 abstract class WalletAPI {
@@ -196,6 +204,38 @@ class _BitwindowAPILive implements BitwindowAPI {
   Future<List<Denial>> listDenials() async {
     final response = await _client.listDenials(Empty());
     return response.denials;
+  }
+
+  @override
+  Future<List<AddressBookEntry>> listAddressBook() async {
+    final response = await _client.listAddressBook(Empty());
+    return response.entries;
+  }
+
+  @override
+  Future<void> createAddressBookEntry(String label, String address, Direction direction) async {
+    await _client.createAddressBookEntry(
+      CreateAddressBookEntryRequest()
+        ..label = label
+        ..address = address
+        ..direction = direction,
+    );
+  }
+
+  @override
+  Future<void> updateAddressBookEntry(Int64 id, String label) async {
+    await _client.updateAddressBookEntry(
+      UpdateAddressBookEntryRequest()
+        ..id = id
+        ..label = label,
+    );
+  }
+
+  @override
+  Future<void> deleteAddressBookEntry(Int64 id) async {
+    await _client.deleteAddressBookEntry(
+      DeleteAddressBookEntryRequest()..id = id,
+    );
   }
 }
 

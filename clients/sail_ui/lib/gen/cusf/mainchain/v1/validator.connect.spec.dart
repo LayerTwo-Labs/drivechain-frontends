@@ -3,8 +3,8 @@
 //  source: cusf/mainchain/v1/validator.proto
 //
 
-import "package:connectrpc/connect.dart" as connect;
-import "validator.pb.dart" as cusfmainchainv1validator;
+import 'package:connectrpc/connect.dart' as connect;
+import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pb.dart' as cusfmainchainv1validator;
 
 abstract final class ValidatorService {
   /// Fully-qualified name of the ValidatorService service.

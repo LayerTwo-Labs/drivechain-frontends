@@ -638,9 +638,15 @@ class _TableRow extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: onPressed,
-      onDoubleTapDown: onDoubleTap == null ? null : (_) => onDoubleTap!(),
-      behavior: HitTestBehavior.opaque,
+      onLongPressDown: (_) {
+        onPressed();
+      },
+      onDoubleTapDown: onDoubleTap == null
+          ? null
+          : (_) {
+              onDoubleTap!();
+            },
+      behavior: HitTestBehavior.translucent,
       child: contents,
     );
   }
