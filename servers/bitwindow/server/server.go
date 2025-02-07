@@ -73,7 +73,7 @@ func NewServer(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, bitcoindSvc, walletSvc, drivechainClient,
+		ctx, database, bitcoindSvc, walletSvc, drivechainClient,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		database, bitcoindSvc, walletSvc,
