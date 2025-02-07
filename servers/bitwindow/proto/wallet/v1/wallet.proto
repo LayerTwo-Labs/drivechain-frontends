@@ -23,15 +23,21 @@ message GetNewAddressResponse {
 }
 
 message SendTransactionRequest {
-  // Address -> satoshi amount
-  map<string, uint64> destinations = 1;
+  // The destination address to send to.
+  string destination = 1;
+
+  // The amount in satoshi to send.
+  uint64 amount = 2;
 
   // Fee rate, measured in BTC/kvB. If set to zero, a reasonable
   // rate is used by asking Core for an estimate.
-  double fee_rate = 2;
+  double fee_rate = 3;
 
   // Message to include as an OP_RETURN output
-  optional string op_return_message = 3;
+  string op_return_message = 4;
+
+  // If set, will save the address with this label in the address book
+  string label = 5;
 }
 
 message SendTransactionResponse {

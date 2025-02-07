@@ -2,18 +2,21 @@ package api_wallet
 
 import (
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/drivechain"
+	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	drivechainrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1/drivechainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -30,11 +33,13 @@ var _ rpc.WalletServiceHandler = new(Server)
 // New creates a new Server and starts the balance update loop
 func New(
 	ctx context.Context,
+	database *sql.DB,
 	bitcoind *service.Service[*coreproxy.Bitcoind],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	drivechain drivechainrpc.DrivechainServiceHandler,
 ) *Server {
 	s := &Server{
+		database:   database,
 		bitcoind:   bitcoind,
 		wallet:     wallet,
 		drivechain: drivechain,
@@ -43,6 +48,7 @@ func New(
 }
 
 type Server struct {
+	database   *sql.DB
 	bitcoind   *service.Service[*coreproxy.Bitcoind]
 	wallet     *service.Service[validatorrpc.WalletServiceClient]
 	drivechain drivechainrpc.DrivechainServiceHandler
@@ -54,8 +60,8 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		return nil, errors.New("wallet not connected")
 	}
 
-	if len(c.Msg.Destinations) == 0 {
-		err := errors.New("must provide at least one destination")
+	if c.Msg.Destination == "" {
+		err := errors.New("must provide a destination")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -64,20 +70,19 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	const dustLimit = 546
+	if c.Msg.Amount < dustLimit {
+		err := fmt.Errorf(
+			"amount to %s is below dust limit (%s): %s",
+			c.Msg.Destination, btcutil.Amount(dustLimit), btcutil.Amount(c.Msg.Amount),
+		)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
 	log := zerolog.Ctx(ctx)
 
 	destinations := make(map[string]uint64)
-	for address, amount := range c.Msg.Destinations {
-		const dustLimit = 546
-		if amount < dustLimit {
-			err := fmt.Errorf(
-				"amount to %s is below dust limit (%s): %s",
-				address, btcutil.Amount(dustLimit), btcutil.Amount(amount),
-			)
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		}
-		destinations[address] = uint64(amount)
-	}
+	destinations[c.Msg.Destination] = uint64(c.Msg.Amount)
 
 	var feeRate *validatorpb.SendTransactionRequest_FeeRate
 	if c.Msg.FeeRate != 0 {
@@ -91,12 +96,12 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}
 	}
 
-	// Prepare OP_RETURN message if provided
+	// Add OP_RETURN message if provided
 	var opReturnMessage *commonv1.Hex
-	if c.Msg.OpReturnMessage != nil {
+	if c.Msg.OpReturnMessage != "" {
 		opReturnMessage = &commonv1.Hex{
 			Hex: &wrapperspb.StringValue{
-				Value: hex.EncodeToString([]byte(*c.Msg.OpReturnMessage)),
+				Value: hex.EncodeToString([]byte(c.Msg.OpReturnMessage)),
 			},
 		}
 	}
@@ -112,6 +117,22 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("could not send transaction: %w", err)
+	}
+
+	if c.Msg.Label != "" {
+		direction, err := addressbook.DirectionFromProto(bitwindowdv1.Direction_DIRECTION_SEND)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+
+		err = addressbook.Create(ctx, s.database, c.Msg.Label, c.Msg.Destination, direction)
+		if err != nil {
+			if err.Error() == "UNIQUE constraint failed: address_book.address" {
+				// that's fine! Don't do anything
+			} else {
+				return nil, fmt.Errorf("could not create address book entry: %w", err)
+			}
+		}
 	}
 
 	log.Info().Msgf("send tx: broadcast transaction: %s", created.Msg.Txid)
