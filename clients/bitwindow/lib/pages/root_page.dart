@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
@@ -241,7 +242,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                 ),
                 PlatformMenuItem(
                   label: 'Chain Merchants',
-                  onSelected: null,
+                  onSelected: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ChainMerchantsDialog(),
+                    );
+                  },
                 ),
                 PlatformMenuItem(
                   label: 'Sidechains',
