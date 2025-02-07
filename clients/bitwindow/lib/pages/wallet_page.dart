@@ -3,6 +3,7 @@ import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
@@ -23,17 +24,27 @@ import 'package:stacked/stacked.dart';
 class WalletPage extends StatelessWidget {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   static final GlobalKey<InlineTabBarState> tabKey = GlobalKey<InlineTabBarState>();
+  static SendPageViewModel? _sendViewModel; // Static reference to view model
 
   const WalletPage({
     super.key,
   });
 
+  static void handleBitcoinURI(BitcoinURI uri) {
+    _sendViewModel?.handleBitcoinURI(uri);
+  }
+
   @override
   Widget build(BuildContext context) {
     return QtPage(
       child: ViewModelBuilder<SendPageViewModel>.reactive(
-        viewModelBuilder: () => SendPageViewModel(),
+        viewModelBuilder: () {
+          _sendViewModel = SendPageViewModel();
+          // Store reference to be able to set it's values from outside this particular file
+          return _sendViewModel!;
+        },
         onViewModelReady: (model) => model.init(),
+        onDispose: (model) => _sendViewModel = null,
         builder: (context, model, child) {
           return InlineTabBar(
             key: tabKey,
@@ -167,12 +178,19 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                       ],
                     ),
                     const SizedBox(height: SailStyleValues.padding16),
+                    SailTextField(
+                      label: 'Label (optional)',
+                      controller: viewModel.labelController,
+                      hintText: 'Enter a label',
+                      size: TextFieldSize.small,
+                    ),
                   ],
                 ),
               ),
               Expanded(child: Container()),
             ],
           ),
+          const SizedBox(height: SailStyleValues.padding16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -343,6 +361,7 @@ class SendPageViewModel extends BaseViewModel {
   late TextEditingController addressController;
   late TextEditingController amountController;
   late TextEditingController customFeeController;
+  late TextEditingController labelController;
   Unit unit = Unit.BTC;
   bool subtractFee = false;
   String feeType = 'recommended';
@@ -354,10 +373,25 @@ class SendPageViewModel extends BaseViewModel {
   AddressBookEntry? selectedEntry;
   SendPageViewModel() {
     addressController = TextEditingController(text: '');
+    addressController.addListener(decodeURI);
     amountController = TextEditingController(text: '0.00');
     customFeeController = TextEditingController(text: '');
+    labelController = TextEditingController(text: '');
     fetchEstimate();
     addressBookProvider.addListener(notifyListeners);
+  }
+
+  void decodeURI() {
+    try {
+      if (addressController.text.isNotEmpty) {
+        final uri = Uri.parse(addressController.text);
+        if (uri.scheme == 'bitcoin') {
+          handleBitcoinURI(BitcoinURI.parse(uri.toString()));
+        }
+      }
+    } catch (e) {
+      // do nothing, it's okay!
+    }
   }
 
   // Amount of blocks to confirm the transaction in
@@ -373,6 +407,7 @@ class SendPageViewModel extends BaseViewModel {
     addressController.dispose();
     amountController.dispose();
     customFeeController.dispose();
+    labelController.dispose();
     addressBookProvider.removeListener(notifyListeners);
     super.dispose();
   }
@@ -461,6 +496,7 @@ class SendPageViewModel extends BaseViewModel {
           double.parse(amountController.text) - (subtractFee ? feeRate : 0),
         ),
         btcPerKvB: feeType == 'recommended' ? feeRate : double.parse(customFeeController.text),
+        label: labelController.text,
       );
       Logger().d('Sent transaction: txid=$txid');
       if (context.mounted) {
@@ -475,6 +511,8 @@ class SendPageViewModel extends BaseViewModel {
       setBusy(false);
       notifyListeners();
       await transactionsProvider.fetch();
+      await addressBookProvider.fetch();
+      await balanceProvider.fetch();
     }
   }
 
@@ -536,6 +574,17 @@ class SendPageViewModel extends BaseViewModel {
       selectedEntry = entry;
       notifyListeners();
     }
+  }
+
+  void handleBitcoinURI(BitcoinURI uri) {
+    addressController.text = uri.address;
+    if (uri.amount != null) {
+      amountController.text = uri.amount!.toString();
+    }
+    if (uri.label != null) {
+      labelController.text = uri.label!;
+    }
+    notifyListeners();
   }
 }
 
@@ -1126,3 +1175,5 @@ class DeniabilityViewModel extends BaseViewModel {
     }
   }
 }
+
+// TODO:

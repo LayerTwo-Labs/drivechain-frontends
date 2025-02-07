@@ -14,6 +14,7 @@ dependencies:
   sail_ui:
     path: ../sail_ui
 
+  dio_web_adapter: ^2.0.0
   auto_route: ^9.2.2
   fixnum: ^1.1.0
   cupertino_icons: ^1.0.8

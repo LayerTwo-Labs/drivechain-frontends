@@ -58,6 +58,7 @@ abstract class WalletAPI {
     int amountSatoshi, {
     double? btcPerKvB,
     String? opReturnMessage,
+    String? label,
   });
   Future<GetBalanceResponse> getBalance();
   Future<String> getNewAddress();
@@ -251,12 +252,15 @@ class _WalletAPILive implements WalletAPI {
     int amountSatoshi, {
     double? btcPerKvB,
     String? opReturnMessage,
+    String? label,
   }) async {
     try {
       final request = SendTransactionRequest(
-        destinations: {destination: Int64(amountSatoshi)},
+        destination: destination,
+        amount: Int64(amountSatoshi),
         feeRate: btcPerKvB,
         opReturnMessage: opReturnMessage,
+        label: label,
       );
 
       final response = await _client.sendTransaction(request);
