@@ -196,6 +196,7 @@ class SailText {
     Color? color,
     bool monospace = false,
     TextOverflow overflow = TextOverflow.ellipsis,
+    TextDecoration? decoration,
   }) {
     return Builder(
       builder: (context) {
@@ -209,6 +210,7 @@ class SailText {
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
             fontFamily: monospace ? 'SourceCodePro' : 'Inter',
             overflow: overflow,
+            decoration: decoration,
           ),
           textAlign: textAlign,
         );
