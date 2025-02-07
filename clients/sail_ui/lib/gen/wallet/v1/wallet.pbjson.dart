@@ -34,33 +34,20 @@ final $typed_data.Uint8List getNewAddressResponseDescriptor = $convert.base64Dec
 const SendTransactionRequest$json = {
   '1': 'SendTransactionRequest',
   '2': [
-    {'1': 'destinations', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.SendTransactionRequest.DestinationsEntry', '10': 'destinations'},
-    {'1': 'fee_rate', '3': 2, '4': 1, '5': 1, '10': 'feeRate'},
-    {'1': 'op_return_message', '3': 3, '4': 1, '5': 9, '9': 0, '10': 'opReturnMessage', '17': true},
+    {'1': 'destination', '3': 1, '4': 1, '5': 9, '10': 'destination'},
+    {'1': 'amount', '3': 2, '4': 1, '5': 4, '10': 'amount'},
+    {'1': 'fee_rate', '3': 3, '4': 1, '5': 1, '10': 'feeRate'},
+    {'1': 'op_return_message', '3': 4, '4': 1, '5': 9, '10': 'opReturnMessage'},
+    {'1': 'label', '3': 5, '4': 1, '5': 9, '10': 'label'},
   ],
-  '3': [SendTransactionRequest_DestinationsEntry$json],
-  '8': [
-    {'1': '_op_return_message'},
-  ],
-};
-
-@$core.Deprecated('Use sendTransactionRequestDescriptor instead')
-const SendTransactionRequest_DestinationsEntry$json = {
-  '1': 'DestinationsEntry',
-  '2': [
-    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
-    {'1': 'value', '3': 2, '4': 1, '5': 4, '10': 'value'},
-  ],
-  '7': {'7': true},
 };
 
 /// Descriptor for `SendTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64Decode(
-    'ChZTZW5kVHJhbnNhY3Rpb25SZXF1ZXN0ElcKDGRlc3RpbmF0aW9ucxgBIAMoCzIzLndhbGxldC'
-    '52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZXN0LkRlc3RpbmF0aW9uc0VudHJ5UgxkZXN0aW5hdGlv'
-    'bnMSGQoIZmVlX3JhdGUYAiABKAFSB2ZlZVJhdGUSLwoRb3BfcmV0dXJuX21lc3NhZ2UYAyABKA'
-    'lIAFIPb3BSZXR1cm5NZXNzYWdliAEBGj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEo'
-    'CVIDa2V5EhQKBXZhbHVlGAIgASgEUgV2YWx1ZToCOAFCFAoSX29wX3JldHVybl9tZXNzYWdl');
+    'ChZTZW5kVHJhbnNhY3Rpb25SZXF1ZXN0EiAKC2Rlc3RpbmF0aW9uGAEgASgJUgtkZXN0aW5hdG'
+    'lvbhIWCgZhbW91bnQYAiABKARSBmFtb3VudBIZCghmZWVfcmF0ZRgDIAEoAVIHZmVlUmF0ZRIq'
+    'ChFvcF9yZXR1cm5fbWVzc2FnZRgEIAEoCVIPb3BSZXR1cm5NZXNzYWdlEhQKBWxhYmVsGAUgAS'
+    'gJUgVsYWJlbA==');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {
@@ -219,7 +206,6 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
 @$core.Deprecated('Use walletServiceDescriptor instead')
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServiceBase$messageJson = {
   '.wallet.v1.SendTransactionRequest': SendTransactionRequest$json,
-  '.wallet.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.wallet.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.google.protobuf.Empty': $1.Empty$json,
   '.wallet.v1.GetBalanceResponse': GetBalanceResponse$json,

@@ -100,6 +100,7 @@ class MockWalletAPI implements WalletAPI {
     String destination,
     int amountSatoshi, {
     double? btcPerKvB,
+    String? label,
     String? opReturnMessage,
   }) async {
     return 'mock_txid';

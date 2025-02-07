@@ -3,9 +3,11 @@ import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/overview_page.dart';
+import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 import 'package:fixnum/fixnum.dart';
@@ -169,7 +171,23 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                 ),
                 PlatformMenuItem(
                   label: 'Open URI Link',
-                  onSelected: null,
+                  onSelected: () async {
+                    final result = await showDialog<BitcoinURI>(
+                      context: context,
+                      builder: (context) => const BitcoinURIDialog(),
+                    );
+                    if (result != null) {
+                      // Switch to wallet tab and send tab
+                      final tabsRouter = _routerKey.currentState?.controller;
+                      tabsRouter?.setActiveIndex(1);
+                      if (WalletPage.tabKey.currentState != null) {
+                        WalletPage.tabKey.currentState!.setIndex(0);
+                      }
+
+                      // Handle the URI in the wallet page
+                      WalletPage.handleBitcoinURI(result);
+                    }
+                  },
                 ),
               ],
             ),
@@ -188,18 +206,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                       ),
                     );
                   },
-                ),
-                PlatformMenuItem(
-                  label: 'Proof of Funds',
-                  onSelected: null,
-                ),
-              ],
-            ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Write a Check',
-                  onSelected: null,
                 ),
               ],
             ),
