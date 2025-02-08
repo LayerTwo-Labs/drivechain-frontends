@@ -9,8 +9,11 @@ service BitcoindService {
   // Lists the ten most recent transactions, both confirmed and unconfirmed.
   rpc ListRecentTransactions(ListRecentTransactionsRequest) returns (ListRecentTransactionsResponse);
 
-  // Lists the ten most recent blocks, lightly populated with data.
-  rpc ListRecentBlocks(ListRecentBlocksRequest) returns (ListRecentBlocksResponse);
+  // Lists blocks with pagination support
+  rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse);
+
+  // Get a specific block by hash or height
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
 
   // Get basic blockchain info like height, last block time, peers etc.
   rpc GetBlockchainInfo(google.protobuf.Empty) returns (GetBlockchainInfoResponse);
@@ -20,20 +23,37 @@ service BitcoindService {
 
   // Lists very basic info about all peers
   rpc EstimateSmartFee(EstimateSmartFeeRequest) returns (EstimateSmartFeeResponse);
+
+  rpc GetRawTransaction(GetRawTransactionRequest) returns (GetRawTransactionResponse);
 }
 
-message ListRecentBlocksRequest {
-  int64 count = 1;
+message ListBlocksRequest {
+  uint32 start_height = 1; // Start from this height (0 means latest)
+  uint32 page_size = 2; // How many blocks to return (0 means default 50)
 }
 
 message Block {
   google.protobuf.Timestamp block_time = 1;
-  uint32 block_height = 2;
+  uint32 height = 2;
   string hash = 3;
+  int32 confirmations = 4;
+  int32 version = 5;
+  string version_hex = 6;
+  string merkle_root = 7;
+  uint32 nonce = 8;
+  string bits = 9;
+  double difficulty = 10;
+  string previous_block_hash = 11;
+  string next_block_hash = 12;
+  int32 stripped_size = 13;
+  int32 size = 14;
+  int32 weight = 15;
+  repeated string txids = 16;
 }
 
-message ListRecentBlocksResponse {
+message ListBlocksResponse {
   repeated Block recent_blocks = 4;
+  bool has_more = 5; // Whether there are more blocks available
 }
 
 message ListRecentTransactionsRequest {
@@ -77,4 +97,73 @@ message EstimateSmartFeeRequest {
 message EstimateSmartFeeResponse {
   double fee_rate = 1;
   repeated string errors = 2;
+}
+
+message GetRawTransactionRequest {
+  string txid = 1;
+}
+
+message RawTransaction {
+  // Raw transaction data
+  bytes data = 1;
+
+  // Hex-encoded raw transaction data
+  string hex = 2;
+}
+
+message ScriptSig {
+  string asm = 1;
+  string hex = 2;
+}
+
+message Input {
+  string txid = 1;
+  uint32 vout = 2;
+  string coinbase = 3;
+  ScriptSig script_sig = 4;
+  uint32 sequence = 5;
+  repeated string witness = 6;
+}
+
+message ScriptPubKey {
+  string type = 1;
+  string address = 2;
+}
+
+message Output {
+  double amount = 1;
+  uint32 vout = 2;
+
+  ScriptPubKey script_pub_key = 3;
+  ScriptSig script_sig = 4;
+}
+
+message GetRawTransactionResponse {
+  RawTransaction tx = 1;
+  string txid = 8;
+  string hash = 9;
+  int32 size = 10;
+  int32 vsize = 11;
+  int32 weight = 12;
+  uint32 version = 13;
+  uint32 locktime = 14;
+
+  repeated Input inputs = 2;
+  repeated Output outputs = 3;
+
+  string blockhash = 4;
+  uint32 confirmations = 5;
+  int64 time = 6;
+  int64 blocktime = 7;
+}
+
+message GetBlockRequest {
+  oneof identifier {
+    string hash = 1;
+    uint32 height = 2;
+  }
+}
+
+message GetBlockResponse {
+  Block block = 1;
 }

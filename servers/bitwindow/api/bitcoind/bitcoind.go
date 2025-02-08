@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"slices"
 
+	"encoding/hex"
+
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1/bitcoindv1connect"
@@ -54,8 +56,8 @@ func (s *Server) EstimateSmartFee(ctx context.Context, req *connect.Request[pb.E
 	}), nil
 }
 
-// ListRecentBlocks implements drivechainv1connect.DrivechainServiceHandler.
-func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.ListRecentBlocksRequest]) (*connect.Response[pb.ListRecentBlocksResponse], error) {
+// ListBlocks implements drivechainv1connect.DrivechainServiceHandler.
+func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlocksRequest]) (*connect.Response[pb.ListBlocksResponse], error) {
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -66,20 +68,32 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, err
 	}
 
+	// Default to most recent blocks if no pagination
+	startHeight := info.Msg.Blocks
+	if c.Msg.StartHeight > 0 {
+		startHeight = c.Msg.StartHeight
+	}
+
+	// Default page size
+	pageSize := uint32(50)
+	if c.Msg.PageSize > 0 {
+		pageSize = c.Msg.PageSize
+	}
+
 	p := pool.NewWithResults[*pb.Block]().
 		WithContext(ctx).
 		WithCancelOnError().
 		WithFirstError()
 
-	if c.Msg.Count == 0 {
-		c.Msg.Count = 10
-	}
-
-	for i := range c.Msg.Count {
+	for i := uint32(0); i < pageSize; i++ {
 		p.Go(func(ctx context.Context) (*pb.Block, error) {
-			height := info.Msg.Blocks - uint32(i)
+			height := int(startHeight) - int(i)
+			// Stop if we hit genesis block
+			if height < 0 {
+				return nil, nil
+			}
 			hash, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
-				Height: height,
+				Height: uint32(height),
 			}))
 			if err != nil {
 				return nil, fmt.Errorf("get block hash %d: %w", height, err)
@@ -94,9 +108,22 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 			}
 
 			return &pb.Block{
-				BlockTime:   block.Msg.Time,
-				BlockHeight: block.Msg.Height,
-				Hash:        block.Msg.Hash,
+				BlockTime:         block.Msg.Time,
+				Height:            block.Msg.Height,
+				Hash:              block.Msg.Hash,
+				Confirmations:     block.Msg.Confirmations,
+				Version:           block.Msg.Version,
+				VersionHex:        block.Msg.VersionHex,
+				MerkleRoot:        block.Msg.MerkleRoot,
+				Nonce:             block.Msg.Nonce,
+				Bits:              block.Msg.Bits,
+				Difficulty:        block.Msg.Difficulty,
+				PreviousBlockHash: block.Msg.PreviousBlockHash,
+				NextBlockHash:     block.Msg.NextBlockHash,
+				StrippedSize:      block.Msg.StrippedSize,
+				Size:              block.Msg.Size,
+				Weight:            block.Msg.Weight,
+				Txids:             block.Msg.Txids,
 			}, nil
 		})
 	}
@@ -106,12 +133,18 @@ func (s *Server) ListRecentBlocks(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, err
 	}
 
-	slices.SortFunc(blocks, func(a, b *pb.Block) int {
-		return -cmp.Compare(a.BlockHeight, b.BlockHeight)
+	// Filter out nil blocks (from hitting genesis)
+	blocks = lo.Filter(blocks, func(b *pb.Block, _ int) bool {
+		return b != nil
 	})
 
-	return connect.NewResponse(&pb.ListRecentBlocksResponse{
+	slices.SortFunc(blocks, func(a, b *pb.Block) int {
+		return -cmp.Compare(a.Height, b.Height)
+	})
+
+	return connect.NewResponse(&pb.ListBlocksResponse{
 		RecentBlocks: blocks,
+		HasMore:      startHeight > uint32(len(blocks)),
 	}), nil
 }
 
@@ -190,14 +223,27 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 			}
 
 			transactions = append(transactions, &pb.RecentTransaction{
+				VirtualSize: recentTx.VirtualSize,
 				Time:        blockRes.Msg.Time,
 				Txid:        txid,
 				FeeSats:     recentTx.FeeSats,
-				VirtualSize: recentTx.VirtualSize,
 				ConfirmedInBlock: &pb.Block{
-					BlockTime:   blockRes.Msg.Time,
-					BlockHeight: blockRes.Msg.Height,
-					Hash:        currentHash,
+					BlockTime:         blockRes.Msg.Time,
+					Height:            blockRes.Msg.Height,
+					Hash:              currentHash,
+					Confirmations:     blockRes.Msg.Confirmations,
+					Version:           blockRes.Msg.Version,
+					VersionHex:        blockRes.Msg.VersionHex,
+					MerkleRoot:        blockRes.Msg.MerkleRoot,
+					Nonce:             blockRes.Msg.Nonce,
+					Bits:              blockRes.Msg.Bits,
+					Difficulty:        blockRes.Msg.Difficulty,
+					PreviousBlockHash: blockRes.Msg.PreviousBlockHash,
+					NextBlockHash:     blockRes.Msg.NextBlockHash,
+					StrippedSize:      blockRes.Msg.StrippedSize,
+					Size:              blockRes.Msg.Size,
+					Weight:            blockRes.Msg.Weight,
+					Txids:             blockRes.Msg.Txids,
 				},
 			})
 		}
@@ -238,7 +284,8 @@ func (s *Server) recentTransactionFromRaw(ctx context.Context, bitcoind *corepro
 		var totalIn int64
 		for _, txIn := range tx.MsgTx().TxIn {
 			prevTxRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
-				Txid: txIn.PreviousOutPoint.Hash.String(),
+				Txid:    txIn.PreviousOutPoint.Hash.String(),
+				Verbose: true,
 			}))
 			if err != nil {
 				return nil, false, fmt.Errorf("could not get input transaction %s: %w", txIn.PreviousOutPoint.Hash.String(), err)
@@ -313,5 +360,128 @@ func (s *Server) ListPeers(ctx context.Context, c *connect.Request[emptypb.Empty
 				SyncedBlocks: item.SyncedBlocks,
 			}
 		}),
+	}), nil
+}
+
+// GetRawTransaction implements bitcoindv1connect.BitcoindServiceHandler
+func (s *Server) GetRawTransaction(ctx context.Context, req *connect.Request[pb.GetRawTransactionRequest]) (*connect.Response[pb.GetRawTransactionResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin service unavailable: %w", err))
+	}
+
+	// Get the raw transaction from bitcoind
+	txRes, err := bitcoind.GetRawTransaction(ctx, connect.NewRequest(&corepb.GetRawTransactionRequest{
+		Txid:    req.Msg.Txid,
+		Verbose: true,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("could not get transaction: %w", err)
+	}
+
+	// Convert inputs
+	inputs := make([]*pb.Input, len(txRes.Msg.Inputs))
+	for _, txIn := range txRes.Msg.Inputs {
+		input := &pb.Input{
+			Txid:      txIn.Txid,
+			Vout:      uint32(txIn.Vout),
+			Coinbase:  txIn.Coinbase,
+			ScriptSig: &pb.ScriptSig{}, // Always include empty ScriptSig
+			Sequence:  txIn.Sequence,
+			Witness:   txIn.Witness,
+		}
+		if txIn.ScriptSig != nil {
+			input.ScriptSig.Asm = txIn.ScriptSig.Asm
+			input.ScriptSig.Hex = txIn.ScriptSig.Hex
+		}
+		inputs[txIn.Vout] = input
+	}
+
+	// Convert outputs
+	outputs := make([]*pb.Output, len(txRes.Msg.Outputs))
+	for _, txOut := range txRes.Msg.Outputs {
+		output := &pb.Output{
+			Amount:       txOut.Amount,
+			Vout:         uint32(txOut.Vout),
+			ScriptPubKey: &pb.ScriptPubKey{Type: txOut.ScriptPubKey.Type, Address: txOut.ScriptPubKey.Address},
+			ScriptSig:    &pb.ScriptSig{}, // Always include empty ScriptSig
+		}
+		if txOut.ScriptSig != nil {
+			output.ScriptSig.Asm = txOut.ScriptSig.Asm
+			output.ScriptSig.Hex = txOut.ScriptSig.Hex
+		}
+		outputs[txOut.Vout] = output
+	}
+
+	return connect.NewResponse(&pb.GetRawTransactionResponse{
+		Tx:            &pb.RawTransaction{Data: txRes.Msg.Tx.Data, Hex: hex.EncodeToString(txRes.Msg.Tx.Data)},
+		Txid:          txRes.Msg.Txid,
+		Hash:          txRes.Msg.Hash,
+		Size:          int32(txRes.Msg.Size),
+		Vsize:         int32(txRes.Msg.Vsize),
+		Weight:        int32(txRes.Msg.Weight),
+		Version:       uint32(txRes.Msg.Version),
+		Locktime:      txRes.Msg.Locktime,
+		Inputs:        inputs,
+		Outputs:       outputs,
+		Blockhash:     txRes.Msg.Blockhash,
+		Confirmations: txRes.Msg.Confirmations,
+		Time:          txRes.Msg.Time,
+		Blocktime:     txRes.Msg.Blocktime,
+	}), nil
+}
+
+// GetBlock implements bitcoindv1connect.BitcoindServiceHandler
+func (s *Server) GetBlock(ctx context.Context, c *connect.Request[pb.GetBlockRequest]) (*connect.Response[pb.GetBlockResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var hash string
+	if c.Msg.Identifier != nil {
+		switch v := c.Msg.Identifier.(type) {
+		case *pb.GetBlockRequest_Hash:
+			hash = v.Hash
+		case *pb.GetBlockRequest_Height:
+			// Get block hash for this height first
+			hashRes, err := bitcoind.GetBlockHash(ctx, connect.NewRequest(&corepb.GetBlockHashRequest{
+				Height: v.Height,
+			}))
+			if err != nil {
+				return nil, fmt.Errorf("get block hash for height %d: %w", v.Height, err)
+			}
+			hash = hashRes.Msg.Hash
+		}
+	}
+
+	// Get block details
+	block, err := bitcoind.GetBlock(ctx, connect.NewRequest(&corepb.GetBlockRequest{
+		Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_INFO,
+		Hash:      hash,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("get block %s: %w", hash, err)
+	}
+
+	return connect.NewResponse(&pb.GetBlockResponse{
+		Block: &pb.Block{
+			BlockTime:         block.Msg.Time,
+			Height:            block.Msg.Height,
+			Hash:              block.Msg.Hash,
+			Confirmations:     block.Msg.Confirmations,
+			Version:           block.Msg.Version,
+			VersionHex:        block.Msg.VersionHex,
+			MerkleRoot:        block.Msg.MerkleRoot,
+			Nonce:             block.Msg.Nonce,
+			Bits:              block.Msg.Bits,
+			Difficulty:        block.Msg.Difficulty,
+			PreviousBlockHash: block.Msg.PreviousBlockHash,
+			NextBlockHash:     block.Msg.NextBlockHash,
+			StrippedSize:      block.Msg.StrippedSize,
+			Size:              block.Msg.Size,
+			Weight:            block.Msg.Weight,
+			Txids:             block.Msg.Txids,
+		},
 	}), nil
 }
