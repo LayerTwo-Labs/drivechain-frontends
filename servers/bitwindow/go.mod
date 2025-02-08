@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/barebitcoin/btc-buf v0.0.0-20241101085802-e30add2562df
+	github.com/barebitcoin/btc-buf v0.0.0-20250208100300-71cdc7a22d77
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/jessevdk/go-flags v1.6.1

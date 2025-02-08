@@ -37,9 +37,12 @@ const (
 	// BitcoindServiceListRecentTransactionsProcedure is the fully-qualified name of the
 	// BitcoindService's ListRecentTransactions RPC.
 	BitcoindServiceListRecentTransactionsProcedure = "/bitcoind.v1.BitcoindService/ListRecentTransactions"
-	// BitcoindServiceListRecentBlocksProcedure is the fully-qualified name of the BitcoindService's
-	// ListRecentBlocks RPC.
-	BitcoindServiceListRecentBlocksProcedure = "/bitcoind.v1.BitcoindService/ListRecentBlocks"
+	// BitcoindServiceListBlocksProcedure is the fully-qualified name of the BitcoindService's
+	// ListBlocks RPC.
+	BitcoindServiceListBlocksProcedure = "/bitcoind.v1.BitcoindService/ListBlocks"
+	// BitcoindServiceGetBlockProcedure is the fully-qualified name of the BitcoindService's GetBlock
+	// RPC.
+	BitcoindServiceGetBlockProcedure = "/bitcoind.v1.BitcoindService/GetBlock"
 	// BitcoindServiceGetBlockchainInfoProcedure is the fully-qualified name of the BitcoindService's
 	// GetBlockchainInfo RPC.
 	BitcoindServiceGetBlockchainInfoProcedure = "/bitcoind.v1.BitcoindService/GetBlockchainInfo"
@@ -49,20 +52,26 @@ const (
 	// BitcoindServiceEstimateSmartFeeProcedure is the fully-qualified name of the BitcoindService's
 	// EstimateSmartFee RPC.
 	BitcoindServiceEstimateSmartFeeProcedure = "/bitcoind.v1.BitcoindService/EstimateSmartFee"
+	// BitcoindServiceGetRawTransactionProcedure is the fully-qualified name of the BitcoindService's
+	// GetRawTransaction RPC.
+	BitcoindServiceGetRawTransactionProcedure = "/bitcoind.v1.BitcoindService/GetRawTransaction"
 )
 
 // BitcoindServiceClient is a client for the bitcoind.v1.BitcoindService service.
 type BitcoindServiceClient interface {
 	// Lists the ten most recent transactions, both confirmed and unconfirmed.
 	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
-	// Lists the ten most recent blocks, lightly populated with data.
-	ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error)
+	// Lists blocks with pagination support
+	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
+	// Get a specific block by hash or height
+	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
 	// Get basic blockchain info like height, last block time, peers etc.
 	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
 	// Lists very basic info about all peers
 	ListPeers(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error)
 	// Lists very basic info about all peers
 	EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error)
+	GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error)
 }
 
 // NewBitcoindServiceClient constructs a client for the bitcoind.v1.BitcoindService service. By
@@ -82,10 +91,16 @@ func NewBitcoindServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(bitcoindServiceMethods.ByName("ListRecentTransactions")),
 			connect.WithClientOptions(opts...),
 		),
-		listRecentBlocks: connect.NewClient[v1.ListRecentBlocksRequest, v1.ListRecentBlocksResponse](
+		listBlocks: connect.NewClient[v1.ListBlocksRequest, v1.ListBlocksResponse](
 			httpClient,
-			baseURL+BitcoindServiceListRecentBlocksProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("ListRecentBlocks")),
+			baseURL+BitcoindServiceListBlocksProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("ListBlocks")),
+			connect.WithClientOptions(opts...),
+		),
+		getBlock: connect.NewClient[v1.GetBlockRequest, v1.GetBlockResponse](
+			httpClient,
+			baseURL+BitcoindServiceGetBlockProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("GetBlock")),
 			connect.WithClientOptions(opts...),
 		),
 		getBlockchainInfo: connect.NewClient[emptypb.Empty, v1.GetBlockchainInfoResponse](
@@ -106,16 +121,24 @@ func NewBitcoindServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(bitcoindServiceMethods.ByName("EstimateSmartFee")),
 			connect.WithClientOptions(opts...),
 		),
+		getRawTransaction: connect.NewClient[v1.GetRawTransactionRequest, v1.GetRawTransactionResponse](
+			httpClient,
+			baseURL+BitcoindServiceGetRawTransactionProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("GetRawTransaction")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // bitcoindServiceClient implements BitcoindServiceClient.
 type bitcoindServiceClient struct {
 	listRecentTransactions *connect.Client[v1.ListRecentTransactionsRequest, v1.ListRecentTransactionsResponse]
-	listRecentBlocks       *connect.Client[v1.ListRecentBlocksRequest, v1.ListRecentBlocksResponse]
+	listBlocks             *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
+	getBlock               *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
 	getBlockchainInfo      *connect.Client[emptypb.Empty, v1.GetBlockchainInfoResponse]
 	listPeers              *connect.Client[emptypb.Empty, v1.ListPeersResponse]
 	estimateSmartFee       *connect.Client[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse]
+	getRawTransaction      *connect.Client[v1.GetRawTransactionRequest, v1.GetRawTransactionResponse]
 }
 
 // ListRecentTransactions calls bitcoind.v1.BitcoindService.ListRecentTransactions.
@@ -123,9 +146,14 @@ func (c *bitcoindServiceClient) ListRecentTransactions(ctx context.Context, req 
 	return c.listRecentTransactions.CallUnary(ctx, req)
 }
 
-// ListRecentBlocks calls bitcoind.v1.BitcoindService.ListRecentBlocks.
-func (c *bitcoindServiceClient) ListRecentBlocks(ctx context.Context, req *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error) {
-	return c.listRecentBlocks.CallUnary(ctx, req)
+// ListBlocks calls bitcoind.v1.BitcoindService.ListBlocks.
+func (c *bitcoindServiceClient) ListBlocks(ctx context.Context, req *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
+	return c.listBlocks.CallUnary(ctx, req)
+}
+
+// GetBlock calls bitcoind.v1.BitcoindService.GetBlock.
+func (c *bitcoindServiceClient) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
+	return c.getBlock.CallUnary(ctx, req)
 }
 
 // GetBlockchainInfo calls bitcoind.v1.BitcoindService.GetBlockchainInfo.
@@ -143,18 +171,26 @@ func (c *bitcoindServiceClient) EstimateSmartFee(ctx context.Context, req *conne
 	return c.estimateSmartFee.CallUnary(ctx, req)
 }
 
+// GetRawTransaction calls bitcoind.v1.BitcoindService.GetRawTransaction.
+func (c *bitcoindServiceClient) GetRawTransaction(ctx context.Context, req *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error) {
+	return c.getRawTransaction.CallUnary(ctx, req)
+}
+
 // BitcoindServiceHandler is an implementation of the bitcoind.v1.BitcoindService service.
 type BitcoindServiceHandler interface {
 	// Lists the ten most recent transactions, both confirmed and unconfirmed.
 	ListRecentTransactions(context.Context, *connect.Request[v1.ListRecentTransactionsRequest]) (*connect.Response[v1.ListRecentTransactionsResponse], error)
-	// Lists the ten most recent blocks, lightly populated with data.
-	ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error)
+	// Lists blocks with pagination support
+	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
+	// Get a specific block by hash or height
+	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
 	// Get basic blockchain info like height, last block time, peers etc.
 	GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error)
 	// Lists very basic info about all peers
 	ListPeers(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListPeersResponse], error)
 	// Lists very basic info about all peers
 	EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error)
+	GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error)
 }
 
 // NewBitcoindServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -170,10 +206,16 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 		connect.WithSchema(bitcoindServiceMethods.ByName("ListRecentTransactions")),
 		connect.WithHandlerOptions(opts...),
 	)
-	bitcoindServiceListRecentBlocksHandler := connect.NewUnaryHandler(
-		BitcoindServiceListRecentBlocksProcedure,
-		svc.ListRecentBlocks,
-		connect.WithSchema(bitcoindServiceMethods.ByName("ListRecentBlocks")),
+	bitcoindServiceListBlocksHandler := connect.NewUnaryHandler(
+		BitcoindServiceListBlocksProcedure,
+		svc.ListBlocks,
+		connect.WithSchema(bitcoindServiceMethods.ByName("ListBlocks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoindServiceGetBlockHandler := connect.NewUnaryHandler(
+		BitcoindServiceGetBlockProcedure,
+		svc.GetBlock,
+		connect.WithSchema(bitcoindServiceMethods.ByName("GetBlock")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitcoindServiceGetBlockchainInfoHandler := connect.NewUnaryHandler(
@@ -194,18 +236,28 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 		connect.WithSchema(bitcoindServiceMethods.ByName("EstimateSmartFee")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitcoindServiceGetRawTransactionHandler := connect.NewUnaryHandler(
+		BitcoindServiceGetRawTransactionProcedure,
+		svc.GetRawTransaction,
+		connect.WithSchema(bitcoindServiceMethods.ByName("GetRawTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitcoind.v1.BitcoindService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitcoindServiceListRecentTransactionsProcedure:
 			bitcoindServiceListRecentTransactionsHandler.ServeHTTP(w, r)
-		case BitcoindServiceListRecentBlocksProcedure:
-			bitcoindServiceListRecentBlocksHandler.ServeHTTP(w, r)
+		case BitcoindServiceListBlocksProcedure:
+			bitcoindServiceListBlocksHandler.ServeHTTP(w, r)
+		case BitcoindServiceGetBlockProcedure:
+			bitcoindServiceGetBlockHandler.ServeHTTP(w, r)
 		case BitcoindServiceGetBlockchainInfoProcedure:
 			bitcoindServiceGetBlockchainInfoHandler.ServeHTTP(w, r)
 		case BitcoindServiceListPeersProcedure:
 			bitcoindServiceListPeersHandler.ServeHTTP(w, r)
 		case BitcoindServiceEstimateSmartFeeProcedure:
 			bitcoindServiceEstimateSmartFeeHandler.ServeHTTP(w, r)
+		case BitcoindServiceGetRawTransactionProcedure:
+			bitcoindServiceGetRawTransactionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -219,8 +271,12 @@ func (UnimplementedBitcoindServiceHandler) ListRecentTransactions(context.Contex
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ListRecentTransactions is not implemented"))
 }
 
-func (UnimplementedBitcoindServiceHandler) ListRecentBlocks(context.Context, *connect.Request[v1.ListRecentBlocksRequest]) (*connect.Response[v1.ListRecentBlocksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ListRecentBlocks is not implemented"))
+func (UnimplementedBitcoindServiceHandler) ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ListBlocks is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.GetBlock is not implemented"))
 }
 
 func (UnimplementedBitcoindServiceHandler) GetBlockchainInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetBlockchainInfoResponse], error) {
@@ -233,4 +289,8 @@ func (UnimplementedBitcoindServiceHandler) ListPeers(context.Context, *connect.R
 
 func (UnimplementedBitcoindServiceHandler) EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.EstimateSmartFee is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.GetRawTransaction is not implemented"))
 }
