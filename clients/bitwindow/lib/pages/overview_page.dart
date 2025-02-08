@@ -163,7 +163,7 @@ class TransactionsViewModel extends BaseViewModel {
     }
   }
 
-  List<Block> get recentBlocks => blockchainProvider.recentBlocks;
+  List<Block> get recentBlocks => blockchainProvider.blocks;
   List<RecentTransaction> get recentTransactions => blockchainProvider.recentTransactions;
 }
 
@@ -301,7 +301,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
           SailTableCell(
-            value: entry.confirmedInBlock.blockHeight == 0 ? '-' : entry.confirmedInBlock.blockHeight.toString(),
+            value: entry.confirmedInBlock.height == 0 ? '-' : entry.confirmedInBlock.height.toString(),
           ),
         ];
       },
@@ -366,8 +366,8 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
           bValue = b.blockTime.toDateTime().millisecondsSinceEpoch;
           break;
         case 'height':
-          aValue = a.blockHeight;
-          bValue = b.blockHeight;
+          aValue = a.height;
+          bValue = b.height;
           break;
         case 'hash':
           aValue = a.hash;
@@ -392,7 +392,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
         final entry = widget.blocks[row];
         return [
           SailTableCell(value: entry.blockTime.toDateTime().format()),
-          SailTableCell(value: entry.blockHeight.toString()),
+          SailTableCell(value: entry.height.toString()),
           SailTableCell(value: entry.hash),
         ];
       },

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
@@ -269,7 +270,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
               members: [
                 PlatformMenuItem(
                   label: 'Block Explorer',
-                  onSelected: null,
+                  onSelected: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const BlockExplorerDialog(),
+                    );
+                  },
                 ),
                 PlatformMenuItem(
                   label: 'Hash Calculator',
@@ -337,62 +343,64 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
         builder: (context, child, controller) {
           final theme = SailTheme.of(context);
 
-          return Scaffold(
-            backgroundColor: theme.colors.background,
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(60),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colors.background,
-                ),
-                child: Builder(
-                  builder: (context) {
-                    final tabsRouter = AutoTabsRouter.of(context);
-                    return Row(
-                      children: [
-                        QtTab(
-                          icon: SailSVGAsset.iconHome,
-                          label: 'Overview',
-                          active: tabsRouter.activeIndex == 0,
-                          onTap: () => tabsRouter.setActiveIndex(0),
-                        ),
-                        QtTab(
-                          icon: SailSVGAsset.iconSend,
-                          label: 'Send/Receive',
-                          active: tabsRouter.activeIndex == 1,
-                          onTap: () => tabsRouter.setActiveIndex(1),
-                        ),
-                        QtTab(
-                          icon: SailSVGAsset.iconSidechains,
-                          label: 'Sidechains',
-                          active: tabsRouter.activeIndex == 2,
-                          onTap: () => tabsRouter.setActiveIndex(2),
-                        ),
-                        QtTab(
-                          icon: SailSVGAsset.iconLearn,
-                          label: 'Learn',
-                          active: tabsRouter.activeIndex == 3,
-                          onTap: () => tabsRouter.setActiveIndex(3),
-                          end: true,
-                        ),
-                        Expanded(child: Container()),
-                        const ToggleThemeButton(),
-                      ],
-                    );
-                  },
+          return SelectionArea(
+            child: Scaffold(
+              backgroundColor: theme.colors.background,
+              appBar: PreferredSize(
+                preferredSize: const Size.fromHeight(60),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colors.background,
+                  ),
+                  child: Builder(
+                    builder: (context) {
+                      final tabsRouter = AutoTabsRouter.of(context);
+                      return Row(
+                        children: [
+                          QtTab(
+                            icon: SailSVGAsset.iconHome,
+                            label: 'Overview',
+                            active: tabsRouter.activeIndex == 0,
+                            onTap: () => tabsRouter.setActiveIndex(0),
+                          ),
+                          QtTab(
+                            icon: SailSVGAsset.iconSend,
+                            label: 'Send/Receive',
+                            active: tabsRouter.activeIndex == 1,
+                            onTap: () => tabsRouter.setActiveIndex(1),
+                          ),
+                          QtTab(
+                            icon: SailSVGAsset.iconSidechains,
+                            label: 'Sidechains',
+                            active: tabsRouter.activeIndex == 2,
+                            onTap: () => tabsRouter.setActiveIndex(2),
+                          ),
+                          QtTab(
+                            icon: SailSVGAsset.iconLearn,
+                            label: 'Learn',
+                            active: tabsRouter.activeIndex == 3,
+                            onTap: () => tabsRouter.setActiveIndex(3),
+                            end: true,
+                          ),
+                          Expanded(child: Container()),
+                          const ToggleThemeButton(),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
-            body: Column(
-              children: [
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Colors.grey,
-                ),
-                Expanded(child: child),
-                const StatusBar(),
-              ],
+              body: Column(
+                children: [
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Colors.grey,
+                  ),
+                  Expanded(child: child),
+                  const StatusBar(),
+                ],
+              ),
             ),
           );
         },
@@ -487,7 +495,7 @@ class _StatusBarState extends State<StatusBar> {
       mainchainInfo: true,
       endWidgets: [
         Tooltip(
-          message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
+          message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
           child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
         ),
         const DividerDot(),
@@ -515,6 +523,6 @@ String formatTimeDifference(int value, String unit) {
 
 extension on Block {
   String toPretty() {
-    return 'Block $blockHeight\nBlockTime=${blockTime.toDateTime().format()}\nHash=$hash';
+    return 'Block $height\nBlockTime=${blockTime.toDateTime().format()}\nHash=$hash';
   }
 }

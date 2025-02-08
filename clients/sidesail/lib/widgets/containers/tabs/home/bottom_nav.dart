@@ -71,7 +71,7 @@ class _StatusBarState extends State<StatusBar> {
       },
       endWidgets: [
         Tooltip(
-          message: blockchainProvider.recentBlocks.firstOrNull?.toPretty() ?? '',
+          message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
           child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
         ),
         const DividerDot(),
@@ -115,6 +115,6 @@ String formatTimeDifference(int value, String unit) {
 
 extension on Block {
   String toPretty() {
-    return 'Block $blockHeight\nBlockTime=${blockTime.toDateTime().format()}\nHash=$hash';
+    return 'Block $height\nBlockTime=${blockTime.toDateTime().format()}\nHash=$hash';
   }
 }
