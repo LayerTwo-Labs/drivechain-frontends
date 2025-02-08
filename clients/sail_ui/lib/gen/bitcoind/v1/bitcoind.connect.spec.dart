@@ -19,12 +19,20 @@ abstract final class BitcoindService {
     bitcoindv1bitcoind.ListRecentTransactionsResponse.new,
   );
 
-  /// Lists the ten most recent blocks, lightly populated with data.
-  static const listRecentBlocks = connect.Spec(
-    '/$name/ListRecentBlocks',
+  /// Lists blocks with pagination support
+  static const listBlocks = connect.Spec(
+    '/$name/ListBlocks',
     connect.StreamType.unary,
-    bitcoindv1bitcoind.ListRecentBlocksRequest.new,
-    bitcoindv1bitcoind.ListRecentBlocksResponse.new,
+    bitcoindv1bitcoind.ListBlocksRequest.new,
+    bitcoindv1bitcoind.ListBlocksResponse.new,
+  );
+
+  /// Get a specific block by hash or height
+  static const getBlock = connect.Spec(
+    '/$name/GetBlock',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.GetBlockRequest.new,
+    bitcoindv1bitcoind.GetBlockResponse.new,
   );
 
   /// Get basic blockchain info like height, last block time, peers etc.
@@ -49,5 +57,12 @@ abstract final class BitcoindService {
     connect.StreamType.unary,
     bitcoindv1bitcoind.EstimateSmartFeeRequest.new,
     bitcoindv1bitcoind.EstimateSmartFeeResponse.new,
+  );
+
+  static const getRawTransaction = connect.Spec(
+    '/$name/GetRawTransaction',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.GetRawTransactionRequest.new,
+    bitcoindv1bitcoind.GetRawTransactionResponse.new,
   );
 }

@@ -162,7 +162,7 @@ class _SailTableState extends State<SailTable> {
     var isWindows = context.isWindows;
 
     return Container(
-      color: theme.colors.backgroundSecondary,
+      color: widget.backgroundColor ?? theme.colors.backgroundSecondary,
       child: LayoutBuilder(
         builder: (context, constraints) {
           Widget innerListView;

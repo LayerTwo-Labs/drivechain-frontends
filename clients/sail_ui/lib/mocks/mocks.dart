@@ -395,7 +395,7 @@ class MockBlockchainProvider implements BlockchainProvider {
   List<Peer> peers = [];
 
   @override
-  List<Block> recentBlocks = [];
+  List<Block> blocks = [];
 
   @override
   List<RecentTransaction> recentTransactions = [];
@@ -442,4 +442,55 @@ class MockBlockchainProvider implements BlockchainProvider {
 
   @override
   String get verificationProgress => '0';
+
+  @override
+  bool hasMoreBlocks = false;
+
+  @override
+  bool isLoadingMoreBlocks = false;
+
+  @override
+  Future<void> loadMoreBlocks() {
+    return Future.value();
+  }
+
+  @override
+  Set<int> loadedBlockHeights = {};
+}
+
+class MockBitcoindAPI implements BitcoindAPI {
+  @override
+  Future<List<Peer>> listPeers() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<RecentTransaction>> listRecentTransactions() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<GetBlockchainInfoResponse> getBlockchainInfo() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<GetRawTransactionResponse> getRawTransaction(String txid) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Block> getBlock({String? hash, int? height}) async {
+    return Block();
+  }
 }

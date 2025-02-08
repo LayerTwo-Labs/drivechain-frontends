@@ -27,16 +27,34 @@ extension type BitcoindServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Lists the ten most recent blocks, lightly populated with data.
-  Future<bitcoindv1bitcoind.ListRecentBlocksResponse> listRecentBlocks(
-    bitcoindv1bitcoind.ListRecentBlocksRequest input, {
+  /// Lists blocks with pagination support
+  Future<bitcoindv1bitcoind.ListBlocksResponse> listBlocks(
+    bitcoindv1bitcoind.ListBlocksRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.BitcoindService.listRecentBlocks,
+      specs.BitcoindService.listBlocks,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Get a specific block by hash or height
+  Future<bitcoindv1bitcoind.GetBlockResponse> getBlock(
+    bitcoindv1bitcoind.GetBlockRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.getBlock,
       input,
       signal: signal,
       headers: headers,
@@ -91,6 +109,23 @@ extension type BitcoindServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.BitcoindService.estimateSmartFee,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoindv1bitcoind.GetRawTransactionResponse> getRawTransaction(
+    bitcoindv1bitcoind.GetRawTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.getRawTransaction,
       input,
       signal: signal,
       headers: headers,

@@ -41,51 +41,53 @@ class SailRawCard extends StatelessWidget {
       throw ArgumentError('Title and subtitle must be set together. Got title: $title and subtitle: $subtitle');
     }
 
-    return SailShadow(
-      shadowSize: shadowSize,
-      child: Material(
-        borderRadius: borderRadius ?? SailStyleValues.borderRadiusButton,
-        color: color ?? (secondary ? theme.colors.background : theme.colors.backgroundSecondary),
-        clipBehavior: Clip.hardEdge,
-        child: SizedBox(
-          width: width,
-          child: Padding(
-            padding: padding
-                ? EdgeInsets.only(
-                    top: SailStyleValues.padding16,
-                    left: SailStyleValues.padding16,
-                    right: SailStyleValues.padding16,
-                    bottom: bottomPadding ? SailStyleValues.padding16 : 0,
-                  )
-                : EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (header != null) header!,
-                if (title != null)
-                  SizedBox(
-                    width: double.infinity,
-                    child: SailRow(
-                      spacing: 0,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Flexible(
-                          child: CardHeader(
-                            title: title!,
-                            subtitle: subtitle,
+    return SelectionArea(
+      child: SailShadow(
+        shadowSize: shadowSize,
+        child: Material(
+          borderRadius: borderRadius ?? SailStyleValues.borderRadiusButton,
+          color: color ?? (secondary ? theme.colors.background : theme.colors.backgroundSecondary),
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: width,
+            child: Padding(
+              padding: padding
+                  ? EdgeInsets.only(
+                      top: SailStyleValues.padding16,
+                      left: SailStyleValues.padding16,
+                      right: SailStyleValues.padding16,
+                      bottom: bottomPadding ? SailStyleValues.padding16 : 0,
+                    )
+                  : EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (header != null) header!,
+                  if (title != null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: SailRow(
+                        spacing: 0,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Flexible(
+                            child: CardHeader(
+                              title: title!,
+                              subtitle: subtitle,
+                            ),
                           ),
-                        ),
-                        if (widgetHeaderEnd != null) widgetHeaderEnd!,
-                      ],
+                          if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                        ],
+                      ),
                     ),
+                  if (title != null) const SailSpacing(SailStyleValues.padding16),
+                  Flexible(
+                    child: child,
                   ),
-                if (title != null) const SailSpacing(SailStyleValues.padding16),
-                Flexible(
-                  child: child,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

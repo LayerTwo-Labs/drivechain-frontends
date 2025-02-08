@@ -17,7 +17,7 @@ class BlockchainProvider extends ChangeNotifier {
 
   // raw data go here
   List<Peer> peers = [];
-  List<Block> recentBlocks = [];
+  List<Block> blocks = [];
   List<RecentTransaction> recentTransactions = [];
   BlockchainInfo blockchainInfo = BlockchainInfo(
     chain: '',
@@ -37,7 +37,7 @@ class BlockchainProvider extends ChangeNotifier {
   List<OPReturn> opReturns = [];
 
   // computed field go here
-  Timestamp? get lastBlockAt => recentBlocks.isNotEmpty ? recentBlocks.first.blockTime : null;
+  Timestamp? get lastBlockAt => blocks.isNotEmpty ? blocks.first.blockTime : null;
   String get verificationProgress {
     if (blockchainInfo.headers == 0 || blockchainInfo.blocks == 0) return '0';
     return ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
@@ -50,6 +50,10 @@ class BlockchainProvider extends ChangeNotifier {
 
   String? error;
 
+  bool hasMoreBlocks = true;
+  bool isLoadingMoreBlocks = false;
+  Set<int> loadedBlockHeights = {};
+
   BlockchainProvider() {
     _startFetchTimer();
     mainchain.addListener(fetch);
@@ -57,25 +61,23 @@ class BlockchainProvider extends ChangeNotifier {
 
   // call this function from anywhere to refetch blockchain info
   Future<void> fetch() async {
-    if (!api.connected) {
-      return;
-    }
-
-    if (_isFetching) {
-      return;
-    }
+    if (!api.connected || _isFetching) return;
     _isFetching = true;
 
     try {
       final newPeers = await api.bitcoind.listPeers();
       final newTXs = await api.bitcoind.listRecentTransactions();
-      final newRecentBlocks = await api.bitcoind.listRecentBlocks();
+      final (newBlocks, hasMore) = await api.bitcoind.listBlocks();
       final newOPReturns = await api.misc.listOPReturns();
 
-      if (_dataHasChanged(newPeers, newTXs, newRecentBlocks, newOPReturns)) {
+      if (_dataHasChanged(newPeers, newTXs, newBlocks, newOPReturns)) {
         peers = newPeers;
         recentTransactions = newTXs;
-        recentBlocks = newRecentBlocks;
+        if (blocks.isEmpty) {
+          blocks = newBlocks;
+          loadedBlockHeights = newBlocks.map((b) => b.height).toSet();
+        }
+        hasMoreBlocks = hasMore;
         opReturns = newOPReturns;
         error = null;
         notifyListeners();
@@ -91,7 +93,7 @@ class BlockchainProvider extends ChangeNotifier {
   bool _dataHasChanged(
     List<Peer> newPeers,
     List<RecentTransaction> newTXs,
-    List<Block> newRecentBlocks,
+    List<Block> newBlocks,
     List<OPReturn> newOPReturns,
   ) {
     if (!listEquals(peers, newPeers)) {
@@ -102,7 +104,7 @@ class BlockchainProvider extends ChangeNotifier {
       return true;
     }
 
-    if (!listEquals(recentBlocks, newRecentBlocks)) {
+    if (!listEquals(blocks, newBlocks)) {
       return true;
     }
 
@@ -143,6 +145,35 @@ class BlockchainProvider extends ChangeNotifier {
     }
 
     _fetchTimer = Timer.periodic(_currentInterval, (_) => tick());
+  }
+
+  Future<void> loadMoreBlocks() async {
+    if (!hasMoreBlocks || isLoadingMoreBlocks) return;
+
+    isLoadingMoreBlocks = true;
+    try {
+      final lastBlock = blocks.last;
+      final (moreBlocks, hasMore) = await api.bitcoind.listBlocks(
+        startHeight: lastBlock.height - 1,
+      );
+
+      // Filter out blocks we've already loaded
+      final newBlocks = moreBlocks.where((b) => !loadedBlockHeights.contains(b.height)).toList();
+      if (newBlocks.isEmpty) {
+        hasMoreBlocks = false;
+        return;
+      }
+
+      // Add new block heights to our set
+      loadedBlockHeights.addAll(newBlocks.map((b) => b.height));
+
+      // Sort all blocks by height in descending order (newest to oldest)
+      blocks = [...blocks, ...newBlocks]..sort((a, b) => b.height.compareTo(a.height));
+      hasMoreBlocks = hasMore;
+      notifyListeners();
+    } finally {
+      isLoadingMoreBlocks = false;
+    }
   }
 
   @override
