@@ -72,9 +72,11 @@ abstract class WalletAPI {
 abstract class BitcoindAPI {
   Future<List<Peer>> listPeers();
   Future<List<RecentTransaction>> listRecentTransactions();
-  Future<List<Block>> listRecentBlocks();
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50});
   Future<GetBlockchainInfoResponse> getBlockchainInfo();
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
+  Future<GetRawTransactionResponse> getRawTransaction(String txid);
+  Future<Block> getBlock({String? hash, int? height});
 }
 
 abstract class DrivechainAPI {
@@ -357,12 +359,16 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<List<Block>> listRecentBlocks() async {
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) async {
     try {
-      final response = await _client.listRecentBlocks(ListRecentBlocksRequest()..count = Int64(20));
-      return response.recentBlocks;
+      final response = await _client.listBlocks(
+        ListBlocksRequest()
+          ..startHeight = startHeight
+          ..pageSize = pageSize,
+      );
+      return (response.recentBlocks, response.hasMore);
     } catch (e) {
-      final error = 'could not list recent blocks: ${extractConnectException(e)}';
+      final error = 'could not list blocks: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
@@ -395,6 +401,42 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not estimate smart fee: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<GetRawTransactionResponse> getRawTransaction(String txid) async {
+    try {
+      final response = await _client.getRawTransaction(GetRawTransactionRequest()..txid = txid);
+      return response;
+    } catch (e) {
+      final error = 'could not get transaction: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<Block> getBlock({String? hash, int? height}) async {
+    try {
+      final request = GetBlockRequest();
+      if (hash != null) {
+        request.hash = hash;
+      } else if (height != null) {
+        request.height = height;
+      } else {
+        throw BitcoindException('Either hash or height must be provided');
+      }
+
+      final response = await _client.getBlock(request);
+
+      print('found block: ${response.block.height} hash: ${response.block.hash}');
+
+      return response.block;
+    } catch (e) {
+      final error = 'could not get block: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }

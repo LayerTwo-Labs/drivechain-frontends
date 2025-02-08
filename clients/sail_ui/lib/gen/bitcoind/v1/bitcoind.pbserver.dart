@@ -23,18 +23,22 @@ export 'bitcoind.pb.dart';
 
 abstract class BitcoindServiceBase extends $pb.GeneratedService {
   $async.Future<$2.ListRecentTransactionsResponse> listRecentTransactions($pb.ServerContext ctx, $2.ListRecentTransactionsRequest request);
-  $async.Future<$2.ListRecentBlocksResponse> listRecentBlocks($pb.ServerContext ctx, $2.ListRecentBlocksRequest request);
+  $async.Future<$2.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $2.ListBlocksRequest request);
+  $async.Future<$2.GetBlockResponse> getBlock($pb.ServerContext ctx, $2.GetBlockRequest request);
   $async.Future<$2.GetBlockchainInfoResponse> getBlockchainInfo($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$2.ListPeersResponse> listPeers($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$2.EstimateSmartFeeResponse> estimateSmartFee($pb.ServerContext ctx, $2.EstimateSmartFeeRequest request);
+  $async.Future<$2.GetRawTransactionResponse> getRawTransaction($pb.ServerContext ctx, $2.GetRawTransactionRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'ListRecentTransactions': return $2.ListRecentTransactionsRequest();
-      case 'ListRecentBlocks': return $2.ListRecentBlocksRequest();
+      case 'ListBlocks': return $2.ListBlocksRequest();
+      case 'GetBlock': return $2.GetBlockRequest();
       case 'GetBlockchainInfo': return $1.Empty();
       case 'ListPeers': return $1.Empty();
       case 'EstimateSmartFee': return $2.EstimateSmartFeeRequest();
+      case 'GetRawTransaction': return $2.GetRawTransactionRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -42,10 +46,12 @@ abstract class BitcoindServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'ListRecentTransactions': return this.listRecentTransactions(ctx, request as $2.ListRecentTransactionsRequest);
-      case 'ListRecentBlocks': return this.listRecentBlocks(ctx, request as $2.ListRecentBlocksRequest);
+      case 'ListBlocks': return this.listBlocks(ctx, request as $2.ListBlocksRequest);
+      case 'GetBlock': return this.getBlock(ctx, request as $2.GetBlockRequest);
       case 'GetBlockchainInfo': return this.getBlockchainInfo(ctx, request as $1.Empty);
       case 'ListPeers': return this.listPeers(ctx, request as $1.Empty);
       case 'EstimateSmartFee': return this.estimateSmartFee(ctx, request as $2.EstimateSmartFeeRequest);
+      case 'GetRawTransaction': return this.getRawTransaction(ctx, request as $2.GetRawTransactionRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

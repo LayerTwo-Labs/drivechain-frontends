@@ -464,7 +464,7 @@ class BlockchainInfo {
 String extractConnectException(
   Object error,
 ) {
-  const messageIfUnknown = "We couldn't figure out exactly what went wrong. Reach out to the devs.";
+  final messageIfUnknown = error.toString();
 
   if (error is ConnectException) {
     if (error.message.isEmpty) {
