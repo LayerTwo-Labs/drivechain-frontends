@@ -55,8 +55,8 @@ func NewServer(
 
 	srv := &Server{
 		mux:      mux,
-		bitcoind: bitcoindSvc,
-		enforcer: enforcerSvc,
+		Bitcoind: bitcoindSvc,
+		Enforcer: enforcerSvc,
 		Wallet:   walletSvc,
 	}
 
@@ -90,8 +90,8 @@ type Server struct {
 	mux    *http.ServeMux
 	server *http.Server
 
-	bitcoind *service.Service[*server.Bitcoind]
-	enforcer *service.Service[validatorrpc.ValidatorServiceClient]
+	Enforcer *service.Service[validatorrpc.ValidatorServiceClient]
+	Bitcoind *service.Service[*server.Bitcoind]
 	Wallet   *service.Service[validatorrpc.WalletServiceClient]
 }
 

@@ -316,3 +316,8 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		Txid: created.Msg.Txid.Hex.Value,
 	}), nil
 }
+
+// ListUnspent implements walletv1connect.WalletServiceHandler.
+func (s *Server) ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListUnspentResponse], error) {
+	panic("unimplemented")
+}

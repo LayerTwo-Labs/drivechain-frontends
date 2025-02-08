@@ -23,7 +23,7 @@ export 'bitwindowd.pb.dart';
 
 abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> stop($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$3.CreateDenialResponse> createDenial($pb.ServerContext ctx, $3.CreateDenialRequest request);
+  $async.Future<$1.Empty> createDenial($pb.ServerContext ctx, $3.CreateDenialRequest request);
   $async.Future<$3.ListDenialsResponse> listDenials($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $3.CancelDenialRequest request);
   $async.Future<$1.Empty> createAddressBookEntry($pb.ServerContext ctx, $3.CreateAddressBookEntryRequest request);

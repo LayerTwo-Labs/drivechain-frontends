@@ -27,7 +27,7 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
   }
 
   /// Deniability operations
-  Future<bitwindowdv1bitwindowd.CreateDenialResponse> createDenial(
+  Future<googleprotobufempty.Empty> createDenial(
     bitwindowdv1bitwindowd.CreateDenialRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,

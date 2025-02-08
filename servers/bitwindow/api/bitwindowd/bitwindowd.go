@@ -43,18 +43,20 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) 
 func (s *Server) CreateDenial(
 	ctx context.Context,
 	req *connect.Request[pb.CreateDenialRequest],
-) (*connect.Response[pb.CreateDenialResponse], error) {
+) (*connect.Response[emptypb.Empty], error) {
 	err := deniability.Create(
 		ctx,
 		s.db,
+		req.Msg.InitialTxid,
+		req.Msg.InitialVout,
 		time.Duration(req.Msg.DelaySeconds)*time.Second,
-		int(req.Msg.NumHops),
+		req.Msg.NumHops,
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	return connect.NewResponse(&pb.CreateDenialResponse{}), nil
+	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
 func (s *Server) ListDenials(
@@ -81,10 +83,13 @@ func (s *Server) ListDenials(
 		var pbExecutions []*pb.ExecutedDenial
 		for _, e := range executions {
 			pbExecutions = append(pbExecutions, &pb.ExecutedDenial{
-				Id:            e.ID,
-				DenialId:      e.DenialID,
-				TransactionId: e.TransactionID,
-				CreatedAt:     timestamppb.New(e.CreatedAt),
+				Id:        e.ID,
+				DenialId:  e.DenialID,
+				FromTxid:  e.FromTxID,
+				FromVout:  e.FromVout,
+				ToTxid:    e.ToTxID,
+				ToVout:    e.ToVout,
+				CreatedAt: timestamppb.New(e.CreatedAt),
 			})
 		}
 

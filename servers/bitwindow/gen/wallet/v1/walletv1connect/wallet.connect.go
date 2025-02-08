@@ -46,6 +46,9 @@ const (
 	// WalletServiceListTransactionsProcedure is the fully-qualified name of the WalletService's
 	// ListTransactions RPC.
 	WalletServiceListTransactionsProcedure = "/wallet.v1.WalletService/ListTransactions"
+	// WalletServiceListUnspentProcedure is the fully-qualified name of the WalletService's ListUnspent
+	// RPC.
+	WalletServiceListUnspentProcedure = "/wallet.v1.WalletService/ListUnspent"
 	// WalletServiceListSidechainDepositsProcedure is the fully-qualified name of the WalletService's
 	// ListSidechainDeposits RPC.
 	WalletServiceListSidechainDepositsProcedure = "/wallet.v1.WalletService/ListSidechainDeposits"
@@ -62,6 +65,7 @@ type WalletServiceClient interface {
 	// out unused addresses, so we risk crossing the sync gap.
 	GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error)
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
+	ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnspentResponse], error)
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 	CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error)
 }
@@ -101,6 +105,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("ListTransactions")),
 			connect.WithClientOptions(opts...),
 		),
+		listUnspent: connect.NewClient[emptypb.Empty, v1.ListUnspentResponse](
+			httpClient,
+			baseURL+WalletServiceListUnspentProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("ListUnspent")),
+			connect.WithClientOptions(opts...),
+		),
 		listSidechainDeposits: connect.NewClient[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse](
 			httpClient,
 			baseURL+WalletServiceListSidechainDepositsProcedure,
@@ -122,6 +132,7 @@ type walletServiceClient struct {
 	getBalance             *connect.Client[emptypb.Empty, v1.GetBalanceResponse]
 	getNewAddress          *connect.Client[emptypb.Empty, v1.GetNewAddressResponse]
 	listTransactions       *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
+	listUnspent            *connect.Client[emptypb.Empty, v1.ListUnspentResponse]
 	listSidechainDeposits  *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
 	createSidechainDeposit *connect.Client[v1.CreateSidechainDepositRequest, v1.CreateSidechainDepositResponse]
 }
@@ -146,6 +157,11 @@ func (c *walletServiceClient) ListTransactions(ctx context.Context, req *connect
 	return c.listTransactions.CallUnary(ctx, req)
 }
 
+// ListUnspent calls wallet.v1.WalletService.ListUnspent.
+func (c *walletServiceClient) ListUnspent(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnspentResponse], error) {
+	return c.listUnspent.CallUnary(ctx, req)
+}
+
 // ListSidechainDeposits calls wallet.v1.WalletService.ListSidechainDeposits.
 func (c *walletServiceClient) ListSidechainDeposits(ctx context.Context, req *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error) {
 	return c.listSidechainDeposits.CallUnary(ctx, req)
@@ -164,6 +180,7 @@ type WalletServiceHandler interface {
 	// out unused addresses, so we risk crossing the sync gap.
 	GetNewAddress(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetNewAddressResponse], error)
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
+	ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnspentResponse], error)
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 	CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error)
 }
@@ -199,6 +216,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("ListTransactions")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceListUnspentHandler := connect.NewUnaryHandler(
+		WalletServiceListUnspentProcedure,
+		svc.ListUnspent,
+		connect.WithSchema(walletServiceMethods.ByName("ListUnspent")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletServiceListSidechainDepositsHandler := connect.NewUnaryHandler(
 		WalletServiceListSidechainDepositsProcedure,
 		svc.ListSidechainDeposits,
@@ -221,6 +244,8 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceGetNewAddressHandler.ServeHTTP(w, r)
 		case WalletServiceListTransactionsProcedure:
 			walletServiceListTransactionsHandler.ServeHTTP(w, r)
+		case WalletServiceListUnspentProcedure:
+			walletServiceListUnspentHandler.ServeHTTP(w, r)
 		case WalletServiceListSidechainDepositsProcedure:
 			walletServiceListSidechainDepositsHandler.ServeHTTP(w, r)
 		case WalletServiceCreateSidechainDepositProcedure:
@@ -248,6 +273,10 @@ func (UnimplementedWalletServiceHandler) GetNewAddress(context.Context, *connect
 
 func (UnimplementedWalletServiceHandler) ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListTransactions is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListUnspentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.ListUnspent is not implemented"))
 }
 
 func (UnimplementedWalletServiceHandler) ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error) {
