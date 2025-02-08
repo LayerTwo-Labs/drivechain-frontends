@@ -11,21 +11,25 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
 )
 
 type DeniabilityEngine struct {
-	wallet *service.Service[validatorrpc.WalletServiceClient]
-	db     *sql.DB
+	wallet   *service.Service[validatorrpc.WalletServiceClient]
+	bitcoind *service.Service[*coreproxy.Bitcoind]
+	db       *sql.DB
 }
 
 func NewDeniability(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
+	bitcoind *service.Service[*coreproxy.Bitcoind],
 	db *sql.DB,
 ) *DeniabilityEngine {
 	return &DeniabilityEngine{
-		wallet: wallet,
-		db:     db,
+		wallet:   wallet,
+		bitcoind: bitcoind,
+		db:       db,
 	}
 }
 
@@ -54,11 +58,18 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 		return fmt.Errorf("could not list denials: %w", err)
 	}
 
+	_, err = e.listUTXOs(ctx)
+	if err != nil {
+		return fmt.Errorf("could not list utxos: %w", err)
+	}
+
 	for _, denial := range denials {
 		// Skip if cancelled
 		if denial.CancelledAt != nil {
 			continue
 		}
+
+		// TODO: Check if the current tip
 
 		// Check if it's time to execute
 		nextExecution, err := deniability.NextExecution(ctx, e.db, denial.ID)
@@ -125,7 +136,7 @@ func (e *DeniabilityEngine) executeDenial(ctx context.Context, denialID int64) e
 	}
 
 	// Record the execution
-	if err := deniability.RecordExecution(ctx, e.db, denialID, sendResp.Msg.Txid.Hex.Value); err != nil {
+	if err := deniability.RecordExecution(ctx, e.db, denialID, sendResp.Msg.Txid.Hex.Value, 0, "", 0); err != nil {
 		return fmt.Errorf("could not record execution: %w", err)
 	}
 
@@ -136,4 +147,27 @@ func (e *DeniabilityEngine) executeDenial(ctx context.Context, denialID int64) e
 		Msg("executed denial")
 
 	return nil
+}
+
+type UTXO struct {
+	TxID   string
+	Vout   int32
+	Amount uint64
+}
+
+// listUTXOs gets all unspent transaction outputs from the wallet
+func (e *DeniabilityEngine) listUTXOs(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+	wallet, err := e.wallet.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get wallet client: %w", err)
+	}
+
+	resp, err := wallet.ListUnspentOutputs(ctx, &connect.Request[pb.ListUnspentOutputsRequest]{
+		Msg: &pb.ListUnspentOutputsRequest{},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not list transactions: %w", err)
+	}
+
+	return resp.Msg.Outputs, nil
 }

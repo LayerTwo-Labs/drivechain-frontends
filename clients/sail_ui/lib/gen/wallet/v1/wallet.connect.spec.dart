@@ -41,6 +41,13 @@ abstract final class WalletService {
     walletv1wallet.ListTransactionsResponse.new,
   );
 
+  static const listUnspent = connect.Spec(
+    '/$name/ListUnspent',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    walletv1wallet.ListUnspentResponse.new,
+  );
+
   static const listSidechainDeposits = connect.Spec(
     '/$name/ListSidechainDeposits',
     connect.StreamType.unary,

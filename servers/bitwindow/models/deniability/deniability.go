@@ -10,6 +10,8 @@ import (
 // Denial represents a deniability plan
 type Denial struct {
 	ID            int64
+	InitialTxID   string
+	InitialVout   int32
 	DelayDuration time.Duration
 	NumHops       int32
 	CreatedAt     time.Time
@@ -18,27 +20,61 @@ type Denial struct {
 
 // ExecutedDenial represents a completed denial transaction
 type ExecutedDenial struct {
-	ID            int64
-	DenialID      int64
-	TransactionID string
-	CreatedAt     time.Time
+	ID        int64
+	DenialID  int64
+	FromTxID  string
+	FromVout  int32
+	ToTxID    string
+	ToVout    int32
+	CreatedAt time.Time
 }
 
 // Create creates a new deniability plan
-func Create(ctx context.Context, db *sql.DB, delayDuration time.Duration, numHops int) error {
+func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDuration time.Duration, numHops int32) error {
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO denials (delay_duration, num_hops, created_at)
-		VALUES (?, ?, ?)
-	`, int(delayDuration.Seconds()), numHops, time.Now())
+		INSERT INTO denials (
+			initial_txid,
+			initial_vout,
+			delay_duration,
+			num_hops,
+			created_at
+		) VALUES (?, ?, ?, ?, ?)
+	`, txid, vout, int(delayDuration.Seconds()), numHops, time.Now())
 	return err
 }
 
+// GetCurrentTip returns the current tip of a denial
+func GetCurrentTip(ctx context.Context, db *sql.DB, denialID int64) (string, int32, error) {
+	var txid string
+	var vout int32
+
+	err := db.QueryRowContext(ctx, `
+		SELECT COALESCE(e.to_txid, d.initial_txid) as tip_txid,
+			   COALESCE(e.to_vout, d.initial_vout) as tip_vout
+		FROM denials d
+		LEFT JOIN executed_denials e ON e.denial_id = d.id
+		WHERE d.id = ? AND d.cancelled_at IS NULL
+		ORDER BY e.created_at DESC
+		LIMIT 1
+	`, denialID).Scan(&txid, &vout)
+	if err != nil {
+		return "", 0, fmt.Errorf("could not get denial tip: %w", err)
+	}
+	return txid, vout, nil
+}
+
 // RecordExecution records a completed denial transaction
-func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, txID string) error {
+func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID string, fromVout int32, toTxID string, toVout int32) error {
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO executed_denials (denial_id, transaction_id, created_at)
-		VALUES (?, ?, ?)
-	`, denialID, txID, time.Now())
+		INSERT INTO executed_denials (
+			denial_id,
+			from_txid,
+			from_vout,
+			to_txid,
+			to_vout,
+			created_at
+		) VALUES (?, ?, ?, ?, ?, ?)
+	`, denialID, fromTxID, fromVout, toTxID, toVout, time.Now())
 	return err
 }
 
@@ -71,7 +107,7 @@ func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
 // ListExecutions returns all executed denials for a given deniability plan
 func ListExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]ExecutedDenial, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, denial_id, transaction_id, created_at
+		SELECT id, denial_id, from_txid, from_vout, to_txid, to_vout, created_at
 		FROM executed_denials
 		WHERE denial_id = ?
 		ORDER BY created_at DESC
@@ -87,7 +123,10 @@ func ListExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 		err := rows.Scan(
 			&execution.ID,
 			&execution.DenialID,
-			&execution.TransactionID,
+			&execution.FromTxID,
+			&execution.FromVout,
+			&execution.ToTxID,
+			&execution.ToVout,
 			&execution.CreatedAt,
 		)
 		if err != nil {
