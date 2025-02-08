@@ -144,11 +144,6 @@ class MockBitcoindAPI implements BitcoindAPI {
   }
 
   @override
-  Future<List<Block>> listRecentBlocks() async {
-    return [];
-  }
-
-  @override
   Future<GetBlockchainInfoResponse> getBlockchainInfo() async {
     return GetBlockchainInfoResponse();
   }
@@ -156,6 +151,21 @@ class MockBitcoindAPI implements BitcoindAPI {
   @override
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) async {
     return EstimateSmartFeeResponse();
+  }
+
+  @override
+  Future<GetRawTransactionResponse> getRawTransaction(String txid) async {
+    return GetRawTransactionResponse();
+  }
+
+  @override
+  Future<Block> getBlock({String? hash, int? height}) async {
+    return Block();
+  }
+
+  @override
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) {
+    return Future.value((<Block>[], false));
   }
 }
 
