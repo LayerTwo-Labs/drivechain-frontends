@@ -248,7 +248,7 @@ class SailScaleButton extends StatefulWidget {
 class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProviderStateMixin {
   late final AnimationController _scaleController = AnimationController(
     vsync: this,
-    lowerBound: 0.995,
+    lowerBound: 0.95,
     upperBound: 1.0,
     value: 1,
     duration: const Duration(milliseconds: 100),
@@ -298,8 +298,6 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final backgroundColor =
-        widget.style == SailButtonStyle.secondary ? theme.colors.background : theme.colors.backgroundSecondary;
 
     Widget buttonContent = Listener(
       onPointerDown: (_) async {
@@ -343,69 +341,93 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
             return;
           }
 
+          widget.onPressed?.call();
+
           shrink();
           await HapticFeedback.lightImpact();
           await fling();
-
-          widget.onPressed!();
         },
-        child: InkWell(
-          mouseCursor: disabled ? SystemMouseCursors.forbidden : WidgetStateMouseCursor.clickable,
-          borderRadius: SailStyleValues.borderRadiusButton,
-          onTap: () {
-            if (disabled) {
-              return;
-            }
-
-            widget.onPressed!();
-          },
+        child: MouseRegion(
+          cursor: disabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
           child: AnimatedBuilder(
             animation: _scaleController,
             builder: (context, child) {
-              return Transform.scale(
-                scale: _scaleController.value,
-                child: Container(
-                  padding: const EdgeInsets.only(bottom: 3, right: 3),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: SailTheme.of(context).colors.textTertiary.withValues(alpha: 0.5),
-                          offset: const Offset(1.5, 1.5),
-                          blurRadius: 0,
-                          spreadRadius: 0,
-                        ),
-                      ],
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: theme.colors.background,
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colors.text.withValues(alpha: 0.25),
+                      offset: const Offset(-2, -2),
+                      blurRadius: 2,
                     ),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 50),
-                      padding: EdgeInsets.only(
-                        top: _isPressed ? 1.5 : 0,
-                        left: _isPressed ? 1.5 : 0,
-                        bottom: _isPressed ? 0 : 1.5,
-                        right: _isPressed ? 0 : 1.5,
-                      ),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8.0),
-                          color: widget.color ?? backgroundColor,
-                          border: Border.all(
-                            color: widget.borderColor ?? Colors.transparent,
+                    BoxShadow(
+                      color: theme.colors.text.withValues(alpha: 0.1),
+                      offset: const Offset(0.5, 0.5),
+                      blurRadius: 1,
+                    ),
+                  ],
+                ),
+                child: Container(
+                  margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        theme.colors.text.withValues(alpha: 0.5),
+                        Colors.transparent,
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.2, 1.0],
+                    ),
+                  ),
+                  child: AnimatedBuilder(
+                    animation: _scaleController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _scaleController.value,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999),
+                            color: widget.color ??
+                                (widget.style == SailButtonStyle.secondary
+                                    ? theme.colors.background
+                                    : theme.colors.backgroundSecondary),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.colors.text.withValues(alpha: 0.25),
+                                blurRadius: 3,
+                                spreadRadius: _isPressed ? -15 : -2,
+                                offset: const Offset(0, 0),
+                              ),
+                              BoxShadow(
+                                color: theme.colors.text.withValues(alpha: 0.25),
+                                blurRadius: 3,
+                                spreadRadius: _isPressed ? -12 : -1,
+                                offset: const Offset(0, -3),
+                              ),
+                            ],
                           ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 8,
+                          ),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              Opacity(opacity: widget.loading ? 0.3 : 1, child: widget.child),
+                              Opacity(
+                                opacity: widget.loading ? 0.3 : 1,
+                                child: widget.child,
+                              ),
                               if (widget.loading) Center(child: LoadingIndicator.insideButton()),
                             ],
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ),
               );
