@@ -17,15 +17,19 @@ import 'package:sail_ui/sail_ui.dart';
 // YourClass extends ChangeNotifier implements RPCConnection
 abstract class RPCConnection extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
+  final processes = GetIt.I.get<ProcessProvider>();
 
   NodeConnectionSettings conf;
   final Binary binary;
   final String logPath;
+  // if set to true, the process will be restarted when exiting with a non-zero exit code
+  final bool restartOnFailure;
 
   RPCConnection({
     required this.conf,
     required this.binary,
     required this.logPath,
+    required this.restartOnFailure,
   });
 
   /// Args to pass to the binary on startup.
@@ -51,6 +55,8 @@ abstract class RPCConnection extends ChangeNotifier {
   bool _testing = false;
   bool _shouldNotify = false;
 
+  bool _completedStartup = false;
+
   Future<(bool, String?)> testConnection() async {
     try {
       if (_testing) {
@@ -67,6 +73,7 @@ abstract class RPCConnection extends ChangeNotifier {
       }
       connected = true;
       connectionError = null;
+      _completedStartup = true;
 
       if (blockCount != newBlockCount) {
         // we got a new block count! set it and notify listeners
@@ -140,8 +147,7 @@ abstract class RPCConnection extends ChangeNotifier {
   bool connected = false;
   int blockCount = 0;
 
-  Future<void> initBinary(
-    BuildContext context, {
+  Future<void> initBinary({
     List<String>? arg,
   }) async {
     final args = await binaryArgs(conf);
@@ -164,18 +170,11 @@ abstract class RPCConnection extends ChangeNotifier {
         return;
       }
 
-      if (!context.mounted) {
-        initializingBinary = false;
-        notifyListeners();
-        return;
-      }
-
       log.i('init binaries: starting $binary ${args.join(" ")}');
 
       int pid;
       try {
         pid = await processes.start(
-          context,
           binary.binary,
           args,
           stopRPC,
@@ -216,7 +215,7 @@ abstract class RPCConnection extends ChangeNotifier {
           // Throw an error, which causes the error message to be shown
           // in the daemon status chip
           waitForBoolToBeTrue(() async {
-            final res = processes.exited(pid);
+            final res = processes.exited(binary);
             if (res != null) {
               log.i('process exited with message: ${res.message}');
               initializingBinary = false;
@@ -231,13 +230,15 @@ abstract class RPCConnection extends ChangeNotifier {
           // Timeout case!
         ]);
 
+        _startRestartTimer();
+
         log.i('init binaries: $binary connected');
       } catch (err) {
         log.e("init binaries: couldn't connect to $binary", error: err);
 
         // We've quit! Assuming there's error logs, somewhere.
-        if (!processes.running(pid) && connectionError == null) {
-          final logs = await processes.stderr(pid).toList();
+        if (!processes.running(binary) && connectionError == null) {
+          final logs = await processes.stderr(binary).toList();
           log.e('$binary exited before we could connect, dumping logs');
           for (var line in logs) {
             log.e('$binary: $line');
@@ -253,6 +254,30 @@ abstract class RPCConnection extends ChangeNotifier {
       initializingBinary = false;
       notifyListeners();
     }
+  }
+
+  Timer? _restartTimer;
+  void _startRestartTimer() {
+    _restartTimer?.cancel();
+    _restartTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (restartOnFailure && _completedStartup) {
+        if (initializingBinary) {
+          // we're still going from the last loop, don't retry multiple times in parallell!
+          return;
+        }
+        if (stoppingBinary) {
+          // we're currently stopping manuelly. Be defensive and don't retry then
+          return;
+        }
+
+        final exit = processes.exited(binary);
+        if (exit != null && exit.code != 0) {
+          // Only attempt restart if the process has exited with non-zero code
+          log.w('Process exited unexpectedly with code ${exit.code}, restarting...');
+          await initBinary();
+        }
+      }
+    });
   }
 
   // responsible for pinging the node every x seconds,
@@ -339,6 +364,7 @@ abstract class RPCConnection extends ChangeNotifier {
   void dispose() {
     super.dispose();
     _connectionTimer?.cancel();
+    _restartTimer?.cancel();
   }
 }
 
