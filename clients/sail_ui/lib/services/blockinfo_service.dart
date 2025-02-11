@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class BlockInfoService extends ChangeNotifier {
@@ -28,6 +30,7 @@ class BlockInfoService extends ChangeNotifier {
 
   // computed field go here
   String get verificationProgress => ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
+  Timestamp? get lastBlockAt => blockchainInfo.time != 0 ? Timestamp(seconds: Int64(blockchainInfo.time)) : null;
 
   bool _isFetching = false;
   Timer? _fetchTimer;

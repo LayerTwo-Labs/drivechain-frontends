@@ -167,6 +167,23 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<cusfmainchainv1wallet.ListUnspentOutputsResponse> listUnspentOutputs(
+    cusfmainchainv1wallet.ListUnspentOutputsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.listUnspentOutputs,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<cusfmainchainv1wallet.SendTransactionResponse> sendTransaction(
     cusfmainchainv1wallet.SendTransactionRequest input, {
     connect.Headers? headers,
@@ -201,7 +218,7 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Regtest only
+  /// Available on regtest and signet only.
   Stream<cusfmainchainv1wallet.GenerateBlocksResponse> generateBlocks(
     cusfmainchainv1wallet.GenerateBlocksRequest input, {
     connect.Headers? headers,

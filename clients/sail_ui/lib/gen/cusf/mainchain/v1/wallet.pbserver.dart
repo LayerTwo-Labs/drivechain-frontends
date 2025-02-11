@@ -30,6 +30,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
   $async.Future<$6.GetBalanceResponse> getBalance($pb.ServerContext ctx, $6.GetBalanceRequest request);
   $async.Future<$6.ListSidechainDepositTransactionsResponse> listSidechainDepositTransactions($pb.ServerContext ctx, $6.ListSidechainDepositTransactionsRequest request);
   $async.Future<$6.ListTransactionsResponse> listTransactions($pb.ServerContext ctx, $6.ListTransactionsRequest request);
+  $async.Future<$6.ListUnspentOutputsResponse> listUnspentOutputs($pb.ServerContext ctx, $6.ListUnspentOutputsRequest request);
   $async.Future<$6.SendTransactionResponse> sendTransaction($pb.ServerContext ctx, $6.SendTransactionRequest request);
   $async.Future<$6.UnlockWalletResponse> unlockWallet($pb.ServerContext ctx, $6.UnlockWalletRequest request);
   $async.Future<$6.GenerateBlocksResponse> generateBlocks($pb.ServerContext ctx, $6.GenerateBlocksRequest request);
@@ -45,6 +46,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'GetBalance': return $6.GetBalanceRequest();
       case 'ListSidechainDepositTransactions': return $6.ListSidechainDepositTransactionsRequest();
       case 'ListTransactions': return $6.ListTransactionsRequest();
+      case 'ListUnspentOutputs': return $6.ListUnspentOutputsRequest();
       case 'SendTransaction': return $6.SendTransactionRequest();
       case 'UnlockWallet': return $6.UnlockWalletRequest();
       case 'GenerateBlocks': return $6.GenerateBlocksRequest();
@@ -63,6 +65,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'GetBalance': return this.getBalance(ctx, request as $6.GetBalanceRequest);
       case 'ListSidechainDepositTransactions': return this.listSidechainDepositTransactions(ctx, request as $6.ListSidechainDepositTransactionsRequest);
       case 'ListTransactions': return this.listTransactions(ctx, request as $6.ListTransactionsRequest);
+      case 'ListUnspentOutputs': return this.listUnspentOutputs(ctx, request as $6.ListUnspentOutputsRequest);
       case 'SendTransaction': return this.sendTransaction(ctx, request as $6.SendTransactionRequest);
       case 'UnlockWallet': return this.unlockWallet(ctx, request as $6.UnlockWalletRequest);
       case 'GenerateBlocks': return this.generateBlocks(ctx, request as $6.GenerateBlocksRequest);

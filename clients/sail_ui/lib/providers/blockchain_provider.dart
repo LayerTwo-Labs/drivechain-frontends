@@ -3,60 +3,45 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
-import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/services/blockinfo_service.dart';
 
 class BlockchainProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
+  late BlockInfoService infoService;
 
   // raw data go here
   List<Peer> peers = [];
   List<Block> blocks = [];
   List<RecentTransaction> recentTransactions = [];
-  BlockchainInfo blockchainInfo = BlockchainInfo(
-    chain: '',
-    blocks: 0,
-    headers: 0,
-    bestBlockHash: '',
-    difficulty: 0,
-    time: 0,
-    medianTime: 0,
-    verificationProgress: 0,
-    initialBlockDownload: false,
-    chainWork: '',
-    sizeOnDisk: 0,
-    pruned: false,
-    warnings: [],
-  );
   List<OPReturn> opReturns = [];
 
-  // computed field go here
-  Timestamp? get lastBlockAt => blocks.isNotEmpty ? blocks.first.blockTime : null;
-  String get verificationProgress {
-    if (blockchainInfo.headers == 0 || blockchainInfo.blocks == 0) return '0';
-    return ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
-  }
-
-  Duration _currentInterval = const Duration(seconds: 5);
-
-  bool _isFetching = false;
-  Timer? _fetchTimer;
-
   String? error;
-
   bool hasMoreBlocks = true;
   bool isLoadingMoreBlocks = false;
   Set<int> loadedBlockHeights = {};
 
+  // computed field go here
+  Timestamp? get lastBlockAt => infoService.lastBlockAt;
+  String get verificationProgress => infoService.verificationProgress;
+  BlockchainInfo get blockchainInfo => infoService.blockchainInfo;
+
+  Duration _currentInterval = const Duration(seconds: 5);
+  bool _isFetching = false;
+  Timer? _fetchTimer;
+
   BlockchainProvider() {
+    infoService = BlockInfoService(connection: mainchain, startTimer: false);
     _startFetchTimer();
     mainchain.addListener(fetch);
+    infoService.addListener(notifyListeners);
   }
 
   // call this function from anywhere to refetch blockchain info
@@ -115,17 +100,11 @@ class BlockchainProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<void> _fetchBlockchainInfo() async {
-    final newBlockchainInfo = await mainchain.getBlockchainInfo();
-    blockchainInfo = newBlockchainInfo;
-    notifyListeners();
-  }
-
   void _startFetchTimer() {
     void tick() async {
       try {
         await fetch();
-        await _fetchBlockchainInfo();
+        await infoService.fetch();
 
         // During IBD we should be pretty spammy to get up-to-date info all the time
         // After IBD however we can check less frequently, so as soon as IBD is done
