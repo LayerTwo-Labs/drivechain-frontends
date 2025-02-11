@@ -74,6 +74,7 @@ abstract class RPCConnection extends ChangeNotifier {
       connected = true;
       connectionError = null;
       _completedStartup = true;
+      _restartCount = 0;
 
       if (blockCount != newBlockCount) {
         // we got a new block count! set it and notify listeners
@@ -257,6 +258,7 @@ abstract class RPCConnection extends ChangeNotifier {
   }
 
   Timer? _restartTimer;
+  int _restartCount = 0;
   void _startRestartTimer() {
     _restartTimer?.cancel();
     _restartTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
@@ -270,10 +272,16 @@ abstract class RPCConnection extends ChangeNotifier {
           return;
         }
 
+        if (_restartCount > 5) {
+          // we've restarted too many times without successfully starting. stop trying, rip
+          return;
+        }
+
         final exit = processes.exited(binary);
         if (exit != null && exit.code != 0) {
           // Only attempt restart if the process has exited with non-zero code
           log.w('Process exited unexpectedly with code ${exit.code}, restarting...');
+          _restartCount++;
           await initBinary();
         }
       }
@@ -502,9 +510,4 @@ String extractConnectException(
   } else {
     return messageIfUnknown;
   }
-}
-
-/// Interface for RPCs that can fetch balance information
-abstract class BalanceCapableRPC {
-  Future<(int confirmedBalance, int pendingBalance)> getBalance();
 }

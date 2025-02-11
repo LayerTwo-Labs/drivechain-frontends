@@ -158,12 +158,12 @@ class _WalletButtonState extends State<WalletButton> {
                                         final theme = SailTheme.of(context);
                                         return SailSVG.icon(
                                           SailSVGAsset.iconSend,
-                                          color: theme.colors.background,
+                                          color: theme.colors.text,
                                         );
                                       },
                                     ),
                                     const SizedBox(width: 8),
-                                    SailText.background12('Send'),
+                                    SailText.primary12('Send'),
                                   ],
                                 ),
                               ),
@@ -181,12 +181,12 @@ class _WalletButtonState extends State<WalletButton> {
                                         final theme = SailTheme.of(context);
                                         return SailSVG.icon(
                                           SailSVGAsset.iconReceive,
-                                          color: theme.colors.background,
+                                          color: theme.colors.text,
                                         );
                                       },
                                     ),
                                     const SizedBox(width: 8),
-                                    SailText.background12('Receive'),
+                                    SailText.primary12('Receive'),
                                   ],
                                 ),
                               ),
