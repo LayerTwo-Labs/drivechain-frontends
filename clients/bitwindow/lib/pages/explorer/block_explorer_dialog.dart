@@ -4,7 +4,6 @@ import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/services/blockinfo_service.dart';
 import 'package:stacked/stacked.dart';
 
 class BlockExplorerDialog extends StatelessWidget {
@@ -25,8 +24,9 @@ class BlockExplorerDialog extends StatelessWidget {
           onViewModelReady: (model) => model.init(),
           builder: (context, model, child) {
             return SailRawCard(
-              title: '# Blocks: ${model.infoService.blockchainInfo.blocks}',
-              subtitle: 'Last block time: ${model.blocks.firstOrNull?.blockTime.toDateTime().format() ?? "Loading..."}',
+              title: '# Blocks: ${model.blockchainProvider.infoService.blockchainInfo.blocks}',
+              subtitle:
+                  'Last block time: ${DateTime.fromMillisecondsSinceEpoch(model.blockchainProvider.infoService.blockchainInfo.time * 1000).format()}',
               bottomPadding: false,
               child: Column(
                 children: [
@@ -303,13 +303,11 @@ class BlockExplorerViewModel extends BaseViewModel {
   final BlockchainProvider blockchainProvider = GetIt.I.get<BlockchainProvider>();
   final searchController = TextEditingController();
   late final ScrollController scrollController;
-  late final BlockInfoService infoService;
   final BitwindowRPC bitwindow = GetIt.I.get<BitwindowRPC>();
 
   final Future<void> Function(Block) blockViewBuilder;
 
   BlockExplorerViewModel({required this.blockViewBuilder}) {
-    infoService = BlockInfoService(connection: mainchain);
     blockchainProvider.addListener(notifyListeners);
     searchController.addListener(_onSearch);
     scrollController = ScrollController();
@@ -337,7 +335,6 @@ class BlockExplorerViewModel extends BaseViewModel {
         height: int.tryParse(query),
         hash: int.tryParse(query) == null ? query : null,
       );
-      print('found block: ${block.height} hash: ${block.hash}');
       await blockViewBuilder(block);
     } catch (e) {
       // Show error dialog
@@ -358,7 +355,6 @@ class BlockExplorerViewModel extends BaseViewModel {
     searchController.dispose();
     scrollController.dispose();
     blockchainProvider.removeListener(notifyListeners);
-    infoService.removeListener(notifyListeners);
     super.dispose();
   }
 

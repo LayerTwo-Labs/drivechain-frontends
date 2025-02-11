@@ -449,6 +449,43 @@ final $typed_data.Uint8List generateBlocksResponseDescriptor = $convert.base64De
     'ChZHZW5lcmF0ZUJsb2Nrc1Jlc3BvbnNlEjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLmNvbW'
     '1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2g=');
 
+@$core.Deprecated('Use listUnspentOutputsRequestDescriptor instead')
+const ListUnspentOutputsRequest$json = {
+  '1': 'ListUnspentOutputsRequest',
+};
+
+/// Descriptor for `ListUnspentOutputsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listUnspentOutputsRequestDescriptor = $convert.base64Decode(
+    'ChlMaXN0VW5zcGVudE91dHB1dHNSZXF1ZXN0');
+
+@$core.Deprecated('Use listUnspentOutputsResponseDescriptor instead')
+const ListUnspentOutputsResponse$json = {
+  '1': 'ListUnspentOutputsResponse',
+  '2': [
+    {'1': 'outputs', '3': 1, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.ListUnspentOutputsResponse.Output', '10': 'outputs'},
+  ],
+  '3': [ListUnspentOutputsResponse_Output$json],
+};
+
+@$core.Deprecated('Use listUnspentOutputsResponseDescriptor instead')
+const ListUnspentOutputsResponse_Output$json = {
+  '1': 'Output',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
+    {'1': 'value_sats', '3': 3, '4': 1, '5': 4, '10': 'valueSats'},
+    {'1': 'is_internal', '3': 4, '4': 1, '5': 8, '10': 'isInternal'},
+  ],
+};
+
+/// Descriptor for `ListUnspentOutputsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listUnspentOutputsResponseDescriptor = $convert.base64Decode(
+    'ChpMaXN0VW5zcGVudE91dHB1dHNSZXNwb25zZRJOCgdvdXRwdXRzGAEgAygLMjQuY3VzZi5tYW'
+    'luY2hhaW4udjEuTGlzdFVuc3BlbnRPdXRwdXRzUmVzcG9uc2UuT3V0cHV0UgdvdXRwdXRzGowB'
+    'CgZPdXRwdXQSLgoEdHhpZBgBIAEoCzIaLmN1c2YuY29tbW9uLnYxLlJldmVyc2VIZXhSBHR4aW'
+    'QSEgoEdm91dBgCIAEoDVIEdm91dBIdCgp2YWx1ZV9zYXRzGAMgASgEUgl2YWx1ZVNhdHMSHwoL'
+    'aXNfaW50ZXJuYWwYBCABKAhSCmlzSW50ZXJuYWw=');
+
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',
   '2': [
@@ -461,6 +498,7 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'GetBalance', '2': '.cusf.mainchain.v1.GetBalanceRequest', '3': '.cusf.mainchain.v1.GetBalanceResponse'},
     {'1': 'ListSidechainDepositTransactions', '2': '.cusf.mainchain.v1.ListSidechainDepositTransactionsRequest', '3': '.cusf.mainchain.v1.ListSidechainDepositTransactionsResponse'},
     {'1': 'ListTransactions', '2': '.cusf.mainchain.v1.ListTransactionsRequest', '3': '.cusf.mainchain.v1.ListTransactionsResponse'},
+    {'1': 'ListUnspentOutputs', '2': '.cusf.mainchain.v1.ListUnspentOutputsRequest', '3': '.cusf.mainchain.v1.ListUnspentOutputsResponse'},
     {'1': 'SendTransaction', '2': '.cusf.mainchain.v1.SendTransactionRequest', '3': '.cusf.mainchain.v1.SendTransactionResponse'},
     {'1': 'UnlockWallet', '2': '.cusf.mainchain.v1.UnlockWalletRequest', '3': '.cusf.mainchain.v1.UnlockWalletResponse'},
     {'1': 'GenerateBlocks', '2': '.cusf.mainchain.v1.GenerateBlocksRequest', '3': '.cusf.mainchain.v1.GenerateBlocksResponse', '6': true},
@@ -503,6 +541,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.google.protobuf.Timestamp': $5.Timestamp$json,
   '.cusf.mainchain.v1.ListTransactionsRequest': ListTransactionsRequest$json,
   '.cusf.mainchain.v1.ListTransactionsResponse': ListTransactionsResponse$json,
+  '.cusf.mainchain.v1.ListUnspentOutputsRequest': ListUnspentOutputsRequest$json,
+  '.cusf.mainchain.v1.ListUnspentOutputsResponse': ListUnspentOutputsResponse$json,
+  '.cusf.mainchain.v1.ListUnspentOutputsResponse.Output': ListUnspentOutputsResponse_Output$json,
   '.cusf.mainchain.v1.SendTransactionRequest': SendTransactionRequest$json,
   '.cusf.mainchain.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.cusf.mainchain.v1.SendTransactionRequest.FeeRate': SendTransactionRequest_FeeRate$json,
@@ -535,11 +576,13 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'luRGVwb3NpdFRyYW5zYWN0aW9uc1JlcXVlc3QaOy5jdXNmLm1haW5jaGFpbi52MS5MaXN0U2lk'
     'ZWNoYWluRGVwb3NpdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEmsKEExpc3RUcmFuc2FjdGlvbnMSKi'
     '5jdXNmLm1haW5jaGFpbi52MS5MaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBorLmN1c2YubWFpbmNo'
-    'YWluLnYxLkxpc3RUcmFuc2FjdGlvbnNSZXNwb25zZRJoCg9TZW5kVHJhbnNhY3Rpb24SKS5jdX'
-    'NmLm1haW5jaGFpbi52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZXN0GiouY3VzZi5tYWluY2hhaW4u'
-    'djEuU2VuZFRyYW5zYWN0aW9uUmVzcG9uc2USXwoMVW5sb2NrV2FsbGV0EiYuY3VzZi5tYWluY2'
-    'hhaW4udjEuVW5sb2NrV2FsbGV0UmVxdWVzdBonLmN1c2YubWFpbmNoYWluLnYxLlVubG9ja1dh'
-    'bGxldFJlc3BvbnNlEmcKDkdlbmVyYXRlQmxvY2tzEiguY3VzZi5tYWluY2hhaW4udjEuR2VuZX'
-    'JhdGVCbG9ja3NSZXF1ZXN0GikuY3VzZi5tYWluY2hhaW4udjEuR2VuZXJhdGVCbG9ja3NSZXNw'
-    'b25zZTAB');
+    'YWluLnYxLkxpc3RUcmFuc2FjdGlvbnNSZXNwb25zZRJxChJMaXN0VW5zcGVudE91dHB1dHMSLC'
+    '5jdXNmLm1haW5jaGFpbi52MS5MaXN0VW5zcGVudE91dHB1dHNSZXF1ZXN0Gi0uY3VzZi5tYWlu'
+    'Y2hhaW4udjEuTGlzdFVuc3BlbnRPdXRwdXRzUmVzcG9uc2USaAoPU2VuZFRyYW5zYWN0aW9uEi'
+    'kuY3VzZi5tYWluY2hhaW4udjEuU2VuZFRyYW5zYWN0aW9uUmVxdWVzdBoqLmN1c2YubWFpbmNo'
+    'YWluLnYxLlNlbmRUcmFuc2FjdGlvblJlc3BvbnNlEl8KDFVubG9ja1dhbGxldBImLmN1c2YubW'
+    'FpbmNoYWluLnYxLlVubG9ja1dhbGxldFJlcXVlc3QaJy5jdXNmLm1haW5jaGFpbi52MS5Vbmxv'
+    'Y2tXYWxsZXRSZXNwb25zZRJnCg5HZW5lcmF0ZUJsb2NrcxIoLmN1c2YubWFpbmNoYWluLnYxLk'
+    'dlbmVyYXRlQmxvY2tzUmVxdWVzdBopLmN1c2YubWFpbmNoYWluLnYxLkdlbmVyYXRlQmxvY2tz'
+    'UmVzcG9uc2UwAQ==');
 

@@ -1914,6 +1914,178 @@ class GenerateBlocksResponse extends $pb.GeneratedMessage {
   $1.ReverseHex ensureBlockHash() => $_ensure(0);
 }
 
+class ListUnspentOutputsRequest extends $pb.GeneratedMessage {
+  factory ListUnspentOutputsRequest() => create();
+  ListUnspentOutputsRequest._() : super();
+  factory ListUnspentOutputsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListUnspentOutputsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnspentOutputsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListUnspentOutputsRequest clone() => ListUnspentOutputsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListUnspentOutputsRequest copyWith(void Function(ListUnspentOutputsRequest) updates) => super.copyWith((message) => updates(message as ListUnspentOutputsRequest)) as ListUnspentOutputsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentOutputsRequest create() => ListUnspentOutputsRequest._();
+  ListUnspentOutputsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListUnspentOutputsRequest> createRepeated() => $pb.PbList<ListUnspentOutputsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentOutputsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnspentOutputsRequest>(create);
+  static ListUnspentOutputsRequest? _defaultInstance;
+}
+
+class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
+  factory ListUnspentOutputsResponse_Output({
+    $1.ReverseHex? txid,
+    $core.int? vout,
+    $fixnum.Int64? valueSats,
+    $core.bool? isInternal,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
+    if (isInternal != null) {
+      $result.isInternal = isInternal;
+    }
+    return $result;
+  }
+  ListUnspentOutputsResponse_Output._() : super();
+  factory ListUnspentOutputsResponse_Output.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListUnspentOutputsResponse_Output.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnspentOutputsResponse.Output', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $1.ReverseHex.create)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOB(4, _omitFieldNames ? '' : 'isInternal')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListUnspentOutputsResponse_Output clone() => ListUnspentOutputsResponse_Output()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListUnspentOutputsResponse_Output copyWith(void Function(ListUnspentOutputsResponse_Output) updates) => super.copyWith((message) => updates(message as ListUnspentOutputsResponse_Output)) as ListUnspentOutputsResponse_Output;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentOutputsResponse_Output create() => ListUnspentOutputsResponse_Output._();
+  ListUnspentOutputsResponse_Output createEmptyInstance() => create();
+  static $pb.PbList<ListUnspentOutputsResponse_Output> createRepeated() => $pb.PbList<ListUnspentOutputsResponse_Output>();
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentOutputsResponse_Output getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnspentOutputsResponse_Output>(create);
+  static ListUnspentOutputsResponse_Output? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.ReverseHex get txid => $_getN(0);
+  @$pb.TagNumber(1)
+  set txid($1.ReverseHex v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+  @$pb.TagNumber(1)
+  $1.ReverseHex ensureTxid() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get valueSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set valueSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasValueSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearValueSats() => clearField(3);
+
+  /// An internal output is one that was created by the wallet itself
+  /// as change output for a transaction.
+  @$pb.TagNumber(4)
+  $core.bool get isInternal => $_getBF(3);
+  @$pb.TagNumber(4)
+  set isInternal($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasIsInternal() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIsInternal() => clearField(4);
+}
+
+class ListUnspentOutputsResponse extends $pb.GeneratedMessage {
+  factory ListUnspentOutputsResponse({
+    $core.Iterable<ListUnspentOutputsResponse_Output>? outputs,
+  }) {
+    final $result = create();
+    if (outputs != null) {
+      $result.outputs.addAll(outputs);
+    }
+    return $result;
+  }
+  ListUnspentOutputsResponse._() : super();
+  factory ListUnspentOutputsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListUnspentOutputsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnspentOutputsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..pc<ListUnspentOutputsResponse_Output>(1, _omitFieldNames ? '' : 'outputs', $pb.PbFieldType.PM, subBuilder: ListUnspentOutputsResponse_Output.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListUnspentOutputsResponse clone() => ListUnspentOutputsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListUnspentOutputsResponse copyWith(void Function(ListUnspentOutputsResponse) updates) => super.copyWith((message) => updates(message as ListUnspentOutputsResponse)) as ListUnspentOutputsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentOutputsResponse create() => ListUnspentOutputsResponse._();
+  ListUnspentOutputsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListUnspentOutputsResponse> createRepeated() => $pb.PbList<ListUnspentOutputsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentOutputsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnspentOutputsResponse>(create);
+  static ListUnspentOutputsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<ListUnspentOutputsResponse_Output> get outputs => $_getList(0);
+}
+
 class WalletServiceApi {
   $pb.RpcClient _client;
   WalletServiceApi(this._client);
@@ -1944,6 +2116,9 @@ class WalletServiceApi {
   ;
   $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, ListTransactionsRequest request) =>
     _client.invoke<ListTransactionsResponse>(ctx, 'WalletService', 'ListTransactions', request, ListTransactionsResponse())
+  ;
+  $async.Future<ListUnspentOutputsResponse> listUnspentOutputs($pb.ClientContext? ctx, ListUnspentOutputsRequest request) =>
+    _client.invoke<ListUnspentOutputsResponse>(ctx, 'WalletService', 'ListUnspentOutputs', request, ListUnspentOutputsResponse())
   ;
   $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
     _client.invoke<SendTransactionResponse>(ctx, 'WalletService', 'SendTransaction', request, SendTransactionResponse())

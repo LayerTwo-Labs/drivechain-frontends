@@ -12,6 +12,7 @@ import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/services/blockinfo_service.dart';
 
 class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC() : super(conf: NodeConnectionSettings.empty(), binary: ParentChain(), logPath: '');
@@ -456,6 +457,9 @@ class MockBlockchainProvider implements BlockchainProvider {
 
   @override
   Set<int> loadedBlockHeights = {};
+
+  @override
+  BlockInfoService infoService = BlockInfoService(connection: MockMainchainRPC());
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

@@ -79,6 +79,13 @@ abstract final class WalletService {
     cusfmainchainv1wallet.ListTransactionsResponse.new,
   );
 
+  static const listUnspentOutputs = connect.Spec(
+    '/$name/ListUnspentOutputs',
+    connect.StreamType.unary,
+    cusfmainchainv1wallet.ListUnspentOutputsRequest.new,
+    cusfmainchainv1wallet.ListUnspentOutputsResponse.new,
+  );
+
   static const sendTransaction = connect.Spec(
     '/$name/SendTransaction',
     connect.StreamType.unary,
@@ -93,7 +100,7 @@ abstract final class WalletService {
     cusfmainchainv1wallet.UnlockWalletResponse.new,
   );
 
-  /// Regtest only
+  /// Available on regtest and signet only.
   static const generateBlocks = connect.Spec(
     '/$name/GenerateBlocks',
     connect.StreamType.server,
