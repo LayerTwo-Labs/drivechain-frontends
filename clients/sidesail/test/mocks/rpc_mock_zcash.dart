@@ -10,6 +10,7 @@ class MockZCashRPC extends ZCashRPC {
           conf: NodeConnectionSettings('./mocked.conf', 'mock mock', 1337, '', '', true),
           binary: MockBinary(),
           logPath: './mocked.log',
+          restartOnFailure: false,
         );
 
   @override

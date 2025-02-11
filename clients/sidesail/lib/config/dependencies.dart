@@ -122,6 +122,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
       conf: conf,
       binary: TestSidechain(),
       logPath: TestSidechain().logPath(),
+      restartOnFailure: false,
     );
     sidechain = testchain;
 
@@ -139,6 +140,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
       conf: conf,
       binary: EthereumSidechain(),
       logPath: EthereumSidechain().logPath(),
+      restartOnFailure: false,
     );
     sidechain = ethChain;
 
@@ -156,6 +158,7 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
       conf: conf,
       binary: ZCashSidechain(),
       logPath: ZCashSidechain().logPath(),
+      restartOnFailure: false,
     );
     sidechain = zChain;
 

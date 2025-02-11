@@ -186,7 +186,7 @@ class BottomNav extends StatelessWidget {
                 children: [
                   DaemonConnectionCard(
                     connection: model.mainchain,
-                    restartDaemon: () => model.mainchain.initBinary(context),
+                    restartDaemon: () => model.mainchain.initBinary(),
                     infoMessage: null,
                     navigateToLogs: model.navigateToLogs,
                   ),
@@ -197,13 +197,13 @@ class BottomNav extends StatelessWidget {
                         : model.mainchain.inHeaderSync
                             ? 'Waiting for L1 to sync headers...'
                             : null,
-                    restartDaemon: () => model.enforcer.initBinary(context),
+                    restartDaemon: () => model.enforcer.initBinary(),
                     navigateToLogs: model.navigateToLogs,
                   ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,
                     infoMessage: null,
-                    restartDaemon: () => additionalConnection.rpc.initBinary(context),
+                    restartDaemon: () => additionalConnection.rpc.initBinary(),
                     navigateToLogs: model.navigateToLogs,
                   ),
                 ],

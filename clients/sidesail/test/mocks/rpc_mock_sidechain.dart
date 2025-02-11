@@ -11,6 +11,7 @@ class MockSidechainRPC extends SidechainRPC {
           chain: TestSidechain(),
           binary: MockBinary(),
           logPath: './mocked.log',
+          restartOnFailure: false,
         );
 
   @override

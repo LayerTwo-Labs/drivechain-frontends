@@ -24,6 +24,7 @@ abstract class BitwindowRPC extends RPCConnection {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 
   BitwindowAPI get bitwindowd;
@@ -109,6 +110,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 
   // Async factory
@@ -125,6 +127,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       conf: conf,
       binary: binary,
       logPath: logPath,
+      restartOnFailure: true,
     );
 
     await instance._init(transport);
@@ -431,8 +434,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       }
 
       final response = await _client.getBlock(request);
-
-      print('found block: ${response.block.height} hash: ${response.block.hash}');
 
       return response.block;
     } catch (e) {

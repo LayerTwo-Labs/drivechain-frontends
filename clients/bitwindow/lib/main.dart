@@ -77,14 +77,14 @@ void main() async {
           GetIt.I.get<BitwindowRPC>().initializingBinary = true;
 
           if (!context.mounted) return;
-          await initMainchainBinary(context, log, mainchain);
+          await initMainchainBinary(log, mainchain);
           log.i(
             'mainchain inited: ibd complete, ready to start enforcer',
           );
 
           if (!context.mounted) return;
           unawaited(initEnforcer(context, log));
-          await initBitwindow(context, log);
+          await initBitwindow(log);
           log.i(
             'server inited: ready to serve frontend',
           );
@@ -208,13 +208,10 @@ Future<void> initDependencies(Logger log, File logFile) async {
 }
 
 Future<void> initMainchainBinary(
-  BuildContext context,
   Logger log,
   MainchainRPC mainchain,
 ) async {
-  await mainchain.initBinary(
-    context,
-  );
+  await mainchain.initBinary();
   log.i('mainchain init: started node, waiting for ibd');
   await mainchain.waitForHeaderSync();
 
@@ -228,7 +225,7 @@ Future<void> initEnforcer(
   final enforcer = GetIt.I.get<EnforcerRPC>();
 
   try {
-    await enforcer.initBinary(context);
+    await enforcer.initBinary();
   } catch (e) {
     log.e('could not init enforcer: $e');
   }
@@ -248,12 +245,11 @@ Future<void> initEnforcer(
 }
 
 Future<void> initBitwindow(
-  BuildContext context,
   Logger log,
 ) async {
   final server = GetIt.I.get<BitwindowRPC>();
 
-  await server.initBinary(context);
+  await server.initBinary();
 
   // return when the server is connected, but always move on
   // if 60 seconds have passed

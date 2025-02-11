@@ -15,6 +15,7 @@ abstract class ThunderRPC extends RPCConnection {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 }
 
@@ -37,6 +38,7 @@ class ThunderLive extends ThunderRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 
   // Async factory
@@ -50,6 +52,7 @@ class ThunderLive extends ThunderRPC {
       conf: conf,
       binary: binary,
       logPath: logPath,
+      restartOnFailure: false,
     );
 
     await instance._init();
