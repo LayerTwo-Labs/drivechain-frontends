@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
@@ -15,6 +14,7 @@ abstract class TestchainRPC extends SidechainRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   }) : super(chain: TestSidechain());
 
   Future<int> mainBlockCount();
@@ -54,6 +54,7 @@ class TestchainRPCLive extends TestchainRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 
   @override
@@ -275,11 +276,10 @@ class TestchainRPCLive extends TestchainRPC {
   }
 
   @override
-  Future<void> initBinary(
-    BuildContext context, {
+  Future<void> initBinary({
     List<String>? arg,
   }) async {
-    await super.initBinary(context, arg: arg);
+    await super.initBinary(arg: arg);
   }
 }
 

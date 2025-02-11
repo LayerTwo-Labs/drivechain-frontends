@@ -45,9 +45,9 @@ Future<void> start() async {
       initMethod: (context) async {
         // Mainchain must be started properly before attempting the
         // sidechain
-        await initMainchainBinary(context, log, mainchain, sidechain);
+        await initMainchainBinary(log, mainchain, sidechain);
         // ignore: use_build_context_synchronously
-        await initSidechainBinary(context, log, mainchain, sidechain);
+        await initSidechainBinary(log, mainchain, sidechain);
       },
       accentColor: sidechain.rpc.chain.color,
       log: log,
@@ -56,18 +56,14 @@ Future<void> start() async {
 }
 
 Future<void> initMainchainBinary(
-  BuildContext context,
   Logger log,
   MainchainRPC mainchain,
   SidechainContainer sidechain,
 ) async {
-  await mainchain.initBinary(
-    context,
-  );
+  await mainchain.initBinary();
 }
 
 Future<void> initSidechainBinary(
-  BuildContext context,
   Logger log,
   MainchainRPC mainchain,
   SidechainContainer sidechain,
@@ -76,13 +72,7 @@ Future<void> initSidechainBinary(
   await mainchain.waitForIBD();
   log.i('sidechain init: initial block download finished');
 
-  if (!context.mounted) {
-    return;
-  }
-  return sidechain.rpc.initBinary(
-    // ignore: use_build_context_synchronously
-    context,
-  );
+  return sidechain.rpc.initBinary();
 }
 
 bool isCurrentChainActive({

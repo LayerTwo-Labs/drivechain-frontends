@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
@@ -14,21 +14,16 @@ import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 const zcashFee = 0.0001;
 
-Future<void> copyIfNotExists(Logger log, BuildContext context, File file, String binPath) async {
+Future<void> copyIfNotExists(Logger log, File file, String binPath) async {
   if (await file.exists()) {
     // if the file already exists, don't do anything
     log.d('file already exists in app directory, not copying');
     return;
   }
 
-  if (!context.mounted) {
-    log.d('writeIfNotExists: context not mounted, exiting');
-    return;
-  }
-
   // we can only bundle assets in the assets folder, but
   // it's very hard to get an absolute path there
-  final binResource = await DefaultAssetBundle.of(context).load(
+  final binResource = await rootBundle.load(
     'assets/bin/$binPath',
   );
 
@@ -80,6 +75,7 @@ abstract class ZCashRPC extends SidechainRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   }) : super(chain: ZCashSidechain());
 
   @override
@@ -93,8 +89,7 @@ abstract class ZCashRPC extends SidechainRPC {
   }
 
   @override
-  Future<void> initBinary(
-    BuildContext context, {
+  Future<void> initBinary({
     List<String>? arg,
   }) async {
     final args = await binaryArgs(conf);
@@ -110,9 +105,9 @@ abstract class ZCashRPC extends SidechainRPC {
       log.i('got application support dir, copying params to dir ${appDir.path}');
 
       await Future.wait([
-        copyIfNotExists(log, context, saplingOutput, saplingOutputPath),
-        copyIfNotExists(log, context, saplingSpend, saplingSpendPath),
-        copyIfNotExists(log, context, sproutGroth, sproutGrothPath),
+        copyIfNotExists(log, saplingOutput, saplingOutputPath),
+        copyIfNotExists(log, saplingSpend, saplingSpendPath),
+        copyIfNotExists(log, sproutGroth, sproutGrothPath),
         writeConfFileIfNotExists(log),
       ]);
 
@@ -124,7 +119,7 @@ abstract class ZCashRPC extends SidechainRPC {
     }
 
     // after all assets are loaded properly, THEN init the zcash-binary
-    await super.initBinary(context, arg: args);
+    await super.initBinary(arg: args);
   }
 
   /// There's no account in the wallet out of the box. Calling this
@@ -152,6 +147,7 @@ class ZcashRPCLive extends ZCashRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 
   RPCClient _client() {

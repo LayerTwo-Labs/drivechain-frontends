@@ -15,7 +15,13 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/services/blockinfo_service.dart';
 
 class MockMainchainRPC extends MainchainRPC {
-  MockMainchainRPC() : super(conf: NodeConnectionSettings.empty(), binary: ParentChain(), logPath: '');
+  MockMainchainRPC()
+      : super(
+          conf: NodeConnectionSettings.empty(),
+          binary: ParentChain(),
+          logPath: '',
+          restartOnFailure: false,
+        );
 
   bool _connected = false;
   bool _initializing = false;
@@ -106,7 +112,13 @@ class MockMainchainRPC extends MainchainRPC {
 }
 
 class MockEnforcerRPC extends EnforcerRPC {
-  MockEnforcerRPC() : super(conf: NodeConnectionSettings.empty(), binary: Enforcer(), logPath: '');
+  MockEnforcerRPC()
+      : super(
+          conf: NodeConnectionSettings.empty(),
+          binary: Enforcer(),
+          logPath: '',
+          restartOnFailure: true,
+        );
 
   bool _connected = false;
   bool _initializing = false;
@@ -170,7 +182,8 @@ class MockEnforcerRPC extends EnforcerRPC {
 }
 
 class MockBitwindowRPC extends BitwindowRPC {
-  MockBitwindowRPC() : super(conf: NodeConnectionSettings.empty(), binary: BitWindow(), logPath: '');
+  MockBitwindowRPC()
+      : super(conf: NodeConnectionSettings.empty(), binary: BitWindow(), logPath: '', restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;
@@ -245,7 +258,13 @@ class MockBitwindowRPC extends BitwindowRPC {
 }
 
 class MockThunderRPC extends ThunderRPC {
-  MockThunderRPC() : super(conf: NodeConnectionSettings.empty(), binary: Thunder(), logPath: '');
+  MockThunderRPC()
+      : super(
+          conf: NodeConnectionSettings.empty(),
+          binary: Thunder(),
+          logPath: '',
+          restartOnFailure: false,
+        );
 
   bool _connected = false;
   bool _initializing = false;
@@ -306,7 +325,8 @@ class MockThunderRPC extends ThunderRPC {
 }
 
 class MockBitnamesRPC extends BitnamesRPC {
-  MockBitnamesRPC() : super(conf: NodeConnectionSettings.empty(), binary: Bitnames(), logPath: '');
+  MockBitnamesRPC()
+      : super(conf: NodeConnectionSettings.empty(), binary: Bitnames(), logPath: '', restartOnFailure: true);
 
   bool _connected = false;
   bool _initializing = false;

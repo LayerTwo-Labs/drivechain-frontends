@@ -3,13 +3,13 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:web3dart/json_rpc.dart' as jsonrpc;
 import 'package:web3dart/web3dart.dart';
-import 'package:flutter/material.dart';
 
 abstract class EthereumRPC extends SidechainRPC {
   EthereumRPC({
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   }) : super(chain: EthereumSidechain());
 
   EthereumAddress? account;
@@ -24,6 +24,7 @@ class EthereumRPCLive extends EthereumRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   }) {
     try {
       _setAndGetAccount();
@@ -197,11 +198,10 @@ class EthereumRPCLive extends EthereumRPC {
   }
 
   @override
-  Future<void> initBinary(
-    BuildContext context, {
+  Future<void> initBinary({
     List<String>? arg,
   }) async {
-    await super.initBinary(context, arg: arg);
+    await super.initBinary(arg: arg);
   }
 }
 

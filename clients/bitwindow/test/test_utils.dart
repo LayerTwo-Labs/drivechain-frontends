@@ -56,12 +56,20 @@ Future<void> registerTestDependencies() async {
         conf: NodeConnectionSettings.empty(),
         binary: MockBinary(),
         logPath: '',
+        restartOnFailure: true,
       ),
     );
   }
 
   final balanceProvider = BalanceProvider(
-    connections: [MockAPI(conf: NodeConnectionSettings.empty(), binary: MockBinary(), logPath: '')],
+    connections: [
+      MockAPI(
+        conf: NodeConnectionSettings.empty(),
+        binary: MockBinary(),
+        logPath: '',
+        restartOnFailure: true,
+      ),
+    ],
   );
   GetIt.I.registerLazySingleton<BalanceProvider>(
     () => balanceProvider,

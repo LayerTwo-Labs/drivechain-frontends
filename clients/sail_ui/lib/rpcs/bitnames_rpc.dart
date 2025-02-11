@@ -11,6 +11,7 @@ abstract class BitnamesRPC extends RPCConnection {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 }
 
@@ -33,6 +34,7 @@ class BitnamesLive extends BitnamesRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 
   // Async factory
@@ -46,6 +48,7 @@ class BitnamesLive extends BitnamesRPC {
       conf: conf,
       binary: binary,
       logPath: logPath,
+      restartOnFailure: true,
     );
 
     await instance._init();

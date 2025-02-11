@@ -14,6 +14,7 @@ abstract class MainchainRPC extends RPCConnection {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
 
   final chain = ParentChain();
@@ -46,6 +47,7 @@ class MainchainRPCLive extends MainchainRPC {
     required super.conf,
     required super.binary,
     required super.logPath,
+    required super.restartOnFailure,
   });
   static Future<MainchainRPCLive> create(
     Binary binary,
@@ -57,6 +59,7 @@ class MainchainRPCLive extends MainchainRPC {
       conf: conf,
       binary: binary,
       logPath: mainchainLogDir,
+      restartOnFailure: false,
     );
     await container.init();
     return container;
