@@ -948,8 +948,8 @@ class DeniabilityTab extends StatelessWidget {
 
             return DeniabilityTable(
               error: error,
-              entries: model.denials,
-              onDeny: () => model.showDenyDialog(context),
+              utxos: model.utxos,
+              onDeny: (txid, vout) => model.showDenyDialog(context, txid, vout),
               onCancel: model.cancelDenial,
             );
           },
@@ -961,14 +961,14 @@ class DeniabilityTab extends StatelessWidget {
 
 class DeniabilityTable extends StatefulWidget {
   final String? error;
-  final List<Denial> entries;
-  final VoidCallback onDeny;
+  final List<UnspentOutput> utxos;
+  final void Function(String txid, int vout) onDeny;
   final void Function(Int64) onCancel;
 
   const DeniabilityTable({
     super.key,
     required this.error,
-    required this.entries,
+    required this.utxos,
     required this.onDeny,
     required this.onCancel,
   });
@@ -978,14 +978,8 @@ class DeniabilityTable extends StatefulWidget {
 }
 
 class _DeniabilityTableState extends State<DeniabilityTable> {
-  String sortColumn = 'date';
+  String sortColumn = 'txid';
   bool sortAscending = true;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    onSort(sortColumn);
-  }
 
   void onSort(String column) {
     setState(() {
@@ -1000,133 +994,171 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   }
 
   void sortEntries() {
-    widget.entries.sort((a, b) {
+    widget.utxos.sort((a, b) {
       dynamic aValue;
       dynamic bValue;
 
       switch (sortColumn) {
+        case 'txid':
+          return sortAscending ? a.txid.compareTo(b.txid) : b.txid.compareTo(a.txid);
+        case 'vout':
+          return sortAscending ? a.vout.compareTo(b.vout) : b.vout.compareTo(a.vout);
+        case 'amount':
+          return sortAscending ? a.valueSats.compareTo(b.valueSats) : b.valueSats.compareTo(a.valueSats);
         case 'next':
-          if (!a.hasNextExecution() && !b.hasNextExecution()) return 0;
-          if (!a.hasNextExecution()) return sortAscending ? 1 : -1;
-          if (!b.hasNextExecution()) return sortAscending ? -1 : 1;
+          if (!a.hasDeniability() && !b.hasDeniability()) return 0;
+          if (!a.hasDeniability()) return sortAscending ? 1 : -1;
+          if (!b.hasDeniability()) return sortAscending ? -1 : 1;
+          if (!a.deniability.hasNextExecution() && !b.deniability.hasNextExecution()) return 0;
+          if (!a.deniability.hasNextExecution()) return sortAscending ? 1 : -1;
+          if (!b.deniability.hasNextExecution()) return sortAscending ? -1 : 1;
           return sortAscending
-              ? a.nextExecution.toDateTime().compareTo(b.nextExecution.toDateTime())
-              : b.nextExecution.toDateTime().compareTo(a.nextExecution.toDateTime());
-        case 'hops':
-          aValue = a.numHops - a.executions.length;
-          bValue = b.numHops - b.executions.length;
-          break;
+              ? a.deniability.nextExecution.toDateTime().compareTo(b.deniability.nextExecution.toDateTime())
+              : b.deniability.nextExecution.toDateTime().compareTo(a.deniability.nextExecution.toDateTime());
         case 'status':
-          aValue = a.hasCancelledAt() ? 'Cancelled' : (a.numHops - a.executions.length == 0 ? 'Completed' : 'Active');
-          bValue = b.hasCancelledAt() ? 'Cancelled' : (b.numHops - b.executions.length == 0 ? 'Completed' : 'Active');
+          if (!a.hasDeniability() && !b.hasDeniability()) return 0;
+          if (!a.hasDeniability()) return sortAscending ? 1 : -1;
+          if (!b.hasDeniability()) return sortAscending ? -1 : 1;
+          aValue = a.deniability.hasCancelledAt()
+              ? 'Cancelled'
+              : (a.deniability.numHops - a.deniability.executions.length == 0 ? 'Completed' : 'Active');
+          bValue = b.deniability.hasCancelledAt()
+              ? 'Cancelled'
+              : (b.deniability.numHops - b.deniability.executions.length == 0 ? 'Completed' : 'Active');
           break;
       }
 
-      return sortColumn != 'next' ? (sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue)) : 0;
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return SailRawCard(
-          title: 'Scheduled Denials',
-          subtitle: widget.error ?? 'List of scheduled transactions for deniability.',
-          widgetHeaderEnd: Padding(
-            padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
-            child: SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                QtButton(
-                  label: 'Create Denial',
-                  onPressed: widget.onDeny,
-                  size: ButtonSize.small,
+    return SailRawCard(
+      title: 'UTXOs and Denials',
+      subtitle: widget.error ?? 'List of UTXOs with optional deniability info.',
+      bottomPadding: false,
+      child: Column(
+        children: [
+          Expanded(
+            child: SailTable(
+              getRowId: (index) => '${widget.utxos[index].txid}:${widget.utxos[index].vout}',
+              headerBuilder: (context) => [
+                SailTableHeaderCell(
+                  name: 'UTXO',
+                  onSort: () => onSort('txid'),
                 ),
+                SailTableHeaderCell(
+                  name: 'Amount',
+                  onSort: () => onSort('amount'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Hops',
+                  onSort: () => onSort('hops'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Next Execution',
+                  onSort: () => onSort('next'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Status',
+                  onSort: () => onSort('status'),
+                ),
+                const SailTableHeaderCell(name: 'Actions'),
               ],
+              rowBuilder: (context, row, selected) {
+                final utxo = widget.utxos[row];
+                final hasDeniability = utxo.hasDeniability();
+
+                String status = '-';
+                String nextExecution = '-';
+                String hops = '-';
+                bool canCancel = false;
+
+                if (hasDeniability) {
+                  final completedHops = utxo.deniability.executions.length;
+                  final totalHops = utxo.deniability.numHops;
+                  hops = '$completedHops/$totalHops';
+
+                  status = utxo.deniability.hasCancelledAt()
+                      ? 'Cancelled'
+                      : completedHops == totalHops
+                          ? 'Completed'
+                          : 'Active';
+                  nextExecution = utxo.deniability.hasNextExecution()
+                      ? utxo.deniability.nextExecution.toDateTime().toString()
+                      : '-';
+                  canCancel = status == 'Active';
+                }
+
+                return [
+                  SailTableCell(
+                    value: '${utxo.txid}:${utxo.vout}',
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: '${utxo.valueSats} sats',
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: hops,
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: nextExecution,
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: status,
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: canCancel ? 'Cancel' : '-',
+                    monospace: true,
+                    child: canCancel
+                        ? SailRawButton(
+                            disabled: false,
+                            loading: false,
+                            onPressed: () => widget.onCancel(utxo.deniability.id),
+                            child: SailText.primary15(
+                              'Cancel',
+                              bold: true,
+                              color: context.sailTheme.colors.text,
+                            ),
+                          )
+                        : SailRawButton(
+                            disabled: false,
+                            loading: false,
+                            onPressed: () => widget.onDeny(utxo.txid, utxo.vout),
+                            child: SailText.primary15(
+                              'Enroll',
+                              bold: true,
+                              color: context.sailTheme.colors.text,
+                            ),
+                          ),
+                  ),
+                ];
+              },
+              rowCount: widget.utxos.length,
+              columnWidths: const [280, 150, 100, 200, 100, 150],
+              drawGrid: true,
+              sortColumnIndex: [
+                'txid',
+                'vout',
+                'amount',
+                'next',
+                'status',
+                'actions',
+              ].indexOf(sortColumn),
+              sortAscending: sortAscending,
+              onSort: (columnIndex, ascending) {
+                onSort(['txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
+              },
             ),
           ),
-          bottomPadding: false,
-          child: Column(
-            children: [
-              Expanded(
-                child: SailTable(
-                  getRowId: (index) => widget.entries[index].id.toString(),
-                  headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'Next Execution',
-                      onSort: () => onSort('next'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Remaining Hops',
-                      onSort: () => onSort('hops'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Status',
-                      onSort: () => onSort('status'),
-                    ),
-                    const SailTableHeaderCell(name: 'Actions'),
-                  ],
-                  rowBuilder: (context, row, selected) {
-                    final denial = widget.entries[row];
-                    final remainingHops = denial.numHops - denial.executions.length;
-                    final status = denial.hasCancelledAt()
-                        ? 'Cancelled'
-                        : remainingHops == 0
-                            ? 'Completed'
-                            : 'Active';
-
-                    return [
-                      SailTableCell(
-                        value: denial.hasNextExecution() ? denial.nextExecution.toDateTime().toString() : '-',
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: remainingHops.toString(),
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: status,
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: status == 'Active' ? 'Cancel' : '-',
-                        monospace: true,
-                        child: status == 'Active'
-                            ? SailRawButton(
-                                disabled: false,
-                                loading: false,
-                                onPressed: () => widget.onCancel(denial.id),
-                                child: SailText.primary15(
-                                  'Cancel Denial',
-                                  bold: true,
-                                  color: context.sailTheme.colors.text,
-                                ),
-                              )
-                            : null,
-                      ),
-                    ];
-                  },
-                  rowCount: widget.entries.length,
-                  columnWidths: const [200, 150, 100, 100],
-                  drawGrid: true,
-                  sortColumnIndex: [
-                    'next',
-                    'hops',
-                    'status',
-                    'actions',
-                  ].indexOf(sortColumn),
-                  sortAscending: sortAscending,
-                  onSort: (columnIndex, ascending) {
-                    onSort(['next', 'hops', 'status', 'actions'][columnIndex]);
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }
@@ -1135,32 +1167,32 @@ class DeniabilityViewModel extends BaseViewModel {
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
   final DenialProvider denialProvider = GetIt.I.get<DenialProvider>();
 
-  List<Denial> get denials => denialProvider.denials;
+  List<UnspentOutput> get utxos => denialProvider.utxos;
 
   DeniabilityViewModel() {
-    denialProvider
-      ..addListener(notifyListeners)
-      ..addListener(errorListener)
-      ..fetch(); // Fetch initial data
+    denialProvider.addListener(notifyListeners);
+    denialProvider.addListener(errorListener);
+    denialProvider.fetch();
   }
 
   void errorListener() {
     setErrorForObject('deniability', denialProvider.error);
   }
 
-  void showDenyDialog(BuildContext context) {
+  void showDenyDialog(BuildContext context, String txid, int vout) {
     denialProvider.fetch();
 
     showDialog(
       context: context,
       builder: (context) => DenialDialog(
-        onSubmit: (hops, delaySeconds) {
-          api.bitwindowd
-              .createDenial(
-                numHops: hops,
-                delaySeconds: delaySeconds,
-              )
-              .then((_) => denialProvider.fetch());
+        onSubmit: (hops, delaySeconds) async {
+          await api.bitwindowd.createDenial(
+            txid: txid,
+            vout: vout,
+            numHops: hops,
+            delaySeconds: delaySeconds,
+          );
+          await denialProvider.fetch();
         },
       ),
     );
@@ -1175,5 +1207,3 @@ class DeniabilityViewModel extends BaseViewModel {
     }
   }
 }
-
-// TODO:

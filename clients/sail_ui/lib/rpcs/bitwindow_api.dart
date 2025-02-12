@@ -39,11 +39,13 @@ abstract class BitwindowAPI {
 
   // Denial methods here
   Future<void> createDenial({
+    required String txid,
+    required int vout,
     required int numHops,
     required int delaySeconds,
   });
   Future<void> cancelDenial(Int64 id);
-  Future<List<Denial>> listDenials();
+  Future<List<UnspentOutput>> listDenials();
 
   // Address book methods here
   Future<List<AddressBookEntry>> listAddressBook();
@@ -190,11 +192,15 @@ class _BitwindowAPILive implements BitwindowAPI {
 
   @override
   Future<void> createDenial({
+    required String txid,
+    required int vout,
     required int numHops,
     required int delaySeconds,
   }) async {
     await _client.createDenial(
       CreateDenialRequest(
+        txid: txid,
+        vout: vout,
         numHops: numHops,
         delaySeconds: delaySeconds,
       ),
@@ -207,9 +213,9 @@ class _BitwindowAPILive implements BitwindowAPI {
   }
 
   @override
-  Future<List<Denial>> listDenials() async {
+  Future<List<UnspentOutput>> listDenials() async {
     final response = await _client.listDenials(Empty());
-    return response.denials;
+    return response.utxos;
   }
 
   @override

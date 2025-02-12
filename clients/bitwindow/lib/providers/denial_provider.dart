@@ -12,7 +12,7 @@ class DenialProvider extends ChangeNotifier {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   TransactionProvider get transactionProvider => GetIt.I.get<TransactionProvider>();
 
-  List<Denial> denials = [];
+  List<UnspentOutput> utxos = [];
   bool initialized = false;
   String? error;
 
@@ -34,7 +34,7 @@ class DenialProvider extends ChangeNotifier {
       final newDenials = await api.bitwindowd.listDenials();
 
       if (_dataHasChanged(newDenials)) {
-        denials = newDenials;
+        utxos = newDenials;
         initialized = true;
         error = null;
         notifyListeners();
@@ -48,9 +48,9 @@ class DenialProvider extends ChangeNotifier {
   }
 
   bool _dataHasChanged(
-    List<Denial> newDenials,
+    List<UnspentOutput> newDenials,
   ) {
-    return !listEquals(denials, newDenials);
+    return !listEquals(utxos, newDenials);
   }
 
   @override

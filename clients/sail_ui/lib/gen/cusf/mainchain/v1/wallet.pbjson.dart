@@ -345,8 +345,9 @@ const SendTransactionRequest$json = {
     {'1': 'destinations', '3': 1, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.SendTransactionRequest.DestinationsEntry', '10': 'destinations'},
     {'1': 'fee_rate', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.SendTransactionRequest.FeeRate', '9': 0, '10': 'feeRate', '17': true},
     {'1': 'op_return_message', '3': 3, '4': 1, '5': 11, '6': '.cusf.common.v1.Hex', '9': 1, '10': 'opReturnMessage', '17': true},
+    {'1': 'required_utxos', '3': 4, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.SendTransactionRequest.RequiredUtxo', '10': 'requiredUtxos'},
   ],
-  '3': [SendTransactionRequest_FeeRate$json, SendTransactionRequest_DestinationsEntry$json],
+  '3': [SendTransactionRequest_FeeRate$json, SendTransactionRequest_RequiredUtxo$json, SendTransactionRequest_DestinationsEntry$json],
   '8': [
     {'1': '_fee_rate'},
     {'1': '_op_return_message'},
@@ -366,6 +367,15 @@ const SendTransactionRequest_FeeRate$json = {
 };
 
 @$core.Deprecated('Use sendTransactionRequestDescriptor instead')
+const SendTransactionRequest_RequiredUtxo$json = {
+  '1': 'RequiredUtxo',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
+  ],
+};
+
+@$core.Deprecated('Use sendTransactionRequestDescriptor instead')
 const SendTransactionRequest_DestinationsEntry$json = {
   '1': 'DestinationsEntry',
   '2': [
@@ -381,11 +391,14 @@ final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64De
     'FpbmNoYWluLnYxLlNlbmRUcmFuc2FjdGlvblJlcXVlc3QuRGVzdGluYXRpb25zRW50cnlSDGRl'
     'c3RpbmF0aW9ucxJRCghmZWVfcmF0ZRgCIAEoCzIxLmN1c2YubWFpbmNoYWluLnYxLlNlbmRUcm'
     'Fuc2FjdGlvblJlcXVlc3QuRmVlUmF0ZUgAUgdmZWVSYXRliAEBEkQKEW9wX3JldHVybl9tZXNz'
-    'YWdlGAMgASgLMhMuY3VzZi5jb21tb24udjEuSGV4SAFSD29wUmV0dXJuTWVzc2FnZYgBARpMCg'
-    'dGZWVSYXRlEiQKDXNhdF9wZXJfdmJ5dGUYASABKARIAFILc2F0UGVyVmJ5dGUSFAoEc2F0cxgC'
-    'IAEoBEgAUgRzYXRzQgUKA2ZlZRo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQCgNrZXkYASABKAlSA2'
-    'tleRIUCgV2YWx1ZRgCIAEoBFIFdmFsdWU6AjgBQgsKCV9mZWVfcmF0ZUIUChJfb3BfcmV0dXJu'
-    'X21lc3NhZ2U=');
+    'YWdlGAMgASgLMhMuY3VzZi5jb21tb24udjEuSGV4SAFSD29wUmV0dXJuTWVzc2FnZYgBARJdCg'
+    '5yZXF1aXJlZF91dHhvcxgEIAMoCzI2LmN1c2YubWFpbmNoYWluLnYxLlNlbmRUcmFuc2FjdGlv'
+    'blJlcXVlc3QuUmVxdWlyZWRVdHhvUg1yZXF1aXJlZFV0eG9zGkwKB0ZlZVJhdGUSJAoNc2F0X3'
+    'Blcl92Ynl0ZRgBIAEoBEgAUgtzYXRQZXJWYnl0ZRIUCgRzYXRzGAIgASgESABSBHNhdHNCBQoD'
+    'ZmVlGlIKDFJlcXVpcmVkVXR4bxIuCgR0eGlkGAEgASgLMhouY3VzZi5jb21tb24udjEuUmV2ZX'
+    'JzZUhleFIEdHhpZBISCgR2b3V0GAIgASgNUgR2b3V0Gj8KEURlc3RpbmF0aW9uc0VudHJ5EhAK'
+    'A2tleRgBIAEoCVIDa2V5EhQKBXZhbHVlGAIgASgEUgV2YWx1ZToCOAFCCwoJX2ZlZV9yYXRlQh'
+    'QKEl9vcF9yZXR1cm5fbWVzc2FnZQ==');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {
@@ -547,6 +560,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.cusf.mainchain.v1.SendTransactionRequest': SendTransactionRequest$json,
   '.cusf.mainchain.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.cusf.mainchain.v1.SendTransactionRequest.FeeRate': SendTransactionRequest_FeeRate$json,
+  '.cusf.mainchain.v1.SendTransactionRequest.RequiredUtxo': SendTransactionRequest_RequiredUtxo$json,
   '.cusf.mainchain.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.cusf.mainchain.v1.UnlockWalletRequest': UnlockWalletRequest$json,
   '.cusf.mainchain.v1.UnlockWalletResponse': UnlockWalletResponse$json,

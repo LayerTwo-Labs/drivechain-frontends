@@ -35,8 +35,8 @@ final $typed_data.Uint8List directionDescriptor = $convert.base64Decode(
 const CreateDenialRequest$json = {
   '1': 'CreateDenialRequest',
   '2': [
-    {'1': 'initial_txid', '3': 1, '4': 1, '5': 9, '10': 'initialTxid'},
-    {'1': 'initial_vout', '3': 2, '4': 1, '5': 5, '10': 'initialVout'},
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
     {'1': 'delay_seconds', '3': 3, '4': 1, '5': 5, '10': 'delaySeconds'},
     {'1': 'num_hops', '3': 4, '4': 1, '5': 5, '10': 'numHops'},
   ],
@@ -44,23 +44,58 @@ const CreateDenialRequest$json = {
 
 /// Descriptor for `CreateDenialRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createDenialRequestDescriptor = $convert.base64Decode(
-    'ChNDcmVhdGVEZW5pYWxSZXF1ZXN0EiEKDGluaXRpYWxfdHhpZBgBIAEoCVILaW5pdGlhbFR4aW'
-    'QSIQoMaW5pdGlhbF92b3V0GAIgASgFUgtpbml0aWFsVm91dBIjCg1kZWxheV9zZWNvbmRzGAMg'
-    'ASgFUgxkZWxheVNlY29uZHMSGQoIbnVtX2hvcHMYBCABKAVSB251bUhvcHM=');
+    'ChNDcmVhdGVEZW5pYWxSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoDV'
+    'IEdm91dBIjCg1kZWxheV9zZWNvbmRzGAMgASgFUgxkZWxheVNlY29uZHMSGQoIbnVtX2hvcHMY'
+    'BCABKAVSB251bUhvcHM=');
 
-@$core.Deprecated('Use denialDescriptor instead')
-const Denial$json = {
-  '1': 'Denial',
+@$core.Deprecated('Use listDenialsResponseDescriptor instead')
+const ListDenialsResponse$json = {
+  '1': 'ListDenialsResponse',
+  '2': [
+    {'1': 'utxos', '3': 1, '4': 3, '5': 11, '6': '.bitwindowd.v1.UnspentOutput', '10': 'utxos'},
+  ],
+};
+
+/// Descriptor for `ListDenialsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listDenialsResponseDescriptor = $convert.base64Decode(
+    'ChNMaXN0RGVuaWFsc1Jlc3BvbnNlEjIKBXV0eG9zGAEgAygLMhwuYml0d2luZG93ZC52MS5Vbn'
+    'NwZW50T3V0cHV0UgV1dHhvcw==');
+
+@$core.Deprecated('Use unspentOutputDescriptor instead')
+const UnspentOutput$json = {
+  '1': 'UnspentOutput',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
+    {'1': 'value_sats', '3': 3, '4': 1, '5': 4, '10': 'valueSats'},
+    {'1': 'is_internal', '3': 4, '4': 1, '5': 8, '10': 'isInternal'},
+    {'1': 'deniability', '3': 5, '4': 1, '5': 11, '6': '.bitwindowd.v1.DeniabilityInfo', '9': 0, '10': 'deniability', '17': true},
+  ],
+  '8': [
+    {'1': '_deniability'},
+  ],
+};
+
+/// Descriptor for `UnspentOutput`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
+    'Cg1VbnNwZW50T3V0cHV0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoDVIEdm91dB'
+    'IdCgp2YWx1ZV9zYXRzGAMgASgEUgl2YWx1ZVNhdHMSHwoLaXNfaW50ZXJuYWwYBCABKAhSCmlz'
+    'SW50ZXJuYWwSRQoLZGVuaWFiaWxpdHkYBSABKAsyHi5iaXR3aW5kb3dkLnYxLkRlbmlhYmlsaX'
+    'R5SW5mb0gAUgtkZW5pYWJpbGl0eYgBAUIOCgxfZGVuaWFiaWxpdHk=');
+
+@$core.Deprecated('Use deniabilityInfoDescriptor instead')
+const DeniabilityInfo$json = {
+  '1': 'DeniabilityInfo',
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
-    {'1': 'initial_txid', '3': 2, '4': 1, '5': 9, '10': 'initialTxid'},
-    {'1': 'initial_vout', '3': 3, '4': 1, '5': 5, '10': 'initialVout'},
-    {'1': 'delay_seconds', '3': 4, '4': 1, '5': 5, '10': 'delaySeconds'},
-    {'1': 'num_hops', '3': 5, '4': 1, '5': 5, '10': 'numHops'},
-    {'1': 'created_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'cancelled_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'cancelledAt', '17': true},
-    {'1': 'next_execution', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 1, '10': 'nextExecution', '17': true},
-    {'1': 'executions', '3': 9, '4': 3, '5': 11, '6': '.bitwindowd.v1.ExecutedDenial', '10': 'executions'},
+    {'1': 'num_hops', '3': 2, '4': 1, '5': 5, '10': 'numHops'},
+    {'1': 'delay_seconds', '3': 3, '4': 1, '5': 5, '10': 'delaySeconds'},
+    {'1': 'created_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {'1': 'cancelled_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'cancelledAt', '17': true},
+    {'1': 'next_execution', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 1, '10': 'nextExecution', '17': true},
+    {'1': 'executions', '3': 7, '4': 3, '5': 11, '6': '.bitwindowd.v1.ExecutedDenial', '10': 'executions'},
+    {'1': 'hops_completed', '3': 8, '4': 1, '5': 13, '10': 'hopsCompleted'},
+    {'1': 'is_active', '3': 9, '4': 1, '5': 8, '10': 'isActive'},
   ],
   '8': [
     {'1': '_cancelled_at'},
@@ -68,30 +103,39 @@ const Denial$json = {
   ],
 };
 
-/// Descriptor for `Denial`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List denialDescriptor = $convert.base64Decode(
-    'CgZEZW5pYWwSDgoCaWQYASABKANSAmlkEiEKDGluaXRpYWxfdHhpZBgCIAEoCVILaW5pdGlhbF'
-    'R4aWQSIQoMaW5pdGlhbF92b3V0GAMgASgFUgtpbml0aWFsVm91dBIjCg1kZWxheV9zZWNvbmRz'
-    'GAQgASgFUgxkZWxheVNlY29uZHMSGQoIbnVtX2hvcHMYBSABKAVSB251bUhvcHMSOQoKY3JlYX'
-    'RlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCWNyZWF0ZWRBdBJCCgxj'
-    'YW5jZWxsZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSABSC2NhbmNlbG'
-    'xlZEF0iAEBEkYKDm5leHRfZXhlY3V0aW9uGAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVz'
-    'dGFtcEgBUg1uZXh0RXhlY3V0aW9uiAEBEj0KCmV4ZWN1dGlvbnMYCSADKAsyHS5iaXR3aW5kb3'
-    'dkLnYxLkV4ZWN1dGVkRGVuaWFsUgpleGVjdXRpb25zQg8KDV9jYW5jZWxsZWRfYXRCEQoPX25l'
-    'eHRfZXhlY3V0aW9u');
+/// Descriptor for `DeniabilityInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deniabilityInfoDescriptor = $convert.base64Decode(
+    'Cg9EZW5pYWJpbGl0eUluZm8SDgoCaWQYASABKANSAmlkEhkKCG51bV9ob3BzGAIgASgFUgdudW'
+    '1Ib3BzEiMKDWRlbGF5X3NlY29uZHMYAyABKAVSDGRlbGF5U2Vjb25kcxI5CgpjcmVhdGVkX2F0'
+    'GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EkIKDGNhbmNlbG'
+    'xlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAFILY2FuY2VsbGVkQXSI'
+    'AQESRgoObmV4dF9leGVjdXRpb24YBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSA'
+    'FSDW5leHRFeGVjdXRpb26IAQESPQoKZXhlY3V0aW9ucxgHIAMoCzIdLmJpdHdpbmRvd2QudjEu'
+    'RXhlY3V0ZWREZW5pYWxSCmV4ZWN1dGlvbnMSJQoOaG9wc19jb21wbGV0ZWQYCCABKA1SDWhvcH'
+    'NDb21wbGV0ZWQSGwoJaXNfYWN0aXZlGAkgASgIUghpc0FjdGl2ZUIPCg1fY2FuY2VsbGVkX2F0'
+    'QhEKD19uZXh0X2V4ZWN1dGlvbg==');
 
-@$core.Deprecated('Use listDenialsResponseDescriptor instead')
-const ListDenialsResponse$json = {
-  '1': 'ListDenialsResponse',
+@$core.Deprecated('Use executedDenialDescriptor instead')
+const ExecutedDenial$json = {
+  '1': 'ExecutedDenial',
   '2': [
-    {'1': 'denials', '3': 1, '4': 3, '5': 11, '6': '.bitwindowd.v1.Denial', '10': 'denials'},
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+    {'1': 'denial_id', '3': 2, '4': 1, '5': 3, '10': 'denialId'},
+    {'1': 'from_txid', '3': 3, '4': 1, '5': 9, '10': 'fromTxid'},
+    {'1': 'from_vout', '3': 4, '4': 1, '5': 13, '10': 'fromVout'},
+    {'1': 'to_txid', '3': 5, '4': 1, '5': 9, '10': 'toTxid'},
+    {'1': 'to_vout', '3': 6, '4': 1, '5': 13, '10': 'toVout'},
+    {'1': 'created_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
   ],
 };
 
-/// Descriptor for `ListDenialsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listDenialsResponseDescriptor = $convert.base64Decode(
-    'ChNMaXN0RGVuaWFsc1Jlc3BvbnNlEi8KB2RlbmlhbHMYASADKAsyFS5iaXR3aW5kb3dkLnYxLk'
-    'RlbmlhbFIHZGVuaWFscw==');
+/// Descriptor for `ExecutedDenial`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List executedDenialDescriptor = $convert.base64Decode(
+    'Cg5FeGVjdXRlZERlbmlhbBIOCgJpZBgBIAEoA1ICaWQSGwoJZGVuaWFsX2lkGAIgASgDUghkZW'
+    '5pYWxJZBIbCglmcm9tX3R4aWQYAyABKAlSCGZyb21UeGlkEhsKCWZyb21fdm91dBgEIAEoDVII'
+    'ZnJvbVZvdXQSFwoHdG9fdHhpZBgFIAEoCVIGdG9UeGlkEhcKB3RvX3ZvdXQYBiABKA1SBnRvVm'
+    '91dBI5CgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3Jl'
+    'YXRlZEF0');
 
 @$core.Deprecated('Use cancelDenialRequestDescriptor instead')
 const CancelDenialRequest$json = {
@@ -104,28 +148,6 @@ const CancelDenialRequest$json = {
 /// Descriptor for `CancelDenialRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List cancelDenialRequestDescriptor = $convert.base64Decode(
     'ChNDYW5jZWxEZW5pYWxSZXF1ZXN0Eg4KAmlkGAEgASgDUgJpZA==');
-
-@$core.Deprecated('Use executedDenialDescriptor instead')
-const ExecutedDenial$json = {
-  '1': 'ExecutedDenial',
-  '2': [
-    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
-    {'1': 'denial_id', '3': 2, '4': 1, '5': 3, '10': 'denialId'},
-    {'1': 'from_txid', '3': 3, '4': 1, '5': 9, '10': 'fromTxid'},
-    {'1': 'from_vout', '3': 4, '4': 1, '5': 5, '10': 'fromVout'},
-    {'1': 'to_txid', '3': 5, '4': 1, '5': 9, '10': 'toTxid'},
-    {'1': 'to_vout', '3': 6, '4': 1, '5': 5, '10': 'toVout'},
-    {'1': 'created_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-  ],
-};
-
-/// Descriptor for `ExecutedDenial`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List executedDenialDescriptor = $convert.base64Decode(
-    'Cg5FeGVjdXRlZERlbmlhbBIOCgJpZBgBIAEoA1ICaWQSGwoJZGVuaWFsX2lkGAIgASgDUghkZW'
-    '5pYWxJZBIbCglmcm9tX3R4aWQYAyABKAlSCGZyb21UeGlkEhsKCWZyb21fdm91dBgEIAEoBVII'
-    'ZnJvbVZvdXQSFwoHdG9fdHhpZBgFIAEoCVIGdG9UeGlkEhcKB3RvX3ZvdXQYBiABKAVSBnRvVm'
-    '91dBI5CgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3Jl'
-    'YXRlZEF0');
 
 @$core.Deprecated('Use createAddressBookEntryRequestDescriptor instead')
 const CreateAddressBookEntryRequest$json = {
@@ -221,7 +243,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.google.protobuf.Empty': $1.Empty$json,
   '.bitwindowd.v1.CreateDenialRequest': CreateDenialRequest$json,
   '.bitwindowd.v1.ListDenialsResponse': ListDenialsResponse$json,
-  '.bitwindowd.v1.Denial': Denial$json,
+  '.bitwindowd.v1.UnspentOutput': UnspentOutput$json,
+  '.bitwindowd.v1.DeniabilityInfo': DeniabilityInfo$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
   '.bitwindowd.v1.ExecutedDenial': ExecutedDenial$json,
   '.bitwindowd.v1.CancelDenialRequest': CancelDenialRequest$json,
