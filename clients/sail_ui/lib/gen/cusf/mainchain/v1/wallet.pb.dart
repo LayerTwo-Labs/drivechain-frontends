@@ -1579,11 +1579,80 @@ class SendTransactionRequest_FeeRate extends $pb.GeneratedMessage {
   void clearSats() => clearField(2);
 }
 
+/// A previous unspent transaction output that must be included in the
+/// transaction.
+class SendTransactionRequest_RequiredUtxo extends $pb.GeneratedMessage {
+  factory SendTransactionRequest_RequiredUtxo({
+    $1.ReverseHex? txid,
+    $core.int? vout,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    return $result;
+  }
+  SendTransactionRequest_RequiredUtxo._() : super();
+  factory SendTransactionRequest_RequiredUtxo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SendTransactionRequest_RequiredUtxo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendTransactionRequest.RequiredUtxo', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'txid', subBuilder: $1.ReverseHex.create)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SendTransactionRequest_RequiredUtxo clone() => SendTransactionRequest_RequiredUtxo()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SendTransactionRequest_RequiredUtxo copyWith(void Function(SendTransactionRequest_RequiredUtxo) updates) => super.copyWith((message) => updates(message as SendTransactionRequest_RequiredUtxo)) as SendTransactionRequest_RequiredUtxo;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SendTransactionRequest_RequiredUtxo create() => SendTransactionRequest_RequiredUtxo._();
+  SendTransactionRequest_RequiredUtxo createEmptyInstance() => create();
+  static $pb.PbList<SendTransactionRequest_RequiredUtxo> createRepeated() => $pb.PbList<SendTransactionRequest_RequiredUtxo>();
+  @$core.pragma('dart2js:noInline')
+  static SendTransactionRequest_RequiredUtxo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SendTransactionRequest_RequiredUtxo>(create);
+  static SendTransactionRequest_RequiredUtxo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.ReverseHex get txid => $_getN(0);
+  @$pb.TagNumber(1)
+  set txid($1.ReverseHex v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+  @$pb.TagNumber(1)
+  $1.ReverseHex ensureTxid() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+}
+
 class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest({
     $core.Map<$core.String, $fixnum.Int64>? destinations,
     SendTransactionRequest_FeeRate? feeRate,
     $1.Hex? opReturnMessage,
+    $core.Iterable<SendTransactionRequest_RequiredUtxo>? requiredUtxos,
   }) {
     final $result = create();
     if (destinations != null) {
@@ -1595,6 +1664,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (opReturnMessage != null) {
       $result.opReturnMessage = opReturnMessage;
     }
+    if (requiredUtxos != null) {
+      $result.requiredUtxos.addAll(requiredUtxos);
+    }
     return $result;
   }
   SendTransactionRequest._() : super();
@@ -1605,6 +1677,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     ..m<$core.String, $fixnum.Int64>(1, _omitFieldNames ? '' : 'destinations', entryClassName: 'SendTransactionRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OU6, packageName: const $pb.PackageName('cusf.mainchain.v1'))
     ..aOM<SendTransactionRequest_FeeRate>(2, _omitFieldNames ? '' : 'feeRate', subBuilder: SendTransactionRequest_FeeRate.create)
     ..aOM<$1.Hex>(3, _omitFieldNames ? '' : 'opReturnMessage', subBuilder: $1.Hex.create)
+    ..pc<SendTransactionRequest_RequiredUtxo>(4, _omitFieldNames ? '' : 'requiredUtxos', $pb.PbFieldType.PM, subBuilder: SendTransactionRequest_RequiredUtxo.create)
     ..hasRequiredFields = false
   ;
 
@@ -1657,6 +1730,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   void clearOpReturnMessage() => clearField(3);
   @$pb.TagNumber(3)
   $1.Hex ensureOpReturnMessage() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.List<SendTransactionRequest_RequiredUtxo> get requiredUtxos => $_getList(3);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {

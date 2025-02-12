@@ -121,34 +121,6 @@ final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
     'CgxzZW50X3NhdG9zaGkYBCABKARSC3NlbnRTYXRvc2hpEkQKEWNvbmZpcm1hdGlvbl90aW1lGA'
     'UgASgLMhcud2FsbGV0LnYxLkNvbmZpcm1hdGlvblIQY29uZmlybWF0aW9uVGltZQ==');
 
-@$core.Deprecated('Use listUnspentResponseDescriptor instead')
-const ListUnspentResponse$json = {
-  '1': 'ListUnspentResponse',
-  '2': [
-    {'1': 'outputs', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.UnspentOutput', '10': 'outputs'},
-  ],
-};
-
-/// Descriptor for `ListUnspentResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listUnspentResponseDescriptor = $convert.base64Decode(
-    'ChNMaXN0VW5zcGVudFJlc3BvbnNlEjIKB291dHB1dHMYASADKAsyGC53YWxsZXQudjEuVW5zcG'
-    'VudE91dHB1dFIHb3V0cHV0cw==');
-
-@$core.Deprecated('Use unspentOutputDescriptor instead')
-const UnspentOutput$json = {
-  '1': 'UnspentOutput',
-  '2': [
-    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
-    {'1': 'vout', '3': 2, '4': 1, '5': 5, '10': 'vout'},
-    {'1': 'amount', '3': 3, '4': 1, '5': 4, '10': 'amount'},
-  ],
-};
-
-/// Descriptor for `UnspentOutput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
-    'Cg1VbnNwZW50T3V0cHV0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoBVIEdm91dB'
-    'IWCgZhbW91bnQYAyABKARSBmFtb3VudA==');
-
 @$core.Deprecated('Use listSidechainDepositsRequestDescriptor instead')
 const ListSidechainDepositsRequest$json = {
   '1': 'ListSidechainDepositsRequest',
@@ -226,7 +198,6 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'GetBalance', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetBalanceResponse'},
     {'1': 'GetNewAddress', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetNewAddressResponse'},
     {'1': 'ListTransactions', '2': '.google.protobuf.Empty', '3': '.wallet.v1.ListTransactionsResponse'},
-    {'1': 'ListUnspent', '2': '.google.protobuf.Empty', '3': '.wallet.v1.ListUnspentResponse'},
     {'1': 'ListSidechainDeposits', '2': '.wallet.v1.ListSidechainDepositsRequest', '3': '.wallet.v1.ListSidechainDepositsResponse'},
     {'1': 'CreateSidechainDeposit', '2': '.wallet.v1.CreateSidechainDepositRequest', '3': '.wallet.v1.CreateSidechainDepositResponse'},
   ],
@@ -243,8 +214,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.WalletTransaction': WalletTransaction$json,
   '.wallet.v1.Confirmation': Confirmation$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
-  '.wallet.v1.ListUnspentResponse': ListUnspentResponse$json,
-  '.wallet.v1.UnspentOutput': UnspentOutput$json,
   '.wallet.v1.ListSidechainDepositsRequest': ListSidechainDepositsRequest$json,
   '.wallet.v1.ListSidechainDepositsResponse': ListSidechainDepositsResponse$json,
   '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit': ListSidechainDepositsResponse_SidechainDeposit$json,
@@ -259,11 +228,9 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'dEJhbGFuY2USFi5nb29nbGUucHJvdG9idWYuRW1wdHkaHS53YWxsZXQudjEuR2V0QmFsYW5jZV'
     'Jlc3BvbnNlEkkKDUdldE5ld0FkZHJlc3MSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaIC53YWxs'
     'ZXQudjEuR2V0TmV3QWRkcmVzc1Jlc3BvbnNlEk8KEExpc3RUcmFuc2FjdGlvbnMSFi5nb29nbG'
-    'UucHJvdG9idWYuRW1wdHkaIy53YWxsZXQudjEuTGlzdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEkUK'
-    'C0xpc3RVbnNwZW50EhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh4ud2FsbGV0LnYxLkxpc3RVbn'
-    'NwZW50UmVzcG9uc2USagoVTGlzdFNpZGVjaGFpbkRlcG9zaXRzEicud2FsbGV0LnYxLkxpc3RT'
-    'aWRlY2hhaW5EZXBvc2l0c1JlcXVlc3QaKC53YWxsZXQudjEuTGlzdFNpZGVjaGFpbkRlcG9zaX'
-    'RzUmVzcG9uc2USbQoWQ3JlYXRlU2lkZWNoYWluRGVwb3NpdBIoLndhbGxldC52MS5DcmVhdGVT'
-    'aWRlY2hhaW5EZXBvc2l0UmVxdWVzdBopLndhbGxldC52MS5DcmVhdGVTaWRlY2hhaW5EZXBvc2'
-    'l0UmVzcG9uc2U=');
+    'UucHJvdG9idWYuRW1wdHkaIy53YWxsZXQudjEuTGlzdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEmoK'
+    'FUxpc3RTaWRlY2hhaW5EZXBvc2l0cxInLndhbGxldC52MS5MaXN0U2lkZWNoYWluRGVwb3NpdH'
+    'NSZXF1ZXN0Gigud2FsbGV0LnYxLkxpc3RTaWRlY2hhaW5EZXBvc2l0c1Jlc3BvbnNlEm0KFkNy'
+    'ZWF0ZVNpZGVjaGFpbkRlcG9zaXQSKC53YWxsZXQudjEuQ3JlYXRlU2lkZWNoYWluRGVwb3NpdF'
+    'JlcXVlc3QaKS53YWxsZXQudjEuQ3JlYXRlU2lkZWNoYWluRGVwb3NpdFJlc3BvbnNl');
 

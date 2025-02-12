@@ -526,128 +526,6 @@ class WalletTransaction extends $pb.GeneratedMessage {
   Confirmation ensureConfirmationTime() => $_ensure(4);
 }
 
-class ListUnspentResponse extends $pb.GeneratedMessage {
-  factory ListUnspentResponse({
-    $core.Iterable<UnspentOutput>? outputs,
-  }) {
-    final $result = create();
-    if (outputs != null) {
-      $result.outputs.addAll(outputs);
-    }
-    return $result;
-  }
-  ListUnspentResponse._() : super();
-  factory ListUnspentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListUnspentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnspentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..pc<UnspentOutput>(1, _omitFieldNames ? '' : 'outputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListUnspentResponse clone() => ListUnspentResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListUnspentResponse copyWith(void Function(ListUnspentResponse) updates) => super.copyWith((message) => updates(message as ListUnspentResponse)) as ListUnspentResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static ListUnspentResponse create() => ListUnspentResponse._();
-  ListUnspentResponse createEmptyInstance() => create();
-  static $pb.PbList<ListUnspentResponse> createRepeated() => $pb.PbList<ListUnspentResponse>();
-  @$core.pragma('dart2js:noInline')
-  static ListUnspentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnspentResponse>(create);
-  static ListUnspentResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.List<UnspentOutput> get outputs => $_getList(0);
-}
-
-class UnspentOutput extends $pb.GeneratedMessage {
-  factory UnspentOutput({
-    $core.String? txid,
-    $core.int? vout,
-    $fixnum.Int64? amount,
-  }) {
-    final $result = create();
-    if (txid != null) {
-      $result.txid = txid;
-    }
-    if (vout != null) {
-      $result.vout = vout;
-    }
-    if (amount != null) {
-      $result.amount = amount;
-    }
-    return $result;
-  }
-  UnspentOutput._() : super();
-  factory UnspentOutput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UnspentOutput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnspentOutput', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.O3)
-    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'amount', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  UnspentOutput clone() => UnspentOutput()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  UnspentOutput copyWith(void Function(UnspentOutput) updates) => super.copyWith((message) => updates(message as UnspentOutput)) as UnspentOutput;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static UnspentOutput create() => UnspentOutput._();
-  UnspentOutput createEmptyInstance() => create();
-  static $pb.PbList<UnspentOutput> createRepeated() => $pb.PbList<UnspentOutput>();
-  @$core.pragma('dart2js:noInline')
-  static UnspentOutput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnspentOutput>(create);
-  static UnspentOutput? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get txid => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasTxid() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.int get vout => $_getIZ(1);
-  @$pb.TagNumber(2)
-  set vout($core.int v) { $_setSignedInt32(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasVout() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearVout() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $fixnum.Int64 get amount => $_getI64(2);
-  @$pb.TagNumber(3)
-  set amount($fixnum.Int64 v) { $_setInt64(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasAmount() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearAmount() => clearField(3);
-}
-
 class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
   factory ListSidechainDepositsRequest({
     $core.int? slot,
@@ -1009,9 +887,6 @@ class WalletServiceApi {
   ;
   $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<ListTransactionsResponse>(ctx, 'WalletService', 'ListTransactions', request, ListTransactionsResponse())
-  ;
-  $async.Future<ListUnspentResponse> listUnspent($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<ListUnspentResponse>(ctx, 'WalletService', 'ListUnspent', request, ListUnspentResponse())
   ;
   $async.Future<ListSidechainDepositsResponse> listSidechainDeposits($pb.ClientContext? ctx, ListSidechainDepositsRequest request) =>
     _client.invoke<ListSidechainDepositsResponse>(ctx, 'WalletService', 'ListSidechainDeposits', request, ListSidechainDepositsResponse())

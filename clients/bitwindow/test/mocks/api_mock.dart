@@ -65,12 +65,17 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
-  Future<void> createDenial({required int numHops, required int delaySeconds}) {
+  Future<void> createDenial({
+    required String txid,
+    required int vout,
+    required int numHops,
+    required int delaySeconds,
+  }) {
     return Future.value();
   }
 
   @override
-  Future<List<Denial>> listDenials() {
+  Future<List<UnspentOutput>> listDenials() {
     return Future.value([]);
   }
 

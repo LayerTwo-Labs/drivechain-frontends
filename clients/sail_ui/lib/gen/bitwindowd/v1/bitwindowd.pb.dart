@@ -23,17 +23,17 @@ export 'bitwindowd.pbenum.dart';
 
 class CreateDenialRequest extends $pb.GeneratedMessage {
   factory CreateDenialRequest({
-    $core.String? initialTxid,
-    $core.int? initialVout,
+    $core.String? txid,
+    $core.int? vout,
     $core.int? delaySeconds,
     $core.int? numHops,
   }) {
     final $result = create();
-    if (initialTxid != null) {
-      $result.initialTxid = initialTxid;
+    if (txid != null) {
+      $result.txid = txid;
     }
-    if (initialVout != null) {
-      $result.initialVout = initialVout;
+    if (vout != null) {
+      $result.vout = vout;
     }
     if (delaySeconds != null) {
       $result.delaySeconds = delaySeconds;
@@ -48,8 +48,8 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   factory CreateDenialRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateDenialRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'initialTxid')
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'initialVout', $pb.PbFieldType.O3)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'delaySeconds', $pb.PbFieldType.O3)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'numHops', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
@@ -77,22 +77,22 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   static CreateDenialRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get initialTxid => $_getSZ(0);
+  $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set initialTxid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasInitialTxid() => $_has(0);
+  $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearInitialTxid() => clearField(1);
+  void clearTxid() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.int get initialVout => $_getIZ(1);
+  $core.int get vout => $_getIZ(1);
   @$pb.TagNumber(2)
-  set initialVout($core.int v) { $_setSignedInt32(1, v); }
+  set vout($core.int v) { $_setUnsignedInt32(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasInitialVout() => $_has(1);
+  $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
-  void clearInitialVout() => clearField(2);
+  void clearVout() => clearField(2);
 
   @$pb.TagNumber(3)
   $core.int get delaySeconds => $_getIZ(2);
@@ -113,175 +113,13 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   void clearNumHops() => clearField(4);
 }
 
-class Denial extends $pb.GeneratedMessage {
-  factory Denial({
-    $fixnum.Int64? id,
-    $core.String? initialTxid,
-    $core.int? initialVout,
-    $core.int? delaySeconds,
-    $core.int? numHops,
-    $0.Timestamp? createdAt,
-    $0.Timestamp? cancelledAt,
-    $0.Timestamp? nextExecution,
-    $core.Iterable<ExecutedDenial>? executions,
-  }) {
-    final $result = create();
-    if (id != null) {
-      $result.id = id;
-    }
-    if (initialTxid != null) {
-      $result.initialTxid = initialTxid;
-    }
-    if (initialVout != null) {
-      $result.initialVout = initialVout;
-    }
-    if (delaySeconds != null) {
-      $result.delaySeconds = delaySeconds;
-    }
-    if (numHops != null) {
-      $result.numHops = numHops;
-    }
-    if (createdAt != null) {
-      $result.createdAt = createdAt;
-    }
-    if (cancelledAt != null) {
-      $result.cancelledAt = cancelledAt;
-    }
-    if (nextExecution != null) {
-      $result.nextExecution = nextExecution;
-    }
-    if (executions != null) {
-      $result.executions.addAll(executions);
-    }
-    return $result;
-  }
-  Denial._() : super();
-  factory Denial.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Denial.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Denial', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'id')
-    ..aOS(2, _omitFieldNames ? '' : 'initialTxid')
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'initialVout', $pb.PbFieldType.O3)
-    ..a<$core.int>(4, _omitFieldNames ? '' : 'delaySeconds', $pb.PbFieldType.O3)
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'numHops', $pb.PbFieldType.O3)
-    ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'createdAt', subBuilder: $0.Timestamp.create)
-    ..aOM<$0.Timestamp>(7, _omitFieldNames ? '' : 'cancelledAt', subBuilder: $0.Timestamp.create)
-    ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'nextExecution', subBuilder: $0.Timestamp.create)
-    ..pc<ExecutedDenial>(9, _omitFieldNames ? '' : 'executions', $pb.PbFieldType.PM, subBuilder: ExecutedDenial.create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  Denial clone() => Denial()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  Denial copyWith(void Function(Denial) updates) => super.copyWith((message) => updates(message as Denial)) as Denial;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static Denial create() => Denial._();
-  Denial createEmptyInstance() => create();
-  static $pb.PbList<Denial> createRepeated() => $pb.PbList<Denial>();
-  @$core.pragma('dart2js:noInline')
-  static Denial getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Denial>(create);
-  static Denial? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $fixnum.Int64 get id => $_getI64(0);
-  @$pb.TagNumber(1)
-  set id($fixnum.Int64 v) { $_setInt64(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearId() => clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get initialTxid => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set initialTxid($core.String v) { $_setString(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasInitialTxid() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearInitialTxid() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.int get initialVout => $_getIZ(2);
-  @$pb.TagNumber(3)
-  set initialVout($core.int v) { $_setSignedInt32(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasInitialVout() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearInitialVout() => clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.int get delaySeconds => $_getIZ(3);
-  @$pb.TagNumber(4)
-  set delaySeconds($core.int v) { $_setSignedInt32(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasDelaySeconds() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearDelaySeconds() => clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.int get numHops => $_getIZ(4);
-  @$pb.TagNumber(5)
-  set numHops($core.int v) { $_setSignedInt32(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasNumHops() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearNumHops() => clearField(5);
-
-  @$pb.TagNumber(6)
-  $0.Timestamp get createdAt => $_getN(5);
-  @$pb.TagNumber(6)
-  set createdAt($0.Timestamp v) { setField(6, v); }
-  @$pb.TagNumber(6)
-  $core.bool hasCreatedAt() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearCreatedAt() => clearField(6);
-  @$pb.TagNumber(6)
-  $0.Timestamp ensureCreatedAt() => $_ensure(5);
-
-  @$pb.TagNumber(7)
-  $0.Timestamp get cancelledAt => $_getN(6);
-  @$pb.TagNumber(7)
-  set cancelledAt($0.Timestamp v) { setField(7, v); }
-  @$pb.TagNumber(7)
-  $core.bool hasCancelledAt() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearCancelledAt() => clearField(7);
-  @$pb.TagNumber(7)
-  $0.Timestamp ensureCancelledAt() => $_ensure(6);
-
-  @$pb.TagNumber(8)
-  $0.Timestamp get nextExecution => $_getN(7);
-  @$pb.TagNumber(8)
-  set nextExecution($0.Timestamp v) { setField(8, v); }
-  @$pb.TagNumber(8)
-  $core.bool hasNextExecution() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearNextExecution() => clearField(8);
-  @$pb.TagNumber(8)
-  $0.Timestamp ensureNextExecution() => $_ensure(7);
-
-  @$pb.TagNumber(9)
-  $core.List<ExecutedDenial> get executions => $_getList(8);
-}
-
 class ListDenialsResponse extends $pb.GeneratedMessage {
   factory ListDenialsResponse({
-    $core.Iterable<Denial>? denials,
+    $core.Iterable<UnspentOutput>? utxos,
   }) {
     final $result = create();
-    if (denials != null) {
-      $result.denials.addAll(denials);
+    if (utxos != null) {
+      $result.utxos.addAll(utxos);
     }
     return $result;
   }
@@ -290,7 +128,7 @@ class ListDenialsResponse extends $pb.GeneratedMessage {
   factory ListDenialsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDenialsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..pc<Denial>(1, _omitFieldNames ? '' : 'denials', $pb.PbFieldType.PM, subBuilder: Denial.create)
+    ..pc<UnspentOutput>(1, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
     ..hasRequiredFields = false
   ;
 
@@ -316,25 +154,45 @@ class ListDenialsResponse extends $pb.GeneratedMessage {
   static ListDenialsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<Denial> get denials => $_getList(0);
+  $core.List<UnspentOutput> get utxos => $_getList(0);
 }
 
-class CancelDenialRequest extends $pb.GeneratedMessage {
-  factory CancelDenialRequest({
-    $fixnum.Int64? id,
+class UnspentOutput extends $pb.GeneratedMessage {
+  factory UnspentOutput({
+    $core.String? txid,
+    $core.int? vout,
+    $fixnum.Int64? valueSats,
+    $core.bool? isInternal,
+    DeniabilityInfo? deniability,
   }) {
     final $result = create();
-    if (id != null) {
-      $result.id = id;
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
+    if (isInternal != null) {
+      $result.isInternal = isInternal;
+    }
+    if (deniability != null) {
+      $result.deniability = deniability;
     }
     return $result;
   }
-  CancelDenialRequest._() : super();
-  factory CancelDenialRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CancelDenialRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  UnspentOutput._() : super();
+  factory UnspentOutput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UnspentOutput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CancelDenialRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'id')
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnspentOutput', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOB(4, _omitFieldNames ? '' : 'isInternal')
+    ..aOM<DeniabilityInfo>(5, _omitFieldNames ? '' : 'deniability', subBuilder: DeniabilityInfo.create)
     ..hasRequiredFields = false
   ;
 
@@ -342,22 +200,150 @@ class CancelDenialRequest extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  CancelDenialRequest clone() => CancelDenialRequest()..mergeFromMessage(this);
+  UnspentOutput clone() => UnspentOutput()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  CancelDenialRequest copyWith(void Function(CancelDenialRequest) updates) => super.copyWith((message) => updates(message as CancelDenialRequest)) as CancelDenialRequest;
+  UnspentOutput copyWith(void Function(UnspentOutput) updates) => super.copyWith((message) => updates(message as UnspentOutput)) as UnspentOutput;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static CancelDenialRequest create() => CancelDenialRequest._();
-  CancelDenialRequest createEmptyInstance() => create();
-  static $pb.PbList<CancelDenialRequest> createRepeated() => $pb.PbList<CancelDenialRequest>();
+  static UnspentOutput create() => UnspentOutput._();
+  UnspentOutput createEmptyInstance() => create();
+  static $pb.PbList<UnspentOutput> createRepeated() => $pb.PbList<UnspentOutput>();
   @$core.pragma('dart2js:noInline')
-  static CancelDenialRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CancelDenialRequest>(create);
-  static CancelDenialRequest? _defaultInstance;
+  static UnspentOutput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnspentOutput>(create);
+  static UnspentOutput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get valueSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set valueSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasValueSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearValueSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get isInternal => $_getBF(3);
+  @$pb.TagNumber(4)
+  set isInternal($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasIsInternal() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIsInternal() => clearField(4);
+
+  @$pb.TagNumber(5)
+  DeniabilityInfo get deniability => $_getN(4);
+  @$pb.TagNumber(5)
+  set deniability(DeniabilityInfo v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDeniability() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDeniability() => clearField(5);
+  @$pb.TagNumber(5)
+  DeniabilityInfo ensureDeniability() => $_ensure(4);
+}
+
+class DeniabilityInfo extends $pb.GeneratedMessage {
+  factory DeniabilityInfo({
+    $fixnum.Int64? id,
+    $core.int? numHops,
+    $core.int? delaySeconds,
+    $0.Timestamp? createdAt,
+    $0.Timestamp? cancelledAt,
+    $0.Timestamp? nextExecution,
+    $core.Iterable<ExecutedDenial>? executions,
+    $core.int? hopsCompleted,
+    $core.bool? isActive,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (numHops != null) {
+      $result.numHops = numHops;
+    }
+    if (delaySeconds != null) {
+      $result.delaySeconds = delaySeconds;
+    }
+    if (createdAt != null) {
+      $result.createdAt = createdAt;
+    }
+    if (cancelledAt != null) {
+      $result.cancelledAt = cancelledAt;
+    }
+    if (nextExecution != null) {
+      $result.nextExecution = nextExecution;
+    }
+    if (executions != null) {
+      $result.executions.addAll(executions);
+    }
+    if (hopsCompleted != null) {
+      $result.hopsCompleted = hopsCompleted;
+    }
+    if (isActive != null) {
+      $result.isActive = isActive;
+    }
+    return $result;
+  }
+  DeniabilityInfo._() : super();
+  factory DeniabilityInfo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DeniabilityInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeniabilityInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'numHops', $pb.PbFieldType.O3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'delaySeconds', $pb.PbFieldType.O3)
+    ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'createdAt', subBuilder: $0.Timestamp.create)
+    ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'cancelledAt', subBuilder: $0.Timestamp.create)
+    ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'nextExecution', subBuilder: $0.Timestamp.create)
+    ..pc<ExecutedDenial>(7, _omitFieldNames ? '' : 'executions', $pb.PbFieldType.PM, subBuilder: ExecutedDenial.create)
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'hopsCompleted', $pb.PbFieldType.OU3)
+    ..aOB(9, _omitFieldNames ? '' : 'isActive')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DeniabilityInfo clone() => DeniabilityInfo()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DeniabilityInfo copyWith(void Function(DeniabilityInfo) updates) => super.copyWith((message) => updates(message as DeniabilityInfo)) as DeniabilityInfo;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeniabilityInfo create() => DeniabilityInfo._();
+  DeniabilityInfo createEmptyInstance() => create();
+  static $pb.PbList<DeniabilityInfo> createRepeated() => $pb.PbList<DeniabilityInfo>();
+  @$core.pragma('dart2js:noInline')
+  static DeniabilityInfo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeniabilityInfo>(create);
+  static DeniabilityInfo? _defaultInstance;
 
   @$pb.TagNumber(1)
   $fixnum.Int64 get id => $_getI64(0);
@@ -367,6 +353,78 @@ class CancelDenialRequest extends $pb.GeneratedMessage {
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
   void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get numHops => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set numHops($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasNumHops() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNumHops() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get delaySeconds => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set delaySeconds($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasDelaySeconds() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDelaySeconds() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $0.Timestamp get createdAt => $_getN(3);
+  @$pb.TagNumber(4)
+  set createdAt($0.Timestamp v) { setField(4, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasCreatedAt() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCreatedAt() => clearField(4);
+  @$pb.TagNumber(4)
+  $0.Timestamp ensureCreatedAt() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  $0.Timestamp get cancelledAt => $_getN(4);
+  @$pb.TagNumber(5)
+  set cancelledAt($0.Timestamp v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasCancelledAt() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCancelledAt() => clearField(5);
+  @$pb.TagNumber(5)
+  $0.Timestamp ensureCancelledAt() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  $0.Timestamp get nextExecution => $_getN(5);
+  @$pb.TagNumber(6)
+  set nextExecution($0.Timestamp v) { setField(6, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasNextExecution() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearNextExecution() => clearField(6);
+  @$pb.TagNumber(6)
+  $0.Timestamp ensureNextExecution() => $_ensure(5);
+
+  @$pb.TagNumber(7)
+  $core.List<ExecutedDenial> get executions => $_getList(6);
+
+  @$pb.TagNumber(8)
+  $core.int get hopsCompleted => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set hopsCompleted($core.int v) { $_setUnsignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasHopsCompleted() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearHopsCompleted() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get isActive => $_getBF(8);
+  @$pb.TagNumber(9)
+  set isActive($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasIsActive() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearIsActive() => clearField(9);
 }
 
 class ExecutedDenial extends $pb.GeneratedMessage {
@@ -411,9 +469,9 @@ class ExecutedDenial extends $pb.GeneratedMessage {
     ..aInt64(1, _omitFieldNames ? '' : 'id')
     ..aInt64(2, _omitFieldNames ? '' : 'denialId')
     ..aOS(3, _omitFieldNames ? '' : 'fromTxid')
-    ..a<$core.int>(4, _omitFieldNames ? '' : 'fromVout', $pb.PbFieldType.O3)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'fromVout', $pb.PbFieldType.OU3)
     ..aOS(5, _omitFieldNames ? '' : 'toTxid')
-    ..a<$core.int>(6, _omitFieldNames ? '' : 'toVout', $pb.PbFieldType.O3)
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'toVout', $pb.PbFieldType.OU3)
     ..aOM<$0.Timestamp>(7, _omitFieldNames ? '' : 'createdAt', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
@@ -469,7 +527,7 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.int get fromVout => $_getIZ(3);
   @$pb.TagNumber(4)
-  set fromVout($core.int v) { $_setSignedInt32(3, v); }
+  set fromVout($core.int v) { $_setUnsignedInt32(3, v); }
   @$pb.TagNumber(4)
   $core.bool hasFromVout() => $_has(3);
   @$pb.TagNumber(4)
@@ -487,7 +545,7 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.int get toVout => $_getIZ(5);
   @$pb.TagNumber(6)
-  set toVout($core.int v) { $_setSignedInt32(5, v); }
+  set toVout($core.int v) { $_setUnsignedInt32(5, v); }
   @$pb.TagNumber(6)
   $core.bool hasToVout() => $_has(5);
   @$pb.TagNumber(6)
@@ -503,6 +561,56 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   void clearCreatedAt() => clearField(7);
   @$pb.TagNumber(7)
   $0.Timestamp ensureCreatedAt() => $_ensure(6);
+}
+
+class CancelDenialRequest extends $pb.GeneratedMessage {
+  factory CancelDenialRequest({
+    $fixnum.Int64? id,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    return $result;
+  }
+  CancelDenialRequest._() : super();
+  factory CancelDenialRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CancelDenialRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CancelDenialRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CancelDenialRequest clone() => CancelDenialRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CancelDenialRequest copyWith(void Function(CancelDenialRequest) updates) => super.copyWith((message) => updates(message as CancelDenialRequest)) as CancelDenialRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelDenialRequest create() => CancelDenialRequest._();
+  CancelDenialRequest createEmptyInstance() => create();
+  static $pb.PbList<CancelDenialRequest> createRepeated() => $pb.PbList<CancelDenialRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CancelDenialRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CancelDenialRequest>(create);
+  static CancelDenialRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
 }
 
 class CreateAddressBookEntryRequest extends $pb.GeneratedMessage {
