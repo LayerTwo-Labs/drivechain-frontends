@@ -10,8 +10,8 @@ import (
 // Denial represents a deniability plan
 type Denial struct {
 	ID            int64
-	InitialTxID   string
-	InitialVout   int32
+	TipTXID       string
+	TipVout       int32
 	DelayDuration time.Duration
 	NumHops       int32
 	CreatedAt     time.Time
@@ -43,26 +43,6 @@ func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDurat
 	return err
 }
 
-// GetCurrentTip returns the current tip of a denial
-func GetCurrentTip(ctx context.Context, db *sql.DB, denialID int64) (string, int32, error) {
-	var txid string
-	var vout int32
-
-	err := db.QueryRowContext(ctx, `
-		SELECT COALESCE(e.to_txid, d.initial_txid) as tip_txid,
-			   COALESCE(e.to_vout, d.initial_vout) as tip_vout
-		FROM denials d
-		LEFT JOIN executed_denials e ON e.denial_id = d.id
-		WHERE d.id = ? AND d.cancelled_at IS NULL
-		ORDER BY e.created_at DESC
-		LIMIT 1
-	`, denialID).Scan(&txid, &vout)
-	if err != nil {
-		return "", 0, fmt.Errorf("could not get denial tip: %w", err)
-	}
-	return txid, vout, nil
-}
-
 // RecordExecution records a completed denial transaction
 func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID string, fromVout int32, toTxID string, toVout int32) error {
 	_, err := db.ExecContext(ctx, `
@@ -81,9 +61,23 @@ func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID s
 // List returns all denial plans
 func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, delay_duration, num_hops, created_at, cancelled_at
-		FROM denials
-		ORDER BY created_at DESC
+		SELECT
+			d.id,
+			d.delay_duration,
+			d.num_hops,
+			d.created_at,
+			d.cancelled_at,
+			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
+			COALESCE(e.to_vout, d.initial_vout) as tip_vout
+		FROM denials d
+		LEFT JOIN (
+			SELECT * FROM executed_denials ed
+			WHERE ed.id = (
+				SELECT MAX(id) FROM executed_denials
+				WHERE denial_id = ed.denial_id
+			)
+		) e ON e.denial_id = d.id
+		ORDER BY d.created_at DESC
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("could not query deniabilities: %w", err)
@@ -94,7 +88,15 @@ func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
 	for rows.Next() {
 		var deniability Denial
 		var delaySeconds float64
-		err := rows.Scan(&deniability.ID, &delaySeconds, &deniability.NumHops, &deniability.CreatedAt, &deniability.CancelledAt)
+		err := rows.Scan(
+			&deniability.ID,
+			&delaySeconds,
+			&deniability.NumHops,
+			&deniability.CreatedAt,
+			&deniability.CancelledAt,
+			&deniability.TipTXID,
+			&deniability.TipVout,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("could not scan deniability: %w", err)
 		}
@@ -138,18 +140,36 @@ func ListExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 }
 
 // Cancel marks a deniability plan as cancelled
-func Cancel(ctx context.Context, db *sql.DB, id int64) error {
+func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE denials
-		SET cancelled_at = ?
+			SET cancelled_at = ?,
+			cancelled_reason = ?
 		WHERE id = ?
-	`, time.Now(), id)
+	`, time.Now(), reason, id)
 	return err
 }
 
 // NextExecution calculates when the next execution should occur for a deniability plan
 // Returns nil if all hops have been completed
-func NextExecution(ctx context.Context, db *sql.DB, id int64) (*time.Time, error) {
+func NextExecution(ctx context.Context, db *sql.DB, denial Denial) (*time.Time, error) {
+	lastExecution, err := LastExecution(ctx, db, denial.ID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get last execution: %w", err)
+	}
+
+	if lastExecution == nil {
+		return nil, nil
+	}
+
+	// Calculate next execution time
+	next := lastExecution.Add(denial.DelayDuration)
+	return &next, nil
+}
+
+// LastExecution figures out when the previous execution was
+// Returns nil if no execution has been made
+func LastExecution(ctx context.Context, db *sql.DB, id int64) (*time.Time, error) {
 
 	// First get the deniability plan to check number of hops
 	var numHops int32
@@ -209,7 +229,5 @@ func NextExecution(ctx context.Context, db *sql.DB, id int64) (*time.Time, error
 		}
 	}
 
-	// Calculate next execution time
-	next := lastExecution.Add(time.Duration(delaySeconds * float64(time.Second)))
-	return &next, nil
+	return &lastExecution, nil
 }
