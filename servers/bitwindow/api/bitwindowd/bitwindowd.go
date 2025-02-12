@@ -3,13 +3,18 @@ package api_bitwindowd
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1/bitwindowdv1connect"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/deniability"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -20,10 +25,12 @@ var _ rpc.BitwindowdServiceHandler = new(Server)
 func New(
 	onShutdown func(),
 	db *sql.DB,
+	wallet *service.Service[validatorrpc.WalletServiceClient],
 ) *Server {
 	s := &Server{
 		onShutdown: onShutdown,
 		db:         db,
+		wallet:     wallet,
 	}
 	return s
 }
@@ -31,6 +38,7 @@ func New(
 type Server struct {
 	onShutdown func()
 	db         *sql.DB
+	wallet     *service.Service[validatorrpc.WalletServiceClient]
 }
 
 // EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
@@ -44,11 +52,47 @@ func (s *Server) CreateDenial(
 	ctx context.Context,
 	req *connect.Request[pb.CreateDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
-	err := deniability.Create(
+	// First check if the UTXO exists
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	if req.Msg.DelaySeconds <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("delay_seconds must be positive"))
+	}
+
+	if req.Msg.NumHops <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("num_hops must be positive"))
+	}
+
+	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Check if UTXO exists
+	var utxoExists bool
+	for _, utxo := range utxos.Msg.Outputs {
+		if utxo.Txid.Hex.Value == req.Msg.Txid && utxo.Vout == req.Msg.Vout {
+			utxoExists = true
+			break
+		}
+	}
+
+	if !utxoExists {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("utxo %s:%d not found in wallet", req.Msg.Txid, req.Msg.Vout),
+		)
+	}
+
+	// UTXO exists, create the denial
+	err = deniability.Create(
 		ctx,
 		s.db,
-		req.Msg.InitialTxid,
-		req.Msg.InitialVout,
+		req.Msg.Txid,
+		int32(req.Msg.Vout),
 		time.Duration(req.Msg.DelaySeconds)*time.Second,
 		req.Msg.NumHops,
 	)
@@ -63,67 +107,121 @@ func (s *Server) ListDenials(
 	ctx context.Context,
 	req *connect.Request[emptypb.Empty],
 ) (*connect.Response[pb.ListDenialsResponse], error) {
+	// First get all UTXOs from the wallet
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
 	deniabilities, err := deniability.List(ctx, s.db)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	var pbDenials []*pb.Denial
+	// Create map of deniability info by current tip txid/vout
+	deniabilityMap := make(map[string]*deniability.Denial)
 	for _, d := range deniabilities {
-		nextExecution, err := deniability.NextExecution(ctx, s.db, d.ID)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+		// key is txid:vout
+		key := fmt.Sprintf("%s:%d", d.TipTXID, d.TipVout)
+		deniabilityMap[key] = &d
+	}
+
+	// Build response with UTXOs and matched deniability info
+	var pbUtxos []*pb.UnspentOutput
+	for _, utxo := range utxos.Msg.Outputs {
+		pbUtxo := &pb.UnspentOutput{
+			Txid:       utxo.Txid.Hex.Value,
+			Vout:       utxo.Vout,
+			ValueSats:  utxo.ValueSats,
+			IsInternal: utxo.IsInternal,
 		}
 
-		executions, err := deniability.ListExecutions(ctx, s.db, d.ID)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+		// Check if this UTXO has deniability info
+		key := fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout)
+		if d, exists := deniabilityMap[key]; exists {
+			zerolog.Ctx(ctx).Info().
+				Str("txid", utxo.Txid.Hex.Value).
+				Uint32("vout", utxo.Vout).
+				Int64("denial_id", d.ID).
+				Msg("UTXO has deniability info")
+			// the utxo has deniability info! Add it to the response
+			deniability, err := s.withDeniability(ctx, d)
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).
+					Str("txid", utxo.Txid.Hex.Value).
+					Uint32("vout", utxo.Vout).
+					Msg("Failed to get deniability info")
+				return nil, connect.NewError(connect.CodeInternal, err)
+			}
+			pbUtxo.Deniability = deniability
 		}
 
-		var pbExecutions []*pb.ExecutedDenial
-		for _, e := range executions {
-			pbExecutions = append(pbExecutions, &pb.ExecutedDenial{
-				Id:        e.ID,
-				DenialId:  e.DenialID,
-				FromTxid:  e.FromTxID,
-				FromVout:  e.FromVout,
-				ToTxid:    e.ToTxID,
-				ToVout:    e.ToVout,
-				CreatedAt: timestamppb.New(e.CreatedAt),
-			})
-		}
+		pbUtxos = append(pbUtxos, pbUtxo)
+	}
 
-		pbDenials = append(pbDenials, &pb.Denial{
-			Id:           d.ID,
-			DelaySeconds: int32(d.DelayDuration.Seconds()),
-			NumHops:      d.NumHops,
-			CreatedAt:    timestamppb.New(d.CreatedAt),
-			CancelledAt: func() *timestamppb.Timestamp {
-				if d.CancelledAt != nil {
-					return timestamppb.New(*d.CancelledAt)
-				}
-				return nil
-			}(),
-			NextExecution: func() *timestamppb.Timestamp {
-				if nextExecution == nil {
-					return nil
-				}
-				return timestamppb.New(*nextExecution)
-			}(),
-			Executions: pbExecutions,
+	zerolog.Ctx(ctx).Info().Int("response_utxo_count", len(pbUtxos)).Msg("Returning response with UTXOs")
+	return connect.NewResponse(&pb.ListDenialsResponse{
+		Utxos: pbUtxos,
+	}), nil
+}
+
+func (s *Server) withDeniability(ctx context.Context, d *deniability.Denial) (*pb.DeniabilityInfo, error) {
+	nextExecution, err := deniability.NextExecution(ctx, s.db, *d)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	executions, err := deniability.ListExecutions(ctx, s.db, d.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	var pbExecutions []*pb.ExecutedDenial
+	for _, e := range executions {
+		pbExecutions = append(pbExecutions, &pb.ExecutedDenial{
+			Id:        e.ID,
+			DenialId:  e.DenialID,
+			FromTxid:  e.FromTxID,
+			FromVout:  uint32(e.FromVout),
+			ToTxid:    e.ToTxID,
+			ToVout:    uint32(e.ToVout),
+			CreatedAt: timestamppb.New(e.CreatedAt),
 		})
 	}
 
-	return connect.NewResponse(&pb.ListDenialsResponse{
-		Denials: pbDenials,
-	}), nil
+	return &pb.DeniabilityInfo{
+		Id:           d.ID,
+		DelaySeconds: int32(d.DelayDuration.Seconds()),
+		NumHops:      d.NumHops,
+		CreatedAt:    timestamppb.New(d.CreatedAt),
+		CancelledAt: func() *timestamppb.Timestamp {
+			if d.CancelledAt != nil {
+				return timestamppb.New(*d.CancelledAt)
+			}
+			return nil
+		}(),
+		NextExecution: func() *timestamppb.Timestamp {
+			if nextExecution == nil {
+				return nil
+			}
+			return timestamppb.New(*nextExecution)
+		}(),
+		Executions:    pbExecutions,
+		HopsCompleted: uint32(len(executions)),
+		IsActive:      d.CancelledAt == nil && len(executions) < int(d.NumHops),
+	}, nil
 }
 
 func (s *Server) CancelDenial(
 	ctx context.Context,
 	req *connect.Request[pb.CancelDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
-	err := deniability.Cancel(ctx, s.db, req.Msg.Id)
+	err := deniability.Cancel(ctx, s.db, req.Msg.Id, "cancelled by user")
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
