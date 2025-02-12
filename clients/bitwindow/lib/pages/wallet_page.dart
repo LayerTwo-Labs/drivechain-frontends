@@ -1000,11 +1000,19 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
 
       switch (sortColumn) {
         case 'txid':
-          return sortAscending ? a.txid.compareTo(b.txid) : b.txid.compareTo(a.txid);
-        case 'vout':
-          return sortAscending ? a.vout.compareTo(b.vout) : b.vout.compareTo(a.vout);
+          // Sort by combined txid:vout string
+          final aKey = '${a.txid}:${a.vout}';
+          final bKey = '${b.txid}:${b.vout}';
+          return sortAscending ? aKey.compareTo(bKey) : bKey.compareTo(aKey);
         case 'amount':
           return sortAscending ? a.valueSats.compareTo(b.valueSats) : b.valueSats.compareTo(a.valueSats);
+        case 'hops':
+          if (!a.hasDeniability() && !b.hasDeniability()) return 0;
+          if (!a.hasDeniability()) return sortAscending ? 1 : -1;
+          if (!b.hasDeniability()) return sortAscending ? -1 : 1;
+          aValue = a.deniability.executions.length;
+          bValue = b.deniability.executions.length;
+          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
         case 'next':
           if (!a.hasDeniability() && !b.hasDeniability()) return 0;
           if (!a.hasDeniability()) return sortAscending ? 1 : -1;
@@ -1025,10 +1033,10 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
           bValue = b.deniability.hasCancelledAt()
               ? 'Cancelled'
               : (b.deniability.numHops - b.deniability.executions.length == 0 ? 'Completed' : 'Active');
-          break;
+          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+        default:
+          return 0;
       }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
 
@@ -1072,13 +1080,16 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
 
                 String status = '-';
                 String nextExecution = '-';
-                String hops = '-';
+                String hops = '0';
                 bool canCancel = false;
 
                 if (hasDeniability) {
                   final completedHops = utxo.deniability.executions.length;
                   final totalHops = utxo.deniability.numHops;
                   hops = '$completedHops/$totalHops';
+                  if (completedHops == totalHops) {
+                    hops = '$completedHops';
+                  }
 
                   status = utxo.deniability.hasCancelledAt()
                       ? 'Cancelled'
@@ -1089,6 +1100,10 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                       ? utxo.deniability.nextExecution.toDateTime().toString()
                       : '-';
                   canCancel = status == 'Active';
+
+                  if (status == 'Cancelled') {
+                    hops = '$completedHops';
+                  }
                 }
 
                 return [
@@ -1097,7 +1112,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     monospace: true,
                   ),
                   SailTableCell(
-                    value: '${utxo.valueSats} sats',
+                    value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
                     monospace: true,
                   ),
                   SailTableCell(
@@ -1131,7 +1146,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                             loading: false,
                             onPressed: () => widget.onDeny(utxo.txid, utxo.vout),
                             child: SailText.primary15(
-                              'Enroll',
+                              'Enroll ${status != '-' ? 'Again' : ''}',
                               bold: true,
                               color: context.sailTheme.colors.text,
                             ),

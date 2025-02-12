@@ -15,12 +15,42 @@ class DenialDialog extends StatefulWidget {
 
 class _DenialDialogState extends State<DenialDialog> {
   final hopsController = TextEditingController(text: '3');
-  final delayController = TextEditingController(text: '3600');
+  final minutesController = TextEditingController(text: '0');
+  final hoursController = TextEditingController(text: '1');
+  final daysController = TextEditingController(text: '0');
+
+  void setNormalDefaults() {
+    setState(() {
+      hopsController.text = '3';
+      minutesController.text = '0';
+      hoursController.text = '2';
+      daysController.text = '0';
+    });
+  }
+
+  void setParanoidDefaults() {
+    setState(() {
+      hopsController.text = '6';
+      minutesController.text = '0';
+      hoursController.text = '0';
+      daysController.text = '2';
+    });
+  }
+
+  int getTotalSeconds() {
+    final minutes = int.tryParse(minutesController.text) ?? 0;
+    final hours = int.tryParse(hoursController.text) ?? 0;
+    final days = int.tryParse(daysController.text) ?? 0;
+
+    return minutes * 60 + hours * 3600 + days * 86400;
+  }
 
   @override
   void dispose() {
     hopsController.dispose();
-    delayController.dispose();
+    minutesController.dispose();
+    hoursController.dispose();
+    daysController.dispose();
     super.dispose();
   }
 
@@ -32,60 +62,122 @@ class _DenialDialogState extends State<DenialDialog> {
       backgroundColor: theme.colors.backgroundSecondary,
       child: IntrinsicHeight(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
+          constraints: const BoxConstraints(maxWidth: 700),
           child: SailRawCard(
             padding: true,
-            title: 'Create Denial',
-            subtitle: 'Create Denials for your full wallet balance',
+            title: 'Start Automatic Denial',
+            subtitle: '',
             widgetHeaderEnd: SailTextButton(
               label: '×',
               onPressed: () => Navigator.of(context).pop(),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(SailStyleValues.padding16),
-              child: SailColumn(
-                spacing: SailStyleValues.padding12,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SailTextField(
-                    label: 'Number of hops',
-                    hintText: 'Enter number of hops (default: 3)',
-                    controller: hopsController,
-                    textFieldType: TextFieldType.number,
-                    size: TextFieldSize.small,
-                  ),
-                  SailTextField(
-                    label: 'Delay between hops (seconds)',
-                    hintText: 'Enter delay in seconds (default: 3600)',
-                    controller: delayController,
-                    textFieldType: TextFieldType.number,
-                    size: TextFieldSize.small,
-                  ),
+            child: SailColumn(
+              spacing: SailStyleValues.padding12,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Delay input row
+                SailText.primary15('Send coins to yourself...'),
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailText.primary15('...with random delays of up to'),
+                    SizedBox(
+                      width: 90,
+                      child: SailTextField(
+                        controller: minutesController,
+                        size: TextFieldSize.small,
+                        textFieldType: TextFieldType.number,
+                        hintText: '0',
+                      ),
+                    ),
+                    SailText.primary15('min'),
+                    SizedBox(
+                      width: 90,
+                      child: SailTextField(
+                        controller: hoursController,
+                        size: TextFieldSize.small,
+                        textFieldType: TextFieldType.number,
+                        hintText: '0',
+                      ),
+                    ),
+                    SailText.primary15('hr'),
+                    SizedBox(
+                      width: 90,
+                      child: SailTextField(
+                        controller: daysController,
+                        size: TextFieldSize.small,
+                        textFieldType: TextFieldType.number,
+                        hintText: '0',
+                      ),
+                    ),
+                    SailText.primary15('day(s)...'),
+                  ],
+                ),
 
-                  // Action buttons
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      QtButton(
-                        label: 'Cancel',
-                        onPressed: () => Navigator.pop(context),
-                        size: ButtonSize.small,
+                // Hops input row
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailText.primary15('...and stop after'),
+                    SizedBox(
+                      width: 90,
+                      child: SailTextField(
+                        controller: hopsController,
+                        size: TextFieldSize.small,
+                        textFieldType: TextFieldType.number,
+                        hintText: '3 hops',
                       ),
-                      QtButton(
-                        label: 'Create',
-                        onPressed: () {
-                          final hops = int.tryParse(hopsController.text) ?? 3;
-                          final delay = int.tryParse(delayController.text) ?? 3600;
-                          widget.onSubmit(hops, delay);
-                          Navigator.pop(context);
-                        },
-                        size: ButtonSize.small,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    SailText.primary15('hops.'),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Default buttons
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailText.primary15('Defaults:'),
+                    QtButton(
+                      label: 'Normal',
+                      onPressed: setNormalDefaults,
+                      size: ButtonSize.small,
+                      style: SailButtonStyle.secondary,
+                    ),
+                    QtButton(
+                      label: 'Paranoid',
+                      onPressed: setParanoidDefaults,
+                      size: ButtonSize.small,
+                      style: SailButtonStyle.secondary,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Action buttons
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    QtButton(
+                      label: 'Cancel',
+                      onPressed: () => Navigator.pop(context),
+                      size: ButtonSize.small,
+                    ),
+                    QtButton(
+                      label: 'Start',
+                      onPressed: () {
+                        final hops = int.tryParse(hopsController.text) ?? 3;
+                        widget.onSubmit(hops, getTotalSeconds());
+                        Navigator.pop(context);
+                      },
+                      size: ButtonSize.small,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
