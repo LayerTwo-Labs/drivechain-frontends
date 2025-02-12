@@ -14,7 +14,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
-	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -141,21 +140,11 @@ func (s *Server) ListDenials(
 			IsInternal: utxo.IsInternal,
 		}
 
-		// Check if this UTXO has deniability info
 		key := fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout)
 		if d, exists := deniabilityMap[key]; exists {
-			zerolog.Ctx(ctx).Info().
-				Str("txid", utxo.Txid.Hex.Value).
-				Uint32("vout", utxo.Vout).
-				Int64("denial_id", d.ID).
-				Msg("UTXO has deniability info")
 			// the utxo has deniability info! Add it to the response
 			deniability, err := s.withDeniability(ctx, d)
 			if err != nil {
-				zerolog.Ctx(ctx).Error().Err(err).
-					Str("txid", utxo.Txid.Hex.Value).
-					Uint32("vout", utxo.Vout).
-					Msg("Failed to get deniability info")
 				return nil, connect.NewError(connect.CodeInternal, err)
 			}
 			pbUtxo.Deniability = deniability
@@ -164,7 +153,6 @@ func (s *Server) ListDenials(
 		pbUtxos = append(pbUtxos, pbUtxo)
 	}
 
-	zerolog.Ctx(ctx).Info().Int("response_utxo_count", len(pbUtxos)).Msg("Returning response with UTXOs")
 	return connect.NewResponse(&pb.ListDenialsResponse{
 		Utxos: pbUtxos,
 	}), nil

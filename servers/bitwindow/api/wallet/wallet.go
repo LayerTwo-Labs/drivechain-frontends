@@ -202,9 +202,14 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 		Transactions: lo.Map(txs.Msg.Transactions, func(tx *validatorpb.WalletTransaction, idx int) *pb.WalletTransaction {
 			var confirmation *pb.Confirmation
 			if tx.ConfirmationInfo != nil {
+				var timestamp *timestamppb.Timestamp
+				if tx.ConfirmationInfo.Timestamp != nil {
+					timestamp = &timestamppb.Timestamp{Seconds: tx.ConfirmationInfo.Timestamp.Seconds}
+				}
+
 				confirmation = &pb.Confirmation{
 					Height:    uint32(tx.ConfirmationInfo.Height),
-					Timestamp: &timestamppb.Timestamp{Seconds: tx.ConfirmationInfo.Timestamp.Seconds},
+					Timestamp: timestamp,
 				}
 			}
 			return &pb.WalletTransaction{
