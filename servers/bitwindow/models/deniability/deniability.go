@@ -77,7 +77,7 @@ func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
 				WHERE denial_id = ed.denial_id
 			)
 		) e ON e.denial_id = d.id
-		ORDER BY d.created_at DESC
+		ORDER BY d.created_at ASC
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("could not query deniabilities: %w", err)
