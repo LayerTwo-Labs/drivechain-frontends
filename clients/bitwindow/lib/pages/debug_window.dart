@@ -82,15 +82,127 @@ class DebugViewModel extends BaseViewModel {
   // Add debug-related functionality here
 }
 
-class InformationTab extends StatelessWidget {
+class InformationTab extends StatefulWidget {
   const InformationTab({super.key});
 
   @override
+  State<InformationTab> createState() => _InformationTabState();
+}
+
+class _InformationTabState extends State<InformationTab> {
+  MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
+
+  BlockchainInfo? _blockchainInfo;
+  NetworkInfo? _networkInfo;
+  MempoolInfo? _mempoolInfo;
+  String? _dataDir;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInfo();
+  }
+
+  Future<void> _loadInfo() async {
+    try {
+      final blockchainInfo = await mainchain.getBlockchainInfo();
+      final networkInfo = await mainchain.getNetworkInfo();
+      final mempoolInfo = await mainchain.getMempoolInfo();
+      final dataDir = await mainchain.getDataDir();
+
+      setState(() {
+        _blockchainInfo = blockchainInfo;
+        _networkInfo = networkInfo;
+        _mempoolInfo = mempoolInfo;
+        _dataDir = dataDir;
+      });
+    } catch (e) {
+      // do nothing
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const SailRawCard(
+    return SailRawCard(
       title: 'Debug Information',
       subtitle: 'General information about the node',
-      child: Center(child: Text('Information tab content coming soon')),
+      child: SingleChildScrollView(
+        child: SailColumn(
+          spacing: SailStyleValues.padding25,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSection(
+              'General Info',
+              {
+                'Client version': _networkInfo?.version.toString() ?? 'Loading...',
+                'User Agent': _networkInfo?.subversion ?? 'Loading...',
+                'Protocol Version': _networkInfo?.protocolVersion.toString() ?? 'Loading...',
+                'Datadir': _dataDir ?? 'Loading...',
+              },
+            ),
+            _buildSection(
+              'Network Info',
+              {
+                'Chain': _blockchainInfo?.chain ?? 'Loading...',
+                'Network Activity': _blockchainInfo?.initialBlockDownload ?? true ? 'Disabled' : 'Enabled',
+              },
+            ),
+            _buildSection(
+              'Blockchain Info',
+              {
+                'Current number of blocks': _blockchainInfo?.blocks.toString() ?? 'Loading...',
+                'Headers': _blockchainInfo?.headers.toString() ?? 'Loading...',
+                'Verification Progress': '${(_blockchainInfo?.verificationProgress ?? 0 * 100).toStringAsFixed(2)}%',
+                'Difficulty': _blockchainInfo?.difficulty.toString() ?? 'Loading...',
+                'Size on Disk': '${_blockchainInfo?.sizeOnDisk ?? 0} bytes',
+                'Last block time': _blockchainInfo?.time != null
+                    ? DateTime.fromMillisecondsSinceEpoch(_blockchainInfo!.time * 1000).toString()
+                    : 'Loading...',
+              },
+            ),
+            _buildSection(
+              'Mempool Info',
+              {
+                'Transaction Count': _mempoolInfo?.size.toString() ?? 'Loading...',
+                'Memory Usage': '${_mempoolInfo?.usage ?? 0} bytes',
+                'Total Fee': '${_mempoolInfo?.totalFee ?? 0} BTC',
+                'Min Relay Fee': '${_mempoolInfo?.minRelayTxFee ?? 0} BTC',
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, Map<String, String> details) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary15(title),
+        const SizedBox(height: 8),
+        ...details.entries.map(
+          (e) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 250,
+                  child: SailText.secondary13(
+                    e.key,
+                  ),
+                ),
+                Expanded(
+                  child: SailText.primary13(
+                    e.value,
+                    monospace: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

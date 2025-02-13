@@ -124,6 +124,31 @@ class MockMainchainRPC extends MainchainRPC {
   Future<List<PeerInfo>> getPeerInfo() {
     return Future.value([]);
   }
+
+  @override
+  Future<String> getDataDir() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MempoolInfo> getMempoolInfo() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MiningInfo> getMiningInfo() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<NetworkInfo> getNetworkInfo() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<TxOutsetInfo> getTxOutsetInfo() {
+    throw UnimplementedError();
+  }
 }
 
 class MockEnforcerRPC extends EnforcerRPC {
