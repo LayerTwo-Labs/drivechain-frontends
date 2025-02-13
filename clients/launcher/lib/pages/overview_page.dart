@@ -320,13 +320,13 @@ class _OverviewPageState extends State<OverviewPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: SailText.primary15('Cancel'),
-          ),
-          TextButton(
             style: TextButton.styleFrom(foregroundColor: SailColorScheme.red),
             onPressed: () => Navigator.of(context).pop(true),
             child: SailText.primary15('Wipe Data', color: SailColorScheme.red),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: SailText.primary15('Cancel'),
           ),
         ],
       ),

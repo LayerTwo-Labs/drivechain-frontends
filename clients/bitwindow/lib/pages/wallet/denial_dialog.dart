@@ -161,10 +161,6 @@ class _DenialDialogState extends State<DenialDialog> {
                   spacing: SailStyleValues.padding08,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    SailTextButton(
-                      label: 'Cancel',
-                      onPressed: () => Navigator.pop(context),
-                    ),
                     QtButton(
                       label: 'Start',
                       onPressed: () {
@@ -173,6 +169,10 @@ class _DenialDialogState extends State<DenialDialog> {
                         Navigator.pop(context);
                       },
                       size: ButtonSize.small,
+                    ),
+                    SailTextButton(
+                      label: 'Cancel',
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),

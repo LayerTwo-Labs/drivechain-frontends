@@ -356,81 +356,60 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
             builder: (context, child) {
               return DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: theme.colors.background,
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colors.text.withValues(alpha: 0.25),
-                      offset: const Offset(-2, -2),
-                      blurRadius: 2,
-                    ),
-                    BoxShadow(
-                      color: theme.colors.text.withValues(alpha: 0.1),
-                      offset: const Offset(0.5, 0.5),
-                      blurRadius: 1,
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.colors.text.withValues(alpha: 0.15),
+                      theme.colors.text.withValues(alpha: 0.15),
+                    ],
+                  ),
                 ),
-                child: Container(
-                  margin: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colors.text.withValues(alpha: 0.5),
-                        Colors.transparent,
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.2, 1.0],
-                    ),
-                  ),
-                  child: AnimatedBuilder(
-                    animation: _scaleController,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _scaleController.value,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            color: widget.color ??
-                                (widget.style == SailButtonStyle.secondary
-                                    ? theme.colors.background
-                                    : theme.colors.backgroundSecondary),
-                            boxShadow: [
-                              BoxShadow(
-                                color: theme.colors.text.withValues(alpha: 0.25),
-                                blurRadius: 3,
-                                spreadRadius: _isPressed ? -15 : -2,
-                                offset: const Offset(0, 0),
-                              ),
-                              BoxShadow(
-                                color: theme.colors.text.withValues(alpha: 0.25),
-                                blurRadius: 3,
-                                spreadRadius: _isPressed ? -12 : -1,
-                                offset: const Offset(0, -3),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 0,
-                            horizontal: 8,
-                          ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Opacity(
-                                opacity: widget.loading ? 0.3 : 1,
-                                child: widget.child,
-                              ),
-                              if (widget.loading) Center(child: LoadingIndicator.insideButton()),
-                            ],
-                          ),
+                child: AnimatedBuilder(
+                  animation: _scaleController,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _scaleController.value,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          color: widget.color ??
+                              (widget.style == SailButtonStyle.secondary
+                                  ? theme.colors.background
+                                  : theme.colors.backgroundSecondary),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.colors.text.withValues(alpha: 0.25),
+                              blurRadius: 3,
+                              spreadRadius: _isPressed ? -15 : -4,
+                              offset: const Offset(0, 0),
+                            ),
+                            BoxShadow(
+                              color: theme.colors.text.withValues(alpha: 0.25),
+                              blurRadius: 3,
+                              spreadRadius: _isPressed ? -12 : -4,
+                              offset: const Offset(0, -3),
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 0,
+                          horizontal: 8,
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Opacity(
+                              opacity: widget.loading ? 0.3 : 1,
+                              child: widget.child,
+                            ),
+                            if (widget.loading) Center(child: LoadingIndicator.insideButton()),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               );
             },

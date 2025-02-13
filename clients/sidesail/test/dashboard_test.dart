@@ -31,12 +31,12 @@ void main() {
   });
 
   setUpAll(() async {
+    GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
     final sidechainRPC = MockSidechainRPC();
     final sidechain = await SidechainContainer.create(sidechainRPC);
     GetIt.I.registerLazySingleton<SidechainRPC>(() => sidechainRPC);
     GetIt.I.registerLazySingleton<SidechainContainer>(() => sidechain);
     GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
-    GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
     GetIt.I.registerLazySingleton<CastProvider>(() => CastProvider());
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
