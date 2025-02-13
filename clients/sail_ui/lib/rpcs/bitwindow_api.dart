@@ -74,6 +74,8 @@ abstract class WalletAPI {
   // drivechain wallet stuff here
   Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
   Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee);
+  Future<String> signMessage(String message);
+  Future<bool> verifyMessage(String message, String signature, String publicKey);
 }
 
 abstract class BitcoindAPI {
@@ -405,6 +407,35 @@ class _WalletAPILive implements WalletAPI {
     } catch (e) {
       final error = extractConnectException(e);
       log.e('could not create deposit: $error');
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> signMessage(String message) async {
+    try {
+      final response = await _client.signMessage(SignMessageRequest()..message = message);
+      return response.signature;
+    } catch (e) {
+      final error = extractConnectException(e);
+      log.e('could not sign message: $error');
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<bool> verifyMessage(String message, String signature, String publicKey) async {
+    try {
+      final response = await _client.verifyMessage(
+        VerifyMessageRequest()
+          ..message = message
+          ..signature = signature
+          ..publicKey = publicKey,
+      );
+      return response.valid;
+    } catch (e) {
+      final error = extractConnectException(e);
+      log.e('could not verify message: $error');
       throw WalletException(error);
     }
   }
