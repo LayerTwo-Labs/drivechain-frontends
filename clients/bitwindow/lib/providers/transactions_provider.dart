@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/blockchain_provider.dart';
@@ -20,10 +21,24 @@ class TransactionProvider extends ChangeNotifier {
   String? error;
 
   bool _isFetching = false;
+  Timer? _fetchTimer; // Timer to periodically fetch transactions
 
   TransactionProvider() {
     balanceProvider.addListener(fetch);
     blockchainProvider.addListener(fetch);
+    _startFetchingTimer();
+  }
+
+  // Fetch transactions every 5 seconds, just in case something happens
+  // automatically behind the scenes
+  void _startFetchingTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
+
+    _fetchTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      fetch();
+    });
   }
 
   // call this function from anywhere to refetch transaction list
@@ -57,13 +72,30 @@ class TransactionProvider extends ChangeNotifier {
     List<WalletTransaction> newTXs,
     String newAddress,
   ) {
-    return !listEquals(walletTransactions, newTXs) || address != newAddress;
+    if (newTXs.length != walletTransactions.length) {
+      return true;
+    }
+
+    for (int i = 0; i < newTXs.length; i++) {
+      if (!walletTransactions[i].isEqual(newTXs[i])) {
+        return true;
+      }
+    }
+
+    return address != newAddress;
   }
 
   @override
   void dispose() {
     balanceProvider.removeListener(fetch);
     blockchainProvider.removeListener(fetch);
+    _fetchTimer?.cancel();
     super.dispose();
+  }
+}
+
+extension WalletTransactionExtensions on WalletTransaction {
+  bool isEqual(WalletTransaction other) {
+    return toDebugString() == other.toDebugString();
   }
 }

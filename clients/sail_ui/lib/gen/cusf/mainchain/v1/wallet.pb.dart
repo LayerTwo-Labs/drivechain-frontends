@@ -1990,6 +1990,127 @@ class GenerateBlocksResponse extends $pb.GeneratedMessage {
   $1.ReverseHex ensureBlockHash() => $_ensure(0);
 }
 
+class GetInfoRequest extends $pb.GeneratedMessage {
+  factory GetInfoRequest() => create();
+  GetInfoRequest._() : super();
+  factory GetInfoRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetInfoRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetInfoRequest clone() => GetInfoRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetInfoRequest copyWith(void Function(GetInfoRequest) updates) => super.copyWith((message) => updates(message as GetInfoRequest)) as GetInfoRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetInfoRequest create() => GetInfoRequest._();
+  GetInfoRequest createEmptyInstance() => create();
+  static $pb.PbList<GetInfoRequest> createRepeated() => $pb.PbList<GetInfoRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetInfoRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetInfoRequest>(create);
+  static GetInfoRequest? _defaultInstance;
+}
+
+class GetInfoResponse extends $pb.GeneratedMessage {
+  factory GetInfoResponse({
+    $core.String? network,
+    $core.int? transactionCount,
+    $core.int? unspentOutputCount,
+    $core.Map<$core.String, $core.String>? descriptors,
+  }) {
+    final $result = create();
+    if (network != null) {
+      $result.network = network;
+    }
+    if (transactionCount != null) {
+      $result.transactionCount = transactionCount;
+    }
+    if (unspentOutputCount != null) {
+      $result.unspentOutputCount = unspentOutputCount;
+    }
+    if (descriptors != null) {
+      $result.descriptors.addAll(descriptors);
+    }
+    return $result;
+  }
+  GetInfoResponse._() : super();
+  factory GetInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'network')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'transactionCount', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'unspentOutputCount', $pb.PbFieldType.OU3)
+    ..m<$core.String, $core.String>(4, _omitFieldNames ? '' : 'descriptors', entryClassName: 'GetInfoResponse.DescriptorsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OS, packageName: const $pb.PackageName('cusf.mainchain.v1'))
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetInfoResponse clone() => GetInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetInfoResponse copyWith(void Function(GetInfoResponse) updates) => super.copyWith((message) => updates(message as GetInfoResponse)) as GetInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetInfoResponse create() => GetInfoResponse._();
+  GetInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetInfoResponse> createRepeated() => $pb.PbList<GetInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetInfoResponse>(create);
+  static GetInfoResponse? _defaultInstance;
+
+  /// The network the wallet is on
+  @$pb.TagNumber(1)
+  $core.String get network => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set network($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasNetwork() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNetwork() => clearField(1);
+
+  /// Total number of transactions in the wallet
+  @$pb.TagNumber(2)
+  $core.int get transactionCount => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set transactionCount($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTransactionCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTransactionCount() => clearField(2);
+
+  /// Number of UTXOs in the wallet.
+  @$pb.TagNumber(3)
+  $core.int get unspentOutputCount => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set unspentOutputCount($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasUnspentOutputCount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUnspentOutputCount() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.Map<$core.String, $core.String> get descriptors => $_getMap(3);
+}
+
 class ListUnspentOutputsRequest extends $pb.GeneratedMessage {
   factory ListUnspentOutputsRequest() => create();
   ListUnspentOutputsRequest._() : super();
@@ -2195,6 +2316,9 @@ class WalletServiceApi {
   ;
   $async.Future<ListUnspentOutputsResponse> listUnspentOutputs($pb.ClientContext? ctx, ListUnspentOutputsRequest request) =>
     _client.invoke<ListUnspentOutputsResponse>(ctx, 'WalletService', 'ListUnspentOutputs', request, ListUnspentOutputsResponse())
+  ;
+  $async.Future<GetInfoResponse> getInfo($pb.ClientContext? ctx, GetInfoRequest request) =>
+    _client.invoke<GetInfoResponse>(ctx, 'WalletService', 'GetInfo', request, GetInfoResponse())
   ;
   $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
     _client.invoke<SendTransactionResponse>(ctx, 'WalletService', 'SendTransaction', request, SendTransactionResponse())

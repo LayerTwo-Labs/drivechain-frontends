@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
@@ -131,7 +132,7 @@ class BlockExplorerDialog extends StatelessWidget {
                     color: context.sailTheme.colors.info,
                   ),
                   SailText.secondary13(
-                    block.blockTime.toDateTime().format(),
+                    block.blockTime.toDateTime().toLocal().format(),
                     monospace: true,
                   ),
                 ],
@@ -250,7 +251,7 @@ class BlockExplorerDialog extends StatelessWidget {
                 const SailSpacing(SailStyleValues.padding16),
                 SizedBox(
                   height: 300,
-                  child: TransactionTable(
+                  child: TXIDTransactionTable(
                     transactions: block.txids,
                     onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
                   ),
@@ -375,33 +376,44 @@ class BlockTransaction {
   });
 }
 
-class TransactionTable extends StatefulWidget {
+class TXIDTransactionTable extends StatefulWidget {
   final List<String> transactions;
   final void Function(String txid)? onTransactionSelected;
 
-  const TransactionTable({
+  const TXIDTransactionTable({
     super.key,
     required this.transactions,
     this.onTransactionSelected,
   });
 
   @override
-  State<TransactionTable> createState() => _TransactionTableState();
+  State<TXIDTransactionTable> createState() => _TXIDTransactionTableState();
 }
 
-class _TransactionTableState extends State<TransactionTable> {
-  String sortColumn = 'n';
+class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
+  String sortColumn = 'txid';
   bool sortAscending = true;
+  late List<String> sortedTransactions;
 
   @override
   void initState() {
     super.initState();
+    sortedTransactions = List.from(widget.transactions);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     sortTransactions();
+  }
+
+  @override
+  void didUpdateWidget(TXIDTransactionTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.transactions, widget.transactions)) {
+      sortedTransactions = List.from(widget.transactions);
+      sortTransactions();
+    }
   }
 
   void onSort(String column) {
@@ -417,17 +429,14 @@ class _TransactionTableState extends State<TransactionTable> {
   }
 
   void sortTransactions() {
-    widget.transactions.sort((a, b) {
-      dynamic aValue;
-      dynamic bValue;
+    if (sortColumn == 'n') {
+      // Don't sort when sorting by index
+      return;
+    }
 
-      switch (sortColumn) {
-        case 'txid':
-          aValue = a;
-          bValue = b;
-          break;
-      }
-
+    sortedTransactions.sort((a, b) {
+      String aValue = a;
+      String bValue = b;
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }

@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
@@ -22,6 +23,7 @@ import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
+  DenialProvider get denialProvider => GetIt.I.get<DenialProvider>();
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   static final GlobalKey<InlineTabBarState> tabKey = GlobalKey<InlineTabBarState>();
   static SendPageViewModel? _sendViewModel; // Static reference to view model
@@ -48,18 +50,18 @@ class WalletPage extends StatelessWidget {
         builder: (context, model, child) {
           return InlineTabBar(
             key: tabKey,
-            tabs: const [
-              TabItem(
+            tabs: [
+              const TabItem(
                 label: 'Send',
                 icon: SailSVGAsset.iconWallet,
                 child: SendTab(),
               ),
-              TabItem(
+              const TabItem(
                 label: 'Receive',
                 icon: SailSVGAsset.iconCoinnews,
                 child: ReceiveTab(),
               ),
-              TabItem(
+              const TabItem(
                 label: 'Wallet Transactions',
                 icon: SailSVGAsset.iconTransactions,
                 child: TransactionsTab(),
@@ -68,6 +70,9 @@ class WalletPage extends StatelessWidget {
                 label: 'Deniability',
                 icon: SailSVGAsset.iconTransactions,
                 child: DeniabilityTab(),
+                onTap: () {
+                  denialProvider.fetch();
+                },
               ),
             ],
             initialIndex: 0,
@@ -842,7 +847,7 @@ class _TransactionTableState extends State<TransactionTable> {
                         monospace: true,
                       ),
                       SailTableCell(
-                        value: entry.confirmationTime.timestamp.toDateTime().format(),
+                        value: entry.confirmationTime.timestamp.toDateTime().toLocal().format(),
                         monospace: true,
                       ),
                       SailTableCell(
@@ -1027,17 +1032,132 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
           if (!a.hasDeniability() && !b.hasDeniability()) return 0;
           if (!a.hasDeniability()) return sortAscending ? 1 : -1;
           if (!b.hasDeniability()) return sortAscending ? -1 : 1;
-          aValue = a.deniability.hasCancelledAt()
+          aValue = a.deniability.hasCancelTime()
               ? 'Cancelled'
-              : (a.deniability.numHops - a.deniability.executions.length == 0 ? 'Completed' : 'Active');
-          bValue = b.deniability.hasCancelledAt()
+              : (a.deniability.numHops - a.deniability.executions.length == 0 ? 'Completed' : 'Ongoing');
+          bValue = b.deniability.hasCancelTime()
               ? 'Cancelled'
-              : (b.deniability.numHops - b.deniability.executions.length == 0 ? 'Completed' : 'Active');
+              : (b.deniability.numHops - b.deniability.executions.length == 0 ? 'Completed' : 'Ongoing');
           return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
         default:
           return 0;
       }
     });
+  }
+
+  void _showUtxoDetails(BuildContext context, UnspentOutput utxo) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SailRawCard(
+            title: 'UTXO Details',
+            subtitle: 'UTXO and Deniability Information',
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDetailRow(context, 'TxID', utxo.txid),
+                  _buildDetailRow(context, 'Output Index', utxo.vout.toString()),
+                  _buildDetailRow(context, 'Amount', formatBitcoin(satoshiToBTC(utxo.valueSats.toInt()))),
+                  if (utxo.hasDeniability()) ...[
+                    const SailSpacing(SailStyleValues.padding16),
+                    BorderedSection(
+                      title: 'Deniability Info',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildDetailRow(context, 'Status', _getDeniabilityStatus(utxo)),
+                          _buildDetailRow(context, 'Completed Hops', '${utxo.deniability.executions.length}'),
+                          _buildDetailRow(context, 'Total Hops', '${utxo.deniability.numHops}'),
+                          if (utxo.deniability.hasNextExecution())
+                            _buildDetailRow(
+                              context,
+                              'Next Execution',
+                              utxo.deniability.nextExecution.toDateTime().toLocal().toString(),
+                            ),
+                          if (utxo.deniability.hasCancelTime())
+                            _buildDetailRow(
+                              context,
+                              'Cancel Reason',
+                              utxo.deniability.cancelReason,
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (utxo.deniability.executions.isNotEmpty) ...[
+                      const SailSpacing(SailStyleValues.padding16),
+                      SailText.primary13('Deniability Transactions:'),
+                      const SailSpacing(SailStyleValues.padding08),
+                      SizedBox(
+                        height: 300,
+                        child: SelectionContainer.disabled(
+                          child: TXIDTransactionTable(
+                            transactions: utxo.deniability.executions
+                                .map((e) => e.fromTxid)
+                                .where((txid) => txid.isNotEmpty)
+                                .toList(),
+                            onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTransactionDetails(BuildContext context, String txid) {
+    showDialog(
+      context: context,
+      builder: (context) => TransactionDetailsDialog(
+        txid: txid,
+      ),
+    );
+  }
+
+  String _getDeniabilityStatus(UnspentOutput utxo) {
+    if (!utxo.hasDeniability()) return 'No deniability';
+    if (utxo.deniability.hasCancelTime()) return 'Cancelled';
+
+    final completedHops = utxo.deniability.executions.length;
+    final totalHops = utxo.deniability.numHops;
+
+    if (completedHops == totalHops) return 'Completed';
+    return 'Ongoing ($completedHops/$totalHops hops)';
+  }
+
+  Widget _buildDetailRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: SailText.primary13(
+              label,
+              monospace: true,
+              color: context.sailTheme.colors.textTertiary,
+            ),
+          ),
+          Expanded(
+            child: SailText.secondary13(
+              value,
+              monospace: true,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1091,15 +1211,15 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     hops = '$completedHops';
                   }
 
-                  status = utxo.deniability.hasCancelledAt()
+                  status = utxo.deniability.hasCancelTime()
                       ? 'Cancelled'
                       : completedHops == totalHops
                           ? 'Completed'
-                          : 'Active';
+                          : 'Ongoing';
                   nextExecution = utxo.deniability.hasNextExecution()
-                      ? utxo.deniability.nextExecution.toDateTime().toString()
+                      ? utxo.deniability.nextExecution.toDateTime().toLocal().toString()
                       : '-';
-                  canCancel = status == 'Active';
+                  canCancel = status == 'Ongoing';
 
                   if (status == 'Cancelled') {
                     hops = '$completedHops';
@@ -1123,9 +1243,12 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     value: nextExecution,
                     monospace: true,
                   ),
-                  SailTableCell(
-                    value: status,
-                    monospace: true,
+                  Tooltip(
+                    message: utxo.deniability.cancelReason,
+                    child: SailTableCell(
+                      value: status,
+                      monospace: true,
+                    ),
                   ),
                   SailTableCell(
                     value: canCancel ? 'Cancel' : '-',
@@ -1146,7 +1269,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                             loading: false,
                             onPressed: () => widget.onDeny(utxo.txid, utxo.vout),
                             child: SailText.primary15(
-                              'Enroll ${status != '-' ? 'Again' : ''}',
+                              'Deny Ownership ${status != '-' ? 'Again' : ''}',
                               bold: true,
                               color: context.sailTheme.colors.text,
                             ),
@@ -1168,6 +1291,12 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
               sortAscending: sortAscending,
               onSort: (columnIndex, ascending) {
                 onSort(['txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
+              },
+              onDoubleTap: (rowId) {
+                final utxo = widget.utxos.firstWhere(
+                  (u) => '${u.txid}:${u.vout}' == rowId,
+                );
+                _showUtxoDetails(context, utxo);
               },
             ),
           ),

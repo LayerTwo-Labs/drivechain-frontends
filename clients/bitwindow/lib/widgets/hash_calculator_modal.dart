@@ -1,9 +1,10 @@
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sail_ui/sail_ui.dart';
 import 'package:pointycastle/export.dart' as pc;
+import 'package:sail_ui/sail_ui.dart';
 
 class HashCalculatorModal extends StatefulWidget {
   const HashCalculatorModal({super.key});

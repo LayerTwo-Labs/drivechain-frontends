@@ -28,13 +28,13 @@ class DenialProvider extends ChangeNotifier {
       return;
     }
     _isFetching = true;
-    error = null;
 
     try {
-      final newDenials = await api.bitwindowd.listDenials();
+      final newUTXOs = await api.bitwindowd.listDenials();
+      error = null;
 
-      if (_dataHasChanged(newDenials)) {
-        utxos = newDenials;
+      if (_dataHasChanged(newUTXOs)) {
+        utxos = newUTXOs;
         initialized = true;
         error = null;
         notifyListeners();
@@ -48,14 +48,30 @@ class DenialProvider extends ChangeNotifier {
   }
 
   bool _dataHasChanged(
-    List<UnspentOutput> newDenials,
+    List<UnspentOutput> newUTXOs,
   ) {
-    return !listEquals(utxos, newDenials);
+    if (newUTXOs.length != utxos.length) {
+      return true;
+    }
+
+    for (int i = 0; i < newUTXOs.length; i++) {
+      if (!utxos[i].isEqual(newUTXOs[i])) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   @override
   void dispose() {
     transactionProvider.removeListener(fetch);
     super.dispose();
+  }
+}
+
+extension UnspentOutputExtensions on UnspentOutput {
+  bool isEqual(UnspentOutput other) {
+    return toDebugString() == other.toDebugString();
   }
 }

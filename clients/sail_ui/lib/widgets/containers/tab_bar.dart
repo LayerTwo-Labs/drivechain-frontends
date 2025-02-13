@@ -41,7 +41,12 @@ class InlineTabBarState extends State<InlineTabBar> {
           children: List.generate(widget.tabs.length, (index) {
             final isSelected = index == _selectedIndex;
             return InkWell(
-              onTap: () => setState(() => _selectedIndex = index),
+              onTap: () {
+                if (widget.tabs[index].onTap != null) {
+                  widget.tabs[index].onTap!();
+                }
+                setState(() => _selectedIndex = index);
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: SailStyleValues.padding04,
@@ -84,10 +89,12 @@ class TabItem {
   final String label;
   final SailSVGAsset icon;
   final Widget child;
+  final VoidCallback? onTap;
 
   const TabItem({
     required this.label,
     required this.icon,
     required this.child,
+    this.onTap,
   });
 }

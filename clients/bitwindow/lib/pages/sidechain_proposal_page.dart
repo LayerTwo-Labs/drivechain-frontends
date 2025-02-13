@@ -69,7 +69,7 @@ class SidechainProposalView extends StatelessWidget {
                             height: 13,
                             child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                           )
-                        : SailText.primary13('Propose Sidechain'),
+                        : SailText.background13('Propose Sidechain'),
                   ),
                 ],
               ),
@@ -165,7 +165,7 @@ class SidechainProposalView extends StatelessWidget {
   }
 
   void _showInfoDialog(BuildContext context) {
-    showAdaptiveDialog(
+    showDialog(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
@@ -343,7 +343,7 @@ class SidechainProposalViewModel extends BaseViewModel {
 }
 
 Future<void> showSidechainProposalModal(BuildContext context) {
-  return showAdaptiveDialog<void>(
+  return showDialog<void>(
     barrierDismissible: true,
     context: context,
     builder: (BuildContext context) {

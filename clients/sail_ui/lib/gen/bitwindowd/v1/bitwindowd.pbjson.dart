@@ -90,15 +90,17 @@ const DeniabilityInfo$json = {
     {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
     {'1': 'num_hops', '3': 2, '4': 1, '5': 5, '10': 'numHops'},
     {'1': 'delay_seconds', '3': 3, '4': 1, '5': 5, '10': 'delaySeconds'},
-    {'1': 'created_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'cancelled_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'cancelledAt', '17': true},
-    {'1': 'next_execution', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 1, '10': 'nextExecution', '17': true},
-    {'1': 'executions', '3': 7, '4': 3, '5': 11, '6': '.bitwindowd.v1.ExecutedDenial', '10': 'executions'},
-    {'1': 'hops_completed', '3': 8, '4': 1, '5': 13, '10': 'hopsCompleted'},
-    {'1': 'is_active', '3': 9, '4': 1, '5': 8, '10': 'isActive'},
+    {'1': 'create_time', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
+    {'1': 'cancel_time', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'cancelTime', '17': true},
+    {'1': 'cancel_reason', '3': 6, '4': 1, '5': 9, '9': 1, '10': 'cancelReason', '17': true},
+    {'1': 'next_execution', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 2, '10': 'nextExecution', '17': true},
+    {'1': 'executions', '3': 8, '4': 3, '5': 11, '6': '.bitwindowd.v1.ExecutedDenial', '10': 'executions'},
+    {'1': 'hops_completed', '3': 9, '4': 1, '5': 13, '10': 'hopsCompleted'},
+    {'1': 'is_active', '3': 10, '4': 1, '5': 8, '10': 'isActive'},
   ],
   '8': [
-    {'1': '_cancelled_at'},
+    {'1': '_cancel_time'},
+    {'1': '_cancel_reason'},
     {'1': '_next_execution'},
   ],
 };
@@ -106,14 +108,15 @@ const DeniabilityInfo$json = {
 /// Descriptor for `DeniabilityInfo`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List deniabilityInfoDescriptor = $convert.base64Decode(
     'Cg9EZW5pYWJpbGl0eUluZm8SDgoCaWQYASABKANSAmlkEhkKCG51bV9ob3BzGAIgASgFUgdudW'
-    '1Ib3BzEiMKDWRlbGF5X3NlY29uZHMYAyABKAVSDGRlbGF5U2Vjb25kcxI5CgpjcmVhdGVkX2F0'
-    'GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EkIKDGNhbmNlbG'
-    'xlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAFILY2FuY2VsbGVkQXSI'
-    'AQESRgoObmV4dF9leGVjdXRpb24YBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSA'
-    'FSDW5leHRFeGVjdXRpb26IAQESPQoKZXhlY3V0aW9ucxgHIAMoCzIdLmJpdHdpbmRvd2QudjEu'
-    'RXhlY3V0ZWREZW5pYWxSCmV4ZWN1dGlvbnMSJQoOaG9wc19jb21wbGV0ZWQYCCABKA1SDWhvcH'
-    'NDb21wbGV0ZWQSGwoJaXNfYWN0aXZlGAkgASgIUghpc0FjdGl2ZUIPCg1fY2FuY2VsbGVkX2F0'
-    'QhEKD19uZXh0X2V4ZWN1dGlvbg==');
+    '1Ib3BzEiMKDWRlbGF5X3NlY29uZHMYAyABKAVSDGRlbGF5U2Vjb25kcxI7CgtjcmVhdGVfdGlt'
+    'ZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCmNyZWF0ZVRpbWUSQAoLY2FuY2'
+    'VsX3RpbWUYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSABSCmNhbmNlbFRpbWWI'
+    'AQESKAoNY2FuY2VsX3JlYXNvbhgGIAEoCUgBUgxjYW5jZWxSZWFzb26IAQESRgoObmV4dF9leG'
+    'VjdXRpb24YByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAJSDW5leHRFeGVjdXRp'
+    'b26IAQESPQoKZXhlY3V0aW9ucxgIIAMoCzIdLmJpdHdpbmRvd2QudjEuRXhlY3V0ZWREZW5pYW'
+    'xSCmV4ZWN1dGlvbnMSJQoOaG9wc19jb21wbGV0ZWQYCSABKA1SDWhvcHNDb21wbGV0ZWQSGwoJ'
+    'aXNfYWN0aXZlGAogASgIUghpc0FjdGl2ZUIOCgxfY2FuY2VsX3RpbWVCEAoOX2NhbmNlbF9yZW'
+    'Fzb25CEQoPX25leHRfZXhlY3V0aW9u');
 
 @$core.Deprecated('Use executedDenialDescriptor instead')
 const ExecutedDenial$json = {
@@ -125,7 +128,7 @@ const ExecutedDenial$json = {
     {'1': 'from_vout', '3': 4, '4': 1, '5': 13, '10': 'fromVout'},
     {'1': 'to_txid', '3': 5, '4': 1, '5': 9, '10': 'toTxid'},
     {'1': 'to_vout', '3': 6, '4': 1, '5': 13, '10': 'toVout'},
-    {'1': 'created_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {'1': 'create_time', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
   ],
 };
 
@@ -134,8 +137,8 @@ final $typed_data.Uint8List executedDenialDescriptor = $convert.base64Decode(
     'Cg5FeGVjdXRlZERlbmlhbBIOCgJpZBgBIAEoA1ICaWQSGwoJZGVuaWFsX2lkGAIgASgDUghkZW'
     '5pYWxJZBIbCglmcm9tX3R4aWQYAyABKAlSCGZyb21UeGlkEhsKCWZyb21fdm91dBgEIAEoDVII'
     'ZnJvbVZvdXQSFwoHdG9fdHhpZBgFIAEoCVIGdG9UeGlkEhcKB3RvX3ZvdXQYBiABKA1SBnRvVm'
-    '91dBI5CgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3Jl'
-    'YXRlZEF0');
+    '91dBI7CgtjcmVhdGVfdGltZRgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCmNy'
+    'ZWF0ZVRpbWU=');
 
 @$core.Deprecated('Use cancelDenialRequestDescriptor instead')
 const CancelDenialRequest$json = {
@@ -173,7 +176,7 @@ const AddressBookEntry$json = {
     {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
     {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
     {'1': 'direction', '3': 4, '4': 1, '5': 14, '6': '.bitwindowd.v1.Direction', '10': 'direction'},
-    {'1': 'created_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {'1': 'create_time', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createTime'},
   ],
 };
 
@@ -181,8 +184,8 @@ const AddressBookEntry$json = {
 final $typed_data.Uint8List addressBookEntryDescriptor = $convert.base64Decode(
     'ChBBZGRyZXNzQm9va0VudHJ5Eg4KAmlkGAEgASgDUgJpZBIUCgVsYWJlbBgCIAEoCVIFbGFiZW'
     'wSGAoHYWRkcmVzcxgDIAEoCVIHYWRkcmVzcxI2CglkaXJlY3Rpb24YBCABKA4yGC5iaXR3aW5k'
-    'b3dkLnYxLkRpcmVjdGlvblIJZGlyZWN0aW9uEjkKCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbG'
-    'UucHJvdG9idWYuVGltZXN0YW1wUgljcmVhdGVkQXQ=');
+    'b3dkLnYxLkRpcmVjdGlvblIJZGlyZWN0aW9uEjsKC2NyZWF0ZV90aW1lGAUgASgLMhouZ29vZ2'
+    'xlLnByb3RvYnVmLlRpbWVzdGFtcFIKY3JlYXRlVGltZQ==');
 
 @$core.Deprecated('Use listAddressBookResponseDescriptor instead')
 const ListAddressBookResponse$json = {
