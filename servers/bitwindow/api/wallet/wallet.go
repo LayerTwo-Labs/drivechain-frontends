@@ -11,6 +11,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/drivechain"
 	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/common/v1"
+	cryptov1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	drivechainrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1/drivechainv1connect"
@@ -37,12 +39,14 @@ func New(
 	bitcoind *service.Service[*coreproxy.Bitcoind],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	drivechain drivechainrpc.DrivechainServiceHandler,
+	crypto *service.Service[cryptorpc.CryptoServiceClient],
 ) *Server {
 	s := &Server{
 		database:   database,
 		bitcoind:   bitcoind,
 		wallet:     wallet,
 		drivechain: drivechain,
+		crypto:     crypto,
 	}
 	return s
 }
@@ -52,6 +56,7 @@ type Server struct {
 	bitcoind   *service.Service[*coreproxy.Bitcoind]
 	wallet     *service.Service[validatorrpc.WalletServiceClient]
 	drivechain drivechainrpc.DrivechainServiceHandler
+	crypto     *service.Service[cryptorpc.CryptoServiceClient]
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
@@ -319,5 +324,53 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
 		Txid: created.Msg.Txid.Hex.Value,
+	}), nil
+}
+
+// SignMessage implements walletv1connect.WalletServiceHandler.
+func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMessageRequest]) (*connect.Response[pb.SignMessageResponse], error) {
+	crypto, err := s.crypto.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get crypto: %w", err)
+	}
+
+	res, err := crypto.Secp256K1Sign(ctx, connect.NewRequest(&cryptov1.Secp256K1SignRequest{
+		Message: &commonv1.Hex{
+			Hex: &wrapperspb.StringValue{Value: c.Msg.Message},
+		},
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("could not sign message: %w", err)
+	}
+
+	return connect.NewResponse(&pb.SignMessageResponse{
+		Signature: res.Msg.Signature.Hex.Value,
+	}), nil
+}
+
+// VerifyMessage implements walletv1connect.WalletServiceHandler.
+func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.VerifyMessageRequest]) (*connect.Response[pb.VerifyMessageResponse], error) {
+	crypto, err := s.crypto.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get crypto: %w", err)
+	}
+
+	res, err := crypto.Secp256K1Verify(ctx, connect.NewRequest(&cryptov1.Secp256K1VerifyRequest{
+		Message: &commonv1.Hex{
+			Hex: &wrapperspb.StringValue{Value: c.Msg.Message},
+		},
+		Signature: &commonv1.Hex{
+			Hex: &wrapperspb.StringValue{Value: c.Msg.Signature},
+		},
+		PublicKey: &commonv1.ConsensusHex{
+			Hex: &wrapperspb.StringValue{Value: c.Msg.PublicKey},
+		},
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("could not verify message: %w", err)
+	}
+
+	return connect.NewResponse(&pb.VerifyMessageResponse{
+		Valid: res.Msg.Valid,
 	}), nil
 }

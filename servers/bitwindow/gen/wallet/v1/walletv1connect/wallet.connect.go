@@ -52,6 +52,12 @@ const (
 	// WalletServiceCreateSidechainDepositProcedure is the fully-qualified name of the WalletService's
 	// CreateSidechainDeposit RPC.
 	WalletServiceCreateSidechainDepositProcedure = "/wallet.v1.WalletService/CreateSidechainDeposit"
+	// WalletServiceSignMessageProcedure is the fully-qualified name of the WalletService's SignMessage
+	// RPC.
+	WalletServiceSignMessageProcedure = "/wallet.v1.WalletService/SignMessage"
+	// WalletServiceVerifyMessageProcedure is the fully-qualified name of the WalletService's
+	// VerifyMessage RPC.
+	WalletServiceVerifyMessageProcedure = "/wallet.v1.WalletService/VerifyMessage"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -64,6 +70,8 @@ type WalletServiceClient interface {
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 	CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error)
+	SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error)
+	VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -113,6 +121,18 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("CreateSidechainDeposit")),
 			connect.WithClientOptions(opts...),
 		),
+		signMessage: connect.NewClient[v1.SignMessageRequest, v1.SignMessageResponse](
+			httpClient,
+			baseURL+WalletServiceSignMessageProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("SignMessage")),
+			connect.WithClientOptions(opts...),
+		),
+		verifyMessage: connect.NewClient[v1.VerifyMessageRequest, v1.VerifyMessageResponse](
+			httpClient,
+			baseURL+WalletServiceVerifyMessageProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("VerifyMessage")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -124,6 +144,8 @@ type walletServiceClient struct {
 	listTransactions       *connect.Client[emptypb.Empty, v1.ListTransactionsResponse]
 	listSidechainDeposits  *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
 	createSidechainDeposit *connect.Client[v1.CreateSidechainDepositRequest, v1.CreateSidechainDepositResponse]
+	signMessage            *connect.Client[v1.SignMessageRequest, v1.SignMessageResponse]
+	verifyMessage          *connect.Client[v1.VerifyMessageRequest, v1.VerifyMessageResponse]
 }
 
 // SendTransaction calls wallet.v1.WalletService.SendTransaction.
@@ -156,6 +178,16 @@ func (c *walletServiceClient) CreateSidechainDeposit(ctx context.Context, req *c
 	return c.createSidechainDeposit.CallUnary(ctx, req)
 }
 
+// SignMessage calls wallet.v1.WalletService.SignMessage.
+func (c *walletServiceClient) SignMessage(ctx context.Context, req *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error) {
+	return c.signMessage.CallUnary(ctx, req)
+}
+
+// VerifyMessage calls wallet.v1.WalletService.VerifyMessage.
+func (c *walletServiceClient) VerifyMessage(ctx context.Context, req *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error) {
+	return c.verifyMessage.CallUnary(ctx, req)
+}
+
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
@@ -166,6 +198,8 @@ type WalletServiceHandler interface {
 	ListTransactions(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTransactionsResponse], error)
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
 	CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error)
+	SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error)
+	VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -211,6 +245,18 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("CreateSidechainDeposit")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceSignMessageHandler := connect.NewUnaryHandler(
+		WalletServiceSignMessageProcedure,
+		svc.SignMessage,
+		connect.WithSchema(walletServiceMethods.ByName("SignMessage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletServiceVerifyMessageHandler := connect.NewUnaryHandler(
+		WalletServiceVerifyMessageProcedure,
+		svc.VerifyMessage,
+		connect.WithSchema(walletServiceMethods.ByName("VerifyMessage")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceSendTransactionProcedure:
@@ -225,6 +271,10 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceListSidechainDepositsHandler.ServeHTTP(w, r)
 		case WalletServiceCreateSidechainDepositProcedure:
 			walletServiceCreateSidechainDepositHandler.ServeHTTP(w, r)
+		case WalletServiceSignMessageProcedure:
+			walletServiceSignMessageHandler.ServeHTTP(w, r)
+		case WalletServiceVerifyMessageProcedure:
+			walletServiceVerifyMessageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -256,4 +306,12 @@ func (UnimplementedWalletServiceHandler) ListSidechainDeposits(context.Context, 
 
 func (UnimplementedWalletServiceHandler) CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.CreateSidechainDeposit is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.SignMessage is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.VerifyMessage is not implemented"))
 }

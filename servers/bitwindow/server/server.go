@@ -21,6 +21,7 @@ import (
 	api_wallet "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1/bitcoindv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1/bitwindowdv1connect"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1/drivechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/misc/v1/miscv1connect"
@@ -39,6 +40,7 @@ func NewServer(
 	bitcoindConnector service.Connector[*server.Bitcoind],
 	walletConnector service.Connector[validatorrpc.WalletServiceClient],
 	enforcerConnector service.Connector[validatorrpc.ValidatorServiceClient],
+	cryptoConnector service.Connector[cryptorpc.CryptoServiceClient],
 	database *sql.DB,
 	onShutdown func(),
 ) (*Server, error) {
@@ -47,17 +49,20 @@ func NewServer(
 	bitcoindSvc := service.New("bitcoind", bitcoindConnector)
 	enforcerSvc := service.New("enforcer", enforcerConnector)
 	walletSvc := service.New("wallet", walletConnector)
+	cryptoSvc := service.New("crypto", cryptoConnector)
 
 	// Start reconnection loops
 	bitcoindSvc.StartReconnectLoop(ctx)
 	enforcerSvc.StartReconnectLoop(ctx)
 	walletSvc.StartReconnectLoop(ctx)
+	cryptoSvc.StartReconnectLoop(ctx)
 
 	srv := &Server{
 		mux:      mux,
 		Bitcoind: bitcoindSvc,
 		Enforcer: enforcerSvc,
 		Wallet:   walletSvc,
+		Crypto:   cryptoSvc,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
@@ -73,7 +78,7 @@ func NewServer(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, database, bitcoindSvc, walletSvc, drivechainClient,
+		ctx, database, bitcoindSvc, walletSvc, drivechainClient, cryptoSvc,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		database, bitcoindSvc, walletSvc,
@@ -93,6 +98,7 @@ type Server struct {
 	Enforcer *service.Service[validatorrpc.ValidatorServiceClient]
 	Bitcoind *service.Service[*server.Bitcoind]
 	Wallet   *service.Service[validatorrpc.WalletServiceClient]
+	Crypto   *service.Service[cryptorpc.CryptoServiceClient]
 }
 
 func (s *Server) Handler() http.Handler {
