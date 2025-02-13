@@ -51,6 +51,16 @@ class MockAPI extends BitwindowRPC {
   Future<BlockchainInfo> getBlockchainInfo() {
     throw UnimplementedError();
   }
+
+  @override
+  Future callRAW(String url, [String body = '{}']) {
+    return Future.value(null);
+  }
+
+  @override
+  List<String> getMethods() {
+    return [];
+  }
 }
 
 class MockBitwindowdAPI implements BitwindowAPI {

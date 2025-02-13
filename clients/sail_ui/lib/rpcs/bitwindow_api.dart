@@ -1,6 +1,7 @@
 import 'package:connectrpc/connect.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
@@ -32,6 +33,9 @@ abstract class BitwindowRPC extends RPCConnection {
   BitcoindAPI get bitcoind;
   DrivechainAPI get drivechain;
   MiscAPI get misc;
+
+  Future<dynamic> callRAW(String url, [String body = '{}']);
+  List<String> getMethods();
 }
 
 abstract class BitwindowAPI {
@@ -176,6 +180,63 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     throw Exception('getBlockchainInfo not implemented');
+  }
+
+  @override
+  Future<dynamic> callRAW(String url, [String body = '{}']) async {
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8080/$url'),
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: body,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Request failed: ${response.body}');
+      }
+
+      return response.body;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  List<String> getMethods() {
+    return [
+      'bitcoind.v1.BitcoindService/EstimateSmartFee',
+      'bitcoind.v1.BitcoindService/GetBlock',
+      'bitcoind.v1.BitcoindService/GetBlockchainInfo',
+      'bitcoind.v1.BitcoindService/GetRawTransaction',
+      'bitcoind.v1.BitcoindService/ListBlocks',
+      'bitcoind.v1.BitcoindService/ListPeers',
+      'bitcoind.v1.BitcoindService/ListRecentTransactions',
+      'bitwindowd.v1.BitwindowdService/CancelDenial',
+      'bitwindowd.v1.BitwindowdService/CreateAddressBookEntry',
+      'bitwindowd.v1.BitwindowdService/CreateDenial',
+      'bitwindowd.v1.BitwindowdService/DeleteAddressBookEntry',
+      'bitwindowd.v1.BitwindowdService/ListAddressBook',
+      'bitwindowd.v1.BitwindowdService/ListDenials',
+      'bitwindowd.v1.BitwindowdService/Stop',
+      'bitwindowd.v1.BitwindowdService/UpdateAddressBookEntry',
+      'drivechain.v1.DrivechainService/ListSidechainProposals',
+      'drivechain.v1.DrivechainService/ListSidechains',
+      'misc.v1.MiscService/BroadcastNews',
+      'misc.v1.MiscService/CreateTopic',
+      'misc.v1.MiscService/ListCoinNews',
+      'misc.v1.MiscService/ListOPReturn',
+      'misc.v1.MiscService/ListTopics',
+      'wallet.v1.WalletService/CreateSidechainDeposit',
+      'wallet.v1.WalletService/GetBalance',
+      'wallet.v1.WalletService/GetNewAddress',
+      'wallet.v1.WalletService/ListSidechainDeposits',
+      'wallet.v1.WalletService/ListTransactions',
+      'wallet.v1.WalletService/SendTransaction',
+      'wallet.v1.WalletService/SignMessage',
+      'wallet.v1.WalletService/VerifyMessage',
+    ];
   }
 }
 
@@ -576,4 +637,11 @@ class DrivechainException implements Exception {
   DrivechainException(this.message);
   @override
   String toString() => 'DrivechainException: $message';
+}
+
+// Helper extension
+extension StringExtension on String {
+  String capitalize() {
+    return '${this[0].toUpperCase()}${substring(1).toLowerCase()}';
+  }
 }
