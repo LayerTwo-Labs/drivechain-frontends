@@ -16,6 +16,7 @@ type Denial struct {
 	NumHops       int32
 	CreatedAt     time.Time
 	CancelledAt   *time.Time
+	CancelReason  *string
 }
 
 // ExecutedDenial represents a completed denial transaction
@@ -67,6 +68,7 @@ func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
 			d.num_hops,
 			d.created_at,
 			d.cancelled_at,
+			d.cancelled_reason,
 			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
 			COALESCE(e.to_vout, d.initial_vout) as tip_vout
 		FROM denials d
@@ -94,6 +96,7 @@ func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
 			&deniability.NumHops,
 			&deniability.CreatedAt,
 			&deniability.CancelledAt,
+			&deniability.CancelReason,
 			&deniability.TipTXID,
 			&deniability.TipVout,
 		)
@@ -230,4 +233,63 @@ func LastExecution(ctx context.Context, db *sql.DB, id int64) (*time.Time, error
 	}
 
 	return &lastExecution, nil
+}
+
+// GetByTip retrieves a deniability plan by its tip transaction ID and vout
+func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout uint32) (*Denial, error) {
+	row := db.QueryRowContext(ctx, `
+		SELECT
+			d.id,
+			d.delay_duration,
+			d.num_hops,
+			d.created_at,
+			d.cancelled_at,
+			d.cancelled_reason,
+			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
+			COALESCE(e.to_vout, d.initial_vout) as tip_vout
+		FROM denials d
+		LEFT JOIN (
+			SELECT * FROM executed_denials ed
+			WHERE ed.id = (
+				SELECT MAX(id) FROM executed_denials
+				WHERE denial_id = ed.denial_id
+			)
+		) e ON e.denial_id = d.id
+		WHERE COALESCE(e.to_txid, d.initial_txid) = ? AND COALESCE(e.to_vout, d.initial_vout) = ?
+	`, tipTxID, tipVout)
+
+	var denial Denial
+	var delaySeconds float64
+	err := row.Scan(
+		&denial.ID,
+		&delaySeconds,
+		&denial.NumHops,
+		&denial.CreatedAt,
+		&denial.CancelledAt,
+		&denial.CancelReason,
+		&denial.TipTXID,
+		&denial.TipVout,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No matching record found, but that's okay
+		}
+		return nil, fmt.Errorf("could not get deniability by tip: %w", err)
+	}
+
+	denial.DelayDuration = time.Duration(delaySeconds * float64(time.Second))
+	return &denial, nil
+}
+
+// Update updates the number of hops and delay duration for a given deniability plan
+func Update(ctx context.Context, db *sql.DB, id int64, delaySeconds int32, numHops int32) error {
+	_, err := db.ExecContext(ctx, `
+		UPDATE denials
+		SET delay_duration = ?, num_hops = num_hops + ?
+		WHERE id = ?
+	`, int(delaySeconds), numHops, id)
+	if err != nil {
+		return fmt.Errorf("could not update deniability: %w", err)
+	}
+	return nil
 }
