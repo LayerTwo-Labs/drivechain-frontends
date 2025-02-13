@@ -146,6 +146,16 @@ class MockWalletAPI implements WalletAPI {
   Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee) async {
     return 'mock_deposit_txid';
   }
+
+  @override
+  Future<String> signMessage(String message) async {
+    return 'mock_signature';
+  }
+
+  @override
+  Future<bool> verifyMessage(String message, String signature, String publicKey) async {
+    return true;
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

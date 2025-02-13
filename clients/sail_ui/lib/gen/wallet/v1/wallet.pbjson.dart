@@ -191,6 +191,57 @@ const CreateSidechainDepositResponse$json = {
 final $typed_data.Uint8List createSidechainDepositResponseDescriptor = $convert.base64Decode(
     'Ch5DcmVhdGVTaWRlY2hhaW5EZXBvc2l0UmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
 
+@$core.Deprecated('Use signMessageRequestDescriptor instead')
+const SignMessageRequest$json = {
+  '1': 'SignMessageRequest',
+  '2': [
+    {'1': 'message', '3': 1, '4': 1, '5': 9, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `SignMessageRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List signMessageRequestDescriptor = $convert.base64Decode(
+    'ChJTaWduTWVzc2FnZVJlcXVlc3QSGAoHbWVzc2FnZRgBIAEoCVIHbWVzc2FnZQ==');
+
+@$core.Deprecated('Use signMessageResponseDescriptor instead')
+const SignMessageResponse$json = {
+  '1': 'SignMessageResponse',
+  '2': [
+    {'1': 'signature', '3': 1, '4': 1, '5': 9, '10': 'signature'},
+  ],
+};
+
+/// Descriptor for `SignMessageResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List signMessageResponseDescriptor = $convert.base64Decode(
+    'ChNTaWduTWVzc2FnZVJlc3BvbnNlEhwKCXNpZ25hdHVyZRgBIAEoCVIJc2lnbmF0dXJl');
+
+@$core.Deprecated('Use verifyMessageRequestDescriptor instead')
+const VerifyMessageRequest$json = {
+  '1': 'VerifyMessageRequest',
+  '2': [
+    {'1': 'message', '3': 1, '4': 1, '5': 9, '10': 'message'},
+    {'1': 'signature', '3': 2, '4': 1, '5': 9, '10': 'signature'},
+    {'1': 'public_key', '3': 3, '4': 1, '5': 9, '10': 'publicKey'},
+  ],
+};
+
+/// Descriptor for `VerifyMessageRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List verifyMessageRequestDescriptor = $convert.base64Decode(
+    'ChRWZXJpZnlNZXNzYWdlUmVxdWVzdBIYCgdtZXNzYWdlGAEgASgJUgdtZXNzYWdlEhwKCXNpZ2'
+    '5hdHVyZRgCIAEoCVIJc2lnbmF0dXJlEh0KCnB1YmxpY19rZXkYAyABKAlSCXB1YmxpY0tleQ==');
+
+@$core.Deprecated('Use verifyMessageResponseDescriptor instead')
+const VerifyMessageResponse$json = {
+  '1': 'VerifyMessageResponse',
+  '2': [
+    {'1': 'valid', '3': 1, '4': 1, '5': 8, '10': 'valid'},
+  ],
+};
+
+/// Descriptor for `VerifyMessageResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List verifyMessageResponseDescriptor = $convert.base64Decode(
+    'ChVWZXJpZnlNZXNzYWdlUmVzcG9uc2USFAoFdmFsaWQYASABKAhSBXZhbGlk');
+
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',
   '2': [
@@ -200,6 +251,8 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'ListTransactions', '2': '.google.protobuf.Empty', '3': '.wallet.v1.ListTransactionsResponse'},
     {'1': 'ListSidechainDeposits', '2': '.wallet.v1.ListSidechainDepositsRequest', '3': '.wallet.v1.ListSidechainDepositsResponse'},
     {'1': 'CreateSidechainDeposit', '2': '.wallet.v1.CreateSidechainDepositRequest', '3': '.wallet.v1.CreateSidechainDepositResponse'},
+    {'1': 'SignMessage', '2': '.wallet.v1.SignMessageRequest', '3': '.wallet.v1.SignMessageResponse'},
+    {'1': 'VerifyMessage', '2': '.wallet.v1.VerifyMessageRequest', '3': '.wallet.v1.VerifyMessageResponse'},
   ],
 };
 
@@ -219,6 +272,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit': ListSidechainDepositsResponse_SidechainDeposit$json,
   '.wallet.v1.CreateSidechainDepositRequest': CreateSidechainDepositRequest$json,
   '.wallet.v1.CreateSidechainDepositResponse': CreateSidechainDepositResponse$json,
+  '.wallet.v1.SignMessageRequest': SignMessageRequest$json,
+  '.wallet.v1.SignMessageResponse': SignMessageResponse$json,
+  '.wallet.v1.VerifyMessageRequest': VerifyMessageRequest$json,
+  '.wallet.v1.VerifyMessageResponse': VerifyMessageResponse$json,
 };
 
 /// Descriptor for `WalletService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -232,5 +289,8 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'FUxpc3RTaWRlY2hhaW5EZXBvc2l0cxInLndhbGxldC52MS5MaXN0U2lkZWNoYWluRGVwb3NpdH'
     'NSZXF1ZXN0Gigud2FsbGV0LnYxLkxpc3RTaWRlY2hhaW5EZXBvc2l0c1Jlc3BvbnNlEm0KFkNy'
     'ZWF0ZVNpZGVjaGFpbkRlcG9zaXQSKC53YWxsZXQudjEuQ3JlYXRlU2lkZWNoYWluRGVwb3NpdF'
-    'JlcXVlc3QaKS53YWxsZXQudjEuQ3JlYXRlU2lkZWNoYWluRGVwb3NpdFJlc3BvbnNl');
+    'JlcXVlc3QaKS53YWxsZXQudjEuQ3JlYXRlU2lkZWNoYWluRGVwb3NpdFJlc3BvbnNlEkwKC1Np'
+    'Z25NZXNzYWdlEh0ud2FsbGV0LnYxLlNpZ25NZXNzYWdlUmVxdWVzdBoeLndhbGxldC52MS5TaW'
+    'duTWVzc2FnZVJlc3BvbnNlElIKDVZlcmlmeU1lc3NhZ2USHy53YWxsZXQudjEuVmVyaWZ5TWVz'
+    'c2FnZVJlcXVlc3QaIC53YWxsZXQudjEuVmVyaWZ5TWVzc2FnZVJlc3BvbnNl');
 

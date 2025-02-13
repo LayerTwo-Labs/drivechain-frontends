@@ -54,4 +54,18 @@ abstract final class WalletService {
     walletv1wallet.CreateSidechainDepositRequest.new,
     walletv1wallet.CreateSidechainDepositResponse.new,
   );
+
+  static const signMessage = connect.Spec(
+    '/$name/SignMessage',
+    connect.StreamType.unary,
+    walletv1wallet.SignMessageRequest.new,
+    walletv1wallet.SignMessageResponse.new,
+  );
+
+  static const verifyMessage = connect.Spec(
+    '/$name/VerifyMessage',
+    connect.StreamType.unary,
+    walletv1wallet.VerifyMessageRequest.new,
+    walletv1wallet.VerifyMessageResponse.new,
+  );
 }
