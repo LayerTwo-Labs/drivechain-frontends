@@ -27,6 +27,11 @@ abstract class MainchainRPC extends RPCConnection {
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
   List<String> getMethods();
   Future<List<PeerInfo>> getPeerInfo();
+  Future<MempoolInfo> getMempoolInfo();
+  Future<TxOutsetInfo> getTxOutsetInfo();
+  Future<NetworkInfo> getNetworkInfo();
+  Future<MiningInfo> getMiningInfo();
+  Future<String> getDataDir();
 }
 
 class MainchainRPCLive extends MainchainRPC {
@@ -363,6 +368,38 @@ class MainchainRPCLive extends MainchainRPC {
       'walletprocesspsbt',
     ];
   }
+
+  @override
+  Future<MempoolInfo> getMempoolInfo() async {
+    final info = await _client().call('getmempoolinfo');
+    return MempoolInfo.fromMap(info);
+  }
+
+  @override
+  Future<TxOutsetInfo> getTxOutsetInfo() async {
+    final info = await _client().call('gettxoutsetinfo');
+    return TxOutsetInfo.fromMap(info);
+  }
+
+  @override
+  Future<NetworkInfo> getNetworkInfo() async {
+    final info = await _client().call('getnetworkinfo');
+    return NetworkInfo.fromMap(info);
+  }
+
+  @override
+  Future<MiningInfo> getMiningInfo() async {
+    final info = await _client().call('getmininginfo');
+    return MiningInfo.fromMap(info);
+  }
+
+  @override
+  Future<String> getDataDir() async {
+    final info = await _client().call('getrpcinfo');
+    final logPath = info['logpath'] as String;
+    // Remove debug.log from path
+    return logPath.replaceAll('/debug.log', '');
+  }
 }
 
 class PeerInfo {
@@ -492,5 +529,142 @@ class PeerInfo {
   @override
   String toString() {
     return 'PeerInfo{id: $id, addr: $addr, network: $network, version: $version, subVer: $subVer}';
+  }
+}
+
+class MempoolInfo {
+  final bool loaded;
+  final int size;
+  final int bytes;
+  final int usage;
+  final double totalFee;
+  final int maxMempool;
+  final double mempoolMinFee;
+  final double minRelayTxFee;
+  final double incrementalRelayFee;
+  final int unbroadcastCount;
+  final bool fullRBF;
+
+  MempoolInfo({
+    required this.loaded,
+    required this.size,
+    required this.bytes,
+    required this.usage,
+    required this.totalFee,
+    required this.maxMempool,
+    required this.mempoolMinFee,
+    required this.minRelayTxFee,
+    required this.incrementalRelayFee,
+    required this.unbroadcastCount,
+    required this.fullRBF,
+  });
+
+  factory MempoolInfo.fromMap(Map<String, dynamic> map) {
+    return MempoolInfo(
+      loaded: map['loaded'] ?? false,
+      size: map['size'] ?? 0,
+      bytes: map['bytes'] ?? 0,
+      usage: map['usage'] ?? 0,
+      totalFee: (map['total_fee'] ?? 0.0).toDouble(),
+      maxMempool: map['maxmempool'] ?? 0,
+      mempoolMinFee: (map['mempoolminfee'] ?? 0.0).toDouble(),
+      minRelayTxFee: (map['minrelaytxfee'] ?? 0.0).toDouble(),
+      incrementalRelayFee: (map['incrementalrelayfee'] ?? 0.0).toDouble(),
+      unbroadcastCount: map['unbroadcastcount'] ?? 0,
+      fullRBF: map['fullrbf'] ?? false,
+    );
+  }
+}
+
+class TxOutsetInfo {
+  final int height;
+  final String bestBlock;
+  final int txOuts;
+  final int bogoSize;
+  final String hashSerialized;
+  final double totalAmount;
+  final int transactions;
+  final int diskSize;
+
+  TxOutsetInfo({
+    required this.height,
+    required this.bestBlock,
+    required this.txOuts,
+    required this.bogoSize,
+    required this.hashSerialized,
+    required this.totalAmount,
+    required this.transactions,
+    required this.diskSize,
+  });
+
+  factory TxOutsetInfo.fromMap(Map<String, dynamic> map) {
+    return TxOutsetInfo(
+      height: map['height'] ?? 0,
+      bestBlock: map['bestblock'] ?? '',
+      txOuts: map['txouts'] ?? 0,
+      bogoSize: map['bogosize'] ?? 0,
+      hashSerialized: map['hash_serialized_3'] ?? '',
+      totalAmount: (map['total_amount'] ?? 0.0).toDouble(),
+      transactions: map['transactions'] ?? 0,
+      diskSize: map['disk_size'] ?? 0,
+    );
+  }
+}
+
+class NetworkInfo {
+  final int version;
+  final String subversion;
+  final int protocolVersion;
+  final String localServices;
+
+  NetworkInfo({
+    required this.version,
+    required this.subversion,
+    required this.protocolVersion,
+    required this.localServices,
+  });
+
+  factory NetworkInfo.fromMap(Map<String, dynamic> map) {
+    return NetworkInfo(
+      version: map['version'] ?? 0,
+      subversion: map['subversion'] ?? '',
+      protocolVersion: map['protocolversion'] ?? 0,
+      localServices: map['localservices'] ?? '',
+    );
+  }
+}
+
+class MiningInfo {
+  final int blocks;
+  final int currentBlockWeight;
+  final int currentBlockTx;
+  final double difficulty;
+  final double networkHashPs;
+  final int pooledTx;
+  final String chain;
+  final List<String> warnings;
+
+  MiningInfo({
+    required this.blocks,
+    required this.currentBlockWeight,
+    required this.currentBlockTx,
+    required this.difficulty,
+    required this.networkHashPs,
+    required this.pooledTx,
+    required this.chain,
+    required this.warnings,
+  });
+
+  factory MiningInfo.fromMap(Map<String, dynamic> map) {
+    return MiningInfo(
+      blocks: map['blocks'] ?? 0,
+      currentBlockWeight: map['currentblockweight'] ?? 0,
+      currentBlockTx: map['currentblocktx'] ?? 0,
+      difficulty: (map['difficulty'] ?? 0.0).toDouble(),
+      networkHashPs: (map['networkhashps'] ?? 0.0).toDouble(),
+      pooledTx: map['pooledtx'] ?? 0,
+      chain: map['chain'] ?? '',
+      warnings: List<String>.from(map['warnings'] ?? []),
+    );
   }
 }
