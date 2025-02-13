@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -106,14 +105,12 @@ class ConsoleTab extends StatefulWidget {
 // Add enum for RPC types
 enum RPCType {
   bitcoind,
-  enforcer,
   bitwindow,
 }
 
 class _ConsoleTabState extends State<ConsoleTab> {
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
-  EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
 
   RPCType _currentRPC = RPCType.bitcoind;
   late final Map<RPCType, List<String>> _allCommands;
@@ -135,7 +132,6 @@ class _ConsoleTabState extends State<ConsoleTab> {
     _allCommands = {
       RPCType.bitcoind: mainchain.getMethods(),
       RPCType.bitwindow: bitwindow.getMethods(),
-      RPCType.enforcer: enforcer.getMethods(),
     };
   }
 
@@ -183,16 +179,7 @@ class _ConsoleTabState extends State<ConsoleTab> {
           // Bitcoin Core responses are already in JSON format
           response = const JsonEncoder.withIndent('  ').convert(rawResponse);
           break;
-        case RPCType.enforcer:
-          // For these RPCs, we need a single JSON object
-          final jsonBody = args.isEmpty ? '{}' : args[0];
-          if (args.length > 1 || (args.isNotEmpty && !jsonBody.startsWith('{'))) {
-            throw Exception('Arguments must be a single JSON object, e.g. {"key": "value"}');
-          }
-          response = await enforcer.callRAW(command, jsonBody);
-          break;
         case RPCType.bitwindow:
-          // For these RPCs, we need a single JSON object
           // For these RPCs, we need a single JSON object
           final jsonBody = args.isEmpty ? '{}' : args[0];
           if (args.length > 1 || (args.isNotEmpty && !jsonBody.startsWith('{'))) {
