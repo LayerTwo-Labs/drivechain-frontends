@@ -34,6 +34,9 @@ enum SailSVGAsset {
   iconFormat,
   iconMelt,
   iconCast,
+  iconTerminal,
+  iconNetwork,
+  iconPeers,
 
   iconHome,
   iconSend,
@@ -196,6 +199,12 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_melt.svg';
       case SailSVGAsset.iconCast:
         return 'assets/svgs/icon_cast.svg';
+      case SailSVGAsset.iconTerminal:
+        return 'assets/svgs/icon_terminal.svg';
+      case SailSVGAsset.iconNetwork:
+        return 'assets/svgs/icon_network.svg';
+      case SailSVGAsset.iconPeers:
+        return 'assets/svgs/icon_peers.svg';
 
       case SailSVGAsset.iconHome:
         return 'assets/svgs/icon_home.svg';

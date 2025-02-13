@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
@@ -309,6 +310,15 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
           menus: [
             PlatformMenuItemGroup(
               members: [
+                PlatformMenuItem(
+                  label: 'Debug Window',
+                  onSelected: () {
+                    showDialog(
+                      context: _routerKey.currentContext!,
+                      builder: (context) => const DebugWindow(),
+                    );
+                  },
+                ),
                 PlatformMenuItem(
                   label: 'View Logs',
                   onSelected: () => GetIt.I.get<AppRouter>().push(

@@ -109,6 +109,21 @@ class MockMainchainRPC extends MainchainRPC {
   Future<void> waitForHeaderSync() async {
     return;
   }
+
+  @override
+  Future<dynamic> callRAW(String method, [List? params]) {
+    return Future.value(null);
+  }
+
+  @override
+  List<String> getMethods() {
+    return [];
+  }
+
+  @override
+  Future<List<PeerInfo>> getPeerInfo() {
+    return Future.value([]);
+  }
 }
 
 class MockEnforcerRPC extends EnforcerRPC {
@@ -178,6 +193,16 @@ class MockEnforcerRPC extends EnforcerRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<dynamic> callRAW(String url, [String body = '{}']) {
+    return Future.value(null);
+  }
+
+  @override
+  List<String> getMethods() {
+    return [];
   }
 }
 
@@ -254,6 +279,16 @@ class MockBitwindowRPC extends BitwindowRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<dynamic> callRAW(String url, [String body = '{}']) {
+    return Future.value(null);
+  }
+
+  @override
+  List<String> getMethods() {
+    return [];
   }
 }
 
