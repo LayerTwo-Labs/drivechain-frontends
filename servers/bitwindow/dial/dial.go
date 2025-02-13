@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/rs/zerolog"
@@ -18,12 +19,12 @@ import (
 
 // Enforcer creates a CUSF enforcer (validator & wallet) client.
 func Enforcer(ctx context.Context, url string) (
-	rpc.ValidatorServiceClient, rpc.WalletServiceClient, error,
+	rpc.ValidatorServiceClient, rpc.WalletServiceClient, cryptorpc.CryptoServiceClient, error,
 ) {
 	start := time.Now()
 
 	if url == "" {
-		return nil, nil, errors.New("empty validator url")
+		return nil, nil, nil, errors.New("empty validator url")
 	}
 
 	// Use the provided context directly with grpc.NewClient
@@ -34,7 +35,7 @@ func Enforcer(ctx context.Context, url string) (
 	)
 	tip, err := client.GetChainInfo(ctx, connect.NewRequest(&pb.GetChainInfoRequest{}))
 	if err != nil {
-		return nil, nil, fmt.Errorf("get chain info: %w", err)
+		return nil, nil, nil, fmt.Errorf("get chain info: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().
@@ -49,12 +50,18 @@ func Enforcer(ctx context.Context, url string) (
 		connect.WithGRPC(),
 	)
 
+	cryptoClient := cryptorpc.NewCryptoServiceClient(
+		newInsecureClient(),
+		fmt.Sprintf("http://%s", url),
+		connect.WithGRPC(),
+	)
+
 	_, err = walletClient.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
 	if err != nil {
-		return nil, nil, fmt.Errorf("get balance: %w", err)
+		return nil, nil, nil, fmt.Errorf("get balance: %w", err)
 	}
 
-	return client, walletClient, nil
+	return client, walletClient, cryptoClient, nil
 }
 
 // https://connectrpc.com/docs/go/deployment/#h2c

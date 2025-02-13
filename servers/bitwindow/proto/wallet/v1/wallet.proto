@@ -15,6 +15,9 @@ service WalletService {
 
   rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
   rpc CreateSidechainDeposit(CreateSidechainDepositRequest) returns (CreateSidechainDepositResponse);
+
+  rpc SignMessage(SignMessageRequest) returns (SignMessageResponse);
+  rpc VerifyMessage(VerifyMessageRequest) returns (VerifyMessageResponse);
 }
 
 message GetNewAddressResponse {
@@ -98,4 +101,20 @@ message CreateSidechainDepositRequest {
 
 message CreateSidechainDepositResponse {
   string txid = 1;
+}
+
+message SignMessageRequest {
+  string message = 1;
+}
+message SignMessageResponse {
+  string signature = 1;
+}
+
+message VerifyMessageRequest {
+  string message = 1;
+  string signature = 2;
+  string public_key = 3;
+}
+message VerifyMessageResponse {
+  bool valid = 1;
 }

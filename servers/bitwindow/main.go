@@ -12,6 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dial"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/engines"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/server"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -89,13 +90,18 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 
 	enforcerConnector := func(ctx context.Context) (rpc.ValidatorServiceClient, error) {
-		enforcer, _, err := dial.Enforcer(ctx, conf.EnforcerHost)
+		enforcer, _, _, err := dial.Enforcer(ctx, conf.EnforcerHost)
 		return enforcer, err
 	}
 
 	walletConnector := func(ctx context.Context) (rpc.WalletServiceClient, error) {
-		_, wallet, err := dial.Enforcer(ctx, conf.EnforcerHost)
+		_, wallet, _, err := dial.Enforcer(ctx, conf.EnforcerHost)
 		return wallet, err
+	}
+
+	cryptoConnector := func(ctx context.Context) (cryptorpc.CryptoServiceClient, error) {
+		_, _, crypto, err := dial.Enforcer(ctx, conf.EnforcerHost)
+		return crypto, err
 	}
 
 	srv, err := server.NewServer(
@@ -103,6 +109,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		bitcoindConnector,
 		walletConnector,
 		enforcerConnector,
+		cryptoConnector,
 		db,
 		func() {
 			log.Info().Msg("shutting down")
