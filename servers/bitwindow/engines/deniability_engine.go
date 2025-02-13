@@ -74,22 +74,27 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 		return fmt.Errorf("could not list denials: %w", err)
 	}
 
+	now := time.Now()
 	// lets start processing
 	for _, denial := range denials {
 		if denial.CancelledAt != nil {
 			continue
 		}
 
-		// Check if it's time to execute
 		nextExecution, err := deniability.NextExecution(ctx, e.db, denial)
-		if err != nil || nextExecution == nil || time.Now().Before(*nextExecution) {
-			// doesn't matter what, but it's not time to execute!
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not get next execution")
+			return err
+		}
+
+		if nextExecution == nil || now.Before(*nextExecution) {
+			// it's not time to execute!
 			continue
 		}
 
 		// It's time! Execute.
 		if err := e.executeDenial(ctx, utxos, denial); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to execute denial")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not execute denial")
 			continue
 		}
 	}

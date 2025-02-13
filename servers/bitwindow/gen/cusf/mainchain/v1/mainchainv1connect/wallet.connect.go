@@ -65,6 +65,8 @@ const (
 	// WalletServiceListUnspentOutputsProcedure is the fully-qualified name of the WalletService's
 	// ListUnspentOutputs RPC.
 	WalletServiceListUnspentOutputsProcedure = "/cusf.mainchain.v1.WalletService/ListUnspentOutputs"
+	// WalletServiceGetInfoProcedure is the fully-qualified name of the WalletService's GetInfo RPC.
+	WalletServiceGetInfoProcedure = "/cusf.mainchain.v1.WalletService/GetInfo"
 	// WalletServiceSendTransactionProcedure is the fully-qualified name of the WalletService's
 	// SendTransaction RPC.
 	WalletServiceSendTransactionProcedure = "/cusf.mainchain.v1.WalletService/SendTransaction"
@@ -94,6 +96,7 @@ type WalletServiceClient interface {
 	ListSidechainDepositTransactions(context.Context, *connect.Request[v1.ListSidechainDepositTransactionsRequest]) (*connect.Response[v1.ListSidechainDepositTransactionsResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
 	ListUnspentOutputs(context.Context, *connect.Request[v1.ListUnspentOutputsRequest]) (*connect.Response[v1.ListUnspentOutputsResponse], error)
+	GetInfo(context.Context, *connect.Request[v1.GetInfoRequest]) (*connect.Response[v1.GetInfoResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
 	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
 	// Available on regtest and signet only.
@@ -171,6 +174,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("ListUnspentOutputs")),
 			connect.WithClientOptions(opts...),
 		),
+		getInfo: connect.NewClient[v1.GetInfoRequest, v1.GetInfoResponse](
+			httpClient,
+			baseURL+WalletServiceGetInfoProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GetInfo")),
+			connect.WithClientOptions(opts...),
+		),
 		sendTransaction: connect.NewClient[v1.SendTransactionRequest, v1.SendTransactionResponse](
 			httpClient,
 			baseURL+WalletServiceSendTransactionProcedure,
@@ -204,6 +213,7 @@ type walletServiceClient struct {
 	listSidechainDepositTransactions *connect.Client[v1.ListSidechainDepositTransactionsRequest, v1.ListSidechainDepositTransactionsResponse]
 	listTransactions                 *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
 	listUnspentOutputs               *connect.Client[v1.ListUnspentOutputsRequest, v1.ListUnspentOutputsResponse]
+	getInfo                          *connect.Client[v1.GetInfoRequest, v1.GetInfoResponse]
 	sendTransaction                  *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
 	unlockWallet                     *connect.Client[v1.UnlockWalletRequest, v1.UnlockWalletResponse]
 	generateBlocks                   *connect.Client[v1.GenerateBlocksRequest, v1.GenerateBlocksResponse]
@@ -261,6 +271,11 @@ func (c *walletServiceClient) ListUnspentOutputs(ctx context.Context, req *conne
 	return c.listUnspentOutputs.CallUnary(ctx, req)
 }
 
+// GetInfo calls cusf.mainchain.v1.WalletService.GetInfo.
+func (c *walletServiceClient) GetInfo(ctx context.Context, req *connect.Request[v1.GetInfoRequest]) (*connect.Response[v1.GetInfoResponse], error) {
+	return c.getInfo.CallUnary(ctx, req)
+}
+
 // SendTransaction calls cusf.mainchain.v1.WalletService.SendTransaction.
 func (c *walletServiceClient) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	return c.sendTransaction.CallUnary(ctx, req)
@@ -294,6 +309,7 @@ type WalletServiceHandler interface {
 	ListSidechainDepositTransactions(context.Context, *connect.Request[v1.ListSidechainDepositTransactionsRequest]) (*connect.Response[v1.ListSidechainDepositTransactionsResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
 	ListUnspentOutputs(context.Context, *connect.Request[v1.ListUnspentOutputsRequest]) (*connect.Response[v1.ListUnspentOutputsResponse], error)
+	GetInfo(context.Context, *connect.Request[v1.GetInfoRequest]) (*connect.Response[v1.GetInfoResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
 	UnlockWallet(context.Context, *connect.Request[v1.UnlockWalletRequest]) (*connect.Response[v1.UnlockWalletResponse], error)
 	// Available on regtest and signet only.
@@ -367,6 +383,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("ListUnspentOutputs")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceGetInfoHandler := connect.NewUnaryHandler(
+		WalletServiceGetInfoProcedure,
+		svc.GetInfo,
+		connect.WithSchema(walletServiceMethods.ByName("GetInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletServiceSendTransactionHandler := connect.NewUnaryHandler(
 		WalletServiceSendTransactionProcedure,
 		svc.SendTransaction,
@@ -407,6 +429,8 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceListTransactionsHandler.ServeHTTP(w, r)
 		case WalletServiceListUnspentOutputsProcedure:
 			walletServiceListUnspentOutputsHandler.ServeHTTP(w, r)
+		case WalletServiceGetInfoProcedure:
+			walletServiceGetInfoHandler.ServeHTTP(w, r)
 		case WalletServiceSendTransactionProcedure:
 			walletServiceSendTransactionHandler.ServeHTTP(w, r)
 		case WalletServiceUnlockWalletProcedure:
@@ -460,6 +484,10 @@ func (UnimplementedWalletServiceHandler) ListTransactions(context.Context, *conn
 
 func (UnimplementedWalletServiceHandler) ListUnspentOutputs(context.Context, *connect.Request[v1.ListUnspentOutputsRequest]) (*connect.Response[v1.ListUnspentOutputsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.ListUnspentOutputs is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) GetInfo(context.Context, *connect.Request[v1.GetInfoRequest]) (*connect.Response[v1.GetInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.WalletService.GetInfo is not implemented"))
 }
 
 func (UnimplementedWalletServiceHandler) SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {

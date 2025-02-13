@@ -86,6 +86,19 @@ func (s *Server) CreateDenial(
 		)
 	}
 
+	denial, err := deniability.GetByTip(ctx, s.db, req.Msg.Txid, req.Msg.Vout)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not get by tip: %w", err))
+	}
+
+	if denial != nil {
+		// denial for this utxo already exists. Let's piggy back on that by updating its values
+		if err := deniability.Update(ctx, s.db, denial.ID, req.Msg.DelaySeconds, req.Msg.NumHops); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		return connect.NewResponse(&emptypb.Empty{}), nil
+	}
+
 	// UTXO exists, create the denial
 	err = deniability.Create(
 		ctx,
@@ -172,13 +185,13 @@ func (s *Server) withDeniability(ctx context.Context, d *deniability.Denial) (*p
 	var pbExecutions []*pb.ExecutedDenial
 	for _, e := range executions {
 		pbExecutions = append(pbExecutions, &pb.ExecutedDenial{
-			Id:        e.ID,
-			DenialId:  e.DenialID,
-			FromTxid:  e.FromTxID,
-			FromVout:  uint32(e.FromVout),
-			ToTxid:    e.ToTxID,
-			ToVout:    uint32(e.ToVout),
-			CreatedAt: timestamppb.New(e.CreatedAt),
+			Id:         e.ID,
+			DenialId:   e.DenialID,
+			FromTxid:   e.FromTxID,
+			FromVout:   uint32(e.FromVout),
+			ToTxid:     e.ToTxID,
+			ToVout:     uint32(e.ToVout),
+			CreateTime: timestamppb.New(e.CreatedAt),
 		})
 	}
 
@@ -186,13 +199,14 @@ func (s *Server) withDeniability(ctx context.Context, d *deniability.Denial) (*p
 		Id:           d.ID,
 		DelaySeconds: int32(d.DelayDuration.Seconds()),
 		NumHops:      d.NumHops,
-		CreatedAt:    timestamppb.New(d.CreatedAt),
-		CancelledAt: func() *timestamppb.Timestamp {
+		CreateTime:   timestamppb.New(d.CreatedAt),
+		CancelTime: func() *timestamppb.Timestamp {
 			if d.CancelledAt != nil {
 				return timestamppb.New(*d.CancelledAt)
 			}
 			return nil
 		}(),
+		CancelReason: d.CancelReason,
 		NextExecution: func() *timestamppb.Timestamp {
 			if nextExecution == nil {
 				return nil
@@ -239,11 +253,11 @@ func (s *Server) ListAddressBook(ctx context.Context, req *connect.Request[empty
 	var pbEntries []*pb.AddressBookEntry
 	for _, entry := range entries {
 		pbEntries = append(pbEntries, &pb.AddressBookEntry{
-			Id:        entry.ID,
-			Label:     entry.Label,
-			Address:   entry.Address,
-			Direction: addressbook.DirectionToProto(entry.Direction),
-			CreatedAt: timestamppb.New(entry.CreatedAt),
+			Id:         entry.ID,
+			Label:      entry.Label,
+			Address:    entry.Address,
+			Direction:  addressbook.DirectionToProto(entry.Direction),
+			CreateTime: timestamppb.New(entry.CreatedAt),
 		})
 	}
 
