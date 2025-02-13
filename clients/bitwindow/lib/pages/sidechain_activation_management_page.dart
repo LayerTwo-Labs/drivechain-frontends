@@ -16,9 +16,7 @@ class SidechainActivationManagementPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
       viewModelBuilder: () => SidechainActivationManagementViewModel(),
-      builder: (context, model, child) => const QtPage(
-        child: SidechainActivationManagementView(),
-      ),
+      builder: (context, model, child) => const SidechainActivationManagementView(),
     );
   }
 }
@@ -26,10 +24,8 @@ class SidechainActivationManagementPage extends StatelessWidget {
 class SidechainActivationManagementViewModel extends BaseViewModel {
   final SidechainProvider sidechainProvider = GetIt.I.get<SidechainProvider>();
 
-  List<ListSidechainsResponse_Sidechain> get activeSidechains => sidechainProvider.sidechains
-      .where((sidechain) => sidechain != null)
-      .cast<ListSidechainsResponse_Sidechain>()
-      .toList();
+  List<SidechainOverview?> get activeSidechains =>
+      sidechainProvider.sidechains.where((sidechain) => sidechain != null).toList();
 
   List<SidechainProposal> get sidechainProposals => sidechainProvider.sidechainProposals;
 
@@ -42,14 +38,6 @@ class SidechainActivationManagementViewModel extends BaseViewModel {
     sidechainProvider.removeListener(notifyListeners);
     super.dispose();
   }
-
-  void ack(BuildContext context) {
-    showSnackBar(context, 'ACK not implemented');
-  }
-
-  void nack(BuildContext context) {
-    showSnackBar(context, 'NACK not implemented');
-  }
 }
 
 class SidechainActivationManagementView extends StatelessWidget {
@@ -59,84 +47,57 @@ class SidechainActivationManagementView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
       viewModelBuilder: () => SidechainActivationManagementViewModel(),
-      builder: (context, model, child) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailText.primary12('Escrow Status (Active Sidechains)'),
-          const SizedBox(height: SailStyleValues.padding08),
-          Container(
-            decoration: BoxDecoration(
-              color: context.sailTheme.colors.background,
-              border: Border.all(
-                color: context.sailTheme.colors.divider,
-                width: 1.0,
+      builder: (context, model, child) => SailRawCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary12('Escrow Status (Active Sidechains)'),
+            const SizedBox(height: SailStyleValues.padding08),
+            Container(
+              decoration: BoxDecoration(
+                color: context.sailTheme.colors.background,
+                border: Border.all(
+                  color: context.sailTheme.colors.divider,
+                  width: 1.0,
+                ),
+                borderRadius: BorderRadius.circular(4.0),
               ),
-              borderRadius: BorderRadius.circular(4.0),
+              height: 150,
+              child: ActiveSidechainsTable(blocks: model.activeSidechains),
             ),
-            height: 150,
-            child: ActiveSidechainsTable(blocks: model.activeSidechains),
-          ),
-          const SizedBox(height: SailStyleValues.padding16),
-          SailText.primary12('Pending Sidechain Proposals'),
-          const SizedBox(height: SailStyleValues.padding08),
-          Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: context.sailTheme.colors.background,
-              border: Border.all(
-                color: context.sailTheme.colors.divider,
-                width: 1.0,
+            const SizedBox(height: SailStyleValues.padding16),
+            SailText.primary12('Pending Sidechain Proposals'),
+            const SizedBox(height: SailStyleValues.padding08),
+            Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: context.sailTheme.colors.background,
+                border: Border.all(
+                  color: context.sailTheme.colors.divider,
+                  width: 1.0,
+                ),
+                borderRadius: BorderRadius.circular(4.0),
               ),
-              borderRadius: BorderRadius.circular(4.0),
+              height: 150,
+              child: PendingSidechainProposalsTable(proposals: model.sidechainProposals),
             ),
-            height: 150,
-            child: PendingSidechainProposalsTable(proposals: model.sidechainProposals),
-          ),
-          const SizedBox(height: SailStyleValues.padding32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  QtButton(
-                    onPressed: () => model.ack(context),
-                    child: SailText.primary13('ACK'),
-                  ),
-                  const SizedBox(width: SailStyleValues.padding16),
-                  QtButton(
-                    onPressed: () => model.nack(context),
-                    child: SailText.primary13('NACK'),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  QtButton(
-                    onPressed: () {
-                      showSidechainProposalModal(context);
-                    },
-                    child: SailText.primary13('Create Sidechain Proposal'),
-                  ),
-                  const SizedBox(width: SailStyleValues.padding16),
-                  QtIconButton(
-                    tooltip: 'What is this?',
-                    icon: const Icon(Icons.question_mark_rounded, size: 13),
-                    onPressed: () {
-                      showSnackBar(context, 'Not implemented');
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+            SailSpacing(SailStyleValues.padding08),
+            QtButton(
+              onPressed: () {
+                showSidechainProposalModal(context);
+              },
+              size: ButtonSize.small,
+              label: 'Create Sidechain Proposal',
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class ActiveSidechainsTable extends StatefulWidget {
-  final List<ListSidechainsResponse_Sidechain> blocks;
+  final List<SidechainOverview?> blocks;
 
   const ActiveSidechainsTable({
     super.key,
@@ -150,7 +111,7 @@ class ActiveSidechainsTable extends StatefulWidget {
 class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
   String sortColumn = 'slot';
   bool sortAscending = true;
-  List<ListSidechainsResponse_Sidechain> blocks = [];
+  List<SidechainOverview?> blocks = [];
 
   @override
   void initState() {
@@ -186,16 +147,16 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
 
       switch (sortColumn) {
         case 'slot':
-          aValue = a.slot;
-          bValue = b.slot;
+          aValue = a?.info.slot;
+          bValue = b?.info.slot;
           break;
         case 'name':
-          aValue = a.title;
-          bValue = b.title;
+          aValue = a?.info.title;
+          bValue = b?.info.title;
           break;
         case 'chaintipTxid':
-          aValue = a.chaintipTxid;
-          bValue = b.chaintipTxid;
+          aValue = a?.info.chaintipTxid;
+          bValue = b?.info.chaintipTxid;
           break;
       }
 
@@ -206,7 +167,7 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
   @override
   Widget build(BuildContext context) {
     return SailTable(
-      getRowId: (index) => blocks[index].slot.toString(),
+      getRowId: (index) => blocks[index]?.info.slot.toString() ?? '',
       headerBuilder: (context) => [
         const SailTableHeaderCell(name: '#'),
         const SailTableHeaderCell(name: 'Active'),
@@ -216,10 +177,12 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
       rowBuilder: (context, row, selected) {
         final sidechain = blocks[row];
         return [
-          SailTableCell(value: '${sidechain.slot}'),
+          SailTableCell(value: '${sidechain?.info.slot}'),
           const SailTableCell(value: 'Yes'),
-          SailTableCell(value: sidechain.title),
-          SailTableCell(value: sidechain.chaintipTxid.isEmpty ? 'N/A' : sidechain.chaintipTxid),
+          SailTableCell(value: sidechain?.info.title ?? ''),
+          SailTableCell(
+            value: sidechain?.info.chaintipTxid.isEmpty ?? true ? 'N/A' : sidechain?.info.chaintipTxid ?? '',
+          ),
         ];
       },
       rowCount: blocks.length,
@@ -234,18 +197,22 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
 }
 
 Future<void> showSidechainActivationManagementModal(BuildContext context) {
-  return showAdaptiveDialog<void>(
+  final size = MediaQuery.of(context).size;
+
+  return showDialog<void>(
     barrierDismissible: true,
     context: context,
     builder: (BuildContext context) {
-      return Padding(
-        padding: EdgeInsets.all(
-          MediaQuery.of(context).size.width * 0.1,
-        ),
-        child: Material(
-          clipBehavior: Clip.antiAlias,
-          borderRadius: BorderRadius.circular(4.0),
-          child: const SidechainActivationManagementPage(),
+      return Center(
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: size.width * 0.8,
+              maxHeight: size.height * 0.8,
+            ),
+            child: const SidechainActivationManagementPage(),
+          ),
         ),
       );
     },
@@ -368,7 +335,7 @@ class _PendingSidechainProposalsTableState extends State<PendingSidechainProposa
         ];
       },
       rowCount: widget.proposals.length,
-      columnWidths: const [50, 50, 100, 100, 200, 50, 50, 200],
+      columnWidths: const [50, 50, 100, 100, 150, 50, 50, 200],
       sortColumnIndex: ['voteCount', 'slot', 'age', 'fails', 'hash'].indexOf(sortColumn),
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {

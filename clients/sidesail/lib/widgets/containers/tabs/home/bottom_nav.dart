@@ -115,6 +115,6 @@ String formatTimeDifference(int value, String unit) {
 
 extension on Block {
   String toPretty() {
-    return 'Block $height\nBlockTime=${blockTime.toDateTime().format()}\nHash=$hash';
+    return 'Block $height\nBlockTime=${blockTime.toDateTime().toLocal().format()}\nHash=$hash';
   }
 }

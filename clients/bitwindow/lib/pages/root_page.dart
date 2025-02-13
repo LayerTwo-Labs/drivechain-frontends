@@ -310,14 +310,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(
-                  label: 'Debug Window',
-                  onSelected: null,
-                ),
-                PlatformMenuItem(
-                  label: 'Command-line options',
-                  onSelected: null,
-                ),
-                PlatformMenuItem(
                   label: 'View Logs',
                   onSelected: () => GetIt.I.get<AppRouter>().push(
                         LogRoute(
@@ -365,7 +357,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                           ),
                           QtTab(
                             icon: SailSVGAsset.iconSend,
-                            label: 'Send/Receive',
+                            label: 'Send / Receive',
                             active: tabsRouter.activeIndex == 1,
                             onTap: () => tabsRouter.setActiveIndex(1),
                           ),
@@ -518,11 +510,14 @@ class _StatusBarState extends State<StatusBar> {
 }
 
 String formatTimeDifference(int value, String unit) {
+  if (value < 0) {
+    value = 0;
+  }
   return '$value $unit${value == 1 ? '' : 's'}';
 }
 
 extension on Block {
   String toPretty() {
-    return 'Block $height\nBlockTime=${blockTime.toDateTime().format()}\nHash=$hash';
+    return 'Block $height\nBlockTime=${blockTime.toDateTime().toLocal().format()}\nHash=$hash';
   }
 }

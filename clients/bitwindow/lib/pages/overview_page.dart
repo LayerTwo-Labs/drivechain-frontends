@@ -296,7 +296,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       rowBuilder: (context, row, selected) {
         final entry = widget.entries[row];
         return [
-          SailTableCell(value: entry.time.toDateTime().format()),
+          SailTableCell(value: entry.time.toDateTime().toLocal().toString()),
           SailTableCell(value: entry.feeSats.toString()),
           SailTableCell(value: entry.txid),
           SailTableCell(value: entry.virtualSize.toString()),
@@ -391,7 +391,7 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
       rowBuilder: (context, row, selected) {
         final entry = widget.blocks[row];
         return [
-          SailTableCell(value: entry.blockTime.toDateTime().format()),
+          SailTableCell(value: entry.blockTime.toDateTime().toLocal().format()),
           SailTableCell(value: entry.height.toString()),
           SailTableCell(value: entry.hash),
         ];

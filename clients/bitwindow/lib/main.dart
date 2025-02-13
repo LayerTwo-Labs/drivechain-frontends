@@ -184,9 +184,11 @@ Future<void> initDependencies(Logger log, File logFile) async {
   );
   unawaited(txProvider.fetch());
 
+  final denialProvider = DenialProvider();
   GetIt.I.registerLazySingleton<DenialProvider>(
-    () => DenialProvider(),
+    () => denialProvider,
   );
+  unawaited(denialProvider.fetch());
 
   final newsProvider = NewsProvider();
   GetIt.I.registerLazySingleton<NewsProvider>(

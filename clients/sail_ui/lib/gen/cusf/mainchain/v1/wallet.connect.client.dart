@@ -184,6 +184,23 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<cusfmainchainv1wallet.GetInfoResponse> getInfo(
+    cusfmainchainv1wallet.GetInfoRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.getInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<cusfmainchainv1wallet.SendTransactionResponse> sendTransaction(
     cusfmainchainv1wallet.SendTransactionRequest input, {
     connect.Headers? headers,

@@ -179,38 +179,40 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
       textColor = SailTheme.of(context).colors.text;
     }
 
-    return MaterialButton(
-      mouseCursor: disabled ? SystemMouseCursors.forbidden : WidgetStateMouseCursor.clickable,
-      visualDensity: theme.dense ? VisualDensity.compact : null,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      height: 32,
-      onPressed: disabled ? null : widget.onPressed,
-      disabledColor: backgroundColor,
-      color: backgroundColor,
-      enableFeedback: !widget.disabled,
-      textColor: textColor,
-      splashColor: theme.colors.primary,
-      hoverColor: HSLColor.fromColor(backgroundColor)
-          .withLightness((HSLColor.fromColor(backgroundColor).lightness - 0.1).clamp(0.0, 1.0))
-          .toColor(),
-      padding: widget.padding,
-      minWidth: 0,
-      elevation: 0,
-      hoverElevation: 0,
-      focusElevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: SailStyleValues.borderRadiusButton,
-        side: BorderSide(
-          color: context.sailTheme.colors.formFieldBorder,
-          width: 0.5,
+    return SelectionContainer.disabled(
+      child: MaterialButton(
+        mouseCursor: disabled ? SystemMouseCursors.forbidden : WidgetStateMouseCursor.clickable,
+        visualDensity: theme.dense ? VisualDensity.compact : null,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        height: 32,
+        onPressed: disabled ? null : widget.onPressed,
+        disabledColor: backgroundColor,
+        color: backgroundColor,
+        enableFeedback: !widget.disabled,
+        textColor: textColor,
+        splashColor: theme.colors.primary,
+        hoverColor: HSLColor.fromColor(backgroundColor)
+            .withLightness((HSLColor.fromColor(backgroundColor).lightness - 0.1).clamp(0.0, 1.0))
+            .toColor(),
+        padding: widget.padding,
+        minWidth: 0,
+        elevation: 0,
+        hoverElevation: 0,
+        focusElevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: SailStyleValues.borderRadiusButton,
+          side: BorderSide(
+            color: context.sailTheme.colors.formFieldBorder,
+            width: 0.5,
+          ),
         ),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Opacity(opacity: widget.loading ? 0 : 1, child: widget.child),
-          if (widget.loading) LoadingIndicator.insideButton(),
-        ],
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Opacity(opacity: widget.loading ? 0 : 1, child: widget.child),
+            if (widget.loading) LoadingIndicator.insideButton(),
+          ],
+        ),
       ),
     );
   }
@@ -412,7 +414,7 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
                             ],
                           ),
                           padding: const EdgeInsets.symmetric(
-                            vertical: 6,
+                            vertical: 0,
                             horizontal: 8,
                           ),
                           child: Stack(
@@ -437,7 +439,9 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
       ),
     );
 
-    return buttonContent;
+    return SelectionContainer.disabled(
+      child: buttonContent,
+    );
   }
 
   @override

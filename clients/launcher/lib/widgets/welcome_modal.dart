@@ -1,16 +1,17 @@
+import 'dart:convert' show utf8;
 import 'dart:io';
 import 'dart:math';
-import 'dart:convert' show utf8;
+
 import 'package:convert/convert.dart' show hex;
 import 'package:crypto/crypto.dart' show sha256;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:flutter/services.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 // Extension method for chunking lists
 extension ListExtension<T> on List<T> {

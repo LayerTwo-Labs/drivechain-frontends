@@ -86,6 +86,13 @@ abstract final class WalletService {
     cusfmainchainv1wallet.ListUnspentOutputsResponse.new,
   );
 
+  static const getInfo = connect.Spec(
+    '/$name/GetInfo',
+    connect.StreamType.unary,
+    cusfmainchainv1wallet.GetInfoRequest.new,
+    cusfmainchainv1wallet.GetInfoResponse.new,
+  );
+
   static const sendTransaction = connect.Spec(
     '/$name/SendTransaction',
     connect.StreamType.unary,
