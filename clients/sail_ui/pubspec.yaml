@@ -34,6 +34,7 @@ dependencies:
   url_launcher: ^6.3.1
   connectrpc: ^0.2.1
   desktop_multi_window: ^0.2.1
+  web: ^1.1.0
 
   http: any
 dev_dependencies:

@@ -12,78 +12,73 @@ class BlockExplorerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1200, maxHeight: 600),
-        child: ViewModelBuilder<BlockExplorerViewModel>.reactive(
-          viewModelBuilder: () => BlockExplorerViewModel(
-            blockViewBuilder: (block) async {
-              await _showBlockDetails(context, block);
-            },
-          ),
-          onViewModelReady: (model) => model.init(),
-          builder: (context, model, child) {
-            return SailRawCard(
-              title: '# Blocks: ${model.blockchainProvider.infoService.blockchainInfo.blocks}',
-              subtitle:
-                  'Last block time: ${DateTime.fromMillisecondsSinceEpoch(model.blockchainProvider.infoService.blockchainInfo.time * 1000).format()}',
-              bottomPadding: false,
-              child: Column(
+    return ViewModelBuilder<BlockExplorerViewModel>.reactive(
+      viewModelBuilder: () => BlockExplorerViewModel(
+        blockViewBuilder: (block) async {
+          await _showBlockDetails(context, block);
+        },
+      ),
+      onViewModelReady: (model) => model.init(),
+      builder: (context, model, child) {
+        return SailRawCard(
+          title: '# Blocks: ${model.blockchainProvider.infoService.blockchainInfo.blocks}',
+          subtitle:
+              'Last block time: ${DateTime.fromMillisecondsSinceEpoch(model.blockchainProvider.infoService.blockchainInfo.time * 1000).format()}',
+          bottomPadding: false,
+          inSeparateWindow: true,
+          child: Column(
+            children: [
+              SailRow(
+                spacing: SailStyleValues.padding08,
+                mainAxisSize: MainAxisSize.max,
                 children: [
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Expanded(
-                        child: SailTextField(
-                          controller: model.searchController,
-                          hintText: 'Enter a block height or hash',
-                        ),
-                      ),
-                      QtButton(
-                        onPressed: () => model.searchBlock(model.searchController.text),
-                        label: 'Search',
-                        size: ButtonSize.small,
-                      ),
-                    ],
-                  ),
-                  SailSpacing(SailStyleValues.padding16),
                   Expanded(
-                    child: SizedBox(
-                      width: 1200, // Match dialog max width
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        controller: model.scrollController,
-                        key: PageStorageKey('block_list'),
-                        reverse: true,
-                        itemCount: model.blocks.length + (model.isLoadingMoreBlocks ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (model.isLoadingMoreBlocks && index == 0) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          final adjustedIndex = model.isLoadingMoreBlocks ? index - 1 : index;
-                          final block = model.blocks[adjustedIndex];
-                          return Row(
-                            children: [
-                              _buildBlockColumn(context, block),
-                              if (adjustedIndex < model.blocks.length - 1) _buildBlockConnector(context),
-                            ],
-                          );
-                        },
-                      ),
+                    child: SailTextField(
+                      controller: model.searchController,
+                      hintText: 'Enter a block height or hash',
                     ),
                   ),
-                  SailSpacing(SailStyleValues.padding16),
+                  QtButton(
+                    onPressed: () => model.searchBlock(model.searchController.text),
+                    label: 'Search',
+                    size: ButtonSize.small,
+                  ),
                 ],
               ),
-            );
-          },
-        ),
-      ),
+              SailSpacing(SailStyleValues.padding16),
+              Expanded(
+                child: SizedBox(
+                  width: 1200, // Match dialog max width
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    controller: model.scrollController,
+                    key: PageStorageKey('block_list'),
+                    reverse: true,
+                    itemCount: model.blocks.length + (model.isLoadingMoreBlocks ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (model.isLoadingMoreBlocks && index == 0) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+                      final adjustedIndex = model.isLoadingMoreBlocks ? index - 1 : index;
+                      final block = model.blocks[adjustedIndex];
+                      return Row(
+                        children: [
+                          _buildBlockColumn(context, block),
+                          if (adjustedIndex < model.blocks.length - 1) _buildBlockConnector(context),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+              SailSpacing(SailStyleValues.padding16),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -192,71 +187,73 @@ class BlockExplorerDialog extends StatelessWidget {
           child: SailRawCard(
             title: 'Block Details',
             subtitle: '',
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDetailRow(context, 'Height', block.height.toString()),
-                _buildDetailRow(context, 'Hash', block.hash),
-                _buildDetailRow(context, 'Confirmations', block.confirmations.toString()),
-                _buildDetailRow(context, 'Block Version', block.version.toString()),
-                SailSpacing(SailStyleValues.padding16),
-                Container(
-                  padding: const EdgeInsets.only(
-                    left: SailStyleValues.padding16,
-                    right: SailStyleValues.padding16,
-                    top: SailStyleValues.padding04,
-                    bottom: SailStyleValues.padding08,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.sailTheme.colors.backgroundSecondary,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: context.sailTheme.colors.divider,
-                      width: 1,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow(label: 'Height', value: block.height.toString()),
+                  DetailRow(label: 'Hash', value: block.hash),
+                  DetailRow(label: 'Confirmations', value: block.confirmations.toString()),
+                  DetailRow(label: 'Block Version', value: block.version.toString()),
+                  SailSpacing(SailStyleValues.padding16),
+                  Container(
+                    padding: const EdgeInsets.only(
+                      left: SailStyleValues.padding16,
+                      right: SailStyleValues.padding16,
+                      top: SailStyleValues.padding04,
+                      bottom: SailStyleValues.padding08,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
-                        offset: const Offset(0, 1),
-                        blurRadius: 1,
-                        spreadRadius: 1,
+                    decoration: BoxDecoration(
+                      color: context.sailTheme.colors.backgroundSecondary,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: context.sailTheme.colors.divider,
+                        width: 1,
                       ),
-                      BoxShadow(
-                        color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
-                        offset: const Offset(0, -1),
-                        blurRadius: 1,
-                        spreadRadius: 1,
-                      ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
+                          offset: const Offset(0, 1),
+                          blurRadius: 1,
+                          spreadRadius: 1,
+                        ),
+                        BoxShadow(
+                          color: context.sailTheme.colors.shadow.withValues(alpha: 0.1),
+                          offset: const Offset(0, -1),
+                          blurRadius: 1,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary13('Block Header'),
+                        SailSpacing(SailStyleValues.padding08),
+                        DetailRow(label: 'Version', value: block.version.toString()),
+                        DetailRow(label: 'Previous Block Hash', value: block.previousBlockHash),
+                        DetailRow(label: 'Merkle Root', value: block.merkleRoot),
+                        DetailRow(label: 'Time', value: block.blockTime.seconds.toString()),
+                        DetailRow(label: 'Bits', value: '0x${block.bits}'),
+                        DetailRow(label: 'Nonce', value: block.nonce.toString()),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailText.primary13('Block Header'),
-                      SailSpacing(SailStyleValues.padding08),
-                      _buildDetailRow(context, 'Version', block.version.toString()),
-                      _buildDetailRow(context, 'Previous Block Hash', block.previousBlockHash),
-                      _buildDetailRow(context, 'Merkle Root', block.merkleRoot),
-                      _buildDetailRow(context, 'Time', block.blockTime.seconds.toString()),
-                      _buildDetailRow(context, 'Bits', '0x${block.bits}'),
-                      _buildDetailRow(context, 'Nonce', block.nonce.toString()),
-                    ],
+                  const SailSpacing(SailStyleValues.padding16),
+                  DetailRow(label: 'Median time', value: block.blockTime.seconds.toString()),
+                  DetailRow(label: 'Next Block Hash', value: '0' * 64),
+                  DetailRow(label: 'Chain Work', value: '${block.difficulty}'),
+                  const SailSpacing(SailStyleValues.padding16),
+                  SizedBox(
+                    height: 300,
+                    child: TXIDTransactionTable(
+                      transactions: block.txids,
+                      onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
+                    ),
                   ),
-                ),
-                const SailSpacing(SailStyleValues.padding16),
-                _buildDetailRow(context, 'Median time', block.blockTime.seconds.toString()),
-                _buildDetailRow(context, 'Next Block Hash', '0' * 64),
-                _buildDetailRow(context, 'Chain Work', '${block.difficulty}'),
-                const SailSpacing(SailStyleValues.padding16),
-                SizedBox(
-                  height: 300,
-                  child: TXIDTransactionTable(
-                    transactions: block.txids,
-                    onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -264,7 +261,24 @@ class BlockExplorerDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, String label, String value) {
+  void _showTransactionDetails(BuildContext context, String txid) {
+    showDialog(
+      context: context,
+      builder: (context) => TransactionDetailsDialog(
+        txid: txid,
+      ),
+    );
+  }
+}
+
+class DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const DetailRow({super.key, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -285,15 +299,6 @@ class BlockExplorerDialog extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showTransactionDetails(BuildContext context, String txid) {
-    showDialog(
-      context: context,
-      builder: (context) => TransactionDetailsDialog(
-        txid: txid,
       ),
     );
   }
