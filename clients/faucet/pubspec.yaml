@@ -27,6 +27,7 @@ dependencies:
   protobuf: ^3.1.0
   meta: ^1.15.0
   connectrpc: ^0.2.0
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:

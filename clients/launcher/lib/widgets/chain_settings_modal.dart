@@ -77,91 +77,87 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      child: Container(
-        width: 500,
-        height: 500,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: theme.colors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SailText.primary20('${widget.chain.name} Settings'),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: SailColorScheme.red),
-                        onPressed: widget.onWipeAppDir,
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: theme.colors.text),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
+      child: SailRawCard(
+        padding: true,
+        withCloseButton: true,
+        child: Container(
+          width: 500,
+          height: 500,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.colors.backgroundSecondary,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SailText.primary20('${widget.chain.name} Settings'),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: SailColorScheme.red),
+                      onPressed: widget.onWipeAppDir,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildInfoRow(context, 'Version', widget.chain.version),
+                if (widget.chain.repoUrl.isNotEmpty) _buildInfoRow(context, 'Repository', widget.chain.repoUrl),
+                _buildInfoRow(context, 'Network Port', widget.chain.network.port.toString()),
+                _buildInfoRow(context, 'Chain Layer', widget.chain.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
+                if (baseDir != null) _buildInfoRow(context, 'Installation Directory', baseDir),
+                _buildInfoRow(context, 'Binary Path', binary),
+                if (downloadFile != null) _buildInfoRow(context, 'Download File', downloadFile),
+                _buildInfoRow(
+                  context,
+                  'Latest Release At',
+                  widget.chain.download.remoteTimestamp?.toLocal().toString() ?? 'N/A',
+                ),
+                _buildInfoRow(
+                  context,
+                  'Your Version',
+                  widget.chain.download.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
+                ),
+                if (widget.chain.chainLayer == 2) ...[
+                  const SizedBox(height: 16),
+                  FutureBuilder<bool>(
+                    future: _starterExists(widget.chain),
+                    builder: (context, snapshot) {
+                      final starterExists = snapshot.data ?? false;
+                      return Row(
+                        children: [
+                          SailCheckbox(
+                            value: starterExists ? _useStarter : false,
+                            onChanged: starterExists
+                                ? (value) {
+                                    setState(() {
+                                      _useStarter = value;
+                                      widget.onUseStarterChanged(value);
+                                    });
+                                  }
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          SailText.secondary13('Use starter'),
+                        ],
+                      );
+                    },
                   ),
                 ],
-              ),
-              const SizedBox(height: 24),
-              _buildInfoRow(context, 'Version', widget.chain.version),
-              if (widget.chain.repoUrl.isNotEmpty) _buildInfoRow(context, 'Repository', widget.chain.repoUrl),
-              _buildInfoRow(context, 'Network Port', widget.chain.network.port.toString()),
-              _buildInfoRow(context, 'Chain Layer', widget.chain.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
-              if (baseDir != null) _buildInfoRow(context, 'Installation Directory', baseDir),
-              _buildInfoRow(context, 'Binary Path', binary),
-              if (downloadFile != null) _buildInfoRow(context, 'Download File', downloadFile),
-              _buildInfoRow(
-                context,
-                'Latest Release At',
-                widget.chain.download.remoteTimestamp?.toLocal().toString() ?? 'N/A',
-              ),
-              _buildInfoRow(
-                context,
-                'Your Version',
-                widget.chain.download.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
-              ),
-              if (widget.chain.chainLayer == 2) ...[
-                const SizedBox(height: 16),
-                FutureBuilder<bool>(
-                  future: _starterExists(widget.chain),
-                  builder: (context, snapshot) {
-                    final starterExists = snapshot.data ?? false;
-                    return Row(
-                      children: [
-                        SailCheckbox(
-                          value: starterExists ? _useStarter : false,
-                          onChanged: starterExists
-                              ? (value) {
-                                  setState(() {
-                                    _useStarter = value;
-                                    widget.onUseStarterChanged(value);
-                                  });
-                                }
-                              : null,
-                        ),
-                        const SizedBox(width: 8),
-                        SailText.secondary13('Use starter'),
-                      ],
-                    );
-                  },
-                ),
-              ],
-              const SizedBox(height: 24),
-              if (baseDir != null)
-                Center(
-                  child: SailButton.primary(
-                    'Open Installation Directory',
-                    onPressed: () => _openDownloadLocation(widget.chain),
-                    size: ButtonSize.regular,
+                const SizedBox(height: 24),
+                if (baseDir != null)
+                  Center(
+                    child: SailButton.primary(
+                      'Open Installation Directory',
+                      onPressed: () => _openDownloadLocation(widget.chain),
+                      size: ButtonSize.regular,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

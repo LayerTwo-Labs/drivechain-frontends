@@ -7,7 +7,6 @@ class QuotesProvider extends ChangeNotifier {
 
   QuotesProvider(this._prefs) {
     // Clear any existing preference on app start
-    // TODO: Remove this when settings page is implemented
     _prefs.remove(_showQuotesKey);
   }
 

@@ -170,19 +170,14 @@ class SidechainProposalView extends StatelessWidget {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return Center(
-          child: Material(
-            clipBehavior: Clip.antiAlias,
-            borderRadius: BorderRadius.circular(4.0),
-            child: QtPage(
-              child: Stack(
+          child: SailRawCard(
+            child: Padding(
+              padding: const EdgeInsets.all(SailStyleValues.padding16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(SailStyleValues.padding16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SailText.primary12('''
+                  SailText.primary12('''
 These fields are optional but highly recommended.
 
 Description:
@@ -204,18 +199,6 @@ To verify it later, you can look up this commit in the repository history.
 
 These help users find the sidechain full node software. Only this software can filter out invalid withdrawals.
                       '''),
-                        // Close butto
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, size: 16),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ),
                 ],
               ),
             ),

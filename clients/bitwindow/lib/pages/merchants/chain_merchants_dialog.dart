@@ -50,6 +50,7 @@ class ChainMerchantsDialog extends StatelessWidget {
         child: SailRawCard(
           title: 'Chain Merchants',
           subtitle: 'Merchants and services that accept Bitcoin payments',
+          withCloseButton: true,
           child: Column(
             children: [
               Expanded(
@@ -91,14 +92,6 @@ class ChainMerchantsDialog extends StatelessWidget {
                       await launchUrl(url);
                     }
                   },
-                ),
-              ),
-              const SizedBox(height: SailStyleValues.padding16),
-              Center(
-                child: QtButton(
-                  label: 'Close',
-                  onPressed: () => Navigator.of(context).pop(),
-                  size: ButtonSize.small,
                 ),
               ),
             ],

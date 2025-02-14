@@ -13,8 +13,8 @@ class SailColumn extends StatelessWidget {
 
   const SailColumn({
     super.key,
-    required this.spacing,
     required this.children,
+    this.spacing = 0,
     this.leadingSpacing = false,
     this.trailingSpacing = false,
     this.crossAxisAlignment = CrossAxisAlignment.start,
@@ -84,8 +84,8 @@ class SailRow extends StatelessWidget {
 
   const SailRow({
     super.key,
-    required this.spacing,
     required this.children,
+    this.spacing = 0,
     this.leadingSpacing = false,
     this.trailingSpacing = false,
     this.crossAxisAlignment = CrossAxisAlignment.center,

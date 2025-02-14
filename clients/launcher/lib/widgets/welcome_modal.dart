@@ -698,6 +698,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
         backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
         child: SailRawCard(
           padding: true,
+          withCloseButton: true,
           child: SailColumn(
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -710,14 +711,6 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                 '• BIP39: Shows technical details of seed generation\n'
                 '• HD Keys: Displays hierarchical deterministic key info\n\n'
                 'The generated wallet will be used for both mainchain and sidechain operations.',
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: SailButton.secondary(
-                  'Close',
-                  size: ButtonSize.regular,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
               ),
             ],
           ),

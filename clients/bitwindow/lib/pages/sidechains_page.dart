@@ -58,7 +58,8 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
     return SailRawCard(
       title: 'Sidechains',
-      subtitle: error ?? 'List of sidechains and their current status',
+      subtitle: 'List of sidechains and their current status',
+      error: error,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

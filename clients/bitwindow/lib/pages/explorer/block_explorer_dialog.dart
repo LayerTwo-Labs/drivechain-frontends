@@ -526,7 +526,8 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
         constraints: const BoxConstraints(maxWidth: 800),
         child: SailRawCard(
           title: 'Transaction Details',
-          subtitle: error ?? '',
+          subtitle: '',
+          error: error,
           child: transaction == null
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(

@@ -42,10 +42,7 @@ class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsMo
           padding: true,
           title: '${widget.connection.binary.name} Connection Details',
           subtitle: 'Connection information for this daemon',
-          widgetHeaderEnd: SailTextButton(
-            label: '×',
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+          withCloseButton: true,
           child: Padding(
             padding: const EdgeInsets.all(SailStyleValues.padding16),
             child: SailColumn(

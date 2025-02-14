@@ -49,7 +49,9 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
         constraints: const BoxConstraints(maxWidth: 400),
         child: SailRawCard(
           title: 'Open Bitcoin URI',
-          subtitle: _error ?? 'Enter a Bitcoin URI to parse',
+          subtitle: 'Enter a Bitcoin URI to parse',
+          error: _error,
+          withCloseButton: true,
           child: SailColumn(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: SailStyleValues.padding16,
@@ -66,25 +68,15 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
                 if (_parsedURI!.label != null) SailText.primary13('Label: ${_parsedURI!.label}'),
                 if (_parsedURI!.message != null) SailText.primary13('Message: ${_parsedURI!.message}'),
               ],
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  QtButton(
-                    label: 'Use',
-                    onPressed: () {
-                      if (_parsedURI != null) {
-                        Navigator.of(context).pop(_parsedURI);
-                      }
-                    },
-                    disabled: _parsedURI == null,
-                    size: ButtonSize.small,
-                  ),
-                  QtButton(
-                    label: 'Cancel',
-                    onPressed: () => Navigator.of(context).pop(),
-                    size: ButtonSize.small,
-                  ),
-                ],
+              QtButton(
+                label: 'Use',
+                onPressed: () {
+                  if (_parsedURI != null) {
+                    Navigator.of(context).pop(_parsedURI);
+                  }
+                },
+                disabled: _parsedURI == null,
+                size: ButtonSize.small,
               ),
             ],
           ),
