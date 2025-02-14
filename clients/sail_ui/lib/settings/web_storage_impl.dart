@@ -1,2 +1,3 @@
 // Real implementation for web
-export 'dart:html' show Window, window;
+// Re-export window for use in secure_store.dart
+export 'package:web/web.dart' show window, Storage;

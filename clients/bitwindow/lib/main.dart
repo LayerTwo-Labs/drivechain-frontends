@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
@@ -65,26 +66,34 @@ void main(List<String> args) async {
   if (args.contains('multi_window')) {
     final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
 
-    if (arguments['window_type'] == 'deniability') {
-      runApp(
-        SailApp(
-          log: log,
-          dense: true,
-          builder: (context) => MaterialApp(
-            theme: ThemeData(
-              visualDensity: VisualDensity.compact,
-              fontFamily: 'Inter',
-            ),
-            home: Scaffold(
-              body: DeniabilityTab(),
-            ),
-          ),
-          accentColor: const Color.fromARGB(255, 255, 153, 0),
-        ),
-      );
-      return;
+    Widget child = SailRawCard(
+      child: SailText.primary15('no window type provided, the programmers messed up'),
+    );
+    switch (arguments['window_type']) {
+      case 'deniability':
+        child = DeniabilityTab();
+        break;
+      case 'block_explorer':
+        child = const BlockExplorerDialog();
+        break;
     }
-    return;
+
+    return runApp(
+      SailApp(
+        log: log,
+        dense: true,
+        builder: (context) => MaterialApp(
+          theme: ThemeData(
+            visualDensity: VisualDensity.compact,
+            fontFamily: 'Inter',
+          ),
+          home: Scaffold(
+            body: child,
+          ),
+        ),
+        accentColor: const Color.fromARGB(255, 255, 153, 0),
+      ),
+    );
   }
 
   await windowManager.ensureInitialized();

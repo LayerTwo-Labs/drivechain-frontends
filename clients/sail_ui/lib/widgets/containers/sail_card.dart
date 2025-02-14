@@ -17,6 +17,7 @@ class SailRawCard extends StatelessWidget {
   final ShadowSize shadowSize;
   final bool secondary;
   final bool withCloseButton;
+  final bool inSeparateWindow;
 
   const SailRawCard({
     super.key,
@@ -35,6 +36,7 @@ class SailRawCard extends StatelessWidget {
     this.shadowSize = ShadowSize.small,
     this.secondary = false,
     this.withCloseButton = false,
+    this.inSeparateWindow = false,
   }) : assert(!(header != null && title != null), 'Cannot set both title and header');
 
   @override
@@ -57,7 +59,7 @@ class SailRawCard extends StatelessWidget {
             child: Padding(
               padding: padding
                   ? EdgeInsets.only(
-                      top: SailStyleValues.padding16,
+                      top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
                       left: SailStyleValues.padding16,
                       right: SailStyleValues.padding16,
                       bottom: bottomPadding ? SailStyleValues.padding16 : 0,

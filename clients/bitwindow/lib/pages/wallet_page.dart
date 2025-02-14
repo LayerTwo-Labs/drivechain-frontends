@@ -1141,8 +1141,10 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
       subtitle: 'List of UTXOs with optional deniability info.',
       error: widget.error,
       bottomPadding: false,
+      inSeparateWindow: true,
       child: Column(
         children: [
+          SailSpacing(SailStyleValues.padding16),
           Expanded(
             child: SailTable(
               getRowId: (index) => '${widget.utxos[index].txid}:${widget.utxos[index].vout}',
