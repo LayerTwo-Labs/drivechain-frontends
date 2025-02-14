@@ -67,10 +67,7 @@ class _DenialDialogState extends State<DenialDialog> {
             padding: true,
             title: 'Start Automatic Denial',
             subtitle: '',
-            widgetHeaderEnd: SailTextButton(
-              label: '×',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+            withCloseButton: true,
             child: SailColumn(
               spacing: SailStyleValues.padding12,
               crossAxisAlignment: CrossAxisAlignment.start,

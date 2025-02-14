@@ -4,6 +4,7 @@ import 'package:sail_ui/sail_ui.dart';
 class SailRawCard extends StatelessWidget {
   final String? title;
   final String? subtitle;
+  final String? error;
   final Widget? header;
   final VoidCallback? onPressed;
   final bool padding;
@@ -15,11 +16,13 @@ class SailRawCard extends StatelessWidget {
   final BorderRadius? borderRadius;
   final ShadowSize shadowSize;
   final bool secondary;
+  final bool withCloseButton;
 
   const SailRawCard({
     super.key,
     this.title,
     this.subtitle,
+    this.error,
     this.header,
     this.onPressed,
     this.padding = true,
@@ -31,6 +34,7 @@ class SailRawCard extends StatelessWidget {
     this.borderRadius,
     this.shadowSize = ShadowSize.small,
     this.secondary = false,
+    this.withCloseButton = false,
   }) : assert(!(header != null && title != null), 'Cannot set both title and header');
 
   @override
@@ -63,8 +67,26 @@ class SailRawCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (header != null) header!,
-                  if (title != null)
+                  if (header != null)
+                    SailRow(
+                      spacing: 0,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Flexible(child: header!),
+                        if (withCloseButton)
+                          SailScaleButton(
+                            style: SailButtonStyle.secondary,
+                            child: SailSVG.fromAsset(
+                              SailSVGAsset.iconClose,
+                              width: 15,
+                              color: theme.colors.error,
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                      ],
+                    )
+                  else if (title != null)
                     SizedBox(
                       width: double.infinity,
                       child: SailRow(
@@ -76,10 +98,34 @@ class SailRawCard extends StatelessWidget {
                             child: CardHeader(
                               title: title!,
                               subtitle: subtitle,
+                              error: error,
                             ),
                           ),
                           if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                          if (withCloseButton)
+                            SailScaleButton(
+                              style: SailButtonStyle.secondary,
+                              child: SailSVG.fromAsset(
+                                SailSVGAsset.iconClose,
+                                width: 15,
+                                color: theme.colors.error,
+                              ),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
                         ],
+                      ),
+                    )
+                  else if (withCloseButton)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: SailScaleButton(
+                        style: SailButtonStyle.secondary,
+                        child: SailSVG.fromAsset(
+                          SailSVGAsset.iconClose,
+                          width: 15,
+                          color: theme.colors.error,
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
                   if (title != null) const SailSpacing(SailStyleValues.padding16),

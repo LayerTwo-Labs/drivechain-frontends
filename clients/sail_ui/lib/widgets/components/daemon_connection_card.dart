@@ -52,7 +52,6 @@ class DaemonConnectionCard extends StatelessWidget {
                 ),
               );
             },
-            style: SailButtonStyle.secondary,
             pressed: connection.initializingBinary,
             child: SailSVG.fromAsset(
               SailSVGAsset.iconTabSettings,
@@ -62,7 +61,6 @@ class DaemonConnectionCard extends StatelessWidget {
           ),
           SailScaleButton(
             onPressed: restartDaemon,
-            style: SailButtonStyle.secondary,
             pressed: connection.initializingBinary,
             child: InitializingDaemonSVG(
               animate: connection.initializingBinary,
@@ -71,7 +69,6 @@ class DaemonConnectionCard extends StatelessWidget {
           if (deleteFunction != null)
             SailScaleButton(
               onPressed: deleteFunction,
-              style: SailButtonStyle.secondary,
               pressed: false,
               child: SailSVG.fromAsset(
                 SailSVGAsset.iconDelete,
@@ -84,15 +81,17 @@ class DaemonConnectionCard extends StatelessWidget {
       child: SailColumn(
         spacing: SailStyleValues.padding12,
         children: [
-          MouseRegion(
-            cursor: navigateToLogs == null ? MouseCursor.defer : SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap:
-                  navigateToLogs == null ? null : () => navigateToLogs!(connection.binary.binary, connection.logPath),
-              child: SailText.primary10(
-                'View logs',
-                color: theme.colors.textSecondary,
-                underline: true,
+          SelectionContainer.disabled(
+            child: MouseRegion(
+              cursor: navigateToLogs == null ? MouseCursor.defer : SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap:
+                    navigateToLogs == null ? null : () => navigateToLogs!(connection.binary.binary, connection.logPath),
+                child: SailText.primary10(
+                  'View logs',
+                  color: theme.colors.textSecondary,
+                  underline: true,
+                ),
               ),
             ),
           ),

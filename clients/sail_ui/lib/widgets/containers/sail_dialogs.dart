@@ -98,13 +98,9 @@ Future<T?> widgetDialog<T>({
           maxWidth: maxWidth,
         ),
         child: SailRawCard(
-          header: DialogHeader(
-            title: title,
-            subtitle: subtitle,
-            onClose: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-          ),
+          title: title,
+          subtitle: subtitle ?? '',
+          withCloseButton: true,
           child: child,
         ),
       ),
@@ -115,11 +111,13 @@ Future<T?> widgetDialog<T>({
 class CardHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
+  final String? error;
 
   const CardHeader({
     super.key,
     required this.title,
     this.subtitle,
+    this.error,
   });
 
   @override
@@ -135,10 +133,10 @@ class CardHeader extends StatelessWidget {
           title,
           bold: true,
         ),
-        if (subtitle != null)
+        if (error != null || subtitle != null)
           SailText.primary12(
-            subtitle!,
-            color: theme.colors.textTertiary,
+            error ?? subtitle!,
+            color: error != null ? SailColorScheme.red : theme.colors.textTertiary,
             overflow: TextOverflow.visible,
           ),
       ],

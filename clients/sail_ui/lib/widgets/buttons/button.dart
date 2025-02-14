@@ -394,7 +394,7 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
                           ],
                         ),
                         padding: const EdgeInsets.symmetric(
-                          vertical: 0,
+                          vertical: 2,
                           horizontal: 8,
                         ),
                         child: Stack(

@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class DebugWindow extends StatelessWidget {
@@ -16,8 +15,6 @@ class DebugWindow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.sailTheme;
-
     return SailPadding(
       padding: EdgeInsets.only(
         top: SailStyleValues.padding16,
@@ -25,61 +22,32 @@ class DebugWindow extends StatelessWidget {
         right: SailStyleValues.padding16,
         bottom: SailStyleValues.padding64 * 2,
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: Dialog(
-          backgroundColor: theme.colors.background,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Stack(
-            children: [
-              ViewModelBuilder<DebugViewModel>.reactive(
-                viewModelBuilder: () => DebugViewModel(),
-                builder: (context, model, child) {
-                  return InlineTabBar(
-                    tabs: const [
-                      TabItem(
-                        label: 'Information',
-                        icon: SailSVGAsset.iconInfo,
-                        child: InformationTab(),
-                      ),
-                      TabItem(
-                        label: 'Console',
-                        icon: SailSVGAsset.iconTerminal,
-                        child: ConsoleTab(),
-                      ),
-                      TabItem(
-                        label: 'Peers',
-                        icon: SailSVGAsset.iconPeers,
-                        child: PeersTab(),
-                      ),
-                    ],
-                    initialIndex: 0,
-                  );
-                },
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: SailScaleButton(
-                  child: SailSVG.fromAsset(
-                    SailSVGAsset.iconClose,
-                    width: 15,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ],
-          ),
+      child: SailRawCard(
+        withCloseButton: true,
+        color: context.sailTheme.colors.background,
+        child: InlineTabBar(
+          tabs: const [
+            TabItem(
+              label: 'Information',
+              icon: SailSVGAsset.iconInfo,
+              child: InformationTab(),
+            ),
+            TabItem(
+              label: 'Console',
+              icon: SailSVGAsset.iconTerminal,
+              child: ConsoleTab(),
+            ),
+            TabItem(
+              label: 'Peers',
+              icon: SailSVGAsset.iconPeers,
+              child: PeersTab(),
+            ),
+          ],
+          initialIndex: 0,
         ),
       ),
     );
   }
-}
-
-class DebugViewModel extends BaseViewModel {
-  // Add debug-related functionality here
 }
 
 class InformationTab extends StatefulWidget {
@@ -131,25 +99,25 @@ class _InformationTabState extends State<InformationTab> {
           spacing: SailStyleValues.padding25,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSection(
-              'General Info',
-              {
+            InfoSection(
+              title: 'General Info',
+              details: {
                 'Client version': _networkInfo?.version.toString() ?? 'Loading...',
                 'User Agent': _networkInfo?.subversion ?? 'Loading...',
                 'Protocol Version': _networkInfo?.protocolVersion.toString() ?? 'Loading...',
                 'Datadir': _dataDir ?? 'Loading...',
               },
             ),
-            _buildSection(
-              'Network Info',
-              {
+            InfoSection(
+              title: 'Network Info',
+              details: {
                 'Chain': _blockchainInfo?.chain ?? 'Loading...',
                 'Network Activity': _blockchainInfo?.initialBlockDownload ?? true ? 'Disabled' : 'Enabled',
               },
             ),
-            _buildSection(
-              'Blockchain Info',
-              {
+            InfoSection(
+              title: 'Blockchain Info',
+              details: {
                 'Current number of blocks': _blockchainInfo?.blocks.toString() ?? 'Loading...',
                 'Headers': _blockchainInfo?.headers.toString() ?? 'Loading...',
                 'Verification Progress': '${(_blockchainInfo?.verificationProgress ?? 0 * 100).toStringAsFixed(2)}%',
@@ -160,9 +128,9 @@ class _InformationTabState extends State<InformationTab> {
                     : 'Loading...',
               },
             ),
-            _buildSection(
-              'Mempool Info',
-              {
+            InfoSection(
+              title: 'Mempool Info',
+              details: {
                 'Transaction Count': _mempoolInfo?.size.toString() ?? 'Loading...',
                 'Memory Usage': '${_mempoolInfo?.usage ?? 0} bytes',
                 'Total Fee': '${_mempoolInfo?.totalFee ?? 0} BTC',
@@ -174,8 +142,16 @@ class _InformationTabState extends State<InformationTab> {
       ),
     );
   }
+}
 
-  Widget _buildSection(String title, Map<String, String> details) {
+class InfoSection extends StatelessWidget {
+  final String title;
+  final Map<String, String> details;
+
+  const InfoSection({super.key, required this.title, required this.details});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -351,8 +327,8 @@ class _ConsoleTabState extends State<ConsoleTab> {
     );
   }
 
-  void _handleKeyPress(RawKeyEvent event) {
-    if (event is! RawKeyDownEvent) return;
+  void _handleKeyPress(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
 
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       if (_historyIndex > 0) {
@@ -406,9 +382,9 @@ class _ConsoleTabState extends State<ConsoleTab> {
               children: [
                 // Command input (now includes the RPC selector)
                 Expanded(
-                  child: RawKeyboardListener(
+                  child: KeyboardListener(
                     focusNode: _focusNode,
-                    onKey: _handleKeyPress,
+                    onKeyEvent: _handleKeyPress,
                     child: Autocomplete<String>(
                       optionsBuilder: (TextEditingValue textEditingValue) {
                         if (textEditingValue.text.isEmpty) {
@@ -572,7 +548,7 @@ class ConsoleEntryWidget extends StatelessWidget {
           ? BoxDecoration(
               border: Border(
                 left: BorderSide(
-                  color: theme.colors.primary.withOpacity(0.3),
+                  color: theme.colors.primary.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
@@ -712,10 +688,9 @@ class PeerDetailsDialog extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 24),
-                _buildDetailSection(
-                  context,
-                  'Connection',
-                  {
+                DetailSection(
+                  title: 'Connection',
+                  details: {
                     'ID': peer.id.toString(),
                     'Address': peer.addr,
                     'Bind Address': peer.addrBind,
@@ -727,10 +702,9 @@ class PeerDetailsDialog extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                _buildDetailSection(
-                  context,
-                  'Status',
-                  {
+                DetailSection(
+                  title: 'Status',
+                  details: {
                     'Version': peer.version.toString(),
                     'Subversion': peer.subVer,
                     'Services': peer.services,
@@ -743,10 +717,9 @@ class PeerDetailsDialog extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                _buildDetailSection(
-                  context,
-                  'Sync Status',
-                  {
+                DetailSection(
+                  title: 'Sync Status',
+                  details: {
                     'Starting Height': peer.startingHeight.toString(),
                     'Synced Headers': peer.syncedHeaders.toString(),
                     'Synced Blocks': peer.syncedBlocks.toString(),
@@ -759,10 +732,9 @@ class PeerDetailsDialog extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                _buildDetailSection(
-                  context,
-                  'Traffic',
-                  {
+                DetailSection(
+                  title: 'Traffic',
+                  details: {
                     'Bytes Sent': '${peer.bytesSent} bytes',
                     'Bytes Received': '${peer.bytesRecv} bytes',
                     'Last Send': peer.lastSend == 0
@@ -780,8 +752,16 @@ class PeerDetailsDialog extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildDetailSection(BuildContext context, String title, Map<String, String> details) {
+class DetailSection extends StatelessWidget {
+  final String title;
+  final Map<String, String> details;
+
+  const DetailSection({super.key, required this.title, required this.details});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

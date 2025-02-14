@@ -8,51 +8,32 @@ class MessageSigner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.sailTheme;
-
     return SailPadding(
       padding: const EdgeInsets.all(SailStyleValues.padding16),
-      child: Material(
-        color: Colors.transparent,
-        child: Dialog(
-          backgroundColor: theme.colors.background,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: SizedBox(
-            width: 800,
-            height: 600,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: InlineTabBar(
-                    tabs: const [
-                      TabItem(
-                        label: 'Sign Message',
-                        icon: SailSVGAsset.iconPen,
-                        child: SignMessageTab(),
-                      ),
-                      TabItem(
-                        label: 'Verify Message',
-                        icon: SailSVGAsset.iconCheck,
-                        child: VerifyMessageTab(),
-                      ),
-                    ],
-                    initialIndex: 0,
+      child: Dialog(
+        child: SizedBox(
+          width: 800,
+          height: 600,
+          child: SailRawCard(
+            withCloseButton: true,
+            color: context.sailTheme.colors.background,
+            padding: false,
+            child: Positioned.fill(
+              child: InlineTabBar(
+                tabs: const [
+                  TabItem(
+                    label: 'Sign Message',
+                    icon: SailSVGAsset.iconPen,
+                    child: SignMessageTab(),
                   ),
-                ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: SailScaleButton(
-                    child: SailSVG.fromAsset(
-                      SailSVGAsset.iconClose,
-                      width: 15,
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
+                  TabItem(
+                    label: 'Verify Message',
+                    icon: SailSVGAsset.iconCheck,
+                    child: VerifyMessageTab(),
                   ),
-                ),
-              ],
+                ],
+                initialIndex: 0,
+              ),
             ),
           ),
         ),

@@ -1027,6 +1027,7 @@ class GraffittiExplorerView extends StatelessWidget {
     await widgetDialog(
       context: context,
       title: 'New Graffitti',
+      subtitle: 'Write whatever you want and broadcast it to the blockchain',
       child: const NewGraffittiView(),
     );
   }

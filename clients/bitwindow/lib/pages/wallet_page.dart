@@ -1060,9 +1060,9 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow(context, 'TxID', utxo.txid),
-                  _buildDetailRow(context, 'Output Index', utxo.vout.toString()),
-                  _buildDetailRow(context, 'Amount', formatBitcoin(satoshiToBTC(utxo.valueSats.toInt()))),
+                  DetailRow(label: 'TxID', value: utxo.txid),
+                  DetailRow(label: 'Output Index', value: utxo.vout.toString()),
+                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt()))),
                   if (utxo.hasDeniability()) ...[
                     const SailSpacing(SailStyleValues.padding16),
                     BorderedSection(
@@ -1070,20 +1070,18 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildDetailRow(context, 'Status', _getDeniabilityStatus(utxo)),
-                          _buildDetailRow(context, 'Completed Hops', '${utxo.deniability.executions.length}'),
-                          _buildDetailRow(context, 'Total Hops', '${utxo.deniability.numHops}'),
+                          DetailRow(label: 'Status', value: _getDeniabilityStatus(utxo)),
+                          DetailRow(label: 'Completed Hops', value: '${utxo.deniability.executions.length}'),
+                          DetailRow(label: 'Total Hops', value: '${utxo.deniability.numHops}'),
                           if (utxo.deniability.hasNextExecution())
-                            _buildDetailRow(
-                              context,
-                              'Next Execution',
-                              utxo.deniability.nextExecution.toDateTime().toLocal().toString(),
+                            DetailRow(
+                              label: 'Next Execution',
+                              value: utxo.deniability.nextExecution.toDateTime().toLocal().toString(),
                             ),
                           if (utxo.deniability.hasCancelTime())
-                            _buildDetailRow(
-                              context,
-                              'Cancel Reason',
-                              utxo.deniability.cancelReason,
+                            DetailRow(
+                              label: 'Cancel Reason',
+                              value: utxo.deniability.cancelReason,
                             ),
                         ],
                       ),
@@ -1135,36 +1133,12 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     return 'Ongoing ($completedHops/$totalHops hops)';
   }
 
-  Widget _buildDetailRow(BuildContext context, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 160,
-            child: SailText.primary13(
-              label,
-              monospace: true,
-              color: context.sailTheme.colors.textTertiary,
-            ),
-          ),
-          Expanded(
-            child: SailText.secondary13(
-              value,
-              monospace: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return SailRawCard(
       title: 'UTXOs and Denials',
-      subtitle: widget.error ?? 'List of UTXOs with optional deniability info.',
+      subtitle: 'List of UTXOs with optional deniability info.',
+      error: widget.error,
       bottomPadding: false,
       child: Column(
         children: [
@@ -1301,6 +1275,39 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
             ),
           ),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const DetailRow({super.key, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: SailText.primary13(
+              label,
+              monospace: true,
+              color: context.sailTheme.colors.textTertiary,
+            ),
+          ),
+          Expanded(
+            child: SailText.secondary13(
+              value,
+              monospace: true,
+            ),
+          ),
         ],
       ),
     );

@@ -26,5 +26,5 @@ linter:
 
 analyzer:
     exclude:
-        - "**/lib/gen**"
-        - '**/build/**'
+        - "lib/gen**"
+        - "build/**"
