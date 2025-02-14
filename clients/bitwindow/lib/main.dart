@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
@@ -22,21 +24,71 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  Environment.validateAtRuntime();
 
-  final logFile = await getLogFile();
+  Directory? applicationDir;
+  File? logFile;
+
+  if (args.contains('multi_window')) {
+    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+
+    if (arguments['application_dir'] != null) {
+      applicationDir = Directory(arguments['application_dir']);
+    }
+    if (arguments['log_file'] != null) {
+      logFile = File(arguments['log_file']);
+    }
+
+    if (logFile == null || applicationDir == null) {
+      throw ArgumentError('Missing required arguments for multi-window mode: application_dir, log_file');
+    }
+  }
+
+  // Fall back to filesystem if not provided in args
+  applicationDir ??= await Environment.datadir();
+  logFile ??= await getLogFile();
+
   final log = await logger(Environment.fileLog, Environment.consoleLog, logFile);
   log.i('starting bitwindow, writing logs to $logFile');
-  await initDependencies(log, logFile);
 
-  MainchainRPC mainchain = GetIt.I.get<MainchainRPC>();
+  await initDependencies(
+    log,
+    logFile,
+    applicationDir: applicationDir,
+  );
+
+  Environment.validateAtRuntime();
+
+  if (args.contains('multi_window')) {
+    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+
+    if (arguments['window_type'] == 'deniability') {
+      runApp(
+        SailApp(
+          log: log,
+          dense: true,
+          builder: (context) => MaterialApp(
+            theme: ThemeData(
+              visualDensity: VisualDensity.compact,
+              fontFamily: 'Inter',
+            ),
+            home: Scaffold(
+              body: DeniabilityTab(),
+            ),
+          ),
+          accentColor: const Color.fromARGB(255, 255, 153, 0),
+        ),
+      );
+      return;
+    }
+    return;
+  }
 
   await windowManager.ensureInitialized();
+
   const windowOptions = WindowOptions(
     minimumSize: Size(600, 700),
     titleBarStyle: TitleBarStyle.normal,
@@ -50,56 +102,16 @@ void main() async {
     }),
   );
 
-  final router = GetIt.I.get<AppRouter>();
-
-  return runApp(
-    SailApp(
-      dense: true,
-      builder: (context) {
-        return MaterialApp.router(
-          routerDelegate: router.delegate(),
-          routeInformationParser: router.defaultRouteParser(),
-          title: 'Drivechain',
-          theme: ThemeData(
-            visualDensity: VisualDensity.compact,
-            fontFamily: 'Inter',
-          ),
-        );
-      },
-      initMethod: (context) async {
-        try {
-          // Load content first since it doesn't depend on binaries
-          await GetIt.I.get<ContentProvider>().load(context);
-
-          // first, set all binaries as initializing
-          mainchain.initializingBinary = true;
-          GetIt.I.get<EnforcerRPC>().initializingBinary = true;
-          GetIt.I.get<BitwindowRPC>().initializingBinary = true;
-
-          if (!context.mounted) return;
-          await initMainchainBinary(log, mainchain);
-          log.i(
-            'mainchain inited: ibd complete, ready to start enforcer',
-          );
-
-          if (!context.mounted) return;
-          unawaited(initEnforcer(context, log));
-          await initBitwindow(log);
-          log.i(
-            'server inited: ready to serve frontend',
-          );
-        } catch (e) {
-          log.e('could not init necessary binaries: $e');
-        }
-      },
-      accentColor: const Color.fromARGB(255, 255, 153, 0),
-      log: log,
-    ),
-  );
+  runApp(BitwindowApp(log: log));
 }
 
-Future<void> initDependencies(Logger log, File logFile) async {
-  final prefs = await SharedPreferences.getInstance();
+Future<void> initDependencies(
+  Logger log,
+  File logFile, {
+  required Directory applicationDir,
+}) async {
+  // Create platform-appropriate storage
+  final storage = await KeyValueStore.create(dir: applicationDir);
 
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
@@ -107,12 +119,9 @@ Future<void> initDependencies(Logger log, File logFile) async {
   // Register the router
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
 
-  // Needed for sail_ui to work
   GetIt.I.registerLazySingleton<ClientSettings>(
     () => ClientSettings(
-      store: Storage(
-        preferences: prefs,
-      ),
+      store: storage,
       log: log,
     ),
   );
@@ -209,64 +218,6 @@ Future<void> initDependencies(Logger log, File logFile) async {
   unawaited(addressBookProvider.fetch());
 }
 
-Future<void> initMainchainBinary(
-  Logger log,
-  MainchainRPC mainchain,
-) async {
-  await mainchain.initBinary();
-  log.i('mainchain init: started node, waiting for ibd');
-  await mainchain.waitForHeaderSync();
-
-  log.i('mainchain init: successfully started node blocks=${mainchain.blockCount}');
-}
-
-Future<void> initEnforcer(
-  BuildContext context,
-  Logger log,
-) async {
-  final enforcer = GetIt.I.get<EnforcerRPC>();
-
-  try {
-    await enforcer.initBinary();
-  } catch (e) {
-    log.e('could not init enforcer: $e');
-  }
-
-  // return when the enforcer is connected, but always move on
-  // if 60 seconds have passed
-  await Future.any([
-    () async {
-      while (!enforcer.connected) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-    }(),
-    Future.delayed(const Duration(seconds: 60)),
-  ]);
-
-  log.i('mainchain init: successfully started enforcer');
-}
-
-Future<void> initBitwindow(
-  Logger log,
-) async {
-  final server = GetIt.I.get<BitwindowRPC>();
-
-  await server.initBinary();
-
-  // return when the server is connected, but always move on
-  // if 60 seconds have passed
-  await Future.any([
-    () async {
-      while (!server.connected) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-    }(),
-    Future.delayed(const Duration(seconds: 60)),
-  ]);
-
-  log.i('server init: successfully started');
-}
-
 void ignoreOverflowErrors(
   FlutterErrorDetails details, {
   bool forceReport = false,
@@ -297,4 +248,32 @@ Future<File> getLogFile() async {
   final logFile = File(path);
 
   return logFile;
+}
+
+class BitwindowApp extends StatelessWidget {
+  final Logger log;
+
+  const BitwindowApp({super.key, required this.log});
+
+  @override
+  Widget build(BuildContext context) {
+    final router = GetIt.I.get<AppRouter>();
+
+    return SailApp(
+      log: log,
+      dense: true,
+      builder: (context) {
+        return MaterialApp.router(
+          routerDelegate: router.delegate(),
+          routeInformationParser: router.defaultRouteParser(),
+          title: 'Bitcoin Core + CUSF BIP 300/301 Activator',
+          theme: ThemeData(
+            visualDensity: VisualDensity.compact,
+            fontFamily: 'Inter',
+          ),
+        );
+      },
+      accentColor: const Color.fromARGB(255, 255, 153, 0),
+    );
+  }
 }

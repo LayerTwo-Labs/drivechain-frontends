@@ -5,7 +5,7 @@ class MockQuotesProvider extends ChangeNotifier implements QuotesProvider {
   bool _showQuotes = true;
 
   @override
-  bool get showQuotes => _showQuotes;
+  Future<bool> get showQuotes async => _showQuotes;
 
   @override
   Future<void> setShowQuotes(bool show) async {

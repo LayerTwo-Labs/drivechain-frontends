@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart' as protobuf;
@@ -25,7 +24,6 @@ import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
@@ -75,7 +73,7 @@ void main() async {
 }
 
 Future<void> initDependencies(Logger log) async {
-  final prefs = await SharedPreferences.getInstance();
+  final storage = await KeyValueStore.create();
 
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
@@ -83,26 +81,23 @@ Future<void> initDependencies(Logger log) async {
   // Register the router
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());
 
-  // Needed for sidesail_ui to work
+  // Needed for sail_ui to work
   GetIt.I.registerLazySingleton<ClientSettings>(
     () => ClientSettings(
-      store: Storage(
-        preferences: prefs,
-      ),
+      store: storage,
       log: log,
     ),
   );
 
-  final appDir = await Environment.appDir();
   final processProvider = ProcessProvider(
-    datadir: appDir,
+    datadir: await Environment.appDir(),
   );
   GetIt.I.registerSingleton<ProcessProvider>(
     processProvider,
   );
 
   // Load initial binary states
-  final binaries = await _loadBinaries(appDir);
+  final binaries = await _loadBinaries();
 
   // Register all RPCs in GetIt
   await Future.wait(
@@ -158,7 +153,7 @@ Future<void> initDependencies(Logger log) async {
   );
   // Register binary provider
   final binaryProvider = BinaryProvider(
-    appDir: appDir,
+    appDir: await Environment.appDir(),
     initialBinaries: binaries,
   );
   GetIt.I.registerSingleton<BinaryProvider>(
@@ -172,14 +167,14 @@ Future<void> initDependencies(Logger log) async {
 
   // Register quotes provider
   GetIt.I.registerSingleton<QuotesProvider>(
-    QuotesProvider(prefs),
+    QuotesProvider(storage),
   );
 
   // Register wallet service
   GetIt.I.registerSingleton<WalletService>(WalletService());
 }
 
-Future<List<Binary>> _loadBinaries(Directory appDir) async {
+Future<List<Binary>> _loadBinaries() async {
   final jsonString = await rootBundle.loadString('assets/chain_config.json');
   final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
 
@@ -188,5 +183,5 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
           .toList() ??
       [];
 
-  return await loadBinaryMetadata(binaries, appDir);
+  return await loadBinaryMetadata(binaries, await Environment.appDir());
 }

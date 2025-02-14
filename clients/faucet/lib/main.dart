@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:logger/logger.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   start();
@@ -47,12 +47,12 @@ Future<void> start() async {
 Future<void> initDependencies() async {
   final log = await logger(false, true, null);
   GetIt.I.registerLazySingleton<Logger>(() => log);
-  final prefs = await SharedPreferences.getInstance();
+
+  final storage = FileStorage.fromDirectory(await getApplicationSupportDirectory());
+
   GetIt.I.registerLazySingleton<ClientSettings>(
     () => ClientSettings(
-      store: Storage(
-        preferences: prefs,
-      ),
+      store: storage,
       log: log,
     ),
   );

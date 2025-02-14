@@ -138,18 +138,18 @@ class BitwindowRPCLive extends BitwindowRPC {
       restartOnFailure: true,
     );
 
-    await instance._init(transport);
+    instance._init(transport);
     return instance;
   }
 
-  Future<void> _init(Transport transport) async {
+  void _init(Transport transport) {
     bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
     wallet = _WalletAPILive(WalletServiceClient(transport));
     bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));
     drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
     misc = _MiscAPILive(MiscServiceClient(transport));
 
-    await startConnectionTimer();
+    startConnectionTimer();
   }
 
   @override

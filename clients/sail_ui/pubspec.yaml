@@ -24,7 +24,6 @@ dependencies:
   intl: ^0.20.2
   crypto: ^3.0.6
   logger: ^2.5.0
-  shared_preferences: ^2.5.1
   stacked: ^3.4.3
   auto_route: ^9.3.0+1
   get_it: ^7.7.0
@@ -34,6 +33,7 @@ dependencies:
   flutter_markdown: ^0.7.6
   url_launcher: ^6.3.1
   connectrpc: ^0.2.1
+  desktop_multi_window: ^0.2.1
 
   http: any
 dev_dependencies:
