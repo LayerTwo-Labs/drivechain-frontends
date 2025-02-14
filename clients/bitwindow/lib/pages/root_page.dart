@@ -28,6 +28,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
+import 'package:sail_ui/widgets/platform_menu.dart';
 
 @RoutePage()
 class RootPage extends StatefulWidget {
@@ -51,11 +52,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return PlatformMenuBar(
+    return CrossPlatformMenuBar(
       menus: [
         // First menu will be Apple menu (system provided)
-
-        // This will be captured as the application menu
         PlatformMenu(
           label: 'bitwindow',
           menus: [
