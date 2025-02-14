@@ -50,13 +50,13 @@ class EnforcerLive extends EnforcerRPC {
       restartOnFailure: true,
     );
 
-    await instance._init(transport);
+    instance._init(transport);
     return instance;
   }
 
-  Future<void> _init(Transport transport) async {
+  void _init(Transport transport) {
     validator = ValidatorServiceClient(transport);
-    await startConnectionTimer();
+    startConnectionTimer();
   }
 
   @override

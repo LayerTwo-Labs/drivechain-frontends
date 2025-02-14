@@ -155,14 +155,14 @@ class _MenuButtonState extends State<_MenuButton> {
           children: [
             SailText.primary13(
               item.label,
-              color: isEnabled ? context.sailTheme.colors.text : context.sailTheme.colors.text.withOpacity(0.3),
+              color: isEnabled ? context.sailTheme.colors.text : context.sailTheme.colors.text.withValues(alpha: 0.3),
             ),
             if (item.shortcut != null)
               SailText.secondary13(
                 _getShortcutLabel(item.shortcut!),
                 color: isEnabled
                     ? context.sailTheme.colors.textTertiary
-                    : context.sailTheme.colors.textTertiary.withOpacity(0.3),
+                    : context.sailTheme.colors.textTertiary.withValues(alpha: 0.3),
               ),
           ],
         ),

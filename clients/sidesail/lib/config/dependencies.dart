@@ -12,7 +12,6 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/providers/cast_provider.dart';
@@ -32,11 +31,10 @@ Future<void> initDependencies(Sidechain chain) async {
   final logFile = await getLogFile();
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
   GetIt.I.registerLazySingleton<Logger>(() => log);
-  final prefs = await SharedPreferences.getInstance();
+
+  final storage = await KeyValueStore.create();
   final clientSettings = ClientSettings(
-    store: Storage(
-      preferences: prefs,
-    ),
+    store: storage,
     log: log,
   );
 

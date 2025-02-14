@@ -948,6 +948,7 @@ class DeniabilityTab extends StatelessWidget {
       builder: (BuildContext context, BoxConstraints constraints) {
         return ViewModelBuilder<DeniabilityViewModel>.reactive(
           viewModelBuilder: () => DeniabilityViewModel(),
+          onViewModelReady: (model) => WidgetsBinding.instance.addPostFrameCallback((_) => model.postInit()),
           builder: (context, model, child) {
             final error = model.error('deniability');
 
@@ -1323,6 +1324,9 @@ class DeniabilityViewModel extends BaseViewModel {
   DeniabilityViewModel() {
     denialProvider.addListener(notifyListeners);
     denialProvider.addListener(errorListener);
+  }
+
+  void postInit() {
     denialProvider.fetch();
   }
 

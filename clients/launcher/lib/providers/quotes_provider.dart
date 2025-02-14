@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sail_ui/settings/secure_store.dart';
 
 class QuotesProvider extends ChangeNotifier {
-  final SharedPreferences _prefs;
+  final KeyValueStore _store;
   static const String _showQuotesKey = 'show_quotes';
 
-  QuotesProvider(this._prefs) {
+  QuotesProvider(this._store) {
     // Clear any existing preference on app start
-    _prefs.remove(_showQuotesKey);
+    _store.delete(_showQuotesKey);
   }
 
-  bool get showQuotes => _prefs.getBool(_showQuotesKey) ?? true;
+  Future<bool> get showQuotes async {
+    final value = await _store.getString(_showQuotesKey);
+    return value == 'true';
+  }
 
   Future<void> setShowQuotes(bool value) async {
-    await _prefs.setBool(_showQuotesKey, value);
+    await _store.setString(_showQuotesKey, value.toString());
     notifyListeners();
   }
 }

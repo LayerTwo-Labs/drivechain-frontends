@@ -30,7 +30,6 @@ dependencies:
   google_fonts: ^6.2.1
   auto_route: ^9.3.0+1
   fixnum: ^1.1.0
-  shared_preferences: ^2.5.1
   get_it: ^7.7.0
   meta: ^1.15.0
   protobuf: ^3.1.0
@@ -43,6 +42,7 @@ dependencies:
   pointycastle: ^3.9.1
   crypto: ^3.0.6
   connectrpc: ^0.2.1
+  desktop_multi_window: ^0.2.1
 
 dev_dependencies:
   flutter_test:

@@ -18,6 +18,7 @@ class _QuotesWidgetState extends State<QuotesWidget> {
   List<Map<String, String>> quotes = [];
   int currentQuoteIndex = 0;
   Timer? quoteTimer;
+  bool showQuotes = true;
 
   @override
   void initState() {
@@ -75,94 +76,99 @@ class _QuotesWidgetState extends State<QuotesWidget> {
   Widget build(BuildContext context) {
     final quotesProvider = context.watch<QuotesProvider>();
 
-    if (quotes.isEmpty || !quotesProvider.showQuotes) {
-      return const SizedBox.shrink();
-    }
+    return FutureBuilder<bool>(
+      future: quotesProvider.showQuotes,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || !snapshot.data! || quotes.isEmpty) {
+          return const SizedBox.shrink();
+        }
 
-    final quote = quotes[currentQuoteIndex];
+        final quote = quotes[currentQuoteIndex];
 
-    return Positioned(
-      bottom: 32,
-      right: 32,
-      child: SizedBox(
-        width: 350,
-        child: SailRawCard(
-          padding: false, // Remove default padding
-          child: Stack(
-            children: [
-              // Main content
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios, size: 14),
-                      onPressed: previousQuote,
-                      color: Colors.grey[600],
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '"${quote['quote']}"', // Using stored 'text' key from JSON parsing
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontStyle: FontStyle.italic,
-                                  color: Colors.grey[600],
-                                ),
-                            textAlign: TextAlign.center,
+        return Positioned(
+          bottom: 32,
+          right: 32,
+          child: SizedBox(
+            width: 350,
+            child: SailRawCard(
+              padding: false, // Remove default padding
+              child: Stack(
+                children: [
+                  // Main content
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios, size: 14),
+                          onPressed: previousQuote,
+                          color: Colors.grey[600],
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '- ${quote['author']}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey[500],
-                                ),
-                            textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '"${quote['quote']}"', // Using stored 'text' key from JSON parsing
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      fontStyle: FontStyle.italic,
+                                      color: Colors.grey[600],
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '- ${quote['author']}',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey[500],
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward_ios, size: 14),
+                          onPressed: nextQuote,
+                          color: Colors.grey[600],
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios, size: 14),
-                      onPressed: nextQuote,
-                      color: Colors.grey[600],
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Close button overlay
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.close, size: 14),
-                  onPressed: () => quotesProvider.setShowQuotes(false),
-                  color: Colors.grey[600],
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 24,
-                    minHeight: 24,
                   ),
-                ),
+                  // Close button overlay
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, size: 14),
+                      onPressed: () => quotesProvider.setShowQuotes(false),
+                      color: Colors.grey[600],
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 24,
+                        minHeight: 24,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
