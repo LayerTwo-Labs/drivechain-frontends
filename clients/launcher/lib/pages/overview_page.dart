@@ -465,7 +465,7 @@ class _OverviewPageState extends State<OverviewPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildActionButton(context, binary, status),
-              if (binary.updateAvailable && (status?.progress == 1.0 || status?.progress == 0)) ...[
+              if (binary.updateAvailable && (status?.progress == 1.0 || status?.progress == 0 || status == null)) ...[
                 const SizedBox(width: 12),
                 Center(
                   child: SailButton.primary(
