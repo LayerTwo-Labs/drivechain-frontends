@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/widgets/modals/article_info_modal.dart';
 
@@ -14,9 +15,9 @@ extension StringExtension on String {
 
 class ContentProvider extends ChangeNotifier {
   List<ArticleGroup> groups = [];
-  Future<void> load(BuildContext context) async {
+  Future<void> load() async {
     try {
-      groups = await loadArticleGroups(context);
+      groups = await loadArticleGroups();
 
       notifyListeners();
     } catch (error) {
@@ -24,9 +25,9 @@ class ContentProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<ArticleGroup>> loadArticleGroups(BuildContext context) async {
+  Future<List<ArticleGroup>> loadArticleGroups() async {
     try {
-      final manifestContent = await DefaultAssetBundle.of(context).loadString('AssetManifest.json');
+      final manifestContent = await rootBundle.loadString('AssetManifest.json');
       final Map<String, dynamic> manifest = json.decode(manifestContent);
 
       final articlePaths = manifest.keys.where(
@@ -54,7 +55,7 @@ class ContentProvider extends ChangeNotifier {
           final articles = await Future.wait<Article>(
             entry.value.map((path) async {
               try {
-                final content = await DefaultAssetBundle.of(context).loadString(path);
+                final content = await rootBundle.loadString(path);
                 final article = parseArticle(content, path);
                 if (article == null) {
                   debugPrint('Failed to parse article: $path');
