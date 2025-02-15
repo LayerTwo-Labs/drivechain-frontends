@@ -191,7 +191,7 @@ func (e *DeniabilityEngine) executeDenial(ctx context.Context, utxos []*pb.ListU
 		Msg: &pb.CreateNewAddressRequest{},
 	})
 	if err != nil {
-		return fmt.Errorf("could not get new address: %w", err)
+		return fmt.Errorf("enforcer/wallet: could not get new address: %w", err)
 	}
 
 	const fee = 10000
@@ -220,7 +220,7 @@ func (e *DeniabilityEngine) executeDenial(ctx context.Context, utxos []*pb.ListU
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("could not send to address: %w", err)
+		return fmt.Errorf("enforcer/wallet: could not send to address: %w", err)
 	}
 
 	// Wait for the new UTXO to appear and find its vout
@@ -261,14 +261,14 @@ type UTXO struct {
 func (e *DeniabilityEngine) listUTXOs(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, error) {
 	wallet, err := e.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet client: %w", err)
+		return nil, fmt.Errorf("enforcer/wallet: could not get wallet client: %w", err)
 	}
 
 	resp, err := wallet.ListUnspentOutputs(ctx, &connect.Request[pb.ListUnspentOutputsRequest]{
 		Msg: &pb.ListUnspentOutputsRequest{},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not list transactions: %w", err)
+		return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
 	}
 
 	return resp.Msg.Outputs, nil

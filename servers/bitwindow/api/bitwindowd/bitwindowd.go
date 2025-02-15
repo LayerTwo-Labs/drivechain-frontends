@@ -54,7 +54,7 @@ func (s *Server) CreateDenial(
 	// First check if the UTXO exists
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	if req.Msg.DelaySeconds <= 0 {
@@ -67,7 +67,7 @@ func (s *Server) CreateDenial(
 
 	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
 	}
 
 	// Check if UTXO exists
@@ -122,12 +122,12 @@ func (s *Server) ListDenials(
 	// First get all UTXOs from the wallet
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
 	}
 
 	deniabilities, err := deniability.List(ctx, s.db)

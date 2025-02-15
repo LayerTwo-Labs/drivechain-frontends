@@ -15,7 +15,6 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
-	drivechainrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1/drivechainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
@@ -38,25 +37,22 @@ func New(
 	database *sql.DB,
 	bitcoind *service.Service[*coreproxy.Bitcoind],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
-	drivechain drivechainrpc.DrivechainServiceHandler,
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 ) *Server {
 	s := &Server{
-		database:   database,
-		bitcoind:   bitcoind,
-		wallet:     wallet,
-		drivechain: drivechain,
-		crypto:     crypto,
+		database: database,
+		bitcoind: bitcoind,
+		wallet:   wallet,
+		crypto:   crypto,
 	}
 	return s
 }
 
 type Server struct {
-	database   *sql.DB
-	bitcoind   *service.Service[*coreproxy.Bitcoind]
-	wallet     *service.Service[validatorrpc.WalletServiceClient]
-	drivechain drivechainrpc.DrivechainServiceHandler
-	crypto     *service.Service[cryptorpc.CryptoServiceClient]
+	database *sql.DB
+	bitcoind *service.Service[*coreproxy.Bitcoind]
+	wallet   *service.Service[validatorrpc.WalletServiceClient]
+	crypto   *service.Service[cryptorpc.CryptoServiceClient]
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
@@ -113,7 +109,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet: %w", err)
+		return nil, err
 	}
 	created, err := wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
 		Destinations:    destinations,
@@ -121,7 +117,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		OpReturnMessage: opReturnMessage,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("could not send transaction: %w", err)
+		return nil, fmt.Errorf("enforcer/wallet: could not send transaction: %w", err)
 	}
 
 	if c.Msg.Label != "" {
@@ -149,17 +145,13 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNewAddressResponse], error) {
-	if s.wallet == nil {
-		return nil, errors.New("wallet not connected")
-	}
-
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet: %w", err)
+		return nil, err
 	}
 	address, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("enforcer/wallet: could not create new address: %w", err)
 	}
 
 	return connect.NewResponse(&pb.GetNewAddressResponse{
@@ -169,17 +161,13 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.E
 
 // GetBalance implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetBalanceResponse], error) {
-	if s.wallet == nil {
-		return nil, errors.New("wallet not connected")
-	}
-
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet: %w", err)
+		return nil, err
 	}
 	balance, err := wallet.GetBalance(ctx, connect.NewRequest(&validatorpb.GetBalanceRequest{}))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("enforcer/wallet: could not get balance: %w", err)
 	}
 
 	return connect.NewResponse(&pb.GetBalanceResponse{
@@ -190,17 +178,13 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[emptypb.Empt
 
 // ListTransactions implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListTransactionsResponse], error) {
-	if s.wallet == nil {
-		return nil, errors.New("wallet not connected")
-	}
-
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet: %w", err)
+		return nil, err
 	}
 	txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
 	}
 
 	res := &pb.ListTransactionsResponse{
@@ -252,7 +236,7 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 		bitcoind, err := s.bitcoind.Get(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("could not get bitcoind: %w", err)
+			return nil, err
 		}
 		rawTxResponse, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
 			Msg: &corepb.GetRawTransactionRequest{
@@ -260,7 +244,7 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 			},
 		})
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get raw transaction: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("bitcoind: failed to get raw transaction: %w", err))
 		}
 
 		for _, deposit := range deposits {
@@ -308,7 +292,7 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet: %w", err)
+		return nil, err
 	}
 	created, err := wallet.CreateDepositTransaction(ctx, connect.NewRequest(&validatorpb.CreateDepositTransactionRequest{
 		SidechainId: &wrapperspb.UInt32Value{Value: uint32(*slot)},
@@ -317,7 +301,7 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		FeeSats:     &wrapperspb.UInt64Value{Value: uint64(fee)},
 	}))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("enforcer/wallet: could not create deposit transaction: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().Msgf("create deposit tx: broadcast transaction: %s", created.Msg.Txid)
@@ -331,7 +315,7 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMessageRequest]) (*connect.Response[pb.SignMessageResponse], error) {
 	crypto, err := s.crypto.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get crypto: %w", err)
+		return nil, err
 	}
 
 	res, err := crypto.Secp256K1Sign(ctx, connect.NewRequest(&cryptov1.Secp256K1SignRequest{
@@ -340,7 +324,7 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 		},
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("could not sign message: %w", err)
+		return nil, fmt.Errorf("enforcer/crypto: could not sign message: %w", err)
 	}
 
 	return connect.NewResponse(&pb.SignMessageResponse{
@@ -352,7 +336,7 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.VerifyMessageRequest]) (*connect.Response[pb.VerifyMessageResponse], error) {
 	crypto, err := s.crypto.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get crypto: %w", err)
+		return nil, err
 	}
 
 	res, err := crypto.Secp256K1Verify(ctx, connect.NewRequest(&cryptov1.Secp256K1VerifyRequest{
@@ -367,7 +351,7 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 		},
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("could not verify message: %w", err)
+		return nil, fmt.Errorf("enforcer/crypto: could not verify message: %w", err)
 	}
 
 	return connect.NewResponse(&pb.VerifyMessageResponse{

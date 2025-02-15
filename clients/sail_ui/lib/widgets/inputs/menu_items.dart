@@ -145,19 +145,23 @@ class _SailMenuItemState extends State<SailMenuItem> {
   void _handleSelection(bool isWindows) {
     _selected = true;
 
-    // Close menu after a short delay.
-    var closeDelay = isWindows ? 50 : 240;
-    _closeTimer = Timer(Duration(milliseconds: closeDelay), () {
-      _toggleFlash();
-      if (widget.onSelected != null) {
-        widget.onSelected!();
-      }
-    });
-
     // Start flashing the item.
     if (!isWindows) {
       _toggleFlash();
     }
+
+    // Close menu after a short delay.
+    var closeDelay = isWindows ? 50 : 240;
+    _closeTimer = Timer(Duration(milliseconds: closeDelay), () {
+      final menuAnchor = context.findAncestorWidgetOfExactType<MenuAnchor>();
+      if (menuAnchor != null) {
+        menuAnchor.controller?.close();
+      }
+
+      if (widget.onSelected != null) {
+        widget.onSelected!();
+      }
+    });
   }
 
   void _toggleFlash() {
@@ -166,6 +170,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
       _flashing = !_flashing;
     });
 
+    _toggleFlashTimer?.cancel();
     _toggleFlashTimer = Timer(const Duration(milliseconds: 80), _toggleFlash);
   }
 

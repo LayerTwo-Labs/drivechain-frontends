@@ -17,7 +17,6 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -31,19 +30,16 @@ var _ rpc.MiscServiceHandler = new(Server)
 // anything else just yet.
 func New(
 	database *sql.DB,
-	bitcoind *service.Service[*coreproxy.Bitcoind],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 ) *Server {
 	return &Server{
 		database: database,
-		bitcoind: bitcoind,
 		wallet:   wallet,
 	}
 }
 
 type Server struct {
 	database *sql.DB
-	bitcoind *service.Service[*coreproxy.Bitcoind]
 	wallet   *service.Service[validatorrpc.WalletServiceClient]
 }
 
@@ -109,7 +105,7 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet: %w", err)
+		return nil, err
 	}
 	resp, err := wallet.SendTransaction(ctx,
 		connect.NewRequest(&validatorpb.SendTransactionRequest{
@@ -120,7 +116,7 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 			},
 		}))
 	if err != nil {
-		return nil, fmt.Errorf("could not broadcast news: %w", err)
+		return nil, fmt.Errorf("enforcer/wallet: could not broadcast news: %w", err)
 	}
 
 	log := zerolog.Ctx(ctx)
@@ -166,7 +162,7 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	// Send the transaction
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet: %w", err)
+		return nil, err
 	}
 	resp, err := wallet.SendTransaction(ctx,
 		connect.NewRequest(&validatorpb.SendTransactionRequest{
@@ -177,7 +173,7 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 			},
 		}))
 	if err != nil {
-		return nil, fmt.Errorf("could not broadcast topic creation: %w", err)
+		return nil, fmt.Errorf("enforcer/wallet: could not broadcast topic creation: %w", err)
 	}
 
 	log := zerolog.Ctx(ctx)
