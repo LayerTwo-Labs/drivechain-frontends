@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
 )
 
@@ -66,14 +67,14 @@ func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 		select {
 		case <-ctx.Done():
 			var zero T
-			return zero, ctx.Err()
+			return zero, connect.NewError(connect.CodeUnavailable, ctx.Err())
 		case <-ticker.C:
 			continue
 		}
 	}
 
 	var zero T
-	return zero, fmt.Errorf("could not establish connection to %s after 3 seconds of retrying", s.name)
+	return zero, connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s not available", s.name))
 }
 
 // IsConnected returns whether the service is currently connected

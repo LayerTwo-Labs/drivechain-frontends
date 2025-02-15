@@ -29,7 +29,7 @@ class _LogPageState extends State<LogPage> {
   final List<String> _logLines = [];
   Timer? _tailTimer;
   int _lastPosition = 0;
-  bool _stickToBottom = true; // Track if we should stick to bottom
+  bool _stickToBottom = true;
 
   @override
   void initState() {
@@ -136,12 +136,20 @@ class _LogPageState extends State<LogPage> {
         final data = await raf.read(length - _lastPosition);
         await raf.close();
 
-        final newContent = utf8.decode(data);
+        String newContent;
+        try {
+          newContent = utf8.decode(data, allowMalformed: true);
+        } catch (e) {
+          // If UTF8 fails, try Latin1
+          newContent = latin1.decode(data);
+        }
+
         final newLines = newContent
             .split('\n')
             .where((line) => line.isNotEmpty)
             .where((line) => !isSpam(line))
-            .map((line) => line.replaceAll(RegExp(r'^flutter: '), '')); // Just remove flutter prefix
+            .map((line) => line.trim())
+            .toList();
 
         setState(() {
           _logLines.addAll(newLines);
@@ -176,6 +184,7 @@ class _LogPageState extends State<LogPage> {
       appBar: AppBar(
         title: SailText.primary20(widget.title, color: SailColorScheme.whiteDark),
         backgroundColor: SailColorScheme.blackLighter,
+        foregroundColor: SailColorScheme.whiteDark,
         actions: [
           IconButton(
             icon: const Icon(Icons.vertical_align_bottom),
@@ -311,12 +320,8 @@ class LogPageViewModel extends BaseViewModel {
       raf.setPositionSync(start);
       final buffer = raf.readSync(end - start);
       try {
-        final chunk = utf8
-            .decode(buffer.toList(), allowMalformed: true)
-            .split('\n')
-            .map(_stripAnsiCodes) // Strip ANSI codes from each line
-            .toList() // Convert to List before reversing
-            .reversed;
+        final chunk =
+            utf8.decode(buffer.toList(), allowMalformed: true).split('\n').map(_stripAnsiCodes).toList().reversed;
         lines.insertAll(0, chunk);
       } catch (e) {
         log.e('Error decoding log file chunk: $e');
@@ -339,10 +344,7 @@ class LogPageViewModel extends BaseViewModel {
       try {
         final chunk = utf8.decode(buffer, allowMalformed: true);
         newLines.addAll(
-          chunk
-              .split('\n')
-              .map(_stripAnsiCodes) // Strip ANSI codes from each line
-              .where((line) => line.isNotEmpty),
+          chunk.split('\n').map(_stripAnsiCodes).where((line) => line.isNotEmpty),
         );
       } catch (e) {
         log.e('Error decoding new log lines: $e');

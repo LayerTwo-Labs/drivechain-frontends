@@ -130,7 +130,7 @@ func (p *Parser) handleMempoolTick(ctx context.Context) error {
 		Verbose: true,
 	}))
 	if err != nil {
-		return fmt.Errorf("could not get mempool: %w", err)
+		return fmt.Errorf("bitcoind: could not get mempool: %w", err)
 	}
 
 	for txid, tx := range mempoolRes.Msg.Transactions {
@@ -229,7 +229,7 @@ func (p *Parser) processBlock(ctx context.Context, height int32) error {
 func (p *Parser) currentHeight(ctx context.Context) (int32, string, error) {
 	resp, err := p.bitcoind.GetBlockchainInfo(ctx, &connect.Request[corepb.GetBlockchainInfoRequest]{})
 	if err != nil {
-		return 0, "", fmt.Errorf("current height: %w", err)
+		return 0, "", fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
 
 	return int32(resp.Msg.Blocks), resp.Msg.BestBlockHash, nil
@@ -243,7 +243,7 @@ func (p *Parser) getBlock(ctx context.Context, height int32) (*corepb.GetBlockRe
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get block: %w", err)
+		return nil, fmt.Errorf("bitcoind: could not get block: %w", err)
 	}
 
 	return resp.Msg, nil
@@ -256,7 +256,7 @@ func (p *Parser) getRawTransaction(ctx context.Context, txid string) (*corepb.Ra
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get raw transaction: %w", err)
+		return nil, fmt.Errorf("bitcoind: could not get raw transaction: %w", err)
 	}
 
 	return resp.Msg.Tx, nil
