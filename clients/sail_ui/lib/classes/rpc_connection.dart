@@ -171,7 +171,7 @@ abstract class RPCConnection extends ChangeNotifier {
         return;
       }
 
-      log.i('init binaries: starting $binary ${args.join(" ")}');
+      log.i('init binaries: starting ${binary.name}:${binary.binary} ${args.join(" ")}');
 
       int pid;
       try {
@@ -346,8 +346,15 @@ abstract class RPCConnection extends ChangeNotifier {
         await stopRPC();
         _connectionTimer?.cancel();
       } catch (e) {
-        log.w('Killing process, graceful shutdown failed: $e');
+        await Future.delayed(const Duration(milliseconds: 250));
         final processes = GetIt.I.get<ProcessProvider>();
+        if (processes.exited(binary) != null) {
+          // Process exited, don't bother killing it
+          _connectionTimer?.cancel();
+          return;
+        }
+
+        log.w('Killing process, graceful shutdown failed: $e');
         await processes.kill(binary);
         _connectionTimer?.cancel();
       }

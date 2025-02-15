@@ -106,7 +106,7 @@ class MockBinary extends Binary {
               OS.windows: 'Mock',
             },
           ),
-          download: DownloadConfig(
+          metadata: MetadataConfig(
             baseUrl: 'https://mock.test',
             files: {
               OS.linux: 'mock',
@@ -128,7 +128,7 @@ class MockBinary extends Binary {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,

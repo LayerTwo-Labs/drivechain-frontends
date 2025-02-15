@@ -1,11 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
-import 'package:connectrpc/http2.dart';
-import 'package:connectrpc/protobuf.dart' as protobuf;
-import 'package:connectrpc/protobuf.dart';
-import 'package:connectrpc/protocol/connect.dart' as connect;
-import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -89,15 +85,16 @@ Future<void> initDependencies(Logger log) async {
     ),
   );
 
+  final appDir = await Environment.appDir();
   final processProvider = ProcessProvider(
-    datadir: await Environment.appDir(),
+    appDir: appDir,
   );
   GetIt.I.registerSingleton<ProcessProvider>(
     processProvider,
   );
 
   // Load initial binary states
-  final binaries = await _loadBinaries();
+  final binaries = await _loadBinaries(appDir);
 
   // Register all RPCs in GetIt
   await Future.wait(
@@ -108,29 +105,17 @@ Future<void> initDependencies(Logger log) async {
           GetIt.I.registerSingleton<MainchainRPC>(mainchain);
 
         case Enforcer():
-          final httpClient = createHttpClient();
-          final transport = grpc.Transport(
-            baseUrl: 'http://127.0.0.1:${binary.port}',
-            codec: const ProtoCodec(),
-            httpClient: httpClient,
-            statusParser: const protobuf.StatusParser(),
-          );
           final enforcer = await EnforcerLive.create(
+            host: '127.0.0.1',
+            port: binary.port,
             binary: binary,
-            transport: transport,
           );
           GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
         case BitWindow():
-          final baseUrl = 'http://127.0.0.1:${binary.port}';
-          final httpClient = createHttpClient();
-          final transport = connect.Transport(
-            baseUrl: baseUrl,
-            codec: const ProtoCodec(),
-            httpClient: httpClient,
-          );
           final bitwindow = await BitwindowRPCLive.create(
-            transport: transport,
+            host: '127.0.0.1',
+            port: binary.port,
             binary: binary,
           );
           GetIt.I.registerSingleton<BitwindowRPC>(bitwindow);
@@ -174,7 +159,7 @@ Future<void> initDependencies(Logger log) async {
   GetIt.I.registerSingleton<WalletService>(WalletService());
 }
 
-Future<List<Binary>> _loadBinaries() async {
+Future<List<Binary>> _loadBinaries(Directory appDir) async {
   final jsonString = await rootBundle.loadString('assets/chain_config.json');
   final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
 
@@ -183,5 +168,5 @@ Future<List<Binary>> _loadBinaries() async {
           .toList() ??
       [];
 
-  return await loadBinaryMetadata(binaries, await Environment.appDir());
+  return await loadBinaryMetadata(binaries, appDir);
 }

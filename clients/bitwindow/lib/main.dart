@@ -12,15 +12,12 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:connectrpc/http2.dart';
-import 'package:connectrpc/protobuf.dart' as protobuf;
-import 'package:connectrpc/protocol/connect.dart' as connect;
-import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -122,6 +119,9 @@ Future<void> initDependencies(
   // Create platform-appropriate storage
   final storage = await KeyValueStore.create(dir: applicationDir);
 
+  var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
+  log.i('logging server logs to: $serverLogFile');
+
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
 
@@ -135,8 +135,11 @@ Future<void> initDependencies(
     ),
   );
 
+  final processProvider = ProcessProvider(
+    appDir: applicationDir,
+  );
   GetIt.I.registerLazySingleton<ProcessProvider>(
-    () => ProcessProvider(),
+    () => processProvider,
   );
 
   final contentProvider = ContentProvider();
@@ -145,43 +148,42 @@ Future<void> initDependencies(
   );
   unawaited(contentProvider.load());
 
+  // Load initial binary states
+  final binaries = await _loadBinaries(applicationDir);
+
   final mainchain = await MainchainRPCLive.create(
-    ParentChain(),
+    binaries[0],
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchain,
   );
 
-  var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
-  log.i('logging server logs to: $serverLogFile');
-  final baseUrl = 'http://${Environment.bitwindowdHost.value}:${Environment.bitwindowdPort.value}';
-  final httpClient = createHttpClient();
-  final connectTransport = connect.Transport(
-    baseUrl: baseUrl,
-    codec: const protobuf.ProtoCodec(),
-    httpClient: httpClient,
+  final enforcer = await EnforcerLive.create(
+    host: '127.0.0.1',
+    port: binaries[1].port,
+    binary: binaries[1],
   );
+
+  GetIt.I.registerLazySingleton<EnforcerRPC>(
+    () => enforcer,
+  );
+
   final bitwindow = await BitwindowRPCLive.create(
-    transport: connectTransport,
-    binary: BitWindow(),
+    host: Environment.bitwindowdHost.value,
+    port: Environment.bitwindowdPort.value,
+    binary: binaries[2],
   );
   GetIt.I.registerLazySingleton<BitwindowRPC>(
     () => bitwindow,
   );
 
-  final enforerBinary = Enforcer();
-  final enforcer = await EnforcerLive.create(
-    transport: grpc.Transport(
-      baseUrl: 'http://127.0.0.1:${enforerBinary.port}',
-      codec: const protobuf.ProtoCodec(),
-      httpClient: httpClient,
-      statusParser: const protobuf.StatusParser(),
-    ),
-    binary: enforerBinary,
+  // After RPCs have been registered, register the binary provider
+  final binaryProvider = BinaryProvider(
+    appDir: applicationDir,
+    initialBinaries: binaries,
   );
-
-  GetIt.I.registerLazySingleton<EnforcerRPC>(
-    () => enforcer,
+  GetIt.I.registerSingleton<BinaryProvider>(
+    binaryProvider,
   );
 
   final balanceProvider = BalanceProvider(
@@ -287,4 +289,24 @@ class BitwindowApp extends StatelessWidget {
       accentColor: const Color.fromARGB(255, 255, 153, 0),
     );
   }
+}
+
+Future<void> initBinaries(
+  Logger log,
+  BuildContext context,
+) async {
+  final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
+
+  await binaryProvider.downloadThenBootL1(context);
+}
+
+Future<List<Binary>> _loadBinaries(Directory appDir) async {
+  // Register all binaries
+  var binaries = [
+    ParentChain(),
+    Enforcer(),
+    BitWindow(),
+  ];
+
+  return await loadBinaryMetadata(binaries, appDir);
 }

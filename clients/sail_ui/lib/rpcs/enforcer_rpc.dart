@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import 'package:connectrpc/connect.dart';
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:http/http.dart' as http;
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
@@ -37,10 +40,20 @@ class EnforcerLive extends EnforcerRPC {
 
   // Async factory
   static Future<EnforcerLive> create({
+    required String host,
+    required int port,
     required Binary binary,
-    required Transport transport,
   }) async {
+    final httpClient = createHttpClient();
     final conf = await getMainchainConf();
+
+    final baseUrl = 'http://$host:$port';
+    final transport = grpc.Transport(
+      baseUrl: baseUrl,
+      codec: const ProtoCodec(),
+      httpClient: httpClient,
+      statusParser: const StatusParser(),
+    );
     final logPath = binary.logPath();
 
     final instance = EnforcerLive._create(

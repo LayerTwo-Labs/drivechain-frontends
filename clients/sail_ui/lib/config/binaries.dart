@@ -3,10 +3,11 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
@@ -19,7 +20,7 @@ abstract class Binary {
   final String description;
   final String repoUrl;
   final DirectoryConfig directories;
-  DownloadConfig download;
+  MetadataConfig metadata;
   final String binary;
   final NetworkConfig network;
   final int chainLayer;
@@ -31,7 +32,7 @@ abstract class Binary {
     required this.description,
     required this.repoUrl,
     required this.directories,
-    required this.download,
+    required this.metadata,
     required this.binary,
     required this.network,
     required this.chainLayer,
@@ -43,10 +44,10 @@ abstract class Binary {
   int get port => network.port;
   String get ticker => '';
   String get binaryName => binary;
-  bool get isDownloaded => download.downloadedTimestamp != null;
+  bool get isDownloaded => metadata.binaryPath != null;
 
   bool get updateAvailable =>
-      isDownloaded && download.remoteTimestamp != null && download.remoteTimestamp != download.downloadedTimestamp;
+      isDownloaded && metadata.remoteTimestamp != null && metadata.remoteTimestamp != metadata.downloadedTimestamp;
 
   @override
   bool operator ==(Object other) =>
@@ -61,8 +62,8 @@ abstract class Binary {
       case 'bitcoind':
       case 'bitcoind.exe':
         return ParentChain();
-      case 'bip300301-enforcer':
-      case 'bip300301-enforcer.exe':
+      case 'bip300301_enforcer':
+      case 'bip300301_enforcer.exe':
         return Enforcer();
       case 'bitwindow':
       case 'bitwindow.exe':
@@ -107,7 +108,7 @@ abstract class Binary {
           description: json['description'] as String? ?? '',
           repoUrl: json['repo_url'] as String? ?? '',
           directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
-          download: DownloadConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
+          metadata: MetadataConfig.fromJson(json['metadata'] as Map<String, dynamic>? ?? {}),
           binary: '',
           network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
           chainLayer: json['chain_layer'] as int? ?? 0,
@@ -130,7 +131,7 @@ abstract class Binary {
       description: json['description'] as String? ?? '',
       repoUrl: json['repo_url'] as String? ?? '',
       directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
-      download: DownloadConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
+      metadata: MetadataConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
       binary: binaryPath,
       network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
       chainLayer: json['chain_layer'] as int? ?? 0,
@@ -142,7 +143,7 @@ abstract class Binary {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -152,8 +153,8 @@ abstract class Binary {
   Future<DateTime?> checkReleaseDate() async {
     try {
       final os = getOS();
-      final fileName = download.files[os]!;
-      final downloadUrl = Uri.parse(download.baseUrl).resolve(fileName).toString();
+      final fileName = metadata.files[os]!;
+      final downloadUrl = Uri.parse(metadata.baseUrl).resolve(fileName).toString();
 
       final client = HttpClient();
 
@@ -181,7 +182,7 @@ abstract class Binary {
 
   /// Downloads and installs a binary
   Future<void> downloadAndExtract(
-    Directory datadir,
+    Directory appDir,
     void Function({
       double progress,
       String? message,
@@ -195,9 +196,9 @@ abstract class Binary {
 
       // 1. Setup directories
       // 1. Setup paths - use the full datadir path
-      final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads'));
-      final extractDir = Directory(path.join(datadir.path, 'assets'));
-      final zipName = download.files[getOS()]!;
+      final downloadsDir = Directory(path.join(appDir.path, 'assets', 'downloads'));
+      final extractDir = Directory(path.join(appDir.path, 'assets'));
+      final zipName = metadata.files[getOS()]!;
       final zipPath = path.join(downloadsDir.path, zipName);
 
       // Create downloads directory recursively, this will also
@@ -210,22 +211,28 @@ abstract class Binary {
 
       // 2. Download the binary
       final releaseDate = await checkReleaseDate();
-      final downloadUrl = Uri.parse(download.baseUrl).resolve(zipName).toString();
+      final downloadUrl = Uri.parse(metadata.baseUrl).resolve(zipName).toString();
       await _download(downloadUrl, zipPath, onStatusUpdate);
 
       // 3. Extract
       await _extract(extractDir, zipPath, downloadsDir);
 
-      // 4. Save metadata
+      // 4. Save metadata to disk
       await saveMetadata(
-        datadir,
+        appDir,
         DownloadMetadata(
           releaseDate: releaseDate,
         ),
       );
-      download = download.copyWith(
+
+      // 5. Get the newly downloaded binary path. Should and will exist because we just
+      // downloaded and extracted correctly
+      final binaryPath = await resolveBinaryPath(appDir);
+
+      metadata = metadata.copyWith(
         remoteTimestamp: releaseDate,
         downloadedTimestamp: releaseDate,
+        binaryPath: binaryPath,
       );
 
       // Update status to completed
@@ -541,6 +548,87 @@ abstract class Binary {
     }
   }
 
+  Future<File?> resolveBinaryPath(Directory? appDir) async {
+    // First find all possible paths the binary might be in,
+    // such as .exe, .app, /assets/bin, $datadir/assets etc.
+    final possiblePaths = _getPossibleBinaryPaths(binary, appDir);
+
+    // Check if binary exists in any of the possible paths
+    for (final binaryPath in possiblePaths) {
+      if (Directory(binaryPath).existsSync() || File(binaryPath).existsSync()) {
+        var resolvedPath = binaryPath;
+        // Handle .app bundles on macOS
+        if (Platform.isMacOS && (binary.endsWith('.app') || binaryPath.endsWith('.app'))) {
+          resolvedPath = path.join(
+            binaryPath,
+            'Contents',
+            'MacOS',
+            path.basenameWithoutExtension(binaryPath),
+          );
+        }
+        return File(resolvedPath);
+      }
+    }
+
+    return _fileFromAssetsBundle(possiblePaths);
+  }
+
+  Future<File?> _fileFromAssetsBundle(List<String> possiblePaths) async {
+    // If not found in datadir/assets, try loading from bundled assets
+    ByteData? binResource;
+    String? foundPath;
+
+    for (final assetPath in possiblePaths) {
+      try {
+        binResource = await rootBundle.load('assets/bin/$assetPath');
+        foundPath = assetPath;
+        break;
+      } catch (e) {
+        continue;
+      }
+    }
+
+    if (binResource == null || foundPath == null) {
+      return null;
+    }
+
+    // Create temp file
+    final temp = await getTemporaryDirectory();
+    final ts = DateTime.now();
+    final randDir = Directory(
+      filePath([temp.path, ts.millisecondsSinceEpoch.toString()]),
+    );
+    await randDir.create();
+
+    final file = File(filePath([randDir.path, foundPath]));
+
+    final buffer = binResource.buffer;
+    await file.writeAsBytes(
+      buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
+    );
+
+    return file;
+  }
+
+  List<String> _getPossibleBinaryPaths(String baseBinary, Directory? appDir) {
+    final paths = <String>[baseBinary];
+    // Add platform-specific extensions
+    if (Platform.isWindows) {
+      paths.add('$baseBinary.exe');
+    }
+
+    if (appDir != null) {
+      final assetPath = path.join(appDir.path, 'assets');
+      // Add asset directory variants
+      paths.addAll([
+        path.join(assetPath, baseBinary),
+        if (Platform.isWindows) path.join(assetPath, '$baseBinary.exe'),
+      ]);
+    }
+
+    return paths;
+  }
+
   void _log(String message) {
     log.i('Binary: $message');
   }
@@ -553,7 +641,7 @@ class ParentChain extends Binary {
     super.description = 'Drivechain Parent Chain',
     super.repoUrl = 'https://github.com/drivechain-project/drivechain',
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     super.binary = 'bitcoind',
     NetworkConfig? network,
     super.chainLayer = 1,
@@ -566,8 +654,8 @@ class ParentChain extends Binary {
                   OS.windows: 'Drivechain',
                 },
               ),
-          download: download ??
-              DownloadConfig(
+          metadata: metadata ??
+              MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu.zip',
@@ -587,7 +675,7 @@ class ParentChain extends Binary {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -598,7 +686,7 @@ class ParentChain extends Binary {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
@@ -613,7 +701,7 @@ class BitWindow extends Binary {
     super.description = 'BitWindow UI',
     super.repoUrl = 'https://github.com/drivechain-project/bitwindow',
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     super.binary = 'bitwindowd',
     NetworkConfig? network,
     super.chainLayer = 1,
@@ -626,8 +714,8 @@ class BitWindow extends Binary {
                   OS.windows: 'com.layertwolabs.bitwindow',
                 },
               ),
-          download: download ??
-              DownloadConfig(
+          metadata: metadata ??
+              MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'BitWindow-latest-x86_64-unknown-linux-gnu.zip',
@@ -647,7 +735,7 @@ class BitWindow extends Binary {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -658,7 +746,7 @@ class BitWindow extends Binary {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
@@ -673,10 +761,10 @@ class Enforcer extends Binary {
     super.description = 'BIP300/301 Enforcer',
     super.repoUrl = 'https://github.com/drivechain-project/enforcer',
     DirectoryConfig? directories,
-    DownloadConfig? download,
-    super.binary = 'bip300301_enforcer',
+    MetadataConfig? metadata,
+    super.binary = 'bip300301-enforcer',
     NetworkConfig? network,
-    super.chainLayer = 0,
+    super.chainLayer = 1,
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -686,8 +774,8 @@ class Enforcer extends Binary {
                   OS.windows: 'bip300301_enforcer',
                 },
               ),
-          download: download ??
-              DownloadConfig(
+          metadata: metadata ??
+              MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu.zip',
@@ -707,7 +795,7 @@ class Enforcer extends Binary {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -718,7 +806,7 @@ class Enforcer extends Binary {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
@@ -790,7 +878,7 @@ class _BinaryImpl extends Binary {
     required super.description,
     required super.repoUrl,
     required super.directories,
-    required super.download,
+    required super.metadata,
     required super.binary,
     required super.network,
     required super.chainLayer,
@@ -805,7 +893,7 @@ class _BinaryImpl extends Binary {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -816,7 +904,7 @@ class _BinaryImpl extends Binary {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
@@ -877,16 +965,20 @@ extension BinaryDownload on Binary {
   }
 
   /// Load metadata about the downloaded binary
-  Future<DownloadMetadata?> loadMetadata(Directory datadir) async {
+  Future<(DownloadMetadata?, File?)> loadMetadata(Directory appDir) async {
     try {
-      final metaFile = File(path.join(datadir.path, 'assets', '$binary.meta'));
-      if (!await metaFile.exists()) return null;
+      final binaryFile = await resolveBinaryPath(appDir);
+
+      final metaFile = File(path.join(appDir.path, 'assets', '$binary.meta'));
+      if (!await metaFile.exists()) {
+        return (null, binaryFile);
+      }
 
       final json = jsonDecode(await metaFile.readAsString());
 
-      return DownloadMetadata.fromJson(json);
+      return (DownloadMetadata.fromJson(json), binaryFile);
     } catch (e) {
-      return null;
+      return (null, null);
     }
   }
 
@@ -923,23 +1015,25 @@ class DirectoryConfig {
 }
 
 /// Configuration for binary downloads
-class DownloadConfig {
+class MetadataConfig {
   final String baseUrl;
   final Map<OS, String> files;
   DateTime? remoteTimestamp; // Last-Modified from server
   DateTime? downloadedTimestamp; // When we last downloaded it, what is saved to disk in .meta
+  File? binaryPath; // Path to the binary on disk (if exists)
 
-  DownloadConfig({
+  MetadataConfig({
     required this.baseUrl,
     required this.files,
     this.remoteTimestamp,
     this.downloadedTimestamp,
+    this.binaryPath,
   });
 
-  factory DownloadConfig.fromJson(Map<String, dynamic> json) {
+  factory MetadataConfig.fromJson(Map<String, dynamic> json) {
     final remoteStr = json['remote_timestamp'] as String?;
     final downloadedStr = json['downloaded_timestamp'] as String?;
-    return DownloadConfig(
+    return MetadataConfig(
       baseUrl: json['base_url'] as String,
       files: {
         OS.linux: (json['files'] as Map<String, dynamic>)['linux'] as String? ?? '',
@@ -951,17 +1045,19 @@ class DownloadConfig {
     );
   }
 
-  DownloadConfig copyWith({
+  MetadataConfig copyWith({
     String? baseUrl,
     Map<OS, String>? files,
     required DateTime? remoteTimestamp,
     required DateTime? downloadedTimestamp,
+    required File? binaryPath,
   }) {
-    return DownloadConfig(
+    return MetadataConfig(
       baseUrl: baseUrl ?? this.baseUrl,
       files: files ?? this.files,
       remoteTimestamp: remoteTimestamp,
       downloadedTimestamp: downloadedTimestamp,
+      binaryPath: binaryPath,
     );
   }
 }

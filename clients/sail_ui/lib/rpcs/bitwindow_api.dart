@@ -1,4 +1,7 @@
 import 'package:connectrpc/connect.dart';
+import 'package:connectrpc/http2.dart';
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
@@ -123,11 +126,18 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   // Async factory
   static Future<BitwindowRPCLive> create({
-    // This is taken in here because the different platforms will
-    // use different transport mechanisms + codecs
-    required Transport transport,
+    required String host,
+    required int port,
     required Binary binary,
   }) async {
+    final httpClient = createHttpClient();
+    final baseUrl = 'http://$host:$port';
+    final transport = connect.Transport(
+      baseUrl: baseUrl,
+      codec: const ProtoCodec(),
+      httpClient: httpClient,
+    );
+
     final conf = await getMainchainConf();
     final logPath = binary.logPath();
 
@@ -175,8 +185,6 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<void> stopRPC() async {
     await bitwindowd.stop();
-    // can't trust the rpc, give it a moment to stop
-    await Future.delayed(const Duration(seconds: 2));
   }
 
   @override

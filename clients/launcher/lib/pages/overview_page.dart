@@ -8,7 +8,6 @@ import 'package:launcher/env.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
-import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
@@ -60,68 +59,6 @@ class _OverviewPageState extends State<OverviewPage> {
   void _onBinaryProviderUpdate() {
     if (mounted) {
       setState(() {});
-    }
-  }
-
-  Future<void> _downloadUninstalledL1Binaries() async {
-    final uninstalledBinaries = _binaryProvider.binaries.where((b) => b.chainLayer == 1 && !b.isDownloaded);
-
-    // Start downloads concurrently for uninstalled/failed binaries
-    await Future.wait(
-      uninstalledBinaries.map(
-        (binary) => _binaryProvider.downloadBinary(binary),
-      ),
-    );
-  }
-
-  Future<void> _runL1(BuildContext context) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final log = GetIt.I.get<Logger>();
-    log.i('Starting L1 binaries sequence');
-
-    try {
-      // First ensure all binaries are downloaded
-      await _downloadUninstalledL1Binaries();
-
-      // Ensure we have all required binaries
-      final parentChain = _binaryProvider.binaries.whereType<ParentChain>().firstOrNull;
-      final enforcer = _binaryProvider.binaries.whereType<Enforcer>().firstOrNull;
-      final bitwindow = _binaryProvider.binaries.whereType<BitWindow>().firstOrNull;
-
-      if (parentChain == null || enforcer == null || bitwindow == null) {
-        throw Exception('could not find all required L1 binaries');
-      }
-
-      // 1. Start parent chain and wait for IBD
-      if (!context.mounted) return;
-      await _binaryProvider.startBinary(context, parentChain, useStarter: false);
-
-      log.i('Waiting for mainchain to connect...');
-      await _binaryProvider.mainchainRPC.waitForHeaderSync();
-      log.i('Mainchain headers synced, starting enforcer');
-
-      // 2. Start enforcer after mainchain is ready
-      if (!context.mounted) return;
-      await _binaryProvider.startBinary(context, enforcer, useStarter: false);
-      log.i('Started enforcer');
-
-      // 3. Start BitWindow after enforcer
-      if (!context.mounted) return;
-      await _binaryProvider.startBinary(context, bitwindow, useStarter: false);
-      log.i('Started BitWindow');
-
-      log.i('All L1 binaries started successfully');
-    } catch (e) {
-      log.e('Error starting L1 binaries: $e');
-      if (context.mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('Failed to start L1 binaries: $e'),
-            backgroundColor: SailColorScheme.red,
-          ),
-        );
-      }
-      rethrow; // Re-throw to indicate failure
     }
   }
 
@@ -278,7 +215,7 @@ class _OverviewPageState extends State<OverviewPage> {
         message: canStart ?? 'Launch ${binary.name}',
         child: SailButton.primary(
           'Launch',
-          onPressed: () => _binaryProvider.startBinary(context, binary, useStarter: _useStarter[binary.name] ?? false),
+          onPressed: () => _binaryProvider.startBinary(binary, useStarter: _useStarter[binary.name] ?? false),
           size: ButtonSize.regular,
           disabled: canStart != null,
         ),
@@ -375,8 +312,8 @@ class _OverviewPageState extends State<OverviewPage> {
     switch (binary) {
       case ParentChain():
         connected = _binaryProvider.mainchainRPC.connected;
-        initializing = _binaryProvider.mainchainRPC.initializingBinary;
-        stopping = _binaryProvider.mainchainRPC.stoppingBinary;
+        initializing = _binaryProvider.mainchainInitializing;
+        stopping = _binaryProvider.mainchainStopping;
         error = _binaryProvider.mainchainError;
 
         if (connected && _binaryProvider.mainchainRPC.inIBD) {
@@ -386,27 +323,27 @@ class _OverviewPageState extends State<OverviewPage> {
               'Blocks: ${info.blocks} / ${info.headers}';
         }
       case Enforcer():
-        connected = _binaryProvider.enforcerRPC.connected;
-        initializing = _binaryProvider.enforcerRPC.initializingBinary;
-        stopping = _binaryProvider.enforcerRPC.stoppingBinary;
+        connected = _binaryProvider.enforcerConnected;
+        initializing = _binaryProvider.enforcerInitializing;
+        stopping = _binaryProvider.enforcerStopping;
         error = _binaryProvider.enforcerError;
         if (_binaryProvider.mainchainRPC.connected && _binaryProvider.mainchainRPC.inHeaderSync) {
           description = 'Bitcoin Core syncing headers, waiting...';
         }
       case BitWindow():
-        connected = _binaryProvider.bitwindowRPC.connected;
-        initializing = _binaryProvider.bitwindowRPC.initializingBinary;
-        stopping = _binaryProvider.bitwindowRPC.stoppingBinary;
+        connected = _binaryProvider.bitwindowConnected;
+        initializing = _binaryProvider.bitwindowInitializing;
+        stopping = _binaryProvider.bitwindowStopping;
         error = _binaryProvider.bitwindowError;
       case Thunder():
-        connected = _binaryProvider.thunderRPC.connected;
-        initializing = _binaryProvider.thunderRPC.initializingBinary;
-        stopping = _binaryProvider.thunderRPC.stoppingBinary;
+        connected = _binaryProvider.thunderConnected;
+        initializing = _binaryProvider.thunderInitializing;
+        stopping = _binaryProvider.thunderStopping;
         error = _binaryProvider.thunderError;
       case Bitnames():
-        connected = _binaryProvider.bitnamesRPC.connected;
-        initializing = _binaryProvider.bitnamesRPC.initializingBinary;
-        stopping = _binaryProvider.bitnamesRPC.stoppingBinary;
+        connected = _binaryProvider.bitnamesConnected;
+        initializing = _binaryProvider.bitnamesInitializing;
+        stopping = _binaryProvider.bitnamesStopping;
         error = _binaryProvider.bitnamesError;
     }
 
@@ -558,9 +495,8 @@ class _OverviewPageState extends State<OverviewPage> {
                                             );
 
                                             return SailButton.primary(
-                                              allL1Downloaded ? 'Boot Layer 1' : 'Download Layer 1',
-                                              onPressed: () =>
-                                                  allL1Downloaded ? _runL1(context) : _downloadUninstalledL1Binaries(),
+                                              allL1Downloaded ? 'Boot Layer 1' : 'Download and Boot Layer 1',
+                                              onPressed: () => _binaryProvider.downloadThenBootL1(context),
                                               size: ButtonSize.regular,
                                             );
                                           },

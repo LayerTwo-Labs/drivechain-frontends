@@ -73,7 +73,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
     final baseDir = widget.chain.directories.base[os];
     final binary = widget.chain.binary;
-    final downloadFile = widget.chain.download.files[os];
+    final downloadFile = widget.chain.metadata.files[os];
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -114,12 +114,12 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                 _buildInfoRow(
                   context,
                   'Latest Release At',
-                  widget.chain.download.remoteTimestamp?.toLocal().toString() ?? 'N/A',
+                  widget.chain.metadata.remoteTimestamp?.toLocal().toString() ?? 'N/A',
                 ),
                 _buildInfoRow(
                   context,
                   'Your Version',
-                  widget.chain.download.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
+                  widget.chain.metadata.downloadedTimestamp?.toLocal().toString() ?? 'N/A',
                 ),
                 if (widget.chain.chainLayer == 2) ...[
                   const SizedBox(height: 16),

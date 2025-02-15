@@ -71,9 +71,9 @@ class WalletButtonModel extends ChangeNotifier {
     }
 
     // Thunder balance
-    if (_binaryProvider.thunderRPC.connected == true) {
+    if (_binaryProvider.thunderRPC?.connected == true) {
       try {
-        final (confirmed, unconfirmed) = await _binaryProvider.thunderRPC.balance();
+        final (confirmed, unconfirmed) = await _binaryProvider.thunderRPC!.balance();
         newBalances.add(
           WalletBalance(
             name: 'Thunder',
@@ -88,9 +88,9 @@ class WalletButtonModel extends ChangeNotifier {
     }
 
     // BitNames balance
-    if (_binaryProvider.bitnamesRPC.connected == true) {
+    if (_binaryProvider.bitnamesRPC?.connected == true) {
       try {
-        final (confirmed, unconfirmed) = await _binaryProvider.bitnamesRPC.balance();
+        final (confirmed, unconfirmed) = await _binaryProvider.bitnamesRPC!.balance();
         newBalances.add(
           WalletBalance(
             name: 'BitNames',
