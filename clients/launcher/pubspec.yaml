@@ -18,7 +18,7 @@ dependencies:
       ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
   dio: ^5.8.0+1
   archive: ^3.4.10
-  path: ^1.8.3
+  path: ^1.9.1
   path_provider: ^2.1.5
   stacked: ^3.4.3
   qr_flutter: ^4.1.0
@@ -30,7 +30,7 @@ dependencies:
   auto_route: ^9.3.0+1
   fixnum: ^1.1.1
   get_it: ^7.7.0
-  meta: ^1.15.0
+  meta: ^1.16.0
   protobuf: ^3.1.0
   dotted_border: ^2.1.0
   window_manager: ^0.4.3
@@ -41,7 +41,7 @@ dependencies:
   crypto: ^3.0.6
   convert: ^3.1.1
   url_launcher: ^6.3.1
-  connectrpc: ^0.2.1
+  connectrpc: ^0.3.0
   pointycastle: ^3.9.1
 
 dev_dependencies:
