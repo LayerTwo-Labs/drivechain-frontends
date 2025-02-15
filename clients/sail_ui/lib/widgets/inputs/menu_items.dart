@@ -148,7 +148,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
     // Close menu after a short delay.
     var closeDelay = isWindows ? 50 : 240;
     _closeTimer = Timer(Duration(milliseconds: closeDelay), () {
-      Navigator.of(context).pop();
+      _toggleFlash();
       if (widget.onSelected != null) {
         widget.onSelected!();
       }

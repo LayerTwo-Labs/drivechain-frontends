@@ -139,9 +139,11 @@ Future<void> initDependencies(
     () => ProcessProvider(),
   );
 
+  final contentProvider = ContentProvider();
   GetIt.I.registerLazySingleton<ContentProvider>(
-    () => ContentProvider(),
+    () => contentProvider,
   );
+  unawaited(contentProvider.load());
 
   final mainchain = await MainchainRPCLive.create(
     ParentChain(),

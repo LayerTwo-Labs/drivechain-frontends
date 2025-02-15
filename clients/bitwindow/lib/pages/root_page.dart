@@ -92,7 +92,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                 PlatformMenuItem(
                   label: 'Quit bitwindow',
                   shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
-                  onSelected: () => onShutdown(context),
+                  onSelected: () => didRequestAppExit(),
                 ),
               ],
             ),
