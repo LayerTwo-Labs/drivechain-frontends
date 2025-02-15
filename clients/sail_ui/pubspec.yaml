@@ -18,8 +18,8 @@ dependencies:
   flutter_custom_tabs: ^2.1.0
   flutter_svg: ^2.0.17
   dio: ^5.8.0+1
-  fixnum: ^1.1.0
-  path: ^1.8.3
+  fixnum: ^1.1.1
+  path: ^1.9.1
   archive: ^3.4.10
   intl: ^0.20.2
   crypto: ^3.0.6
@@ -32,7 +32,7 @@ dependencies:
   synchronized: ^3.3.0+3
   flutter_markdown: ^0.7.6
   url_launcher: ^6.3.1
-  connectrpc: ^0.2.1
+  connectrpc: ^0.3.0
   desktop_multi_window: ^0.2.1
   web: ^1.1.0
 
