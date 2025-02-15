@@ -15,6 +15,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
+import 'package:sail_ui/style/color_scheme.dart';
 
 /// Represents the current status of a binary download
 class DownloadState {
@@ -41,8 +42,8 @@ class BinaryProvider extends ChangeNotifier {
   final mainchainRPC = GetIt.I.get<MainchainRPC>();
   final enforcerRPC = GetIt.I.get<EnforcerRPC>();
   final bitwindowRPC = GetIt.I.get<BitwindowRPC>();
-  final thunderRPC = GetIt.I.get<ThunderRPC>();
-  final bitnamesRPC = GetIt.I.get<BitnamesRPC>();
+  late final ThunderRPC? thunderRPC;
+  late final BitnamesRPC? bitnamesRPC;
 
   // Track download status and active downloads for each binary
   final _downloadStates = <String, DownloadState>{};
@@ -64,25 +65,25 @@ class BinaryProvider extends ChangeNotifier {
   bool get mainchainConnected => mainchainRPC.connected;
   bool get enforcerConnected => enforcerRPC.connected;
   bool get bitwindowConnected => bitwindowRPC.connected;
-  bool get thunderConnected => thunderRPC.connected;
-  bool get bitnamesConnected => bitnamesRPC.connected;
+  bool get thunderConnected => thunderRPC?.connected ?? false;
+  bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
   bool get mainchainInitializing => mainchainRPC.initializingBinary;
   bool get enforcerInitializing => enforcerRPC.initializingBinary;
   bool get bitwindowInitializing => bitwindowRPC.initializingBinary;
-  bool get thunderInitializing => thunderRPC.initializingBinary;
-  bool get bitnamesInitializing => bitnamesRPC.initializingBinary;
+  bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
+  bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
   bool get mainchainStopping => mainchainRPC.stoppingBinary;
   bool get enforcerStopping => enforcerRPC.stoppingBinary;
   bool get bitwindowStopping => bitwindowRPC.stoppingBinary;
-  bool get thunderStopping => thunderRPC.stoppingBinary;
-  bool get bitnamesStopping => bitnamesRPC.stoppingBinary;
+  bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
+  bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
 
   // Only show errors for explicitly launched binaries
   String? get mainchainError => mainchainRPC.connectionError;
   String? get enforcerError => enforcerRPC.connectionError;
   String? get bitwindowError => bitwindowRPC.connectionError;
-  String? get thunderError => thunderRPC.connectionError;
-  String? get bitnamesError => bitnamesRPC.connectionError;
+  String? get thunderError => thunderRPC?.connectionError;
+  String? get bitnamesError => bitnamesRPC?.connectionError;
 
   bool get inIBD => mainchainRPC.inIBD;
 
@@ -95,8 +96,21 @@ class BinaryProvider extends ChangeNotifier {
     mainchainRPC.addListener(notifyListeners);
     enforcerRPC.addListener(notifyListeners);
     bitwindowRPC.addListener(notifyListeners);
-    thunderRPC.addListener(notifyListeners);
-    bitnamesRPC.addListener(notifyListeners);
+
+    // Try to get optional RPCs
+    try {
+      thunderRPC = GetIt.I.get<ThunderRPC>();
+      thunderRPC?.addListener(notifyListeners);
+    } catch (_) {
+      thunderRPC = null;
+    }
+
+    try {
+      bitnamesRPC = GetIt.I.get<BitnamesRPC>();
+      bitnamesRPC?.addListener(notifyListeners);
+    } catch (_) {
+      bitnamesRPC = null;
+    }
 
     _setupDirectoryWatcher();
     _checkReleaseDates();
@@ -138,11 +152,12 @@ class BinaryProvider extends ChangeNotifier {
         final binary = binaries[i];
         final serverReleaseDate = await binary.checkReleaseDate();
         if (serverReleaseDate != null) {
-          final updatedConfig = binary.download.copyWith(
+          final updatedConfig = binary.metadata.copyWith(
             remoteTimestamp: serverReleaseDate,
-            downloadedTimestamp: binary.download.downloadedTimestamp,
+            downloadedTimestamp: binary.metadata.downloadedTimestamp,
+            binaryPath: binary.metadata.binaryPath,
           );
-          binaries[i] = binary.copyWith(download: updatedConfig);
+          binaries[i] = binary.copyWith(metadata: updatedConfig);
         }
       } catch (e) {
         log.e('Error checking release date: $e');
@@ -196,15 +211,7 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   // Start a binary, and set starter seeds (if set)
-  Future<void> startBinary(BuildContext context, Binary binary, {bool useStarter = false}) async {
-    if (!context.mounted) return;
-
-    final startError = canStart(binary);
-    if (startError != null) {
-      log.e('Cannot start ${binary.name}: $startError');
-      throw Exception(startError);
-    }
-
+  Future<void> startBinary(Binary binary, {bool useStarter = false}) async {
     if (useStarter && (binary is Thunder || binary is Bitnames)) {
       try {
         await _setStarterSeed(binary);
@@ -213,7 +220,6 @@ class BinaryProvider extends ChangeNotifier {
       }
     }
 
-    if (!context.mounted) return;
     switch (binary) {
       case ParentChain():
         await mainchainRPC.initBinary();
@@ -225,14 +231,14 @@ class BinaryProvider extends ChangeNotifier {
         await bitwindowRPC.initBinary();
 
       case Thunder():
-        await thunderRPC.initBinary(
+        await thunderRPC?.initBinary(
           arg: binary.mnemonicSeedPhrasePath != null
               ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
               : null,
         );
 
       case Bitnames():
-        await bitnamesRPC.initBinary(
+        await bitnamesRPC?.initBinary(
           arg: binary.mnemonicSeedPhrasePath != null
               ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
               : null,
@@ -390,19 +396,19 @@ class BinaryProvider extends ChangeNotifier {
       case BitWindow():
         await bitwindowRPC.stop();
       case Thunder():
-        await thunderRPC.stop();
+        await thunderRPC?.stop();
       case Bitnames():
-        await bitnamesRPC.stop();
+        await bitnamesRPC?.stop();
     }
   }
 
   bool isRunning(Binary binary) {
     return switch (binary) {
-      var b when b is ParentChain => mainchainRPC.connected,
-      var b when b is Enforcer => enforcerRPC.connected,
-      var b when b is BitWindow => bitwindowRPC.connected,
-      var b when b is Thunder => thunderRPC.connected,
-      var b when b is Bitnames => bitnamesRPC.connected,
+      var b when b is ParentChain => mainchainConnected,
+      var b when b is Enforcer => enforcerConnected,
+      var b when b is BitWindow => bitwindowConnected,
+      var b when b is Thunder => thunderConnected,
+      var b when b is Bitnames => bitnamesConnected,
       _ => false,
     };
   }
@@ -412,8 +418,8 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is ParentChain => mainchainRPC.initializingBinary,
       var b when b is Enforcer => enforcerRPC.initializingBinary,
       var b when b is BitWindow => bitwindowRPC.initializingBinary,
-      var b when b is Thunder => thunderRPC.initializingBinary,
-      var b when b is Bitnames => bitnamesRPC.initializingBinary,
+      var b when b is Thunder => thunderInitializing,
+      var b when b is Bitnames => bitnamesInitializing,
       _ => false,
     };
   }
@@ -423,8 +429,8 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is ParentChain => mainchainRPC.stoppingBinary,
       var b when b is Enforcer => enforcerRPC.stoppingBinary,
       var b when b is BitWindow => bitwindowRPC.stoppingBinary,
-      var b when b is Thunder => thunderRPC.stoppingBinary,
-      var b when b is Bitnames => bitnamesRPC.stoppingBinary,
+      var b when b is Thunder => thunderStopping,
+      var b when b is Bitnames => bitnamesStopping,
       _ => false,
     };
   }
@@ -440,6 +446,77 @@ class BinaryProvider extends ChangeNotifier {
     };
   }
 
+  Future<void> _downloadUninstalledL1Binaries() async {
+    final uninstalledBinaries = binaries.where((b) => b.chainLayer == 1 && !b.isDownloaded);
+
+    // Start downloads concurrently for uninstalled/failed binaries
+    await Future.wait(
+      uninstalledBinaries.map(
+        (binary) => downloadBinary(binary),
+      ),
+    );
+  }
+
+  Future<void> downloadThenBootL1(BuildContext context, {bool bootAllNoMatterWhat = false}) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final log = GetIt.I.get<Logger>();
+    log.i('Booting L1 binaries in');
+
+    try {
+      // First ensure all binaries are downloaded
+      await _downloadUninstalledL1Binaries();
+
+      // Ensure we have all required binaries
+      final parentChain = binaries.whereType<ParentChain>().firstOrNull;
+      final enforcer = binaries.whereType<Enforcer>().firstOrNull;
+      final bitwindow = binaries.whereType<BitWindow>().firstOrNull;
+
+      if (parentChain == null || enforcer == null || bitwindow == null) {
+        throw Exception('could not find all required L1 binaries');
+      }
+
+      // 1. Start parent chain and wait for IBD
+      if (!context.mounted) return;
+      await startBinary(parentChain, useStarter: false);
+
+      log.i('Waiting for mainchain to connect...');
+      await mainchainRPC.waitForHeaderSync();
+      log.i('Mainchain headers synced, starting enforcer');
+
+      // 2. Start rest after mainchain is ready
+      if (bootAllNoMatterWhat) {
+        // 2.1. If we're told to boot no matter what, do enforcer and bitwindow in parallell
+        if (!context.mounted) return;
+        unawaited(startBinary(enforcer, useStarter: false));
+        unawaited(startBinary(bitwindow, useStarter: false));
+        log.i('Started enforcer and bitwindow');
+      } else {
+        // 2.2. We're told to NOT be fast. Ensure enforcer is started first
+        if (!context.mounted) return;
+        await startBinary(enforcer, useStarter: false);
+        log.i('Started enforcer');
+
+        // 3. Start BitWindow after enforcer
+        if (!context.mounted) return;
+        await startBinary(bitwindow, useStarter: false);
+        log.i('Started BitWindow');
+      }
+
+      log.i('All L1 binaries started successfully');
+    } catch (e) {
+      log.e('Error starting L1 binaries: $e');
+      if (context.mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Failed to start L1 binaries: $e'),
+            backgroundColor: SailColorScheme.red,
+          ),
+        );
+      }
+      rethrow; // Re-throw to indicate failure
+    }
+  }
+
   @override
   void dispose() {
     _dirWatcher?.cancel();
@@ -447,8 +524,8 @@ class BinaryProvider extends ChangeNotifier {
     mainchainRPC.removeListener(notifyListeners);
     enforcerRPC.removeListener(notifyListeners);
     bitwindowRPC.removeListener(notifyListeners);
-    thunderRPC.removeListener(notifyListeners);
-    bitnamesRPC.removeListener(notifyListeners);
+    thunderRPC?.removeListener(notifyListeners);
+    bitnamesRPC?.removeListener(notifyListeners);
     super.dispose();
   }
 }
@@ -458,13 +535,14 @@ Future<List<Binary>> loadBinaryMetadata(List<Binary> binaries, Directory appDir)
     final binary = binaries[i];
     try {
       // Load metadata from assets/
-      final metadata = await binary.loadMetadata(appDir);
+      final (metadata, binaryFile) = await binary.loadMetadata(appDir);
 
-      final updatedConfig = binary.download.copyWith(
-        remoteTimestamp: binary.download.remoteTimestamp,
+      final updatedConfig = binary.metadata.copyWith(
+        remoteTimestamp: binary.metadata.remoteTimestamp,
         downloadedTimestamp: metadata?.releaseDate,
+        binaryPath: binaryFile,
       );
-      binaries[i] = binary.copyWith(download: updatedConfig);
+      binaries[i] = binary.copyWith(metadata: updatedConfig);
     } catch (e) {
       // Log error but continue with other binaries
       GetIt.I.get<Logger>().e('Error loading binary state for ${binary.name}: $e');

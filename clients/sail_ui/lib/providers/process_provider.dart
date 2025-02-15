@@ -12,10 +12,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 
 class ProcessProvider extends ChangeNotifier {
-  final Directory? datadir;
+  final Directory? appDir;
 
   ProcessProvider({
-    this.datadir,
+    this.appDir,
   });
 
   Logger get log => GetIt.I.get<Logger>();
@@ -257,8 +257,8 @@ class ProcessProvider extends ChangeNotifier {
       paths.add('$baseBinary.exe');
     }
 
-    if (datadir != null) {
-      final assetPath = path.join(datadir!.path, 'assets');
+    if (appDir != null) {
+      final assetPath = path.join(appDir!.path, 'assets');
       // Add asset directory variants
       paths.addAll([
         path.join(assetPath, baseBinary),

@@ -10,7 +10,7 @@ abstract class Sidechain extends Binary {
     required super.description,
     required super.repoUrl,
     required super.directories,
-    required super.download,
+    required super.metadata,
     required super.binary,
     required super.network,
     required super.chainLayer,
@@ -46,7 +46,7 @@ class TestSidechain extends Sidechain {
     super.description = 'Test Sidechain',
     super.repoUrl = '',
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     super.binary = 'testchaind',
     NetworkConfig? network,
     super.chainLayer = 2,
@@ -59,8 +59,8 @@ class TestSidechain extends Sidechain {
                   OS.windows: 'testchain',
                 },
               ),
-          download: download ??
-              DownloadConfig(
+          metadata: metadata ??
+              MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'testchain-latest-x86_64-unknown-linux-gnu.zip',
@@ -83,7 +83,7 @@ class TestSidechain extends Sidechain {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -93,7 +93,7 @@ class TestSidechain extends Sidechain {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
@@ -108,7 +108,7 @@ class ZCashSidechain extends Sidechain {
     super.description = 'ZCash Sidechain',
     super.repoUrl = 'https://github.com/drivechain-project/zside',
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     super.binary = 'zsided',
     NetworkConfig? network,
     super.chainLayer = 2,
@@ -121,8 +121,8 @@ class ZCashSidechain extends Sidechain {
                   OS.windows: 'ZSide',
                 },
               ),
-          download: download ??
-              DownloadConfig(
+          metadata: metadata ??
+              MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'L2-S5-ZCash-latest-x86_64-unknown-linux-gnu.zip',
@@ -145,7 +145,7 @@ class ZCashSidechain extends Sidechain {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -156,7 +156,7 @@ class ZCashSidechain extends Sidechain {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
@@ -171,7 +171,7 @@ class EthereumSidechain extends Sidechain {
     super.description = 'Ethereum Sidechain',
     super.repoUrl = 'https://github.com/drivechain-project/ethside',
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     super.binary = 'sidegeth',
     NetworkConfig? network,
     super.chainLayer = 2,
@@ -184,8 +184,8 @@ class EthereumSidechain extends Sidechain {
                   OS.windows: 'EthSide',
                 },
               ),
-          download: download ??
-              DownloadConfig(
+          metadata: metadata ??
+              MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'L2-S6-Ethereum-latest-x86_64-unknown-linux-gnu.zip',
@@ -208,7 +208,7 @@ class EthereumSidechain extends Sidechain {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -219,7 +219,7 @@ class EthereumSidechain extends Sidechain {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
@@ -234,7 +234,7 @@ class Thunder extends Sidechain {
     super.description = 'Thunder Sidechain',
     super.repoUrl = 'https://github.com/drivechain-project/thunder',
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     super.binary = 'thunder',
     NetworkConfig? network,
     super.chainLayer = 2,
@@ -247,8 +247,8 @@ class Thunder extends Sidechain {
                   OS.windows: 'thunder',
                 },
               ),
-          download: download ??
-              DownloadConfig(
+          metadata: metadata ??
+              MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip',
@@ -271,7 +271,7 @@ class Thunder extends Sidechain {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -282,7 +282,7 @@ class Thunder extends Sidechain {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,
@@ -297,7 +297,7 @@ class Bitnames extends Sidechain {
     super.description = 'Bitnames Sidechain',
     super.repoUrl = 'https://github.com/drivechain-project/bitnames',
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     super.binary = 'bitnames',
     NetworkConfig? network,
     super.chainLayer = 2,
@@ -310,8 +310,8 @@ class Bitnames extends Sidechain {
                   OS.windows: 'plain_bitnames',
                 },
               ),
-          download: download ??
-              DownloadConfig(
+          metadata: metadata ??
+              MetadataConfig(
                 baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'L2-S2-BitNames-latest-x86_64-unknown-linux-gnu.zip',
@@ -334,7 +334,7 @@ class Bitnames extends Sidechain {
     String? description,
     String? repoUrl,
     DirectoryConfig? directories,
-    DownloadConfig? download,
+    MetadataConfig? metadata,
     String? binary,
     NetworkConfig? network,
     int? chainLayer,
@@ -345,7 +345,7 @@ class Bitnames extends Sidechain {
       description: description ?? this.description,
       repoUrl: repoUrl ?? this.repoUrl,
       directories: directories ?? this.directories,
-      download: download ?? this.download,
+      metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
       network: network ?? this.network,
       chainLayer: chainLayer ?? this.chainLayer,

@@ -248,7 +248,7 @@ packages:
     source: hosted
     version: "6.0.0"
   dio_web_adapter:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: dio_web_adapter
       sha256: "33259a9276d6cea88774a0000cfae0d861003497755969c92faa223108620dc8"
