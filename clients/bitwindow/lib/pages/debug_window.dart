@@ -190,18 +190,12 @@ class ConsoleTab extends StatefulWidget {
   State<ConsoleTab> createState() => _ConsoleTabState();
 }
 
-// Add enum for RPC types
-enum RPCType {
-  bitcoind,
-  bitwindow,
-}
-
 class _ConsoleTabState extends State<ConsoleTab> {
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
 
-  RPCType _currentRPC = RPCType.bitcoind;
-  late final Map<RPCType, List<String>> _allCommands;
+  late final List<String> _allCommands;
+  String? _currentService;
 
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -216,11 +210,11 @@ class _ConsoleTabState extends State<ConsoleTab> {
     super.initState();
     _focusNode.requestFocus();
 
-    // Initialize commands
-    _allCommands = {
-      RPCType.bitcoind: mainchain.getMethods(),
-      RPCType.bitwindow: bitwindow.getMethods(),
-    };
+    // Just merge all commands into one list
+    _allCommands = [
+      ...mainchain.getMethods(),
+      ...bitwindow.getMethods(),
+    ];
   }
 
   @override
@@ -231,24 +225,43 @@ class _ConsoleTabState extends State<ConsoleTab> {
     super.dispose();
   }
 
+  String _determineService(String command) {
+    // Check if command exists in bitwindow methods
+    if (bitwindow.getMethods().contains(command)) {
+      return 'bitwindowd';
+    }
+    // Default to bitcoind
+    return 'bitcoind';
+  }
+
   void _handleSubmitted(String text) async {
     if (text.isEmpty) return;
 
-    final now = DateTime.now();
+    String service;
+    String command;
+    List<String> args;
 
+    final commandParts = text.split(' ');
+    command = commandParts[0];
+    args = commandParts.sublist(1);
+
+    service = _determineService(command);
+
+    final now = DateTime.now();
     setState(() {
       entries.add(
         ConsoleEntry(
           timestamp: now,
           content: text,
           type: EntryType.command,
-          isGroupStart: true, // Start a new group
+          isGroupStart: true,
           isGrouped: true,
         ),
       );
       _commandHistory.add(text);
       _historyIndex = _commandHistory.length;
       _controller.clear();
+      _currentService = service;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -256,25 +269,20 @@ class _ConsoleTabState extends State<ConsoleTab> {
     });
 
     try {
-      final parts = text.split(' ');
-      final command = parts[0];
-      final args = parts.sublist(1);
-
       dynamic response;
-      switch (_currentRPC) {
-        case RPCType.bitcoind:
-          final rawResponse = await mainchain.callRAW(command, args);
-          // Bitcoin Core responses are already in JSON format
-          response = const JsonEncoder.withIndent('  ').convert(rawResponse);
+      switch (service) {
+        case 'bitcoind':
+          response = await mainchain.callRAW(command, args);
           break;
-        case RPCType.bitwindow:
-          // For these RPCs, we need a single JSON object
+        case 'bitwindowd':
           final jsonBody = args.isEmpty ? '{}' : args[0];
           if (args.length > 1 || (args.isNotEmpty && !jsonBody.startsWith('{'))) {
             throw Exception('Arguments must be a single JSON object, e.g. {"key": "value"}');
           }
           response = await bitwindow.callRAW(command, jsonBody);
           break;
+        default:
+          throw Exception('Unknown service: $service');
       }
 
       // Try to parse and pretty print JSON
@@ -390,9 +398,12 @@ class _ConsoleTabState extends State<ConsoleTab> {
                         if (textEditingValue.text.isEmpty) {
                           return const Iterable<String>.empty();
                         }
-                        return _commands.where((command) {
-                          // Search for the term anywhere in the command
-                          return command.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                        final searchTerm = textEditingValue.text.toLowerCase();
+                        return _allCommands.where((command) {
+                          final service = _determineService(command);
+                          // Search in both service and command
+                          return command.toLowerCase().contains(searchTerm) ||
+                              service.toLowerCase().contains(searchTerm);
                         });
                       },
                       optionsViewBuilder: (context, onSelected, options) {
@@ -408,16 +419,17 @@ class _ConsoleTabState extends State<ConsoleTab> {
                                 shrinkWrap: true,
                                 itemCount: options.length,
                                 itemBuilder: (BuildContext context, int index) {
-                                  final option = options.elementAt(index);
+                                  final command = options.elementAt(index);
+                                  final service = _determineService(command);
                                   return InkWell(
-                                    onTap: () => onSelected(option),
+                                    onTap: () => onSelected(command),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 8,
                                         vertical: 4,
                                       ),
                                       child: SailText.primary12(
-                                        option,
+                                        '$service -> $command',
                                         color: theme.colors.text,
                                         monospace: true,
                                       ),
@@ -430,10 +442,13 @@ class _ConsoleTabState extends State<ConsoleTab> {
                         );
                       },
                       onSelected: (String selection) {
-                        _controller.text = selection;
-                        _controller.selection = TextSelection.fromPosition(
-                          TextPosition(offset: selection.length),
-                        );
+                        setState(() {
+                          _currentService = _determineService(selection);
+                          _controller.text = selection;
+                          _controller.selection = TextSelection.fromPosition(
+                            TextPosition(offset: selection.length),
+                          );
+                        });
                       },
                       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
                         return TextField(
@@ -450,26 +465,13 @@ class _ConsoleTabState extends State<ConsoleTab> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  SailDropdownButton<RPCType>(
-                                    value: _currentRPC,
-                                    items: RPCType.values
-                                        .map(
-                                          (type) => SailDropdownItem(
-                                            value: type,
-                                            child: SailText.primary12(
-                                              type.name,
-                                              monospace: true,
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (type) {
-                                      if (type != null) {
-                                        setState(() => _currentRPC = type);
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(width: 8),
+                                  if (_currentService != null) // Only show if we have a service
+                                    SailText.primary13(
+                                      _currentService!,
+                                      color: theme.colors.textTertiary,
+                                      monospace: true,
+                                    ),
+                                  if (_currentService != null) const SizedBox(width: 8),
                                   SailText.primary13(
                                     '>',
                                     color: theme.colors.text,
@@ -487,6 +489,13 @@ class _ConsoleTabState extends State<ConsoleTab> {
                             filled: true,
                           ),
                           onSubmitted: _handleSubmitted,
+                          onChanged: (value) {
+                            if (_currentService != null) {
+                              setState(() {
+                                _currentService = null;
+                              });
+                            }
+                          },
                         );
                       },
                     ),
@@ -499,9 +508,6 @@ class _ConsoleTabState extends State<ConsoleTab> {
       ),
     );
   }
-
-  // Get commands for current RPC type
-  List<String> get _commands => _allCommands[_currentRPC] ?? [];
 }
 
 enum EntryType { command, response, error }
