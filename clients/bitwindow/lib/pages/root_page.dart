@@ -119,7 +119,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                       barrierColor: theme.colors.background.withValues(alpha: 0.4),
                       builder: (context) => const SailPadding(
                         padding: EdgeInsets.all(SailStyleValues.padding64),
-                        child: AddressBookTable(direction: Direction.DIRECTION_SEND),
+                        child: AddressBookTable(initialDirection: Direction.DIRECTION_SEND),
                       ),
                     );
                   },
@@ -133,7 +133,21 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                       barrierColor: theme.colors.background.withValues(alpha: 0.4),
                       builder: (context) => const SailPadding(
                         padding: EdgeInsets.all(SailStyleValues.padding64),
-                        child: AddressBookTable(direction: Direction.DIRECTION_RECEIVE),
+                        child: AddressBookTable(initialDirection: Direction.DIRECTION_RECEIVE),
+                      ),
+                    );
+                  },
+                ),
+                PlatformMenuItem(
+                  label: 'Address Book',
+                  onSelected: () {
+                    final theme = SailTheme.of(context);
+                    showDialog(
+                      context: context,
+                      barrierColor: theme.colors.background.withValues(alpha: 0.4),
+                      builder: (context) => const SailPadding(
+                        padding: EdgeInsets.all(SailStyleValues.padding64),
+                        child: AddressBookTable(),
                       ),
                     );
                   },

@@ -4,11 +4,13 @@ import 'package:sail_ui/sail_ui.dart';
 class InlineTabBar extends StatefulWidget {
   final List<TabItem> tabs;
   final int initialIndex;
+  final void Function(int)? onTabChanged;
 
   const InlineTabBar({
     super.key,
     required this.tabs,
     this.initialIndex = 0,
+    this.onTabChanged,
   });
 
   @override
@@ -27,6 +29,7 @@ class InlineTabBarState extends State<InlineTabBar> {
   void setIndex(int index) {
     if (index >= 0 && index < widget.tabs.length) {
       setState(() => _selectedIndex = index);
+      widget.onTabChanged?.call(index);
     } else {
       throw Exception('Index out of bounds: index=$index, tabs.length=${widget.tabs.length}');
     }
@@ -45,7 +48,7 @@ class InlineTabBarState extends State<InlineTabBar> {
                 if (widget.tabs[index].onTap != null) {
                   widget.tabs[index].onTap!();
                 }
-                setState(() => _selectedIndex = index);
+                setIndex(index);
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
