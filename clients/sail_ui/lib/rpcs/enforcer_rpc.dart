@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
 import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/http2.dart';
@@ -75,9 +77,18 @@ class EnforcerLive extends EnforcerRPC {
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     var host = mainchainConf.host;
+    
     if (host == 'localhost' && !Platform.isWindows) {
       host = '0.0.0.0';
     }
+
+    final appDir = await getApplicationSupportDirectory();
+    final starterPath = path.join(appDir.path, 'wallet_starters', 'l1_starter.txt');
+    final starterFile = File(starterPath);
+
+    final walletArg = await starterFile.exists() 
+      ? '--wallet-seed-file=$starterPath'
+      : '--wallet-auto-create';
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',
@@ -85,7 +96,7 @@ class EnforcerLive extends EnforcerRPC {
       '--node-rpc-addr=$host:${mainchainConf.port}',
       '--node-zmq-addr-sequence=tcp://$host:29000',
       '--enable-wallet',
-      '--wallet-auto-create',
+      walletArg,
     ];
   }
 
