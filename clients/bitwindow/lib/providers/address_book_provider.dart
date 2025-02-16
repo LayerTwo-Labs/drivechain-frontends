@@ -8,6 +8,7 @@ class AddressBookProvider extends ChangeNotifier {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
 
   List<AddressBookEntry> _entries = [];
+  List<AddressBookEntry> get entries => _entries;
   List<AddressBookEntry> get sendEntries =>
       _entries.where((entry) => entry.direction == Direction.DIRECTION_SEND).toList();
   List<AddressBookEntry> get receiveEntries =>
