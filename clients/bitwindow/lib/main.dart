@@ -76,10 +76,14 @@ void main(List<String> args) async {
         );
         break;
       case 'deniability':
-        child = DeniabilityTab();
+        child = DeniabilityTab(
+          newWindowIdentifier: null,
+        );
         break;
       case 'block_explorer':
-        child = const BlockExplorerDialog();
+        child = const BlockExplorerDialog(
+          newWindowIdentifier: null,
+        );
         break;
     }
 

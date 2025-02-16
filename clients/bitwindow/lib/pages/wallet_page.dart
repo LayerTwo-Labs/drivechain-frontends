@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/env.dart';
+import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
@@ -76,7 +80,15 @@ class WalletPage extends StatelessWidget {
               TabItem(
                 label: 'Deniability',
                 icon: SailSVGAsset.iconTransactions,
-                child: DeniabilityTab(),
+                child: DeniabilityTab(
+                  newWindowIdentifier: model.applicationDir == null
+                      ? null
+                      : NewWindowIdentifier(
+                          windowType: 'deniability',
+                          applicationDir: model.applicationDir!,
+                          logFile: model.logFile!,
+                        ),
+                ),
                 onTap: () {
                   denialProvider.fetch();
                 },
@@ -396,7 +408,17 @@ class SendPageViewModel extends BaseViewModel {
     labelController = TextEditingController(text: '');
     fetchEstimate();
     addressBookProvider.addListener(notifyListeners);
+    init();
   }
+
+  Future<void> init() async {
+    applicationDir = await Environment.datadir();
+    logFile = await getLogFile();
+    await fetchEstimate();
+  }
+
+  Directory? applicationDir;
+  File? logFile;
 
   void decodeURI() {
     try {
@@ -414,10 +436,6 @@ class SendPageViewModel extends BaseViewModel {
   // Amount of blocks to confirm the transaction in
   List<int> get confirmationTargets => [1, 2, 4, 6, 12, 24, 48, 144, 432, 1008];
   double get feeRate => feeEstimate.feeRate == 0 ? 0.0002 : feeEstimate.feeRate;
-
-  void init() {
-    fetchEstimate();
-  }
 
   @override
   void dispose() {
@@ -952,7 +970,12 @@ Future<CoreTransaction?> showAddressBookModal(BuildContext context) {
 }
 
 class DeniabilityTab extends StatelessWidget {
-  const DeniabilityTab({super.key});
+  final NewWindowIdentifier? newWindowIdentifier;
+
+  const DeniabilityTab({
+    super.key,
+    required this.newWindowIdentifier,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -965,6 +988,7 @@ class DeniabilityTab extends StatelessWidget {
             final error = model.error('deniability');
 
             return DeniabilityTable(
+              newWindowIdentifier: newWindowIdentifier,
               error: error,
               utxos: model.utxos,
               onDeny: (txid, vout) => model.showDenyDialog(context, txid, vout),
@@ -978,6 +1002,7 @@ class DeniabilityTab extends StatelessWidget {
 }
 
 class DeniabilityTable extends StatefulWidget {
+  final NewWindowIdentifier? newWindowIdentifier;
   final String? error;
   final List<UnspentOutput> utxos;
   final void Function(String txid, int vout) onDeny;
@@ -989,6 +1014,7 @@ class DeniabilityTable extends StatefulWidget {
     required this.utxos,
     required this.onDeny,
     required this.onCancel,
+    required this.newWindowIdentifier,
   });
 
   @override
@@ -1058,94 +1084,6 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     });
   }
 
-  void _showUtxoDetails(BuildContext context, UnspentOutput utxo) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
-            title: 'UTXO Details',
-            subtitle: 'UTXO and Deniability Information',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(label: 'TxID', value: utxo.txid),
-                  DetailRow(label: 'Output Index', value: utxo.vout.toString()),
-                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt()))),
-                  if (utxo.hasDeniability()) ...[
-                    const SailSpacing(SailStyleValues.padding16),
-                    BorderedSection(
-                      title: 'Deniability Info',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DetailRow(label: 'Status', value: _getDeniabilityStatus(utxo)),
-                          DetailRow(label: 'Completed Hops', value: '${utxo.deniability.executions.length}'),
-                          DetailRow(label: 'Total Hops', value: '${utxo.deniability.numHops}'),
-                          if (utxo.deniability.hasNextExecution())
-                            DetailRow(
-                              label: 'Next Execution',
-                              value: utxo.deniability.nextExecution.toDateTime().toLocal().toString(),
-                            ),
-                          if (utxo.deniability.hasCancelTime())
-                            DetailRow(
-                              label: 'Cancel Reason',
-                              value: utxo.deniability.cancelReason,
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (utxo.deniability.executions.isNotEmpty) ...[
-                      const SailSpacing(SailStyleValues.padding16),
-                      SailText.primary13('Deniability Transactions:'),
-                      const SailSpacing(SailStyleValues.padding08),
-                      SizedBox(
-                        height: 300,
-                        child: SelectionContainer.disabled(
-                          child: TXIDTransactionTable(
-                            transactions: utxo.deniability.executions
-                                .map((e) => e.fromTxid)
-                                .where((txid) => txid.isNotEmpty)
-                                .toList(),
-                            onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showTransactionDetails(BuildContext context, String txid) {
-    showDialog(
-      context: context,
-      builder: (context) => TransactionDetailsDialog(
-        txid: txid,
-      ),
-    );
-  }
-
-  String _getDeniabilityStatus(UnspentOutput utxo) {
-    if (!utxo.hasDeniability()) return 'No deniability';
-    if (utxo.deniability.hasCancelTime()) return 'Cancelled';
-
-    final completedHops = utxo.deniability.executions.length;
-    final totalHops = utxo.deniability.numHops;
-
-    if (completedHops == totalHops) return 'Completed';
-    return 'Ongoing ($completedHops/$totalHops hops)';
-  }
-
   @override
   Widget build(BuildContext context) {
     return SailRawCard(
@@ -1153,7 +1091,9 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
       subtitle: 'List of UTXOs with optional deniability info.',
       error: widget.error,
       bottomPadding: false,
-      inSeparateWindow: true,
+      inSeparateWindow: widget.newWindowIdentifier != null,
+      newWindowIdentifier: widget.newWindowIdentifier,
+      withCloseButton: widget.newWindowIdentifier != null,
       child: Column(
         children: [
           SailSpacing(SailStyleValues.padding16),
@@ -1293,6 +1233,94 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
         ],
       ),
     );
+  }
+
+  void _showUtxoDetails(BuildContext context, UnspentOutput utxo) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SailRawCard(
+            title: 'UTXO Details',
+            subtitle: 'UTXO and Deniability Information',
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow(label: 'TxID', value: utxo.txid),
+                  DetailRow(label: 'Output Index', value: utxo.vout.toString()),
+                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt()))),
+                  if (utxo.hasDeniability()) ...[
+                    const SailSpacing(SailStyleValues.padding16),
+                    BorderedSection(
+                      title: 'Deniability Info',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DetailRow(label: 'Status', value: _getDeniabilityStatus(utxo)),
+                          DetailRow(label: 'Completed Hops', value: '${utxo.deniability.executions.length}'),
+                          DetailRow(label: 'Total Hops', value: '${utxo.deniability.numHops}'),
+                          if (utxo.deniability.hasNextExecution())
+                            DetailRow(
+                              label: 'Next Execution',
+                              value: utxo.deniability.nextExecution.toDateTime().toLocal().toString(),
+                            ),
+                          if (utxo.deniability.hasCancelTime())
+                            DetailRow(
+                              label: 'Cancel Reason',
+                              value: utxo.deniability.cancelReason,
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (utxo.deniability.executions.isNotEmpty) ...[
+                      const SailSpacing(SailStyleValues.padding16),
+                      SailText.primary13('Deniability Transactions:'),
+                      const SailSpacing(SailStyleValues.padding08),
+                      SizedBox(
+                        height: 300,
+                        child: SelectionContainer.disabled(
+                          child: TXIDTransactionTable(
+                            transactions: utxo.deniability.executions
+                                .map((e) => e.fromTxid)
+                                .where((txid) => txid.isNotEmpty)
+                                .toList(),
+                            onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTransactionDetails(BuildContext context, String txid) {
+    showDialog(
+      context: context,
+      builder: (context) => TransactionDetailsDialog(
+        txid: txid,
+      ),
+    );
+  }
+
+  String _getDeniabilityStatus(UnspentOutput utxo) {
+    if (!utxo.hasDeniability()) return 'No deniability';
+    if (utxo.deniability.hasCancelTime()) return 'Cancelled';
+
+    final completedHops = utxo.deniability.executions.length;
+    final totalHops = utxo.deniability.numHops;
+
+    if (completedHops == totalHops) return 'Completed';
+    return 'Ongoing ($completedHops/$totalHops hops)';
   }
 }
 

@@ -94,38 +94,43 @@ class SailRawCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Flexible(child: header!),
-                        if (newWindowIdentifier != null)
-                          SailScaleButton(
-                            style: SailButtonStyle.secondary,
-                            child: SailSVG.fromAsset(
-                              SailSVGAsset.iconNewWindow,
-                              width: 15,
-                              color: theme.colors.text,
-                            ),
-                            onPressed: () async {
-                              final window = await DesktopMultiWindow.createWindow(
-                                jsonEncode({
-                                  'window_type': newWindowIdentifier!.windowType,
-                                  'application_dir': newWindowIdentifier!.applicationDir.path,
-                                  'log_file': newWindowIdentifier!.logFile.path,
-                                }),
-                              );
-                              await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
-                              await window.center();
-                              await window.setTitle(title ?? '');
-                              await window.show();
-                            },
-                          ),
-                        if (withCloseButton)
-                          SailScaleButton(
-                            style: SailButtonStyle.secondary,
-                            child: SailSVG.fromAsset(
-                              SailSVGAsset.iconClose,
-                              width: 15,
-                              color: theme.colors.error,
-                            ),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
+                        SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            if (newWindowIdentifier != null)
+                              SailScaleButton(
+                                style: SailButtonStyle.secondary,
+                                child: SailSVG.fromAsset(
+                                  SailSVGAsset.iconNewWindow,
+                                  width: 15,
+                                  color: theme.colors.text,
+                                ),
+                                onPressed: () async {
+                                  final window = await DesktopMultiWindow.createWindow(
+                                    jsonEncode({
+                                      'window_type': newWindowIdentifier!.windowType,
+                                      'application_dir': newWindowIdentifier!.applicationDir.path,
+                                      'log_file': newWindowIdentifier!.logFile.path,
+                                    }),
+                                  );
+                                  await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
+                                  await window.center();
+                                  await window.setTitle(title ?? '');
+                                  await window.show();
+                                },
+                              ),
+                            if (withCloseButton)
+                              SailScaleButton(
+                                style: SailButtonStyle.secondary,
+                                child: SailSVG.fromAsset(
+                                  SailSVGAsset.iconClose,
+                                  width: 15,
+                                  color: theme.colors.error,
+                                ),
+                                onPressed: () => Navigator.of(context).pop(),
+                              ),
+                          ],
+                        ),
                       ],
                     )
                   else if (title != null)
@@ -143,39 +148,44 @@ class SailRawCard extends StatelessWidget {
                               error: error,
                             ),
                           ),
-                          if (widgetHeaderEnd != null) widgetHeaderEnd!,
-                          if (newWindowIdentifier != null)
-                            SailScaleButton(
-                              style: SailButtonStyle.secondary,
-                              child: SailSVG.fromAsset(
-                                SailSVGAsset.iconNewWindow,
-                                width: 15,
-                                color: theme.colors.text,
-                              ),
-                              onPressed: () async {
-                                final window = await DesktopMultiWindow.createWindow(
-                                  jsonEncode({
-                                    'window_type': newWindowIdentifier!.windowType,
-                                    'application_dir': newWindowIdentifier!.applicationDir.path,
-                                    'log_file': newWindowIdentifier!.logFile.path,
-                                  }),
-                                );
-                                await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
-                                await window.center();
-                                await window.setTitle('UTXOs and Denials');
-                                await window.show();
-                              },
-                            ),
-                          if (withCloseButton)
-                            SailScaleButton(
-                              style: SailButtonStyle.secondary,
-                              child: SailSVG.fromAsset(
-                                SailSVGAsset.iconClose,
-                                width: 15,
-                                color: theme.colors.error,
-                              ),
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
+                          SailRow(
+                            spacing: SailStyleValues.padding08,
+                            children: [
+                              if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                              if (newWindowIdentifier != null)
+                                SailScaleButton(
+                                  style: SailButtonStyle.secondary,
+                                  child: SailSVG.fromAsset(
+                                    SailSVGAsset.iconNewWindow,
+                                    width: 15,
+                                    color: theme.colors.text,
+                                  ),
+                                  onPressed: () async {
+                                    final window = await DesktopMultiWindow.createWindow(
+                                      jsonEncode({
+                                        'window_type': newWindowIdentifier!.windowType,
+                                        'application_dir': newWindowIdentifier!.applicationDir.path,
+                                        'log_file': newWindowIdentifier!.logFile.path,
+                                      }),
+                                    );
+                                    await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
+                                    await window.center();
+                                    await window.setTitle('UTXOs and Denials');
+                                    await window.show();
+                                  },
+                                ),
+                              if (withCloseButton)
+                                SailScaleButton(
+                                  style: SailButtonStyle.secondary,
+                                  child: SailSVG.fromAsset(
+                                    SailSVGAsset.iconClose,
+                                    width: 15,
+                                    color: theme.colors.error,
+                                  ),
+                                  onPressed: () => Navigator.of(context).pop(),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     )
