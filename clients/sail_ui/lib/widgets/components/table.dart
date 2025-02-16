@@ -662,6 +662,7 @@ class SailTableCell extends StatelessWidget {
     this.selectedIconTheme,
     this.textColor,
     this.monospace = false,
+    this.italic = false,
     super.key,
   });
 
@@ -673,7 +674,7 @@ class SailTableCell extends StatelessWidget {
   final IconThemeData? selectedIconTheme;
   final Color? textColor;
   final bool monospace;
-
+  final bool italic;
   @override
   Widget build(BuildContext context) {
     var tableRow = context.findAncestorWidgetOfExactType<_TableRow>();
@@ -706,6 +707,7 @@ class SailTableCell extends StatelessWidget {
               value,
               color: textColor,
               monospace: monospace,
+              italic: italic,
             ),
       ),
     );
