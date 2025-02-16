@@ -20,6 +20,13 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:pointycastle/digests/ripemd160.dart';
+import 'package:pointycastle/digests/sha256.dart';
+import 'package:convert/convert.dart';
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
+import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
+import 'package:bs58/bs58.dart';
+import 'dart:io';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
@@ -73,6 +80,11 @@ class WalletPage extends StatelessWidget {
                 onTap: () {
                   denialProvider.fetch();
                 },
+              ),
+              TabItem(
+                label: 'HD Wallet Explorer',
+                icon: SailSVGAsset.iconWallet,
+                child: HDWalletExplorerTab(),
               ),
             ],
             initialIndex: 0,
@@ -1363,4 +1375,344 @@ class DeniabilityViewModel extends BaseViewModel {
       setError(e.toString());
     }
   }
+}
+
+class HDWalletExplorerTab extends StatefulWidget {
+  const HDWalletExplorerTab({super.key});
+
+  @override
+  State<HDWalletExplorerTab> createState() => _HDWalletExplorerTabState();
+}
+
+class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
+  final TextEditingController _derivationPathController = TextEditingController(text: "m/44'/0'/0'/0");
+  
+  String? _seedHex;
+  String? _masterKey;
+  List<HDWalletEntry> _derivedEntries = [];
+  int _currentPage = 0;
+  static const int _entriesPerPage = 20;
+  bool _showPrivateKeys = true;
+  String? _error;
+  
+  @override
+  void initState() {
+    super.initState();
+    _derivationPathController.addListener(_onDerivationPathChanged);
+    _loadMnemonic();
+  }
+
+  @override
+  void dispose() {
+    _derivationPathController.dispose();
+    super.dispose();
+  }
+
+  Future<String?> _getMnemonicPath() async {
+    if (Platform.isMacOS) {
+      return '${Platform.environment['HOME']}/Library/Application Support/drivechain-launcher/wallet_starters/mnemonics/l1.txt';
+    } else if (Platform.isLinux) {
+      return '${Platform.environment['HOME']}/.config/drivechain-launcher/wallet_starters/mnemonics/l1.txt';
+    } else if (Platform.isWindows) {
+      return '${Platform.environment['APPDATA']}\\drivechain-launcher\\wallet_starters\\mnemonics\\l1.txt';
+    }
+    return null;
+  }
+
+  Future<void> _loadMnemonic() async {
+    try {
+      final path = await _getMnemonicPath();
+      if (path == null) {
+        throw Exception('Unsupported platform');
+      }
+
+      final file = File(path);
+      if (!await file.exists()) {
+        throw Exception('Mnemonic file not found');
+      }
+
+      final mnemonic = (await file.readAsString()).trim();
+      
+      final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
+      _seedHex = hex.encode(mnemonicObj.seed);
+      
+      final chain = Chain.seed(_seedHex!);
+      final masterKey = chain.forPath('m');
+      _masterKey = masterKey.privateKeyHex();
+      
+      setState(() {
+        _error = null;
+        _onDerivationPathChanged();
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _seedHex = null;
+        _masterKey = null;
+        _derivedEntries = [];
+      });
+    }
+  }
+
+  void _onDerivationPathChanged() {
+    if (_seedHex == null) return;
+    
+    try {
+      Logger().d('Creating chain from seed: ${_seedHex!}');
+      final chain = Chain.seed(_seedHex!);
+      final basePath = _derivationPathController.text.trim();
+      Logger().d('Using base derivation path: $basePath');
+      
+      final entries = <HDWalletEntry>[];
+      final startIndex = _currentPage * _entriesPerPage;
+      
+      for (var i = 0; i < _entriesPerPage; i++) {
+        final index = startIndex + i;
+        final path = '$basePath/$index';
+        Logger().d('Deriving key for path: $path');
+        
+        final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
+        Logger().d('Extended private key: ${extendedPrivateKey.toString()}');
+        
+        final privateKeyHex = extendedPrivateKey.privateKeyHex();
+        
+        final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
+        final privateKeyBytes = hex.decode(cleanHex);
+        
+        final buffer = Uint8List(34);
+        buffer[0] = 0x80;
+        buffer.setRange(1, 33, privateKeyBytes);
+        buffer[33] = 0x01;
+        
+        final hash1 = SHA256Digest().process(buffer);
+        final hash2 = SHA256Digest().process(hash1);
+        final checksum = hash2.sublist(0, 4);
+        
+        final wifBytes = Uint8List(38);
+        wifBytes.setRange(0, 34, buffer);
+        wifBytes.setRange(34, 38, checksum);
+        
+        final base58PrivateKey = base58.encode(wifBytes);
+        
+        final publicKey = extendedPrivateKey.publicKey();
+        Logger().d('Public key: ${publicKey.toString()}');
+        
+        final q = publicKey.q;
+        if (q == null) {
+          throw Exception('Public key point is null');
+        }
+        final pubKeyBytes = q.getEncoded(true);
+        Logger().d('Public key bytes (hex): ${hex.encode(pubKeyBytes)}');
+        
+        final address = _deriveAddress(pubKeyBytes);
+        Logger().d('Generated address: $address');
+        
+        entries.add(HDWalletEntry(
+          path: path,
+          address: address,
+          publicKey: hex.encode(pubKeyBytes),
+          privateKey: base58PrivateKey,
+        ),);
+      }
+      
+      setState(() {
+        _derivedEntries = entries;
+        _error = null;
+      });
+    } catch (e, stackTrace) {
+      Logger().e('Error in key derivation: $e\n$stackTrace');
+      setState(() {
+        _derivedEntries = [];
+        _error = e.toString();
+      });
+    }
+  }
+
+  String _deriveAddress(List<int> pubKeyBytes) {
+    try {
+      final sha256Result = SHA256Digest().process(Uint8List.fromList(pubKeyBytes));
+      Logger().d('SHA256 of pubkey: ${hex.encode(sha256Result)}');
+      
+      final ripemd160 = RIPEMD160Digest();
+      final pubKeyHash = ripemd160.process(sha256Result);
+      Logger().d('RIPEMD160 of SHA256: ${hex.encode(pubKeyHash)}');
+      
+      final versionedHash = Uint8List(21);
+      versionedHash[0] = 0x00;
+      versionedHash.setRange(1, 21, pubKeyHash);
+      Logger().d('Versioned hash: ${hex.encode(versionedHash)}');
+      
+      final firstSHA = SHA256Digest().process(versionedHash.sublist(0, 21));
+      final doubleSHA = SHA256Digest().process(firstSHA);
+      final checksum = doubleSHA.sublist(0, 4);
+      Logger().d('Checksum: ${hex.encode(checksum)}');
+      
+      final addressBytes = Uint8List(25);
+      addressBytes.setRange(0, 21, versionedHash);
+      addressBytes.setRange(21, 25, checksum);
+      Logger().d('Final address bytes: ${hex.encode(addressBytes)}');
+      
+      final address = base58.encode(addressBytes);
+      Logger().d('Base58 encoded address: $address');
+      
+      return address;
+    } catch (e, stackTrace) {
+      Logger().e('Error generating address: $e\n$stackTrace');
+      return 'Error generating address';
+    }
+  }
+
+  void _nextPage() {
+    setState(() {
+      _currentPage++;
+      _onDerivationPathChanged();
+    });
+  }
+
+  void _previousPage() {
+    if (_currentPage > 0) {
+      setState(() {
+        _currentPage--;
+        _onDerivationPathChanged();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailRawCard(
+      title: 'HD Wallet Explorer',
+      subtitle: 'Explore BIP32/39/44 wallet derivation paths',
+      error: _error,
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_seedHex != null) ...[
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                Expanded(
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding04,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.primary12('Seed Hex:', bold: true),
+                      SailText.primary12(_seedHex!, monospace: true),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding04,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.primary12('Master Private Key:', bold: true),
+                      SailText.primary12(_masterKey!, monospace: true),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                Expanded(
+                  child: SailTextField(
+                    label: 'Derivation Path',
+                    controller: _derivationPathController,
+                    hintText: "m/44'/0'/0'/0",
+                  ),
+                ),
+                QtButton(
+                  label: 'Previous',
+                  onPressed: _currentPage > 0 ? _previousPage : null,
+                  size: ButtonSize.small,
+                ),
+                SailText.primary12('Page ${_currentPage + 1}'),
+                QtButton(
+                  label: 'Next',
+                  onPressed: _nextPage,
+                  size: ButtonSize.small,
+                ),
+              ],
+            ),
+            Expanded(
+              child: SailColumn(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  Expanded(
+                    child: SailTable(
+                      getRowId: (index) => _derivedEntries[index].path,
+                      headerBuilder: (context) => [
+                        const SailTableHeaderCell(name: 'Path'),
+                        const SailTableHeaderCell(name: 'Address'),
+                        const SailTableHeaderCell(name: 'Public Key'),
+                        SailRow(
+                          spacing: SailStyleValues.padding08,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const SailTableHeaderCell(name: 'Private Keys'),
+                            SailRawButton(
+                              disabled: false,
+                              loading: false,
+                              onPressed: () => setState(() => _showPrivateKeys = !_showPrivateKeys),
+                              child: SailText.primary13(
+                                !_showPrivateKeys ? 'Show' : 'Hide',
+                                bold: true,
+                                color: context.sailTheme.colors.text,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      rowBuilder: (context, row, selected) {
+                        final entry = _derivedEntries[row];
+                        return [
+                          SailTableCell(
+                            value: entry.path,
+                            monospace: true,
+                          ),
+                          SailTableCell(
+                            value: entry.address,
+                            monospace: true,
+                          ),
+                          SailTableCell(
+                            value: entry.publicKey,
+                            monospace: true,
+                          ),
+                          SailTableCell(
+                            value: _showPrivateKeys ? entry.privateKey : '••••••••',
+                            monospace: true,
+                          ),
+                        ];
+                      },
+                      rowCount: _derivedEntries.length,
+                      columnWidths: const [100, 250, 250, 250],
+                      drawGrid: true,
+                      cellHeight: 20.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class HDWalletEntry {
+  final String path;
+  final String address;
+  final String publicKey;
+  final String privateKey;
+
+  HDWalletEntry({
+    required this.path,
+    required this.address,
+    required this.publicKey,
+    required this.privateKey,
+  });
 }
