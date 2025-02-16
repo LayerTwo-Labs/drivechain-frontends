@@ -11,41 +11,50 @@ import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
-class DebugWindow extends StatelessWidget {
-  const DebugWindow({super.key});
+class DebugWindow extends StatefulWidget {
+  final NewWindowIdentifier? newWindowIdentifier;
+
+  const DebugWindow({
+    super.key,
+    required this.newWindowIdentifier,
+  });
+
+  @override
+  State<DebugWindow> createState() => _DebugWindowState();
+}
+
+class _DebugWindowState extends State<DebugWindow> {
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SailPadding(
-      padding: EdgeInsets.only(
-        top: SailStyleValues.padding16,
-        left: SailStyleValues.padding16,
-        right: SailStyleValues.padding16,
-        bottom: SailStyleValues.padding64 * 2,
-      ),
-      child: SailRawCard(
-        withCloseButton: true,
-        color: context.sailTheme.colors.background,
-        child: InlineTabBar(
-          tabs: const [
-            TabItem(
-              label: 'Information',
-              icon: SailSVGAsset.iconInfo,
-              child: InformationTab(),
-            ),
-            TabItem(
-              label: 'Console',
-              icon: SailSVGAsset.iconTerminal,
-              child: ConsoleTab(),
-            ),
-            TabItem(
-              label: 'Peers',
-              icon: SailSVGAsset.iconPeers,
-              child: PeersTab(),
-            ),
-          ],
-          initialIndex: 0,
-        ),
+    return SailRawCard(
+      withCloseButton: widget.newWindowIdentifier != null,
+      color: context.sailTheme.colors.background,
+      inSeparateWindow: widget.newWindowIdentifier == null,
+      newWindowIdentifier: widget.newWindowIdentifier,
+      child: InlineTabBar(
+        tabs: const [
+          TabItem(
+            label: 'Information',
+            icon: SailSVGAsset.iconInfo,
+            child: InformationTab(),
+          ),
+          TabItem(
+            label: 'Console',
+            icon: SailSVGAsset.iconTerminal,
+            child: ConsoleTab(),
+          ),
+          TabItem(
+            label: 'Peers',
+            icon: SailSVGAsset.iconPeers,
+            child: PeersTab(),
+          ),
+        ],
+        initialIndex: 0,
       ),
     );
   }
@@ -121,7 +130,7 @@ class _InformationTabState extends State<InformationTab> {
               details: {
                 'Current number of blocks': _blockchainInfo?.blocks.toString() ?? 'Loading...',
                 'Headers': _blockchainInfo?.headers.toString() ?? 'Loading...',
-                'Verification Progress': '${(_blockchainInfo?.verificationProgress ?? 0 * 100).toStringAsFixed(2)}%',
+                'Verification Progress': '${((_blockchainInfo?.verificationProgress ?? 0) * 100).toStringAsFixed(0)}%',
                 'Difficulty': _blockchainInfo?.difficulty.toString() ?? 'Loading...',
                 'Size on Disk': '${_blockchainInfo?.sizeOnDisk ?? 0} bytes',
                 'Last block time': _blockchainInfo?.time != null
