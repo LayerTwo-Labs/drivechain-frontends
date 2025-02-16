@@ -1,5 +1,21 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+
+class NewWindowIdentifier {
+  final String windowType;
+  final Directory applicationDir;
+  final File logFile;
+
+  const NewWindowIdentifier({
+    required this.windowType,
+    required this.applicationDir,
+    required this.logFile,
+  });
+}
 
 class SailRawCard extends StatelessWidget {
   final String? title;
@@ -18,6 +34,7 @@ class SailRawCard extends StatelessWidget {
   final bool secondary;
   final bool withCloseButton;
   final bool inSeparateWindow;
+  final NewWindowIdentifier? newWindowIdentifier;
 
   const SailRawCard({
     super.key,
@@ -37,6 +54,7 @@ class SailRawCard extends StatelessWidget {
     this.secondary = false,
     this.withCloseButton = false,
     this.inSeparateWindow = false,
+    this.newWindowIdentifier,
   }) : assert(!(header != null && title != null), 'Cannot set both title and header');
 
   @override
@@ -76,6 +94,28 @@ class SailRawCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Flexible(child: header!),
+                        if (newWindowIdentifier != null)
+                          SailScaleButton(
+                            style: SailButtonStyle.secondary,
+                            child: SailSVG.fromAsset(
+                              SailSVGAsset.iconNewWindow,
+                              width: 15,
+                              color: theme.colors.text,
+                            ),
+                            onPressed: () async {
+                              final window = await DesktopMultiWindow.createWindow(
+                                jsonEncode({
+                                  'window_type': newWindowIdentifier!.windowType,
+                                  'application_dir': newWindowIdentifier!.applicationDir.path,
+                                  'log_file': newWindowIdentifier!.logFile.path,
+                                }),
+                              );
+                              await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
+                              await window.center();
+                              await window.setTitle(title ?? '');
+                              await window.show();
+                            },
+                          ),
                         if (withCloseButton)
                           SailScaleButton(
                             style: SailButtonStyle.secondary,
@@ -104,6 +144,28 @@ class SailRawCard extends StatelessWidget {
                             ),
                           ),
                           if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                          if (newWindowIdentifier != null)
+                            SailScaleButton(
+                              style: SailButtonStyle.secondary,
+                              child: SailSVG.fromAsset(
+                                SailSVGAsset.iconNewWindow,
+                                width: 15,
+                                color: theme.colors.text,
+                              ),
+                              onPressed: () async {
+                                final window = await DesktopMultiWindow.createWindow(
+                                  jsonEncode({
+                                    'window_type': newWindowIdentifier!.windowType,
+                                    'application_dir': newWindowIdentifier!.applicationDir.path,
+                                    'log_file': newWindowIdentifier!.logFile.path,
+                                  }),
+                                );
+                                await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
+                                await window.center();
+                                await window.setTitle('UTXOs and Denials');
+                                await window.show();
+                              },
+                            ),
                           if (withCloseButton)
                             SailScaleButton(
                               style: SailButtonStyle.secondary,
@@ -117,17 +179,45 @@ class SailRawCard extends StatelessWidget {
                         ],
                       ),
                     )
-                  else if (withCloseButton)
+                  else if (withCloseButton || newWindowIdentifier != null)
                     Align(
                       alignment: Alignment.centerRight,
-                      child: SailScaleButton(
-                        style: SailButtonStyle.secondary,
-                        child: SailSVG.fromAsset(
-                          SailSVGAsset.iconClose,
-                          width: 15,
-                          color: theme.colors.error,
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
+                      child: SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          if (newWindowIdentifier != null)
+                            SailScaleButton(
+                              style: SailButtonStyle.secondary,
+                              child: SailSVG.fromAsset(
+                                SailSVGAsset.iconNewWindow,
+                                width: 15,
+                                color: theme.colors.text,
+                              ),
+                              onPressed: () async {
+                                final window = await DesktopMultiWindow.createWindow(
+                                  jsonEncode({
+                                    'window_type': newWindowIdentifier!.windowType,
+                                    'application_dir': newWindowIdentifier!.applicationDir.path,
+                                    'log_file': newWindowIdentifier!.logFile.path,
+                                  }),
+                                );
+                                await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
+                                await window.center();
+                                await window.setTitle('UTXOs and Denials');
+                                await window.show();
+                              },
+                            ),
+                          if (withCloseButton)
+                            SailScaleButton(
+                              style: SailButtonStyle.secondary,
+                              child: SailSVG.fromAsset(
+                                SailSVGAsset.iconClose,
+                                width: 15,
+                                color: theme.colors.error,
+                              ),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                        ],
                       ),
                     ),
                   if (title != null) const SailSpacing(SailStyleValues.padding16),

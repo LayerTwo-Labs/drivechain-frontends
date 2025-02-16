@@ -105,16 +105,13 @@ class _OverviewPageState extends State<OverviewPage> {
 
     try {
       await _binaryProvider.downloadBinary(binary);
-      debugPrint('Download completed for ${binary.name}');
 
       if (!mounted) return;
 
       if (binary is Sidechain) {
         try {
           await _walletService.deriveSidechainStarter(binary.slot);
-          debugPrint('Successfully created sidechain starter for slot ${binary.slot}');
         } catch (e) {
-          debugPrint('Error creating sidechain starter: $e');
           if (!mounted) return;
           scaffoldMessenger.showSnackBar(
             SnackBar(
@@ -125,7 +122,6 @@ class _OverviewPageState extends State<OverviewPage> {
         }
       }
     } catch (e) {
-      debugPrint('Error downloading binary: $e');
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
         SnackBar(

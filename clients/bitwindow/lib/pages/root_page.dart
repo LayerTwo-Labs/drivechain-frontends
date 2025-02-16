@@ -354,10 +354,27 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
               members: [
                 PlatformMenuItem(
                   label: 'Debug Window',
-                  onSelected: () {
-                    showDialog(
+                  onSelected: () async {
+                    final applicationDir = await Environment.datadir();
+                    final logFile = await getLogFile();
+
+                    await showDialog(
                       context: _routerKey.currentContext!,
-                      builder: (context) => const DebugWindow(),
+                      builder: (context) => SailPadding(
+                        padding: EdgeInsets.only(
+                          top: SailStyleValues.padding16,
+                          left: SailStyleValues.padding16,
+                          right: SailStyleValues.padding16,
+                          bottom: SailStyleValues.padding64 * 2,
+                        ),
+                        child: DebugWindow(
+                          newWindowIdentifier: NewWindowIdentifier(
+                            windowType: 'debug',
+                            applicationDir: applicationDir,
+                            logFile: logFile,
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),

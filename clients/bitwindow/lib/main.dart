@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitwindow/env.dart';
+import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
@@ -66,7 +67,14 @@ void main(List<String> args) async {
     Widget child = SailRawCard(
       child: SailText.primary15('no window type provided, the programmers messed up'),
     );
+
     switch (arguments['window_type']) {
+      case 'debug':
+        child = DebugWindow(
+          // can't open a new window from a new window!
+          newWindowIdentifier: null,
+        );
+        break;
       case 'deniability':
         child = DeniabilityTab();
         break;

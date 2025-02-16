@@ -35,7 +35,6 @@ class ContentProvider extends ChangeNotifier {
       );
 
       if (articlePaths.isEmpty) {
-        debugPrint('No article paths found in manifest');
         return [];
       }
 
@@ -58,12 +57,10 @@ class ContentProvider extends ChangeNotifier {
                 final content = await rootBundle.loadString(path);
                 final article = parseArticle(content, path);
                 if (article == null) {
-                  debugPrint('Failed to parse article: $path');
                   return Article(title: 'Error loading article', markdown: '', filename: path);
                 }
                 return article;
               } catch (e) {
-                debugPrint('Error loading article $path: $e');
                 return Article(title: 'Error loading article', markdown: '', filename: path);
               }
             }),
@@ -79,7 +76,6 @@ class ContentProvider extends ChangeNotifier {
 
       return groups.where((group) => group.articles.isNotEmpty).toList();
     } catch (e) {
-      debugPrint('Error loading article groups: $e');
       return [];
     }
   }
