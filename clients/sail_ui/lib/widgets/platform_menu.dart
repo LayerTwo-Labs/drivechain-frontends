@@ -15,7 +15,7 @@ class CrossPlatformMenuBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Platform.isMacOS) {
+    if (Platform.isMacOS) {
       return PlatformMenuBar(
         menus: menus,
         child: child,

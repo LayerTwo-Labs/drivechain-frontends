@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
@@ -20,7 +21,7 @@ import (
 )
 
 func NewBitcoind(
-	bitcoind *coreproxy.Bitcoind,
+	bitcoind *service.Service[*coreproxy.Bitcoind],
 	db *sql.DB,
 ) *Parser {
 	return &Parser{
@@ -31,7 +32,7 @@ func NewBitcoind(
 
 // Parser is responsible for parsing blocks from bitcoind and storing OP_RETURN data in SQLite
 type Parser struct {
-	bitcoind *coreproxy.Bitcoind
+	bitcoind *service.Service[*coreproxy.Bitcoind]
 	db       *sql.DB
 }
 
@@ -68,7 +69,7 @@ func (p *Parser) Run(ctx context.Context) error {
 				zerolog.Ctx(ctx).Error().
 					Err(err).
 					Msgf("bitcoind_engine/parser: could not handle tick")
-				return err
+				continue
 			}
 			processing = false
 
@@ -77,7 +78,7 @@ func (p *Parser) Run(ctx context.Context) error {
 				zerolog.Ctx(ctx).Error().
 					Err(err).
 					Msgf("bitcoind_engine/parser: could not handle mempool tick")
-				return err
+				continue
 			}
 		}
 	}
@@ -126,7 +127,12 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 }
 
 func (p *Parser) handleMempoolTick(ctx context.Context) error {
-	mempoolRes, err := p.bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
+	bitcoind, err := p.bitcoind.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	mempoolRes, err := bitcoind.GetRawMempool(ctx, connect.NewRequest(&corepb.GetRawMempoolRequest{
 		Verbose: true,
 	}))
 	if err != nil {
@@ -227,7 +233,12 @@ func (p *Parser) processBlock(ctx context.Context, height int32) error {
 }
 
 func (p *Parser) currentHeight(ctx context.Context) (int32, string, error) {
-	resp, err := p.bitcoind.GetBlockchainInfo(ctx, &connect.Request[corepb.GetBlockchainInfoRequest]{})
+	bitcoind, err := p.bitcoind.Get(ctx)
+	if err != nil {
+		return 0, "", err
+	}
+
+	resp, err := bitcoind.GetBlockchainInfo(ctx, &connect.Request[corepb.GetBlockchainInfoRequest]{})
 	if err != nil {
 		return 0, "", fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
@@ -236,7 +247,12 @@ func (p *Parser) currentHeight(ctx context.Context) (int32, string, error) {
 }
 
 func (p *Parser) getBlock(ctx context.Context, height int32) (*corepb.GetBlockResponse, error) {
-	resp, err := p.bitcoind.GetBlock(ctx, &connect.Request[corepb.GetBlockRequest]{
+	bitcoind, err := p.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := bitcoind.GetBlock(ctx, &connect.Request[corepb.GetBlockRequest]{
 		Msg: &corepb.GetBlockRequest{
 			Height:    &height,
 			Verbosity: corepb.GetBlockRequest_VERBOSITY_BLOCK_TX_INFO,
@@ -250,7 +266,12 @@ func (p *Parser) getBlock(ctx context.Context, height int32) (*corepb.GetBlockRe
 }
 
 func (p *Parser) getRawTransaction(ctx context.Context, txid string) (*corepb.RawTransaction, error) {
-	resp, err := p.bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
+	bitcoind, err := p.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
 		Msg: &corepb.GetRawTransactionRequest{
 			Txid: txid,
 		},

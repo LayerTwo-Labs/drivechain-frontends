@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -193,6 +194,7 @@ class ConsoleTab extends StatefulWidget {
 class _ConsoleTabState extends State<ConsoleTab> {
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
+  EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
 
   late final List<String> _allCommands;
   String? _currentService;
@@ -214,6 +216,7 @@ class _ConsoleTabState extends State<ConsoleTab> {
     _allCommands = [
       ...mainchain.getMethods(),
       ...bitwindow.getMethods(),
+      ...enforcer.getMethods(),
     ];
   }
 
@@ -230,6 +233,9 @@ class _ConsoleTabState extends State<ConsoleTab> {
     if (bitwindow.getMethods().contains(command)) {
       return 'bitwindowd';
     }
+    if (enforcer.getMethods().contains(command)) {
+      return 'enforcer';
+    }
     // Default to bitcoind
     return 'bitcoind';
   }
@@ -241,21 +247,35 @@ class _ConsoleTabState extends State<ConsoleTab> {
     String command;
     List<String> args;
 
-    final commandParts = text.split(' ');
-    command = commandParts[0];
-    args = commandParts.sublist(1);
+    // Remove any extra whitespace
+    text = text.trim();
+
+    // Simple split on first whitespace
+    final firstSpace = text.indexOf(' ');
+    if (firstSpace == -1) {
+      command = text;
+      args = [];
+    } else {
+      command = text.substring(0, firstSpace);
+      if (text.contains('{')) {
+        // its json! split on '} '
+        args = text.substring(firstSpace + 1).split(' {').map((e) => e.trim()).toList();
+      } else {
+        args = text.substring(firstSpace + 1).split(' ').map((e) => e.trim()).toList();
+      }
+    }
 
     service = _determineService(command);
-
+    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
     final now = DateTime.now();
+
     setState(() {
       entries.add(
         ConsoleEntry(
           timestamp: now,
           content: text,
           type: EntryType.command,
-          isGroupStart: true,
-          isGrouped: true,
+          requestId: requestId,
         ),
       );
       _commandHistory.add(text);
@@ -275,9 +295,17 @@ class _ConsoleTabState extends State<ConsoleTab> {
           response = await mainchain.callRAW(command, args);
           break;
         case 'bitwindowd':
-          final jsonBody = args.isEmpty ? '{}' : args[0];
-          if (args.length > 1 || (args.isNotEmpty && !jsonBody.startsWith('{'))) {
-            throw Exception('Arguments must be a single JSON object, e.g. {"key": "value"}');
+        // The enforcer does not actually have connect, but all protos are copied 1-1 in bitwindow
+        // So we send RPCs to bitwindowd instead
+        case 'enforcer':
+          String jsonBody = '{}';
+          if (args.isNotEmpty) {
+            try {
+              json.decode(args[0]).toString();
+              jsonBody = args[0];
+            } catch (e) {
+              throw Exception('Arguments must be a single JSON object, e.g. {"key": "value"} $e');
+            }
           }
           response = await bitwindow.callRAW(command, jsonBody);
           break;
@@ -285,46 +313,44 @@ class _ConsoleTabState extends State<ConsoleTab> {
           throw Exception('Unknown service: $service');
       }
 
-      // Try to parse and pretty print JSON
+      // Try to format response
       String formattedResponse;
       try {
-        final jsonData = json.decode(response.toString());
-        formattedResponse = const JsonEncoder.withIndent('  ').convert(jsonData);
+        if (response is String) {
+          // If it's a string, try to parse as JSON
+          final jsonData = json.decode(response);
+          formattedResponse = const JsonEncoder.withIndent('  ').convert(jsonData);
+        } else {
+          // If it's already a Map/List, just encode it
+          formattedResponse = const JsonEncoder.withIndent('  ').convert(response);
+        }
       } catch (e) {
-        // Not valid JSON, use raw response
+        // Not JSON, use raw response
         formattedResponse = response.toString();
       }
 
-      setState(() {
-        entries.add(
-          ConsoleEntry(
-            timestamp: DateTime.now(),
-            content: formattedResponse,
-            type: EntryType.response,
-            isGrouped: true,
-          ),
-        );
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom();
-      });
+      _addResponse(
+        ConsoleEntry(
+          timestamp: DateTime.now(),
+          content: formattedResponse,
+          type: EntryType.response,
+          requestId: requestId,
+        ),
+      );
     } catch (e) {
-      setState(() {
-        entries.add(
-          ConsoleEntry(
-            timestamp: DateTime.now(),
-            content: 'Error: ${e.toString()}',
-            type: EntryType.error,
-            isGrouped: true, // Part of the same group
-          ),
-        );
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom();
-      });
+      _addResponse(
+        ConsoleEntry(
+          timestamp: DateTime.now(),
+          content: 'Error: ${e.toString()}',
+          type: EntryType.error,
+          requestId: requestId,
+        ),
+      );
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
   }
 
   void _scrollToBottom() {
@@ -360,6 +386,29 @@ class _ConsoleTabState extends State<ConsoleTab> {
     }
   }
 
+  bool hasResponse(String requestId) {
+    return entries.any(
+      (e) => e.requestId == requestId && (e.type == EntryType.response || e.type == EntryType.error),
+    );
+  }
+
+  void _addResponse(ConsoleEntry responseEntry) {
+    setState(() {
+      // Find the index of the matching request
+      final requestIndex = entries.indexWhere(
+        (e) => e.requestId == responseEntry.requestId && e.type == EntryType.command,
+      );
+
+      if (requestIndex != -1) {
+        // Insert response right after its request
+        entries.insert(requestIndex + 1, responseEntry);
+      } else {
+        // Fallback: add to end if request not found
+        entries.add(responseEntry);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
@@ -378,7 +427,7 @@ class _ConsoleTabState extends State<ConsoleTab> {
                 itemCount: entries.length,
                 itemBuilder: (context, index) {
                   final entry = entries[index];
-                  return ConsoleEntryWidget(entry: entry);
+                  return ConsoleEntryWidget(entry: entry, entries: entries);
                 },
               ),
             ),
@@ -413,7 +462,7 @@ class _ConsoleTabState extends State<ConsoleTab> {
                             elevation: 4,
                             color: theme.colors.background,
                             child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxHeight: 200),
+                              constraints: const BoxConstraints(maxHeight: 150),
                               child: ListView.builder(
                                 padding: EdgeInsets.zero,
                                 shrinkWrap: true,
@@ -516,23 +565,29 @@ class ConsoleEntry {
   final DateTime timestamp;
   final String content;
   final EntryType type;
-  final bool isGrouped; // Whether this entry is part of a group
-  final bool isGroupStart; // Whether this entry starts a new group
+  final String requestId;
+
+  bool get isGrouped => requestId != '';
+  bool get isGroupStart => type == EntryType.command;
 
   ConsoleEntry({
     required this.timestamp,
     required this.content,
     required this.type,
-    this.isGrouped = false,
-    this.isGroupStart = false,
+    required this.requestId,
   });
 }
 
 class ConsoleEntryWidget extends StatelessWidget {
   final ConsoleEntry entry;
+  final List<ConsoleEntry> entries;
   final _timeFormat = DateFormat('HH:mm:ss');
 
-  ConsoleEntryWidget({super.key, required this.entry});
+  ConsoleEntryWidget({super.key, required this.entry, required this.entries});
+
+  bool _hasResponse(String requestId) => entries.any(
+        (e) => e.requestId == requestId && (e.type == EntryType.response || e.type == EntryType.error),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -575,7 +630,20 @@ class ConsoleEntryWidget extends StatelessWidget {
             monospace: true,
           ),
           const SizedBox(width: 8),
-          if (entry.type == EntryType.command) const Icon(Icons.chevron_right, size: 16) else const SizedBox(width: 16),
+          if (entry.type == EntryType.command) ...[
+            if (!_hasResponse(entry.requestId))
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1,
+                  color: theme.colors.primary,
+                ),
+              )
+            else
+              const Icon(Icons.chevron_right, size: 16),
+          ] else
+            const SizedBox(width: 16),
           const SizedBox(width: 8),
           Expanded(
             child: SelectableText(

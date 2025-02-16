@@ -17,6 +17,7 @@ import (
 	api_bitcoind "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/bitcoind"
 	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/bitwindowd"
 	api_drivechain "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/drivechain"
+	api_enforcer "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/enforcer"
 	api_misc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/misc"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/api/wallet"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1/bitcoindv1connect"
@@ -83,6 +84,12 @@ func NewServer(
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
 		database, walletSvc,
 	)))
+
+	// Register all enforcer services, only to be used as a bridge
+	enforcer := api_enforcer.New(enforcerSvc, walletSvc, cryptoSvc)
+	Register(srv, validatorrpc.NewValidatorServiceHandler, validatorrpc.ValidatorServiceHandler(enforcer))
+	Register(srv, validatorrpc.NewWalletServiceHandler, validatorrpc.WalletServiceHandler(enforcer))
+	Register(srv, cryptorpc.NewCryptoServiceHandler, cryptorpc.CryptoServiceHandler(enforcer))
 
 	return srv, nil
 }
