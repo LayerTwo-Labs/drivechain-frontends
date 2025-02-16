@@ -120,11 +120,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return err
 	}
 
-	bitcoind, err := bitcoindConnector(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to connect to bitcoind: %w", err)
-	}
-	bitcoinEngine := engines.NewBitcoind(bitcoind, db)
+	bitcoinEngine := engines.NewBitcoind(srv.Bitcoind, db)
 	deniabilityEngine := engines.NewDeniability(srv.Wallet, srv.Bitcoind, db)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
