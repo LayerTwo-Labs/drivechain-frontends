@@ -155,8 +155,9 @@ class _AddressBookTableState extends State<AddressBookTable> {
 
                   return [
                     SailTableCell(
-                      value: entry.label,
+                      value: entry.label == '' ? '(no label)' : entry.label,
                       monospace: true,
+                      italic: entry.label == '',
                     ),
                     SailTableCell(
                       value: entry.address,

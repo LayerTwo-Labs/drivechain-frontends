@@ -128,7 +128,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 		err = addressbook.Create(ctx, s.database, c.Msg.Label, c.Msg.Destination, direction)
 		if err != nil {
-			if err.Error() == "UNIQUE constraint failed: address_book.address" {
+			if err.Error() == addressbook.ErrUniqueAddress {
 				// that's fine! Don't do anything
 			} else {
 				return nil, fmt.Errorf("could not create address book entry: %w", err)
@@ -152,6 +152,16 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.E
 	address, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not create new address: %w", err)
+	}
+
+	// store all receiving addresses in the book! But with an empty label
+	err = addressbook.Create(ctx, s.database, "", address.Msg.Address, addressbook.DirectionReceive)
+	if err != nil {
+		if err.Error() == addressbook.ErrUniqueAddress {
+			// that's fine, already added! Don't do anything
+		} else {
+			return nil, fmt.Errorf("could not create address book entry: %w", err)
+		}
 	}
 
 	return connect.NewResponse(&pb.GetNewAddressResponse{

@@ -28,3 +28,4 @@ analyzer:
     exclude:
         - "lib/gen**"
         - 'build/**'
+        - 'macos/**'

@@ -13,11 +13,18 @@ type AddressBookEntry struct {
 	ID        int64
 	Label     string
 	Address   string
-	Direction string
+	Direction Direction
 	CreatedAt time.Time
 }
 
-func Create(ctx context.Context, db *sql.DB, label, address, direction string) error {
+type Direction string
+
+const (
+	DirectionSend    Direction = "send"
+	DirectionReceive Direction = "receive"
+)
+
+func Create(ctx context.Context, db *sql.DB, label, address string, direction Direction) error {
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO address_book (label, address, direction) VALUES (?, ?, ?)`,
 		label, address, direction)
@@ -56,24 +63,28 @@ func Delete(ctx context.Context, db *sql.DB, id int64) error {
 	return err
 }
 
-func DirectionFromProto(d pb.Direction) (string, error) {
+func DirectionFromProto(d pb.Direction) (Direction, error) {
 	switch d {
 	case pb.Direction_DIRECTION_SEND:
-		return "send", nil
+		return DirectionSend, nil
 	case pb.Direction_DIRECTION_RECEIVE:
-		return "receive", nil
+		return DirectionReceive, nil
 	default:
 		return "", fmt.Errorf("invalid direction: %s", d)
 	}
 }
 
-func DirectionToProto(d string) pb.Direction {
+func DirectionToProto(d Direction) pb.Direction {
 	switch d {
-	case "send":
+	case DirectionSend:
 		return pb.Direction_DIRECTION_SEND
-	case "receive":
+	case DirectionReceive:
 		return pb.Direction_DIRECTION_RECEIVE
 	default:
 		return pb.Direction_DIRECTION_UNSPECIFIED
 	}
 }
+
+const (
+	ErrUniqueAddress = "UNIQUE constraint failed: address_book.address, address_book.direction"
+)
