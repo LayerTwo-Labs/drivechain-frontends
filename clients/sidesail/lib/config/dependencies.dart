@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
@@ -24,6 +26,7 @@ import 'package:sidesail/storage/sail_settings/network_settings.dart';
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
 Future<void> initDependencies(Sidechain chain) async {
+  final appDir = await getApplicationSupportDirectory();
   final logFile = await getLogFile();
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
   GetIt.I.registerLazySingleton<Logger>(() => log);
@@ -56,11 +59,19 @@ Future<void> initDependencies(Sidechain chain) async {
     () => mainchainRPC,
   );
 
+  final launcherAppDir = Directory(
+    path.join(
+      appDir.path,
+      '..',
+      'com.layertwolabs.launcher',
+    ),
+  );
   final binary = Enforcer();
   final enforcer = await EnforcerLive.create(
     host: '127.0.0.1',
     port: binary.port,
     binary: binary,
+    launcherAppDir: launcherAppDir,
   );
   GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 

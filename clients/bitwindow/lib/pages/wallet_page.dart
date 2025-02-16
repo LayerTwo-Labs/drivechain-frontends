@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
@@ -10,12 +11,17 @@ import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/widgets/error_container.dart';
+import 'package:bs58/bs58.dart';
+import 'package:convert/convert.dart';
+import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:pointycastle/digests/ripemd160.dart';
+import 'package:pointycastle/digests/sha256.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
@@ -24,13 +30,6 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:pointycastle/digests/ripemd160.dart';
-import 'package:pointycastle/digests/sha256.dart';
-import 'package:convert/convert.dart';
-import 'package:bip39_mnemonic/bip39_mnemonic.dart';
-import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
-import 'package:bs58/bs58.dart';
-import 'dart:io';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
@@ -1414,7 +1413,7 @@ class HDWalletExplorerTab extends StatefulWidget {
 
 class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
   final TextEditingController _derivationPathController = TextEditingController(text: "m/44'/0'/0'/0");
-  
+
   String? _seedHex;
   String? _masterKey;
   List<HDWalletEntry> _derivedEntries = [];
@@ -1422,7 +1421,7 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
   static const int _entriesPerPage = 20;
   bool _showPrivateKeys = true;
   String? _error;
-  
+
   @override
   void initState() {
     super.initState();
@@ -1460,14 +1459,14 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
       }
 
       final mnemonic = (await file.readAsString()).trim();
-      
+
       final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
       _seedHex = hex.encode(mnemonicObj.seed);
-      
+
       final chain = Chain.seed(_seedHex!);
       final masterKey = chain.forPath('m');
       _masterKey = masterKey.privateKeyHex();
-      
+
       setState(() {
         _error = null;
         _onDerivationPathChanged();
@@ -1484,65 +1483,67 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
 
   void _onDerivationPathChanged() {
     if (_seedHex == null) return;
-    
+
     try {
       Logger().d('Creating chain from seed: ${_seedHex!}');
       final chain = Chain.seed(_seedHex!);
       final basePath = _derivationPathController.text.trim();
       Logger().d('Using base derivation path: $basePath');
-      
+
       final entries = <HDWalletEntry>[];
       final startIndex = _currentPage * _entriesPerPage;
-      
+
       for (var i = 0; i < _entriesPerPage; i++) {
         final index = startIndex + i;
         final path = '$basePath/$index';
         Logger().d('Deriving key for path: $path');
-        
+
         final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
         Logger().d('Extended private key: ${extendedPrivateKey.toString()}');
-        
+
         final privateKeyHex = extendedPrivateKey.privateKeyHex();
-        
+
         final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
         final privateKeyBytes = hex.decode(cleanHex);
-        
+
         final buffer = Uint8List(34);
         buffer[0] = 0x80;
         buffer.setRange(1, 33, privateKeyBytes);
         buffer[33] = 0x01;
-        
+
         final hash1 = SHA256Digest().process(buffer);
         final hash2 = SHA256Digest().process(hash1);
         final checksum = hash2.sublist(0, 4);
-        
+
         final wifBytes = Uint8List(38);
         wifBytes.setRange(0, 34, buffer);
         wifBytes.setRange(34, 38, checksum);
-        
+
         final base58PrivateKey = base58.encode(wifBytes);
-        
+
         final publicKey = extendedPrivateKey.publicKey();
         Logger().d('Public key: ${publicKey.toString()}');
-        
+
         final q = publicKey.q;
         if (q == null) {
           throw Exception('Public key point is null');
         }
         final pubKeyBytes = q.getEncoded(true);
         Logger().d('Public key bytes (hex): ${hex.encode(pubKeyBytes)}');
-        
+
         final address = _deriveAddress(pubKeyBytes);
         Logger().d('Generated address: $address');
-        
-        entries.add(HDWalletEntry(
-          path: path,
-          address: address,
-          publicKey: hex.encode(pubKeyBytes),
-          privateKey: base58PrivateKey,
-        ),);
+
+        entries.add(
+          HDWalletEntry(
+            path: path,
+            address: address,
+            publicKey: hex.encode(pubKeyBytes),
+            privateKey: base58PrivateKey,
+          ),
+        );
       }
-      
+
       setState(() {
         _derivedEntries = entries;
         _error = null;
@@ -1560,29 +1561,29 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
     try {
       final sha256Result = SHA256Digest().process(Uint8List.fromList(pubKeyBytes));
       Logger().d('SHA256 of pubkey: ${hex.encode(sha256Result)}');
-      
+
       final ripemd160 = RIPEMD160Digest();
       final pubKeyHash = ripemd160.process(sha256Result);
       Logger().d('RIPEMD160 of SHA256: ${hex.encode(pubKeyHash)}');
-      
+
       final versionedHash = Uint8List(21);
       versionedHash[0] = 0x00;
       versionedHash.setRange(1, 21, pubKeyHash);
       Logger().d('Versioned hash: ${hex.encode(versionedHash)}');
-      
+
       final firstSHA = SHA256Digest().process(versionedHash.sublist(0, 21));
       final doubleSHA = SHA256Digest().process(firstSHA);
       final checksum = doubleSHA.sublist(0, 4);
       Logger().d('Checksum: ${hex.encode(checksum)}');
-      
+
       final addressBytes = Uint8List(25);
       addressBytes.setRange(0, 21, versionedHash);
       addressBytes.setRange(21, 25, checksum);
       Logger().d('Final address bytes: ${hex.encode(addressBytes)}');
-      
+
       final address = base58.encode(addressBytes);
       Logger().d('Base58 encoded address: $address');
-      
+
       return address;
     } catch (e, stackTrace) {
       Logger().e('Error generating address: $e\n$stackTrace');
