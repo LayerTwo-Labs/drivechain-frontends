@@ -16,6 +16,7 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
@@ -170,10 +171,18 @@ Future<void> initDependencies(
     () => mainchain,
   );
 
+  final launcherAppDir = Directory(
+    path.join(
+      applicationDir.path,
+      '..',
+      'com.layertwolabs.launcher',
+    ),
+  );
   final enforcer = await EnforcerLive.create(
     host: '127.0.0.1',
     port: binaries[1].port,
     binary: binaries[1],
+    launcherAppDir: launcherAppDir,
   );
 
   GetIt.I.registerLazySingleton<EnforcerRPC>(

@@ -1,12 +1,11 @@
 import 'dart:io';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
@@ -31,6 +30,7 @@ abstract class EnforcerRPC extends RPCConnection {
 class EnforcerLive extends EnforcerRPC {
   @override
   late final ValidatorServiceClient validator;
+  final Directory launcherAppDir;
 
   // Private constructor
   EnforcerLive._create({
@@ -38,6 +38,7 @@ class EnforcerLive extends EnforcerRPC {
     required super.binary,
     required super.logPath,
     required super.restartOnFailure,
+    required this.launcherAppDir,
   });
 
   // Async factory
@@ -45,6 +46,7 @@ class EnforcerLive extends EnforcerRPC {
     required String host,
     required int port,
     required Binary binary,
+    required Directory launcherAppDir,
   }) async {
     final httpClient = createHttpClient();
     final conf = await getMainchainConf();
@@ -59,6 +61,7 @@ class EnforcerLive extends EnforcerRPC {
     final logPath = binary.logPath();
 
     final instance = EnforcerLive._create(
+      launcherAppDir: launcherAppDir,
       conf: conf,
       binary: binary,
       logPath: logPath,
@@ -77,18 +80,19 @@ class EnforcerLive extends EnforcerRPC {
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
     var host = mainchainConf.host;
-    
+
     if (host == 'localhost' && !Platform.isWindows) {
       host = '0.0.0.0';
     }
 
-    final appDir = await getApplicationSupportDirectory();
-    final starterPath = path.join(appDir.path, 'wallet_starters', 'l1_starter.txt');
+    final starterPath = path.join(
+      launcherAppDir.path,
+      'wallet_starters',
+      'l1_starter.txt',
+    );
     final starterFile = File(starterPath);
 
-    final walletArg = await starterFile.exists() 
-      ? '--wallet-seed-file=$starterPath'
-      : '--wallet-auto-create';
+    final walletArg = await starterFile.exists() ? '--wallet-seed-file=$starterPath' : '--wallet-auto-create';
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',

@@ -109,6 +109,7 @@ Future<void> initDependencies(Logger log) async {
             host: '127.0.0.1',
             port: binary.port,
             binary: binary,
+            launcherAppDir: appDir,
           );
           GetIt.I.registerSingleton<EnforcerRPC>(enforcer);
 
