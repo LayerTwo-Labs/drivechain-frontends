@@ -8,7 +8,12 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
 class BlockExplorerDialog extends StatelessWidget {
-  const BlockExplorerDialog({super.key});
+  final NewWindowIdentifier? newWindowIdentifier;
+
+  const BlockExplorerDialog({
+    super.key,
+    required this.newWindowIdentifier,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,8 @@ class BlockExplorerDialog extends StatelessWidget {
           subtitle:
               'Last block time: ${DateTime.fromMillisecondsSinceEpoch(model.blockchainProvider.infoService.blockchainInfo.time * 1000).format()}',
           bottomPadding: false,
-          inSeparateWindow: true,
+          inSeparateWindow: newWindowIdentifier != null,
+          newWindowIdentifier: newWindowIdentifier,
           child: Column(
             children: [
               SailRow(
