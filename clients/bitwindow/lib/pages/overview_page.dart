@@ -638,46 +638,48 @@ class BroadcastNewsView extends StatelessWidget {
     return ViewModelBuilder<BroadcastNewsViewModel>.reactive(
       viewModelBuilder: () => BroadcastNewsViewModel(initialTopic: initialTopic),
       builder: (context, viewModel, child) {
-        return SailColumn(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: SailStyleValues.padding16,
-          mainAxisSize: MainAxisSize.min,
-          leadingSpacing: true,
-          children: [
-            SailDropdownButton<Topic>(
-              items: [
-                ...viewModel.topics.map(
-                  (topic) => SailDropdownItem(
-                    value: topic,
-                    child: SailText.primary12(topic.name),
+        return SingleChildScrollView(
+          child: SailColumn(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: SailStyleValues.padding16,
+            mainAxisSize: MainAxisSize.min,
+            leadingSpacing: true,
+            children: [
+              SailDropdownButton<Topic>(
+                items: [
+                  ...viewModel.topics.map(
+                    (topic) => SailDropdownItem(
+                      value: topic,
+                      child: SailText.primary12(topic.name),
+                    ),
                   ),
-                ),
-              ],
-              onChanged: viewModel.setTopic,
-              value: viewModel.topic,
-            ),
-            SailTextField(
-              label: 'Headline (max 64 characters)',
-              controller: viewModel.headlineController,
-              hintText: 'Enter a headline',
-              size: TextFieldSize.small,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(64),
-              ],
-            ),
-            SailTextField(
-              label: 'Content',
-              controller: viewModel.contentController,
-              hintText: 'Enter news content',
-              minLines: 10,
-            ),
-            QtButton(
-              label: 'Broadcast',
-              onPressed: () => viewModel.broadcastNews(context),
-              size: ButtonSize.small,
-              disabled: viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 64,
-            ),
-          ],
+                ],
+                onChanged: viewModel.setTopic,
+                value: viewModel.topic,
+              ),
+              SailTextField(
+                label: 'Headline (max 64 characters)',
+                controller: viewModel.headlineController,
+                hintText: 'Enter a headline',
+                size: TextFieldSize.small,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(64),
+                ],
+              ),
+              SailTextField(
+                label: 'Content',
+                controller: viewModel.contentController,
+                hintText: 'Enter news content',
+                minLines: 10,
+              ),
+              QtButton(
+                label: 'Broadcast',
+                onPressed: () => viewModel.broadcastNews(context),
+                size: ButtonSize.small,
+                disabled: viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 64,
+              ),
+            ],
+          ),
         );
       },
     );
