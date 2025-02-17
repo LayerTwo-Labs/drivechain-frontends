@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
@@ -101,6 +102,10 @@ class BlockchainProvider extends ChangeNotifier {
   }
 
   void _startFetchTimer() {
+    if (Environment.isInTest) {
+      return;
+    }
+
     void tick() async {
       try {
         await fetch();

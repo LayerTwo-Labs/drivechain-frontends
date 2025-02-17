@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -1435,27 +1436,43 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
     super.dispose();
   }
 
-  Future<String?> _getMnemonicPath() async {
+  Future<List<String>> _getMnemonicPaths() async {
+    var mnemonicPaths = <String>[];
+    String base = '';
+
     if (Platform.isMacOS) {
-      return '${Platform.environment['HOME']}/Library/Application Support/drivechain-launcher/wallet_starters/mnemonics/l1.txt';
+      base = '${Platform.environment['HOME']}/Library/Application Support';
     } else if (Platform.isLinux) {
-      return '${Platform.environment['HOME']}/.config/drivechain-launcher/wallet_starters/mnemonics/l1.txt';
+      base = '${Platform.environment['HOME']}/.config';
     } else if (Platform.isWindows) {
-      return '${Platform.environment['APPDATA']}\\drivechain-launcher\\wallet_starters\\mnemonics\\l1.txt';
+      base = Platform.environment['APPDATA']!;
+    } else {
+      throw Exception('Unsupported platform');
     }
-    return null;
+
+    mnemonicPaths.add(path.join(base, 'com.layertwolabs.launcher', 'wallet_starters', 'mnemonics', 'l1.txt'));
+    mnemonicPaths.add(path.join(base, 'drivechain-launcher', 'wallet_starters', 'mnemonics', 'l1.txt'));
+
+    return mnemonicPaths;
   }
 
   Future<void> _loadMnemonic() async {
     try {
-      final path = await _getMnemonicPath();
-      if (path == null) {
-        throw Exception('Unsupported platform');
-      }
+      final paths = await _getMnemonicPaths();
 
-      final file = File(path);
-      if (!await file.exists()) {
-        throw Exception('Mnemonic file not found');
+      File? file;
+      for (final path in paths) {
+        try {
+          file = File(path);
+          if (await file.exists()) {
+            break;
+          }
+        } catch (e) {
+          Logger().e('could not load mnemonic from $path: $e');
+        }
+      }
+      if (file == null) {
+        throw Exception('Mnemonic file not found at any of the paths');
       }
 
       final mnemonic = (await file.readAsString()).trim();
