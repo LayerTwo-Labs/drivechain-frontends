@@ -46,7 +46,7 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                       alignment: Alignment.centerRight,
                       child: SailTextButton(
                         label: 'Done',
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () async => Navigator.of(context).pop(),
                       ),
                     ),
                   ),

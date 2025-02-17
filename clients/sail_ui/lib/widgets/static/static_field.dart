@@ -36,8 +36,9 @@ class StaticField extends StatelessWidget {
             if (copyable)
               QtIconButton(
                 tooltip: 'Copy to clipboard',
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: value));
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: value));
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Copied $label to clipboard'),

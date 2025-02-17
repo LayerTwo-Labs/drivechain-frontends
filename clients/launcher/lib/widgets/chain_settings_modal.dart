@@ -152,7 +152,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                   Center(
                     child: SailButton.primary(
                       'Open Installation Directory',
-                      onPressed: () => _openDownloadLocation(widget.chain),
+                      onPressed: () async => _openDownloadLocation(widget.chain),
                       size: ButtonSize.regular,
                     ),
                   ),

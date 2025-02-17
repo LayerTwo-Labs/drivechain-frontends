@@ -49,7 +49,7 @@ class DashboardActionModal extends StatelessWidget {
                   Expanded(child: Container()),
                   SailTextButton(
                     label: 'Cancel',
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.of(context).pop();
                     },
                   ),

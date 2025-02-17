@@ -249,12 +249,12 @@ class _AddressBookContentState extends State<AddressBookContent> {
                       children: [
                         QtButton(
                           label: 'Edit Label',
-                          onPressed: () => _showEditDialog(context, entry),
+                          onPressed: () async => _showEditDialog(context, entry),
                           size: ButtonSize.small,
                         ),
                         QtButton(
                           label: 'Delete',
-                          onPressed: () => _showDeleteConfirmation(context, entry),
+                          onPressed: () async => _showDeleteConfirmation(context, entry),
                           size: ButtonSize.small,
                         ),
                       ],
@@ -349,10 +349,10 @@ class _AddressBookContentState extends State<AddressBookContent> {
     );
   }
 
-  void _showCreateDialog(BuildContext context) {
+  Future<void> _showCreateDialog(BuildContext context) async {
     final dialogViewModel = AddressBookViewModel(widget.viewModel.direction);
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -395,7 +395,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
                       ),
                       QtButton(
                         label: 'Cancel',
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () async => Navigator.pop(context),
                         size: ButtonSize.small,
                       ),
                     ],
@@ -430,15 +430,15 @@ class _AddressBookContentState extends State<AddressBookContent> {
                   children: [
                     QtButton(
                       label: 'Delete',
-                      onPressed: () {
-                        widget.viewModel.deleteEntry(entry.id);
-                        Navigator.pop(context);
+                      onPressed: () async {
+                        await widget.viewModel.deleteEntry(entry.id);
+                        if (context.mounted) Navigator.pop(context);
                       },
                       size: ButtonSize.small,
                     ),
                     QtButton(
                       label: 'Cancel',
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () async => Navigator.pop(context),
                       size: ButtonSize.small,
                     ),
                   ],

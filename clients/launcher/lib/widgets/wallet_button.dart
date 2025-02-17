@@ -81,9 +81,9 @@ class _WalletButtonState extends State<WalletButton> {
     super.dispose();
   }
 
-  void _showModal() {
+  Future<void> _showModal() async {
     // Remove existing overlay if any
-    _removeOverlay();
+    await _removeOverlay();
 
     // Create and insert new overlay
     _overlayEntry = OverlayEntry(
@@ -146,33 +146,13 @@ class _WalletButtonState extends State<WalletButton> {
                         // Action buttons
                         Row(
                           children: [
-                            Expanded(
-                              child: SailScaleButton(
-                                style: SailButtonStyle.primary,
-                                onPressed: () {},
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Builder(
-                                      builder: (context) {
-                                        final theme = SailTheme.of(context);
-                                        return SailSVG.icon(
-                                          SailSVGAsset.iconSend,
-                                          color: theme.colors.text,
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(width: 8),
-                                    SailText.primary12('Send'),
-                                  ],
-                                ),
-                              ),
-                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: SailScaleButton(
                                 style: SailButtonStyle.primary,
-                                onPressed: () {},
+                                onPressed: () async {
+                                  await launchUrl(Uri.parse('https://drivechain.live'));
+                                },
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -301,8 +281,8 @@ class _WalletButtonState extends State<WalletButton> {
                           if (viewModel.address != null)
                             SailScaleButton(
                               style: SailButtonStyle.secondary,
-                              onPressed: () {
-                                Clipboard.setData(ClipboardData(text: viewModel.address!));
+                              onPressed: () async {
+                                await Clipboard.setData(ClipboardData(text: viewModel.address!));
                               },
                               child: Builder(
                                 builder: (context) {
@@ -319,8 +299,8 @@ class _WalletButtonState extends State<WalletButton> {
                     ),
                   SailButton.primary(
                     'Open Faucet In Browser',
-                    onPressed: () {
-                      launchUrl(Uri.parse('https://drivechain.live'));
+                    onPressed: () async {
+                      await launchUrl(Uri.parse('https://drivechain.live'));
                     },
                     size: ButtonSize.regular,
                   ),
@@ -333,10 +313,12 @@ class _WalletButtonState extends State<WalletButton> {
       ),
     );
 
-    Overlay.of(context).insert(_overlayEntry!);
+    if (context.mounted) {
+      Overlay.of(context).insert(_overlayEntry!);
+    }
   }
 
-  void _removeOverlay() {
+  Future<void> _removeOverlay() async {
     _overlayEntry?.remove();
     _overlayEntry = null;
   }
@@ -385,11 +367,11 @@ class _WalletButtonState extends State<WalletButton> {
       link: _layerLink,
       child: SailScaleButton(
         style: SailButtonStyle.secondary,
-        onPressed: () {
+        onPressed: () async {
           if (_overlayEntry == null) {
-            _showModal();
+            await _showModal();
           } else {
-            _removeOverlay();
+            await _removeOverlay();
           }
         },
         child: Tooltip(

@@ -19,7 +19,7 @@ class _DenialDialogState extends State<DenialDialog> {
   final hoursController = TextEditingController(text: '1');
   final daysController = TextEditingController(text: '0');
 
-  void setNormalDefaults() {
+  Future<void> setNormalDefaults() async {
     setState(() {
       hopsController.text = '3';
       minutesController.text = '0';
@@ -28,7 +28,7 @@ class _DenialDialogState extends State<DenialDialog> {
     });
   }
 
-  void setParanoidDefaults() {
+  Future<void> setParanoidDefaults() async {
     setState(() {
       hopsController.text = '6';
       minutesController.text = '0';
@@ -160,16 +160,16 @@ class _DenialDialogState extends State<DenialDialog> {
                   children: [
                     QtButton(
                       label: 'Start',
-                      onPressed: () {
+                      onPressed: () async {
                         final hops = int.tryParse(hopsController.text) ?? 3;
-                        widget.onSubmit(hops, getTotalSeconds());
-                        Navigator.pop(context);
+                        await widget.onSubmit(hops, getTotalSeconds());
+                        if (context.mounted) Navigator.pop(context);
                       },
                       size: ButtonSize.small,
                     ),
                     SailTextButton(
                       label: 'Cancel',
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () async => Navigator.pop(context),
                     ),
                   ],
                 ),

@@ -35,7 +35,7 @@ class _ExpandableListEntryState extends State<ExpandableListEntry> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailScaleButton(
-            onPressed: () {
+            onPressed: () async {
               setState(() {
                 expanded = !expanded;
               });

@@ -29,7 +29,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                 children: [
                   const SizedBox(width: 10),
                   SailButton.icon(
-                    onPressed: model.running ? null : () => model.toggleRunning(true),
+                    onPressed: model.running ? null : () async => model.toggleRunning(true),
                     disabled: model.running,
                     icon: const Icon(
                       Icons.play_arrow,
@@ -39,7 +39,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   SailButton.icon(
-                    onPressed: !model.running ? null : () => model.toggleRunning(false),
+                    onPressed: !model.running ? null : () async => model.toggleRunning(false),
                     disabled: !model.running,
                     icon: const Icon(
                       Icons.stop,

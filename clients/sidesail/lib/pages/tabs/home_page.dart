@@ -203,7 +203,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               children: [
                 SailButton.primary(
                   'Force close',
-                  onPressed: () {
+                  onPressed: () async {
                     processesExited.complete(true);
                     Navigator.of(context).pop(true);
                     _closeAlertOpen = false;

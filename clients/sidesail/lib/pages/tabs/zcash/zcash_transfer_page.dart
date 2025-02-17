@@ -58,7 +58,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 title: 'Send transparent coins',
                                 category: Category.sidechain,
                                 icon: Icons.remove,
-                                onTap: () {
+                                onTap: () async {
                                   model.sendTransparent(context);
                                 },
                               ),
@@ -66,7 +66,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 title: 'Receive transparent coins',
                                 category: Category.sidechain,
                                 icon: Icons.remove,
-                                onTap: () {
+                                onTap: () async {
                                   model.receiveTransparent(context);
                                 },
                               ),
@@ -115,7 +115,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 title: 'Send private coins',
                                 category: Category.sidechain,
                                 icon: Icons.remove,
-                                onTap: () {
+                                onTap: () async {
                                   model.sendPrivate(context);
                                 },
                               ),
@@ -123,7 +123,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 title: 'Receive private coins',
                                 category: Category.sidechain,
                                 icon: Icons.add,
-                                onTap: () {
+                                onTap: () async {
                                   model.receivePrivate(context);
                                 },
                               ),
@@ -190,7 +190,7 @@ class ZCashTransferTabViewModel extends BaseViewModel {
     _transactionsProvider.addListener(notifyListeners);
   }
 
-  void sendPrivate(BuildContext context) async {
+  Future<void> sendPrivate(BuildContext context) async {
     final privateBalance = shieldedUTXOs.fold(0.0, (sum, elem) => sum + elem.amount);
 
     await showThemedDialog(

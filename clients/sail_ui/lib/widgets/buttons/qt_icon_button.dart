@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 class QtIconButton extends StatelessWidget {
   final Widget icon;
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
 
   /// Only one of [tooltip] and [richTooltip] may be non-null.
   final String? tooltip;

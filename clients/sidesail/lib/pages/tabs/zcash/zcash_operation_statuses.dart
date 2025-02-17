@@ -45,7 +45,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                         label: 'Clear',
                         onPressed: () => model.clear(),
                       ),
-                      HelpButton(onPressed: () => model.operationHelp(context)),
+                      HelpButton(onPressed: () async => model.operationHelp(context)),
                     ],
                   ),
                   children: [

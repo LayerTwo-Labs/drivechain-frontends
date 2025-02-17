@@ -10,7 +10,7 @@ class ActionTile extends StatelessWidget {
   final String title;
   final Category category;
   final IconData? icon;
-  final VoidCallback onTap;
+  final Future<void> Function() onTap;
 
   const ActionTile({
     super.key,

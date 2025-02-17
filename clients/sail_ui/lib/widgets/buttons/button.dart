@@ -5,7 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 enum ButtonSize { small, regular }
 
 class SailButton extends StatelessWidget {
-  final VoidCallback? onPressed;
+  final Future<void> Function()? onPressed;
   final bool disabled;
   final bool loading;
   final ButtonSize size;
@@ -23,7 +23,7 @@ class SailButton extends StatelessWidget {
 
   static Widget primary(
     String label, {
-    required VoidCallback onPressed,
+    required Future<void> Function() onPressed,
     required ButtonSize size,
     bool loading = false,
     bool disabled = false,
@@ -42,7 +42,7 @@ class SailButton extends StatelessWidget {
 
   static Widget secondary(
     String label, {
-    required VoidCallback onPressed,
+    required Future<void> Function() onPressed,
     required ButtonSize size,
     bool loading = false,
     bool disabled = false,
@@ -62,7 +62,7 @@ class SailButton extends StatelessWidget {
   static Widget icon({
     required String label,
     required Widget icon,
-    required VoidCallback? onPressed,
+    required Future<void> Function()? onPressed,
     ButtonSize size = ButtonSize.regular,
     bool loading = false,
     bool disabled = false,
@@ -124,7 +124,7 @@ class SailButton extends StatelessWidget {
 
 class SailTextButton extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
 
   const SailTextButton({
     super.key,
@@ -147,7 +147,7 @@ class SailRawButton extends StatefulWidget {
   final bool disabled;
   final bool loading;
   final Color? backgroundColor;
-  final VoidCallback? onPressed;
+  final Future<void> Function()? onPressed;
   final Widget child;
   final EdgeInsets? padding;
 
@@ -166,10 +166,12 @@ class SailRawButton extends StatefulWidget {
 }
 
 class _SailRawButtonState extends State<SailRawButton> with SingleTickerProviderStateMixin {
+  bool _loading = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    final disabled = widget.loading || widget.disabled || widget.onPressed == null;
+    final disabled = _loading || widget.loading || widget.disabled || widget.onPressed == null;
     final backgroundColor = widget.backgroundColor ?? theme.colors.background;
 
     Color textColor;
@@ -185,7 +187,18 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
         visualDensity: theme.dense ? VisualDensity.compact : null,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         height: 32,
-        onPressed: disabled ? null : widget.onPressed,
+        onPressed: disabled
+            ? null
+            : () async {
+                setState(() => _loading = true);
+                try {
+                  await widget.onPressed!();
+                } finally {
+                  if (mounted) {
+                    setState(() => _loading = false);
+                  }
+                }
+              },
         disabledColor: backgroundColor,
         color: backgroundColor,
         enableFeedback: !widget.disabled,
@@ -209,8 +222,8 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Opacity(opacity: widget.loading ? 0 : 1, child: widget.child),
-            if (widget.loading) LoadingIndicator.insideButton(),
+            Opacity(opacity: (_loading || widget.loading) ? 0 : 1, child: widget.child),
+            if (_loading || widget.loading) LoadingIndicator.insideButton(),
           ],
         ),
       ),
@@ -221,7 +234,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
 enum SailButtonStyle { primary, secondary }
 
 class SailScaleButton extends StatefulWidget {
-  final VoidCallback? onPressed;
+  final Future<void> Function()? onPressed;
   final bool pressed;
   final Widget child;
   final SailButtonStyle style;
@@ -258,6 +271,7 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
 
   bool _readyForFling = false;
   bool _isPressed = false;
+  bool _loading = false;
 
   @override
   void initState() {
@@ -288,7 +302,7 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
     await _scaleController.fling();
   }
 
-  bool get disabled => widget.disabled || widget.loading;
+  bool get disabled => widget.disabled || widget.loading || _loading;
 
   void shrink() {
     if (widget.disabled) {
@@ -338,17 +352,24 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
       },
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: () async {
-          if (disabled) {
-            return;
-          }
+        onTap: widget.onPressed == null
+            ? null
+            : () async {
+                if (disabled) return;
 
-          widget.onPressed?.call();
+                setState(() => _loading = true);
+                shrink();
+                await HapticFeedback.lightImpact();
 
-          shrink();
-          await HapticFeedback.lightImpact();
-          await fling();
-        },
+                try {
+                  await widget.onPressed!();
+                } finally {
+                  if (mounted) {
+                    setState(() => _loading = false);
+                    await fling();
+                  }
+                }
+              },
         child: MouseRegion(
           cursor: disabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
           child: AnimatedBuilder(
@@ -401,10 +422,10 @@ class _SailScaleButtonState extends State<SailScaleButton> with SingleTickerProv
                           alignment: Alignment.center,
                           children: [
                             Opacity(
-                              opacity: widget.loading ? 0.3 : 1,
+                              opacity: (widget.loading || _loading) ? 0.3 : 1,
                               child: widget.child,
                             ),
-                            if (widget.loading) Center(child: LoadingIndicator.insideButton()),
+                            if (widget.loading || _loading) LoadingIndicator.insideButton(),
                           ],
                         ),
                       ),
@@ -457,12 +478,11 @@ class RightSideShadowPainter extends CustomPainter {
 }
 
 class QtButton extends StatelessWidget {
-  final VoidCallback? onPressed;
+  final Future<void> Function()? onPressed;
   final String? label;
   final Widget? child;
   final ButtonSize size;
   final SailButtonStyle style;
-
   final EdgeInsets? padding;
   final bool disabled;
   final bool loading;

@@ -33,7 +33,7 @@ class DepositWithdrawTabPage extends StatelessWidget {
                     children: [
                       DashboardGroup(
                         title: 'Deposit from parent chain',
-                        widgetEnd: HelpButton(onPressed: () => model.castHelp(context)),
+                        widgetEnd: HelpButton(onPressed: () async => model.castHelp(context)),
                         children: [
                           if (model._sidechain.rpc.chain == EthereumSidechain())
                             const PegInEthAction()
@@ -43,7 +43,7 @@ class DepositWithdrawTabPage extends StatelessWidget {
                       ),
                       DashboardGroup(
                         title: 'Withdraw to parent chain',
-                        widgetEnd: HelpButton(onPressed: () => model.castHelp(context)),
+                        widgetEnd: HelpButton(onPressed: () async => model.castHelp(context)),
                         children: [
                           const PegOutAction(),
                           if (model.localNetwork)
@@ -51,7 +51,7 @@ class DepositWithdrawTabPage extends StatelessWidget {
                               title: 'Connect sidechain with parent chain',
                               category: Category.mainchain,
                               icon: Icons.add,
-                              onTap: () {
+                              onTap: () async {
                                 model.connectAndGenerate(context);
                               },
                             ),

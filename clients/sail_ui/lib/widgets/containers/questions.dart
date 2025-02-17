@@ -52,7 +52,7 @@ class QuestionContainer extends StatelessWidget {
                           Expanded(child: Container()),
                           SailTextButton(
                             label: 'Close',
-                            onPressed: () {
+                            onPressed: () async {
                               Navigator.of(context).pop();
                             },
                           ),
@@ -71,7 +71,7 @@ class QuestionContainer extends StatelessWidget {
 }
 
 class HelpButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
 
   const HelpButton({
     super.key,

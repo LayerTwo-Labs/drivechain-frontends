@@ -6,7 +6,7 @@ Future<bool?> showUpdateModal(BuildContext context) async {
     context: context,
     title: 'Update Available',
     subtitle: 'A new version of Drivechain Launcher is available. Would you like to update now?',
-    onConfirm: () => Navigator.of(context).pop(true),
+    onConfirm: () async => Navigator.of(context).pop(true),
   );
 }
 

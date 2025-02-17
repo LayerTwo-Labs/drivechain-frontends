@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 class ConnectionErrorChip extends StatelessWidget {
   final String chain;
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
 
   const ConnectionErrorChip({
     super.key,

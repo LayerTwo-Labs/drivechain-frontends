@@ -102,7 +102,7 @@ class FaucetViewModel extends BaseViewModel {
     return null;
   }
 
-  void clearAll() {
+  Future<void> clearAll() async {
     addressController.clear();
     amountController.clear();
     notifyListeners();

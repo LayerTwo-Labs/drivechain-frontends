@@ -5,8 +5,8 @@ import 'package:sail_ui/widgets/modals/daemon_settings_modal.dart';
 class DaemonConnectionCard extends StatelessWidget {
   final void Function(String name, String logPath)? navigateToLogs;
   final RPCConnection connection;
-  final VoidCallback restartDaemon;
-  final VoidCallback? deleteFunction;
+  final Future<void> Function() restartDaemon;
+  final Future<void> Function()? deleteFunction;
 
   final String? infoMessage;
 
@@ -44,8 +44,8 @@ class DaemonConnectionCard extends StatelessWidget {
           ),
           Expanded(child: Container()),
           SailScaleButton(
-            onPressed: () {
-              showDialog(
+            onPressed: () async {
+              await showDialog(
                 context: context,
                 builder: (context) => DaemonConnectionDetailsModal(
                   connection: connection,

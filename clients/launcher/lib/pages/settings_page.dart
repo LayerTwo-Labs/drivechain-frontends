@@ -95,12 +95,12 @@ class SettingsPage extends StatelessWidget {
         actions: [
           SailButton.secondary(
             'Return',
-            onPressed: () => navigator.pop(false),
+            onPressed: () async => navigator.pop(false),
             size: ButtonSize.regular,
           ),
           SailButton.primary(
             'Delete',
-            onPressed: () => navigator.pop(true),
+            onPressed: () async => navigator.pop(true),
             size: ButtonSize.regular,
           ),
         ],

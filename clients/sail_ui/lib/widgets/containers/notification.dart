@@ -6,7 +6,7 @@ class SailNotification extends StatelessWidget {
   final String content;
   final DialogType dialogType;
   final Function(String content) removeNotification;
-  final Function()? onPressed;
+  final Future<void> Function()? onPressed;
 
   const SailNotification({
     super.key,
@@ -58,7 +58,7 @@ class SailNotification extends StatelessWidget {
                     color: theme.colors.background,
                     size: 14,
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     removeNotification(content);
                   },
                 ),

@@ -70,7 +70,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           CastButton(
-                            onPressed: () => model.cast(context),
+                            onPressed: () async => model.cast(context),
                           ),
                           const SizedBox(height: SailStyleValues.padding16),
                           SailRawCard(
@@ -142,16 +142,16 @@ class ZCashMeltCast extends StatelessWidget {
                 title: "What's going on?",
                 category: Category.sidechain,
                 icon: Icons.question_mark,
-                onTap: () {
-                  model.meltAndCastHelp(context);
+                onTap: () async {
+                  await model.meltAndCastHelp(context);
                 },
               ),
               ActionTile(
                 title: 'Do everything for me',
                 category: Category.sidechain,
                 icon: Icons.work,
-                onTap: () {
-                  model.doEverything(context);
+                onTap: () async {
+                  await model.doEverything(context);
                 },
               ),
               SailRow(
@@ -171,7 +171,7 @@ class ZCashMeltCast extends StatelessWidget {
                               title: 'Melt',
                               category: Category.sidechain,
                               icon: Icons.shield,
-                              onTap: () {
+                              onTap: () async {
                                 model.melt(context);
                               },
                             ),
@@ -228,7 +228,7 @@ class ZCashMeltCast extends StatelessWidget {
                               title: 'Cast',
                               category: Category.sidechain,
                               icon: Icons.handyman,
-                              onTap: () {
+                              onTap: () async {
                                 model.cast(context);
                               },
                             ),
@@ -281,13 +281,13 @@ class ZCashMeltCast extends StatelessWidget {
                         if (utxo is UnshieldedUTXO)
                           UnshieldedUTXOView(
                             utxo: utxo,
-                            shieldAction: () => model.meltSingle(context, utxo),
+                            shieldAction: () async => model.meltSingle(context, utxo),
                             meltMode: true,
                           )
                         else
                           ShieldedUTXOView(
                             utxo: utxo,
-                            deshieldAction: () => model.castSingle(context, utxo),
+                            deshieldAction: () async => model.castSingle(context, utxo),
                             castMode: true,
                           ),
                     ],
@@ -570,7 +570,7 @@ class MeltButton extends StatelessWidget {
 }
 
 class CastButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
 
   const CastButton({
     super.key,
