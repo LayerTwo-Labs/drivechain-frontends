@@ -34,7 +34,7 @@ dependencies:
   protobuf: ^3.1.0
   dotted_border: ^2.1.0
   window_manager: ^0.4.3
-  synchronized: ^3.3.0+3
+  synchronized: ^3.3.1
   provider: ^6.1.2
   dart_bip32_bip44: ^0.2.0
   bip39_mnemonic: ^3.0.7
