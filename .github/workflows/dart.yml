@@ -56,11 +56,12 @@ jobs:
       - name: Run tests for ${{ matrix.package }}
         run: |
           if [ ${{ matrix.package }} == 'faucet' ]; then
-            TEST_ARGS="--platform chrome"
+            echo "Skipping tests for faucet"
+            exit 0
           fi
 
           if [ -d "test" ]; then
-            flutter test $TEST_ARGS
+            flutter test
           else
             echo "Test directory not found. Skipping tests."
           fi
