@@ -1,3 +1,4 @@
+import 'package:bitwindow/providers/news_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -5,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
@@ -47,6 +49,24 @@ Future<void> registerTestDependencies() async {
   if (!GetIt.I.isRegistered<ClientSettings>()) {
     GetIt.I.registerLazySingleton<ClientSettings>(
       () => ClientSettings(store: MockStore(), log: log),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<ProcessProvider>()) {
+    GetIt.I.registerLazySingleton<ProcessProvider>(
+      () => ProcessProvider(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<NewsProvider>()) {
+    GetIt.I.registerLazySingleton<NewsProvider>(
+      () => NewsProvider(),
+    );
+  }
+
+  if (!GetIt.I.isRegistered<MainchainRPC>()) {
+    GetIt.I.registerLazySingleton<MainchainRPC>(
+      () => MockMainchainRPC(),
     );
   }
 

@@ -108,7 +108,7 @@ class BottomNav extends StatelessWidget {
                 ),
                 Expanded(child: Container()),
                 SailRawButton(
-                  onPressed: () => displayConnectionStatusDialog(context),
+                  onPressed: () async => displayConnectionStatusDialog(context),
                   disabled: false,
                   loading: false,
                   child: Tooltip(
@@ -158,10 +158,10 @@ class BottomNav extends StatelessWidget {
     );
   }
 
-  Future<void> displayConnectionStatusDialog(
+  void displayConnectionStatusDialog(
     BuildContext context,
-  ) async {
-    await widgetDialog(
+  ) {
+    widgetDialog(
       context: context,
       title: 'Daemon Status',
       subtitle:
