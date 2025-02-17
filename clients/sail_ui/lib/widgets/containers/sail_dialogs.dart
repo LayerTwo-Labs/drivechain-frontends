@@ -17,7 +17,7 @@ Future<T?> infoDialog<T>({
   required BuildContext context,
   required String title,
   required String subtitle,
-  required VoidCallback onConfirm,
+  required Future<void> Function() onConfirm,
 }) async {
   return await _baseDialogSimple(
     context: context,
@@ -59,7 +59,7 @@ Future<T?> _baseDialogSimple<T>({
   required BuildContext context,
   required String title,
   required String subtitle,
-  required VoidCallback? onConfirm,
+  required Future<void> Function()? onConfirm,
 }) async {
   final theme = SailTheme.of(context);
 
@@ -147,7 +147,7 @@ class CardHeader extends StatelessWidget {
 enum DialogType { info, error, success }
 
 class DialogHeader extends StatelessWidget {
-  final VoidCallback onClose;
+  final Future<void> Function() onClose;
   final String title;
   final String? subtitle;
 
@@ -178,7 +178,7 @@ class DialogHeader extends StatelessWidget {
 }
 
 class DialogButtons extends StatelessWidget {
-  final VoidCallback? onPressed;
+  final Future<void> Function()? onPressed;
 
   const DialogButtons({
     super.key,
@@ -193,7 +193,7 @@ class DialogButtons extends StatelessWidget {
         Expanded(child: Container()),
         SailTextButton(
           label: onPressed != null ? 'Cancel' : 'Close',
-          onPressed: () {
+          onPressed: () async {
             Navigator.of(context).pop();
           },
         ),

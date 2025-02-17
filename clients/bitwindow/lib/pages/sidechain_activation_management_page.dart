@@ -83,8 +83,8 @@ class SidechainActivationManagementView extends StatelessWidget {
             ),
             SailSpacing(SailStyleValues.padding08),
             QtButton(
-              onPressed: () {
-                showSidechainProposalModal(context);
+              onPressed: () async {
+                await showSidechainProposalModal(context);
               },
               size: ButtonSize.small,
               label: 'Create Sidechain Proposal',

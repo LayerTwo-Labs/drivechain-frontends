@@ -50,7 +50,7 @@ class SidechainProposalView extends StatelessWidget {
                       QtIconButton(
                         tooltip: 'Read more',
                         icon: const Icon(Icons.info_outline, size: 16),
-                        onPressed: () => _showInfoDialog(context),
+                        onPressed: () async => _showInfoDialog(context),
                       ),
                     ],
                   ),
@@ -58,9 +58,9 @@ class SidechainProposalView extends StatelessWidget {
                   _buildOptionalSection(context, model),
                   const SizedBox(height: SailStyleValues.padding25),
                   QtButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (model.formKey.currentState!.validate()) {
-                        model.proposeSidechain(context);
+                        await model.proposeSidechain(context);
                       }
                     },
                     child: model.isProposing

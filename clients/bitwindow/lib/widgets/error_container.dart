@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 class ErrorContainer extends StatefulWidget {
   final String error;
-  final Function()? onRetry;
+  final Future<void> Function()? onRetry;
   final bool? loading;
 
   const ErrorContainer({super.key, required this.error, this.onRetry, this.loading});

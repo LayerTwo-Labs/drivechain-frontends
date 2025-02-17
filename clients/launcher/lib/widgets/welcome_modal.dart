@@ -192,8 +192,8 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     }
   }
 
-  void _handleFastMode() {
-    _walletService.generateWallet().then((wallet) {
+  Future<void> _handleFastMode() async {
+    await _walletService.generateWallet().then((wallet) {
       if (!mounted) return;
 
       if (wallet.containsKey('error')) {
@@ -227,13 +227,13 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     });
   }
 
-  void _handleRestore() {
+  Future<void> _handleRestore() async {
     if (!_isValidMnemonic(_mnemonicController.text)) {
-      _showErrorDialog('Invalid mnemonic format. Please enter 12 or 24 words.');
+      await _showErrorDialog('Invalid mnemonic format. Please enter 12 or 24 words.');
       return;
     }
 
-    _walletService
+    await _walletService
         .generateWallet(
       customMnemonic: _mnemonicController.text,
       passphrase: _passphraseController.text.isNotEmpty ? _passphraseController.text : null,
@@ -287,14 +287,14 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             height: 48,
             child: SailButton.primary(
               'Create Wallet',
-              onPressed: () => setState(() => _currentScreen = WelcomeScreen.create),
+              onPressed: () async => setState(() => _currentScreen = WelcomeScreen.create),
               size: ButtonSize.regular,
             ),
           ),
           const SizedBox(height: SailStyleValues.padding08),
           SailTextButton(
             label: 'Restore Wallet',
-            onPressed: () => setState(() => _currentScreen = WelcomeScreen.restore),
+            onPressed: () async => setState(() => _currentScreen = WelcomeScreen.restore),
           ),
         ],
       ),
@@ -362,7 +362,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           const SizedBox(height: SailStyleValues.padding08),
           SailTextButton(
             label: 'Advanced',
-            onPressed: () => setState(() => _currentScreen = WelcomeScreen.advanced),
+            onPressed: () async => setState(() => _currentScreen = WelcomeScreen.advanced),
           ),
         ],
       ),
@@ -661,7 +661,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                     child: SailButton.secondary(
                       'Random',
                       size: ButtonSize.small,
-                      onPressed: () {
+                      onPressed: () async {
                         setState(() {
                           _isHexMode = true; // Force hex mode
                         });
@@ -691,8 +691,8 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     );
   }
 
-  void _showAdvancedHelp() {
-    showDialog(
+  Future<void> _showAdvancedHelp() async {
+    await showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
@@ -880,7 +880,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                   children: [
                     SailTextButton(
                       label: '←',
-                      onPressed: () {
+                      onPressed: () async {
                         if (_currentScreen == WelcomeScreen.advanced) {
                           setState(() => _currentScreen = WelcomeScreen.create);
                         } else {

@@ -35,7 +35,7 @@ class SidechainSendPage extends StatelessWidget {
                       title: 'Send',
                       category: Category.sidechain,
                       icon: Icons.remove,
-                      onTap: () {
+                      onTap: () async {
                         model.send(context);
                       },
                     ),
@@ -43,7 +43,7 @@ class SidechainSendPage extends StatelessWidget {
                       title: 'Receive',
                       category: Category.sidechain,
                       icon: Icons.add,
-                      onTap: () {
+                      onTap: () async {
                         model.receive(context);
                       },
                     ),

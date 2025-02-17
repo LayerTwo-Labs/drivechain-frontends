@@ -137,7 +137,7 @@ class RPCWidgetState extends State<RPCWidget> {
                       onSubmitted: _handleSubmit,
                       suffixWidget: SailTextButton(
                         label: 'Submit',
-                        onPressed: () {
+                        onPressed: () async {
                           _handleSubmit(textEditingController.text);
                         },
                       ),
@@ -156,7 +156,7 @@ class RPCWidgetState extends State<RPCWidget> {
                             children: [
                               for (final opt in options)
                                 SailScaleButton(
-                                  onPressed: () => onSelected(opt),
+                                  onPressed: () async => onSelected(opt),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                       vertical: SailStyleValues.padding10,
@@ -248,9 +248,11 @@ class ConsoleResponse extends StatelessWidget {
             children: [
               SailText.primary12('> $cmd', color: SailColorScheme.blue),
               SailScaleButton(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: response));
-                  showSnackBar(context, 'Copied ${copyLabel()}');
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: response));
+                  if (context.mounted) {
+                    showSnackBar(context, 'Copied ${copyLabel()}');
+                  }
                 },
                 child: SailText.primary12(response),
               ),

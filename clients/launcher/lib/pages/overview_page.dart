@@ -169,7 +169,7 @@ class _OverviewPageState extends State<OverviewPage> {
     if (stopping) {
       return SailButton.primary(
         'Stopping...',
-        onPressed: () {},
+        onPressed: () async {},
         size: ButtonSize.regular,
         loading: true,
       );
@@ -188,7 +188,7 @@ class _OverviewPageState extends State<OverviewPage> {
     if (isInitializing) {
       return SailButton.primary(
         'Launching...',
-        onPressed: () {}, // Disable button while initializing
+        onPressed: () async {}, // Disable button while initializing
         size: ButtonSize.regular,
         loading: true,
       );

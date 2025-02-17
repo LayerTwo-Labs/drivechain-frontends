@@ -544,11 +544,21 @@ class _TableRow extends StatelessWidget {
           SailMenuItem(
             onSelected: () {
               Clipboard.setData(ClipboardData(text: value));
+              Navigator.of(context).pop();
             },
             child: SailText.primary12('Copy value'),
           ),
           // Add custom menu items if provided
-          if (contextMenuItems != null) ...contextMenuItems!(rowId),
+          if (contextMenuItems != null)
+            ...contextMenuItems!(rowId).map(
+              (item) => SailMenuItem(
+                onSelected: () {
+                  item.onSelected?.call();
+                  Navigator.of(context).pop();
+                },
+                child: item.child,
+              ),
+            ),
         ],
       ),
     );

@@ -5,7 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 class ConnectionStatusChip extends StatelessWidget {
   final String chain;
   final int blockHeight;
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
   final bool initializing;
 
   final String? infoMessage;

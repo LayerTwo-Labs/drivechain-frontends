@@ -70,7 +70,7 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
               ],
               QtButton(
                 label: 'Use',
-                onPressed: () {
+                onPressed: () async {
                   if (_parsedURI != null) {
                     Navigator.of(context).pop(_parsedURI);
                   }

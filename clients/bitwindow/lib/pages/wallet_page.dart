@@ -590,7 +590,7 @@ class SendPageViewModel extends BaseViewModel {
     }
   }
 
-  void clearAll() {
+  Future<void> clearAll() async {
     addressController.clear();
     amountController.text = '0.00';
     customFeeController.clear();
@@ -637,7 +637,7 @@ class ReceiveTab extends StatelessWidget {
           if (model.hasError) {
             return ErrorContainer(
               error: model.modelError.toString(),
-              onRetry: () => model.init(),
+              onRetry: () async => model.init(),
             );
           }
           return Column(
@@ -719,7 +719,7 @@ class ReceivePageViewModel extends BaseViewModel {
     generateNewAddress();
   }
 
-  void generateNewAddress() async {
+  Future<void> generateNewAddress() async {
     await transactionsProvider.fetch();
   }
 }
@@ -1185,7 +1185,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                         ? SailRawButton(
                             disabled: false,
                             loading: false,
-                            onPressed: () => widget.onCancel(utxo.deniability.id),
+                            onPressed: () async => widget.onCancel(utxo.deniability.id),
                             child: SailText.primary15(
                               'Cancel',
                               bold: true,
@@ -1195,7 +1195,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                         : SailRawButton(
                             disabled: false,
                             loading: false,
-                            onPressed: () => widget.onDeny(utxo.txid, utxo.vout),
+                            onPressed: () async => widget.onDeny(utxo.txid, utxo.vout),
                             child: SailText.primary15(
                               'Deny Ownership ${status != '-' ? 'Again' : ''}',
                               bold: true,
@@ -1591,14 +1591,14 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
     }
   }
 
-  void _nextPage() {
+  Future<void> _nextPage() async {
     setState(() {
       _currentPage++;
       _onDerivationPathChanged();
     });
   }
 
-  void _previousPage() {
+  Future<void> _previousPage() async {
     if (_currentPage > 0) {
       setState(() {
         _currentPage--;
@@ -1685,7 +1685,7 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
                             SailRawButton(
                               disabled: false,
                               loading: false,
-                              onPressed: () => setState(() => _showPrivateKeys = !_showPrivateKeys),
+                              onPressed: () async => setState(() => _showPrivateKeys = !_showPrivateKeys),
                               child: SailText.primary13(
                                 !_showPrivateKeys ? 'Show' : 'Hide',
                                 bold: true,

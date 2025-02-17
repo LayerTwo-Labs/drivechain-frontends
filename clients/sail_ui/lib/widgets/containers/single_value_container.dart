@@ -49,9 +49,11 @@ class SingleValueContainer extends StatelessWidget {
         Expanded(
           child: copyable
               ? SailScaleButton(
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: value.toString()));
-                    showSnackBar(context, 'Copied ${copyLabel()}');
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: value.toString()));
+                    if (context.mounted) {
+                      showSnackBar(context, 'Copied ${copyLabel()}');
+                    }
                   },
                   child: SailText.primary12(value.toString()),
                 )

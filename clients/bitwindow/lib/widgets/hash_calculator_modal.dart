@@ -282,7 +282,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                       SailText.primary13('Hash Calculator', bold: true),
                       SailTextButton(
                         label: '?',
-                        onPressed: () => _showHelpDialog(context),
+                        onPressed: () async => _showHelpDialog(context),
                       ),
                     ],
                   ),
@@ -328,7 +328,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                             const Spacer(),
                             SailButton.secondary(
                               'Clear',
-                              onPressed: () {
+                              onPressed: () async {
                                 _inputController.clear();
                                 _hmacKeyController.clear();
                               },
@@ -348,7 +348,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                             if (_isHexMode)
                               SailButton.secondary(
                                 'Flip Bytes',
-                                onPressed: () {
+                                onPressed: () async {
                                   if (_isValidHex(_inputController.text)) {
                                     final bytes = _getInputBytes().toList().reversed.toList();
                                     _inputController.text =

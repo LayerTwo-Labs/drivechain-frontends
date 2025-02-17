@@ -72,7 +72,7 @@ class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsMo
                   children: [
                     QtButton(
                       label: 'Close',
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () async => Navigator.pop(context),
                       size: ButtonSize.small,
                     ),
                   ],

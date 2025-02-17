@@ -7,10 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
 import 'package:launcher/services/wallet_service.dart';
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:logger/logger.dart';
 
 @RoutePage()
 class ToolsPage extends StatelessWidget {
@@ -98,8 +98,8 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
                 const SizedBox(width: 24),
                 SailButton.secondary(
                   viewModel.isConnected ? 'Disconnect' : 'Connect',
-                  onPressed: () {
-                    viewModel.connectToServerDummy();
+                  onPressed: () async {
+                    await viewModel.connectToServerDummy();
                   },
                   size: ButtonSize.small,
                 ),
@@ -133,7 +133,7 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
             const SizedBox(height: 16),
             SailButton.primary(
               'Request Withdrawal',
-              onPressed: () {
+              onPressed: () async {
                 viewModel.requestWithdrawalDummy();
               },
               size: ButtonSize.regular,
@@ -166,7 +166,7 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
                 const SizedBox(width: 16),
                 SailButton.secondary(
                   'Copy Address',
-                  onPressed: () {
+                  onPressed: () async {
                     // Placeholder for copying address to clipboard
                     // In real code, you'd copy `viewModel.invoiceAddress`
                   },
@@ -179,7 +179,7 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
             // Mark Invoice as Paid
             SailButton.primary(
               'Invoice Paid',
-              onPressed: () {
+              onPressed: () async {
                 viewModel.invoicePaidDummy();
               },
               size: ButtonSize.regular,
@@ -385,7 +385,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                         if (!isRevealed)
                                           SailButton.secondary(
                                             'Reveal',
-                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], true),
+                                            onPressed: () async => viewModel.toggleStarterReveal(starter['name'], true),
                                             size: ButtonSize.small,
                                           )
                                         else ...[
@@ -397,7 +397,8 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                           const SizedBox(width: 8),
                                           SailButton.secondary(
                                             'Hide',
-                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], false),
+                                            onPressed: () async =>
+                                                viewModel.toggleStarterReveal(starter['name'], false),
                                             size: ButtonSize.small,
                                           ),
                                         ],
@@ -472,7 +473,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                         if (!isRevealed)
                                           SailButton.secondary(
                                             'Reveal',
-                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], true),
+                                            onPressed: () async => viewModel.toggleStarterReveal(starter['name'], true),
                                             size: ButtonSize.small,
                                           )
                                         else ...[
@@ -484,7 +485,8 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                           const SizedBox(width: 8),
                                           SailButton.secondary(
                                             'Hide',
-                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], false),
+                                            onPressed: () async =>
+                                                viewModel.toggleStarterReveal(starter['name'], false),
                                             size: ButtonSize.small,
                                           ),
                                         ],
@@ -606,7 +608,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                         if (!isRevealed)
                                           SailButton.secondary(
                                             'Reveal',
-                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], true),
+                                            onPressed: () async => viewModel.toggleStarterReveal(starter['name'], true),
                                             size: ButtonSize.small,
                                           )
                                         else ...[
@@ -618,7 +620,8 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                           const SizedBox(width: 8),
                                           SailButton.secondary(
                                             'Hide',
-                                            onPressed: () => viewModel.toggleStarterReveal(starter['name'], false),
+                                            onPressed: () async =>
+                                                viewModel.toggleStarterReveal(starter['name'], false),
                                             size: ButtonSize.small,
                                           ),
                                         ],
@@ -745,7 +748,7 @@ class ToolsPageViewModel extends BaseViewModel {
   }
 
   /// Dummy method to connect/disconnect from server
-  void connectToServerDummy() {
+  Future<void> connectToServerDummy() async {
     // Flip the connection state to simulate connecting/disconnecting
     isConnected = !isConnected;
     connectionStatus = isConnected ? 'Connected' : 'Not Connected';

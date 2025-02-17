@@ -961,7 +961,7 @@ class OperationView extends StatelessWidget {
 
 class UnshieldedUTXOView extends StatelessWidget {
   final UnshieldedUTXO utxo;
-  final VoidCallback? shieldAction;
+  final Future<void> Function()? shieldAction;
   final bool meltMode;
 
   const UnshieldedUTXOView({
@@ -1013,7 +1013,7 @@ class UnshieldedUTXOView extends StatelessWidget {
 
 class ShieldedUTXOView extends StatelessWidget {
   final ShieldedUTXO utxo;
-  final VoidCallback? deshieldAction;
+  final Future<void> Function()? deshieldAction;
   final bool castMode;
 
   const ShieldedUTXOView({

@@ -39,7 +39,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
                           currentChain: model.chain == TestSidechain(),
-                          onPressed: () => model.setSidechain(TestSidechain(), app),
+                          onPressed: () async => model.setSidechain(TestSidechain(), app),
                           inBottomNav: false,
                         ),
                         ChainOverviewCard(
@@ -48,7 +48,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
                           currentChain: model.chain == EthereumSidechain(),
-                          onPressed: () => model.setSidechain(EthereumSidechain(), app),
+                          onPressed: () async => model.setSidechain(EthereumSidechain(), app),
                           inBottomNav: false,
                         ),
                         ChainOverviewCard(
@@ -57,7 +57,7 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
                           currentChain: model.chain == ZCashSidechain(),
-                          onPressed: () => model.setSidechain(ZCashSidechain(), app),
+                          onPressed: () async => model.setSidechain(ZCashSidechain(), app),
                           inBottomNav: false,
                         ),
                       ],

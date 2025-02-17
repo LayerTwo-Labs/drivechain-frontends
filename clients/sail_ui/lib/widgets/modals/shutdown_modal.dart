@@ -6,7 +6,7 @@ class ShutdownCard extends StatelessWidget {
   final Binary chain;
   final String message;
   final bool initializing;
-  final VoidCallback forceCleanup;
+  final Future<void> Function() forceCleanup;
 
   const ShutdownCard({
     super.key,

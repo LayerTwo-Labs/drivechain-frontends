@@ -13,6 +13,7 @@ class SailDropdownButton<T> extends StatefulWidget {
     ),
     this.large = false,
     this.enabled = true,
+    this.openOnHover = false,
     super.key,
   });
 
@@ -23,12 +24,32 @@ class SailDropdownButton<T> extends StatefulWidget {
   final Widget? icon;
   final bool large;
   final bool enabled;
+  final bool openOnHover;
 
   @override
   State<StatefulWidget> createState() => _SailDropdownButtonState<T>();
 }
 
 class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
+  late final MenuController _controller;
+  bool _isInButton = false;
+  bool _isInMenu = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MenuController();
+  }
+
+  void _checkShouldClose() {
+    // Add delay to make menu more forgiving when moving between areas
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted && !_isInButton && !_isInMenu) {
+        _controller.close();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
@@ -38,6 +59,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
           (e) => SailMenuItem(
             onSelected: () {
               widget.onChanged(e.value);
+              _controller.close();
             },
             child: e,
           ),
@@ -56,20 +78,14 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       currentDisplay = widget.hint ?? const SizedBox();
     }
 
-    return QtButton(
+    final button = QtButton(
       size: ButtonSize.small,
-      onPressed: () {
-        var bounds = getGlobalBoundsForContext(context);
-        showSailMenu(
-          context: context,
-          preferredAnchorPoint: Offset(
-            bounds.left - (context.isWindows ? 1 : 9),
-            bounds.bottom,
-          ),
-          menu: SailMenu(
-            items: items,
-          ),
-        );
+      onPressed: () async {
+        if (_controller.isOpen) {
+          _controller.close();
+        } else {
+          _controller.open();
+        }
       },
       style: SailButtonStyle.secondary,
       disabled: !widget.enabled,
@@ -86,6 +102,48 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
         ],
       ),
     );
+
+    final menuAnchor = MenuAnchor(
+      controller: _controller,
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(context.sailTheme.colors.background),
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+      ),
+      builder: (context, controller, child) => button,
+      menuChildren: [
+        if (widget.openOnHover)
+          MouseRegion(
+            onEnter: (_) => setState(() => _isInMenu = true),
+            onExit: (_) => setState(() {
+              _isInMenu = false;
+              _checkShouldClose();
+            }),
+            child: SailMenu(
+              items: items,
+            ),
+          )
+        else
+          SailMenu(
+            items: items,
+          ),
+      ],
+    );
+
+    if (widget.openOnHover) {
+      return MouseRegion(
+        onEnter: (_) => setState(() {
+          _isInButton = true;
+          _controller.open();
+        }),
+        onExit: (_) => setState(() {
+          _isInButton = false;
+          _checkShouldClose();
+        }),
+        child: menuAnchor,
+      );
+    }
+
+    return menuAnchor;
   }
 }
 

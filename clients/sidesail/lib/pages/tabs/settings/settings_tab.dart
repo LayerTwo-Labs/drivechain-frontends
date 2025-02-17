@@ -77,7 +77,7 @@ class SettingsTabPage extends StatelessWidget {
                                   children: [
                                     SailButton.primary(
                                       'Inter',
-                                      onPressed: () {
+                                      onPressed: () async {
                                         settingsmodel.setFont(SailFontValues.inter);
                                       },
                                       size: ButtonSize.regular,
@@ -85,7 +85,7 @@ class SettingsTabPage extends StatelessWidget {
                                     ),
                                     SailButton.primary(
                                       'Source Code Pro',
-                                      onPressed: () {
+                                      onPressed: () async {
                                         settingsmodel.setFont(SailFontValues.sourceCodePro);
                                       },
                                       size: ButtonSize.regular,
@@ -194,7 +194,7 @@ class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewMode
           hintText: '/the/path/to/your/somethingchain.conf',
           suffixWidget: SailTextButton(
             label: 'Read file',
-            onPressed: () => settings.readAndSetValuesFromFile(chain, viewModel.network),
+            onPressed: () async => settings.readAndSetValuesFromFile(chain, viewModel.network),
           ),
         ),
         SailTextField(
@@ -224,7 +224,7 @@ class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewMode
             SailButton.secondary(
               'Reset to config file values',
               disabled: !settings.inputDifferentThanFile,
-              onPressed: () {
+              onPressed: () async {
                 settings.resetToFileValues();
               },
               size: ButtonSize.regular,
@@ -343,8 +343,8 @@ class ThemeSettingsViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void openLogRoute() {
-    _router.push(
+  Future<void> openLogRoute() async {
+    await _router.push(
       LogRoute(
         title: 'Sidesail',
         logPath: logdir,

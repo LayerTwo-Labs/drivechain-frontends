@@ -9,7 +9,7 @@ class ChainOverviewCard extends StatelessWidget {
   final bool highlighted;
   final bool currentChain;
   final bool inBottomNav;
-  final VoidCallback? onPressed;
+  final Future<void> Function()? onPressed;
 
   const ChainOverviewCard({
     super.key,

@@ -7,7 +7,7 @@ class NotificationProvider extends ChangeNotifier {
   final List<Widget> notifications = [];
   Logger log = GetIt.I.get<Logger>();
 
-  final Function()? onPressed;
+  final Future<void> Function()? onPressed;
 
   NotificationProvider({this.onPressed});
 
@@ -15,7 +15,7 @@ class NotificationProvider extends ChangeNotifier {
     required String title,
     required String content,
     required DialogType dialogType,
-    Function()? onPressed,
+    Future<void> Function()? onPressed,
   }) {
     final notification = SailNotification(
       title: title,

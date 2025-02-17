@@ -176,3 +176,76 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
         padding != oldDelegate.padding;
   }
 }
+
+class SailMenuAnchor extends StatefulWidget {
+  final Offset anchorPoint;
+  final SailMenu menu;
+  final Alignment alignment;
+  final Widget? child;
+
+  const SailMenuAnchor({
+    super.key,
+    required this.anchorPoint,
+    required this.menu,
+    this.alignment = Alignment.topLeft,
+    this.child,
+  });
+
+  @override
+  State<SailMenuAnchor> createState() => _SailMenuAnchorState();
+}
+
+class _SailMenuAnchorState extends State<SailMenuAnchor> {
+  late final MenuController _controller;
+  bool _isInButton = false;
+  bool _isInMenu = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MenuController();
+  }
+
+  void _checkShouldClose() {
+    // Add delay to make menu more forgiving when moving between areas
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted && !_isInButton && !_isInMenu) {
+        _controller.close();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() {
+        _isInButton = true;
+        _controller.open();
+      }),
+      onExit: (_) => setState(() {
+        _isInButton = false;
+        _checkShouldClose();
+      }),
+      child: MenuAnchor(
+        controller: _controller,
+        style: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        ),
+        builder: (context, controller, child) {
+          return widget.child ?? const SizedBox.shrink();
+        },
+        menuChildren: [
+          MouseRegion(
+            onEnter: (_) => setState(() => _isInMenu = true),
+            onExit: (_) => setState(() {
+              _isInMenu = false;
+              _checkShouldClose();
+            }),
+            child: widget.menu,
+          ),
+        ],
+      ),
+    );
+  }
+}

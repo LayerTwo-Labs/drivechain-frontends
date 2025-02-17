@@ -7,7 +7,7 @@ class NavEntry extends StatefulWidget {
   final SailSVGAsset icon;
 
   final bool selected;
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
 
   const NavEntry({
     super.key,

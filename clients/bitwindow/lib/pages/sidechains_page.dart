@@ -338,12 +338,12 @@ class SidechainsViewModel extends BaseViewModel {
   List<ListSidechainDepositsResponse_SidechainDeposit> get recentDeposits =>
       sidechainProvider.sidechains[_selectedIndex ?? 254]?.deposits ?? [];
 
-  void clearAddress() {
+  Future<void> clearAddress() async {
     addressController.clear();
     notifyListeners();
   }
 
-  void formatAddress() {
+  Future<void> formatAddress() async {
     addressController.text = formatDepositAddress(addressController.text, _selectedIndex ?? 254);
     notifyListeners();
   }
@@ -505,7 +505,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
             disabled: viewModel.addressController.text == '' ||
                 viewModel.depositAmountController.text == '' ||
                 viewModel.feeController.text == '',
-            onPressed: () => viewModel.deposit(context),
+            onPressed: () async => viewModel.deposit(context),
             loading: viewModel.isBusy,
           ),
           const SizedBox(height: SailStyleValues.padding16),
