@@ -37,15 +37,18 @@ class AddressBookViewModel extends BaseViewModel {
   Future<void> createEntry() async {
     if (labelController.text.isEmpty || addressController.text.isEmpty) return;
 
-    setBusy(true);
     try {
+      setBusy(true);
+      setErrorForObject('create', null);
+      notifyListeners();
+
       await _provider.createEntry(labelController.text, addressController.text, direction);
-      setError(null);
       labelController.clear();
       addressController.clear();
-      await _provider.fetch();
     } catch (e) {
-      setError(e.toString());
+      setErrorForObject('create', e.toString());
+      notifyListeners();
+      rethrow;
     } finally {
       setBusy(false);
     }
@@ -54,25 +57,33 @@ class AddressBookViewModel extends BaseViewModel {
   Future<void> updateLabel(Int64 id) async {
     if (editLabelController.text.isEmpty) return;
 
-    setBusy(true);
     try {
+      setBusy(true);
+      setErrorForObject('edit', null);
+      notifyListeners();
+
       await _provider.updateLabel(id, editLabelController.text);
-      setError(null);
       editLabelController.clear();
     } catch (e) {
-      setError(e.toString());
+      setErrorForObject('edit', e.toString());
+      notifyListeners();
+      rethrow;
     } finally {
       setBusy(false);
     }
   }
 
   Future<void> deleteEntry(Int64 id) async {
-    setBusy(true);
     try {
+      setBusy(true);
+      setErrorForObject('delete', null);
+      notifyListeners();
+
       await _provider.deleteEntry(id);
-      setError(null);
     } catch (e) {
-      setError(e.toString());
+      setErrorForObject('delete', e.toString());
+      notifyListeners();
+      rethrow;
     } finally {
       setBusy(false);
     }
@@ -198,20 +209,25 @@ class _AddressBookContentState extends State<AddressBookContent> {
   Widget build(BuildContext context) {
     return SailRawCard(
       title: widget.direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
-      subtitle: widget.viewModel.hasError ? widget.viewModel.error.toString() : 'Manage your addresses.',
-      widgetHeaderEnd: Padding(
-        padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
-        child: SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            QtButton(
-              label: 'Create New ${widget.direction == Direction.DIRECTION_SEND ? 'Sending' : 'Receiving'} Address',
-              onPressed: () => _showCreateDialog(context),
-              size: ButtonSize.small,
-            ),
-          ],
-        ),
-      ),
+      subtitle: widget.viewModel.error('create') ??
+          widget.viewModel.error('edit') ??
+          widget.viewModel.error('delete') ??
+          'Manage your addresses.',
+      widgetHeaderEnd: widget.direction == Direction.DIRECTION_SEND
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
+              child: SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  QtButton(
+                    label: 'Create New Sending Address',
+                    onPressed: () async => _showCreateDialog(context),
+                    size: ButtonSize.small,
+                  ),
+                ],
+              ),
+            )
+          : null,
       bottomPadding: false,
       child: Column(
         children: [
@@ -319,6 +335,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
             builder: (context, model, child) => SailRawCard(
               title: 'Edit Label',
               subtitle: '',
+              error: model.error('edit'),
               child: SailColumn(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: SailStyleValues.padding16,
@@ -333,9 +350,15 @@ class _AddressBookContentState extends State<AddressBookContent> {
                   QtButton(
                     label: 'Save',
                     onPressed: () async {
-                      await model.updateLabel(entry.id);
-                      if (context.mounted) Navigator.pop(context);
-                      widget.viewModel.notifyListeners();
+                      try {
+                        await model.updateLabel(entry.id);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          widget.viewModel.notifyListeners();
+                        }
+                      } catch (e) {
+                        // Error is handled by the model
+                      }
                     },
                     size: ButtonSize.small,
                     disabled: model.editLabelController.text.isEmpty,
@@ -349,10 +372,10 @@ class _AddressBookContentState extends State<AddressBookContent> {
     );
   }
 
-  Future<void> _showCreateDialog(BuildContext context) async {
+  void _showCreateDialog(BuildContext context) {
     final dialogViewModel = AddressBookViewModel(widget.viewModel.direction);
 
-    await showDialog(
+    showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -364,41 +387,33 @@ class _AddressBookContentState extends State<AddressBookContent> {
             builder: (context, model, child) => SailRawCard(
               title: widget.direction == Direction.DIRECTION_SEND ? 'New Sending Address' : 'New Receiving Address',
               subtitle: '',
+              withCloseButton: true,
+              error: model.error('create'),
               child: SailColumn(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: SailStyleValues.padding16,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SailTextField(
-                    label: 'Label',
-                    controller: model.labelController,
-                    hintText: 'Enter a label for this address',
-                    size: TextFieldSize.small,
-                  ),
-                  SailTextField(
                     label: 'Address',
                     controller: model.addressController,
                     hintText: 'Enter a Bitcoin address',
                     size: TextFieldSize.small,
                   ),
-                  Row(
-                    children: [
-                      QtButton(
-                        label: 'Create',
-                        onPressed: () async {
-                          await model.createEntry();
-                          if (context.mounted) Navigator.pop(context);
-                          widget.viewModel.notifyListeners();
-                        },
-                        size: ButtonSize.small,
-                        disabled: model.labelController.text.isEmpty || model.addressController.text.isEmpty,
-                      ),
-                      QtButton(
-                        label: 'Cancel',
-                        onPressed: () async => Navigator.pop(context),
-                        size: ButtonSize.small,
-                      ),
-                    ],
+                  SailTextField(
+                    label: 'Label',
+                    controller: model.labelController,
+                    hintText: 'Enter a label for this address',
+                    size: TextFieldSize.small,
+                  ),
+                  QtButton(
+                    label: 'Create',
+                    onPressed: () async {
+                      await model.createEntry();
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                    size: ButtonSize.small,
+                    disabled: model.labelController.text.isEmpty || model.addressController.text.isEmpty,
                   ),
                 ],
               ),
@@ -410,40 +425,54 @@ class _AddressBookContentState extends State<AddressBookContent> {
   }
 
   void _showDeleteConfirmation(BuildContext context, AddressBookEntry entry) {
+    final dialogViewModel = AddressBookViewModel(widget.viewModel.direction);
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-          child: SailRawCard(
-            title: 'Delete Address',
-            subtitle: '',
-            child: SailColumn(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: SailStyleValues.padding16,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailText.secondary13('Are you sure you want to delete "${entry.label}"?'),
-                SailRow(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    QtButton(
-                      label: 'Delete',
-                      onPressed: () async {
-                        await widget.viewModel.deleteEntry(entry.id);
-                        if (context.mounted) Navigator.pop(context);
-                      },
-                      size: ButtonSize.small,
-                    ),
-                    QtButton(
-                      label: 'Cancel',
-                      onPressed: () async => Navigator.pop(context),
-                      size: ButtonSize.small,
-                    ),
-                  ],
-                ),
-              ],
+          child: ViewModelBuilder<AddressBookViewModel>.reactive(
+            viewModelBuilder: () => dialogViewModel,
+            disposeViewModel: true,
+            builder: (context, model, child) => SailRawCard(
+              title: 'Delete Address',
+              subtitle: '',
+              error: model.error('delete'),
+              child: SailColumn(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: SailStyleValues.padding16,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SailText.secondary13('Are you sure you want to delete "${entry.label}"?'),
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      QtButton(
+                        label: 'Delete',
+                        onPressed: () async {
+                          try {
+                            await model.deleteEntry(entry.id);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              widget.viewModel.notifyListeners();
+                            }
+                          } catch (e) {
+                            // Error is handled by the model
+                          }
+                        },
+                        size: ButtonSize.small,
+                      ),
+                      QtButton(
+                        label: 'Cancel',
+                        onPressed: () async => Navigator.pop(context),
+                        size: ButtonSize.small,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

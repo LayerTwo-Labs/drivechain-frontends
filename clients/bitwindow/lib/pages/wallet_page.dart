@@ -10,7 +10,6 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
-import 'package:bitwindow/widgets/error_container.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
@@ -415,6 +414,10 @@ class SendPageViewModel extends BaseViewModel {
     applicationDir = await Environment.datadir();
     logFile = await getLogFile();
     await fetchEstimate();
+
+    // Add listener for address changes
+    addressController.addListener(_onAddressChanged);
+    addressBookProvider.addListener(_onAddressBookChanged);
   }
 
   Directory? applicationDir;
@@ -606,6 +609,7 @@ class SendPageViewModel extends BaseViewModel {
   void onAddressSelected(AddressBookEntry? entry) {
     if (entry != null) {
       addressController.text = entry.address;
+      labelController.text = entry.label;
       selectedEntry = entry;
       notifyListeners();
     }
@@ -621,6 +625,32 @@ class SendPageViewModel extends BaseViewModel {
     }
     notifyListeners();
   }
+
+  AddressBookEntry get matchingEntry => addressBookProvider.sendEntries.firstWhere(
+        (e) => e.address == addressController.text,
+        orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_SEND),
+      );
+
+  void _onAddressChanged() {
+    decodeURI(); // Keep existing URI decoder
+
+    final entry = matchingEntry;
+    if (entry.id != Int64(0)) {
+      // If we found a matching entry
+      labelController.text = entry.label;
+      selectedEntry = entry;
+    } else {
+      // Clear label if address doesn't match any entry
+      labelController.text = '';
+      selectedEntry = null;
+    }
+    notifyListeners();
+  }
+
+  void _onAddressBookChanged() {
+    // When address book changes, update label if this address exists
+    _onAddressChanged();
+  }
 }
 
 class ReceiveTab extends StatelessWidget {
@@ -635,12 +665,6 @@ class ReceiveTab extends StatelessWidget {
         viewModelBuilder: () => ReceivePageViewModel(),
         onViewModelReady: (model) => model.init(),
         builder: (context, model, child) {
-          if (model.hasError) {
-            return ErrorContainer(
-              error: model.modelError.toString(),
-              onRetry: () async => model.init(),
-            );
-          }
           return Column(
             children: [
               SailRow(
@@ -653,6 +677,7 @@ class ReceiveTab extends StatelessWidget {
                     child: SailRawCard(
                       title: 'Receive Bitcoin',
                       subtitle: 'Receive bitcoin to your bitcoin-wallet. No sidechains involved.',
+                      error: model.modelError,
                       child: SailColumn(
                         spacing: SailStyleValues.padding16,
                         mainAxisSize: MainAxisSize.min,
@@ -670,6 +695,37 @@ class ReceiveTab extends StatelessWidget {
                               ),
                               CopyButton(
                                 text: model.address,
+                              ),
+                            ],
+                          ),
+                          SailRow(
+                            spacing: SailStyleValues.padding08,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: SailTextField(
+                                  label: 'Store label for address',
+                                  controller: model.labelController,
+                                  hintText: '(no label)',
+                                  size: TextFieldSize.small,
+                                ),
+                              ),
+                              QtButton(
+                                label: model.hasExistingLabel ? 'Update Label' : 'Save Label',
+                                onPressed: () async {
+                                  try {
+                                    if (model.hasExistingLabel) {
+                                      await model.updateLabel(model.matchingEntry.id);
+                                    } else {
+                                      await model.saveLabel(context);
+                                    }
+                                  } catch (e) {
+                                    // Error handled by model
+                                  }
+                                },
+                                disabled: model.isBusy || !model.hasLabelChanged,
+                                loading: model.isBusy,
+                                size: ButtonSize.small,
                               ),
                             ],
                           ),
@@ -711,17 +767,109 @@ class ReceiveTab extends StatelessWidget {
 }
 
 class ReceivePageViewModel extends BaseViewModel {
+  final AddressBookProvider _addressBookProvider = GetIt.I<AddressBookProvider>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
+  final TextEditingController labelController = TextEditingController();
 
   String get address => transactionsProvider.address;
 
+  AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(
+        (e) => e.address == address,
+        orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
+      );
+  bool get hasExistingLabel => matchingEntry.label.isNotEmpty;
+  String get saveButtonLabel => hasExistingLabel ? 'Update Label' : 'Save Label';
+  bool get hasLabelChanged => labelController.text != matchingEntry.label;
+
   void init() {
-    transactionsProvider.addListener(notifyListeners);
+    transactionsProvider.addListener(_onAddressChanged);
+    _addressBookProvider.addListener(_onAddressBookChanged);
     generateNewAddress();
+    labelController.addListener(notifyListeners);
+  }
+
+  void _onAddressChanged() {
+    if (labelController.text.isEmpty) {
+      labelController.text = matchingEntry.label;
+    }
+    notifyListeners();
+  }
+
+  void _onAddressBookChanged() {
+    // When address book changes, update label if this address exists
+    _onAddressChanged();
+  }
+
+  @override
+  void dispose() {
+    transactionsProvider.removeListener(_onAddressChanged);
+    _addressBookProvider.removeListener(_onAddressBookChanged);
+    labelController.removeListener(notifyListeners);
+    labelController.dispose();
+    super.dispose();
   }
 
   Future<void> generateNewAddress() async {
     await transactionsProvider.fetch();
+  }
+
+  Future<void> saveLabel(BuildContext context) async {
+    try {
+      setBusy(true);
+      setErrorForObject('create', null);
+      notifyListeners();
+
+      await _addressBookProvider.createEntry(
+        labelController.text,
+        address,
+        Direction.DIRECTION_RECEIVE,
+      );
+
+      labelController.clear();
+      await _addressBookProvider.fetch();
+      if (context.mounted) {
+        showSnackBar(context, 'Saved New Label');
+      }
+    } catch (error) {
+      setErrorForObject('create', error.toString());
+      notifyListeners();
+      rethrow;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  Future<void> updateLabel(Int64 id) async {
+    try {
+      setBusy(true);
+      setErrorForObject('edit', null);
+      notifyListeners();
+
+      await _addressBookProvider.updateLabel(id, labelController.text);
+      labelController.clear();
+    } catch (error) {
+      setErrorForObject('edit', error.toString());
+      notifyListeners();
+      rethrow;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  Future<void> deleteLabel(Int64 id) async {
+    try {
+      setBusy(true);
+      setErrorForObject('delete', null);
+      notifyListeners();
+
+      await _addressBookProvider.deleteEntry(id);
+    } catch (error) {
+      setErrorForObject('delete', error.toString());
+      notifyListeners();
+      rethrow;
+    } finally {
+      setBusy(false);
+    }
   }
 }
 

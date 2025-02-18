@@ -14,6 +14,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	"github.com/btcsuite/btcd/btcutil"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -237,7 +238,31 @@ func (s *Server) CreateAddressBookEntry(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if err := addressbook.Create(ctx, s.db, req.Msg.Label, req.Msg.Address, direction); err != nil {
+	address, err := btcutil.DecodeAddress(req.Msg.Address, nil)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid address: %w", err))
+	}
+
+	if err := addressbook.Create(ctx, s.db, req.Msg.Label, address.String(), direction); err != nil {
+		// Check if this is a unique constraint error for address+direction
+		if err.Error() == addressbook.ErrUniqueAddress {
+			// Get the existing entry to update
+			entries, err := addressbook.List(ctx, s.db)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInternal, err)
+			}
+
+			// Find the entry with matching address and direction
+			for _, entry := range entries {
+				if entry.Address == req.Msg.Address && entry.Direction == direction {
+					// Update its label instead
+					if err := addressbook.UpdateLabel(ctx, s.db, entry.ID, req.Msg.Label); err != nil {
+						return nil, connect.NewError(connect.CodeInternal, err)
+					}
+					return connect.NewResponse(&emptypb.Empty{}), nil
+				}
+			}
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
