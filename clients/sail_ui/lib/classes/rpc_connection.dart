@@ -96,7 +96,7 @@ abstract class RPCConnection extends ChangeNotifier {
       // As long as it does that, we want to keep showing the orange spinner!
 
       else if (error is SocketException) {
-        newError = error.osError?.message ?? 'could not connect at ${conf.host}:${conf.port}';
+        newError = error.osError?.message ?? 'could not connect ${binary.connectionString}';
       } else if (error is HttpException) {
         // Error looks like this, lets parse the interesting bits:
         // SocketException: Connection refused (OS Error: Connection refused, errno = 61), address = localhost, port = 55248
@@ -127,7 +127,7 @@ abstract class RPCConnection extends ChangeNotifier {
         initializingBinary = false;
         _shouldNotify = true;
         // we have a new error on our hands!
-        log.e('could not test connection: ${newError ?? ''}!');
+        log.e('could not test connection ${binary.connectionString}: ${newError ?? ''}!');
       }
       connected = false;
       connectionError = newError;
@@ -150,6 +150,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Future<void> initBinary({
     List<String>? arg,
+    bool withBootConnectionRetry = false,
   }) async {
     final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
@@ -159,10 +160,10 @@ abstract class RPCConnection extends ChangeNotifier {
     initializingBinary = true;
     notifyListeners();
 
-    log.i('init binaries: checking $binary connection ${conf.host}:${conf.port}');
+    log.i('init binaries: checking connection ${binary.connectionString}');
 
     try {
-      await startConnectionTimer();
+      await startConnectionTimer(withBootConnectionRetry: withBootConnectionRetry);
       // If we managed to connect to an already running daemon, we're finished here!
       if (connected) {
         log.i('init binaries: $binary is already running, not doing anything');
@@ -180,18 +181,18 @@ abstract class RPCConnection extends ChangeNotifier {
           args,
           stopRPC,
         );
-        log.i('init binaries: started $binary with PID $pid');
+        log.i('init binaries: started ${binary.connectionString} with PID $pid');
       } catch (err) {
-        log.e('init binaries: could not start $binary daemon', error: err);
+        log.e('init binaries: could not start ${binary.connectionString}', error: err);
         _connectionTimer?.cancel();
         initializingBinary = false;
-        connectionError = 'could not start $binary daemon: $err';
+        connectionError = 'could not start ${binary.connectionString}: $err';
         connected = false;
         notifyListeners();
         return;
       }
 
-      log.i('init binaries: waiting for $binary connection');
+      log.i('init binaries: waiting for ${binary.connectionString} connection');
 
       var timeout = const Duration(seconds: 60);
       if (binary.binary == 'zsided') {
@@ -291,12 +292,36 @@ abstract class RPCConnection extends ChangeNotifier {
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the connection drops/begins
   Timer? _connectionTimer;
-  Future<void> startConnectionTimer() async {
+  Future<void> startConnectionTimer({bool withBootConnectionRetry = false}) async {
     // Cancel any existing timer before starting a new one
     _connectionTimer?.cancel();
 
-    await testConnection();
-    log.i('starting connection timer for ${conf.host}:${conf.port}');
+    log.i('checking connection ${binary.connectionString}');
+
+    // the enforcer is kinda brittle when testing connection on launch
+    // we want to give it a few tries before we give up and try to start it ourselves
+    if (withBootConnectionRetry) {
+      // Try up to 5 times with a small delay between attempts
+      for (int i = 0; i < 5; i++) {
+        await testConnection();
+        if (connected) {
+          log.i('${binary.connectionString} connected on attempt ${i + 1}');
+          break;
+        }
+        log.i('${binary.connectionString} connection attempt ${i + 1} failed, retrying...');
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    } else {
+      await testConnection();
+    }
+
+    if (connected) {
+      log.i('${binary.connectionString} already running');
+    } else {
+      log.i('${binary.connectionString} could not connect: error=${connectionError ?? ''}');
+    }
+
+    log.i('starting connection timer for ${binary.connectionString}');
     _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();
     });

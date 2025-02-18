@@ -211,7 +211,11 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   // Start a binary, and set starter seeds (if set)
-  Future<void> startBinary(Binary binary, {bool useStarter = false}) async {
+  Future<void> startBinary(
+    Binary binary, {
+    bool useStarter = false,
+    bool withBootConnectionRetry = false,
+  }) async {
     if (useStarter && (binary is Thunder || binary is Bitnames)) {
       try {
         await _setStarterSeed(binary);
@@ -222,19 +226,20 @@ class BinaryProvider extends ChangeNotifier {
 
     switch (binary) {
       case ParentChain():
-        await mainchainRPC.initBinary();
+        await mainchainRPC.initBinary(withBootConnectionRetry: withBootConnectionRetry);
 
       case Enforcer():
-        await enforcerRPC.initBinary();
+        await enforcerRPC.initBinary(withBootConnectionRetry: withBootConnectionRetry);
 
       case BitWindow():
-        await bitwindowRPC.initBinary();
+        await bitwindowRPC.initBinary(withBootConnectionRetry: withBootConnectionRetry);
 
       case Thunder():
         await thunderRPC?.initBinary(
           arg: binary.mnemonicSeedPhrasePath != null
               ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
               : null,
+          withBootConnectionRetry: withBootConnectionRetry,
         );
 
       case Bitnames():
@@ -242,6 +247,7 @@ class BinaryProvider extends ChangeNotifier {
           arg: binary.mnemonicSeedPhrasePath != null
               ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
               : null,
+          withBootConnectionRetry: withBootConnectionRetry,
         );
 
       default:
@@ -457,7 +463,11 @@ class BinaryProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> downloadThenBootL1(BuildContext context, {bool bootAllNoMatterWhat = false}) async {
+  Future<void> downloadThenBootL1(
+    BuildContext context, {
+    bool bootAllNoMatterWhat = false,
+    bool withEnforcerRetry = false,
+  }) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final log = GetIt.I.get<Logger>();
     log.i('Booting L1 binaries in');
@@ -487,13 +497,21 @@ class BinaryProvider extends ChangeNotifier {
       if (bootAllNoMatterWhat) {
         // 2.1. If we're told to boot no matter what, do enforcer and bitwindow in parallell
         if (!context.mounted) return;
-        unawaited(startBinary(enforcer, useStarter: false));
         unawaited(startBinary(bitwindow, useStarter: false));
+        await startBinary(
+          enforcer,
+          useStarter: false,
+          withBootConnectionRetry: withEnforcerRetry,
+        );
         log.i('Started enforcer and bitwindow');
       } else {
         // 2.2. We're told to NOT be fast. Ensure enforcer is started first
         if (!context.mounted) return;
-        await startBinary(enforcer, useStarter: false);
+        await startBinary(
+          enforcer,
+          useStarter: false,
+          withBootConnectionRetry: withEnforcerRetry,
+        );
         log.i('Started enforcer');
 
         // 3. Start BitWindow after enforcer

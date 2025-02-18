@@ -632,6 +632,8 @@ abstract class Binary {
   void _log(String message) {
     log.i('Binary: $message');
   }
+
+  String get connectionString => '$name :${network.port}';
 }
 
 class ParentChain extends Binary {
