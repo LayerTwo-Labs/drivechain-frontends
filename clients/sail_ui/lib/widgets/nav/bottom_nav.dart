@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
@@ -50,59 +49,51 @@ class BottomNav extends StatelessWidget {
               trailingSpacing: true,
               children: [
                 const SailSpacing(SailStyleValues.padding04),
-                Tooltip(
-                  message: 'Confirmed balance',
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(
-                          ClipboardData(
-                            text: model.balance.toString(),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      model.setShowUnconfirmed(!model.showUnconfirmed);
+                    },
+                    child: SailRow(
+                      children: [
+                        Tooltip(
+                          message: 'Confirmed balance',
+                          child: SailRow(
+                            spacing: SailStyleValues.padding08,
+                            children: [
+                              SailSVG.icon(
+                                SailSVGAsset.iconCoins,
+                                color: SailColorScheme.green,
+                                width: SailStyleValues.iconSizeSecondary,
+                                height: SailStyleValues.iconSizeSecondary,
+                              ),
+                              SailText.secondary12(formatBitcoin(model.balance, symbol: 'BTC')),
+                            ],
                           ),
-                        );
-                        showSnackBar(context, 'Copied confirmed balance to clipboard', duration: 1);
-                      },
-                      child: SailRow(
-                        spacing: SailStyleValues.padding08,
-                        children: [
-                          SailSVG.icon(
-                            SailSVGAsset.iconCoins,
-                            color: SailColorScheme.green,
-                            width: SailStyleValues.iconSizeSecondary,
-                            height: SailStyleValues.iconSizeSecondary,
+                        ),
+                        if (model.showUnconfirmed || model.pendingBalance > 0) const DividerDot(),
+                        if (model.showUnconfirmed || model.pendingBalance > 0)
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            left: model.showUnconfirmed ? 0 : -200, // Slide from left
+                            child: Tooltip(
+                              message: 'Unconfirmed balance',
+                              child: SailRow(
+                                spacing: SailStyleValues.padding08,
+                                children: [
+                                  SailSVG.icon(
+                                    SailSVGAsset.iconCoins,
+                                    width: SailStyleValues.iconSizeSecondary,
+                                    height: SailStyleValues.iconSizeSecondary,
+                                  ),
+                                  SailText.secondary12(formatBitcoin(model.pendingBalance, symbol: 'BTC')),
+                                ],
+                              ),
+                            ),
                           ),
-                          SailText.secondary12(formatBitcoin(model.balance, symbol: 'BTC')),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const DividerDot(),
-                Tooltip(
-                  message: 'Unconfirmed balance',
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(
-                          ClipboardData(
-                            text: model.pendingBalance.toString(),
-                          ),
-                        );
-                        showSnackBar(context, 'Copied unconfirmed balance to clipboard', duration: 1);
-                      },
-                      child: SailRow(
-                        spacing: SailStyleValues.padding08,
-                        children: [
-                          SailSVG.icon(
-                            SailSVGAsset.iconCoins,
-                            width: SailStyleValues.iconSizeSecondary,
-                            height: SailStyleValues.iconSizeSecondary,
-                          ),
-                          SailText.secondary12(formatBitcoin(model.pendingBalance, symbol: 'BTC')),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
                 ),
@@ -221,7 +212,10 @@ class DividerDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailSVG.fromAsset(SailSVGAsset.dividerDot);
+    return SailPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: SailText.primary10('|', color: SailTheme.of(context).colors.textTertiary.withValues(alpha: 0.5)),
+    );
   }
 }
 
@@ -279,6 +273,7 @@ class BottomNavViewModel extends BaseViewModel {
   late BlockInfoService infoService;
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
+  bool showUnconfirmed = false;
 
   BottomNavViewModel({
     required this.additionalConnection,
@@ -332,6 +327,11 @@ class BottomNavViewModel extends BaseViewModel {
     }
 
     return errors.isEmpty ? '' : errors.join('\n');
+  }
+
+  void setShowUnconfirmed(bool value) {
+    showUnconfirmed = value;
+    notifyListeners();
   }
 
   @override

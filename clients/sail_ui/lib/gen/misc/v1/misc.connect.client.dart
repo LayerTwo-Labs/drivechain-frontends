@@ -3,10 +3,10 @@
 //  source: misc/v1/misc.proto
 //
 
-import 'package:connectrpc/connect.dart' as connect;
-import 'package:sail_ui/gen/misc/v1/misc.pb.dart' as miscv1misc;
-import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as googleprotobufempty;
-import 'package:sail_ui/gen/misc/v1/misc.connect.spec.dart' as specs;
+import "package:connectrpc/connect.dart" as connect;
+import "misc.pb.dart" as miscv1misc;
+import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import "misc.connect.spec.dart" as specs;
 
 extension type MiscServiceClient (connect.Transport _transport) {
   Future<miscv1misc.ListOPReturnResponse> listOPReturn(

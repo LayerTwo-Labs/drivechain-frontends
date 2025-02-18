@@ -116,7 +116,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                                 category: Category.sidechain,
                                 icon: Icons.remove,
                                 onTap: () async {
-                                  model.sendPrivate(context);
+                                  await model.sendPrivate(context);
                                 },
                               ),
                               ActionTile(

@@ -117,22 +117,39 @@ class _SailTableState extends State<SailTable> {
   }
 
   void _scaleColumnsToFit(double parentWidth, List<double> columnWidths, double totalWidth) {
-    final scaleFactor = parentWidth / totalWidth;
+    final scaleFactor = (parentWidth.floorToDouble()) / totalWidth; // Floor the parent width
     _widths.clear();
-    for (var i = 0; i < columnWidths.length; i++) {
-      final scaledWidth = columnWidths[i] * scaleFactor;
-      // Never go smaller than the original width
-      _widths.add(scaledWidth < columnWidths[i] ? columnWidths[i] : scaledWidth);
+    double currentTotal = 0;
+
+    // Handle all columns except the last one
+    for (var i = 0; i < columnWidths.length - 1; i++) {
+      final scaledWidth = (columnWidths[i] * scaleFactor).floorToDouble();
+      final width = scaledWidth < columnWidths[i] ? columnWidths[i] : scaledWidth;
+      _widths.add(width);
+      currentTotal += width;
     }
+
+    // Give remaining width to last column
+    final lastWidth = parentWidth - currentTotal;
+    _widths.add(lastWidth);
   }
 
   void _expandColumnsToFill(double parentWidth, List<double> columnWidths) {
     final totalWidth = columnWidths.fold(0.0, (sum, width) => sum + width);
-    final scaleFactor = parentWidth / totalWidth; // This will be > 1.0
+    final scaleFactor = (parentWidth.floorToDouble()) / totalWidth;
     _widths.clear();
-    for (var width in columnWidths) {
-      _widths.add(width * scaleFactor); // Scale proportionally to original size
+    double currentTotal = 0;
+
+    // Handle all columns except the last one
+    for (var i = 0; i < columnWidths.length - 1; i++) {
+      final scaledWidth = (columnWidths[i] * scaleFactor).floorToDouble();
+      _widths.add(scaledWidth);
+      currentTotal += scaledWidth;
     }
+
+    // Give remaining width to last column
+    final lastWidth = parentWidth - currentTotal;
+    _widths.add(lastWidth);
   }
 
   void _checkScrollPosition() {

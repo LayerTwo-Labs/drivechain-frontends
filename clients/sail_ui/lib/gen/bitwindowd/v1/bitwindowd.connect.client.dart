@@ -3,10 +3,10 @@
 //  source: bitwindowd/v1/bitwindowd.proto
 //
 
-import 'package:connectrpc/connect.dart' as connect;
-import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as googleprotobufempty;
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.connect.spec.dart' as specs;
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart' as bitwindowdv1bitwindowd;
+import "package:connectrpc/connect.dart" as connect;
+import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
+import "bitwindowd.connect.spec.dart" as specs;
+import "bitwindowd.pb.dart" as bitwindowdv1bitwindowd;
 
 extension type BitwindowdServiceClient (connect.Transport _transport) {
   Future<googleprotobufempty.Empty> stop(

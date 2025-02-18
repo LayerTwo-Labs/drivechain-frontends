@@ -840,9 +840,7 @@ class _TransactionTableState extends State<TransactionTable> {
                 ),
                 child: widget.searchWidget,
               ),
-              SizedBox(
-                width: constraints.maxWidth,
-                height: constraints.maxHeight - 116, // 116 is the height of the search widget and padding
+              Expanded(
                 child: SailTable(
                   getRowId: (index) => widget.entries[index].txid,
                   headerBuilder: (context) => [

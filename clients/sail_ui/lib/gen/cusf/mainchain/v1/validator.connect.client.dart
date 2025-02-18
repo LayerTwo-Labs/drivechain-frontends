@@ -3,9 +3,9 @@
 //  source: cusf/mainchain/v1/validator.proto
 //
 
-import 'package:connectrpc/connect.dart' as connect;
-import 'package:sail_ui/gen/cusf/mainchain/v1/validator.pb.dart' as cusfmainchainv1validator;
-import 'package:sail_ui/gen/cusf/mainchain/v1/validator.connect.spec.dart' as specs;
+import "package:connectrpc/connect.dart" as connect;
+import "validator.pb.dart" as cusfmainchainv1validator;
+import "validator.connect.spec.dart" as specs;
 
 extension type ValidatorServiceClient (connect.Transport _transport) {
   /// Fetches information about a specific mainchain block header.
