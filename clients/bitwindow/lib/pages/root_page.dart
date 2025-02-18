@@ -53,7 +53,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _binaryProvider.downloadThenBootL1(context, bootAllNoMatterWhat: true);
+      _binaryProvider.downloadThenBootL1(
+        context,
+        bootAllNoMatterWhat: true,
+        withEnforcerRetry: true,
+      );
     });
   }
 
