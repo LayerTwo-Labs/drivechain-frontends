@@ -92,7 +92,7 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 			continue
 		}
 
-		// It's time! Execute.
+		// It's time! Execute. This might hang... forever!
 		if err := e.executeDenial(ctx, utxos, denial); err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("could not execute denial")
 			continue
@@ -153,8 +153,8 @@ func (e *DeniabilityEngine) findDenialUTXO(
 func (e *DeniabilityEngine) findNewUTXO(
 	ctx context.Context, txid string, expectedAmount uint64,
 ) (*pb.ListUnspentOutputsResponse_Output, error) {
-	// we need to wait for the new utxo to appear in the wallet. might take a while
-	for i := 0; i < 30; i++ {
+	// we need to wait for the new utxo to appear in the wallet. might take a while, wait forever
+	for {
 		utxos, err := e.listUTXOs(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("could not list utxos: %w", err)
@@ -170,8 +170,6 @@ func (e *DeniabilityEngine) findNewUTXO(
 		// Wait a second before trying again
 		time.Sleep(time.Second)
 	}
-
-	return nil, fmt.Errorf("timed out waiting for UTXO %s", txid)
 }
 
 func (e *DeniabilityEngine) executeDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
