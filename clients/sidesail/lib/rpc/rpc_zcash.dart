@@ -91,6 +91,7 @@ abstract class ZCashRPC extends SidechainRPC {
   @override
   Future<void> initBinary({
     List<String>? arg,
+    bool withBootConnectionRetry = false,
   }) async {
     final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
@@ -119,7 +120,10 @@ abstract class ZCashRPC extends SidechainRPC {
     }
 
     // after all assets are loaded properly, THEN init the zcash-binary
-    await super.initBinary(arg: args);
+    await super.initBinary(
+      arg: args,
+      withBootConnectionRetry: withBootConnectionRetry,
+    );
   }
 
   /// There's no account in the wallet out of the box. Calling this

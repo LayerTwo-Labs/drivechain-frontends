@@ -34,32 +34,18 @@ class AddressBookProvider extends ChangeNotifier {
   }
 
   Future<void> createEntry(String label, String address, Direction direction) async {
-    try {
-      await api.bitwindowd.createAddressBookEntry(label, address, direction);
-      await fetch();
-    } catch (e) {
-      error = e.toString();
-      notifyListeners();
-    }
+    await api.bitwindowd.createAddressBookEntry(label, address, direction);
+    await fetch();
+    notifyListeners();
   }
 
   Future<void> updateLabel(Int64 id, String newLabel) async {
-    try {
-      await api.bitwindowd.updateAddressBookEntry(id, newLabel);
-      await fetch();
-    } catch (e) {
-      error = e.toString();
-      notifyListeners();
-    }
+    await api.bitwindowd.updateAddressBookEntry(id, newLabel);
+    await fetch();
   }
 
   Future<void> deleteEntry(Int64 id) async {
-    try {
-      await api.bitwindowd.deleteAddressBookEntry(id);
-      await fetch();
-    } catch (e) {
-      error = e.toString();
-      notifyListeners();
-    }
+    await api.bitwindowd.deleteAddressBookEntry(id);
+    await fetch();
   }
 }
