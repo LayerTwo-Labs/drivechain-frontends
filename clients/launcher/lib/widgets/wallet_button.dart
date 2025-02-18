@@ -313,7 +313,7 @@ class _WalletButtonState extends State<WalletButton> {
       ),
     );
 
-    if (context.mounted) {
+    if (context.mounted && mounted) {
       Overlay.of(context).insert(_overlayEntry!);
     }
   }
