@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
@@ -21,8 +24,6 @@ import 'package:sail_ui/gen/misc/v1/misc.connect.client.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
-import 'dart:convert';
-import 'dart:typed_data';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
@@ -348,11 +349,11 @@ class _BitwindowAPILive implements BitwindowAPI {
       // Create compact metadata
       // Format: <1 byte encryption flag><4 bytes unix timestamp><4 bytes file extension>
       final metadata = ByteData(9);
-      
+
       // Store flags and timestamp first
       metadata.setUint8(0, encrypt ? 1 : 0);
       metadata.setUint32(1, DateTime.now().millisecondsSinceEpoch ~/ 1000);
-      
+
       // Store file type last
       final fileType = _detectFileType(content);
       final typeBytes = utf8.encode(fileType.padRight(4, ' '));
@@ -365,9 +366,8 @@ class _BitwindowAPILive implements BitwindowAPI {
       final metadataStr = base64.encode(metadataBytes);
 
       // Encode content
-      final contentStr = encrypt 
-          ? base64.encode(content)
-          : base64.encode(content); // Always base64 encode for consistency
+      final contentStr =
+          encrypt ? base64.encode(content) : base64.encode(content); // Always base64 encode for consistency
 
       // Combine with a single delimiter
       final opReturnData = '$metadataStr|$contentStr';
@@ -385,7 +385,7 @@ class _BitwindowAPILive implements BitwindowAPI {
         opReturnMessage: opReturnData,
       );
       log.d('BitDrive: Content stored in transaction: $txid');
-      
+
       return txid;
     } catch (e) {
       final error = 'could not store content: ${extractConnectException(e)}';
@@ -403,21 +403,15 @@ class _BitwindowAPILive implements BitwindowAPI {
         return 'jpg';
       }
       // PNG
-      if (content.length >= 8 &&
-          content[0] == 0x89 && content[1] == 0x50 &&
-          content[2] == 0x4E && content[3] == 0x47) {
+      if (content.length >= 8 && content[0] == 0x89 && content[1] == 0x50 && content[2] == 0x4E && content[3] == 0x47) {
         return 'png';
       }
       // GIF
-      if (content.length >= 6 &&
-          content[0] == 0x47 && content[1] == 0x49 &&
-          content[2] == 0x46) {
+      if (content.length >= 6 && content[0] == 0x47 && content[1] == 0x49 && content[2] == 0x46) {
         return 'gif';
       }
       // PDF
-      if (content.length >= 4 &&
-          content[0] == 0x25 && content[1] == 0x50 &&
-          content[2] == 0x44 && content[3] == 0x46) {
+      if (content.length >= 4 && content[0] == 0x25 && content[1] == 0x50 && content[2] == 0x44 && content[3] == 0x46) {
         return 'pdf';
       }
     }
@@ -447,7 +441,7 @@ class _BitwindowAPILive implements BitwindowAPI {
       // Get all OP_RETURN messages
       final opReturns = await api.misc.listOPReturns();
       log.d('BitDrive: Found ${opReturns.length} total OP_RETURN messages');
-      
+
       // Find the one matching our txid
       final opReturn = opReturns.firstWhere(
         (op) => op.txid == txid,
@@ -503,11 +497,11 @@ class _BitwindowAPILive implements BitwindowAPI {
       // Get all OP_RETURN messages
       final opReturns = await api.misc.listOPReturns();
       log.d('BitDrive: Found ${opReturns.length} total OP_RETURN messages');
-      
+
       // Check if any match our txid
       final hasOpReturn = opReturns.any((op) => op.txid == txid);
       log.d('BitDrive: Transaction $txid ${hasOpReturn ? "has" : "does not have"} OP_RETURN data');
-      
+
       return hasOpReturn;
     } catch (e) {
       final error = 'could not check for OP_RETURN: ${extractConnectException(e)}';
