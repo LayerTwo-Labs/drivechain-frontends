@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/env.dart';
@@ -9,6 +8,7 @@ import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
@@ -30,6 +30,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:file_picker/file_picker.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
@@ -96,6 +97,11 @@ class WalletPage extends StatelessWidget {
                 label: 'HD Wallet Explorer',
                 icon: SailSVGAsset.iconWallet,
                 child: HDWalletExplorerTab(),
+              ),
+              TabItem(
+                label: 'BitDrive',
+                icon: SailSVGAsset.iconNetwork,
+                child: BitDriveTab(),
               ),
             ],
             initialIndex: 0,
@@ -1560,7 +1566,6 @@ class HDWalletExplorerTab extends StatefulWidget {
 
 class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
   final TextEditingController _derivationPathController = TextEditingController(text: "m/44'/0'/0'/0");
-
   String? _seedHex;
   String? _masterKey;
   List<HDWalletEntry> _derivedEntries = [];
@@ -1568,7 +1573,6 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
   static const int _entriesPerPage = 20;
   bool _showPrivateKeys = true;
   String? _error;
-
   @override
   void initState() {
     super.initState();
@@ -1646,7 +1650,6 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
 
   void _onDerivationPathChanged() {
     if (_seedHex == null) return;
-
     try {
       Logger().d('Creating chain from seed: ${_seedHex!}');
       final chain = Chain.seed(_seedHex!);
@@ -1733,12 +1736,10 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
       versionedHash[0] = 0x00;
       versionedHash.setRange(1, 21, pubKeyHash);
       Logger().d('Versioned hash: ${hex.encode(versionedHash)}');
-
       final firstSHA = SHA256Digest().process(versionedHash.sublist(0, 21));
       final doubleSHA = SHA256Digest().process(firstSHA);
       final checksum = doubleSHA.sublist(0, 4);
       Logger().d('Checksum: ${hex.encode(checksum)}');
-
       final addressBytes = Uint8List(25);
       addressBytes.setRange(0, 21, versionedHash);
       addressBytes.setRange(21, 25, checksum);
@@ -1907,4 +1908,347 @@ class HDWalletEntry {
     required this.publicKey,
     required this.privateKey,
   });
+}
+
+class BitDriveTab extends StatelessWidget {
+  const BitDriveTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return ViewModelBuilder<BitDriveViewModel>.reactive(
+          viewModelBuilder: () => BitDriveViewModel(),
+          builder: (context, model, child) {
+            final error = model.error('bitdrive');
+
+            return SailRawCard(
+              title: 'BitDrive',
+              subtitle: 'Store and retrieve content in the Bitcoin blockchain',
+              error: error,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding16,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Input area
+                        SailRow(
+                          spacing: SailStyleValues.padding16,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: SailColumn(
+                                spacing: SailStyleValues.padding08,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SailText.primary13('Content to Store'),
+                                  SailText.secondary12(
+                                    'Enter text or choose a file (max 1MB)',
+                                    color: context.sailTheme.colors.textTertiary,
+                                  ),
+                                  const SailSpacing(SailStyleValues.padding08),
+                                  SailTextField(
+                                    controller: model.textController,
+                                    maxLines: 3,
+                                    hintText: 'Enter text to store...',
+                                  ),
+                                  SailRow(
+                                    spacing: SailStyleValues.padding08,
+                                    children: [
+                                      QtButton(
+                                        label: 'Choose File',
+                                        onPressed: () => model.pickFile(context),
+                                        size: ButtonSize.small,
+                                      ),
+                                      if (model.selectedFileName != null)
+                                        Expanded(
+                                          child: SailText.secondary13(
+                                            model.selectedFileName!,
+                                          ),
+                                        ),
+                                      if (model.selectedFileName != null)
+                                        QtIconButton(
+                                          tooltip: 'Clear selected file',
+                                          onPressed: model.clearSelectedFile,
+                                          icon: Icon(
+                                            Icons.close,
+                                            size: 16.0,
+                                            color: context.sailTheme.colors.text,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Right side controls
+                            Expanded(
+                              flex: 1,
+                              child: SailColumn(
+                                spacing: SailStyleValues.padding16,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SailText.primary13('Settings'),
+                                  SailRow(
+                                    spacing: SailStyleValues.padding08,
+                                    children: [
+                                      Expanded(
+                                        child: NumericField(
+                                          label: 'Fee (BTC)',
+                                          controller: model.feeController,
+                                          hintText: '0.0001',
+                                        ),
+                                      ),
+                                      Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          QtIconButton(
+                                            tooltip: 'Increase fee',
+                                            onPressed: () async {
+                                              model.adjustFee(0.0001);
+                                            },
+                                            icon: Icon(
+                                              Icons.arrow_upward,
+                                              size: 12.0,
+                                              color: context.sailTheme.colors.text,
+                                            ),
+                                          ),
+                                          QtIconButton(
+                                            tooltip: 'Decrease fee',
+                                            onPressed: () async {
+                                              model.adjustFee(-0.0001);
+                                            },
+                                            icon: Icon(
+                                              Icons.arrow_downward,
+                                              size: 12.0,
+                                              color: context.sailTheme.colors.text,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  SailCheckbox(
+                                    value: model.shouldEncrypt,
+                                    onChanged: model.onEncryptChanged,
+                                    label: 'Encrypt',
+                                  ),
+                                  const SailSpacing(SailStyleValues.padding16),
+                                  QtButton(
+                                    label: 'Store',
+                                    onPressed: model.canStore ? () => model.store(context) : null,
+                                    loading: model.isBusy,
+                                    style: model.canStore 
+                                      ? SailButtonStyle.primary 
+                                      : SailButtonStyle.secondary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Bottom section with restore button
+                  Container(
+                    padding: const EdgeInsets.all(SailStyleValues.padding16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: context.sailTheme.colors.formFieldBorder,
+                          width: 1.0,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        QtButton(
+                          label: 'Open BitDrive',
+                          onPressed: model._bitdriveDir != null ? () => model.openBitdriveDir() : null,
+                          size: ButtonSize.small,
+                          style: SailButtonStyle.secondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class BitDriveViewModel extends BaseViewModel {
+  final BitDriveProvider provider = GetIt.I.get<BitDriveProvider>();
+  final TextEditingController textController = TextEditingController();
+  final TextEditingController feeController = TextEditingController(text: '0.0001');
+  Logger get log => GetIt.I.get<Logger>();
+  String? selectedFileName;
+  Uint8List? selectedFileContent;
+  bool get shouldEncrypt => provider.shouldEncrypt;
+  bool get canStore => textController.text.isNotEmpty || selectedFileContent != null;
+  String? _bitdriveDir;
+
+  BitDriveViewModel() {
+    provider.addListener(notifyListeners);
+    textController.addListener(() => onTextChanged(textController.text));
+    _initBitdriveDir();
+  }
+
+  Future<void> _initBitdriveDir() async {
+    final appDir = await Environment.datadir();
+    _bitdriveDir = '${appDir.path}/bitdrive';
+    notifyListeners();
+  }
+
+  Future<void> openBitdriveDir() async {
+    if (_bitdriveDir == null) return;
+    
+    try {
+      final dir = Directory(_bitdriveDir!);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+
+      if (Platform.isMacOS) {
+        await Process.run('open', [_bitdriveDir!]);
+      } else if (Platform.isLinux) {
+        await Process.run('xdg-open', [_bitdriveDir!]);
+      } else if (Platform.isWindows) {
+        await Process.run('explorer', [_bitdriveDir!]);
+      }
+    } catch (e) {
+      log.e('Error opening BitDrive directory: $e');
+    }
+  }
+
+  void adjustFee(double amount) {
+    try {
+      final currentFee = double.parse(feeController.text);
+      final newFee = (currentFee + amount).clamp(0.0001, 1.0);
+      final formattedFee = newFee.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+      feeController.text = formattedFee;
+      provider.setFee(newFee);
+      notifyListeners();
+    } catch (e) {
+      feeController.text = '0.0001';
+      provider.setFee(0.0001);
+    }
+  }
+
+  void onTextChanged(String value) {
+    provider.setTextContent(value);
+    // Clear any selected file when text is entered
+    if (value.isNotEmpty) {
+      selectedFileName = null;
+      selectedFileContent = null;
+    }
+    notifyListeners();
+  }
+
+  void onEncryptChanged(bool? value) {
+    if (value != null) {
+      provider.setEncryption(value);
+      notifyListeners();
+    }
+  }
+
+  Future<void> clearSelectedFile() async {
+    selectedFileName = null;
+    selectedFileContent = null;
+    notifyListeners();
+  }
+
+  Future<void> pickFile(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        
+        if (file.size > 1024 * 1024) {
+          if (context.mounted) {
+            showSnackBar(context, 'File size must be less than 1MB');
+          }
+          return;
+        }
+
+        Uint8List? fileContents;
+        if (file.bytes != null) {
+          fileContents = file.bytes!;
+        } else if (file.path != null) {
+          try {
+            fileContents = await File(file.path!).readAsBytes();
+          } catch (e) {
+            Logger().e('Error reading file: $e');
+            if (context.mounted) {
+              showSnackBar(context, 'Error reading file: $e');
+            }
+            return;
+          }
+        }
+
+        if (fileContents != null) {
+          selectedFileContent = fileContents;
+          selectedFileName = file.name;
+          textController.clear();
+          await provider.setFileContent(
+            fileContents,
+            name: file.name,
+            type: file.extension != null ? 'application/${file.extension}' : 'application/octet-stream',
+          );
+          notifyListeners();
+        } else {
+          if (context.mounted) {
+            showSnackBar(context, 'Could not read file contents');
+          }
+        }
+      }
+    } catch (e) {
+      Logger().e('Error picking file: $e');
+      if (context.mounted) {
+        showSnackBar(context, 'Error picking file: $e');
+      }
+    }
+  }
+
+  Future<void> store(BuildContext context) async {
+    setBusy(true);
+    try {
+      await provider.store();
+      if (context.mounted) {
+        showSnackBar(context, 'Content stored successfully');
+        textController.clear();
+        selectedFileName = null;
+        selectedFileContent = null;
+      }
+    } catch (e) {
+      setError(e.toString());
+      if (context.mounted) {
+        showSnackBar(context, 'Failed to store content: $e');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  @override
+  void dispose() {
+    textController.dispose();
+    feeController.dispose();
+    provider.removeListener(notifyListeners);
+    super.dispose();
+  }
 }
