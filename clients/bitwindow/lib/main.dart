@@ -13,6 +13,7 @@ import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -251,6 +252,12 @@ Future<void> initDependencies(
     () => addressBookProvider,
   );
   unawaited(addressBookProvider.fetch());
+
+  final bitdriveProvider = BitDriveProvider();
+  GetIt.I.registerLazySingleton<BitDriveProvider>(
+    () => bitdriveProvider,
+  );
+  unawaited(bitdriveProvider.init());
 }
 
 void ignoreOverflowErrors(
