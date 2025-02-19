@@ -23,7 +23,6 @@ import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:convert/convert.dart';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
