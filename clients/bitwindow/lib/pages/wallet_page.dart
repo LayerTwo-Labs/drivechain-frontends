@@ -96,13 +96,18 @@ class WalletPage extends StatelessWidget {
               ),
               TabItem(
                 label: 'HD Wallet Explorer',
-                icon: SailSVGAsset.iconWallet,
+                icon: SailSVGAsset.iconHDWallet,
                 child: HDWalletExplorerTab(),
               ),
               TabItem(
                 label: 'BitDrive',
-                icon: SailSVGAsset.iconNetwork,
+                icon: SailSVGAsset.iconBitdrive,
                 child: BitDriveTab(),
+              ),
+              TabItem(
+                label: 'Multisig Lounge',
+                icon: SailSVGAsset.iconMultisig,
+                child: MultisigLoungeTab(),
               ),
             ],
             initialIndex: 0,
@@ -2250,5 +2255,23 @@ class BitDriveViewModel extends BaseViewModel {
     feeController.dispose();
     provider.removeListener(notifyListeners);
     super.dispose();
+  }
+}
+
+class MultisigLoungeTab extends StatelessWidget {
+  const MultisigLoungeTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailRawCard(
+      title: 'Multisig Lounge',
+      subtitle: 'Create and manage multi-signature wallets',
+      child: Center(
+        child: SailText.primary15(
+          'Multisig functionality coming soon...',
+          color: context.sailTheme.colors.textTertiary,
+        ),
+      ),
+    );
   }
 }
