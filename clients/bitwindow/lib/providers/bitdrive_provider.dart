@@ -44,10 +44,10 @@ class BitDriveProvider extends ChangeNotifier {
       if (!await dir.exists()) {
         await dir.create(recursive: true);
       }
-      
+
       // Auto-restore files
       await autoRestoreFiles();
-      
+
       initialized = true;
       notifyListeners();
     } catch (e) {
@@ -59,10 +59,10 @@ class BitDriveProvider extends ChangeNotifier {
 
   Future<void> autoRestoreFiles() async {
     if (_bitdriveDir == null) return;
-    
+
     try {
       log.i('BitDrive: Starting automatic file restoration...');
-      
+
       // Get current block height
       final blockInfo = await api.bitcoind.getBlockchainInfo();
       final currentHeight = blockInfo.blocks;
@@ -71,7 +71,7 @@ class BitDriveProvider extends ChangeNotifier {
       // Get all OP_RETURN messages
       final opReturns = await api.misc.listOPReturns();
       log.d('BitDrive: Found ${opReturns.length} total OP_RETURN messages');
-      
+
       var restoredCount = 0;
       // Process each OP_RETURN message
       for (final opReturn in opReturns) {
@@ -96,11 +96,11 @@ class BitDriveProvider extends ChangeNotifier {
 
           // Retrieve content
           final content = await retrieveContent(opReturn.txid);
-          
+
           // Generate filename using block height and timestamp
           final fileName = 'block${currentHeight}_$timestamp.$fileType';
           final file = File(path.join(_bitdriveDir!, fileName));
-          
+
           // Save file
           await file.writeAsBytes(content);
           restoredCount++;
@@ -110,7 +110,7 @@ class BitDriveProvider extends ChangeNotifier {
           continue;
         }
       }
-      
+
       log.i('BitDrive: Automatic restoration complete. Restored $restoredCount files.');
     } catch (e) {
       log.e('BitDrive: Error during automatic file restoration: $e');
@@ -170,11 +170,11 @@ class BitDriveProvider extends ChangeNotifier {
       // Create compact metadata
       // Format: <1 byte encryption flag><4 bytes unix timestamp><4 bytes file extension>
       final metadata = ByteData(9);
-      
+
       // Store flags and timestamp first
       metadata.setUint8(0, shouldEncrypt ? 1 : 0);
       metadata.setUint32(1, DateTime.now().millisecondsSinceEpoch ~/ 1000);
-      
+
       // Store file type last
       final fileType = _detectFileType(content);
       final typeBytes = utf8.encode(fileType.padRight(4, ' '));
@@ -223,7 +223,7 @@ class BitDriveProvider extends ChangeNotifier {
 
       // Get all OP_RETURN messages
       final opReturns = await api.misc.listOPReturns();
-      
+
       // Find the one matching our txid
       final opReturn = opReturns.firstWhere(
         (op) => op.txid == txid,
@@ -280,21 +280,15 @@ class BitDriveProvider extends ChangeNotifier {
         return 'jpg';
       }
       // PNG
-      if (content.length >= 8 &&
-          content[0] == 0x89 && content[1] == 0x50 &&
-          content[2] == 0x4E && content[3] == 0x47) {
+      if (content.length >= 8 && content[0] == 0x89 && content[1] == 0x50 && content[2] == 0x4E && content[3] == 0x47) {
         return 'png';
       }
       // GIF
-      if (content.length >= 6 &&
-          content[0] == 0x47 && content[1] == 0x49 &&
-          content[2] == 0x46) {
+      if (content.length >= 6 && content[0] == 0x47 && content[1] == 0x49 && content[2] == 0x46) {
         return 'gif';
       }
       // PDF
-      if (content.length >= 4 &&
-          content[0] == 0x25 && content[1] == 0x50 &&
-          content[2] == 0x44 && content[3] == 0x46) {
+      if (content.length >= 4 && content[0] == 0x25 && content[1] == 0x50 && content[2] == 0x44 && content[3] == 0x46) {
         return 'pdf';
       }
     }
@@ -310,7 +304,6 @@ class BitDriveProvider extends ChangeNotifier {
     // Default to binary
     return 'bin';
   }
-
 }
 
 class StoredContent {
@@ -327,4 +320,4 @@ class StoredContent {
     required this.encrypted,
     required this.timestamp,
   });
-} 
+}
