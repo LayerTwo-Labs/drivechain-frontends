@@ -7,6 +7,9 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:bitwindow/env.dart';
+import 'package:crypto/crypto.dart';
+import 'package:convert/convert.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
 
 class BitDriveContent {
   final String fileName;
@@ -21,6 +24,7 @@ class BitDriveContent {
 class BitDriveProvider extends ChangeNotifier {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   Logger get log => GetIt.I.get<Logger>();
+  HDWalletProvider get hdWallet => GetIt.I.get<HDWalletProvider>();
 
   bool initialized = false;
   String? error;
@@ -34,6 +38,76 @@ class BitDriveProvider extends ChangeNotifier {
   bool shouldEncrypt = true;
   double fee = 0.0001;
   String? _bitdriveDir;
+
+  // Encryption constants
+  static const int BITDRIVE_DERIVATION_INDEX = 4000;
+  static const String BITDRIVE_DERIVATION_PATH = "m/44'/0'/0'/$BITDRIVE_DERIVATION_INDEX";
+
+  Future<Uint8List> _extendKey(Uint8List initialKey, int targetLength) async {
+    var currentKey = initialKey;
+    var extendedKey = <int>[];
+    
+    while (extendedKey.length < targetLength) {
+      // Store left half
+      final digest = sha256.convert(currentKey);
+      final leftHalf = Uint8List.fromList(digest.bytes.sublist(0, 16));
+      extendedKey.addAll(leftHalf);
+      
+      // Use right half for next iteration
+      currentKey = Uint8List.fromList(digest.bytes.sublist(16));
+    }
+    
+    // Trim to exact length needed
+    return Uint8List.fromList(extendedKey.sublist(0, targetLength));
+  }
+
+  Future<Uint8List> _encryptContent(Uint8List content) async {
+    try {
+      // Get private key from HD wallet at m/44'/0'/0'/4000
+      final privateKeyHex = await hdWallet.derivePrivateKey(BITDRIVE_DERIVATION_PATH);
+      
+      // Convert hex to bytes
+      final keyBytes = Uint8List.fromList(hex.decode(privateKeyHex));
+      
+      // Extend the key to content length
+      final extendedKey = await _extendKey(keyBytes, content.length);
+      
+      // XOR the content with extended key
+      final encrypted = Uint8List(content.length);
+      for (var i = 0; i < content.length; i++) {
+        encrypted[i] = content[i] ^ extendedKey[i];
+      }
+      
+      return encrypted;
+    } catch (e) {
+      log.e('BitDrive: Error encrypting content: $e');
+      rethrow;
+    }
+  }
+
+  Future<Uint8List> _decryptContent(Uint8List encryptedContent) async {
+    try {
+      // Get private key from HD wallet at m/44'/0'/0'/4000
+      final privateKeyHex = await hdWallet.derivePrivateKey(BITDRIVE_DERIVATION_PATH);
+      
+      // Convert hex to bytes
+      final keyBytes = Uint8List.fromList(hex.decode(privateKeyHex));
+      
+      // Extend the key to encrypted content length
+      final extendedKey = await _extendKey(keyBytes, encryptedContent.length);
+      
+      // XOR the encrypted content with extended key to decrypt
+      final decrypted = Uint8List(encryptedContent.length);
+      for (var i = 0; i < encryptedContent.length; i++) {
+        decrypted[i] = encryptedContent[i] ^ extendedKey[i];
+      }
+      
+      return decrypted;
+    } catch (e) {
+      log.e('BitDrive: Error decrypting content: $e');
+      rethrow;
+    }
+  }
 
   Future<void> init() async {
     try {
@@ -72,10 +146,17 @@ class BitDriveProvider extends ChangeNotifier {
       final opReturns = await api.misc.listOPReturns();
       log.d('BitDrive: Found ${opReturns.length} total OP_RETURN messages');
       
+      // Get wallet transactions to filter by
+      final walletTxs = await api.wallet.listTransactions();
+      final walletTxIds = walletTxs.map((tx) => tx.txid).toSet();
+      
       var restoredCount = 0;
       // Process each OP_RETURN message
       for (final opReturn in opReturns) {
         try {
+          // Skip if not from our wallet
+          if (!walletTxIds.contains(opReturn.txid)) continue;
+
           // Skip if not a BitDrive message
           if (!opReturn.message.contains('|')) continue;
 
@@ -186,8 +267,9 @@ class BitDriveProvider extends ChangeNotifier {
       final metadataBytes = metadata.buffer.asUint8List();
       final metadataStr = base64.encode(metadataBytes);
 
-      // Encode content
-      final contentStr = base64.encode(content);
+      // Encrypt and encode content
+      final processedContent = shouldEncrypt ? await _encryptContent(content) : content;
+      final contentStr = base64.encode(processedContent);
 
       // Combine with a single delimiter
       final opReturnData = '$metadataStr|$contentStr';
@@ -253,6 +335,11 @@ class BitDriveProvider extends ChangeNotifier {
 
       // Decode content
       final contentBytes = base64.decode(parts[1]);
+      
+      // Decrypt if necessary
+      if (isEncrypted) {
+        return await _decryptContent(contentBytes);
+      }
       return contentBytes;
     } catch (e) {
       error = e.toString();
