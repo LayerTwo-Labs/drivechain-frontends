@@ -12,7 +12,7 @@ import 'package:bs58/bs58.dart';
 
 class HDWalletProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
-  
+
   String? _seedHex;
   String? _masterKey;
   String? _error;
@@ -25,7 +25,7 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<void> init() async {
     if (_initialized) return;
-    
+
     try {
       await _loadMnemonic();
       _initialized = true;
@@ -61,7 +61,7 @@ class HDWalletProvider extends ChangeNotifier {
     try {
       final paths = await _getMnemonicPaths();
       File? file;
-      
+
       for (final path in paths) {
         try {
           file = File(path);
@@ -72,7 +72,7 @@ class HDWalletProvider extends ChangeNotifier {
           log.e('could not load mnemonic from $path: $e');
         }
       }
-      
+
       if (file == null) {
         throw Exception('Mnemonic file not found');
       }
@@ -84,7 +84,7 @@ class HDWalletProvider extends ChangeNotifier {
       final chain = Chain.seed(_seedHex!);
       final masterKey = chain.forPath('m');
       _masterKey = masterKey.privateKeyHex();
-      
+
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -96,7 +96,7 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<String> derivePrivateKey(String path) async {
     if (!_initialized) await init();
-    
+
     try {
       final chain = Chain.seed(_seedHex!);
       final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
@@ -135,17 +135,17 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<String> deriveAddress(String path) async {
     if (!_initialized) await init();
-    
+
     try {
       final chain = Chain.seed(_seedHex!);
       final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
       final publicKey = extendedPrivateKey.publicKey();
-      
+
       final q = publicKey.q;
       if (q == null) {
         throw Exception('Public key point is null');
       }
-      
+
       final pubKeyBytes = q.getEncoded(true);
       final sha256Result = SHA256Digest().process(Uint8List.fromList(pubKeyBytes));
       final ripemd160 = RIPEMD160Digest();
@@ -172,17 +172,17 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<String> derivePublicKey(String path) async {
     if (!_initialized) await init();
-    
+
     try {
       final chain = Chain.seed(_seedHex!);
       final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
       final publicKey = extendedPrivateKey.publicKey();
-      
+
       final q = publicKey.q;
       if (q == null) {
         throw Exception('Public key point is null');
       }
-      
+
       final pubKeyBytes = q.getEncoded(true);
       return hex.encode(pubKeyBytes);
     } catch (e) {
@@ -190,4 +190,4 @@ class HDWalletProvider extends ChangeNotifier {
       rethrow;
     }
   }
-} 
+}
