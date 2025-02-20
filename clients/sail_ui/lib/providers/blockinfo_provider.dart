@@ -8,7 +8,7 @@ import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-class BlockInfoService extends ChangeNotifier {
+class BlockInfoProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   final RPCConnection connection;
 
@@ -38,7 +38,7 @@ class BlockInfoService extends ChangeNotifier {
 
   String? error;
 
-  BlockInfoService({
+  BlockInfoProvider({
     required this.connection,
     bool startTimer = true,
   }) {

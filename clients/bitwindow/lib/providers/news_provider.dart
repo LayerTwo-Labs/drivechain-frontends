@@ -1,16 +1,17 @@
 import 'dart:async';
 
+import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
-import 'package:sail_ui/providers/blockchain_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class NewsProvider extends ChangeNotifier {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
+  List<OPReturn> opReturns = [];
   List<CoinNews> news = [];
   List<Topic> topics = [
     Topic(id: Int64(1), topic: 'a1a1a1a1', name: 'US Weekly'),
@@ -36,10 +37,12 @@ class NewsProvider extends ChangeNotifier {
     try {
       final newNews = await api.misc.listCoinNews();
       final newTopics = await api.misc.listTopics();
+      final newOPReturns = await api.misc.listOPReturns();
 
-      if (_dataHasChanged(newNews, newTopics)) {
+      if (_dataHasChanged(newNews, newTopics, newOPReturns)) {
         news = newNews;
         topics = newTopics;
+        opReturns = newOPReturns;
         initialized = true;
         error = null;
         notifyListeners();
@@ -55,8 +58,9 @@ class NewsProvider extends ChangeNotifier {
   bool _dataHasChanged(
     List<CoinNews> newNews,
     List<Topic> newTopics,
+    List<OPReturn> newOPReturns,
   ) {
-    return !listEquals(news, newNews) || !listEquals(topics, newTopics);
+    return !listEquals(news, newNews) || !listEquals(topics, newTopics) || !listEquals(opReturns, newOPReturns);
   }
 
   @override
