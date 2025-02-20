@@ -159,10 +159,10 @@ class BitDriveProvider extends ChangeNotifier {
 
   Future<void> autoRestoreFiles() async {
     if (_bitdriveDir == null) return;
-    
+
     try {
       log.i('BitDrive: Starting automatic file restoration...');
-      
+
       // Get current block height
       final blockInfo = await api.bitcoind.getBlockchainInfo();
       final currentHeight = blockInfo.blocks;
@@ -171,7 +171,7 @@ class BitDriveProvider extends ChangeNotifier {
       // Get wallet transactions
       final walletTxs = await api.wallet.listTransactions();
       log.d('BitDrive: Found ${walletTxs.length} wallet transactions');
-      
+
       var restoredCount = 0;
       // Process each transaction
       for (final tx in walletTxs) {
@@ -206,14 +206,14 @@ class BitDriveProvider extends ChangeNotifier {
 
           // Decode content
           final contentBytes = base64.decode(parts[1]);
-          
+
           // Decrypt if necessary
           final content = isEncrypted ? await _decryptContent(contentBytes) : contentBytes;
 
           // Generate filename using block height and timestamp
           final fileName = 'block${currentHeight}_$timestamp.$fileType';
           final file = File(path.join(_bitdriveDir!, fileName));
-          
+
           // Save file
           await file.writeAsBytes(content);
           restoredCount++;
@@ -223,7 +223,7 @@ class BitDriveProvider extends ChangeNotifier {
           continue;
         }
       }
-      
+
       log.i('BitDrive: Automatic restoration complete. Restored $restoredCount files.');
     } catch (e) {
       log.e('BitDrive: Error during automatic file restoration: $e');
@@ -398,21 +398,15 @@ class BitDriveProvider extends ChangeNotifier {
         return 'jpg';
       }
       // PNG
-      if (content.length >= 8 &&
-          content[0] == 0x89 && content[1] == 0x50 &&
-          content[2] == 0x4E && content[3] == 0x47) {
+      if (content.length >= 8 && content[0] == 0x89 && content[1] == 0x50 && content[2] == 0x4E && content[3] == 0x47) {
         return 'png';
       }
       // GIF
-      if (content.length >= 6 &&
-          content[0] == 0x47 && content[1] == 0x49 &&
-          content[2] == 0x46) {
+      if (content.length >= 6 && content[0] == 0x47 && content[1] == 0x49 && content[2] == 0x46) {
         return 'gif';
       }
       // PDF
-      if (content.length >= 4 &&
-          content[0] == 0x25 && content[1] == 0x50 &&
-          content[2] == 0x44 && content[3] == 0x46) {
+      if (content.length >= 4 && content[0] == 0x25 && content[1] == 0x50 && content[2] == 0x44 && content[3] == 0x46) {
         return 'pdf';
       }
     }
@@ -444,4 +438,4 @@ class StoredContent {
     required this.encrypted,
     required this.timestamp,
   });
-} 
+}
