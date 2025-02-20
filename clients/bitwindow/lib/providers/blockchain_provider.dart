@@ -31,6 +31,7 @@ class BlockchainProvider extends ChangeNotifier {
   Timestamp? get lastBlockAt => infoProvider.lastBlockAt;
   String get verificationProgress => infoProvider.verificationProgress;
   BlockchainInfo get blockchainInfo => infoProvider.blockchainInfo;
+  bool get isSynced => !blockchainInfo.initialBlockDownload && blockchainInfo.verificationProgress >= 0.9999;
 
   Duration _currentInterval = const Duration(seconds: 5);
   bool _isFetching = false;

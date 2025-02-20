@@ -45,7 +45,7 @@ class CreateMultisigModal extends StatelessWidget {
                     ],
                   ),
                   const SailSpacing(SailStyleValues.padding16),
-                  
+
                   // Lounge Name
                   SailColumn(
                     spacing: SailStyleValues.padding08,
@@ -78,10 +78,12 @@ class CreateMultisigModal extends StatelessWidget {
                             SailDropdownButton<int>(
                               value: model.n,
                               items: List.generate(model.m, (i) => i + 1)
-                                  .map((n) => SailDropdownItem(
-                                        value: n,
-                                        child: SailText.primary13('$n'),
-                                      ),)
+                                  .map(
+                                    (n) => SailDropdownItem(
+                                      value: n,
+                                      child: SailText.primary13('$n'),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: model.setN,
                             ),
@@ -97,10 +99,12 @@ class CreateMultisigModal extends StatelessWidget {
                             SailDropdownButton<int>(
                               value: model.m,
                               items: List.generate(15, (i) => i + 2)
-                                  .map((m) => SailDropdownItem(
-                                        value: m,
-                                        child: SailText.primary13('$m'),
-                                      ),)
+                                  .map(
+                                    (m) => SailDropdownItem(
+                                      value: m,
+                                      child: SailText.primary13('$m'),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: model.setM,
                             ),
@@ -171,9 +175,8 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   String? _multisigDir;
   String? _configPath;
 
-  bool get canCreate => 
-    loungeNameController.text.isNotEmpty && 
-    additionalKeyControllers.every((c) => c.text.isNotEmpty);
+  bool get canCreate =>
+      loungeNameController.text.isNotEmpty && additionalKeyControllers.every((c) => c.text.isNotEmpty);
 
   Future<void> init() async {
     try {
@@ -196,10 +199,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
       // Parse config to find next P
       nextP = await _getNextP();
-      
+
       // Initialize controllers
       _updateControllers();
-      
+
       notifyListeners();
     } catch (e) {
       log.e('Error initializing multisig modal: $e');
@@ -211,18 +214,18 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     try {
       final file = File(_configPath!);
       final lines = await file.readAsLines();
-      
+
       // Find highest P value
       int maxP = -1;
       for (final line in lines) {
         if (line.trim().isEmpty) continue;
-        
+
         final parts = line.split('=');
         if (parts.length != 2) continue;
-        
+
         final pStr = parts[0].trim();
         if (!pStr.startsWith('P')) continue;
-        
+
         try {
           final p = int.parse(pStr.substring(1));
           maxP = p > maxP ? p : maxP;
@@ -230,7 +233,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
           continue;
         }
       }
-      
+
       return maxP + 1;
     } catch (e) {
       log.e('Error getting next P value: $e');
@@ -244,12 +247,12 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       controller.dispose();
     }
     additionalKeyControllers.clear();
-    
+
     // Add new controllers
     for (int i = 0; i < m - 1; i++) {
       additionalKeyControllers.add(TextEditingController());
     }
-    
+
     notifyListeners();
   }
 
@@ -269,7 +272,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<void> create(BuildContext context) async {
     if (!canCreate) return;
-    
+
     setBusy(true);
     try {
       // Validate lounge name
@@ -277,16 +280,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       if (name.isEmpty) {
         throw Exception('Lounge name cannot be empty');
       }
-      
+
       // Add entry to config file
       final file = File(_configPath!);
       await file.writeAsString(
         'P$nextP="$name"\n',
         mode: FileMode.append,
       );
-      
+
       // TODO: Implement key derivation and multisig creation logic
-      
+
       if (context.mounted) {
         Navigator.of(context).pop();
       }
