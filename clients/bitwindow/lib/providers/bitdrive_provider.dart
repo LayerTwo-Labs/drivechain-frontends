@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:bitwindow/env.dart';
 
@@ -38,7 +39,7 @@ class BitDriveProvider extends ChangeNotifier {
     try {
       // Initialize BitDrive directory
       final appDir = await Environment.datadir();
-      _bitdriveDir = '${appDir.path}/bitdrive';
+      _bitdriveDir = path.join(appDir.path, 'bitdrive');
       final dir = Directory(_bitdriveDir!);
       if (!await dir.exists()) {
         await dir.create(recursive: true);
@@ -91,21 +92,19 @@ class BitDriveProvider extends ChangeNotifier {
           final timestamp = metadata.getUint32(1);
           final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
 
+          log.d('BitDrive: Found file with encryption=$isEncrypted, timestamp=$timestamp, type=$fileType');
+
           // Retrieve content
-          final content = await api.bitwindowd.retrieveContent(opReturn.txid);
+          final content = await retrieveContent(opReturn.txid);
           
           // Generate filename using block height and timestamp
           final fileName = 'block${currentHeight}_$timestamp.$fileType';
-          final file = File('${_bitdriveDir!}/$fileName');
+          final file = File(path.join(_bitdriveDir!, fileName));
           
           // Save file
           await file.writeAsBytes(content);
           restoredCount++;
-          
-          log.d('BitDrive: Restored file: $fileName');
-          log.d('BitDrive: - File type: $fileType');
-          log.d('BitDrive: - Encrypted: $isEncrypted');
-          log.d('BitDrive: - Timestamp: $timestamp');
+          log.d('BitDrive: Restored $fileName');
         } catch (e) {
           log.e('BitDrive: Error processing OP_RETURN ${opReturn.txid}: $e');
           continue;
@@ -168,14 +167,45 @@ class BitDriveProvider extends ChangeNotifier {
         throw Exception('No content to store');
       }
 
-      // Store content using BitwindowAPI
-      final txid = await api.bitwindowd.storeContent(
-        content: content.toList(),
-        encrypt: shouldEncrypt,
-        fee: fee,
-      );
+      // Create compact metadata
+      // Format: <1 byte encryption flag><4 bytes unix timestamp><4 bytes file extension>
+      final metadata = ByteData(9);
+      
+      // Store flags and timestamp first
+      metadata.setUint8(0, shouldEncrypt ? 1 : 0);
+      metadata.setUint32(1, DateTime.now().millisecondsSinceEpoch ~/ 1000);
+      
+      // Store file type last
+      final fileType = _detectFileType(content);
+      final typeBytes = utf8.encode(fileType.padRight(4, ' '));
+      for (var i = 0; i < 4; i++) {
+        metadata.setUint8(5 + i, typeBytes[i]);
+      }
 
-      log.d('Content stored in transaction: $txid');
+      // Convert metadata to base64
+      final metadataBytes = metadata.buffer.asUint8List();
+      final metadataStr = base64.encode(metadataBytes);
+
+      // Encode content
+      final contentStr = base64.encode(content);
+
+      // Combine with a single delimiter
+      final opReturnData = '$metadataStr|$contentStr';
+      log.d('BitDrive: OP_RETURN data size: ${opReturnData.length} bytes');
+
+      // Get a new address to send to
+      final address = await api.wallet.getNewAddress();
+      log.d('BitDrive: Generated new address: $address');
+
+      // Send transaction with OP_RETURN
+      final txid = await api.wallet.sendTransaction(
+        address,
+        10000, // 0.0001 BTC in satoshis
+        btcPerKvB: fee,
+        opReturnMessage: opReturnData,
+      );
+      log.d('BitDrive: Content stored in transaction: $txid');
+
       error = null;
       notifyListeners();
     } catch (e) {
@@ -187,38 +217,100 @@ class BitDriveProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<BitDriveContent>> retrieveAllContent() async {
-    final contents = <BitDriveContent>[];
-    
+  Future<List<int>> retrieveContent(String txid) async {
     try {
-      // Get recent transactions
-      final txResponse = await api.wallet.listTransactions();
+      log.d('BitDrive: Retrieving content from txid: $txid');
 
-      for (final tx in txResponse) {
-        try {
-          // Check if transaction has OP_RETURN data
-          if (!await api.bitwindowd.hasOpReturn(tx.txid)) continue;
+      // Get all OP_RETURN messages
+      final opReturns = await api.misc.listOPReturns();
+      
+      // Find the one matching our txid
+      final opReturn = opReturns.firstWhere(
+        (op) => op.txid == txid,
+        orElse: () {
+          throw Exception('No OP_RETURN data found for transaction $txid');
+        },
+      );
 
-          // Retrieve content
-          final content = await api.bitwindowd.retrieveContent(tx.txid);
-          
-          // For now, use txid as filename since we don't have metadata
-          contents.add(BitDriveContent(
-            fileName: '${tx.txid}.bin',
-            content: Uint8List.fromList(content),
-          ),);
-        } catch (e) {
-          // Skip this transaction if there's an error
-          continue;
-        }
+      // Parse the data
+      final parts = opReturn.message.split('|');
+      if (parts.length != 2) {
+        throw Exception('Invalid OP_RETURN data format');
       }
+
+      // Parse metadata
+      final metadataBytes = base64.decode(parts[0]);
+      if (metadataBytes.length != 9) {
+        throw Exception('Invalid metadata length');
+      }
+
+      final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
+      final isEncrypted = metadata.getUint8(0) == 1;
+      final timestamp = metadata.getUint32(1);
+      final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
+
+      log.d('BitDrive: Retrieved content metadata - encrypted=$isEncrypted, timestamp=$timestamp, file_type=$fileType');
+
+      // Decode content
+      final contentBytes = base64.decode(parts[1]);
+      return contentBytes;
     } catch (e) {
       error = e.toString();
       notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<bool> hasOpReturn(String txid) async {
+    try {
+      final opReturns = await api.misc.listOPReturns();
+      return opReturns.any((op) => op.txid == txid);
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  String _detectFileType(List<int> content) {
+    // Check file magic numbers
+    if (content.length >= 2) {
+      // JPEG
+      if (content[0] == 0xFF && content[1] == 0xD8) {
+        return 'jpg';
+      }
+      // PNG
+      if (content.length >= 8 &&
+          content[0] == 0x89 && content[1] == 0x50 &&
+          content[2] == 0x4E && content[3] == 0x47) {
+        return 'png';
+      }
+      // GIF
+      if (content.length >= 6 &&
+          content[0] == 0x47 && content[1] == 0x49 &&
+          content[2] == 0x46) {
+        return 'gif';
+      }
+      // PDF
+      if (content.length >= 4 &&
+          content[0] == 0x25 && content[1] == 0x50 &&
+          content[2] == 0x44 && content[3] == 0x46) {
+        return 'pdf';
+      }
     }
 
-    return contents;
+    // Try to detect text files
+    try {
+      final str = utf8.decode(content.take(1024).toList());
+      if (str.trim().isNotEmpty) {
+        return 'txt';
+      }
+    } catch (_) {}
+
+    // Default to binary
+    return 'bin';
   }
+
 }
 
 class StoredContent {
