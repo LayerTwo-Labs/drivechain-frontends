@@ -10,6 +10,7 @@ import 'package:bitwindow/env.dart';
 import 'package:crypto/crypto.dart';
 import 'package:convert/convert.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/providers/blockchain_provider.dart';
 
 class BitDriveContent {
   final String fileName;
