@@ -108,25 +108,6 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<void> deleteAddressBookEntry(Int64 id) {
     return Future.value();
   }
-
-  @override
-  Future<String> storeContent({
-    required List<int> content,
-    required bool encrypt,
-    required double fee,
-  }) async {
-    return 'mock_txid';
-  }
-
-  @override
-  Future<List<int>> retrieveContent(String txid) async {
-    return [0, 1, 2, 3]; // Return some mock binary data
-  }
-
-  @override
-  Future<bool> hasOpReturn(String txid) async {
-    return true; // Always return true for testing
-  }
 }
 
 class MockWalletAPI implements WalletAPI {
