@@ -7,7 +7,7 @@ export './extensions/build_context.dart';
 export './extensions/formatting.dart';
 export './logger.dart';
 export './mocks/mocks.dart';
-export './providers/blockchain_provider.dart';
+export './providers/blockinfo_provider.dart';
 export './providers/process_provider.dart';
 export './sail_app.dart';
 export './settings/client_settings.dart';

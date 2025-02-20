@@ -5,14 +5,12 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/validator.connect.client.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
-import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/services/blockinfo_service.dart';
 
 class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
@@ -446,8 +444,8 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 }
 
-class MockBlockchainProvider implements BlockchainProvider {
-  MockBlockchainProvider() : super();
+class MockBlockInfoProvider implements BlockInfoProvider {
+  MockBlockInfoProvider() : super();
 
   @override
   BlockchainInfo blockchainInfo = BlockchainInfo(
@@ -470,24 +468,9 @@ class MockBlockchainProvider implements BlockchainProvider {
   String? error;
 
   @override
-  List<OPReturn> opReturns = [];
-
-  @override
-  List<Peer> peers = [];
-
-  @override
-  List<Block> blocks = [];
-
-  @override
-  List<RecentTransaction> recentTransactions = [];
-
-  @override
   void addListener(VoidCallback listener) {
     return;
   }
-
-  @override
-  BitwindowRPC get api => throw UnimplementedError();
 
   @override
   void dispose() {
@@ -509,9 +492,6 @@ class MockBlockchainProvider implements BlockchainProvider {
   Logger get log => Logger();
 
   @override
-  MainchainRPC get mainchain => throw UnimplementedError();
-
-  @override
   void notifyListeners() {
     return;
   }
@@ -525,21 +505,7 @@ class MockBlockchainProvider implements BlockchainProvider {
   String get verificationProgress => '0';
 
   @override
-  bool hasMoreBlocks = false;
-
-  @override
-  bool isLoadingMoreBlocks = false;
-
-  @override
-  Future<void> loadMoreBlocks() {
-    return Future.value();
-  }
-
-  @override
-  Set<int> loadedBlockHeights = {};
-
-  @override
-  BlockInfoService infoService = BlockInfoService(connection: MockMainchainRPC());
+  RPCConnection get connection => throw UnimplementedError();
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

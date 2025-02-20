@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
@@ -17,7 +16,7 @@ class StatusBar extends StatefulWidget {
 }
 
 class _StatusBarState extends State<StatusBar> {
-  BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
+  BlockInfoProvider get blockchainProvider => GetIt.I.get<BlockInfoProvider>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
   late Timer _timer;
@@ -71,7 +70,7 @@ class _StatusBarState extends State<StatusBar> {
       },
       endWidgets: [
         Tooltip(
-          message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
+          message: blockchainProvider.blockchainInfo.toString(),
           child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
         ),
         const DividerDot(),
@@ -90,13 +89,6 @@ class _StatusBarState extends State<StatusBar> {
         SailText.primary12(
           '${formatWithThousandSpacers(blockchainProvider.blockchainInfo.blocks)} blocks',
         ),
-        const DividerDot(),
-        Tooltip(
-          message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
-          child: SailText.primary12(
-            formatTimeDifference(blockchainProvider.peers.length, 'peer'),
-          ),
-        ),
       ],
     );
   }
@@ -111,10 +103,4 @@ class _StatusBarState extends State<StatusBar> {
 
 String formatTimeDifference(int value, String unit) {
   return '$value $unit${value == 1 ? '' : 's'}';
-}
-
-extension on Block {
-  String toPretty() {
-    return 'Block $height\nBlockTime=${blockTime.toDateTime().toLocal().format()}\nHash=$hash';
-  }
 }

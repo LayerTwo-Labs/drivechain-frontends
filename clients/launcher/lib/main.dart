@@ -147,8 +147,8 @@ Future<void> initDependencies(Logger log) async {
   );
 
   // Register blockchain provider
-  GetIt.I.registerSingleton<BlockchainProvider>(
-    BlockchainProvider(),
+  GetIt.I.registerSingleton<BlockInfoProvider>(
+    BlockInfoProvider(connection: GetIt.I.get<MainchainRPC>()),
   );
 
   // Register quotes provider

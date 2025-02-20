@@ -1,3 +1,4 @@
+import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -26,9 +27,9 @@ class BlockExplorerDialog extends StatelessWidget {
       onViewModelReady: (model) => model.init(),
       builder: (context, model, child) {
         return SailRawCard(
-          title: '# Blocks: ${model.blockchainProvider.infoService.blockchainInfo.blocks}',
+          title: '# Blocks: ${model.blockchainProvider.infoProvider.blockchainInfo.blocks}',
           subtitle:
-              'Last block time: ${DateTime.fromMillisecondsSinceEpoch(model.blockchainProvider.infoService.blockchainInfo.time * 1000).format()}',
+              'Last block time: ${DateTime.fromMillisecondsSinceEpoch(model.blockchainProvider.infoProvider.blockchainInfo.time * 1000).format()}',
           bottomPadding: false,
           inSeparateWindow: newWindowIdentifier != null,
           newWindowIdentifier: newWindowIdentifier,

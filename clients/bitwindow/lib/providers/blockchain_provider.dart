@@ -7,22 +7,20 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
-import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
+import 'package:sail_ui/providers/blockinfo_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
-import 'package:sail_ui/services/blockinfo_service.dart';
 
 class BlockchainProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
-  late BlockInfoService infoService;
+  late BlockInfoProvider infoProvider;
 
   // raw data go here
   List<Peer> peers = [];
   List<Block> blocks = [];
   List<RecentTransaction> recentTransactions = [];
-  List<OPReturn> opReturns = [];
 
   String? error;
   bool hasMoreBlocks = true;
@@ -30,19 +28,19 @@ class BlockchainProvider extends ChangeNotifier {
   Set<int> loadedBlockHeights = {};
 
   // computed field go here
-  Timestamp? get lastBlockAt => infoService.lastBlockAt;
-  String get verificationProgress => infoService.verificationProgress;
-  BlockchainInfo get blockchainInfo => infoService.blockchainInfo;
+  Timestamp? get lastBlockAt => infoProvider.lastBlockAt;
+  String get verificationProgress => infoProvider.verificationProgress;
+  BlockchainInfo get blockchainInfo => infoProvider.blockchainInfo;
 
   Duration _currentInterval = const Duration(seconds: 5);
   bool _isFetching = false;
   Timer? _fetchTimer;
 
   BlockchainProvider() {
-    infoService = BlockInfoService(connection: mainchain, startTimer: false);
+    infoProvider = BlockInfoProvider(connection: mainchain, startTimer: false);
     _startFetchTimer();
     mainchain.addListener(fetch);
-    infoService.addListener(notifyListeners);
+    infoProvider.addListener(notifyListeners);
   }
 
   // call this function from anywhere to refetch blockchain info
@@ -54,9 +52,8 @@ class BlockchainProvider extends ChangeNotifier {
       final newPeers = await api.bitcoind.listPeers();
       final newTXs = await api.bitcoind.listRecentTransactions();
       final (newBlocks, hasMore) = await api.bitcoind.listBlocks();
-      final newOPReturns = await api.misc.listOPReturns();
 
-      if (_dataHasChanged(newPeers, newTXs, newBlocks, newOPReturns)) {
+      if (_dataHasChanged(newPeers, newTXs, newBlocks)) {
         peers = newPeers;
         recentTransactions = newTXs;
         if (blocks.isEmpty) {
@@ -64,7 +61,6 @@ class BlockchainProvider extends ChangeNotifier {
           loadedBlockHeights = newBlocks.map((b) => b.height).toSet();
         }
         hasMoreBlocks = hasMore;
-        opReturns = newOPReturns;
         error = null;
         notifyListeners();
       }
@@ -80,7 +76,6 @@ class BlockchainProvider extends ChangeNotifier {
     List<Peer> newPeers,
     List<RecentTransaction> newTXs,
     List<Block> newBlocks,
-    List<OPReturn> newOPReturns,
   ) {
     if (!listEquals(peers, newPeers)) {
       return true;
@@ -91,10 +86,6 @@ class BlockchainProvider extends ChangeNotifier {
     }
 
     if (!listEquals(blocks, newBlocks)) {
-      return true;
-    }
-
-    if (!listEquals(opReturns, newOPReturns)) {
       return true;
     }
 
@@ -109,7 +100,7 @@ class BlockchainProvider extends ChangeNotifier {
     void tick() async {
       try {
         await fetch();
-        await infoService.fetch();
+        await infoProvider.fetch();
 
         // During IBD we should be pretty spammy to get up-to-date info all the time
         // After IBD however we can check less frequently, so as soon as IBD is done

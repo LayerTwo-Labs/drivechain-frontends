@@ -6,6 +6,7 @@ import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
@@ -789,7 +790,6 @@ class ReceivePageViewModel extends BaseViewModel {
         orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
       );
   bool get hasExistingLabel => matchingEntry.label.isNotEmpty;
-  String get saveButtonLabel => hasExistingLabel ? 'Update Label' : 'Save Label';
   bool get hasLabelChanged => labelController.text != matchingEntry.label;
 
   void init() {
