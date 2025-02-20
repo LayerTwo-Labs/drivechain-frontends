@@ -254,24 +254,17 @@ Future<void> initDependencies(
   );
   unawaited(addressBookProvider.fetch());
 
-<<<<<<< HEAD
   final hdWalletProvider = HDWalletProvider();
   GetIt.I.registerLazySingleton<HDWalletProvider>(
     () => hdWalletProvider,
   );
   await hdWalletProvider.init();
 
-=======
->>>>>>> origin/master
   final bitdriveProvider = BitDriveProvider();
   GetIt.I.registerLazySingleton<BitDriveProvider>(
     () => bitdriveProvider,
   );
-<<<<<<< HEAD
   await bitdriveProvider.init();
-=======
-  unawaited(bitdriveProvider.init());
->>>>>>> origin/master
 }
 
 void ignoreOverflowErrors(
