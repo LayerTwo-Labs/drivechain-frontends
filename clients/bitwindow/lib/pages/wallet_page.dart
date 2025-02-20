@@ -10,7 +10,6 @@ import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
@@ -33,7 +32,6 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:file_picker/file_picker.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
