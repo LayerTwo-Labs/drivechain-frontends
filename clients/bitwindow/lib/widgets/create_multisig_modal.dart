@@ -45,7 +45,7 @@ class CreateMultisigModal extends StatelessWidget {
                     ],
                   ),
                   const SailSpacing(SailStyleValues.padding16),
-
+                  
                   // Lounge Name
                   SailColumn(
                     spacing: SailStyleValues.padding08,
@@ -214,7 +214,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     try {
       final file = File(_configPath!);
       final lines = await file.readAsLines();
-
       // Find highest P value
       int maxP = -1;
       for (final line in lines) {
@@ -233,7 +232,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
           continue;
         }
       }
-
       return maxP + 1;
     } catch (e) {
       log.e('Error getting next P value: $e');
@@ -247,12 +245,10 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       controller.dispose();
     }
     additionalKeyControllers.clear();
-
     // Add new controllers
     for (int i = 0; i < m - 1; i++) {
       additionalKeyControllers.add(TextEditingController());
     }
-
     notifyListeners();
   }
 
@@ -272,7 +268,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<void> create(BuildContext context) async {
     if (!canCreate) return;
-
     setBusy(true);
     try {
       // Validate lounge name
@@ -280,7 +275,6 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       if (name.isEmpty) {
         throw Exception('Lounge name cannot be empty');
       }
-
       // Add entry to config file
       final file = File(_configPath!);
       await file.writeAsString(

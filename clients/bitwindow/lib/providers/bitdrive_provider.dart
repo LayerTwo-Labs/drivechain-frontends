@@ -10,7 +10,6 @@ import 'package:bitwindow/env.dart';
 import 'package:crypto/crypto.dart';
 import 'package:convert/convert.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
-import 'package:bitwindow/providers/blockchain_provider.dart';
 
 class BitDriveContent {
   final String fileName;
@@ -99,7 +98,6 @@ class BitDriveProvider extends ChangeNotifier {
       for (var i = 0; i < content.length; i++) {
         encrypted[i] = content[i] ^ extendedKey[i];
       }
-
       return encrypted;
     } catch (e) {
       log.e('BitDrive: Error encrypting content: $e');
@@ -123,7 +121,6 @@ class BitDriveProvider extends ChangeNotifier {
       for (var i = 0; i < encryptedContent.length; i++) {
         decrypted[i] = encryptedContent[i] ^ extendedKey[i];
       }
-
       return decrypted;
     } catch (e) {
       log.e('BitDrive: Error decrypting content: $e');
@@ -213,7 +210,7 @@ class BitDriveProvider extends ChangeNotifier {
           // Generate filename using block height and timestamp
           final fileName = 'block${currentHeight}_$timestamp.$fileType';
           final file = File(path.join(_bitdriveDir!, fileName));
-
+          
           // Save file
           await file.writeAsBytes(content);
           restoredCount++;
@@ -299,8 +296,9 @@ class BitDriveProvider extends ChangeNotifier {
       final metadataBytes = metadata.buffer.asUint8List();
       final metadataStr = base64.encode(metadataBytes);
 
-      // Encode content
-      final contentStr = base64.encode(content);
+      // Encrypt and encode content
+      final processedContent = shouldEncrypt ? await _encryptContent(content) : content;
+      final contentStr = base64.encode(processedContent);
 
       // Combine with a single delimiter
       final opReturnData = '$metadataStr|$contentStr';
@@ -336,7 +334,6 @@ class BitDriveProvider extends ChangeNotifier {
 
       // Get all OP_RETURN messages
       final opReturns = await api.misc.listOPReturns();
-
       // Find the one matching our txid
       final opReturn = opReturns.firstWhere(
         (op) => op.txid == txid,
@@ -366,7 +363,6 @@ class BitDriveProvider extends ChangeNotifier {
 
       // Decode content
       final contentBytes = base64.decode(parts[1]);
-
       // Decrypt if necessary
       if (isEncrypted) {
         return await _decryptContent(contentBytes);
@@ -398,15 +394,21 @@ class BitDriveProvider extends ChangeNotifier {
         return 'jpg';
       }
       // PNG
-      if (content.length >= 8 && content[0] == 0x89 && content[1] == 0x50 && content[2] == 0x4E && content[3] == 0x47) {
+      if (content.length >= 8 &&
+          content[0] == 0x89 && content[1] == 0x50 &&
+          content[2] == 0x4E && content[3] == 0x47) {
         return 'png';
       }
       // GIF
-      if (content.length >= 6 && content[0] == 0x47 && content[1] == 0x49 && content[2] == 0x46) {
+      if (content.length >= 6 &&
+          content[0] == 0x47 && content[1] == 0x49 &&
+          content[2] == 0x46) {
         return 'gif';
       }
       // PDF
-      if (content.length >= 4 && content[0] == 0x25 && content[1] == 0x50 && content[2] == 0x44 && content[3] == 0x46) {
+      if (content.length >= 4 &&
+          content[0] == 0x25 && content[1] == 0x50 &&
+          content[2] == 0x44 && content[3] == 0x46) {
         return 'pdf';
       }
     }
@@ -438,4 +440,4 @@ class StoredContent {
     required this.encrypted,
     required this.timestamp,
   });
-}
+} 
