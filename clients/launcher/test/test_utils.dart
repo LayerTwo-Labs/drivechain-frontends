@@ -90,9 +90,9 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<BlockchainProvider>()) {
-    GetIt.I.registerLazySingleton<BlockchainProvider>(
-      () => MockBlockchainProvider(),
+  if (!GetIt.I.isRegistered<BlockInfoProvider>()) {
+    GetIt.I.registerLazySingleton<BlockInfoProvider>(
+      () => MockBlockInfoProvider(),
     );
   }
 

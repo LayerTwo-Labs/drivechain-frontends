@@ -1,11 +1,11 @@
 import 'dart:async';
 
+import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/blockchain_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 // because the class extends ChangeNotifier, any subscribers

@@ -25,7 +25,7 @@ class _OverviewPageState extends State<OverviewPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
   WalletService get _walletService => GetIt.I.get<WalletService>();
-  BlockchainProvider get _blockchainProvider => GetIt.I.get<BlockchainProvider>();
+  BlockInfoProvider get _blockchainProvider => GetIt.I.get<BlockInfoProvider>();
 
   // Add state for starter usage
   final Map<String, bool> _useStarter = {};

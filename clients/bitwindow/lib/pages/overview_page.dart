@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/error_container.dart';
 import 'package:flutter/material.dart';
@@ -1036,15 +1037,15 @@ class GraffittiExplorerView extends StatelessWidget {
 }
 
 class GraffittiExplorerViewModel extends BaseViewModel {
-  final BlockchainProvider _blockchainProvider = GetIt.I.get<BlockchainProvider>();
+  final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
 
   String _sortColumn = 'time';
   bool _sortAscending = true;
-  List<OPReturn> get entries => _blockchainProvider.opReturns;
+  List<OPReturn> get entries => _newsProvider.opReturns;
 
   GraffittiExplorerViewModel() {
-    _blockchainProvider.fetch();
-    _blockchainProvider.addListener(notifyListeners);
+    _newsProvider.fetch();
+    _newsProvider.addListener(notifyListeners);
   }
 
   void onSort(String column) {
@@ -1088,7 +1089,7 @@ class GraffittiExplorerViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    _blockchainProvider.removeListener(notifyListeners);
+    _newsProvider.removeListener(notifyListeners);
     super.dispose();
   }
 }

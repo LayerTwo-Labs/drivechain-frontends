@@ -5,7 +5,6 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/services/blockinfo_service.dart';
 import 'package:stacked/stacked.dart';
 
 class BottomNav extends StatelessWidget {
@@ -270,7 +269,7 @@ class BottomNavViewModel extends BaseViewModel {
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  late BlockInfoService infoService;
+  late BlockInfoProvider infoService;
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
   bool showUnconfirmed = false;
@@ -280,7 +279,7 @@ class BottomNavViewModel extends BaseViewModel {
     required this.mainchainInfo,
     required this.navigateToLogs,
   }) {
-    infoService = BlockInfoService(connection: mainchainInfo ? mainchain : additionalConnection.rpc);
+    infoService = BlockInfoProvider(connection: mainchainInfo ? mainchain : additionalConnection.rpc);
     // Add listeners for required connections
     mainchain.addListener(notifyListeners);
     enforcer.addListener(notifyListeners);
