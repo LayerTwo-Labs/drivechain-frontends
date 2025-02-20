@@ -153,7 +153,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   }
 
   void _init(Transport transport) {
-    bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport), this);
+    bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
     wallet = _WalletAPILive(WalletServiceClient(transport));
     bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));
     drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
@@ -252,10 +252,9 @@ class BitwindowRPCLive extends BitwindowRPC {
 
 class _BitwindowAPILive implements BitwindowAPI {
   final BitwindowdServiceClient _client;
-  final BitwindowRPC api;
   Logger get log => GetIt.I.get<Logger>();
 
-  _BitwindowAPILive(this._client, this.api);
+  _BitwindowAPILive(this._client);
 
   @override
   Future<void> stop() async {
