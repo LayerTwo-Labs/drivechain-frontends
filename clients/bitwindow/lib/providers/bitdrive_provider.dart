@@ -7,6 +7,10 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:bitwindow/env.dart';
+import 'package:crypto/crypto.dart';
+import 'package:convert/convert.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:bitwindow/providers/blockchain_provider.dart';
 
 class BitDriveContent {
   final String fileName;
@@ -21,10 +25,13 @@ class BitDriveContent {
 class BitDriveProvider extends ChangeNotifier {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   Logger get log => GetIt.I.get<Logger>();
+  HDWalletProvider get hdWallet => GetIt.I.get<HDWalletProvider>();
+  BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
   bool initialized = false;
   String? error;
   bool _isFetching = false;
+  bool _hasRestoredFiles = false;
 
   // File/text content to be stored
   Uint8List? fileContent;
@@ -34,6 +41,95 @@ class BitDriveProvider extends ChangeNotifier {
   bool shouldEncrypt = true;
   double fee = 0.0001;
   String? _bitdriveDir;
+
+  // Encryption constants
+  static const int BITDRIVE_DERIVATION_INDEX = 4000;
+  static const String BITDRIVE_DERIVATION_PATH = "m/44'/0'/0'/$BITDRIVE_DERIVATION_INDEX";
+
+  BitDriveProvider() {
+    // Listen for blockchain sync status changes
+    blockchainProvider.addListener(_onSyncStatusChanged);
+  }
+
+  @override
+  void dispose() {
+    blockchainProvider.removeListener(_onSyncStatusChanged);
+    super.dispose();
+  }
+
+  void _onSyncStatusChanged() async {
+    if (!_hasRestoredFiles && blockchainProvider.isSynced) {
+      log.i('BitDrive: Wallet is synced, starting file restoration...');
+      await autoRestoreFiles();
+      _hasRestoredFiles = true;
+    }
+  }
+
+  Future<Uint8List> _extendKey(Uint8List initialKey, int targetLength) async {
+    var currentKey = initialKey;
+    var extendedKey = <int>[];
+
+    while (extendedKey.length < targetLength) {
+      // Store left half
+      final digest = sha256.convert(currentKey);
+      final leftHalf = Uint8List.fromList(digest.bytes.sublist(0, 16));
+      extendedKey.addAll(leftHalf);
+
+      // Use right half for next iteration
+      currentKey = Uint8List.fromList(digest.bytes.sublist(16));
+    }
+
+    // Trim to exact length needed
+    return Uint8List.fromList(extendedKey.sublist(0, targetLength));
+  }
+
+  Future<Uint8List> _encryptContent(Uint8List content) async {
+    try {
+      // Get private key from HD wallet at m/44'/0'/0'/4000
+      final privateKeyHex = await hdWallet.derivePrivateKey(BITDRIVE_DERIVATION_PATH);
+
+      // Convert hex to bytes
+      final keyBytes = Uint8List.fromList(hex.decode(privateKeyHex));
+
+      // Extend the key to content length
+      final extendedKey = await _extendKey(keyBytes, content.length);
+
+      // XOR the content with extended key
+      final encrypted = Uint8List(content.length);
+      for (var i = 0; i < content.length; i++) {
+        encrypted[i] = content[i] ^ extendedKey[i];
+      }
+
+      return encrypted;
+    } catch (e) {
+      log.e('BitDrive: Error encrypting content: $e');
+      rethrow;
+    }
+  }
+
+  Future<Uint8List> _decryptContent(Uint8List encryptedContent) async {
+    try {
+      // Get private key from HD wallet at m/44'/0'/0'/4000
+      final privateKeyHex = await hdWallet.derivePrivateKey(BITDRIVE_DERIVATION_PATH);
+
+      // Convert hex to bytes
+      final keyBytes = Uint8List.fromList(hex.decode(privateKeyHex));
+
+      // Extend the key to encrypted content length
+      final extendedKey = await _extendKey(keyBytes, encryptedContent.length);
+
+      // XOR the encrypted content with extended key to decrypt
+      final decrypted = Uint8List(encryptedContent.length);
+      for (var i = 0; i < encryptedContent.length; i++) {
+        decrypted[i] = encryptedContent[i] ^ extendedKey[i];
+      }
+
+      return decrypted;
+    } catch (e) {
+      log.e('BitDrive: Error decrypting content: $e');
+      rethrow;
+    }
+  }
 
   Future<void> init() async {
     try {
@@ -45,8 +141,12 @@ class BitDriveProvider extends ChangeNotifier {
         await dir.create(recursive: true);
       }
 
-      // Auto-restore files
-      await autoRestoreFiles();
+      // Only restore files if wallet is already synced
+      if (blockchainProvider.isSynced && !_hasRestoredFiles) {
+        log.i('BitDrive: Wallet is already synced, starting file restoration...');
+        await autoRestoreFiles();
+        _hasRestoredFiles = true;
+      }
 
       initialized = true;
       notifyListeners();
@@ -59,23 +159,33 @@ class BitDriveProvider extends ChangeNotifier {
 
   Future<void> autoRestoreFiles() async {
     if (_bitdriveDir == null) return;
-
+    
     try {
       log.i('BitDrive: Starting automatic file restoration...');
-
+      
       // Get current block height
       final blockInfo = await api.bitcoind.getBlockchainInfo();
       final currentHeight = blockInfo.blocks;
       log.d('BitDrive: Current block height: $currentHeight');
 
-      // Get all OP_RETURN messages
-      final opReturns = await api.misc.listOPReturns();
-      log.d('BitDrive: Found ${opReturns.length} total OP_RETURN messages');
-
+      // Get wallet transactions
+      final walletTxs = await api.wallet.listTransactions();
+      log.d('BitDrive: Found ${walletTxs.length} wallet transactions');
+      
       var restoredCount = 0;
-      // Process each OP_RETURN message
-      for (final opReturn in opReturns) {
+      // Process each transaction
+      for (final tx in walletTxs) {
         try {
+          // Check if transaction has an OP_RETURN
+          if (!await hasOpReturn(tx.txid)) continue;
+
+          // Get the OP_RETURN data
+          final opReturns = await api.misc.listOPReturns();
+          final opReturn = opReturns.firstWhere(
+            (op) => op.txid == tx.txid,
+            orElse: () => throw Exception('No OP_RETURN found for transaction'),
+          );
+
           // Skip if not a BitDrive message
           if (!opReturn.message.contains('|')) continue;
 
@@ -94,8 +204,11 @@ class BitDriveProvider extends ChangeNotifier {
 
           log.d('BitDrive: Found file with encryption=$isEncrypted, timestamp=$timestamp, type=$fileType');
 
-          // Retrieve content
-          final content = await retrieveContent(opReturn.txid);
+          // Decode content
+          final contentBytes = base64.decode(parts[1]);
+          
+          // Decrypt if necessary
+          final content = isEncrypted ? await _decryptContent(contentBytes) : contentBytes;
 
           // Generate filename using block height and timestamp
           final fileName = 'block${currentHeight}_$timestamp.$fileType';
@@ -106,11 +219,11 @@ class BitDriveProvider extends ChangeNotifier {
           restoredCount++;
           log.d('BitDrive: Restored $fileName');
         } catch (e) {
-          log.e('BitDrive: Error processing OP_RETURN ${opReturn.txid}: $e');
+          log.e('BitDrive: Error processing transaction ${tx.txid}: $e');
           continue;
         }
       }
-
+      
       log.i('BitDrive: Automatic restoration complete. Restored $restoredCount files.');
     } catch (e) {
       log.e('BitDrive: Error during automatic file restoration: $e');
@@ -253,6 +366,11 @@ class BitDriveProvider extends ChangeNotifier {
 
       // Decode content
       final contentBytes = base64.decode(parts[1]);
+
+      // Decrypt if necessary
+      if (isEncrypted) {
+        return await _decryptContent(contentBytes);
+      }
       return contentBytes;
     } catch (e) {
       error = e.toString();
