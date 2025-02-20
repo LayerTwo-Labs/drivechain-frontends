@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/env.dart';
@@ -2115,7 +2114,6 @@ class BitDriveViewModel extends BaseViewModel {
 
   Future<void> openBitdriveDir() async {
     if (_bitdriveDir == null) return;
-
     try {
       final dir = Directory(_bitdriveDir!);
       if (!await dir.exists()) {
@@ -2181,7 +2179,6 @@ class BitDriveViewModel extends BaseViewModel {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-
         if (file.size > 1024 * 1024) {
           if (context.mounted) {
             showSnackBar(context, 'File size must be less than 1MB');

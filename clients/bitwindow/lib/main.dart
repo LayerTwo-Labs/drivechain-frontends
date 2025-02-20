@@ -27,6 +27,7 @@ import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -253,11 +254,17 @@ Future<void> initDependencies(
   );
   unawaited(addressBookProvider.fetch());
 
+  final hdWalletProvider = HDWalletProvider();
+  GetIt.I.registerLazySingleton<HDWalletProvider>(
+    () => hdWalletProvider,
+  );
+  await hdWalletProvider.init();
+
   final bitdriveProvider = BitDriveProvider();
   GetIt.I.registerLazySingleton<BitDriveProvider>(
     () => bitdriveProvider,
   );
-  unawaited(bitdriveProvider.init());
+  await bitdriveProvider.init();
 }
 
 void ignoreOverflowErrors(
