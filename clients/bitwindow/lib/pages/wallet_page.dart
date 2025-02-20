@@ -6,6 +6,7 @@ import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/denial_dialog.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -14,6 +15,7 @@ import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bs58/bs58.dart';
 import 'package:convert/convert.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -2046,9 +2048,7 @@ class BitDriveTab extends StatelessWidget {
                                     label: 'Store',
                                     onPressed: model.canStore ? () => model.store(context) : null,
                                     loading: model.isBusy,
-                                    style: model.canStore 
-                                      ? SailButtonStyle.primary 
-                                      : SailButtonStyle.secondary,
+                                    style: model.canStore ? SailButtonStyle.primary : SailButtonStyle.secondary,
                                   ),
                                 ],
                               ),
@@ -2116,7 +2116,6 @@ class BitDriveViewModel extends BaseViewModel {
 
   Future<void> openBitdriveDir() async {
     if (_bitdriveDir == null) return;
-    
     try {
       final dir = Directory(_bitdriveDir!);
       if (!await dir.exists()) {
@@ -2182,7 +2181,6 @@ class BitDriveViewModel extends BaseViewModel {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        
         if (file.size > 1024 * 1024) {
           if (context.mounted) {
             showSnackBar(context, 'File size must be less than 1MB');
