@@ -45,7 +45,7 @@ class CreateMultisigModal extends StatelessWidget {
                     ],
                   ),
                   const SailSpacing(SailStyleValues.padding16),
-                  
+
                   // Lounge Name
                   SailColumn(
                     spacing: SailStyleValues.padding08,

@@ -59,7 +59,7 @@ class HDWalletProvider extends ChangeNotifier {
     try {
       final paths = await _getMnemonicPaths();
       File? file;
-      
+
       for (final path in paths) {
         try {
           file = File(path);
