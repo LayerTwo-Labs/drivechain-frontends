@@ -163,11 +163,6 @@ class BitDriveProvider extends ChangeNotifier {
     try {
       log.i('BitDrive: Starting automatic file restoration...');
 
-      // Get current block height
-      final blockInfo = await api.bitcoind.getBlockchainInfo();
-      final currentHeight = blockInfo.blocks;
-      log.d('BitDrive: Current block height: $currentHeight');
-
       // Get wallet transactions
       final walletTxs = await api.wallet.listTransactions();
       log.d('BitDrive: Found ${walletTxs.length} wallet transactions');
@@ -202,6 +197,16 @@ class BitDriveProvider extends ChangeNotifier {
           final timestamp = metadata.getUint32(1);
           final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
 
+          // Generate filename using just timestamp
+          final fileName = '$timestamp.$fileType';
+          final file = File(path.join(_bitdriveDir!, fileName));
+
+          // Skip if file already exists
+          if (await file.exists()) {
+            log.d('BitDrive: File $fileName already exists, skipping...');
+            continue;
+          }
+
           log.d('BitDrive: Found file with encryption=$isEncrypted, timestamp=$timestamp, type=$fileType');
 
           // Decode content
@@ -209,10 +214,6 @@ class BitDriveProvider extends ChangeNotifier {
 
           // Decrypt if necessary
           final content = isEncrypted ? await _decryptContent(contentBytes) : contentBytes;
-
-          // Generate filename using block height and timestamp
-          final fileName = 'block${currentHeight}_$timestamp.$fileType';
-          final file = File(path.join(_bitdriveDir!, fileName));
 
           // Save file
           await file.writeAsBytes(content);
