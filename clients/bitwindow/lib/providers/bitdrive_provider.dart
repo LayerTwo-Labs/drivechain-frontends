@@ -365,14 +365,17 @@ class BitDriveProvider extends ChangeNotifier {
 
       log.d('BitDrive: Retrieved content metadata - encrypted=$isEncrypted, timestamp=$timestamp, file_type=$fileType');
 
-      // Decode content
-      final contentBytes = base64.decode(parts[1]);
-
-      // Decrypt if necessary
-      if (isEncrypted) {
-        return await _decryptContent(contentBytes);
+      if (!isEncrypted && fileType == 'txt') {
+        // For unencrypted text, return the content directly
+        return utf8.encode(parts[1]);
+      } else {
+        // For encrypted content or binary files, decode from base64
+        final contentBytes = base64.decode(parts[1]);
+        if (isEncrypted) {
+          return await _decryptContent(contentBytes);
+        }
+        return contentBytes;
       }
-      return contentBytes;
     } catch (e) {
       error = e.toString();
       notifyListeners();
