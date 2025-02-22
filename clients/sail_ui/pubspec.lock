@@ -230,7 +230,7 @@ packages:
       sha256: "253a18bbd4851fecba42f7343a1df3a9a4c1d31a2c1b37e221086b4fa8c8dbc9"
       url: "https://pub.dev"
     source: hosted
-    version: "5.8.0+1"
+    version: "5.7.0"
   dio_smart_retry:
     dependency: transitive
     description:
