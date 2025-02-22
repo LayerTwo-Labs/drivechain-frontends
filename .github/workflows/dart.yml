@@ -65,3 +65,11 @@ jobs:
           else
             echo "Test directory not found. Skipping tests."
           fi
+
+      - name: Build Flutter app
+        run: |
+          if [ "${{ matrix.package }}" == "faucet" ]; then
+            flutter build web 
+          else
+            flutter build 
+          fi
