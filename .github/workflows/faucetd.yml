@@ -40,3 +40,64 @@ jobs:
           go-version: "1.22"
 
       - run: just build
+
+  # Build and push ALL events. We'll make sure to give the images
+  # sensible tags, so there's no confusion around what's 'dev' builds
+  # through PRs, and what's proper 'master' builds.
+  #
+  # Official GitHub docs on this: https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images
+  build-push-docker:
+    runs-on: ubuntu-latest-large
+
+    # needed to push to GHCR
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker meta
+        id: meta
+        # https://github.com/docker/metadata-action
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/faucet-backend
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            # creates a tag for each push
+            type=sha,event=push
+
+            # creates a tag for each pr
+            type=ref,event=pr
+
+            # set latest tag for default branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build (and maybe push) Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./servers/faucet
+          # Only push if this is not a PR from a fork
+          # prettier-ignore
+          push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          tags: ${{ steps.meta.outputs.tags }}
+          # Caching Docker builds on CI is an eternally
+          # difficult task. From the official docs:
+          # "In most cases you want to use the inline cache exporter"
+          #
+          # https://docs.docker.com/build/ci/github-actions/cache/#inline-cache
+          # prettier-ignore
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/faucet-backend:latest
+          cache-to: type=inline
