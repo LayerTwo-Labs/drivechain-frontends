@@ -45,7 +45,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	proxy, err := coreproxy.NewBitcoind(
-		ctx, conf.BitcoinCoreHost,
+		ctx, conf.BitcoinCoreAddress,
 		conf.BitcoinCoreRPCUser, conf.BitcoinCoreRPCPassword,
 	)
 	if err != nil {
@@ -55,11 +55,11 @@ func realMain(ctx context.Context) error {
 
 	srv := server.New(ctx, proxy)
 
-	zerolog.Ctx(ctx).Info().Msgf("server: listening on %s", conf.APIHost)
+	zerolog.Ctx(ctx).Info().Msgf("server: listening on %q", conf.Listen)
 
 	errs := make(chan error)
 	go func() {
-		errs <- srv.Serve(ctx, conf.APIHost)
+		errs <- srv.Serve(ctx, conf.Listen)
 	}()
 	go func() {
 		<-ctx.Done()
