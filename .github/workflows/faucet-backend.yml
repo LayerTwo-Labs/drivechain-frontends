@@ -1,6 +1,11 @@
 name: Faucet backend
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'servers/faucet/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [master]
     paths:
