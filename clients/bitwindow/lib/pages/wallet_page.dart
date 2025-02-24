@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:auto_route/auto_route.dart';
-import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
@@ -11,9 +10,6 @@ import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
-import 'package:bs58/bs58.dart';
-import 'package:convert/convert.dart';
-import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
@@ -21,9 +17,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
-import 'package:pointycastle/digests/ripemd160.dart';
-import 'package:pointycastle/digests/sha256.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
@@ -32,11 +25,12 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
   DenialProvider get denialProvider => GetIt.I.get<DenialProvider>();
-  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  BitwindowRPC get api => GetIt.I<BitwindowRPC>();
   static final GlobalKey<InlineTabBarState> tabKey = GlobalKey<InlineTabBarState>();
   static SendPageViewModel? _sendViewModel; // Static reference to view model
 
@@ -1569,20 +1563,35 @@ class HDWalletExplorerTab extends StatefulWidget {
   State<HDWalletExplorerTab> createState() => _HDWalletExplorerTabState();
 }
 
+class HDWalletEntry {
+  final String path;
+  final String address;
+  final String publicKey;
+  final String privateKey;
+
+  HDWalletEntry({
+    required this.path,
+    required this.address,
+    required this.publicKey,
+    required this.privateKey,
+  });
+}
+
 class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
   final TextEditingController _derivationPathController = TextEditingController(text: "m/44'/0'/0'/0");
-  String? _seedHex;
-  String? _masterKey;
+  late final HDWalletProvider _hdWalletProvider;
   List<HDWalletEntry> _derivedEntries = [];
   int _currentPage = 0;
   static const int _entriesPerPage = 20;
   bool _showPrivateKeys = true;
-  String? _error;
+  bool _isBusy = false;
+
   @override
   void initState() {
     super.initState();
+    _hdWalletProvider = GetIt.I.get<HDWalletProvider>();
     _derivationPathController.addListener(_onDerivationPathChanged);
-    _loadMnemonic();
+    _initWallet();
   }
 
   @override
@@ -1591,172 +1600,52 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
     super.dispose();
   }
 
-  Future<List<String>> _getMnemonicPaths() async {
-    var mnemonicPaths = <String>[];
-    String base = '';
-
-    if (Platform.isMacOS) {
-      base = '${Platform.environment['HOME']}/Library/Application Support';
-    } else if (Platform.isLinux) {
-      base = '${Platform.environment['HOME']}/.config';
-    } else if (Platform.isWindows) {
-      base = Platform.environment['APPDATA']!;
-    } else {
-      throw Exception('Unsupported platform');
-    }
-
-    mnemonicPaths.add(path.join(base, 'com.layertwolabs.launcher', 'wallet_starters', 'mnemonics', 'l1.txt'));
-    mnemonicPaths.add(path.join(base, 'drivechain-launcher', 'wallet_starters', 'mnemonics', 'l1.txt'));
-
-    return mnemonicPaths;
-  }
-
-  Future<void> _loadMnemonic() async {
+  Future<void> _initWallet() async {
+    setState(() => _isBusy = true);
     try {
-      final paths = await _getMnemonicPaths();
-
-      File? file;
-      for (final path in paths) {
-        try {
-          file = File(path);
-          if (await file.exists()) {
-            break;
-          }
-        } catch (e) {
-          Logger().e('could not load mnemonic from $path: $e');
-        }
+      await _hdWalletProvider.init();
+      if (_hdWalletProvider.isInitialized) {
+        await _deriveEntries();
       }
-      if (file == null) {
-        throw Exception('Mnemonic file not found at any of the paths');
-      }
-
-      final mnemonic = (await file.readAsString()).trim();
-
-      final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
-      _seedHex = hex.encode(mnemonicObj.seed);
-
-      final chain = Chain.seed(_seedHex!);
-      final masterKey = chain.forPath('m');
-      _masterKey = masterKey.privateKeyHex();
-
-      setState(() {
-        _error = null;
-        _onDerivationPathChanged();
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _seedHex = null;
-        _masterKey = null;
-        _derivedEntries = [];
-      });
+    } finally {
+      setState(() => _isBusy = false);
     }
   }
 
   void _onDerivationPathChanged() {
-    if (_seedHex == null) return;
-    try {
-      Logger().d('Creating chain from seed: ${_seedHex!}');
-      final chain = Chain.seed(_seedHex!);
-      final basePath = _derivationPathController.text.trim();
-      Logger().d('Using base derivation path: $basePath');
+    if (_hdWalletProvider.isInitialized) {
+      _deriveEntries();
+    }
+  }
 
+  Future<void> _deriveEntries() async {
+    setState(() => _isBusy = true);
+    try {
+      final basePath = _derivationPathController.text.trim();
       final entries = <HDWalletEntry>[];
       final startIndex = _currentPage * _entriesPerPage;
 
       for (var i = 0; i < _entriesPerPage; i++) {
         final index = startIndex + i;
         final path = '$basePath/$index';
-        Logger().d('Deriving key for path: $path');
 
-        final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
-        Logger().d('Extended private key: ${extendedPrivateKey.toString()}');
+        final address = await _hdWalletProvider.deriveAddress(path);
+        final publicKey = await _hdWalletProvider.derivePublicKey(path);
+        final privateKey = await _hdWalletProvider.deriveWIF(path);
 
-        final privateKeyHex = extendedPrivateKey.privateKeyHex();
-
-        final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
-        final privateKeyBytes = hex.decode(cleanHex);
-
-        final buffer = Uint8List(34);
-        buffer[0] = 0x80;
-        buffer.setRange(1, 33, privateKeyBytes);
-        buffer[33] = 0x01;
-
-        final hash1 = SHA256Digest().process(buffer);
-        final hash2 = SHA256Digest().process(hash1);
-        final checksum = hash2.sublist(0, 4);
-
-        final wifBytes = Uint8List(38);
-        wifBytes.setRange(0, 34, buffer);
-        wifBytes.setRange(34, 38, checksum);
-
-        final base58PrivateKey = base58.encode(wifBytes);
-
-        final publicKey = extendedPrivateKey.publicKey();
-        Logger().d('Public key: ${publicKey.toString()}');
-
-        final q = publicKey.q;
-        if (q == null) {
-          throw Exception('Public key point is null');
-        }
-        final pubKeyBytes = q.getEncoded(true);
-        Logger().d('Public key bytes (hex): ${hex.encode(pubKeyBytes)}');
-
-        final address = _deriveAddress(pubKeyBytes);
-        Logger().d('Generated address: $address');
-
-        entries.add(
-          HDWalletEntry(
-            path: path,
-            address: address,
-            publicKey: hex.encode(pubKeyBytes),
-            privateKey: base58PrivateKey,
-          ),
-        );
+        entries.add(HDWalletEntry(
+          path: path,
+          address: address,
+          publicKey: publicKey,
+          privateKey: privateKey,
+        ),);
       }
 
-      setState(() {
-        _derivedEntries = entries;
-        _error = null;
-      });
-    } catch (e, stackTrace) {
-      Logger().e('Error in key derivation: $e\n$stackTrace');
-      setState(() {
-        _derivedEntries = [];
-        _error = e.toString();
-      });
-    }
-  }
-
-  String _deriveAddress(List<int> pubKeyBytes) {
-    try {
-      final sha256Result = SHA256Digest().process(Uint8List.fromList(pubKeyBytes));
-      Logger().d('SHA256 of pubkey: ${hex.encode(sha256Result)}');
-
-      final ripemd160 = RIPEMD160Digest();
-      final pubKeyHash = ripemd160.process(sha256Result);
-      Logger().d('RIPEMD160 of SHA256: ${hex.encode(pubKeyHash)}');
-
-      final versionedHash = Uint8List(21);
-      versionedHash[0] = 0x00;
-      versionedHash.setRange(1, 21, pubKeyHash);
-      Logger().d('Versioned hash: ${hex.encode(versionedHash)}');
-      final firstSHA = SHA256Digest().process(versionedHash.sublist(0, 21));
-      final doubleSHA = SHA256Digest().process(firstSHA);
-      final checksum = doubleSHA.sublist(0, 4);
-      Logger().d('Checksum: ${hex.encode(checksum)}');
-      final addressBytes = Uint8List(25);
-      addressBytes.setRange(0, 21, versionedHash);
-      addressBytes.setRange(21, 25, checksum);
-      Logger().d('Final address bytes: ${hex.encode(addressBytes)}');
-
-      final address = base58.encode(addressBytes);
-      Logger().d('Base58 encoded address: $address');
-
-      return address;
-    } catch (e, stackTrace) {
-      Logger().e('Error generating address: $e\n$stackTrace');
-      return 'Error generating address';
+      setState(() => _derivedEntries = entries);
+    } catch (e) {
+      Logger().e('Error in key derivation: $e');
+    } finally {
+      setState(() => _isBusy = false);
     }
   }
 
@@ -1781,138 +1670,132 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
     return SailRawCard(
       title: 'HD Wallet Explorer',
       subtitle: 'Explore BIP32/39/44 wallet derivation paths',
-      error: _error,
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_seedHex != null) ...[
-            SailRow(
+      error: _hdWalletProvider.error,
+      child: _isBusy
+          ? const Center(child: CircularProgressIndicator())
+          : SailColumn(
               spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding04,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (_hdWalletProvider.isInitialized) ...[
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
                     children: [
-                      SailText.primary12('Seed Hex:', bold: true),
-                      SailText.primary12(_seedHex!, monospace: true),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SailColumn(
-                    spacing: SailStyleValues.padding04,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SailText.primary12('Master Private Key:', bold: true),
-                      SailText.primary12(_masterKey!, monospace: true),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                Expanded(
-                  child: SailTextField(
-                    label: 'Derivation Path',
-                    controller: _derivationPathController,
-                    hintText: "m/44'/0'/0'/0",
-                  ),
-                ),
-                QtButton(
-                  label: 'Previous',
-                  onPressed: _currentPage > 0 ? _previousPage : null,
-                  size: ButtonSize.small,
-                ),
-                SailText.primary12('Page ${_currentPage + 1}'),
-                QtButton(
-                  label: 'Next',
-                  onPressed: _nextPage,
-                  size: ButtonSize.small,
-                ),
-              ],
-            ),
-            Expanded(
-              child: SailColumn(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: SailTable(
-                      getRowId: (index) => _derivedEntries[index].path,
-                      headerBuilder: (context) => [
-                        const SailTableHeaderCell(name: 'Path'),
-                        const SailTableHeaderCell(name: 'Address'),
-                        const SailTableHeaderCell(name: 'Public Key'),
-                        SailRow(
-                          spacing: SailStyleValues.padding08,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Expanded(
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding04,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SailTableHeaderCell(name: 'Private Keys'),
-                            SailRawButton(
-                              disabled: false,
-                              loading: false,
-                              onPressed: () async => setState(() => _showPrivateKeys = !_showPrivateKeys),
-                              child: SailText.primary13(
-                                !_showPrivateKeys ? 'Show' : 'Hide',
-                                bold: true,
-                                color: context.sailTheme.colors.text,
-                              ),
-                            ),
+                            SailText.primary12('Seed Hex:', bold: true),
+                            SailText.primary12(_hdWalletProvider.seedHex!, monospace: true),
                           ],
                         ),
+                      ),
+                      Expanded(
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding04,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SailText.primary12('Master Private Key:', bold: true),
+                            SailText.primary12(_hdWalletProvider.masterKey!, monospace: true),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      Expanded(
+                        child: SailTextField(
+                          label: 'Derivation Path',
+                          controller: _derivationPathController,
+                          hintText: "m/44'/0'/0'/0",
+                        ),
+                      ),
+                      QtButton(
+                        label: 'Previous',
+                        onPressed: _currentPage > 0 ? _previousPage : null,
+                        size: ButtonSize.small,
+                      ),
+                      SailText.primary12('Page ${_currentPage + 1}'),
+                      QtButton(
+                        label: 'Next',
+                        onPressed: _nextPage,
+                        size: ButtonSize.small,
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        Expanded(
+                          child: SailTable(
+                            getRowId: (index) => _derivedEntries[index].path,
+                            headerBuilder: (context) => [
+                              const SailTableHeaderCell(name: 'Path'),
+                              const SailTableHeaderCell(name: 'Address'),
+                              const SailTableHeaderCell(name: 'Public Key'),
+                              SailRow(
+                                spacing: SailStyleValues.padding08,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const SailTableHeaderCell(name: 'Private Keys'),
+                                  SailRawButton(
+                                    disabled: false,
+                                    loading: false,
+                                    onPressed: () async => setState(() => _showPrivateKeys = !_showPrivateKeys),
+                                    child: SailText.primary13(
+                                      !_showPrivateKeys ? 'Show' : 'Hide',
+                                      bold: true,
+                                      color: context.sailTheme.colors.text,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            rowBuilder: (context, row, selected) {
+                              final entry = _derivedEntries[row];
+                              return [
+                                SailTableCell(
+                                  value: entry.path,
+                                  monospace: true,
+                                ),
+                                SailTableCell(
+                                  value: entry.address,
+                                  monospace: true,
+                                ),
+                                SailTableCell(
+                                  value: entry.publicKey,
+                                  monospace: true,
+                                ),
+                                SailTableCell(
+                                  value: _showPrivateKeys ? entry.privateKey : '••••••••••••••••••••••••••••••••',
+                                  monospace: true,
+                                ),
+                              ];
+                            },
+                            rowCount: _derivedEntries.length,
+                            columnWidths: const [150, 200, 200, 300],
+                            drawGrid: true,
+                          ),
+                        ),
                       ],
-                      rowBuilder: (context, row, selected) {
-                        final entry = _derivedEntries[row];
-                        return [
-                          SailTableCell(
-                            value: entry.path,
-                            monospace: true,
-                          ),
-                          SailTableCell(
-                            value: entry.address,
-                            monospace: true,
-                          ),
-                          SailTableCell(
-                            value: entry.publicKey,
-                            monospace: true,
-                          ),
-                          SailTableCell(
-                            value: _showPrivateKeys ? entry.privateKey : '••••••••',
-                            monospace: true,
-                          ),
-                        ];
-                      },
-                      rowCount: _derivedEntries.length,
-                      columnWidths: const [100, 250, 250, 250],
-                      drawGrid: true,
-                      cellHeight: 20.0,
+                    ),
+                  ),
+                ] else if (_hdWalletProvider.error != null) ...[
+                  Center(
+                    child: SailText.primary15(
+                      _hdWalletProvider.error!,
+                      color: context.sailTheme.colors.textTertiary,
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-          ],
-        ],
-      ),
     );
   }
-}
-
-class HDWalletEntry {
-  final String path;
-  final String address;
-  final String publicKey;
-  final String privateKey;
-
-  HDWalletEntry({
-    required this.path,
-    required this.address,
-    required this.publicKey,
-    required this.privateKey,
-  });
 }
 
 class BitDriveTab extends StatelessWidget {
