@@ -1633,12 +1633,14 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
         final publicKey = await _hdWalletProvider.derivePublicKey(path);
         final privateKey = await _hdWalletProvider.deriveWIF(path);
 
-        entries.add(HDWalletEntry(
-          path: path,
-          address: address,
-          publicKey: publicKey,
-          privateKey: privateKey,
-        ),);
+        entries.add(
+          HDWalletEntry(
+            path: path,
+            address: address,
+            publicKey: publicKey,
+            privateKey: privateKey,
+          ),
+        );
       }
 
       setState(() => _derivedEntries = entries);
@@ -1678,31 +1680,6 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (_hdWalletProvider.isInitialized) ...[
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      Expanded(
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding04,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary12('Seed Hex:', bold: true),
-                            SailText.primary12(_hdWalletProvider.seedHex!, monospace: true),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding04,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SailText.primary12('Master Private Key:', bold: true),
-                            SailText.primary12(_hdWalletProvider.masterKey!, monospace: true),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
                   SailRow(
                     spacing: SailStyleValues.padding08,
                     children: [
@@ -1777,20 +1754,15 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
                               ];
                             },
                             rowCount: _derivedEntries.length,
-                            columnWidths: const [150, 200, 200, 300],
+                            columnWidths: const [-1, -1, -1, -1],
                             drawGrid: true,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ] else if (_hdWalletProvider.error != null) ...[
-                  Center(
-                    child: SailText.primary15(
-                      _hdWalletProvider.error!,
-                      color: context.sailTheme.colors.textTertiary,
-                    ),
-                  ),
+                ] else ...[
+                  Container(),
                 ],
               ],
             ),
