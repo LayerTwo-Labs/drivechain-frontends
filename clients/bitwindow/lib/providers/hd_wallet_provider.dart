@@ -28,12 +28,10 @@ class HDWalletProvider extends ChangeNotifier {
 
     try {
       await _loadMnemonic();
-      _initialized = true;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = "Couldn't sync to wallet for HD Explorer";
       notifyListeners();
-      rethrow;
     }
   }
 
@@ -74,7 +72,7 @@ class HDWalletProvider extends ChangeNotifier {
       }
 
       if (file == null) {
-        throw Exception('Mnemonic file not found');
+        throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
       final mnemonic = (await file.readAsString()).trim();
@@ -86,16 +84,19 @@ class HDWalletProvider extends ChangeNotifier {
       _masterKey = masterKey.privateKeyHex();
 
       _error = null;
+      _initialized = true;
     } catch (e) {
-      _error = e.toString();
+      _error = "Couldn't sync to wallet for HD Explorer";
       _seedHex = null;
       _masterKey = null;
-      rethrow;
+      _initialized = false;
     }
   }
 
   Future<String> derivePrivateKey(String path) async {
+    log.d('Attempting to derive private key, initialized: $_initialized');
     if (!_initialized) await init();
+    log.d('After init check - initialized: $_initialized, error: $_error');
 
     try {
       final chain = Chain.seed(_seedHex!);
@@ -103,7 +104,7 @@ class HDWalletProvider extends ChangeNotifier {
       return extendedPrivateKey.privateKeyHex();
     } catch (e) {
       log.e('Error deriving private key: $e');
-      rethrow;
+      return '';
     }
   }
 
@@ -129,7 +130,7 @@ class HDWalletProvider extends ChangeNotifier {
       return base58.encode(wifBytes);
     } catch (e) {
       log.e('Error deriving WIF: $e');
-      rethrow;
+      return '';
     }
   }
 
@@ -143,7 +144,8 @@ class HDWalletProvider extends ChangeNotifier {
 
       final q = publicKey.q;
       if (q == null) {
-        throw Exception('Public key point is null');
+        log.e('Public key point is null');
+        return '';
       }
 
       final pubKeyBytes = q.getEncoded(true);
@@ -166,7 +168,7 @@ class HDWalletProvider extends ChangeNotifier {
       return base58.encode(addressBytes);
     } catch (e) {
       log.e('Error deriving address: $e');
-      rethrow;
+      return '';
     }
   }
 
@@ -180,14 +182,15 @@ class HDWalletProvider extends ChangeNotifier {
 
       final q = publicKey.q;
       if (q == null) {
-        throw Exception('Public key point is null');
+        log.e('Public key point is null');
+        return '';
       }
 
       final pubKeyBytes = q.getEncoded(true);
       return hex.encode(pubKeyBytes);
     } catch (e) {
       log.e('Error deriving public key: $e');
-      rethrow;
+      return '';
     }
   }
 }
