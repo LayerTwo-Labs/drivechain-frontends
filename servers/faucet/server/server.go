@@ -14,10 +14,13 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
+	api_explorer "github.com/LayerTwo-Labs/sidesail/servers/faucet/api/explorer"
 	api_faucet "github.com/LayerTwo-Labs/sidesail/servers/faucet/api/faucet"
 	"github.com/LayerTwo-Labs/sidesail/servers/faucet/api/faucet/validation"
-	"github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1/faucetv1connect"
+	explorerrpc "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/explorer/v1/explorerv1connect"
+	faucetrpc "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1/faucetv1connect"
 	faucet_ip "github.com/LayerTwo-Labs/sidesail/servers/faucet/ip"
+	"github.com/LayerTwo-Labs/sidesail/servers/faucet/jsonrpc"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
@@ -29,6 +32,7 @@ import (
 // New creates a new Server with interceptors applied.
 func New(
 	ctx context.Context, bitcoind *coreproxy.Bitcoind,
+	thunder *jsonrpc.Client,
 ) *Server {
 	interceptors := []connect.Interceptor{
 		faucet_ip.Interceptor(),
@@ -38,8 +42,14 @@ func New(
 	mux := http.NewServeMux()
 	srv := &Server{mux: mux, interceptors: interceptors}
 
-	Register(srv, faucetv1connect.NewFaucetServiceHandler, faucetv1connect.FaucetServiceHandler(api_faucet.New(bitcoind)))
-
+	Register(
+		srv, faucetrpc.NewFaucetServiceHandler,
+		faucetrpc.FaucetServiceHandler(api_faucet.New(bitcoind)),
+	)
+	Register(
+		srv, explorerrpc.NewExplorerServiceHandler,
+		explorerrpc.ExplorerServiceHandler(api_explorer.New(bitcoind, thunder)),
+	)
 	return srv
 }
 

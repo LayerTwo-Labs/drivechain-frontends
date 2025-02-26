@@ -15,6 +15,8 @@ type Config struct {
 	BitcoinCoreRPCUser     string `long:"bitcoincore.rpcuser" description:"Username for Bitcoin Core RPC" default:"user"`
 	BitcoinCoreRPCPassword string `long:"bitcoincore.rpcpassword" description:"Password for Bitcoin Core RPC" default:"password"`
 
+	ThunderAddress string `long:"thunder.url" description:"URL for connecting to Thunder" default:"http://localhost:6009"`
+
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 
 	Listen string `long:"listen" description:"serve API on this address:port" default:"localhost:8082"`

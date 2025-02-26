@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/servers/faucet/jsonrpc"
 	"github.com/LayerTwo-Labs/sidesail/servers/faucet/server"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
@@ -44,16 +46,23 @@ func realMain(ctx context.Context) error {
 		return err
 	}
 
+	// Thunder currently does not support auth, so leave empty.
+	var thunderUsername, thunderPassword string
+	thunderClient := jsonrpc.NewClient(
+		conf.ThunderAddress,
+		thunderUsername,
+		thunderPassword,
+	)
+
 	proxy, err := coreproxy.NewBitcoind(
 		ctx, conf.BitcoinCoreAddress,
 		conf.BitcoinCoreRPCUser, conf.BitcoinCoreRPCPassword,
 	)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("start core proxy")
-		return err
+		return fmt.Errorf("start core proxy: %w", err)
 	}
 
-	srv := server.New(ctx, proxy)
+	srv := server.New(ctx, proxy, thunderClient)
 
 	zerolog.Ctx(ctx).Info().Msgf("server: listening on %q", conf.Listen)
 

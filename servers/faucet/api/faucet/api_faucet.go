@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	faucetv1 "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1"
-	"github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1/faucetv1connect"
-	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	pb "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1/faucetv1connect"
+	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/samber/lo"
 )
 
-var _ faucetv1connect.FaucetServiceHandler = new(Server)
+var _ rpc.FaucetServiceHandler = new(Server)
 
 // New creates a new Client
 func New(
@@ -71,7 +71,7 @@ func (s *Server) resetHandler(ctx context.Context) {
 			s.mu.Unlock()
 			log.Println("faucet reset: cleared total dispensed coins, address list, and IP list.")
 		case <-connectionTicker.C:
-			info, err := s.bitcoind.GetBlockchainInfo(ctx, &connect.Request[bitcoindv1alpha.GetBlockchainInfoRequest]{})
+			info, err := s.bitcoind.GetBlockchainInfo(ctx, &connect.Request[btcpb.GetBlockchainInfoRequest]{})
 			if err != nil {
 				log.Println("could not ping sender: %w", err)
 			} else {
@@ -82,7 +82,7 @@ func (s *Server) resetHandler(ctx context.Context) {
 }
 
 // DispenseCoins implements faucetv1connect.FaucetServiceHandler.
-func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.DispenseCoinsRequest]) (*connect.Response[faucetv1.DispenseCoinsResponse], error) {
+func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.DispenseCoinsRequest]) (*connect.Response[pb.DispenseCoinsResponse], error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -93,8 +93,8 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.
 
 	s.recordDispensation(c.Msg.Destination, amount.ToBTC())
 
-	txid, err := s.bitcoind.SendToAddress(ctx, &connect.Request[bitcoindv1alpha.SendToAddressRequest]{
-		Msg: &bitcoindv1alpha.SendToAddressRequest{
+	txid, err := s.bitcoind.SendToAddress(ctx, &connect.Request[btcpb.SendToAddressRequest]{
+		Msg: &btcpb.SendToAddressRequest{
 			Address: c.Msg.Destination,
 			Amount:  amount.ToBTC(),
 		},
@@ -106,7 +106,7 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[faucetv1.
 
 	fmt.Printf("sent %.8f to %s in %s\n", amount.ToBTC(), c.Msg.Destination, txid.Msg.Txid)
 
-	return connect.NewResponse(&faucetv1.DispenseCoinsResponse{
+	return connect.NewResponse(&pb.DispenseCoinsResponse{
 		Txid: txid.Msg.Txid,
 	}), nil
 }
@@ -121,7 +121,7 @@ func (s *Server) undoDispensation(destination string, amount float64) {
 	s.totalDispensed -= amount
 }
 
-func (s *Server) validateDispenseArgs(req *faucetv1.DispenseCoinsRequest) (btcutil.Amount, error) {
+func (s *Server) validateDispenseArgs(req *pb.DispenseCoinsRequest) (btcutil.Amount, error) {
 
 	if req.Amount > MaxCoinsPerRequest || req.Amount <= 0 {
 		return 0, fmt.Errorf("amount must be less than or equal to %d, and greater than zero", MaxCoinsPerRequest)
@@ -140,9 +140,9 @@ func (s *Server) validateDispenseArgs(req *faucetv1.DispenseCoinsRequest) (btcut
 }
 
 // ListClaims implements faucetv1connect.FaucetServiceHandler.
-func (s *Server) ListClaims(ctx context.Context, req *connect.Request[faucetv1.ListClaimsRequest]) (*connect.Response[faucetv1.ListClaimsResponse], error) {
-	txs, err := s.bitcoind.ListTransactions(ctx, &connect.Request[bitcoindv1alpha.ListTransactionsRequest]{
-		Msg: &bitcoindv1alpha.ListTransactionsRequest{
+func (s *Server) ListClaims(ctx context.Context, req *connect.Request[pb.ListClaimsRequest]) (*connect.Response[pb.ListClaimsResponse], error) {
+	txs, err := s.bitcoind.ListTransactions(ctx, &connect.Request[btcpb.ListTransactionsRequest]{
+		Msg: &btcpb.ListTransactionsRequest{
 			Count: 1000,
 		},
 	})
@@ -150,21 +150,21 @@ func (s *Server) ListClaims(ctx context.Context, req *connect.Request[faucetv1.L
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not list transactions: %w", err))
 	}
 
-	transactions := lo.Filter(txs.Msg.Transactions, func(tx *bitcoindv1alpha.GetTransactionResponse, index int) bool {
+	transactions := lo.Filter(txs.Msg.Transactions, func(tx *btcpb.GetTransactionResponse, index int) bool {
 		// we only want to show withdrawals going from our wallet
 		return tx.Amount < 0 &&
 			// and avoid txs with negative confirmations
 			tx.Confirmations >= 0
 	})
 
-	transactions = lo.Map(transactions, func(tx *bitcoindv1alpha.GetTransactionResponse, index int) *bitcoindv1alpha.GetTransactionResponse {
+	transactions = lo.Map(transactions, func(tx *btcpb.GetTransactionResponse, index int) *btcpb.GetTransactionResponse {
 		// for the user, the amounts makes most sense when positive
 		tx.Amount = math.Abs(tx.Amount)
 		tx.Fee = math.Abs(tx.Fee)
 		return tx
 	})
 
-	return connect.NewResponse(&faucetv1.ListClaimsResponse{
+	return connect.NewResponse(&pb.ListClaimsResponse{
 		Transactions: transactions,
 	}), nil
 }
