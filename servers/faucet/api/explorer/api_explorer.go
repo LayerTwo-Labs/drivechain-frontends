@@ -50,7 +50,25 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 		return nil, err
 	}
 
-	bestThunderMainchainBlock, err := s.getBestThunderMainchainBlock(ctx, bestMainchainBlock.Msg)
+	// Don't let this crash us out!
+	thunderTip, err := s.getThunderTip(ctx, bestMainchainBlock.Msg)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().
+			Msgf("failed to get thunder tip: %s", err)
+	}
+
+	return connect.NewResponse(&pb.GetChainTipsResponse{
+		Mainchain: &pb.ChainTip{
+			Height:    uint64(bestMainchainBlock.Msg.Height),
+			Hash:      bestMainchainBlock.Msg.Hash,
+			Timestamp: bestMainchainBlock.Msg.Time,
+		},
+		Thunder: thunderTip,
+	}), nil
+}
+
+func (s *Server) getThunderTip(ctx context.Context, bestMainchainBlock *btcpb.GetBlockResponse) (*pb.ChainTip, error) {
+	bestThunderMainchainBlock, err := s.getBestThunderMainchainBlock(ctx, bestMainchainBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -74,18 +92,12 @@ func (s *Server) GetChainTips(ctx context.Context, req *connect.Request[pb.GetCh
 	if err := json.Unmarshal(rawBestThunderSidechainHash, &bestThunderSidechainHash); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.GetChainTipsResponse{
-		Mainchain: &pb.ChainTip{
-			Height:    uint64(bestMainchainBlock.Msg.Height),
-			Hash:      bestMainchainBlock.Msg.Hash,
-			Timestamp: bestMainchainBlock.Msg.Time,
-		},
-		Thunder: &pb.ChainTip{
-			Height:    uint64(thunderHeight),
-			Hash:      bestThunderSidechainHash,
-			Timestamp: bestThunderMainchainBlock.Time,
-		},
-	}), nil
+
+	return &pb.ChainTip{
+		Height:    uint64(thunderHeight),
+		Hash:      bestThunderSidechainHash,
+		Timestamp: bestThunderMainchainBlock.Time,
+	}, nil
 }
 
 // Fetch the best mainchain block, as seen by Thunder
