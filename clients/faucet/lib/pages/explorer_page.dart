@@ -142,7 +142,18 @@ class _ExplorerPageState extends State<ExplorerPage> {
                                   ),
                                 ],
                               )
-                            : const Text('No blocks available'),
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Unable to connect to Mainchain',
+                                    style: TextStyle(
+                                      color: context.sailTheme.colors.error,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                     const SizedBox(width: SailStyleValues.padding16),
@@ -173,7 +184,18 @@ class _ExplorerPageState extends State<ExplorerPage> {
                                   ),
                                 ],
                               )
-                            : const Text('No blocks available'),
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Unable to connect to Thunder',
+                                    style: TextStyle(
+                                      color: context.sailTheme.colors.error,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ],
