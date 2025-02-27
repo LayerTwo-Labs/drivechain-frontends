@@ -120,21 +120,21 @@ class _ExplorerPageState extends State<ExplorerPage> {
                       child: SailRawCard(
                         title: 'Latest Mainchain Block',
                         subtitle: 'Most recent block on the mainchain',
-                        child: model.latestMainchainBlock != null
+                        child: (model.latestMainchainBlock != null || !model.explorerProvider.initialized)
                             ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Height: ${model.latestMainchainBlock!.blockHeight}'),
+                                  Text('Height: ${model.latestMainchainBlock?.blockHeight}'),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Hash: ${model.latestMainchainBlock!.hash}',
+                                    'Hash: ${model.latestMainchainBlock?.hash}',
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
-                                  Text('Time: ${model.latestMainchainBlock!.formattedTime}'),
+                                  Text('Time: ${model.latestMainchainBlock?.formattedTime}'),
                                   const SizedBox(height: 4),
                                   Text(
-                                    model.latestMainchainBlock!.timeSince(),
+                                    model.latestMainchainBlock?.timeSince() ?? '',
                                     style: TextStyle(
                                       color: context.sailTheme.colors.orange,
                                       fontWeight: FontWeight.bold,
@@ -162,21 +162,21 @@ class _ExplorerPageState extends State<ExplorerPage> {
                       child: SailRawCard(
                         title: 'Latest Thunder Block',
                         subtitle: 'Most recent block on the Thunder sidechain (L2-S9)',
-                        child: model.latestThunderBlock != null
+                        child: ((model.latestThunderBlock?.blockHeight ?? 0) > 0 || !model.explorerProvider.initialized)
                             ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Height: ${model.latestThunderBlock!.blockHeight}'),
+                                  Text('Height: ${model.latestThunderBlock?.blockHeight}'),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Hash: ${model.latestThunderBlock!.hash}',
+                                    'Hash: ${model.latestThunderBlock?.hash}',
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
-                                  Text('Time: ${model.latestThunderBlock!.formattedTime}'),
+                                  Text('Time: ${model.latestThunderBlock?.formattedTime}'),
                                   const SizedBox(height: 4),
                                   Text(
-                                    model.latestThunderBlock!.timeSince(),
+                                    model.latestThunderBlock?.timeSince() ?? '',
                                     style: TextStyle(
                                       color: context.sailTheme.colors.orange,
                                       fontWeight: FontWeight.bold,

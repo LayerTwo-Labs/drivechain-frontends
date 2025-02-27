@@ -28,8 +28,12 @@ class ExplorerProvider extends ChangeNotifier {
       final response = await api.clients.explorer.getChainTips(GetChainTipsRequest());
 
       // Always update the data and notify listeners
-      mainchainTip = response.mainchain;
-      thunderTip = response.thunder;
+      if (response.mainchain.height > 0) {
+        mainchainTip = response.mainchain;
+      }
+      if (response.thunder.height > 0) {
+        thunderTip = response.thunder;
+      }
       initialized = true;
       notifyListeners();
     } finally {
