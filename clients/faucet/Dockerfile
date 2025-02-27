@@ -21,7 +21,7 @@ COPY clients/faucet/ ./clients/faucet
 WORKDIR /builder/clients/faucet
 
 RUN flutter pub get --enforce-lockfile
-RUN flutter build web --release
+RUN flutter build web --dart-define=FAUCET_BASE_URL=/api --release
 
 FROM nginx:alpine
 COPY --from=builder /builder/clients/faucet/build/web /usr/share/nginx/html
