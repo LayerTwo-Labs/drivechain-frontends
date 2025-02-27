@@ -1,0 +1,9 @@
+---
+description: Generating a new Flutter route
+globs: 
+alwaysApply: true
+---
+
+[router.dart](mdc:clients/faucet/lib/routing/router.dart)
+
+Generating a new route happens with `dart run build_runner build  --delete-conflicting-outputs`
