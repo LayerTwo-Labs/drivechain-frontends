@@ -3,8 +3,8 @@
 //  source: faucet/v1/faucet.proto
 //
 
-import 'package:connectrpc/connect.dart' as connect;
-import 'package:faucet/gen/faucet/v1/faucet.pb.dart' as faucetv1faucet;
+import "package:connectrpc/connect.dart" as connect;
+import "faucet.pb.dart" as faucetv1faucet;
 
 abstract final class FaucetService {
   /// Fully-qualified name of the FaucetService service.

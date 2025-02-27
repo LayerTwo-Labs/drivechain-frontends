@@ -3,6 +3,7 @@ import 'package:connectrpc/protocol/connect.dart' as protocol;
 import 'package:connectrpc/web.dart';
 
 import 'package:faucet/gen/faucet/v1/faucet.connect.client.dart';
+import 'package:faucet/gen/explorer/v1/explorer.connect.client.dart';
 
 /// RPC connection to the mainchain node.
 abstract class API {
@@ -13,9 +14,11 @@ abstract class API {
 
 class ServiceClients {
   final FaucetServiceClient faucet;
+  final ExplorerServiceClient explorer;
 
   ServiceClients._({
     required this.faucet,
+    required this.explorer,
   });
 
   factory ServiceClients.setup({
@@ -30,6 +33,7 @@ class ServiceClients {
     );
     return ServiceClients._(
       faucet: FaucetServiceClient(transport),
+      explorer: ExplorerServiceClient(transport),
     );
   }
 }

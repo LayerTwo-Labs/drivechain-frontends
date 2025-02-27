@@ -15,9 +15,9 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../../google/protobuf/empty.pb.dart' as $2;
+import '../../../google/protobuf/empty.pb.dart' as $3;
 import '../../../google/protobuf/timestamp.pb.dart' as $0;
-import '../../../google/protobuf/wrappers.pb.dart' as $1;
+import '../../../google/protobuf/wrappers.pb.dart' as $2;
 import 'bitcoin.pbenum.dart';
 
 export 'bitcoin.pbenum.dart';
@@ -1969,7 +1969,7 @@ class SendRequest extends $pb.GeneratedMessage {
     $core.String? wallet,
     $core.bool? includeUnsafe,
     $core.Iterable<$core.String>? subtractFeeFromOutputs,
-    $1.BoolValue? addToWallet,
+    $2.BoolValue? addToWallet,
     $core.double? feeRate,
   }) {
     final $result = create();
@@ -2006,7 +2006,7 @@ class SendRequest extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'wallet')
     ..aOB(4, _omitFieldNames ? '' : 'includeUnsafe')
     ..pPS(5, _omitFieldNames ? '' : 'subtractFeeFromOutputs')
-    ..aOM<$1.BoolValue>(6, _omitFieldNames ? '' : 'addToWallet', subBuilder: $1.BoolValue.create)
+    ..aOM<$2.BoolValue>(6, _omitFieldNames ? '' : 'addToWallet', subBuilder: $2.BoolValue.create)
     ..a<$core.double>(7, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
@@ -2086,15 +2086,15 @@ class SendRequest extends $pb.GeneratedMessage {
   ///
   ///  Both of these seem bad.
   @$pb.TagNumber(6)
-  $1.BoolValue get addToWallet => $_getN(5);
+  $2.BoolValue get addToWallet => $_getN(5);
   @$pb.TagNumber(6)
-  set addToWallet($1.BoolValue v) { setField(6, v); }
+  set addToWallet($2.BoolValue v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasAddToWallet() => $_has(5);
   @$pb.TagNumber(6)
   void clearAddToWallet() => clearField(6);
   @$pb.TagNumber(6)
-  $1.BoolValue ensureAddToWallet() => $_ensure(5);
+  $2.BoolValue ensureAddToWallet() => $_ensure(5);
 
   /// Satoshis per virtual byte (sat/vB).
   @$pb.TagNumber(7)
@@ -4886,7 +4886,7 @@ class BitcoinServiceApi {
   $async.Future<ImportDescriptorsResponse> importDescriptors($pb.ClientContext? ctx, ImportDescriptorsRequest request) =>
     _client.invoke<ImportDescriptorsResponse>(ctx, 'BitcoinService', 'ImportDescriptors', request, ImportDescriptorsResponse())
   ;
-  $async.Future<ListWalletsResponse> listWallets($pb.ClientContext? ctx, $2.Empty request) =>
+  $async.Future<ListWalletsResponse> listWallets($pb.ClientContext? ctx, $3.Empty request) =>
     _client.invoke<ListWalletsResponse>(ctx, 'BitcoinService', 'ListWallets', request, ListWalletsResponse())
   ;
   $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, ListTransactionsRequest request) =>

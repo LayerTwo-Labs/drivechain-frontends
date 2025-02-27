@@ -1,0 +1,55 @@
+import 'dart:async';
+
+import 'package:faucet/api/api_base.dart';
+import 'package:faucet/gen/explorer/v1/explorer.pb.dart';
+import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
+
+class ExplorerProvider extends ChangeNotifier {
+  API get api => GetIt.I.get<API>();
+
+  ChainTip? mainchainTip;
+  ChainTip? thunderTip;
+  bool initialized = false;
+
+  bool _isFetching = false;
+
+  ExplorerProvider() {
+    poll();
+  }
+
+  Future<void> fetch() async {
+    if (_isFetching) {
+      return;
+    }
+    _isFetching = true;
+
+    try {
+      final response = await api.clients.explorer.getChainTips(GetChainTipsRequest());
+
+      // Always update the data and notify listeners
+      mainchainTip = response.mainchain;
+      thunderTip = response.thunder;
+      initialized = true;
+      notifyListeners();
+    } finally {
+      _isFetching = false;
+    }
+  }
+
+  Timer? _connectionTimer;
+  void poll() {
+    fetch();
+
+    _connectionTimer?.cancel();
+    _connectionTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      await fetch();
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _connectionTimer?.cancel();
+  }
+}
