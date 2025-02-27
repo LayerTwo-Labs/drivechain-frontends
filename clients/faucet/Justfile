@@ -9,4 +9,5 @@ build:
 
 run: 
     # specify port 3000 for CORS to work properly against the remote server
-    flutter run -d chrome --web-port 3000
+    # specify base URL for local development
+    flutter run -d chrome --web-port 3000 --dart-define=FAUCET_BASE_URL=http://localhost:8082

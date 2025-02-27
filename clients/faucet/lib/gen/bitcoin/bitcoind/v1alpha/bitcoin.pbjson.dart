@@ -13,9 +13,9 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../../google/protobuf/empty.pbjson.dart' as $2;
+import '../../../google/protobuf/empty.pbjson.dart' as $3;
 import '../../../google/protobuf/timestamp.pbjson.dart' as $0;
-import '../../../google/protobuf/wrappers.pbjson.dart' as $1;
+import '../../../google/protobuf/wrappers.pbjson.dart' as $2;
 
 @$core.Deprecated('Use getBlockchainInfoRequestDescriptor instead')
 const GetBlockchainInfoRequest$json = {
@@ -1057,7 +1057,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinSer
   '.bitcoin.bitcoind.v1alpha.GetBalancesResponse.Watchonly': GetBalancesResponse_Watchonly$json,
   '.bitcoin.bitcoind.v1alpha.SendRequest': SendRequest$json,
   '.bitcoin.bitcoind.v1alpha.SendRequest.DestinationsEntry': SendRequest_DestinationsEntry$json,
-  '.google.protobuf.BoolValue': $1.BoolValue$json,
+  '.google.protobuf.BoolValue': $2.BoolValue$json,
   '.bitcoin.bitcoind.v1alpha.SendResponse': SendResponse$json,
   '.bitcoin.bitcoind.v1alpha.RawTransaction': RawTransaction$json,
   '.bitcoin.bitcoind.v1alpha.SendToAddressRequest': SendToAddressRequest$json,
@@ -1071,7 +1071,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinSer
   '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse': ImportDescriptorsResponse$json,
   '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse.Response': ImportDescriptorsResponse_Response$json,
   '.bitcoin.bitcoind.v1alpha.ImportDescriptorsResponse.Error': ImportDescriptorsResponse_Error$json,
-  '.google.protobuf.Empty': $2.Empty$json,
+  '.google.protobuf.Empty': $3.Empty$json,
   '.bitcoin.bitcoind.v1alpha.ListWalletsResponse': ListWalletsResponse$json,
   '.bitcoin.bitcoind.v1alpha.ListTransactionsRequest': ListTransactionsRequest$json,
   '.bitcoin.bitcoind.v1alpha.ListTransactionsResponse': ListTransactionsResponse$json,

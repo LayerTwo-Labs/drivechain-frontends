@@ -1,6 +1,6 @@
 //
 //  Generated code. Do not modify.
-//  source: faucet/v1/faucet.proto
+//  source: explorer/v1/explorer.proto
 //
 // @dart = 2.12
 
@@ -15,32 +15,29 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'faucet.pb.dart' as $6;
-import 'faucet.pbjson.dart';
+import 'explorer.pb.dart' as $1;
+import 'explorer.pbjson.dart';
 
-export 'faucet.pb.dart';
+export 'explorer.pb.dart';
 
-abstract class FaucetServiceBase extends $pb.GeneratedService {
-  $async.Future<$6.DispenseCoinsResponse> dispenseCoins($pb.ServerContext ctx, $6.DispenseCoinsRequest request);
-  $async.Future<$6.ListClaimsResponse> listClaims($pb.ServerContext ctx, $6.ListClaimsRequest request);
+abstract class ExplorerServiceBase extends $pb.GeneratedService {
+  $async.Future<$1.GetChainTipsResponse> getChainTips($pb.ServerContext ctx, $1.GetChainTipsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'DispenseCoins': return $6.DispenseCoinsRequest();
-      case 'ListClaims': return $6.ListClaimsRequest();
+      case 'GetChainTips': return $1.GetChainTipsRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'DispenseCoins': return this.dispenseCoins(ctx, request as $6.DispenseCoinsRequest);
-      case 'ListClaims': return this.listClaims(ctx, request as $6.ListClaimsRequest);
+      case 'GetChainTips': return this.getChainTips(ctx, request as $1.GetChainTipsRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $core.Map<$core.String, $core.dynamic> get $json => FaucetServiceBase$json;
-  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => FaucetServiceBase$messageJson;
+  $core.Map<$core.String, $core.dynamic> get $json => ExplorerServiceBase$json;
+  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => ExplorerServiceBase$messageJson;
 }
 

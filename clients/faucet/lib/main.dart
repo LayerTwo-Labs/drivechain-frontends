@@ -1,5 +1,6 @@
 import 'package:faucet/api/api.dart';
 import 'package:faucet/api/api_base.dart';
+import 'package:faucet/providers/explorer_provider.dart';
 import 'package:faucet/providers/transactions_provider.dart';
 import 'package:faucet/routing/router.dart';
 import 'package:flutter/material.dart';
@@ -66,6 +67,10 @@ Future<void> initDependencies() async {
 
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
+  );
+
+  GetIt.I.registerLazySingleton<ExplorerProvider>(
+    () => ExplorerProvider(),
   );
 
   GetIt.I.registerLazySingleton<AppRouter>(() => AppRouter());

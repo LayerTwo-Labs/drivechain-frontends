@@ -3,9 +3,9 @@
 //  source: faucet/v1/faucet.proto
 //
 
-import 'package:connectrpc/connect.dart' as connect;
-import 'package:faucet/gen/faucet/v1/faucet.pb.dart' as faucetv1faucet;
-import 'package:faucet/gen/faucet/v1/faucet.connect.spec.dart' as specs;
+import "package:connectrpc/connect.dart" as connect;
+import "faucet.pb.dart" as faucetv1faucet;
+import "faucet.connect.spec.dart" as specs;
 
 extension type FaucetServiceClient (connect.Transport _transport) {
   Future<faucetv1faucet.DispenseCoinsResponse> dispenseCoins(

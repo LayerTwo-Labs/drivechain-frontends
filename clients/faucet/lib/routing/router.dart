@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:faucet/pages/explorer_page.dart';
 import 'package:faucet/pages/faucet_page.dart';
 import 'package:faucet/pages/root_page.dart';
 
@@ -36,6 +37,10 @@ class AppRouter extends RootStackRouter {
             AutoRoute(
               path: 'faucet',
               page: FaucetRoute.page,
+            ),
+            AutoRoute(
+              path: 'explorer',
+              page: ExplorerRoute.page,
             ),
           ],
         ),

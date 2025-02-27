@@ -13,7 +13,7 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../bitcoin/bitcoind/v1alpha/bitcoin.pbjson.dart' as $3;
+import '../../bitcoin/bitcoind/v1alpha/bitcoin.pbjson.dart' as $4;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
 @$core.Deprecated('Use dispenseCoinsRequestDescriptor instead')
@@ -78,9 +78,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> FaucetServ
   '.faucet.v1.DispenseCoinsResponse': DispenseCoinsResponse$json,
   '.faucet.v1.ListClaimsRequest': ListClaimsRequest$json,
   '.faucet.v1.ListClaimsResponse': ListClaimsResponse$json,
-  '.bitcoin.bitcoind.v1alpha.GetTransactionResponse': $3.GetTransactionResponse$json,
+  '.bitcoin.bitcoind.v1alpha.GetTransactionResponse': $4.GetTransactionResponse$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
-  '.bitcoin.bitcoind.v1alpha.GetTransactionResponse.Details': $3.GetTransactionResponse_Details$json,
+  '.bitcoin.bitcoind.v1alpha.GetTransactionResponse.Details': $4.GetTransactionResponse_Details$json,
 };
 
 /// Descriptor for `FaucetService`. Decode as a `google.protobuf.ServiceDescriptorProto`.

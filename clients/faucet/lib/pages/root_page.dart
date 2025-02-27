@@ -14,6 +14,7 @@ class RootPage extends StatelessWidget {
       animatePageTransition: false,
       routes: [
         FaucetRoute(),
+        ExplorerRoute(),
       ],
       builder: (context, child, controller) {
         final theme = SailTheme.of(context);
@@ -43,6 +44,12 @@ class RootPage extends StatelessWidget {
                         label: 'Faucet',
                         active: tabsRouter.activeIndex == 0,
                         onTap: () => tabsRouter.setActiveIndex(0),
+                      ),
+                      QtTab(
+                        icon: SailSVGAsset.iconTabWithdrawalExplorer,
+                        label: 'Explorer',
+                        active: tabsRouter.activeIndex == 1,
+                        onTap: () => tabsRouter.setActiveIndex(1),
                       ),
                       Expanded(child: Container()),
                       const ToggleThemeButton(),
