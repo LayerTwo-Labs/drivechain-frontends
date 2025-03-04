@@ -15,7 +15,9 @@ type Config struct {
 	BitcoinCoreRPCUser     string `long:"bitcoincore.rpcuser" description:"Username for Bitcoin Core RPC" default:"user"`
 	BitcoinCoreRPCPassword string `long:"bitcoincore.rpcpassword" description:"Password for Bitcoin Core RPC" default:"password"`
 
-	ThunderAddress string `long:"thunder.url" description:"URL for connecting to Thunder" default:"http://localhost:6009"`
+	BitNamesAddress  string `long:"bitnames.url" description:"URL for connecting to BitNames" default:"http://127.0.0.1:6002"`
+	BitAssetsAddress string `long:"bitassets.url" description:"URL for connecting to BitAssets" default:"http://localhost:6004"`
+	ThunderAddress   string `long:"thunder.url" description:"URL for connecting to Thunder" default:"http://localhost:6009"`
 
 	EnforcerHost string `long:"enforcer.host" description:"host:port for connecting to the enforcer server" default:"localhost:50051"`
 

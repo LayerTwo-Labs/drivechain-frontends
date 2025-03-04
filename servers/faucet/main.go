@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/servers/faucet/api/explorer"
 	"github.com/LayerTwo-Labs/sidesail/servers/faucet/jsonrpc"
 	"github.com/LayerTwo-Labs/sidesail/servers/faucet/server"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -54,6 +55,20 @@ func realMain(ctx context.Context) error {
 		thunderPassword,
 	)
 
+	var bitassetsUsername, bitassetsPassword string
+	bitassetsClient := jsonrpc.NewClient(
+		conf.BitAssetsAddress,
+		bitassetsUsername,
+		bitassetsPassword,
+	)
+
+	var bitnamesUsername, bitnamesPassword string
+	bitnamesClient := jsonrpc.NewClient(
+		conf.BitNamesAddress,
+		bitnamesUsername,
+		bitnamesPassword,
+	)
+
 	proxy, err := coreproxy.NewBitcoind(
 		ctx, conf.BitcoinCoreAddress,
 		conf.BitcoinCoreRPCUser, conf.BitcoinCoreRPCPassword,
@@ -62,7 +77,11 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("start core proxy: %w", err)
 	}
 
-	srv := server.New(ctx, proxy, thunderClient)
+	srv := server.New(ctx, proxy, &explorer.RpcClients{
+		Thunder:   thunderClient,
+		BitAssets: bitassetsClient,
+		BitNames:  bitnamesClient,
+	})
 
 	zerolog.Ctx(ctx).Info().Msgf("server: listening on %q", conf.Listen)
 
