@@ -19,4 +19,6 @@ message ChainTip {
 message GetChainTipsResponse {
   ChainTip mainchain = 1; // L1
   ChainTip thunder = 2; // L2-S9
+  ChainTip bitassets = 3; // L2-S4
+  ChainTip bitnames = 4; // L2-S2
 }

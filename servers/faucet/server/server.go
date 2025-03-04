@@ -20,7 +20,6 @@ import (
 	explorerrpc "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/explorer/v1/explorerv1connect"
 	faucetrpc "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/faucet/v1/faucetv1connect"
 	faucet_ip "github.com/LayerTwo-Labs/sidesail/servers/faucet/ip"
-	"github.com/LayerTwo-Labs/sidesail/servers/faucet/jsonrpc"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
@@ -32,7 +31,7 @@ import (
 // New creates a new Server with interceptors applied.
 func New(
 	ctx context.Context, bitcoind *coreproxy.Bitcoind,
-	thunder *jsonrpc.Client,
+	rpcClients *api_explorer.RpcClients,
 ) *Server {
 	interceptors := []connect.Interceptor{
 		faucet_ip.Interceptor(),
@@ -48,7 +47,7 @@ func New(
 	)
 	Register(
 		srv, explorerrpc.NewExplorerServiceHandler,
-		explorerrpc.ExplorerServiceHandler(api_explorer.New(bitcoind, thunder)),
+		explorerrpc.ExplorerServiceHandler(api_explorer.New(bitcoind, rpcClients)),
 	)
 	return srv
 }
