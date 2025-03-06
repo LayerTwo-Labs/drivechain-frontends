@@ -133,6 +133,8 @@ class GetChainTipsResponse extends $pb.GeneratedMessage {
   factory GetChainTipsResponse({
     ChainTip? mainchain,
     ChainTip? thunder,
+    ChainTip? bitassets,
+    ChainTip? bitnames,
   }) {
     final $result = create();
     if (mainchain != null) {
@@ -140,6 +142,12 @@ class GetChainTipsResponse extends $pb.GeneratedMessage {
     }
     if (thunder != null) {
       $result.thunder = thunder;
+    }
+    if (bitassets != null) {
+      $result.bitassets = bitassets;
+    }
+    if (bitnames != null) {
+      $result.bitnames = bitnames;
     }
     return $result;
   }
@@ -150,6 +158,8 @@ class GetChainTipsResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetChainTipsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
     ..aOM<ChainTip>(1, _omitFieldNames ? '' : 'mainchain', subBuilder: ChainTip.create)
     ..aOM<ChainTip>(2, _omitFieldNames ? '' : 'thunder', subBuilder: ChainTip.create)
+    ..aOM<ChainTip>(3, _omitFieldNames ? '' : 'bitassets', subBuilder: ChainTip.create)
+    ..aOM<ChainTip>(4, _omitFieldNames ? '' : 'bitnames', subBuilder: ChainTip.create)
     ..hasRequiredFields = false
   ;
 
@@ -195,6 +205,28 @@ class GetChainTipsResponse extends $pb.GeneratedMessage {
   void clearThunder() => clearField(2);
   @$pb.TagNumber(2)
   ChainTip ensureThunder() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  ChainTip get bitassets => $_getN(2);
+  @$pb.TagNumber(3)
+  set bitassets(ChainTip v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasBitassets() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBitassets() => clearField(3);
+  @$pb.TagNumber(3)
+  ChainTip ensureBitassets() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  ChainTip get bitnames => $_getN(3);
+  @$pb.TagNumber(4)
+  set bitnames(ChainTip v) { setField(4, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasBitnames() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBitnames() => clearField(4);
+  @$pb.TagNumber(4)
+  ChainTip ensureBitnames() => $_ensure(3);
 }
 
 class ExplorerServiceApi {

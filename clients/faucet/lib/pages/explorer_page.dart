@@ -62,6 +62,14 @@ class ExplorerViewModel extends BaseViewModel {
         )
       : null;
 
+  Block? get latestBitnamesBlock => explorerProvider.bitnamesTip != null
+      ? Block(
+          hash: explorerProvider.bitnamesTip!.hash,
+          blockHeight: explorerProvider.bitnamesTip!.height.toInt(),
+          blockTime: explorerProvider.bitnamesTip!.timestamp.toDateTime(),
+        )
+      : null;
+
   ExplorerViewModel() {
     explorerProvider.addListener(notifyListeners);
     // Start timer for updating "time ago" text
@@ -196,6 +204,49 @@ class _ExplorerPageState extends State<ExplorerPage> {
                                   ),
                                 ],
                               ),
+                      ),
+                    ),
+                    const SizedBox(width: SailStyleValues.padding16),
+                    // BitNames block card
+                    Expanded(
+                      child: SailRawCard(
+                        title: 'Latest BitNames Block',
+                        subtitle: 'Most recent block on the BitNames sidechain (L2-S2)',
+                        child:
+                            ((model.latestBitnamesBlock?.blockHeight ?? 0) > 0 || !model.explorerProvider.initialized)
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Height: ${model.latestBitnamesBlock?.blockHeight}'),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Hash: ${model.latestBitnamesBlock?.hash}',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text('Time: ${model.latestBitnamesBlock?.formattedTime}'),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        model.latestBitnamesBlock?.timeSince() ?? '',
+                                        style: TextStyle(
+                                          color: context.sailTheme.colors.orange,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Unable to connect to BitNames',
+                                        style: TextStyle(
+                                          color: context.sailTheme.colors.error,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                       ),
                     ),
                   ],
