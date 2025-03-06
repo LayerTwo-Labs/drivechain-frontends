@@ -124,7 +124,10 @@ class _SailTableState extends State<SailTable> {
     // Handle all columns except the last one
     for (var i = 0; i < columnWidths.length - 1; i++) {
       final scaledWidth = (columnWidths[i] * scaleFactor).floorToDouble();
-      final width = scaledWidth < columnWidths[i] ? columnWidths[i] : scaledWidth;
+      var width = scaledWidth < columnWidths[i] ? columnWidths[i] : scaledWidth;
+      if (width < 0) {
+        width = 0;
+      }
       _widths.add(width);
       currentTotal += width;
     }
@@ -178,155 +181,153 @@ class _SailTableState extends State<SailTable> {
 
     var isWindows = context.isWindows;
 
-    return Container(
-      color: widget.backgroundColor ?? theme.colors.backgroundSecondary,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          Widget innerListView;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        print('DEBUG: Table constraints - maxWidth: ${constraints.maxWidth}, minWidth: ${constraints.minWidth}');
+        Widget innerListView;
 
-          if (widget.shrinkWrap) {
-            var children = <Widget>[];
-            for (int i = 0; i < widget.rowCount; i++) {
-              final rowId = widget.getRowId(i);
-              final isSelected = rowId == _selectedId;
-              var backgroundColor = i % 2 == 1 ? altBgColor : null;
-              var isLastRow = i == widget.rowCount - 1;
-              children.add(
-                _TableRow(
-                  cells: widget.rowBuilder(context, i, isSelected),
-                  widths: _widths,
-                  height: widget.cellHeight,
-                  selected: isSelected,
-                  backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                  grid: widget.drawGrid,
-                  drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
-                  onPressed: () {
-                    if (widget.selectableRows) {
-                      setState(() {
-                        _selectedId = _selectedId == rowId ? null : rowId;
-                      });
-                      widget.onSelectedRow?.call(_selectedId);
-                    }
-                  },
-                  onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
-                  contextMenuItems: widget.contextMenuItems,
-                  rowId: rowId,
-                ),
-              );
-            }
-
-            innerListView = Column(
-              mainAxisSize: MainAxisSize.min,
-              children: children,
-            );
-          } else {
-            innerListView = ListView.builder(
-              padding: EdgeInsets.symmetric(
-                vertical: isWindows || widget.drawGrid ? 0 : 6,
-              ),
-              shrinkWrap: widget.shrinkWrap,
-              physics: widget.physics,
-              itemCount: widget.rowCount,
-              controller: _verticalController,
-              prototypeItem: SizedBox(
+        if (widget.shrinkWrap) {
+          var children = <Widget>[];
+          for (int i = 0; i < widget.rowCount; i++) {
+            final rowId = widget.getRowId(i);
+            final isSelected = rowId == _selectedId;
+            var backgroundColor = i % 2 == 1 ? altBgColor : null;
+            var isLastRow = i == widget.rowCount - 1;
+            children.add(
+              _TableRow(
+                cells: widget.rowBuilder(context, i, isSelected),
+                widths: _widths,
                 height: widget.cellHeight,
+                selected: isSelected,
+                backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
+                grid: widget.drawGrid,
+                drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
+                onPressed: () {
+                  if (widget.selectableRows) {
+                    setState(() {
+                      _selectedId = _selectedId == rowId ? null : rowId;
+                    });
+                    widget.onSelectedRow?.call(_selectedId);
+                  }
+                },
+                onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
+                contextMenuItems: widget.contextMenuItems,
+                rowId: rowId,
               ),
-              itemBuilder: (context, row) {
-                final rowId = widget.getRowId(row);
-                final isSelected = rowId == _selectedId;
-                var backgroundColor = row % 2 == 1 ? altBgColor : null;
-                var isLastRow = row == widget.rowCount - 1;
-                return _TableRow(
-                  cells: widget.rowBuilder(context, row, isSelected),
-                  widths: _widths,
-                  height: widget.cellHeight,
-                  selected: isSelected,
-                  backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                  grid: widget.drawGrid,
-                  drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
-                  onPressed: () {
-                    if (widget.selectableRows) {
-                      setState(() {
-                        _selectedId = _selectedId == rowId ? null : rowId;
-                      });
-                      widget.onSelectedRow?.call(_selectedId);
-                    }
-                  },
-                  onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
-                  contextMenuItems: widget.contextMenuItems,
-                  rowId: rowId,
-                );
-              },
             );
           }
 
-          // Update the header builder to include sort indicators and functionality
-          List<Widget> header = widget.headerBuilder(context).asMap().entries.map((entry) {
-            int i = entry.key;
-            Widget headerCell = entry.value;
-
-            if (headerCell is SailTableHeaderCell) {
-              return SailTableHeaderCell(
-                alignment: headerCell.alignment,
-                padding: headerCell.padding,
-                isSorted: _sortColumnIndex == i,
-                isAscending: _sortAscending,
-                onSort: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
-                name: headerCell.name,
+          innerListView = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: children,
+          );
+        } else {
+          innerListView = ListView.builder(
+            padding: EdgeInsets.symmetric(
+              vertical: isWindows || widget.drawGrid ? 0 : 6,
+            ),
+            shrinkWrap: widget.shrinkWrap,
+            physics: widget.physics,
+            itemCount: widget.rowCount,
+            controller: _verticalController,
+            prototypeItem: SizedBox(
+              height: widget.cellHeight,
+            ),
+            itemBuilder: (context, row) {
+              final rowId = widget.getRowId(row);
+              final isSelected = rowId == _selectedId;
+              var backgroundColor = row % 2 == 1 ? altBgColor : null;
+              var isLastRow = row == widget.rowCount - 1;
+              return _TableRow(
+                cells: widget.rowBuilder(context, row, isSelected),
+                widths: _widths,
+                height: widget.cellHeight,
+                selected: isSelected,
+                backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
+                grid: widget.drawGrid,
+                drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
+                onPressed: () {
+                  if (widget.selectableRows) {
+                    setState(() {
+                      _selectedId = _selectedId == rowId ? null : rowId;
+                    });
+                    widget.onSelectedRow?.call(_selectedId);
+                  }
+                },
+                onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
+                contextMenuItems: widget.contextMenuItems,
+                rowId: rowId,
               );
-            }
+            },
+          );
+        }
 
-            return GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
-              child: headerCell,
+        // Update the header builder to include sort indicators and functionality
+        List<Widget> header = widget.headerBuilder(context).asMap().entries.map((entry) {
+          int i = entry.key;
+          Widget headerCell = entry.value;
+
+          if (headerCell is SailTableHeaderCell) {
+            return SailTableHeaderCell(
+              alignment: headerCell.alignment,
+              padding: headerCell.padding,
+              isSorted: _sortColumnIndex == i,
+              isAscending: _sortAscending,
+              onSort: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
+              name: headerCell.name,
             );
-          }).toList();
+          }
 
-          double tableWidth = constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
+            child: headerCell,
+          );
+        }).toList();
 
-          return Scrollbar(
+        double tableWidth = constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths;
+
+        return Scrollbar(
+          controller: _horizontalController,
+          scrollbarOrientation: ScrollbarOrientation.bottom,
+          child: SingleChildScrollView(
             controller: _horizontalController,
-            scrollbarOrientation: ScrollbarOrientation.bottom,
-            child: SingleChildScrollView(
-              controller: _horizontalController,
-              scrollDirection: Axis.horizontal,
-              physics: const ClampingScrollPhysics(),
-              child: SizedBox(
-                width: tableWidth,
-                child: Column(
-                  children: [
-                    _TableHeader(
-                      widths: _widths,
-                      decoration: widget.headerDecoration ??
-                          BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: theme.colors.divider, width: 1),
-                            ),
-                            color: theme.colors.backgroundSecondary,
+            scrollDirection: Axis.horizontal,
+            physics: const ClampingScrollPhysics(),
+            child: SizedBox(
+              width: tableWidth,
+              child: Column(
+                children: [
+                  _TableHeader(
+                    widths: _widths,
+                    decoration: widget.headerDecoration ??
+                        BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: theme.colors.divider, width: 1),
                           ),
-                      cells: header,
-                      grid: widget.drawGrid,
-                      resizableColumns: widget.resizableColumns,
-                      onStartResizeColumn: _onStartResizeColumn,
-                      onEndResizeColumn: _onEndResizeColumn,
-                      onResizedColumn: _onResizedColumn,
-                    ),
-                    if (!widget.shrinkWrap)
-                      Expanded(
-                        child: ScrollConfiguration(
-                          behavior: ScrollConfiguration.of(context).copyWith(),
-                          child: innerListView,
+                          color: theme.colors.backgroundSecondary,
                         ),
+                    cells: header,
+                    grid: widget.drawGrid,
+                    resizableColumns: widget.resizableColumns,
+                    onStartResizeColumn: _onStartResizeColumn,
+                    onEndResizeColumn: _onEndResizeColumn,
+                    onResizedColumn: _onResizedColumn,
+                  ),
+                  if (!widget.shrinkWrap)
+                    Expanded(
+                      child: ScrollConfiguration(
+                        behavior: ScrollConfiguration.of(context).copyWith(),
+                        child: innerListView,
                       ),
-                    if (widget.shrinkWrap) innerListView,
-                  ],
-                ),
+                    ),
+                  if (widget.shrinkWrap) innerListView,
+                ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -1,14 +1,15 @@
 import 'dart:io';
+
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
+import 'package:bs58/bs58.dart';
+import 'package:convert/convert.dart';
 import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:convert/convert.dart';
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
-import 'package:bs58/bs58.dart';
 
 class HDWalletProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
@@ -96,7 +97,6 @@ class HDWalletProvider extends ChangeNotifier {
   Future<String> derivePrivateKey(String path) async {
     log.d('Attempting to derive private key, initialized: $_initialized');
     if (!_initialized) await init();
-    log.d('After init check - initialized: $_initialized, error: $_error');
 
     try {
       final chain = Chain.seed(_seedHex!);
