@@ -97,6 +97,7 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.Dispen
 		Msg: &btcpb.SendToAddressRequest{
 			Address: c.Msg.Destination,
 			Amount:  amount.ToBTC(),
+			Comment: "faucet-dispensation",
 		},
 	})
 	if err != nil {
