@@ -10,6 +10,7 @@ class ExplorerProvider extends ChangeNotifier {
 
   ChainTip? mainchainTip;
   ChainTip? thunderTip;
+  ChainTip? bitnamesTip;
   bool initialized = false;
 
   bool _isFetching = false;
@@ -33,6 +34,9 @@ class ExplorerProvider extends ChangeNotifier {
       }
       if (response.thunder.height > 0) {
         thunderTip = response.thunder;
+      }
+      if (response.bitnames.height > 0) {
+        bitnamesTip = response.bitnames;
       }
       initialized = true;
       notifyListeners();

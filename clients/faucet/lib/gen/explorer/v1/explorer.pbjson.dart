@@ -46,6 +46,8 @@ const GetChainTipsResponse$json = {
   '2': [
     {'1': 'mainchain', '3': 1, '4': 1, '5': 11, '6': '.explorer.v1.ChainTip', '10': 'mainchain'},
     {'1': 'thunder', '3': 2, '4': 1, '5': 11, '6': '.explorer.v1.ChainTip', '10': 'thunder'},
+    {'1': 'bitassets', '3': 3, '4': 1, '5': 11, '6': '.explorer.v1.ChainTip', '10': 'bitassets'},
+    {'1': 'bitnames', '3': 4, '4': 1, '5': 11, '6': '.explorer.v1.ChainTip', '10': 'bitnames'},
   ],
 };
 
@@ -53,7 +55,9 @@ const GetChainTipsResponse$json = {
 final $typed_data.Uint8List getChainTipsResponseDescriptor = $convert.base64Decode(
     'ChRHZXRDaGFpblRpcHNSZXNwb25zZRIzCgltYWluY2hhaW4YASABKAsyFS5leHBsb3Jlci52MS'
     '5DaGFpblRpcFIJbWFpbmNoYWluEi8KB3RodW5kZXIYAiABKAsyFS5leHBsb3Jlci52MS5DaGFp'
-    'blRpcFIHdGh1bmRlcg==');
+    'blRpcFIHdGh1bmRlchIzCgliaXRhc3NldHMYAyABKAsyFS5leHBsb3Jlci52MS5DaGFpblRpcF'
+    'IJYml0YXNzZXRzEjEKCGJpdG5hbWVzGAQgASgLMhUuZXhwbG9yZXIudjEuQ2hhaW5UaXBSCGJp'
+    'dG5hbWVz');
 
 const $core.Map<$core.String, $core.dynamic> ExplorerServiceBase$json = {
   '1': 'ExplorerService',
