@@ -33,6 +33,7 @@ class WalletPage extends StatelessWidget {
   BitwindowRPC get api => GetIt.I<BitwindowRPC>();
   static final GlobalKey<InlineTabBarState> tabKey = GlobalKey<InlineTabBarState>();
   static SendPageViewModel? _sendViewModel; // Static reference to view model
+  static final ValueNotifier<String> _selectedTool = ValueNotifier('Deniability');
 
   const WalletPage({
     super.key,
@@ -72,36 +73,46 @@ class WalletPage extends StatelessWidget {
                 icon: SailSVGAsset.iconTransactions,
                 child: TransactionsTab(),
               ),
-              TabItem(
-                label: 'Deniability',
-                icon: SailSVGAsset.iconTransactions,
-                child: DeniabilityTab(
-                  newWindowIdentifier: model.applicationDir == null
-                      ? null
-                      : NewWindowIdentifier(
-                          windowType: 'deniability',
-                          applicationDir: model.applicationDir!,
-                          logFile: model.logFile!,
-                        ),
-                ),
-                onTap: () {
-                  denialProvider.fetch();
-                },
-              ),
-              TabItem(
-                label: 'HD Wallet Explorer',
+              DropdownTabItem(
+                label: 'Tools',
                 icon: SailSVGAsset.iconHDWallet,
-                child: HDWalletExplorerTab(),
-              ),
-              TabItem(
-                label: 'BitDrive',
-                icon: SailSVGAsset.iconBitdrive,
-                child: BitDriveTab(),
-              ),
-              TabItem(
-                label: 'Multisig Lounge',
-                icon: SailSVGAsset.iconMultisig,
-                child: MultisigLoungeTab(),
+                child: ValueListenableBuilder<String>(
+                  valueListenable: _selectedTool,
+                  builder: (context, value, child) {
+                    switch (value) {
+                      case 'Deniability':
+                        return DeniabilityTab(
+                          newWindowIdentifier: model.applicationDir == null
+                              ? null
+                              : NewWindowIdentifier(
+                                  windowType: 'deniability',
+                                  applicationDir: model.applicationDir!,
+                                  logFile: model.logFile!,
+                                ),
+                        );
+                      case 'HD Wallet Explorer':
+                        return const HDWalletExplorerTab();
+                      case 'BitDrive':
+                        return const BitDriveTab();
+                      case 'Multisig Lounge':
+                        return const MultisigLoungeTab();
+                      default:
+                        return const HDWalletExplorerTab();
+                    }
+                  },
+                ),
+                menuItems: [
+                  'Deniability',
+                  'HD Wallet Explorer',
+                  'BitDrive',
+                  'Multisig Lounge',
+                ],
+                onItemSelected: (value) {
+                  _selectedTool.value = value;
+                  if (value == 'Deniability') {
+                    denialProvider.fetch();
+                  }
+                },
               ),
             ],
             initialIndex: 0,

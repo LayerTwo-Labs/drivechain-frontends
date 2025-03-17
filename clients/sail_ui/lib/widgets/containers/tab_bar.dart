@@ -116,7 +116,7 @@ class TabItem {
 }
 
 class DropdownTabItem extends TabItem {
-  final List<PopupMenuItem<String>> menuItems;
+  final List<String> menuItems;
   final Function(String) onItemSelected;
 
   const DropdownTabItem({
@@ -129,67 +129,88 @@ class DropdownTabItem extends TabItem {
   });
 
   Widget buildTab(BuildContext context, bool isSelected, VoidCallback onTabTap) {
-    return InkWell(
-      onTap: () {
-        _showDropdownMenu(context);
-        if (onTap != null) {
-          onTap!();
-        }
-        onTabTap();
+    final theme = SailTheme.of(context);
+    
+    // Create SailMenuItems from the string menu items
+    final sailMenuItems = menuItems.map((item) => 
+      SailMenuItem(
+        onSelected: () {
+          onItemSelected(item);
+        },
+        child: SailText.primary13(item),
+      )
+    ).toList();
+    
+    // Create a MenuController to control the dropdown
+    final MenuController controller = MenuController();
+    
+    return MenuAnchor(
+      controller: controller,
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(theme.colors.backgroundSecondary),
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        shadowColor: WidgetStatePropertyAll(Colors.black26),
+        elevation: const WidgetStatePropertyAll(4),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(SailStyleValues.padding04),
+            side: BorderSide(color: theme.colors.formFieldBorder),
+          ),
+        ),
+      ),
+      menuChildren: [
+        SailMenu(
+          items: sailMenuItems,
+        ),
+      ],
+      builder: (context, menuController, child) {
+        return InkWell(
+          onTap: () {
+            if (onTap != null) {
+              onTap!();
+            }
+            onTabTap();
+            
+            // Toggle the dropdown menu
+            if (menuController.isOpen) {
+              menuController.close();
+            } else {
+              menuController.open();
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              vertical: SailStyleValues.padding04,
+              horizontal: SailStyleValues.padding12,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected ? theme.colors.backgroundSecondary : theme.colors.background,
+              borderRadius: BorderRadius.circular(SailStyleValues.padding04),
+            ),
+            child: Row(
+              children: [
+                SailSVG.fromAsset(
+                  icon,
+                  color: isSelected ? theme.colors.textSecondary : theme.colors.textTertiary,
+                  height: 18,
+                ),
+                const SizedBox(width: SailStyleValues.padding08),
+                SailText.primary13(
+                  label,
+                  color: isSelected ? theme.colors.textSecondary : theme.colors.textTertiary,
+                  bold: true,
+                ),
+                const SizedBox(width: SailStyleValues.padding04),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: isSelected ? theme.colors.textSecondary : theme.colors.textTertiary,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        );
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          vertical: SailStyleValues.padding04,
-          horizontal: SailStyleValues.padding12,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? context.sailTheme.colors.backgroundSecondary : context.sailTheme.colors.background,
-          borderRadius: BorderRadius.circular(SailStyleValues.padding04),
-        ),
-        child: Row(
-          children: [
-            SailSVG.fromAsset(
-              icon,
-              color: isSelected ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.textTertiary,
-              height: 18,
-            ),
-            const SizedBox(width: SailStyleValues.padding08),
-            SailText.primary13(
-              label,
-              color: isSelected ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.textTertiary,
-              bold: true,
-            ),
-            const SizedBox(width: SailStyleValues.padding04),
-            Icon(
-              Icons.arrow_drop_down,
-              color: isSelected ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.textTertiary,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
     );
-  }
-
-  void _showDropdownMenu(BuildContext context) {
-    final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final RelativeRect position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        button.localToGlobal(Offset.zero, ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
-      ),
-      Offset.zero & overlay.size,
-    );
-
-    showMenu<String>(
-      context: context,
-      position: position,
-      items: menuItems,
-    ).then((value) {
-      if (value != null) {
-        onItemSelected(value);
-      }
-    });
   }
 }
