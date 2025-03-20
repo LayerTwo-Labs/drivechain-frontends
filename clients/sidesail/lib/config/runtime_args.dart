@@ -23,14 +23,13 @@ abstract class RuntimeArgs {
   // use like flutter run --dart-define=SIDESAIL_CHAIN=ethereum
   // or flutter build apk --dart-define=SIDESAIL_CHAIN=ethereum
   static final String _chain = Platform.environment['SIDESAIL_CHAIN'] ?? const String.fromEnvironment('SIDESAIL_CHAIN');
-  static String chain = _chain.isNotEmpty ? _chain : 'testchain';
+  static String chain = _chain.isNotEmpty ? _chain : 'zcash';
 
   static bool consoleLog = Platform.environment['SIDESAIL_LOG_CONSOLE']?.isNotEmpty ?? false;
 
   static bool fileLog = Platform.environment['SIDESAIL_LOG_FILE']?.isNotEmpty ?? false;
 
-  static bool swappableChains = Platform.environment['SIDESAIL_SWAPPABLE_CHAINS']?.isNotEmpty ??
-      const bool.fromEnvironment('SIDESAIL_SWAPPABLE_CHAINS');
+  static bool swappableChains = Platform.environment['SIDESAIL_SWAPPABLE_CHAINS']?.isNotEmpty ?? false;
 
   static final String _network =
       Platform.environment['SIDESAIL_NETWORK'] ?? const String.fromEnvironment('SIDESAIL_NETWORK');
