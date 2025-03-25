@@ -40,6 +40,7 @@ enum SailSVGAsset {
   iconPen,
   iconCheck,
   iconNewWindow,
+  iconTools,
 
   iconHome,
   iconSend,
@@ -217,6 +218,8 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_check.svg';
       case SailSVGAsset.iconNewWindow:
         return 'assets/svgs/icon_new_window.svg';
+      case SailSVGAsset.iconTools:
+        return 'assets/svgs/icon_tools.svg';
 
       case SailSVGAsset.iconHome:
         return 'assets/svgs/icon_home.svg';
