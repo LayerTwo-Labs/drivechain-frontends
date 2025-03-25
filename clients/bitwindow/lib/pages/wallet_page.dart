@@ -54,56 +54,94 @@ class WalletPage extends StatelessWidget {
         onViewModelReady: (model) => model.init(),
         onDispose: (model) => _sendViewModel = null,
         builder: (context, model, child) {
+          // Create the list of regular tabs
+          final List<TabItem> allTabs = [
+            const TabItem(
+              label: 'Send',
+              icon: SailSVGAsset.iconWallet,
+              child: SendTab(),
+            ),
+            const TabItem(
+              label: 'Receive',
+              icon: SailSVGAsset.iconCoinnews,
+              child: ReceiveTab(),
+            ),
+            const TabItem(
+              label: 'Wallet Transactions',
+              icon: SailSVGAsset.iconTransactions,
+              child: TransactionsTab(),
+            ),
+            TabItem(
+              label: 'Deniability',
+              icon: SailSVGAsset.iconTransactions,
+              child: DeniabilityTab(
+                newWindowIdentifier: model.applicationDir == null
+                    ? null
+                    : NewWindowIdentifier(
+                        windowType: 'deniability',
+                        applicationDir: model.applicationDir!,
+                        logFile: model.logFile!,
+                      ),
+              ),
+              onTap: () {
+                denialProvider.fetch();
+              },
+            ),
+            TabItem(
+              label: 'HD Wallet Explorer',
+              icon: SailSVGAsset.iconHDWallet,
+              child: HDWalletExplorerTab(),
+            ),
+            TabItem(
+              label: 'BitDrive',
+              icon: SailSVGAsset.iconBitdrive,
+              child: BitDriveTab(),
+            ),
+            TabItem(
+              label: 'Multisig Lounge',
+              icon: SailSVGAsset.iconMultisig,
+              child: MultisigLoungeTab(),
+            ),
+          ];
+
+          // The tabs that will be in the dropdown
+          final List<TabItem> dropdownTabs = allTabs.sublist(3);
+
+          // Create a map of menu item labels to their content widgets
+          final Map<String, Widget> dropdownContentMap = {
+            for (var tab in dropdownTabs) tab.label: tab.child,
+          };
+
+          // Create the visible tabs (first 3 + dropdown)
+          final List<TabItem> visibleTabs = [
+            ...allTabs.sublist(0, 3), // First 3 tabs remain directly visible
+            // Dropdown tab that switches between the remaining tabs
+            DropdownTabItem(
+              label: 'Tools',
+              icon: SailSVGAsset.iconTools,
+              child: dropdownTabs.first.child, // Default to first dropdown tab's content
+              menuItems: dropdownTabs.map((tab) => tab.label).toList(),
+              contentMap: dropdownContentMap, // Map menu items to their content widgets
+              selectedItem: dropdownTabs.first.label, // Pre-select the first dropdown item
+              useFixedLabel: true, // Keep the label as "Tools" even when selection changes
+              onItemSelected: (selectedLabel) {
+                // Find the tab with the selected label
+                final selectedTab = dropdownTabs.firstWhere(
+                  (tab) => tab.label == selectedLabel,
+                  orElse: () => dropdownTabs.first,
+                );
+
+                // Execute the tab's onTap callback if it exists
+                if (selectedTab.onTap != null) {
+                  selectedTab.onTap!();
+                }
+              },
+            ),
+          ];
+
           return InlineTabBar(
             key: tabKey,
-            tabs: [
-              const TabItem(
-                label: 'Send',
-                icon: SailSVGAsset.iconWallet,
-                child: SendTab(),
-              ),
-              const TabItem(
-                label: 'Receive',
-                icon: SailSVGAsset.iconCoinnews,
-                child: ReceiveTab(),
-              ),
-              const TabItem(
-                label: 'Wallet Transactions',
-                icon: SailSVGAsset.iconTransactions,
-                child: TransactionsTab(),
-              ),
-              TabItem(
-                label: 'Deniability',
-                icon: SailSVGAsset.iconTransactions,
-                child: DeniabilityTab(
-                  newWindowIdentifier: model.applicationDir == null
-                      ? null
-                      : NewWindowIdentifier(
-                          windowType: 'deniability',
-                          applicationDir: model.applicationDir!,
-                          logFile: model.logFile!,
-                        ),
-                ),
-                onTap: () {
-                  denialProvider.fetch();
-                },
-              ),
-              TabItem(
-                label: 'HD Wallet Explorer',
-                icon: SailSVGAsset.iconHDWallet,
-                child: HDWalletExplorerTab(),
-              ),
-              TabItem(
-                label: 'BitDrive',
-                icon: SailSVGAsset.iconBitdrive,
-                child: BitDriveTab(),
-              ),
-              TabItem(
-                label: 'Multisig Lounge',
-                icon: SailSVGAsset.iconMultisig,
-                child: MultisigLoungeTab(),
-              ),
-            ],
+            tabs: visibleTabs,
             initialIndex: 0,
           );
         },
@@ -1054,12 +1092,46 @@ class _TransactionTableState extends State<TransactionTable> {
                   onSort: (columnIndex, ascending) {
                     onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
                   },
+                  onDoubleTap: (rowId) {
+                    final utxo = widget.entries.firstWhere(
+                      (u) => u.txid == rowId,
+                    );
+                    _showUtxoDetails(context, utxo);
+                  },
                 ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  void _showUtxoDetails(BuildContext context, WalletTransaction utxo) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SailRawCard(
+            title: 'Transaction Details',
+            subtitle: 'Details of the selected transaction',
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow(label: 'TxID', value: utxo.txid),
+                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.receivedSatoshi.toInt()))),
+                  DetailRow(label: 'Date', value: utxo.confirmationTime.timestamp.toDateTime().toLocal().format()),
+                  DetailRow(label: 'Confirmation Height', value: utxo.confirmationTime.height.toString()),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1249,136 +1321,138 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
         children: [
           SailSpacing(SailStyleValues.padding16),
           Expanded(
-            child: SailTable(
-              getRowId: (index) => '${widget.utxos[index].txid}:${widget.utxos[index].vout}',
-              headerBuilder: (context) => [
-                SailTableHeaderCell(
-                  name: 'UTXO',
-                  onSort: () => onSort('txid'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Amount',
-                  onSort: () => onSort('amount'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Hops',
-                  onSort: () => onSort('hops'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Next Execution',
-                  onSort: () => onSort('next'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Status',
-                  onSort: () => onSort('status'),
-                ),
-                const SailTableHeaderCell(name: 'Actions'),
-              ],
-              rowBuilder: (context, row, selected) {
-                final utxo = widget.utxos[row];
-                final hasDeniability = utxo.hasDeniability();
-
-                String status = '-';
-                String nextExecution = '-';
-                String hops = '0';
-                bool canCancel = false;
-
-                if (hasDeniability) {
-                  final completedHops = utxo.deniability.executions.length;
-                  final totalHops = utxo.deniability.numHops;
-                  hops = '$completedHops/$totalHops';
-                  if (completedHops == totalHops) {
-                    hops = '$completedHops';
-                  }
-
-                  status = utxo.deniability.hasCancelTime()
-                      ? 'Cancelled'
-                      : completedHops == totalHops
-                          ? 'Completed'
-                          : 'Ongoing';
-                  nextExecution = utxo.deniability.hasNextExecution()
-                      ? utxo.deniability.nextExecution.toDateTime().toLocal().toString()
-                      : '-';
-                  canCancel = status == 'Ongoing';
-
-                  if (status == 'Cancelled') {
-                    hops = '$completedHops';
-                  }
-                }
-
-                return [
-                  SailTableCell(
-                    value: '${utxo.txid}:${utxo.vout}',
-                    monospace: true,
-                  ),
-                  SailTableCell(
-                    value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
-                    monospace: true,
-                  ),
-                  SailTableCell(
-                    value: hops,
-                    monospace: true,
-                  ),
-                  SailTableCell(
-                    value: nextExecution,
-                    monospace: true,
-                  ),
-                  Tooltip(
-                    message: utxo.deniability.cancelReason,
-                    child: SailTableCell(
-                      value: status,
-                      monospace: true,
+            child: widget.utxos.isEmpty
+              ? Center(child: SailText.primary15('No UTXOs available'))
+              : SailTable(
+                  getRowId: (index) => '${widget.utxos[index].txid}:${widget.utxos[index].vout}',
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(
+                      name: 'UTXO',
+                      onSort: () => onSort('txid'),
                     ),
-                  ),
-                  SailTableCell(
-                    value: canCancel ? 'Cancel' : '-',
-                    monospace: true,
-                    child: canCancel
-                        ? SailRawButton(
-                            disabled: false,
-                            loading: false,
-                            onPressed: () async => widget.onCancel(utxo.deniability.id),
-                            child: SailText.primary15(
-                              'Cancel',
-                              bold: true,
-                              color: context.sailTheme.colors.text,
-                            ),
-                          )
-                        : SailRawButton(
-                            disabled: false,
-                            loading: false,
-                            onPressed: () async => widget.onDeny(utxo.txid, utxo.vout),
-                            child: SailText.primary15(
-                              'Deny Ownership ${status != '-' ? 'Again' : ''}',
-                              bold: true,
-                              color: context.sailTheme.colors.text,
-                            ),
-                          ),
-                  ),
-                ];
-              },
-              rowCount: widget.utxos.length,
-              columnWidths: const [280, 150, 100, 200, 100, 150],
-              drawGrid: true,
-              sortColumnIndex: [
-                'txid',
-                'vout',
-                'amount',
-                'next',
-                'status',
-                'actions',
-              ].indexOf(sortColumn),
-              sortAscending: sortAscending,
-              onSort: (columnIndex, ascending) {
-                onSort(['txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
-              },
-              onDoubleTap: (rowId) {
-                final utxo = widget.utxos.firstWhere(
-                  (u) => '${u.txid}:${u.vout}' == rowId,
-                );
-                _showUtxoDetails(context, utxo);
-              },
-            ),
+                    SailTableHeaderCell(
+                      name: 'Amount',
+                      onSort: () => onSort('amount'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Hops',
+                      onSort: () => onSort('hops'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Next Execution',
+                      onSort: () => onSort('next'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Status',
+                      onSort: () => onSort('status'),
+                    ),
+                    const SailTableHeaderCell(name: 'Actions'),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final utxo = widget.utxos[row];
+                    final hasDeniability = utxo.hasDeniability();
+
+                    String status = '-';
+                    String nextExecution = '-';
+                    String hops = '0';
+                    bool canCancel = false;
+
+                    if (hasDeniability) {
+                      final completedHops = utxo.deniability.executions.length;
+                      final totalHops = utxo.deniability.numHops;
+                      hops = '$completedHops/$totalHops';
+                      if (completedHops == totalHops) {
+                        hops = '$completedHops';
+                      }
+
+                      status = utxo.deniability.hasCancelTime()
+                          ? 'Cancelled'
+                          : completedHops == totalHops
+                              ? 'Completed'
+                              : 'Ongoing';
+                      nextExecution = utxo.deniability.hasNextExecution()
+                          ? utxo.deniability.nextExecution.toDateTime().toLocal().toString()
+                          : '-';
+                      canCancel = status == 'Ongoing';
+
+                      if (status == 'Cancelled') {
+                        hops = '$completedHops';
+                      }
+                    }
+
+                    return [
+                      SailTableCell(
+                        value: '${utxo.txid}:${utxo.vout}',
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: hops,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: nextExecution,
+                        monospace: true,
+                      ),
+                      Tooltip(
+                        message: utxo.deniability.cancelReason,
+                        child: SailTableCell(
+                          value: status,
+                          monospace: true,
+                        ),
+                      ),
+                      SailTableCell(
+                        value: canCancel ? 'Cancel' : '-',
+                        monospace: true,
+                        child: canCancel
+                            ? SailRawButton(
+                                disabled: false,
+                                loading: false,
+                                onPressed: () async => widget.onCancel(utxo.deniability.id),
+                                child: SailText.primary15(
+                                  'Cancel',
+                                  bold: true,
+                                  color: context.sailTheme.colors.text,
+                                ),
+                              )
+                            : SailRawButton(
+                                disabled: false,
+                                loading: false,
+                                onPressed: () async => widget.onDeny(utxo.txid, utxo.vout),
+                                child: SailText.primary15(
+                                  'Deny Ownership ${status != '-' ? 'Again' : ''}',
+                                  bold: true,
+                                  color: context.sailTheme.colors.text,
+                                ),
+                              ),
+                      ),
+                    ];
+                  },
+                  rowCount: widget.utxos.length,
+                  columnWidths: const [-1, -1, -1, -1, -1, -1],
+                  drawGrid: true,
+                  sortColumnIndex: [
+                    'txid',
+                    'vout',
+                    'amount',
+                    'next',
+                    'status',
+                    'actions',
+                  ].indexOf(sortColumn),
+                  sortAscending: sortAscending,
+                  onSort: (columnIndex, ascending) {
+                    onSort(['txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
+                  },
+                  onDoubleTap: (rowId) {
+                    final utxo = widget.utxos.firstWhere(
+                      (u) => '${u.txid}:${u.vout}' == rowId,
+                    );
+                    _showUtxoDetails(context, utxo);
+                  },
+                ),
           ),
           const SizedBox(height: 16),
         ],
@@ -1519,8 +1593,23 @@ class DeniabilityViewModel extends BaseViewModel {
     denialProvider.addListener(errorListener);
   }
 
-  void postInit() {
-    denialProvider.fetch();
+  void init() {
+    // Set busy state to show loading indicator
+    setBusy(true);
+    notifyListeners();
+  }
+
+  // Post-frame initialization for async operations
+  Future<void> postInit() async {
+    try {
+      // Fetch data
+      await denialProvider.fetch();
+    } catch (e) {
+      setErrorForObject('deniability', e.toString());
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
   }
 
   void errorListener() {
