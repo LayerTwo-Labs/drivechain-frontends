@@ -19,9 +19,7 @@ class InlineTabBar extends StatefulWidget {
 
 class InlineTabBarState extends State<InlineTabBar> {
   late int _selectedIndex;
-  // Track when content is changing for smooth transitions
-  bool _isContentChanging = false;
-
+  
   @override
   void initState() {
     super.initState();
@@ -32,14 +30,6 @@ class InlineTabBarState extends State<InlineTabBar> {
     if (index >= 0 && index < widget.tabs.length) {
       setState(() {
         _selectedIndex = index;
-        _isContentChanging = true; // Mark that content is changing
-      });
-      
-      // Reset content changing flag after a short delay
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted) {
-          setState(() => _isContentChanging = false);
-        }
       });
       
       widget.onTabChanged?.call(index);
@@ -50,16 +40,7 @@ class InlineTabBarState extends State<InlineTabBar> {
   
   // Method to force rebuild when dropdown selection changes
   void refreshState() {
-    setState(() {
-      _isContentChanging = true; // Mark that content is changing
-    });
-    
-    // Reset content changing flag after a short delay
-    Future.delayed(const Duration(milliseconds: 50), () {
-      if (mounted) {
-        setState(() => _isContentChanging = false);
-      }
-    });
+    setState(() {});
   }
 
   @override
@@ -123,12 +104,7 @@ class InlineTabBarState extends State<InlineTabBar> {
         ),
         const SizedBox(height: SailStyleValues.padding08),
         Expanded(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 100),
-            child: _isContentChanging 
-                ? _buildLoadingContent(context)
-                : _buildTabContent(),
-          ),
+          child: _buildTabContent(),
         ),
       ],
     );
@@ -186,6 +162,9 @@ class DropdownTabItem extends TabItem {
   
   // Whether to keep the original label or show the selected item
   final bool useFixedLabel;
+  
+  // Store the menu controller as a class member
+  final MenuController _menuController = MenuController();
 
   /// Returns the current content widget based on the selected item
   Widget get currentContent {
@@ -215,11 +194,8 @@ class DropdownTabItem extends TabItem {
     // If no item is selected, default to the first one
     selectedItem ??= menuItems.isNotEmpty ? menuItems.first : null;
     
-    // Create a MenuController to control the dropdown
-    final MenuController controller = MenuController();
-    
     return MenuAnchor(
-      controller: controller,
+      controller: _menuController,
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(theme.colors.backgroundSecondary),
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
@@ -247,7 +223,7 @@ class DropdownTabItem extends TabItem {
                 onItemSelected(item);
                 
                 // Close the dropdown
-                controller.close();
+                _menuController.close();
               },
               child: SailText.primary13(item),
             ),
@@ -260,10 +236,10 @@ class DropdownTabItem extends TabItem {
             onTabTap();
             
             // Toggle the dropdown menu
-            if (menuController.isOpen) {
-              menuController.close();
+            if (_menuController.isOpen) {
+              _menuController.close();
             } else {
-              menuController.open();
+              _menuController.open();
             }
           },
           child: Container(
