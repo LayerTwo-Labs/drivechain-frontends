@@ -67,16 +67,17 @@ class BottomNav extends StatelessWidget {
                                 width: SailStyleValues.iconSizeSecondary,
                                 height: SailStyleValues.iconSizeSecondary,
                               ),
-                              SailText.secondary12(formatBitcoin(model.balance, symbol: 'BTC')),
+                              SailText.secondary12(
+                                formatBitcoin(model.balance, symbol: 'BTC'),
+                              ),
                             ],
                           ),
                         ),
                         if (model.showUnconfirmed || model.pendingBalance > 0) const DividerDot(),
                         if (model.showUnconfirmed || model.pendingBalance > 0)
-                          AnimatedPositioned(
+                          AnimatedOpacity(
                             duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeInOut,
-                            left: model.showUnconfirmed ? 0 : -200, // Slide from left
+                            opacity: model.showUnconfirmed ? 1.0 : 0.0,
                             child: Tooltip(
                               message: 'Unconfirmed balance',
                               child: SailRow(
@@ -87,7 +88,9 @@ class BottomNav extends StatelessWidget {
                                     width: SailStyleValues.iconSizeSecondary,
                                     height: SailStyleValues.iconSizeSecondary,
                                   ),
-                                  SailText.secondary12(formatBitcoin(model.pendingBalance, symbol: 'BTC')),
+                                  SailText.secondary12(
+                                    formatBitcoin(model.pendingBalance, symbol: 'BTC'),
+                                  ),
                                 ],
                               ),
                             ),
