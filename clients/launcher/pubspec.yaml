@@ -17,7 +17,7 @@ dependencies:
       # master, as of 08.06.2024
       ref: ab0b7cb2de6e1634a6e65892770ed0d157d38443
   dio: 5.7.0
-  archive: ^3.4.10
+  archive: ^4.0.5
   path: ^1.9.1
   path_provider: ^2.1.5
   stacked: ^3.4.3
