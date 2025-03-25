@@ -44,8 +44,8 @@ build-enforcer:
         curl --fail -O https://releases.drivechain.info/$enforcer_zip
         # Unpack
         echo unpacking: unzip $enforcer_zip
-        unzip $enforcer_zip
-        enforcer_binary=$(find . -name "bip300301_enforcer*" -print -quit)
+        unzip -o $enforcer_zip
+        enforcer_binary=$(find . -name "bip300301-enforcer*" -print -quit)
         if [ -z "$enforcer_binary" ]; then
             echo "Error: Could not find the enforcer binary in the extracted files."
             exit 1
