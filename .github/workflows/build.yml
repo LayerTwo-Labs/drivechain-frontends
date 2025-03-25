@@ -4,24 +4,60 @@ on:
   push:
     branches: [master]
     paths:
-      - "servers/**"
       - "clients/scripts/**"
+      - "clients/sail_ui/**"
       - "clients/bitwindow/**"
+      - "servers/bitwindow/**"
       - "clients/sidesail/**"
       - "clients/launcher/**"
+      - "clients/faucet/**"
+      - "servers/faucet/**"
       - ".github/workflows/**"
   pull_request:
     branches: [master]
     paths:
-      - "servers/**"
       - "clients/scripts/**"
+      - "clients/sail_ui/**"
       - "clients/bitwindow/**"
+      - "servers/bitwindow/**"
       - "clients/sidesail/**"
       - "clients/launcher/**"
+      - "clients/faucet/**"
+      - "servers/faucet/**"
       - ".github/workflows/**"
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      sidesail: ${{ steps.filter.outputs.sidesail }}
+      bitwindow: ${{ steps.filter.outputs.bitwindow }}
+      launcher: ${{ steps.filter.outputs.launcher }}
+      faucet: ${{ steps.filter.outputs.faucet }}
+      build_all: ${{ steps.filter.outputs.build_all }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            build_all:
+              - 'clients/scripts/**'
+              - 'clients/sail_ui/**'
+              - '.github/workflows/**'
+            sidesail:
+              - 'clients/sidesail/**'
+            bitwindow:
+              - 'clients/bitwindow/**'
+              - 'servers/bitwindow/**'
+            launcher:
+              - 'clients/launcher/**'
+            faucet:
+              - 'clients/faucet/**'
+              - 'servers/faucet/**'
+
   build:
+    needs: check-changes
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -31,49 +67,63 @@ jobs:
           - os: ubuntu-latest
             client: sidesail
             chain: testchain
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: macos-latest
             client: sidesail
             chain: testchain
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: windows-latest
             client: sidesail
             chain: testchain
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           # Sidesail ethereum builds for all os'es
           - os: ubuntu-latest
             client: sidesail
             chain: ethereum
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: macos-latest
             client: sidesail
             chain: ethereum
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: windows-latest
             client: sidesail
             chain: ethereum
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           # Sidesail zcash does not build for windows
           - os: ubuntu-latest
             client: sidesail
             chain: zcash
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: macos-latest
             client: sidesail
             chain: zcash
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           # BitWindow builds for all os'es
           - os: ubuntu-latest
             client: bitwindow
             chain: ""
+            should_run: ${{ needs.check-changes.outputs.bitwindow == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: macos-latest
             client: bitwindow
             chain: ""
+            should_run: ${{ needs.check-changes.outputs.bitwindow == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: windows-latest
             client: bitwindow
             chain: ""
+            should_run: ${{ needs.check-changes.outputs.bitwindow == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           # Launcher builds for all os'es
           - os: ubuntu-latest
             client: launcher
             chain: ""
+            should_run: ${{ needs.check-changes.outputs.launcher == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: macos-latest
             client: launcher
             chain: ""
+            should_run: ${{ needs.check-changes.outputs.launcher == 'true' || needs.check-changes.outputs.build_all == 'true' }}
           - os: windows-latest
             client: launcher
             chain: ""
+            should_run: ${{ needs.check-changes.outputs.launcher == 'true' || needs.check-changes.outputs.build_all == 'true' }}
 
     name: Build ${{ matrix.client }} ${{ matrix.chain }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
