@@ -4,7 +4,6 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
-import 'package:sidesail/widgets/containers/tabs/console.dart';
 import 'package:stacked/stacked.dart';
 import 'package:web3dart/web3dart.dart';
 
@@ -56,8 +55,14 @@ class EthereumRPCTabPage extends StatelessWidget {
           ),
           body: Padding(
             padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding64),
-            child: RPCWidget(
-              rpcMethods: ethRPCMethods,
+            child: ConsoleView(
+              services: [
+                ConsoleService(
+                  name: 'ethereum',
+                  commands: ethRPCMethods,
+                  execute: (command, args) => model._rpc.callRAW(command, args),
+                ),
+              ],
             ),
           ),
         );

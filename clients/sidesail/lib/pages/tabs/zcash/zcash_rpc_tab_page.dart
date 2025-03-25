@@ -4,7 +4,6 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_zcash.dart';
-import 'package:sidesail/widgets/containers/tabs/console.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -18,19 +17,22 @@ class ZCashRPCTabPage extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashRPCTabPageViewModel(),
       builder: ((context, model, child) {
-        return SailPage(
-          scrollable: true,
-          title: 'RPC',
-          subtitle: 'Send RPCs directly to the ZCash sidechain. Try typing in "getblockcount" in the input below.',
-          body: Padding(
-            padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding64),
-            child: Column(
-              children: [
-                RPCWidget(
-                  rpcMethods: zcashRPCMethods,
+        return SailRawCard(
+          color: context.sailTheme.colors.background,
+          child: Column(
+            children: [
+              Expanded(
+                child: ConsoleView(
+                  services: [
+                    ConsoleService(
+                      name: 'zcash',
+                      commands: zcashRPCMethods,
+                      execute: (command, args) => model._rpc.callRAW(command, args),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       }),

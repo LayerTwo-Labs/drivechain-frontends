@@ -4,7 +4,6 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
-import 'package:sidesail/widgets/containers/tabs/console.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -26,8 +25,14 @@ class TestchainRPCTabPage extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 10 * SailStyleValues.padding64),
             child: Column(
               children: [
-                RPCWidget(
-                  rpcMethods: testRPCMethods,
+                ConsoleView(
+                  services: [
+                    ConsoleService(
+                      name: 'testchain',
+                      commands: testRPCMethods,
+                      execute: (command, args) => model._rpc.callRAW(command, args),
+                    ),
+                  ],
                 ),
               ],
             ),
