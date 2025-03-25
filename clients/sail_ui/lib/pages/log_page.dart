@@ -27,6 +27,7 @@ class LogPage extends StatefulWidget {
 class _LogPageState extends State<LogPage> {
   final ScrollController _scrollController = ScrollController();
   final List<String> _logLines = [];
+  final FocusNode _focusNode = FocusNode();
   Timer? _tailTimer;
   int _lastPosition = 0;
   bool _stickToBottom = true;
@@ -44,7 +45,9 @@ class _LogPageState extends State<LogPage> {
     // Check if we're at the bottom
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
-    _stickToBottom = maxScroll - currentScroll <= 50.0;
+    setState(() {
+      _stickToBottom = maxScroll - currentScroll <= 50.0;
+    });
   }
 
   TextSpan _parseAnsiCodes(String text) {
@@ -151,6 +154,10 @@ class _LogPageState extends State<LogPage> {
             .map((line) => line.trim())
             .toList();
 
+        // Store current scroll position before updating
+        final wasAtBottom = _stickToBottom;
+        final previousOffset = _scrollController.hasClients ? _scrollController.offset : 0;
+
         setState(() {
           _logLines.addAll(newLines);
           if (_logLines.length > 1000) {
@@ -160,9 +167,15 @@ class _LogPageState extends State<LogPage> {
 
         _lastPosition = length;
 
-        if (_stickToBottom && _scrollController.hasClients) {
+        // Only auto-scroll if we were already at the bottom
+        if (wasAtBottom && _scrollController.hasClients) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          });
+        } else if (_scrollController.hasClients) {
+          // Restore previous scroll position
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollController.jumpTo(previousOffset.toDouble());
           });
         }
       }
@@ -174,6 +187,7 @@ class _LogPageState extends State<LogPage> {
     _tailTimer?.cancel();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -190,38 +204,42 @@ class _LogPageState extends State<LogPage> {
             icon: const Icon(Icons.vertical_align_bottom),
             onPressed: () {
               _stickToBottom = true;
-              _scrollController.animateTo(
-                _scrollController.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  _scrollController.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                );
+              }
             },
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        child: ListView.builder(
-          controller: _scrollController,
-          itemCount: _logLines.length + 1,
-          itemBuilder: (context, index) {
-            if (index == _logLines.length) {
-              return const SizedBox(height: 100);
-            }
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
-              child: DefaultTextStyle(
-                style: const TextStyle(
-                  fontFamily: 'SourceCodePro',
-                  fontSize: 10,
-                  color: SailColorScheme.whiteDark,
+      body: SelectableRegion(
+        focusNode: _focusNode,
+        selectionControls: DesktopTextSelectionControls(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: ListView.builder(
+            controller: _scrollController,
+            itemCount: _logLines.length + 1,
+            itemBuilder: (context, index) {
+              if (index == _logLines.length) {
+                return const SizedBox(height: 100);
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+                child: Text.rich(
+                  _parseAnsiCodes(_logLines[index]),
+                  style: const TextStyle(
+                    fontFamily: 'SourceCodePro',
+                    fontSize: 10,
+                    color: SailColorScheme.whiteDark,
+                  ),
                 ),
-                child: RichText(
-                  text: _parseAnsiCodes(_logLines[index]),
-                ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
