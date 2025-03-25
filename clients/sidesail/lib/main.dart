@@ -39,7 +39,7 @@ Future<void> start() async {
         title: chain.name,
         theme: ThemeData(
           fontFamily: font == SailFontValues.sourceCodePro ? 'SourceCodePro' : 'Inter',
-          colorScheme: ColorScheme.fromSwatch().copyWith(secondary: const Color(0xffFF8000)),
+          colorScheme: ColorScheme.fromSwatch().copyWith(secondary: sidechain.rpc.chain.color),
         ),
       ),
       initMethod: (context) async {

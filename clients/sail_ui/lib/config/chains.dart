@@ -117,8 +117,8 @@ class ZCashSidechain extends Sidechain {
               DirectoryConfig(
                 base: {
                   OS.linux: '.zside',
-                  OS.macos: 'ZSide',
-                  OS.windows: 'ZSide',
+                  OS.macos: 'ZcashDrivechain',
+                  OS.windows: 'ZcashDrivechain',
                 },
               ),
           metadata: metadata ??
@@ -130,7 +130,7 @@ class ZCashSidechain extends Sidechain {
                   OS.windows: 'L2-S5-ZCash-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 38332),
+          network: network ?? NetworkConfig(port: 8232),
         );
 
   @override

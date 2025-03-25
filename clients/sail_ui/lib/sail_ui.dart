@@ -72,3 +72,4 @@ export './widgets/static/static_field.dart';
 export 'pages/log_page.dart';
 export 'pages/router.gr.dart';
 export 'pages/shutdown_page.dart';
+export 'widgets/console/console_view.dart';
