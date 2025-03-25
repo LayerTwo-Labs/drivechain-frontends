@@ -110,16 +110,6 @@ class InlineTabBarState extends State<InlineTabBar> {
     );
   }
   
-  // Show loading widget while content is changing
-  Widget _buildLoadingContent(BuildContext context) {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        child: const CircularProgressIndicator(),
-      ),
-    );
-  }
-  
   Widget _buildTabContent() {
     final tab = widget.tabs[_selectedIndex];
     
