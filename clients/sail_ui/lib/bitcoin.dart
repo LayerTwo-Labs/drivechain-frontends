@@ -12,13 +12,32 @@ int btcToSatoshi(double btc) {
   return (btc * satoshiPerBitcoin).toInt();
 }
 
-String formatBitcoin(num number, {String symbol = 'BTC'}) {
+String formatBitcoin(num? number, {String symbol = 'BTC'}) {
+  if (number == null || number.isNaN || number.isInfinite) {
+    return '0.0000,0000 $symbol';
+  }
+
+  // Ensure positive number and handle negatives
+  bool isNegative = number < 0;
+  number = number.abs();
+
+  // Format to 8 decimal places and handle potential rounding
   final formattedNumber = number.toStringAsFixed(8);
   final parts = formattedNumber.split('.');
-  final integerPart = parts[0]; // whole units
-  final decimalPart = parts[1]; // decimal units
-  final formattedDecimal = '${decimalPart.substring(0, 4)},${decimalPart.substring(4)}';
-  return '$integerPart.$formattedDecimal $symbol';
+
+  // Handle integer part
+  final integerPart = parts[0];
+
+  // Handle decimal part with safety checks
+  String formattedDecimal;
+  if (parts.length < 2) {
+    formattedDecimal = '0000,0000';
+  } else {
+    final decimalPart = parts[1].padRight(8, '0').substring(0, 8);
+    formattedDecimal = '${decimalPart.substring(0, 4)},${decimalPart.substring(4)}';
+  }
+
+  return '${isNegative ? '-' : ''}$integerPart.$formattedDecimal $symbol';
 }
 
 String formatDepositAddress(String address, int sidechainNum) {

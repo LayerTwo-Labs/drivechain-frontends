@@ -258,7 +258,7 @@ abstract class Binary {
     await tempDir.create(recursive: true);
 
     final inputStream = InputFileStream(zipPath);
-    final archive = ZipDecoder().decodeBuffer(inputStream);
+    final archive = ZipDecoder().decodeStream(inputStream);
 
     try {
       await extractArchiveToDisk(
