@@ -1315,144 +1315,147 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
       error: widget.error,
       bottomPadding: false,
       inSeparateWindow: widget.newWindowIdentifier != null,
-      newWindowIdentifier: widget.newWindowIdentifier,
-      withCloseButton: widget.newWindowIdentifier != null,
+      newWindowIdentifier: null,
+      withCloseButton: false,
       child: Column(
         children: [
           SailSpacing(SailStyleValues.padding16),
           Expanded(
-            child: widget.utxos.isEmpty
-              ? Center(child: SailText.primary15('No UTXOs available'))
-              : SailTable(
-                  getRowId: (index) => '${widget.utxos[index].txid}:${widget.utxos[index].vout}',
-                  headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'UTXO',
-                      onSort: () => onSort('txid'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Amount',
-                      onSort: () => onSort('amount'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Hops',
-                      onSort: () => onSort('hops'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Next Execution',
-                      onSort: () => onSort('next'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Status',
-                      onSort: () => onSort('status'),
-                    ),
-                    const SailTableHeaderCell(name: 'Actions'),
-                  ],
-                  rowBuilder: (context, row, selected) {
-                    final utxo = widget.utxos[row];
-                    final hasDeniability = utxo.hasDeniability();
-
-                    String status = '-';
-                    String nextExecution = '-';
-                    String hops = '0';
-                    bool canCancel = false;
-
-                    if (hasDeniability) {
-                      final completedHops = utxo.deniability.executions.length;
-                      final totalHops = utxo.deniability.numHops;
-                      hops = '$completedHops/$totalHops';
-                      if (completedHops == totalHops) {
-                        hops = '$completedHops';
-                      }
-
-                      status = utxo.deniability.hasCancelTime()
-                          ? 'Cancelled'
-                          : completedHops == totalHops
-                              ? 'Completed'
-                              : 'Ongoing';
-                      nextExecution = utxo.deniability.hasNextExecution()
-                          ? utxo.deniability.nextExecution.toDateTime().toLocal().toString()
-                          : '-';
-                      canCancel = status == 'Ongoing';
-
-                      if (status == 'Cancelled') {
-                        hops = '$completedHops';
-                      }
-                    }
-
-                    return [
-                      SailTableCell(
-                        value: '${utxo.txid}:${utxo.vout}',
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: hops,
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: nextExecution,
-                        monospace: true,
-                      ),
-                      Tooltip(
-                        message: utxo.deniability.cancelReason,
-                        child: SailTableCell(
-                          value: status,
-                          monospace: true,
-                        ),
-                      ),
-                      SailTableCell(
-                        value: canCancel ? 'Cancel' : '-',
-                        monospace: true,
-                        child: canCancel
-                            ? SailRawButton(
-                                disabled: false,
-                                loading: false,
-                                onPressed: () async => widget.onCancel(utxo.deniability.id),
-                                child: SailText.primary15(
-                                  'Cancel',
-                                  bold: true,
-                                  color: context.sailTheme.colors.text,
-                                ),
-                              )
-                            : SailRawButton(
-                                disabled: false,
-                                loading: false,
-                                onPressed: () async => widget.onDeny(utxo.txid, utxo.vout),
-                                child: SailText.primary15(
-                                  'Deny Ownership ${status != '-' ? 'Again' : ''}',
-                                  bold: true,
-                                  color: context.sailTheme.colors.text,
-                                ),
-                              ),
-                      ),
-                    ];
-                  },
-                  rowCount: widget.utxos.length,
-                  columnWidths: const [-1, -1, -1, -1, -1, -1],
-                  drawGrid: true,
-                  sortColumnIndex: [
-                    'txid',
-                    'vout',
-                    'amount',
-                    'next',
-                    'status',
-                    'actions',
-                  ].indexOf(sortColumn),
-                  sortAscending: sortAscending,
-                  onSort: (columnIndex, ascending) {
-                    onSort(['txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
-                  },
-                  onDoubleTap: (rowId) {
-                    final utxo = widget.utxos.firstWhere(
-                      (u) => '${u.txid}:${u.vout}' == rowId,
-                    );
-                    _showUtxoDetails(context, utxo);
-                  },
+            child: SailTable(
+              getRowId: (index) =>
+                  widget.utxos.isEmpty ? '0' : '${widget.utxos[index].txid}:${widget.utxos[index].vout}',
+              headerBuilder: (context) => [
+                SailTableHeaderCell(
+                  name: 'UTXO',
+                  onSort: () => onSort('txid'),
                 ),
+                SailTableHeaderCell(
+                  name: 'Amount',
+                  onSort: () => onSort('amount'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Hops',
+                  onSort: () => onSort('hops'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Next Execution',
+                  onSort: () => onSort('next'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Status',
+                  onSort: () => onSort('status'),
+                ),
+                const SailTableHeaderCell(name: 'Actions'),
+              ],
+              cellHeight: 36.0,
+              rowBuilder: (context, row, selected) {
+                // If there are no UTXOs, return a single row with an empty cell message
+                if (widget.utxos.isEmpty) {
+                  return [
+                    const SailTableCell(value: 'No UTXOs available'),
+                    const SailTableCell(value: ''),
+                    const SailTableCell(value: ''),
+                    const SailTableCell(value: ''),
+                    const SailTableCell(value: ''),
+                    const SailTableCell(value: ''),
+                  ];
+                }
+
+                final utxo = widget.utxos[row];
+                final hasDeniability = utxo.hasDeniability();
+
+                String status = '-';
+                String nextExecution = '-';
+                String hops = '0';
+                bool canCancel = false;
+
+                if (hasDeniability) {
+                  final completedHops = utxo.deniability.executions.length;
+                  final totalHops = utxo.deniability.numHops;
+                  hops = '$completedHops/$totalHops';
+                  if (completedHops == totalHops) {
+                    hops = '$completedHops';
+                  }
+
+                  status = utxo.deniability.hasCancelTime()
+                      ? 'Cancelled'
+                      : completedHops == totalHops
+                          ? 'Completed'
+                          : 'Ongoing';
+                  nextExecution = utxo.deniability.hasNextExecution()
+                      ? utxo.deniability.nextExecution.toDateTime().toLocal().toString()
+                      : '-';
+                  canCancel = status == 'Ongoing';
+
+                  if (status == 'Cancelled') {
+                    hops = '$completedHops';
+                  }
+                }
+
+                return [
+                  SailTableCell(
+                    value: '${utxo.txid}:${utxo.vout}',
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: hops,
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: nextExecution,
+                    monospace: true,
+                  ),
+                  Tooltip(
+                    message: utxo.deniability.cancelReason,
+                    child: SailTableCell(
+                      value: status,
+                      monospace: true,
+                    ),
+                  ),
+                  SailTableCell(
+                    value: canCancel ? 'Cancel' : '-',
+                    monospace: true,
+                    child: canCancel
+                        ? QtButton(
+                            label: 'Cancel',
+                            onPressed: () async => widget.onCancel(utxo.deniability.id),
+                            size: ButtonSize.small,
+                          )
+                        : QtButton(
+                            label: 'Deny',
+                            onPressed: () async => widget.onDeny(utxo.txid, utxo.vout),
+                            size: ButtonSize.small,
+                          ),
+                  ),
+                ];
+              },
+              rowCount: widget.utxos.isEmpty ? 1 : widget.utxos.length, // Show one row when empty
+              columnWidths: const [-1, -1, -1, -1, -1, -1],
+              drawGrid: true,
+              sortColumnIndex: [
+                'txid',
+                'vout',
+                'amount',
+                'next',
+                'status',
+                'actions',
+              ].indexOf(sortColumn),
+              sortAscending: sortAscending,
+              onSort: (columnIndex, ascending) {
+                onSort(['txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
+              },
+              onDoubleTap: (rowId) {
+                if (widget.utxos.isEmpty) return;
+                final utxo = widget.utxos.firstWhere(
+                  (u) => '${u.txid}:${u.vout}' == rowId,
+                );
+                _showUtxoDetails(context, utxo);
+              },
+            ),
           ),
           const SizedBox(height: 16),
         ],
