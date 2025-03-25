@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-#
+set -e
+
 cd sidesail
 flutter pub get
 cd ../
