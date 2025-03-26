@@ -264,6 +264,8 @@ class ProcessProvider extends ChangeNotifier {
         path.join(assetPath, baseBinary),
         if (Platform.isWindows) path.join(assetPath, '$baseBinary.exe'),
       ]);
+    } else {
+      log.d('appDir is null, not adding asset paths');
     }
 
     return paths;

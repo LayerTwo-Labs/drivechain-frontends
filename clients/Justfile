@@ -17,7 +17,16 @@ fix:
         fi
     done
 
-lint: format fix
+analyze:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for dir in bitwindow faucet launcher sail_ui sidesail; do
+        if [ -d "$dir" ]; then
+            (cd "$dir" && dart analyze)
+        fi
+    done
+
+lint: format fix analyze
 
 gen-router:
     #!/usr/bin/env bash

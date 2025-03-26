@@ -4,9 +4,9 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/dependencies.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
+import 'package:sidesail/main.dart';
 import 'package:sidesail/widgets/containers/chain_overview_card.dart';
 import 'package:stacked/stacked.dart';
 
@@ -52,12 +52,12 @@ class SidechainExplorerTabPage extends StatelessWidget {
                           inBottomNav: false,
                         ),
                         ChainOverviewCard(
-                          chain: ZCashSidechain(),
+                          chain: ZCash(),
                           confirmedBalance: model.balance,
                           unconfirmedBalance: model.pendingBalance,
                           highlighted: false,
-                          currentChain: model.chain == ZCashSidechain(),
-                          onPressed: () async => model.setSidechain(ZCashSidechain(), app),
+                          currentChain: model.chain == ZCash(),
+                          onPressed: () async => model.setSidechain(ZCash(), app),
                           inBottomNav: false,
                         ),
                       ],
@@ -97,7 +97,8 @@ class SidechainExplorerTabViewModel extends BaseViewModel {
 
   void setSidechain(Sidechain chain, SailAppState sailApp) async {
     setBusy(true);
-    final subRPC = await findSubRPC(chain);
+    final binaries = GetIt.I.get<BinaryProvider>().binaries;
+    final subRPC = await findSubRPC(chain, binaries);
 
     log.d('setting sidechain RPC to "${subRPC.chain.name}"');
     sidechain.rpc = subRPC;

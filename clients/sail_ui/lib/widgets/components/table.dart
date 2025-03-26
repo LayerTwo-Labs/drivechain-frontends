@@ -183,7 +183,6 @@ class _SailTableState extends State<SailTable> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        print('DEBUG: Table constraints - maxWidth: ${constraints.maxWidth}, minWidth: ${constraints.minWidth}');
         Widget innerListView;
 
         if (widget.shrinkWrap) {

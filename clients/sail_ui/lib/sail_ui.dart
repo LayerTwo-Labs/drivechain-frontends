@@ -72,4 +72,7 @@ export './widgets/static/static_field.dart';
 export 'pages/log_page.dart';
 export 'pages/router.gr.dart';
 export 'pages/shutdown_page.dart';
+export 'rpcs/rpc_sidechain.dart';
+export 'rpcs/zcash_rpc.dart';
+export 'rpcs/zcash_rpc_mock.dart';
 export 'widgets/console/console_view.dart';

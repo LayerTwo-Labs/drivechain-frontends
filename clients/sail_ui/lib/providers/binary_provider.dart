@@ -15,7 +15,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
-import 'package:sail_ui/style/color_scheme.dart';
+import 'package:sail_ui/rpcs/zcash_rpc.dart';
 
 /// Represents the current status of a binary download
 class DownloadState {
@@ -41,9 +41,10 @@ class BinaryProvider extends ChangeNotifier {
   final _processProvider = GetIt.I.get<ProcessProvider>();
   final mainchainRPC = GetIt.I.get<MainchainRPC>();
   final enforcerRPC = GetIt.I.get<EnforcerRPC>();
-  final bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+  late final BitwindowRPC? bitwindowRPC;
   late final ThunderRPC? thunderRPC;
   late final BitnamesRPC? bitnamesRPC;
+  late final ZCashRPC? zcashRPC;
 
   // Track download status and active downloads for each binary
   final _downloadStates = <String, DownloadState>{};
@@ -64,26 +65,32 @@ class BinaryProvider extends ChangeNotifier {
   // Connection status getters
   bool get mainchainConnected => mainchainRPC.connected;
   bool get enforcerConnected => enforcerRPC.connected;
-  bool get bitwindowConnected => bitwindowRPC.connected;
+  bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
   bool get thunderConnected => thunderRPC?.connected ?? false;
   bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
+  bool get zcashConnected => zcashRPC?.connected ?? false;
+
   bool get mainchainInitializing => mainchainRPC.initializingBinary;
   bool get enforcerInitializing => enforcerRPC.initializingBinary;
-  bool get bitwindowInitializing => bitwindowRPC.initializingBinary;
+  bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
   bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
+  bool get zcashInitializing => zcashRPC?.initializingBinary ?? false;
+
   bool get mainchainStopping => mainchainRPC.stoppingBinary;
   bool get enforcerStopping => enforcerRPC.stoppingBinary;
-  bool get bitwindowStopping => bitwindowRPC.stoppingBinary;
+  bool get bitwindowStopping => bitwindowRPC?.stoppingBinary ?? false;
   bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
   bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
+  bool get zcashStopping => zcashRPC?.stoppingBinary ?? false;
 
   // Only show errors for explicitly launched binaries
   String? get mainchainError => mainchainRPC.connectionError;
   String? get enforcerError => enforcerRPC.connectionError;
-  String? get bitwindowError => bitwindowRPC.connectionError;
+  String? get bitwindowError => bitwindowRPC?.connectionError;
   String? get thunderError => thunderRPC?.connectionError;
   String? get bitnamesError => bitnamesRPC?.connectionError;
+  String? get zcashError => zcashRPC?.connectionError;
 
   bool get inIBD => mainchainRPC.inIBD;
 
@@ -95,9 +102,15 @@ class BinaryProvider extends ChangeNotifier {
     _processProvider.addListener(notifyListeners);
     mainchainRPC.addListener(notifyListeners);
     enforcerRPC.addListener(notifyListeners);
-    bitwindowRPC.addListener(notifyListeners);
 
-    // Try to get optional RPCs
+    // Then try to register optional RPCs
+    try {
+      bitwindowRPC = GetIt.I.get<BitwindowRPC>();
+      bitwindowRPC?.addListener(notifyListeners);
+    } catch (_) {
+      bitwindowRPC = null;
+    }
+
     try {
       thunderRPC = GetIt.I.get<ThunderRPC>();
       thunderRPC?.addListener(notifyListeners);
@@ -110,6 +123,13 @@ class BinaryProvider extends ChangeNotifier {
       bitnamesRPC?.addListener(notifyListeners);
     } catch (_) {
       bitnamesRPC = null;
+    }
+
+    try {
+      zcashRPC = GetIt.I.get<ZCashRPC>();
+      zcashRPC?.addListener(notifyListeners);
+    } catch (_) {
+      zcashRPC = null;
     }
 
     _setupDirectoryWatcher();
@@ -206,6 +226,9 @@ class BinaryProvider extends ChangeNotifier {
       Bitnames() => enforcerConnected && mainchainReady
           ? null
           : 'Mainchain and Enforcer must be running and headers synced before starting Bitnames',
+      ZCash() => enforcerConnected && mainchainReady
+          ? null
+          : 'Mainchain and Enforcer must be running and headers synced before starting ZCash',
       _ => null, // No requirements for mainchain
     };
   }
@@ -232,7 +255,7 @@ class BinaryProvider extends ChangeNotifier {
         await enforcerRPC.initBinary(withBootConnectionRetry: withBootConnectionRetry);
 
       case BitWindow():
-        await bitwindowRPC.initBinary(withBootConnectionRetry: withBootConnectionRetry);
+        await bitwindowRPC?.initBinary(withBootConnectionRetry: withBootConnectionRetry);
 
       case Thunder():
         await thunderRPC?.initBinary(
@@ -249,6 +272,9 @@ class BinaryProvider extends ChangeNotifier {
               : null,
           withBootConnectionRetry: withBootConnectionRetry,
         );
+
+      case ZCash():
+        await zcashRPC?.initBinary(withBootConnectionRetry: withBootConnectionRetry);
 
       default:
         log.i('is $binary');
@@ -274,6 +300,7 @@ class BinaryProvider extends ChangeNotifier {
       BitWindow() => bitwindowConnected,
       Thunder() => thunderConnected,
       Bitnames() => bitnamesConnected,
+      ZCash() => zcashConnected,
       _ => false,
     };
   }
@@ -400,11 +427,13 @@ class BinaryProvider extends ChangeNotifier {
       case Enforcer():
         await enforcerRPC.stop();
       case BitWindow():
-        await bitwindowRPC.stop();
+        await bitwindowRPC?.stop();
       case Thunder():
         await thunderRPC?.stop();
       case Bitnames():
         await bitnamesRPC?.stop();
+      case ZCash():
+        await zcashRPC?.stop();
     }
   }
 
@@ -415,28 +444,31 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitWindow => bitwindowConnected,
       var b when b is Thunder => thunderConnected,
       var b when b is Bitnames => bitnamesConnected,
+      var b when b is ZCash => zcashConnected,
       _ => false,
     };
   }
 
   bool isInitializing(Binary binary) {
     return switch (binary) {
-      var b when b is ParentChain => mainchainRPC.initializingBinary,
-      var b when b is Enforcer => enforcerRPC.initializingBinary,
-      var b when b is BitWindow => bitwindowRPC.initializingBinary,
+      var b when b is ParentChain => mainchainInitializing,
+      var b when b is Enforcer => enforcerInitializing,
+      var b when b is BitWindow => bitwindowInitializing,
       var b when b is Thunder => thunderInitializing,
       var b when b is Bitnames => bitnamesInitializing,
+      var b when b is ZCash => zcashInitializing,
       _ => false,
     };
   }
 
   bool isStopping(Binary binary) {
     return switch (binary) {
-      var b when b is ParentChain => mainchainRPC.stoppingBinary,
-      var b when b is Enforcer => enforcerRPC.stoppingBinary,
-      var b when b is BitWindow => bitwindowRPC.stoppingBinary,
+      var b when b is ParentChain => mainchainStopping,
+      var b when b is Enforcer => enforcerStopping,
+      var b when b is BitWindow => bitwindowStopping,
       var b when b is Thunder => thunderStopping,
       var b when b is Bitnames => bitnamesStopping,
+      var b when b is ZCash => zcashStopping,
       _ => false,
     };
   }
@@ -448,12 +480,16 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitWindow => _processProvider.isRunning(BitWindow()),
       var b when b is Thunder => _processProvider.isRunning(Thunder()),
       var b when b is Bitnames => _processProvider.isRunning(Bitnames()),
+      var b when b is ZCash => _processProvider.isRunning(ZCash()),
       _ => false,
     };
   }
 
-  Future<void> _downloadUninstalledL1Binaries() async {
-    final uninstalledBinaries = binaries.where((b) => b.chainLayer == 1 && !b.isDownloaded);
+  Future<void> _downloadUninstalledBinaries(Binary binaryToBoot) async {
+    var uninstalledBinaries = binaries.where((b) => b.chainLayer == 1 && !b.isDownloaded).toList();
+    if (!binaryToBoot.isDownloaded) {
+      uninstalledBinaries.add(binaryToBoot);
+    }
 
     // Start downloads concurrently for uninstalled/failed binaries
     await Future.wait(
@@ -463,76 +499,57 @@ class BinaryProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> downloadThenBootL1(
-    BuildContext context, {
+  Future<void> downloadThenBootBinary(
+    Binary binaryToBoot, {
     bool bootAllNoMatterWhat = false,
     bool withEnforcerRetry = false,
   }) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final log = GetIt.I.get<Logger>();
-    log.i('Booting L1 binaries in');
+    log.i('Booting L1 binaries + ${binaryToBoot.name}');
 
-    try {
-      // First ensure all binaries are downloaded
-      await _downloadUninstalledL1Binaries();
+    // First ensure all binaries are downloaded
+    await _downloadUninstalledBinaries(binaryToBoot);
 
-      // Ensure we have all required binaries
-      final parentChain = binaries.whereType<ParentChain>().firstOrNull;
-      final enforcer = binaries.whereType<Enforcer>().firstOrNull;
-      final bitwindow = binaries.whereType<BitWindow>().firstOrNull;
+    // Ensure we have all required binaries
+    final parentChain = binaries.whereType<ParentChain>().firstOrNull;
+    final enforcer = binaries.whereType<Enforcer>().firstOrNull;
 
-      if (parentChain == null || enforcer == null || bitwindow == null) {
-        throw Exception('could not find all required L1 binaries');
-      }
-
-      // 1. Start parent chain and wait for IBD
-      if (!context.mounted) return;
-      await startBinary(parentChain, useStarter: false);
-
-      log.i('Waiting for mainchain to connect...');
-      await mainchainRPC.waitForHeaderSync();
-      log.i('Mainchain headers synced, starting enforcer');
-
-      // 2. Start rest after mainchain is ready
-      if (bootAllNoMatterWhat) {
-        // 2.1. If we're told to boot no matter what, do enforcer and bitwindow in parallell
-        if (!context.mounted) return;
-        unawaited(startBinary(bitwindow, useStarter: false));
-        await startBinary(
-          enforcer,
-          useStarter: false,
-          withBootConnectionRetry: withEnforcerRetry,
-        );
-        log.i('Started enforcer and bitwindow');
-      } else {
-        // 2.2. We're told to NOT be fast. Ensure enforcer is started first
-        if (!context.mounted) return;
-        await startBinary(
-          enforcer,
-          useStarter: false,
-          withBootConnectionRetry: withEnforcerRetry,
-        );
-        log.i('Started enforcer');
-
-        // 3. Start BitWindow after enforcer
-        if (!context.mounted) return;
-        await startBinary(bitwindow, useStarter: false);
-        log.i('Started BitWindow');
-      }
-
-      log.i('All L1 binaries started successfully');
-    } catch (e) {
-      log.e('Error starting L1 binaries: $e');
-      if (context.mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('Failed to start L1 binaries: $e'),
-            backgroundColor: SailColorScheme.red,
-          ),
-        );
-      }
-      rethrow; // Re-throw to indicate failure
+    if (parentChain == null || enforcer == null) {
+      throw Exception('could not find all required L1 binaries');
     }
+
+    // 1. Start parent chain and wait for IBD
+    await startBinary(parentChain, useStarter: false);
+
+    log.i('Waiting for mainchain to connect...');
+    await mainchainRPC.waitForHeaderSync();
+    log.i('Mainchain headers synced, starting enforcer');
+
+    // 2. Start rest after mainchain is ready
+    if (bootAllNoMatterWhat) {
+      // 2.1. If we're told to boot no matter what, do enforcer and bitwindow in parallell
+      unawaited(startBinary(binaryToBoot, useStarter: false));
+      await startBinary(
+        enforcer,
+        useStarter: false,
+        withBootConnectionRetry: withEnforcerRetry,
+      );
+      log.i('Started enforcer and ${binaryToBoot.name}');
+    } else {
+      // 2.2. We're told to NOT be fast. Ensure enforcer is started first
+      await startBinary(
+        enforcer,
+        useStarter: false,
+        withBootConnectionRetry: withEnforcerRetry,
+      );
+      log.i('Started enforcer');
+
+      // 3. Start whatever binary we were told to boot after enforcer
+      await startBinary(binaryToBoot, useStarter: false);
+      log.i('Started ${binaryToBoot.name}');
+    }
+
+    log.i('All binaries started successfully');
   }
 
   @override
@@ -541,9 +558,10 @@ class BinaryProvider extends ChangeNotifier {
     _releaseCheckTimer?.cancel();
     mainchainRPC.removeListener(notifyListeners);
     enforcerRPC.removeListener(notifyListeners);
-    bitwindowRPC.removeListener(notifyListeners);
+    bitwindowRPC?.removeListener(notifyListeners);
     thunderRPC?.removeListener(notifyListeners);
     bitnamesRPC?.removeListener(notifyListeners);
+    zcashRPC?.removeListener(notifyListeners);
     super.dispose();
   }
 }

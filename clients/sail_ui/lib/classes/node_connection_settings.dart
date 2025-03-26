@@ -232,12 +232,12 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
         // do nothing, just don't exit
       }
       break;
-    case ZCashSidechain():
+    case ZCash():
       try {
         conf = await readRPCConfig(
-          ZCashSidechain().datadir(),
-          ZCashSidechain().confFile(),
-          ZCashSidechain(),
+          ZCash().datadir(),
+          ZCash().confFile(),
+          ZCash(),
           'regtest',
           useCookieAuth: false,
         );

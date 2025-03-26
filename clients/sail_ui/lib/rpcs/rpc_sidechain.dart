@@ -1,7 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// RPC connection for all sidechain nodes
 abstract class SidechainRPC extends RPCConnection {

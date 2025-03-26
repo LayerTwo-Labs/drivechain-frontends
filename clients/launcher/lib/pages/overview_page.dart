@@ -492,7 +492,22 @@ class _OverviewPageState extends State<OverviewPage> {
 
                                             return SailButton.primary(
                                               allL1Downloaded ? 'Boot Layer 1' : 'Download and Boot Layer 1',
-                                              onPressed: () => _binaryProvider.downloadThenBootL1(context),
+                                              onPressed: () async {
+                                                try {
+                                                  await _binaryProvider.downloadThenBootBinary(
+                                                    _binaryProvider.binaries.firstWhere((b) => b is BitWindow),
+                                                  );
+                                                } catch (e) {
+                                                  if (!context.mounted) return;
+                                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                                  scaffoldMessenger.showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Failed to start L1 binaries: $e'),
+                                                      backgroundColor: SailColorScheme.red,
+                                                    ),
+                                                  );
+                                                }
+                                              },
                                               size: ButtonSize.regular,
                                             );
                                           },
