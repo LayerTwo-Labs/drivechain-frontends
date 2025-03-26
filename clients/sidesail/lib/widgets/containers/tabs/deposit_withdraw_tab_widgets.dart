@@ -4,405 +4,16 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
-import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
-import 'package:sidesail/widgets/containers/dashboard_action_modal.dart';
 import 'package:stacked/stacked.dart';
-
-class PegOutAction extends StatelessWidget {
-  final String? staticAddress;
-
-  const PegOutAction({
-    super.key,
-    this.staticAddress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: SailStyleValues.padding04),
-      child: ViewModelBuilder.reactive(
-        viewModelBuilder: () => PegOutViewModel(staticAddress: staticAddress),
-        builder: ((context, model, child) {
-          return SailColumn(
-            spacing: 0,
-            children: [
-              LargeEmbeddedInput(
-                controller: model.bitcoinAddressController,
-                hintText: 'Enter a parent chain bitcoin-address',
-                autofocus: true,
-                disabled: staticAddress != null,
-              ),
-              LargeEmbeddedInput(
-                controller: model.bitcoinAmountController,
-                hintText: 'Enter a BTC-amount',
-                suffixText: 'BTC',
-                bitcoinInput: true,
-              ),
-              StaticActionField(
-                label: 'Parent chain fee',
-                value: formatBitcoin((model.mainchainFee ?? 0)),
-              ),
-              StaticActionField(
-                label: '${model.sidechain.rpc.chain.name} fee',
-                value: formatBitcoin((model.sidechainFee ?? 0), symbol: model.sidechain.rpc.chain.ticker),
-              ),
-              StaticActionField(
-                label: 'Total amount',
-                value: model.totalBitcoinAmount,
-              ),
-              SailButton.primary(
-                'Execute withdraw',
-                disabled: model.bitcoinAddressController.text.isEmpty || model.bitcoinAmountController.text.isEmpty,
-                loading: model.isBusy,
-                size: ButtonSize.regular,
-                onPressed: () async {
-                  model.executePegOut(context);
-                },
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class PegOutViewModel extends BaseViewModel {
-  final log = Logger(level: Level.debug);
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
-  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
-
-  final bitcoinAddressController = TextEditingController();
-  final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount => formatBitcoin(
-        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)),
-      );
-
-  double? sidechainFee;
-  double? mainchainFee;
-  double? get pegOutAmount => double.tryParse(bitcoinAmountController.text);
-  double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0), 0);
-
-  final String? staticAddress;
-  PegOutViewModel({this.staticAddress}) {
-    bitcoinAddressController.addListener(notifyListeners);
-    bitcoinAmountController.addListener(_capAmount);
-    _balanceProvider.addListener(notifyListeners);
-
-    if (staticAddress != null) {
-      bitcoinAddressController.text = staticAddress!;
-    }
-
-    init();
-  }
-
-  void init() async {
-    await Future.wait([estimateSidechainFee(), estimateMainchainFee()]);
-  }
-
-  void _capAmount() {
-    String currentInput = bitcoinAmountController.text;
-
-    if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
-      bitcoinAmountController.text = maxAmount.toString();
-      bitcoinAmountController.selection =
-          TextSelection.fromPosition(TextPosition(offset: bitcoinAmountController.text.length));
-    } else {
-      notifyListeners();
-    }
-  }
-
-  void executePegOut(BuildContext context) async {
-    setBusy(true);
-    onPegOut(context);
-    setBusy(false);
-  }
-
-  Future<void> estimateSidechainFee() async {
-    sidechainFee = await sidechain.rpc.sideEstimateFee();
-    notifyListeners();
-  }
-
-  Future<void> estimateMainchainFee() async {
-    mainchainFee = 0.0001;
-    notifyListeners();
-  }
-
-  void onPegOut(BuildContext context) async {
-    if (pegOutAmount == null) {
-      log.e('withdrawal amount was empty');
-      return;
-    }
-    if (sidechainFee == null) {
-      log.e('sidechain fee was empty');
-      return;
-    }
-
-    final address = bitcoinAddressController.text;
-
-    // Because the function is async, the view might disappear/unmount
-    // by the time it's used. The linter doesn't like that, and wants
-    // you to check whether the view is mounted before using it
-    if (!context.mounted) {
-      return;
-    }
-
-    _doPegOut(
-      context,
-      address,
-      pegOutAmount!,
-      sidechainFee!,
-      mainchainFee!,
-    );
-  }
-
-  void _doPegOut(
-    BuildContext context,
-    String address,
-    double amount,
-    double sidechainFee,
-    double mainchainFee,
-  ) async {
-    log.i(
-      'doing withdraw: $amount BTC to $address for $sidechainFee SC fee and $mainchainFee MC fee',
-    );
-
-    try {
-      final withdrawalTxid = await sidechain.rpc.mainSend(
-        address,
-        amount,
-        sidechainFee,
-        mainchainFee,
-      );
-
-      log.i(
-        'pegged out successfully',
-      );
-
-      if (!context.mounted) {
-        return;
-      }
-
-      // refresh balance, but don't await, so dialog is showed instantly
-      unawaited(_balanceProvider.fetch());
-      // refresh transactions, but don't await, so dialog is showed instantly
-      unawaited(_transactionsProvider.fetch());
-
-      await successDialog(
-        context: context,
-        action: 'Withdraw to parent chain',
-        title: 'Submitted withdraw successfully',
-        subtitle: 'TXID: $withdrawalTxid',
-      );
-    } catch (error) {
-      log.e('could not execute withdraw: $error', error: error);
-
-      if (!context.mounted) {
-        return;
-      }
-
-      await errorDialog(
-        context: context,
-        action: 'Withdraw to parent chain',
-        title: 'Could not execute withdraw',
-        subtitle: error.toString(),
-      );
-    }
-  }
-}
-
-class PegInAction extends StatelessWidget {
-  const PegInAction({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: SailStyleValues.padding04),
-      child: ViewModelBuilder.reactive(
-        viewModelBuilder: () => PegInViewModel(),
-        builder: ((context, model, child) {
-          return SailColumn(
-            spacing: SailStyleValues.padding10,
-            children: [
-              StaticActionField(
-                label: 'Address',
-                value: model.pegInAddress ?? '',
-                copyable: true,
-              ),
-              SailButton.primary(
-                'Generate new address',
-                loading: model.isBusy,
-                size: ButtonSize.regular,
-                onPressed: () async {
-                  await model.generatePegInAddress();
-                },
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class PegInViewModel extends BaseViewModel {
-  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
-  final log = Logger(level: Level.debug);
-
-  String? pegInAddress;
-
-  PegInViewModel() {
-    generatePegInAddress();
-  }
-
-  Future<void> generatePegInAddress() async {
-    setBusy(true);
-    try {
-      pegInAddress = await _sidechain.rpc.getDepositAddress();
-    } finally {
-      setBusy(false);
-      notifyListeners();
-    }
-  }
-}
-
-class PegInEthAction extends StatelessWidget {
-  const PegInEthAction({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => PegInEthViewModel(),
-      builder: ((context, model, child) {
-        return DashboardActionModal(
-          'Deposit from parent chain',
-          endActionButton: SailButton.primary(
-            'Deposit funds',
-            loading: model.isBusy,
-            size: ButtonSize.regular,
-            onPressed: () async {
-              await model.deposit(context);
-            },
-          ),
-          children: [
-            LargeEmbeddedInput(
-              controller: model.bitcoinAmountController,
-              hintText: 'How much do you want to deposit?',
-              suffixText: 'BTC',
-              bitcoinInput: true,
-            ),
-            StaticActionField(
-              label: 'Deposit to',
-              value: model.pegInAddress ?? '',
-              copyable: true,
-            ),
-            StaticActionField(
-              label: '${model.sidechain.rpc.chain.name} fee',
-              value: formatBitcoin((model.sidechainFee ?? 0)),
-            ),
-            StaticActionField(
-              label: 'Total amount',
-              value: model.totalBitcoinAmount,
-            ),
-          ],
-        );
-      }),
-    );
-  }
-}
-
-class PegInEthViewModel extends BaseViewModel {
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  EthereumRPC get _ethRPC => GetIt.I.get<EthereumRPC>();
-  SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
-  final log = Logger(level: Level.debug);
-
-  final bitcoinAmountController = TextEditingController();
-  String get totalBitcoinAmount =>
-      formatBitcoin(((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)));
-
-  String? pegInAddress;
-  double? sidechainFee;
-
-  PegInEthViewModel() {
-    generatePegInAddress();
-    bitcoinAmountController.addListener(notifyListeners);
-  }
-
-  Future<void> generatePegInAddress() async {
-    pegInAddress = await _ethRPC.getDepositAddress();
-    sidechainFee = await _ethRPC.sideEstimateFee();
-    notifyListeners();
-  }
-
-  Future<void> deposit(BuildContext context) async {
-    if (sidechainFee == null) {
-      log.e('sidechainfee was empty');
-      return;
-    }
-
-    final amount = (double.tryParse(bitcoinAmountController.text) ?? 0);
-
-    await _ethRPC.deposit(amount, sidechainFee!);
-
-    log.i(
-      'doing deposit: $amount BTC to $pegInAddress',
-    );
-
-    try {
-      final success = await _ethRPC.deposit(
-        amount,
-        sidechainFee!,
-      );
-
-      if (!context.mounted) {
-        return;
-      }
-
-      // refresh balance, but don't await, so dialog is showed instantly
-      unawaited(_balanceProvider.fetch());
-
-      if (!success) {
-        throw Exception('got false response');
-      }
-
-      await successDialog(
-        context: context,
-        action: 'Deposit from parent chain',
-        title: 'Deposited from parent-chain successfully',
-        subtitle: '',
-      );
-    } catch (error) {
-      log.e('could not execute withdraw: $error', error: error);
-
-      if (!context.mounted) {
-        return;
-      }
-
-      await errorDialog(
-        context: context,
-        action: 'Deposit from parent chain',
-        title: 'Could not deposit from parent-chain',
-        subtitle: '$error. Check you have enough balance in your parent-chain wallet.',
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    bitcoinAmountController.removeListener(notifyListeners);
-  }
-}
 
 class DepositWithdrawHelp extends StatelessWidget {
   SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
@@ -425,63 +36,9 @@ class DepositWithdrawHelp extends StatelessWidget {
           'When we use the word deposit or withdraw in this application, we always refer to moving coins across chains.',
         ),
         const QuestionText(
-          "Only after you have deposited coins to the sidechain, can you start using it's special features! There's a special rpc called createsidechaindeposit that lets you deposit from your parent chain wallet.",
+          "Only after you have deposited coins to the sidechain, can you start using it's special features! If you're a developer and know your way around a command line, there's a special rpc called createsidechaindeposit that lets you deposit from your parent chain wallet.",
         ),
       ],
-    );
-  }
-}
-
-class EasyRegtestDeposit extends StatelessWidget {
-  final VoidCallback depositNudgeAction;
-
-  AppRouter get router => GetIt.I.get<AppRouter>();
-
-  const EasyRegtestDeposit({
-    super.key,
-    required this.depositNudgeAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => ZCashWidgetTitleViewModel(),
-      builder: ((context, model, child) {
-        if (model.balance != 0) {
-          return Container();
-        }
-
-        return SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailButton.primary(
-              'Easy Deposit',
-              onPressed: () async {
-                try {
-                  await model.easyDeposit();
-                } catch (err) {
-                  if (!context.mounted) {
-                    return;
-                  }
-
-                  await errorDialog(
-                    context: context,
-                    action: 'Deposit coins',
-                    title: "Could not easy-deposit coins. Try pegging in manually with 'createsidechaindeposit'",
-                    subtitle: err.toString(),
-                  );
-                }
-              },
-              loading: model.isBusy,
-              size: ButtonSize.small,
-            ),
-            SailText.secondary12(
-              'Click the button to deposit coins to your sidechain',
-            ),
-            Expanded(child: Container()),
-          ],
-        );
-      }),
     );
   }
 }
@@ -496,28 +53,6 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
 
   ZCashWidgetTitleViewModel() {
     _balanceProvider.addListener(notifyListeners);
-  }
-
-  Future<void> easyDeposit() async {
-    setBusy(true);
-    // step 1, get mainchain balance
-    // final balance = await _mainchain.balance();
-    // final confirmedBalance = balance.$1;
-
-    // step 2, get sidechain deposit address
-    // final depositAddress = await _sidechainContainer.rpc.getDepositAddress();
-
-    // step 3, query createsidechaindeposit with the current chain params
-    // final _ = await _mainchain.createSidechainDeposit(
-    //   _sidechainContainer.rpc.chain.slot,
-    //   depositAddress,
-    //   confirmedBalance / 3 * 2,
-    // );
-
-    // step 4 confirm the deposit
-    // await _mainchain.generate(22);
-
-    setBusy(false);
   }
 
   @override
@@ -871,6 +406,343 @@ class ExpandedUnbundledWithdrawalView extends StatelessWidget {
           width: bundleViewWidth,
         );
       }).toList(),
+    );
+  }
+}
+
+class DepositWithdrawTabViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+
+  final bitcoinAddressController = TextEditingController();
+  final bitcoinAmountController = TextEditingController();
+  final labelController = TextEditingController();
+
+  String? depositAddress;
+  double? sidechainFee;
+  double? mainchainFee;
+
+  double? get pegAmount => double.tryParse(bitcoinAmountController.text);
+  double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0), 0);
+
+  String get totalBitcoinAmount => formatBitcoin(
+        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)),
+      );
+
+  DepositWithdrawTabViewModel() {
+    _initControllers();
+    _initFees();
+    _transactionsProvider.addListener(notifyListeners);
+    _balanceProvider.addListener(notifyListeners);
+    generateDepositAddress();
+  }
+
+  void _initControllers() {
+    bitcoinAddressController.addListener(notifyListeners);
+    bitcoinAmountController.addListener(_capAmount);
+  }
+
+  Future<void> _initFees() async {
+    await Future.wait([estimateSidechainFee(), estimateMainchainFee()]);
+  }
+
+  void _capAmount() {
+    String currentInput = bitcoinAmountController.text;
+    if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
+      bitcoinAmountController.text = maxAmount.toString();
+      bitcoinAmountController.selection = TextSelection.fromPosition(
+        TextPosition(offset: bitcoinAmountController.text.length),
+      );
+    }
+    notifyListeners();
+  }
+
+  Future<void> estimateSidechainFee() async {
+    sidechainFee = await _sidechain.rpc.sideEstimateFee();
+    notifyListeners();
+  }
+
+  Future<void> estimateMainchainFee() async {
+    mainchainFee = 0.0001;
+    notifyListeners();
+  }
+
+  Future<void> generateDepositAddress() async {
+    setBusy(true);
+    try {
+      depositAddress = await _sidechain.rpc.getDepositAddress();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> executePegOut(BuildContext context) async {
+    if (pegAmount == null || sidechainFee == null) {
+      log.e('Invalid peg out parameters');
+      return;
+    }
+
+    setBusy(true);
+    try {
+      final withdrawalTxid = await _sidechain.rpc.mainSend(
+        bitcoinAddressController.text,
+        pegAmount!,
+        sidechainFee!,
+        mainchainFee!,
+      );
+
+      if (!context.mounted) return;
+
+      unawaited(_balanceProvider.fetch());
+      unawaited(_transactionsProvider.fetch());
+
+      await successDialog(
+        context: context,
+        action: 'Withdraw to parent chain',
+        title: 'Submitted withdraw successfully',
+        subtitle: 'TXID: $withdrawalTxid',
+      );
+    } catch (error) {
+      log.e('Could not execute withdraw', error: error);
+      if (!context.mounted) return;
+
+      await errorDialog(
+        context: context,
+        action: 'Withdraw to parent chain',
+        title: 'Could not execute withdraw',
+        subtitle: error.toString(),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  void castHelp(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const DepositWithdrawHelp();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    bitcoinAddressController.dispose();
+    bitcoinAmountController.dispose();
+    labelController.dispose();
+    _transactionsProvider.removeListener(notifyListeners);
+    _balanceProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+class DepositTab extends StatelessWidget {
+  const DepositTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => DepositWithdrawTabViewModel(),
+      builder: (context, model, child) {
+        return Column(
+          children: [
+            SailRow(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              spacing: SailStyleValues.padding08,
+              children: [
+                Expanded(
+                  child: SailRawCard(
+                    title: 'Deposit from Parent Chain',
+                    subtitle: 'Deposit coins to the sidechain',
+                    widgetHeaderEnd: HelpButton(onPressed: () async => model.castHelp(context)),
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding16,
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (model.isBusy)
+                          const Center(child: LoadingIndicator())
+                        else ...[
+                          SailRow(
+                            spacing: SailStyleValues.padding08,
+                            children: [
+                              Expanded(
+                                child: SailTextField(
+                                  controller: TextEditingController(text: model.depositAddress),
+                                  hintText: 'Generating deposit address...',
+                                  readOnly: true,
+                                ),
+                              ),
+                              if (model.depositAddress != null)
+                                CopyButton(
+                                  text: model.depositAddress!,
+                                ),
+                            ],
+                          ),
+                          QtButton(
+                            label: 'Generate new address',
+                            onPressed: () => model.generateDepositAddress(),
+                            loading: model.isBusy,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                if (model.depositAddress != null)
+                  SizedBox(
+                    width: 180,
+                    child: SailRawCard(
+                      padding: true,
+                      child: QrImageView(
+                        padding: EdgeInsets.zero,
+                        eyeStyle: QrEyeStyle(
+                          color: theme.colors.text,
+                          eyeShape: QrEyeShape.square,
+                        ),
+                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                        data: model.depositAddress!,
+                        version: QrVersions.auto,
+                      ),
+                    ),
+                  ),
+                Expanded(child: Container()),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
+  const WithdrawTab({super.key});
+
+  @override
+  Widget build(BuildContext context, DepositWithdrawTabViewModel viewModel) {
+    return SailRawCard(
+      title: 'Withdraw to Parent Chain',
+      subtitle: 'Withdraw bitcoin from the sidechain to the parent chain',
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            spacing: SailStyleValues.padding08,
+            children: [
+              Expanded(
+                child: SailTextField(
+                  label: 'Pay To',
+                  controller: viewModel.bitcoinAddressController,
+                  hintText: 'Enter a L1 bitcoin-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                  size: TextFieldSize.small,
+                ),
+              ),
+              QtIconButton(
+                tooltip: 'Paste from clipboard',
+                onPressed: () async {
+                  try {
+                    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                    if (clipboardData?.text != null) {
+                      viewModel.bitcoinAddressController.text = clipboardData!.text!;
+                    }
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    showSnackBar(context, 'Error accessing clipboard');
+                  }
+                },
+                icon: Icon(
+                  Icons.content_paste_rounded,
+                  size: 20.0,
+                  color: context.sailTheme.colors.text,
+                ),
+              ),
+              const SizedBox(width: 4.0),
+            ],
+          ),
+          const SizedBox(height: SailStyleValues.padding16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    SailRow(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        Expanded(
+                          child: NumericField(
+                            label: 'Amount',
+                            controller: viewModel.bitcoinAmountController,
+                            suffixWidget: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (viewModel.maxAmount != null) {
+                                    viewModel.bitcoinAmountController.text = viewModel.maxAmount.toString();
+                                  }
+                                },
+                                child: SailText.primary15(
+                                  'MAX',
+                                  color: context.sailTheme.colors.orange,
+                                  underline: true,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: SailStyleValues.padding16),
+                    SailTextField(
+                      label: 'Label (optional)',
+                      controller: viewModel.labelController,
+                      hintText: 'Enter a label',
+                      size: TextFieldSize.small,
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(child: Container()),
+            ],
+          ),
+          const SizedBox(height: SailStyleValues.padding16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  QtButton(
+                    label: 'Send',
+                    onPressed: () => viewModel.executePegOut(context),
+                    size: ButtonSize.small,
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  QtButton(
+                    style: SailButtonStyle.secondary,
+                    label: 'Clear All',
+                    onPressed: () async {
+                      viewModel.bitcoinAddressController.clear();
+                      viewModel.bitcoinAmountController.clear();
+                      viewModel.labelController.clear();
+                    },
+                    size: ButtonSize.small,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

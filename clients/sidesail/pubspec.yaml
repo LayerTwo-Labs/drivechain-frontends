@@ -25,6 +25,7 @@ dependencies:
   dio: 5.7.0
   auto_route: ^9.3.0+1
   get_it: ^7.7.0
+  qr_flutter: ^4.1.0
   collection: ^1.18.0
   stacked: ^3.4.3
   synchronized: ^3.3.1
