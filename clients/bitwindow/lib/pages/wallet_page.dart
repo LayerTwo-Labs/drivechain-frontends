@@ -123,7 +123,7 @@ class WalletPage extends StatelessWidget {
               menuItems: dropdownTabs.map((tab) => tab.label).toList(),
               contentMap: dropdownContentMap, // Map menu items to their content widgets
               selectedItem: dropdownTabs.first.label, // Pre-select the first dropdown item
-              useFixedLabel: true, // Keep the label as "Tools" even when selection changes
+              useFixedLabel: false, // Show "Tools" when not selected, show tool name when selected
               onItemSelected: (selectedLabel) {
                 // Find the tab with the selected label
                 final selectedTab = dropdownTabs.firstWhere(
