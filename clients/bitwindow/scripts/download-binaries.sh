@@ -90,7 +90,7 @@ if ! test -f $assets_dir/$enforcer; then
     $unpack_cmd $enforcer_file
 
     # Use find to locate the enforcer binary. The naming is not always consistent..
-    enforcer_binary=$(find . -name "bip300301-enforcer*$bin_name_postfix" -print -quit)
+    enforcer_binary=$(find . -name "bip300301-enforcer*$bin_name_postfix" -type f -print -quit)
 
     if [ -z "$enforcer_binary" ]; then
         echo "Error: Could not find the enforcer binary in the extracted files."
@@ -99,7 +99,7 @@ if ! test -f $assets_dir/$enforcer; then
 
     # Move the found binary to the assets directory and rename it to ensure consistency
     # The code will try to start a binary with this exact name.
-    mv "$enforcer_binary" $assets_dir/$enforcer
+    mv "$enforcer_binary" "$assets_dir/$enforcer"
 
     # Check if the move was successful
     if [ $? -ne 0 ]; then
@@ -110,7 +110,7 @@ if ! test -f $assets_dir/$enforcer; then
     echo "Enforcer binary renamed to $enforcer"
 
     # Make the binary executable
-    chmod +x $assets_dir/$enforcer
+    chmod +x "$assets_dir/$enforcer"
     echo "Made $enforcer executable"
 fi
 
