@@ -28,8 +28,8 @@ $ drivechaind \
   -listen
 
 #
-# Then, start the bip300301_enforcer
-$ ./enforcer/bin/bip300301_enforcer \
+# Then, start the bip300301-enforcer
+$ ./enforcer/bin/bip300301-enforcer \
   --node-rpc-password=password \
   --node-rpc-user=user \
   --node-rpc-port=38332

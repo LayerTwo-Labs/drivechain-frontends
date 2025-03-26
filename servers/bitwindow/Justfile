@@ -34,26 +34,23 @@ build-enforcer:
         exit 1
     fi
 
-    binary_name="bip300301_enforcer"
+    binary_name="bip300301-enforcer"
     if ! test -f ./bin/$binary_name; then
-        # Setup
         echo "Downloading $binary_name..."
         mkdir -p ./bin
+        
         # Download
         enforcer_zip=bip300301-enforcer-latest-x86_64-$enforcer_version_postfix.zip
         curl --fail -O https://releases.drivechain.info/$enforcer_zip
-        # Unpack
-        echo unpacking: unzip $enforcer_zip
-        unzip -o $enforcer_zip
-        enforcer_binary=$(find . -name "bip300301-enforcer*" -print -quit)
-        if [ -z "$enforcer_binary" ]; then
-            echo "Error: Could not find the enforcer binary in the extracted files."
-            exit 1
-        fi
-        # Move and make executable
-        mv "$enforcer_binary" ./bin/$binary_name
+        
+        # Unpack directly to bin directory
+        echo "Unpacking: unzip -j $enforcer_zip '**/bip300301-enforcer*' -d ./bin/"
+        unzip -j $enforcer_zip '**/bip300301-enforcer*' -d ./bin/
+        
+        # Rename the extracted file to our standard name
+        mv ./bin/bip300301-enforcer* ./bin/$binary_name
         chmod +x ./bin/$binary_name
-        echo "$binary_name has been downloaded to ./bin/$binary_name and made executable"
+        
         # Clean up
         rm $enforcer_zip
     else
