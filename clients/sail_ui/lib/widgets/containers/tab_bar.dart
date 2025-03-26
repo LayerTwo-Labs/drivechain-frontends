@@ -250,7 +250,7 @@ class DropdownTabItem extends TabItem {
                 ),
                 const SizedBox(width: SailStyleValues.padding08),
                 SailText.primary13(
-                  useFixedLabel ? label : (isSelected && selectedItem != null ? '$label: $selectedItem' : label),
+                  useFixedLabel ? label : (isSelected && selectedItem != null ? selectedItem! : label),
                   color: isSelected ? theme.colors.textSecondary : theme.colors.textTertiary,
                   bold: true,
                 ),
