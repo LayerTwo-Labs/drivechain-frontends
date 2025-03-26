@@ -75,7 +75,7 @@ if ! test -f $assets_dir/$drivechain; then
         chmod +x "$assets_dir/$file"
     done
 fi 
-enforcer=bip300301_enforcer$bin_name_postfix
+enforcer=bip300301-enforcer$bin_name_postfix
 
 # Avoid fetching the binary if it already exists
 if ! test -f $assets_dir/$enforcer; then
