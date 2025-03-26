@@ -19,7 +19,7 @@ class InlineTabBar extends StatefulWidget {
 
 class InlineTabBarState extends State<InlineTabBar> {
   late int _selectedIndex;
-  
+
   @override
   void initState() {
     super.initState();
@@ -31,13 +31,13 @@ class InlineTabBarState extends State<InlineTabBar> {
       setState(() {
         _selectedIndex = index;
       });
-      
+
       widget.onTabChanged?.call(index);
     } else {
       throw Exception('Index out of bounds: index=$index, tabs.length=${widget.tabs.length}');
     }
   }
-  
+
   // Method to force rebuild when dropdown selection changes
   void refreshState() {
     setState(() {});
@@ -52,17 +52,22 @@ class InlineTabBarState extends State<InlineTabBar> {
           children: List.generate(widget.tabs.length, (index) {
             final isSelected = index == _selectedIndex;
             final tab = widget.tabs[index];
-            
+
             // Handle dropdown tab items differently
             if (tab is DropdownTabItem) {
-              return tab.buildTab(context, isSelected, () {
-                if (tab.onTap != null) {
-                  tab.onTap!();
-                }
-                setIndex(index);
-              }, refreshState,);
+              return tab.buildTab(
+                context,
+                isSelected,
+                () {
+                  if (tab.onTap != null) {
+                    tab.onTap!();
+                  }
+                  setIndex(index);
+                },
+                refreshState,
+              );
             }
-            
+
             // Regular tab items
             return InkWell(
               onTap: () {
@@ -109,17 +114,17 @@ class InlineTabBarState extends State<InlineTabBar> {
       ],
     );
   }
-  
+
   Widget _buildTabContent() {
     final tab = widget.tabs[_selectedIndex];
-    
+
     if (tab is DropdownTabItem) {
       if (tab.selectedItem != null && tab.contentMap.containsKey(tab.selectedItem)) {
         return tab.contentMap[tab.selectedItem]!;
       }
       return tab.child;
     }
-    
+
     return tab.child;
   }
 }
@@ -143,16 +148,16 @@ class TabItem {
 class DropdownTabItem extends TabItem {
   final List<String> menuItems;
   final Function(String) onItemSelected;
-  
+
   // Keep track of the currently selected item
   String? selectedItem;
-  
+
   // Map of menu labels to content widgets
   final Map<String, Widget> contentMap;
-  
+
   // Whether to keep the original label or show the selected item
   final bool useFixedLabel;
-  
+
   // Store the menu controller as a class member
   final MenuController _menuController = MenuController();
 
@@ -180,10 +185,10 @@ class DropdownTabItem extends TabItem {
   /// Builds the dropdown tab UI
   Widget buildTab(BuildContext context, bool isSelected, VoidCallback onTabTap, VoidCallback refreshState) {
     final theme = SailTheme.of(context);
-    
+
     // If no item is selected, default to the first one
     selectedItem ??= menuItems.isNotEmpty ? menuItems.first : null;
-    
+
     return MenuAnchor(
       controller: _menuController,
       style: MenuStyle(
@@ -200,31 +205,33 @@ class DropdownTabItem extends TabItem {
       ),
       menuChildren: [
         SailMenu(
-          items: menuItems.map((item) => 
-            SailMenuItem(
-              onSelected: () {
-                // Update the selected item
-                selectedItem = item;
-                
-                // Force parent to rebuild with the new content
-                refreshState();
-                
-                // Call the item selected callback
-                onItemSelected(item);
-                
-                // Close the dropdown
-                _menuController.close();
-              },
-              child: SailText.primary13(item),
-            ),
-          ).toList(),
+          items: menuItems
+              .map(
+                (item) => SailMenuItem(
+                  onSelected: () {
+                    // Update the selected item
+                    selectedItem = item;
+
+                    // Force parent to rebuild with the new content
+                    refreshState();
+
+                    // Call the item selected callback
+                    onItemSelected(item);
+
+                    // Close the dropdown
+                    _menuController.close();
+                  },
+                  child: SailText.primary13(item),
+                ),
+              )
+              .toList(),
         ),
       ],
       builder: (context, menuController, child) {
         return InkWell(
           onTap: () {
             onTabTap();
-            
+
             // Toggle the dropdown menu
             if (_menuController.isOpen) {
               _menuController.close();
