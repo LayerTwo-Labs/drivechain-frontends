@@ -81,7 +81,7 @@ Future<void> initDependencies(Sidechain chain) async {
 
   GetIt.I.registerLazySingleton<BalanceProvider>(
     () => BalanceProvider(
-      connections: [enforcer],
+      connections: [sidechain],
     ),
   );
 
@@ -152,12 +152,10 @@ Future<SidechainRPC> findSubRPC(Sidechain chain) async {
 
   if (chain == ZCashSidechain()) {
     log.i('starting init zcash RPC');
+    final settings = GetIt.I.get<ClientSettings>();
 
-    final zChain = ZcashRPCLive(
-      conf: conf,
-      binary: ZCashSidechain(),
-      logPath: ZCashSidechain().logPath(),
-      restartOnFailure: false,
+    final zChain = MockZCashRPCLive(
+      storage: settings.store,
     );
     sidechain = zChain;
 

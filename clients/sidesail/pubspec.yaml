@@ -27,6 +27,7 @@ dependencies:
   get_it: ^7.7.0
   collection: ^1.18.0
   stacked: ^3.4.3
+  synchronized: ^3.3.1
   intl: ^0.20.2
   web3dart:
     git:
