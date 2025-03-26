@@ -508,49 +508,51 @@ class MeltAction extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => MeltActionViewModel(),
       builder: ((context, model, child) {
-        return DashboardActionModal(
-          doEverythingMode ? 'Do everything for me' : 'Melt UTXOs',
-          endActionButton: SailButton.primary(
-            doEverythingMode ? 'Execute melt, then cast' : 'Execute melt',
-            loading: model.isBusy,
-            size: ButtonSize.regular,
-            onPressed: () async {
-              model.melt(
-                context,
-                castAfterCompletion: doEverythingMode,
-              );
-            },
-          ),
-          children: [
-            if (doEverythingMode)
-              const SailPadding(
-                child: QuestionText(
-                  '"Do everything for me" will first melt all your coins, then cast them. The entire process can take up to 7 days.',
+        return SingleChildScrollView(
+          child: DashboardActionModal(
+            doEverythingMode ? 'Do everything for me' : 'Melt UTXOs',
+            endActionButton: SailButton.primary(
+              doEverythingMode ? 'Execute melt, then cast' : 'Execute melt',
+              loading: model.isBusy,
+              size: ButtonSize.regular,
+              onPressed: () async {
+                model.melt(
+                  context,
+                  castAfterCompletion: doEverythingMode,
+                );
+              },
+            ),
+            children: [
+              if (doEverythingMode)
+                const SailPadding(
+                  child: QuestionText(
+                    '"Do everything for me" will first melt all your coins, then cast them. The entire process can take up to 7 days.',
+                  ),
                 ),
+              const StaticActionField(
+                label: 'Melt to',
+                value: 'Your Z-address',
               ),
-            const StaticActionField(
-              label: 'Melt to',
-              value: 'Your Z-address',
-            ),
-            StaticActionField(
-              label: 'Melt from',
-              value:
-                  // extract address, then join on a newline
-                  model.meltableUTXOs.map((utxo) => utxo.address).join('\n'),
-            ),
-            StaticActionField(
-              label: 'Melt fee',
-              value: formatBitcoin(model.meltFee, symbol: model._rpc.chain.ticker),
-            ),
-            StaticActionField(
-              label: 'Melt amount',
-              value: formatBitcoin(model.meltAmount, symbol: model._rpc.chain.ticker),
-            ),
-            StaticActionField(
-              label: 'Total amount',
-              value: formatBitcoin(model.totalBitcoinAmount, symbol: model._rpc.chain.ticker),
-            ),
-          ],
+              StaticActionField(
+                label: 'Melt from',
+                value:
+                    // extract address, then join on a newline
+                    model.meltableUTXOs.map((utxo) => utxo.address).join('\n'),
+              ),
+              StaticActionField(
+                label: 'Melt fee',
+                value: formatBitcoin(model.meltFee, symbol: model._rpc.chain.ticker),
+              ),
+              StaticActionField(
+                label: 'Melt amount',
+                value: formatBitcoin(model.meltAmount, symbol: model._rpc.chain.ticker),
+              ),
+              StaticActionField(
+                label: 'Total amount',
+                value: formatBitcoin(model.totalBitcoinAmount, symbol: model._rpc.chain.ticker),
+              ),
+            ],
+          ),
         );
       }),
     );
@@ -776,40 +778,42 @@ class CastAction extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => CastActionViewModel(),
       builder: ((context, model, child) {
-        return DashboardActionModal(
-          'Cast UTXOs',
-          endActionButton: SailButton.primary(
-            'Execute cast',
-            loading: model.isBusy,
-            size: ButtonSize.regular,
-            onPressed: () async {
-              model.cast(context);
-            },
+        return SingleChildScrollView(
+          child: DashboardActionModal(
+            'Cast UTXOs',
+            endActionButton: SailButton.primary(
+              'Execute cast',
+              loading: model.isBusy,
+              size: ButtonSize.regular,
+              onPressed: () async {
+                model.cast(context);
+              },
+            ),
+            children: [
+              const StaticActionField(
+                label: 'Deshield to',
+                value: 'Various transparent addresses',
+              ),
+              StaticActionField(
+                label: 'Deshield from (txid)',
+                value:
+                    // extract address, then join on a newline
+                    model.castableUTXOs.map((utxo) => utxo.txid).join('\n'),
+              ),
+              StaticActionField(
+                label: 'Cast fee',
+                value: formatBitcoin(model.castAllFee, symbol: model._rpc.chain.ticker),
+              ),
+              StaticActionField(
+                label: 'Cast amount',
+                value: formatBitcoin(model.castAmount, symbol: model._rpc.chain.ticker),
+              ),
+              StaticActionField(
+                label: 'Total amount',
+                value: formatBitcoin(model.totalBitcoinAmount, symbol: model._rpc.chain.ticker),
+              ),
+            ],
           ),
-          children: [
-            const StaticActionField(
-              label: 'Deshield to',
-              value: 'Various transparent addresses',
-            ),
-            StaticActionField(
-              label: 'Deshield from (txid)',
-              value:
-                  // extract address, then join on a newline
-                  model.castableUTXOs.map((utxo) => utxo.txid).join('\n'),
-            ),
-            StaticActionField(
-              label: 'Cast fee',
-              value: formatBitcoin(model.castAllFee, symbol: model._rpc.chain.ticker),
-            ),
-            StaticActionField(
-              label: 'Cast amount',
-              value: formatBitcoin(model.castAmount, symbol: model._rpc.chain.ticker),
-            ),
-            StaticActionField(
-              label: 'Total amount',
-              value: formatBitcoin(model.totalBitcoinAmount, symbol: model._rpc.chain.ticker),
-            ),
-          ],
         );
       }),
     );

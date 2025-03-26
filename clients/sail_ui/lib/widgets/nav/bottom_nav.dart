@@ -289,6 +289,7 @@ class BottomNavViewModel extends BaseViewModel {
 
     // Add listeners for additional connections
     additionalConnection.rpc.addListener(notifyListeners);
+    additionalConnection.rpc.addListener(infoService.fetch);
   }
 
   // Balance getters

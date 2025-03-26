@@ -62,8 +62,8 @@ abstract class Binary {
       case 'bitcoind':
       case 'bitcoind.exe':
         return ParentChain();
-      case 'bip300301_enforcer':
-      case 'bip300301_enforcer.exe':
+      case 'bip300301-enforcer':
+      case 'bip300301-enforcer.exe':
         return Enforcer();
       case 'bitwindow':
       case 'bitwindow.exe':
