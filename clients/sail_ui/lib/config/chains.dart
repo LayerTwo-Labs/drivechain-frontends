@@ -27,7 +27,7 @@ abstract class Sidechain extends Binary {
         return TestSidechain();
 
       case 'zcash':
-        return ZCashSidechain();
+        return ZCash();
 
       case 'thunder':
         return Thunder();
@@ -101,8 +101,8 @@ class TestSidechain extends Sidechain {
   }
 }
 
-class ZCashSidechain extends Sidechain {
-  ZCashSidechain({
+class ZCash extends Sidechain {
+  ZCash({
     super.name = 'zSide',
     super.version = '0.1.0',
     super.description = 'ZCash Sidechain',
@@ -123,11 +123,11 @@ class ZCashSidechain extends Sidechain {
               ),
           metadata: metadata ??
               MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
+                baseUrl: 'https://releases.drivechain.info/old-pre-cusf/',
                 files: {
-                  OS.linux: 'L2-S5-ZCash-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L2-S5-ZCash-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L2-S5-ZCash-latest-x86_64-pc-windows-gnu.zip',
+                  OS.linux: 'L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.zip',
+                  OS.macos: 'L2-S5-ZSide-latest-x86_64-apple-darwin.zip',
+                  OS.windows: 'NOT-AVAILABLE',
                 },
               ),
           network: network ?? NetworkConfig(port: 8232),
@@ -140,7 +140,7 @@ class ZCashSidechain extends Sidechain {
   Color color = SailColorScheme.blue;
 
   @override
-  ZCashSidechain copyWith({
+  ZCash copyWith({
     String? version,
     String? description,
     String? repoUrl,
@@ -150,7 +150,7 @@ class ZCashSidechain extends Sidechain {
     NetworkConfig? network,
     int? chainLayer,
   }) {
-    return ZCashSidechain(
+    return ZCash(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,
@@ -186,11 +186,11 @@ class EthereumSidechain extends Sidechain {
               ),
           metadata: metadata ??
               MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/',
+                baseUrl: 'https://releases.drivechain.info/old-pre-cusf/',
                 files: {
-                  OS.linux: 'L2-S6-Ethereum-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L2-S6-Ethereum-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L2-S6-Ethereum-latest-x86_64-pc-windows-gnu.zip',
+                  OS.linux: 'L2-S6-EthSide-latest-x86_64-unknown-linux-gnu.zip',
+                  OS.macos: 'L2-S6-EthSide-latest-x86_64-apple-darwin.zip',
+                  OS.windows: 'L2-S6-EthSide-latest-x86_64-w64-mingw32.zip',
                 },
               ),
           network: network ?? NetworkConfig(port: 8545),

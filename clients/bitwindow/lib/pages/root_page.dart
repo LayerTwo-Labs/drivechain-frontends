@@ -27,7 +27,6 @@ import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbenum.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
@@ -45,7 +44,6 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final _routerKey = GlobalKey<AutoTabsRouterState>();
-  final _binaryProvider = GetIt.I.get<BinaryProvider>();
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -53,13 +51,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _binaryProvider.downloadThenBootL1(
-        context,
-        bootAllNoMatterWhat: true,
-        withEnforcerRetry: true,
-      );
-    });
   }
 
   @override

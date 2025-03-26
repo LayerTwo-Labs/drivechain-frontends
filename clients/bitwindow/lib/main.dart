@@ -7,13 +7,14 @@ import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -27,7 +28,6 @@ import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +62,7 @@ void main(List<String> args) async {
     logFile,
     applicationDir: applicationDir,
   );
+  bootBinaries(log);
 
   Environment.validateAtRuntime();
 
@@ -168,7 +169,7 @@ Future<void> initDependencies(
   final binaries = await _loadBinaries(applicationDir);
 
   final mainchain = await MainchainRPCLive.create(
-    binaries[0],
+    binaries.firstWhere((b) => b is ParentChain),
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchain,
@@ -184,7 +185,7 @@ Future<void> initDependencies(
   final enforcer = await EnforcerLive.create(
     host: '127.0.0.1',
     port: binaries[1].port,
-    binary: binaries[1],
+    binary: binaries.firstWhere((b) => b is Enforcer),
     launcherAppDir: launcherAppDir,
   );
 
@@ -195,7 +196,7 @@ Future<void> initDependencies(
   final bitwindow = await BitwindowRPCLive.create(
     host: Environment.bitwindowdHost.value,
     port: Environment.bitwindowdPort.value,
-    binary: binaries[2],
+    binary: binaries.firstWhere((b) => b is BitWindow),
   );
   GetIt.I.registerLazySingleton<BitwindowRPC>(
     () => bitwindow,
@@ -327,13 +328,13 @@ class BitwindowApp extends StatelessWidget {
   }
 }
 
-Future<void> initBinaries(
-  Logger log,
-  BuildContext context,
-) async {
+void bootBinaries(Logger log) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
+  final bitwindow = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
 
-  await binaryProvider.downloadThenBootL1(context);
+  await binaryProvider.downloadThenBootBinary(
+    bitwindow,
+  );
 }
 
 Future<List<Binary>> _loadBinaries(Directory appDir) async {

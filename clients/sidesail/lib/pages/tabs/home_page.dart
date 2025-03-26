@@ -10,7 +10,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down

@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/bitcoin.dart';
+import 'package:sail_ui/rpcs/zcash_rpc.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
-import 'package:sidesail/rpc/models/zcash_utxos.dart';
-import 'package:sidesail/rpc/rpc_zcash.dart';
 
 const lowestCastValueSats = 1;
 const maxCastFactor = 42;
@@ -60,7 +59,7 @@ class PendingCastBill {
       executeTime = executeTime.add(const Duration(days: 1));
     }
 
-    final executeIn = DateTime.now().durationUntil(executeTime);
+    executeIn = now.durationUntil(executeTime);
 
     Timer(executeIn, executeAction);
   }

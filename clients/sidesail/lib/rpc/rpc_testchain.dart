@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
 import 'package:sidesail/rpc/models/bundle_info.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 
 /// RPC connection the sidechain node.

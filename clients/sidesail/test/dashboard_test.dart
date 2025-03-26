@@ -12,10 +12,10 @@ import 'package:sail_ui/mocks/mocks.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/process_provider.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 
 import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
