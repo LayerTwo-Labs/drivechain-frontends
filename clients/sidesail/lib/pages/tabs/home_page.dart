@@ -110,7 +110,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           return Scaffold(
             backgroundColor: theme.colors.background,
             appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(60),
+              preferredSize: const Size.fromHeight(40),
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: theme.colors.background,
