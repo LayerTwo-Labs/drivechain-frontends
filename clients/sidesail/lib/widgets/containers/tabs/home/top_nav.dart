@@ -7,7 +7,6 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:stacked/stacked.dart';
 
 class TopNav extends StatefulWidget {
@@ -107,7 +106,7 @@ class _TopNavState extends State<TopNav> {
           ),
         ];
 
-      case ZCashSidechain():
+      case ZCash():
         return [
           QtTab(
             label: 'Send',
@@ -178,7 +177,7 @@ class _TopNavState extends State<TopNav> {
       case EthereumSidechain():
         break;
 
-      case ZCashSidechain():
+      case ZCash():
         trailing = [
           QtTab(
             label: 'Console',

@@ -39,7 +39,7 @@ class WalletButtonModel extends ChangeNotifier {
     _updateBalances();
 
     // Check if BitWindow just connected
-    final isConnected = _binaryProvider.bitwindowRPC.connected == true;
+    final isConnected = _binaryProvider.bitwindowRPC?.connected == true;
     if (isConnected && !_wasConnected) {
       _updateAddress();
     }
@@ -54,9 +54,9 @@ class WalletButtonModel extends ChangeNotifier {
     var total = 0.0;
 
     // BitWindow balance
-    if (_binaryProvider.bitwindowRPC.connected == true) {
+    if (_binaryProvider.bitwindowRPC?.connected == true) {
       try {
-        final (confirmed, unconfirmed) = await _binaryProvider.bitwindowRPC.balance();
+        final (confirmed, unconfirmed) = await _binaryProvider.bitwindowRPC!.balance();
         newBalances.add(
           WalletBalance(
             name: 'BitWindow',
@@ -111,9 +111,9 @@ class WalletButtonModel extends ChangeNotifier {
   }
 
   Future<void> _updateAddress() async {
-    if (_binaryProvider.bitwindowRPC.connected == true) {
+    if (_binaryProvider.bitwindowRPC?.connected == true) {
       try {
-        _address = await _binaryProvider.bitwindowRPC.wallet.getNewAddress();
+        _address = await _binaryProvider.bitwindowRPC!.wallet.getNewAddress();
         notifyListeners();
       } catch (e) {
         debugPrint('Error getting BitWindow address: $e');

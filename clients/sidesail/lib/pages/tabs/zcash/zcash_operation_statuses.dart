@@ -8,8 +8,6 @@ import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/models/zcash_utxos.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 

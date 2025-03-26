@@ -10,9 +10,6 @@ import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/rpc/models/zcash_utxos.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/rpc/rpc_zcash.dart';
 import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
 import 'package:stacked/stacked.dart';
 
@@ -506,13 +503,32 @@ class _PendingCastTableState extends State<PendingCastTable> {
         return [
           SailTableCell(value: formatBitcoin(entry.castAmount)),
           SailTableCell(value: entry.executeTime.toLocal().format()),
-          SailTableCell(value: entry.executeIn.inDays.toString()),
+          SailTableCell(value: formatExecuteIn(entry.executeIn)),
         ];
       },
       rowCount: widget.entries.length,
       columnWidths: const [150, 150, 100],
       drawGrid: true,
     );
+  }
+
+  String formatExecuteIn(Duration duration) {
+    if (duration.inDays > 1) {
+      return '${duration.inDays} days';
+    }
+
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+
+    if (duration.inDays == 1) {
+      return '1 day ${hours % 24} hours';
+    }
+
+    if (hours == 0) {
+      return '$minutes minutes';
+    }
+
+    return '$hours hours ${minutes > 0 ? '$minutes minutes' : ''}';
   }
 }
 

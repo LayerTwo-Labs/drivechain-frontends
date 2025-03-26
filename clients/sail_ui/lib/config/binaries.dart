@@ -84,7 +84,7 @@ abstract class Binary {
         return TestSidechain();
       case 'zsided':
       case 'zsided.exe':
-        return ZCashSidechain();
+        return ZCash();
     }
     return null;
   }
@@ -98,7 +98,7 @@ abstract class Binary {
       'BitWindow' => BitWindow(),
       'BIP300301 Enforcer' => Enforcer(),
       'Test Sidechain' => TestSidechain(),
-      'zSide' => ZCashSidechain(),
+      'zSide' => ZCash(),
       'EthSide' => EthereumSidechain(),
       'Thunder' => Thunder(),
       'Bitnames' => Bitnames(),
@@ -821,7 +821,7 @@ extension BinaryPaths on Binary {
     return switch (this) {
       var b when b is TestSidechain => 'testchain.conf',
       var b when b is EthereumSidechain => 'config.toml',
-      var b when b is ZCashSidechain => 'zcash.conf',
+      var b when b is ZCash => 'zcash.conf',
       var b when b is ParentChain => 'bitcoin.conf',
       _ => throw 'unsupported binary type: $runtimeType',
     };
@@ -831,7 +831,7 @@ extension BinaryPaths on Binary {
     return switch (this) {
       var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
       var b when b is EthereumSidechain => filePath([datadir(), 'ethereum.log']),
-      var b when b is ZCashSidechain => filePath([datadir(), 'regtest', 'debug.log']),
+      var b when b is ZCash => filePath([datadir(), 'regtest', 'debug.log']),
       var b when b is ParentChain => filePath([datadir(), 'debug.log']),
       var b when b is BitWindow => filePath([datadir(), 'debug.log']),
       var b when b is Enforcer => filePath([datadir(), 'bip300301_enforcer.log']),

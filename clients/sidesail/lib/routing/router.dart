@@ -69,7 +69,7 @@ class AppRouter extends RootStackRouter {
             ),
             AutoRoute(
               page: ZCashShieldDeshieldTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain) == ZCashSidechain(),
+              initial: Sidechain.fromString(RuntimeArgs.chain) == ZCash(),
             ),
             AutoRoute(
               page: ZCashTransferTabRoute.page,

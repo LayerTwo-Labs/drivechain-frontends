@@ -7,9 +7,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/notification_provider.dart';
-import 'package:sidesail/rpc/models/zcash_utxos.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
-import 'package:sidesail/rpc/rpc_zcash.dart';
 
 class ZCashProvider extends ChangeNotifier {
   ZCashRPC get rpc => GetIt.I.get<ZCashRPC>();

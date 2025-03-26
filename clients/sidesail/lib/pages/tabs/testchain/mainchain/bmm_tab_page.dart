@@ -8,7 +8,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
 import 'package:sidesail/rpc/models/bmm_result.dart';
-import 'package:sidesail/rpc/rpc_sidechain.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
