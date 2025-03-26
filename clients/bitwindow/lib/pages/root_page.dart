@@ -417,7 +417,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
             child: Scaffold(
               backgroundColor: theme.colors.background,
               appBar: PreferredSize(
-                preferredSize: const Size.fromHeight(60),
+                preferredSize: const Size.fromHeight(40),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: theme.colors.background,

@@ -51,9 +51,9 @@ class QtTab extends StatelessWidget {
                 vertical: SailStyleValues.padding08,
                 horizontal: SailStyleValues.padding25,
               ),
-              child: SailColumn(
+              child: SailRow(
                 mainAxisSize: MainAxisSize.max,
-                spacing: 0,
+                spacing: SailStyleValues.padding08,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -62,7 +62,6 @@ class QtTab extends StatelessWidget {
                     width: 24,
                     color: theme.colors.text,
                   ),
-                  Expanded(child: Container()),
                   SailText.primary12(
                     label,
                   ),
