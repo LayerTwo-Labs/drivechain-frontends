@@ -27,7 +27,6 @@ class _DebugWindowState extends State<DebugWindow> {
   @override
   Widget build(BuildContext context) {
     return SailRawCard(
-      withCloseButton: widget.newWindowIdentifier != null,
       color: context.sailTheme.colors.background,
       inSeparateWindow: widget.newWindowIdentifier == null,
       newWindowIdentifier: widget.newWindowIdentifier,

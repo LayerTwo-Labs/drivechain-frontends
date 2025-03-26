@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
@@ -8,6 +9,7 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/denial_provider.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:file_picker/file_picker.dart';
@@ -25,7 +27,6 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
@@ -1315,8 +1316,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
       error: widget.error,
       bottomPadding: false,
       inSeparateWindow: widget.newWindowIdentifier != null,
-      newWindowIdentifier: null,
-      withCloseButton: false,
+      newWindowIdentifier: widget.newWindowIdentifier,
       child: Column(
         children: [
           SailSpacing(SailStyleValues.padding16),
