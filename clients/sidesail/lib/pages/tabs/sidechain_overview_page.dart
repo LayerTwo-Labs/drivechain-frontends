@@ -1,0 +1,977 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
+import 'package:sail_ui/sail_ui.dart';
+import 'package:sidesail/providers/transactions_provider.dart';
+import 'package:stacked/stacked.dart';
+
+@RoutePage()
+class SidechainOverviewTabPage extends StatelessWidget {
+  const SidechainOverviewTabPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => OverviewTabViewModel(),
+      builder: ((context, model, child) {
+        return QtPage(
+          child: SailRow(
+            spacing: SailStyleValues.padding08,
+            children: [
+              Expanded(
+                child: SailColumn(
+                  spacing: SailStyleValues.padding16,
+                  children: [
+                    // Top row with balance and receive
+                    SizedBox(
+                      height: 173, // Fixed height for top section
+                      child: SailRow(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Balance card
+                          Expanded(
+                            child: SailRawCard(
+                              title: 'Balance',
+                              child: SailColumn(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SailText.primary24(
+                                    '${formatBitcoin(model.totalBalance)} ${model.ticker}',
+                                    bold: true,
+                                  ),
+                                  const SizedBox(height: 4), // Further reduced spacing
+                                  BalanceRow(
+                                    label: 'Available',
+                                    amount: model.balance,
+                                    ticker: model.ticker,
+                                  ),
+                                  BalanceRow(
+                                    label: 'Pending',
+                                    amount: model.pendingBalance,
+                                    ticker: model.ticker,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SailRawCard(
+                      title: 'Send on Sidechain',
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding16,
+                        children: [
+                          SailText.secondary15('Pay to'),
+                          SailTextField(
+                            controller: model.bitcoinAddressController,
+                            hintText: 'Enter a bitcoin address',
+                          ),
+                          NumericField(
+                            label: 'Amount',
+                            controller: model.bitcoinAmountController,
+                            hintText: '0.00',
+                          ),
+                          QtButton(
+                            label: 'Send',
+                            onPressed: () => model.executeSendOnSidechain(context),
+                            size: ButtonSize.small,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SailRawCard(
+                      title: 'Receive Bitcoin',
+                      child: SailColumn(
+                        spacing: SailStyleValues.padding04, // Further reduced spacing
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (model.isBusy)
+                            const Center(child: LoadingIndicator())
+                          else ...[
+                            SailRow(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Left side with address field
+                                Expanded(
+                                  child: IntrinsicHeight(
+                                    child: SailColumn(
+                                      mainAxisSize: MainAxisSize.max,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        SailTextField(
+                                          controller: TextEditingController(text: model.receiveAddress),
+                                          hintText: 'Generating deposit address...',
+                                          readOnly: true,
+                                          maxLines: 2,
+                                        ),
+                                        SailSpacing(80),
+                                        SailRow(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          spacing: SailStyleValues.padding08,
+                                          children: [
+                                            if (model.receiveAddress != null)
+                                              CopyButton(
+                                                text: model.receiveAddress!,
+                                              ),
+                                            QtButton(
+                                              size: ButtonSize.small,
+                                              style: SailButtonStyle.secondary,
+                                              label: 'Generate new address',
+                                              onPressed: () => model.generateReceiveAddress(),
+                                              loading: model.isBusy,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Right side with QR code
+                                SizedBox(
+                                  width: 170, // Further reduced size
+                                  height: 170, // Further reduced size
+                                  child: QrImageView(
+                                    padding: EdgeInsets.zero,
+                                    data: model.receiveAddress ?? '',
+                                    version: QrVersions.auto,
+                                    eyeStyle: QrEyeStyle(
+                                      color: context.sailTheme.colors.text,
+                                      eyeShape: QrEyeShape.square,
+                                    ),
+                                    dataModuleStyle: QrDataModuleStyle(
+                                      color: context.sailTheme.colors.text,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Transaction history
+              Expanded(
+                child: ViewModelBuilder<LatestWalletTransactionsViewModel>.reactive(
+                  viewModelBuilder: () => LatestWalletTransactionsViewModel(),
+                  builder: (context, txModel, child) {
+                    return TransactionTable(
+                      entries: txModel.entries,
+                      searchWidget: SailTextField(
+                        controller: txModel.searchController,
+                        hintText: 'Search transactions',
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class OverviewTabViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+
+  final bitcoinAddressController = TextEditingController();
+  final bitcoinAmountController = TextEditingController();
+  final labelController = TextEditingController();
+
+  String? receiveAddress;
+  double? sidechainFee;
+
+  // Properties for sending
+  double? get sendAmount => double.tryParse(bitcoinAmountController.text);
+  double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0), 0);
+  String get ticker => _sidechain.rpc.chain.ticker;
+  String get sidechainName => _sidechain.rpc.chain.name;
+  List<CoreTransaction> get transactions => _transactionsProvider.sidechainTransactions;
+
+  String get totalBitcoinAmount => formatBitcoin(
+        ((double.tryParse(bitcoinAmountController.text) ?? 0) + (sidechainFee ?? 0)),
+        symbol: ticker,
+      );
+
+  double get balance => _balanceProvider.balance;
+  double get pendingBalance => _balanceProvider.pendingBalance;
+  double get totalBalance => balance + pendingBalance;
+
+  OverviewTabViewModel() {
+    _initControllers();
+    _initFees();
+    _transactionsProvider.addListener(notifyListeners);
+    _balanceProvider.addListener(notifyListeners);
+    generateReceiveAddress();
+  }
+
+  void _initControllers() {
+    bitcoinAddressController.addListener(notifyListeners);
+    bitcoinAmountController.addListener(_capAmount);
+  }
+
+  Future<void> _initFees() async {
+    await Future.wait([estimateSidechainFee()]);
+  }
+
+  void _capAmount() {
+    String currentInput = bitcoinAmountController.text;
+    if (maxAmount != null && (double.tryParse(currentInput) != null && double.parse(currentInput) > maxAmount!)) {
+      bitcoinAmountController.text = maxAmount.toString();
+      bitcoinAmountController.selection = TextSelection.fromPosition(
+        TextPosition(offset: bitcoinAmountController.text.length),
+      );
+    }
+    notifyListeners();
+  }
+
+  Future<void> estimateSidechainFee() async {
+    sidechainFee = await _sidechain.rpc.sideEstimateFee();
+    notifyListeners();
+  }
+
+  Future<void> generateReceiveAddress() async {
+    setBusy(true);
+    try {
+      receiveAddress = await _sidechain.rpc.getSideAddress();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> executeSendOnSidechain(BuildContext context) async {
+    if (sendAmount == null) {
+      log.e('withdrawal amount was empty');
+      return;
+    }
+    if (sidechainFee == null) {
+      log.e('sidechain fee was empty');
+      return;
+    }
+
+    final address = bitcoinAddressController.text;
+    if (!context.mounted) return;
+
+    setBusy(true);
+    try {
+      _doSidechainSend(context, address, sendAmount!);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  void _doSidechainSend(BuildContext context, String address, double amount) async {
+    log.i('doing sidechain withdrawal: $amount $ticker to $address with $sidechainFee SC fee');
+
+    try {
+      final sendTXID = await _sidechain.rpc.sideSend(
+        address,
+        amount,
+        false,
+      );
+
+      unawaited(_balanceProvider.fetch());
+      unawaited(_transactionsProvider.fetch());
+
+      if (!context.mounted) return;
+
+      await successDialog(
+        context: context,
+        action: 'Send on sidechain',
+        title: 'You sent $amount $ticker to $address',
+        subtitle: 'TXID: $sendTXID',
+      );
+    } catch (error) {
+      log.e('Could not execute withdrawal', error: error);
+      if (!context.mounted) return;
+
+      await errorDialog(
+        context: context,
+        action: 'Send on sidechain',
+        title: 'Could not execute withdrawal',
+        subtitle: error.toString(),
+      );
+    }
+  }
+
+  void castHelp(BuildContext context) async {
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const DepositWithdrawHelp();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    bitcoinAddressController.dispose();
+    bitcoinAmountController.dispose();
+    labelController.dispose();
+    _transactionsProvider.removeListener(notifyListeners);
+    _balanceProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+class DepositWithdrawHelp extends StatelessWidget {
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
+
+  const DepositWithdrawHelp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return QuestionContainer(
+      category: 'Deposit & Withdraw help',
+      children: [
+        const QuestionTitle('What are deposits and withdrawals?'),
+        QuestionText(
+          'You are currently connected to two blockchains. Bitcoin Core with BIP 300+301, and a sidechain called ${_sidechain.rpc.chain.name}.',
+        ),
+        const QuestionText(
+          'Deposits and withdrawals move bitcoin from one chain to the other. A deposit adds bitcoin to the sidechain, and a withdrawal removes bitcoin from the sidechain.',
+        ),
+        const QuestionText(
+          'When we use the word deposit or withdraw in this application, we always refer to moving coins across chains.',
+        ),
+        const QuestionText(
+          "Only after you have deposited coins to the sidechain, can you start using it's special features! If you're a developer and know your way around a command line, there's a special rpc called createsidechaindeposit that lets you deposit from your parent chain wallet.",
+        ),
+      ],
+    );
+  }
+}
+
+class TransactionsTab extends StatelessWidget {
+  const TransactionsTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return ViewModelBuilder<LatestWalletTransactionsViewModel>.reactive(
+          viewModelBuilder: () => LatestWalletTransactionsViewModel(),
+          builder: (context, model, child) {
+            return TransactionTable(
+              entries: model.entries,
+              searchWidget: SailTextField(
+                controller: model.searchController,
+                hintText: 'Enter address or transaction id to search',
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class TransactionTable extends StatefulWidget {
+  final List<CoreTransaction> entries;
+  final Widget searchWidget;
+
+  const TransactionTable({
+    super.key,
+    required this.entries,
+    required this.searchWidget,
+  });
+
+  @override
+  State<TransactionTable> createState() => _TransactionTableState();
+}
+
+class _TransactionTableState extends State<TransactionTable> {
+  String sortColumn = 'date';
+  bool sortAscending = true;
+  List<CoreTransaction> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    entries = widget.entries;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!listEquals(entries, widget.entries)) {
+      entries = List.from(widget.entries);
+      sortEntries();
+    }
+  }
+
+  void onSort(String column) {
+    setState(() {
+      if (sortColumn == column) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
+      }
+      sortEntries();
+    });
+  }
+
+  void sortEntries() {
+    entries.sort((a, b) {
+      dynamic aValue;
+      dynamic bValue;
+
+      switch (sortColumn) {
+        case 'height':
+          aValue = a.confirmations;
+          bValue = b.confirmations;
+          break;
+        case 'date':
+          aValue = a.time;
+          bValue = b.time;
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return SailRawCard(
+          title: 'Wallet Transaction History',
+          bottomPadding: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: SailStyleValues.padding16,
+                ),
+                child: widget.searchWidget,
+              ),
+              Expanded(
+                child: SailTable(
+                  getRowId: (index) => widget.entries[index].txid,
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(
+                      name: 'Conf Height',
+                      onSort: () => onSort('height'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Amount',
+                      onSort: () => onSort('amount'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'TxID',
+                      onSort: () => onSort('txid'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Date',
+                      onSort: () => onSort('date'),
+                    ),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final entry = widget.entries[row];
+                    final amount = formatBitcoin(satoshiToBTC(entry.amount.toInt()));
+
+                    return [
+                      SailTableCell(
+                        value: entry.confirmations == 0 ? 'Unconfirmed' : entry.confirmations.toString(),
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: amount,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: entry.txid,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: DateTime.fromMillisecondsSinceEpoch(entry.blocktime * 1000).toLocal().toString(),
+                        monospace: true,
+                      ),
+                    ];
+                  },
+                  rowCount: widget.entries.length,
+                  columnWidths: const [110, 150, 200, 150],
+                  drawGrid: true,
+                  sortColumnIndex: [
+                    'height',
+                    'date',
+                    'txid',
+                    'amount',
+                  ].indexOf(sortColumn),
+                  sortAscending: sortAscending,
+                  onSort: (columnIndex, ascending) {
+                    onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
+                  },
+                  onDoubleTap: (rowId) {
+                    final utxo = widget.entries.firstWhere(
+                      (u) => u.txid == rowId,
+                    );
+                    _showUtxoDetails(context, utxo);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showUtxoDetails(BuildContext context, CoreTransaction utxo) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SailRawCard(
+            title: 'Transaction Details',
+            subtitle: 'Details of the selected transaction',
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow(label: 'TxID', value: utxo.txid),
+                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.amount.toInt()))),
+                  DetailRow(label: 'Date', value: utxo.time.toLocal().format()),
+                  DetailRow(label: 'Confirmation Height', value: utxo.confirmations.toString()),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const DetailRow({super.key, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: SailText.primary13(
+              label,
+              monospace: true,
+              color: context.sailTheme.colors.textTertiary,
+            ),
+          ),
+          Expanded(
+            child: SailText.secondary13(
+              value,
+              monospace: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class LatestWalletTransactionsViewModel extends BaseViewModel {
+  final TransactionsProvider _txProvider = GetIt.I<TransactionsProvider>();
+  List<CoreTransaction> get entries => _txProvider.sidechainTransactions
+      .where(
+        (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
+      )
+      .toList();
+
+  String sortColumn = 'date';
+  bool sortAscending = true;
+
+  final TextEditingController searchController = TextEditingController();
+
+  LatestWalletTransactionsViewModel() {
+    searchController.addListener(notifyListeners);
+    _txProvider.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    searchController.removeListener(notifyListeners);
+    _txProvider.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+class BalanceRow extends StatelessWidget {
+  final String label;
+  final double amount;
+  final String ticker;
+
+  const BalanceRow({
+    super.key,
+    required this.label,
+    required this.amount,
+    required this.ticker,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SailText.secondary15(label),
+          SailText.primary15('${formatBitcoin(amount)} $ticker'),
+        ],
+      ),
+    );
+  }
+}
+
+class ReceiveCard extends ViewModelWidget<OverviewTabViewModel> {
+  const ReceiveCard({super.key});
+
+  @override
+  Widget build(BuildContext context, OverviewTabViewModel viewModel) {
+    return SailRawCard(
+      title: 'Receive on sidechain',
+      widgetHeaderEnd: SailRow(
+        children: [
+          SailScaleButton(
+            onPressed: () async {
+              await showDialog(
+                context: context,
+                builder: (context) => Dialog(
+                  backgroundColor: Colors.transparent,
+                  child: Padding(
+                    padding: const EdgeInsets.all(0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 300,
+                          child: SailRawCard(
+                            child: QrImageView(
+                              padding: EdgeInsets.zero,
+                              eyeStyle: QrEyeStyle(
+                                color: context.sailTheme.colors.text,
+                                eyeShape: QrEyeShape.square,
+                              ),
+                              dataModuleStyle: QrDataModuleStyle(color: context.sailTheme.colors.text),
+                              data: viewModel.receiveAddress!,
+                              version: QrVersions.auto,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+            child: Icon(
+              Icons.qr_code,
+              size: 15,
+              color: context.sailTheme.colors.text,
+            ),
+          ),
+          HelpButton(onPressed: () async => viewModel.castHelp(context)),
+        ],
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (viewModel.isBusy)
+            const Center(child: LoadingIndicator())
+          else ...[
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              children: [
+                Expanded(
+                  child: SailTextField(
+                    controller: TextEditingController(text: viewModel.receiveAddress),
+                    hintText: 'Generating deposit address...',
+                    readOnly: true,
+                  ),
+                ),
+                if (viewModel.receiveAddress != null)
+                  CopyButton(
+                    text: viewModel.receiveAddress!,
+                  ),
+              ],
+            ),
+            Expanded(child: Container()),
+            QtButton(
+              size: ButtonSize.small,
+              style: SailButtonStyle.secondary,
+              label: 'Generate new address',
+              onPressed: () => viewModel.generateReceiveAddress(),
+              loading: viewModel.isBusy,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class SendCard extends ViewModelWidget<OverviewTabViewModel> {
+  const SendCard({super.key});
+
+  @override
+  Widget build(BuildContext context, OverviewTabViewModel viewModel) {
+    final theme = SailTheme.of(context);
+
+    return SailRow(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 3,
+          child: SailRawCard(
+            title: 'Send on sidechain',
+            subtitle: 'Send bitcoin to other users on ${viewModel.sidechainName}',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: SailTextField(
+                        label: 'Pay To',
+                        controller: viewModel.bitcoinAddressController,
+                        hintText: 'Enter a L2 bitcoin-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                        size: TextFieldSize.small,
+                      ),
+                    ),
+                    const SizedBox(width: SailStyleValues.padding08),
+                    QtIconButton(
+                      tooltip: 'Paste from clipboard',
+                      onPressed: () async {
+                        try {
+                          final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                          if (clipboardData?.text != null) {
+                            viewModel.bitcoinAddressController.text = clipboardData!.text!;
+                          }
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          showSnackBar(context, 'Error accessing clipboard');
+                        }
+                      },
+                      icon: Icon(
+                        Icons.content_paste_rounded,
+                        size: 20.0,
+                        color: context.sailTheme.colors.text,
+                      ),
+                    ),
+                    const SizedBox(width: 4.0),
+                  ],
+                ),
+                const SizedBox(height: SailStyleValues.padding16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: NumericField(
+                                  label: 'Amount',
+                                  controller: viewModel.bitcoinAmountController,
+                                  suffixWidget: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (viewModel.maxAmount != null) {
+                                          viewModel.bitcoinAmountController.text = viewModel.maxAmount.toString();
+                                        }
+                                      },
+                                      child: SailText.primary15(
+                                        'MAX',
+                                        color: context.sailTheme.colors.orange,
+                                        underline: true,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: SailStyleValues.padding16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    QtButton(
+                      label: 'Send',
+                      onPressed: () => viewModel.executeSendOnSidechain(context),
+                      size: ButtonSize.small,
+                    ),
+                    const SizedBox(width: SailStyleValues.padding08),
+                    QtButton(
+                      style: SailButtonStyle.secondary,
+                      label: 'Clear All',
+                      onPressed: () async {
+                        viewModel.bitcoinAddressController.clear();
+                        viewModel.bitcoinAmountController.clear();
+                        viewModel.labelController.clear();
+                      },
+                      size: ButtonSize.small,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: SailStyleValues.padding08),
+        Expanded(
+          flex: 2,
+          child: SailRawCard(
+            title: 'Receive on sidechain',
+            widgetHeaderEnd: SailRow(
+              children: [
+                SailScaleButton(
+                  onPressed: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (context) => Dialog(
+                        backgroundColor: Colors.transparent,
+                        child: Padding(
+                          padding: const EdgeInsets.all(0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 300,
+                                child: SailRawCard(
+                                  child: QrImageView(
+                                    padding: EdgeInsets.zero,
+                                    eyeStyle: QrEyeStyle(
+                                      color: theme.colors.text,
+                                      eyeShape: QrEyeShape.square,
+                                    ),
+                                    dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                                    data: viewModel.receiveAddress!,
+                                    version: QrVersions.auto,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Icon(
+                    Icons.qr_code,
+                    size: 15,
+                    color: theme.colors.text,
+                  ),
+                ),
+                HelpButton(onPressed: () async => viewModel.castHelp(context)),
+              ],
+            ),
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (viewModel.isBusy)
+                  const Center(child: LoadingIndicator())
+                else ...[
+                  SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      Expanded(
+                        child: SailTextField(
+                          controller: TextEditingController(text: viewModel.receiveAddress),
+                          hintText: 'Generating deposit address...',
+                          readOnly: true,
+                        ),
+                      ),
+                      if (viewModel.receiveAddress != null)
+                        CopyButton(
+                          text: viewModel.receiveAddress!,
+                        ),
+                    ],
+                  ),
+                  Expanded(child: Container()),
+                  QtButton(
+                    size: ButtonSize.small,
+                    style: SailButtonStyle.secondary,
+                    label: 'Generate new address',
+                    onPressed: () => viewModel.generateReceiveAddress(),
+                    loading: viewModel.isBusy,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class TransactionHistoryCard extends ViewModelWidget<OverviewTabViewModel> {
+  const TransactionHistoryCard({super.key});
+
+  @override
+  Widget build(BuildContext context, OverviewTabViewModel viewModel) {
+    return Expanded(
+      child: ViewModelBuilder<LatestWalletTransactionsViewModel>.reactive(
+        viewModelBuilder: () => LatestWalletTransactionsViewModel(),
+        builder: (context, model, child) {
+          return TransactionTable(
+            entries: model.entries,
+            searchWidget: SailTextField(
+              controller: model.searchController,
+              hintText: 'Enter address or transaction id to search',
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

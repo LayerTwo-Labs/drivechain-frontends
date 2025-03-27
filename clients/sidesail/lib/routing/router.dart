@@ -1,12 +1,11 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
 import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
-import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
+import 'package:sidesail/pages/tabs/sidechain_overview_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/deposit_withdraw_tab_route.dart';
 import 'package:sidesail/pages/tabs/testchain/testchain_rpc_tab_page.dart';
@@ -54,22 +53,20 @@ class AppRouter extends RootStackRouter {
               page: BlindMergedMiningTabRoute.page,
             ),
             AutoRoute(
-              page: SidechainSendRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain) == TestSidechain(),
+              page: SidechainOverviewTabRoute.page,
+              initial: true,
             ),
             AutoRoute(
               page: TestchainRPCTabRoute.page,
             ),
             AutoRoute(
               page: EthereumRPCTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain) == EthereumSidechain(),
             ),
             AutoRoute(
               page: ZCashMeltCastTabRoute.page,
             ),
             AutoRoute(
               page: ZCashShieldDeshieldTabRoute.page,
-              initial: Sidechain.fromString(RuntimeArgs.chain) == ZCash(),
             ),
             AutoRoute(
               page: ZCashTransferTabRoute.page,

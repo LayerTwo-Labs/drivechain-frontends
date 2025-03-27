@@ -170,20 +170,20 @@ class SidechainExplorerTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [SidechainSendPage]
-class SidechainSendRoute extends PageRouteInfo<void> {
-  const SidechainSendRoute({List<PageRouteInfo>? children})
+/// [SidechainOverviewTabPage]
+class SidechainOverviewTabRoute extends PageRouteInfo<void> {
+  const SidechainOverviewTabRoute({List<PageRouteInfo>? children})
       : super(
-          SidechainSendRoute.name,
+          SidechainOverviewTabRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'SidechainSendRoute';
+  static const String name = 'SidechainOverviewTabRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const SidechainSendPage();
+      return const SidechainOverviewTabPage();
     },
   );
 }

@@ -61,10 +61,6 @@ class SailRawCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    if ((title != null) != (subtitle != null)) {
-      throw ArgumentError('Title and subtitle must be set together. Got title: $title and subtitle: $subtitle');
-    }
-
     return SelectionArea(
       child: SailShadow(
         shadowSize: shadowSize,

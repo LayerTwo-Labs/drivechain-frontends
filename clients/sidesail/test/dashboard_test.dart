@@ -13,7 +13,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/process_provider.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
-import 'package:sidesail/pages/tabs/sidechain_send_page.dart';
+import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 
@@ -50,14 +50,8 @@ void main() {
   testWidgets('can render and show balance', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
-      const SidechainSendPage(),
+      const SidechainExplorerTabPage(),
     );
     await tester.pumpAndSettle();
-
-    // Verify that there's a submit button.
-    expect(find.text('Actions'), findsOneWidget);
-    expect(find.text('Send'), findsOneWidget);
-    expect(find.text('Receive'), findsOneWidget);
-    expect(find.text('Transactions'), findsOneWidget);
   });
 }

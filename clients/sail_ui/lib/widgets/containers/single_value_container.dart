@@ -57,7 +57,7 @@ class SingleValueContainer extends StatelessWidget {
                   },
                   child: SailText.primary12(value.toString()),
                 )
-              : SailText.primary12(value.toString()),
+              : SailText.primary12(value.toString(), textAlign: TextAlign.end),
         ),
         if (trailingText != null) SailText.secondary12(trailingText!),
       ],
