@@ -129,7 +129,7 @@ class CardHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.primary20(
+        SailText.secondary15(
           title,
           bold: true,
         ),

@@ -230,8 +230,8 @@ class _UnshieldedUTXOTableState extends State<UnshieldedUTXOTable> {
         return [
           SailTableCell(
             value: '',
-            child: QtButton(
-              label: 'Shield',
+            child: SailButton.secondary(
+              'Shield',
               onPressed: () => widget.onShield(entry),
               size: ButtonSize.small,
             ),
@@ -316,8 +316,8 @@ class _ShieldedUTXOTableState extends State<ShieldedUTXOTable> {
         return [
           SailTableCell(
             value: '',
-            child: QtButton(
-              label: 'Deshield',
+            child: SailButton.secondary(
+              'Deshield',
               onPressed: () => widget.onDeshield(entry),
               size: ButtonSize.small,
             ),

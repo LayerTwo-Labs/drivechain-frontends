@@ -587,11 +587,6 @@ class DepositTab extends StatelessWidget {
                                 ),
                             ],
                           ),
-                          QtButton(
-                            label: 'Generate new address',
-                            onPressed: () => model.generateDepositAddress(),
-                            loading: model.isBusy,
-                          ),
                         ],
                       ],
                     ),
@@ -605,10 +600,10 @@ class DepositTab extends StatelessWidget {
                       child: QrImageView(
                         padding: EdgeInsets.zero,
                         eyeStyle: QrEyeStyle(
-                          color: theme.colors.text,
+                          color: theme.colors.textSecondary,
                           eyeShape: QrEyeShape.square,
                         ),
-                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.textSecondary),
                         data: model.depositAddress!,
                         version: QrVersions.auto,
                       ),
