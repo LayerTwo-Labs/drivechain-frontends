@@ -25,18 +25,9 @@ enum Tabs {
   // sidechain balance/transfer route
   SidechainOverview,
 
-  // testchain routes
-  TestchainConsole,
-
-  // ethereum routes
-  EthereumConsole,
-
   // zcash routes
-  ZCashMeltCast,
   ZCashShieldDeshield,
-  ZCashTransfer,
-  ZCashOperationStatuses,
-  ZCashConsole,
+  ZCashMeltCast,
 
   // trailing common routes
   SettingsHome,
@@ -94,18 +85,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       // sidechain balance/transfer route
       SidechainOverviewTabRoute(),
 
-      // testchain routes
-      TestchainRPCTabRoute(),
-
-      // ethereum routes
-      EthereumRPCTabRoute(),
-
       // zcash routes
-      ZCashMeltCastTabRoute(),
       ZCashShieldDeshieldTabRoute(),
-      ZCashTransferTabRoute(),
-      ZCashOperationStatusesTabRoute(),
-      ZCashRPCTabRoute(),
+      ZCashMeltCastTabRoute(),
 
       // trailing common routes
       SettingsTabRoute(),

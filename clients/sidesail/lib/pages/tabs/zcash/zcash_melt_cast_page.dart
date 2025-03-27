@@ -5,8 +5,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/home_page.dart';
-import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/providers/cast_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -15,6 +13,8 @@ import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class ZCashMeltCastTabPage extends StatelessWidget {
+  AppRouter get router => GetIt.I.get<AppRouter>();
+
   const ZCashMeltCastTabPage({super.key});
 
   @override
@@ -22,83 +22,86 @@ class ZCashMeltCastTabPage extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashMeltCastViewModel(),
       builder: ((context, model, child) {
-        final tabsRouter = AutoTabsRouter.of(context);
-
-        return SailPage(
-          scrollable: true,
-          widgetTitle: ZCashWidgetTitle(
-            depositNudgeAction: () => tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index),
-          ),
-          body: Padding(
-            padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
-            child: SailColumn(
-              spacing: SailStyleValues.padding32,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          MeltButton(
-                            onPressed: () => model.melt(context),
-                          ),
-                          const SizedBox(height: SailStyleValues.padding16),
-                          SailRawCard(
-                            bottomPadding: false,
-                            title: 'Melt',
-                            subtitle: 'Click here to Melt ALL of your transparent Coins',
-                            widgetHeaderEnd: HelpButton(onPressed: () => model.meltHelp(context)),
-                            child: SizedBox(
-                              height: 300,
-                              child: PendingMeltTable(
-                                entries: model.pendingMelts,
-                                onMelt: () => model.melt(context),
-                              ),
+        return QtPage(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
+              child: SailColumn(
+                spacing: SailStyleValues.padding32,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            MeltButton(
+                              onPressed: () => model.melt(context),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: SailStyleValues.padding16),
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CastButton(
-                            onPressed: () async => model.cast(context),
-                          ),
-                          const SizedBox(height: SailStyleValues.padding16),
-                          SailRawCard(
-                            title: 'Cast',
-                            subtitle: 'Click here to Cast 95-100% of your z-value as 4 new Coins',
-                            bottomPadding: false,
-                            widgetHeaderEnd: SailRow(
-                              spacing: SailStyleValues.padding08,
-                              children: [
-                                HelpButton(onPressed: () => model.castHelp(context)),
-                                SailScaleButton(
-                                  child: SailSVG.icon(SailSVGAsset.iconCalendar),
-                                  onPressed: () => model.viewBills(),
+                            const SizedBox(height: SailStyleValues.padding16),
+                            SailRawCard(
+                              bottomPadding: false,
+                              title: 'Melt',
+                              subtitle: 'Click here to Melt ALL of your transparent Coins',
+                              widgetHeaderEnd: HelpButton(onPressed: () => model.meltHelp(context)),
+                              child: SizedBox(
+                                height: 300,
+                                child: PendingMeltTable(
+                                  entries: model.pendingMelts,
+                                  onMelt: () => model.melt(context),
                                 ),
-                              ],
-                            ),
-                            child: SizedBox(
-                              height: 300,
-                              child: PendingCastTable(
-                                entries: model.pendingNonEmptyBills,
-                                onCast: () => model.cast(context),
-                                chain: model.chain,
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: SailStyleValues.padding16),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CastButton(
+                              onPressed: () async => model.cast(context),
+                            ),
+                            const SizedBox(height: SailStyleValues.padding16),
+                            SailRawCard(
+                              title: 'Cast',
+                              subtitle: 'Click here to Cast 95-100% of your z-value as 4 new Coins',
+                              bottomPadding: false,
+                              widgetHeaderEnd: SailRow(
+                                spacing: SailStyleValues.padding08,
+                                children: [
+                                  HelpButton(onPressed: () => model.castHelp(context)),
+                                  SailScaleButton(
+                                    child: SailSVG.icon(SailSVGAsset.iconCalendar),
+                                    onPressed: () => model.viewBills(),
+                                  ),
+                                ],
+                              ),
+                              child: SizedBox(
+                                height: 300,
+                                child: PendingCastTable(
+                                  entries: model.pendingNonEmptyBills,
+                                  onCast: () => model.cast(context),
+                                  chain: model.chain,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SailButton.secondary(
+                    'View Z Operation Status',
+                    onPressed: () async {
+                      await router.push(const ZCashOperationStatusesTabRoute());
+                    },
+                    size: ButtonSize.regular,
+                  ),
+                ],
+              ),
             ),
           ),
         );
