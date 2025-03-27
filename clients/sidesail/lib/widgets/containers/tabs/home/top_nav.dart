@@ -41,7 +41,7 @@ class _TopNavState extends State<TopNav> {
             Row(
               children: [
                 QtTab(
-                  label: 'Deposit/Withdraw',
+                  label: 'Parent Chain',
                   active: widget.tabsRouter.activeIndex == Tabs.ParentChainPeg.index,
                   onTap: () {
                     widget.tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
@@ -82,34 +82,26 @@ class _TopNavState extends State<TopNav> {
     TopNavViewModel viewModel,
     auto_router.TabsRouter tabsRouter,
   ) {
+    // Base navigation items that all sidechains have
+    var baseNav = [
+      QtTab(
+        label: 'Overview',
+        active: tabsRouter.activeIndex == Tabs.SidechainOverview.index,
+        onTap: () {
+          tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+        },
+        icon: SailSVGAsset.iconTabTools,
+      ),
+    ];
+
     switch (chain) {
       case TestSidechain():
-        return [
-          QtTab(
-            label: 'Send',
-            active: tabsRouter.activeIndex == Tabs.SidechainSend.index,
-            onTap: () {
-              tabsRouter.setActiveIndex(Tabs.SidechainSend.index);
-            },
-            icon: SailSVGAsset.iconTabSidechainSend,
-          ),
-        ];
-      case EthereumSidechain():
-        return [
-          QtTab(
-            label: 'Console',
-            active: tabsRouter.activeIndex == Tabs.EthereumConsole.index,
-            onTap: () {
-              tabsRouter.setActiveIndex(Tabs.EthereumConsole.index);
-            },
-            icon: SailSVGAsset.iconTabConsole,
-          ),
-        ];
-
+        return baseNav;
       case ZCash():
         return [
+          ...baseNav,
           QtTab(
-            label: 'Send',
+            label: 'Send/Receive Private',
             active: tabsRouter.activeIndex == Tabs.ZCashTransfer.index,
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashTransfer.index);
@@ -143,11 +135,11 @@ class _TopNavState extends State<TopNav> {
         ];
 
       case ParentChain():
-        return [];
+        return baseNav;
       case Thunder():
-        return [];
+        return baseNav;
       case Bitnames():
-        return [];
+        return baseNav;
       default:
         throw Exception('could not handle unknown sidechain type ${chain.runtimeType}');
     }

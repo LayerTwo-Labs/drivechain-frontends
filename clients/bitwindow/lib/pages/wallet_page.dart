@@ -924,8 +924,8 @@ class TransactionsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        return ViewModelBuilder<AddressMenuViewModel>.reactive(
-          viewModelBuilder: () => AddressMenuViewModel(),
+        return ViewModelBuilder<LatestWalletTransactionsViewModel>.reactive(
+          viewModelBuilder: () => LatestWalletTransactionsViewModel(),
           builder: (context, model, child) {
             return TransactionTable(
               entries: model.entries,
@@ -1137,7 +1137,7 @@ class _TransactionTableState extends State<TransactionTable> {
   }
 }
 
-class AddressMenuViewModel extends BaseViewModel {
+class LatestWalletTransactionsViewModel extends BaseViewModel {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   List<WalletTransaction> get entries => _txProvider.walletTransactions
       .where(
@@ -1150,7 +1150,7 @@ class AddressMenuViewModel extends BaseViewModel {
 
   final TextEditingController searchController = TextEditingController();
 
-  AddressMenuViewModel() {
+  LatestWalletTransactionsViewModel() {
     searchController.addListener(notifyListeners);
     _txProvider.addListener(notifyListeners);
   }
@@ -1161,36 +1161,6 @@ class AddressMenuViewModel extends BaseViewModel {
     _txProvider.removeListener(notifyListeners);
     super.dispose();
   }
-}
-
-Future<CoreTransaction?> showAddressBookModal(BuildContext context) {
-  return showDialog<CoreTransaction>(
-    context: context,
-    builder: (BuildContext context) {
-      return Padding(
-        padding: EdgeInsets.all(
-          MediaQuery.of(context).size.width * 0.1,
-        ),
-        child: Material(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            side: BorderSide(
-              color: context.sailTheme.colors.formFieldBorder,
-              width: 1.0,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: SailStyleValues.padding25,
-              vertical: SailStyleValues.padding16,
-            ),
-            child: Container(),
-          ),
-        ),
-      );
-    },
-  );
 }
 
 class DeniabilityTab extends StatelessWidget {

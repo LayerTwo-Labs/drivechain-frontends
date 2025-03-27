@@ -15,22 +15,30 @@ import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
 // IMPORTANT: Update router.dart AND routes in HomePage further down
 // in this file, when updating here. Route order should match exactly
 enum Tabs {
+  // common routes
   SidechainExplorer,
 
+  // parent chain routes
   ParentChainPeg,
   ParentChainBMM,
 
-  SidechainSend,
+  // sidechain balance/transfer route
+  SidechainOverview,
+
+  // testchain routes
   TestchainConsole,
 
+  // ethereum routes
   EthereumConsole,
 
+  // zcash routes
   ZCashMeltCast,
   ZCashShieldDeshield,
   ZCashTransfer,
   ZCashOperationStatuses,
   ZCashConsole,
 
+  // trailing common routes
   SettingsHome,
 }
 
@@ -83,8 +91,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       DepositWithdrawTabRoute(),
       BlindMergedMiningTabRoute(),
 
+      // sidechain balance/transfer route
+      SidechainOverviewTabRoute(),
+
       // testchain routes
-      SidechainSendRoute(),
       TestchainRPCTabRoute(),
 
       // ethereum routes

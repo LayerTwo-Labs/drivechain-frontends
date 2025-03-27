@@ -183,7 +183,12 @@ class _SailMenuItemState extends State<SailMenuItem> {
 }
 
 class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
-  const SailMenuItemDivider({super.key});
+  final bool padding;
+
+  const SailMenuItemDivider({
+    super.key,
+    this.padding = true,
+  });
 
   @override
   double get height => _menuDividerHeight;
@@ -192,7 +197,7 @@ class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
   Widget build(BuildContext context) {
     return Container(
       height: _menuDividerHeight,
-      padding: EdgeInsets.symmetric(horizontal: context.isWindows ? 8 : 16),
+      padding: padding ? EdgeInsets.symmetric(horizontal: context.isWindows ? 8 : 16) : null,
       child: Align(
         alignment: Alignment.centerLeft,
         child: Container(
