@@ -240,7 +240,7 @@ packages:
     source: hosted
     version: "2.3.8"
   desktop_multi_window:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: desktop_multi_window
       sha256: "3ea2d696e50c3df696aabfddbd98c220ab4dde38f12c2ab12d1103bfe00ae79b"

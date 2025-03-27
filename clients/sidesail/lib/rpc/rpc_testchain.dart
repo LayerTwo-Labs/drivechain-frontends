@@ -282,6 +282,11 @@ class TestchainRPCLive extends TestchainRPC {
       withBootConnectionRetry: withBootConnectionRetry,
     );
   }
+
+  @override
+  List<String> getMethods() {
+    return testRPCMethods;
+  }
 }
 
 class TestchainRPCError {

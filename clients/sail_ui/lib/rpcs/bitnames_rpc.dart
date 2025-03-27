@@ -13,6 +13,9 @@ abstract class BitnamesRPC extends RPCConnection {
     required super.logPath,
     required super.restartOnFailure,
   });
+
+  List<String> getMethods();
+  Future<dynamic> callRAW(String method, [dynamic params]);
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -116,4 +119,23 @@ class BitnamesLive extends BitnamesRPC {
       warnings: [],
     );
   }
+
+  @override
+  List<String> getMethods() {
+    return bitnamesRPCMethods;
+  }
+
+  @override
+  Future<dynamic> callRAW(String method, [dynamic params]) async {
+    return await _client().call(method, params).catchError((err) {
+      log.t('rpc: $method threw exception: $err');
+      throw err;
+    });
+  }
 }
+
+final bitnamesRPCMethods = [
+  'balance',
+  'stop',
+  'get-blockcount',
+];

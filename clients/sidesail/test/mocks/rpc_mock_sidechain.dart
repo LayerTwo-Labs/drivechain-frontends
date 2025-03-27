@@ -92,4 +92,9 @@ class MockSidechainRPC extends SidechainRPC {
       warnings: [],
     );
   }
+
+  @override
+  List<String> getMethods() {
+    return zcashRPCMethods;
+  }
 }

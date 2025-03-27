@@ -742,4 +742,9 @@ class MockZCashRPCLive extends ZCashRPC {
         throw Exception('Method $method not implemented in mock');
     }
   }
+
+  @override
+  List<String> getMethods() {
+    return zcashRPCMethods;
+  }
 }

@@ -16,6 +16,7 @@ abstract class SidechainRPC extends RPCConnection {
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
 
   Future<List<CoreTransaction>> listTransactions();
+  List<String> getMethods();
 
   Future<String> mainSend(
     String address,
