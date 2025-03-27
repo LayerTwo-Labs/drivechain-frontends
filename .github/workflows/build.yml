@@ -278,6 +278,4 @@ jobs:
           scp: |
             'L2-S*.zip' => '/var/www/html/'
             'BitWindow-*.zip' => '/var/www/html/'
-            'Launcher-*.zip' => '/var/www/html/'
             'BitWindow-*.msix' => '/var/www/html/'
-            'Launcher-*.msix' => '/var/www/html/'
