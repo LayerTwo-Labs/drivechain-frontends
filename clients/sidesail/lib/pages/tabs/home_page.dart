@@ -1,13 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:auto_route/auto_route.dart';
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/config/binaries.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
+import 'package:sail_ui/widgets/platform_menu.dart';
+import 'package:sidesail/main.dart';
 import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
@@ -43,12 +49,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
-  ProcessProvider get _proccessProvider => GetIt.I.get<ProcessProvider>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
-
-  bool _closeAlertOpen = false;
 
   @override
   void initState() {
@@ -93,122 +96,146 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       SettingsTabRoute(),
     ];
 
-    return Scaffold(
-      backgroundColor: theme.colors.background,
-      body: auto_router.AutoTabsRouter.builder(
-        homeIndex: Tabs.ParentChainPeg.index,
-        routes: routes,
-        builder: (context, children, tabsRouter) {
-          return Scaffold(
-            backgroundColor: theme.colors.background,
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(40),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colors.background,
-                ),
-                child: Builder(
-                  builder: (context) {
-                    final tabsRouter = AutoTabsRouter.of(context);
-                    return TopNav(tabsRouter: tabsRouter);
-                  },
-                ),
-              ),
-            ),
-            body: Column(
-              children: [
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Colors.grey,
-                ),
-                Expanded(child: children[tabsRouter.activeIndex]),
-                BottomNav(
-                  mainchainInfo: false,
-                  additionalConnection: ConnectionMonitor(
-                    rpc: sidechain.rpc,
-                    name: sidechain.rpc.chain.name,
-                  ),
-                  navigateToLogs: (title, logPath) {
-                    GetIt.I.get<AppRouter>().push(
-                          LogRoute(
-                            title: title,
-                            logPath: logPath,
-                          ),
-                        );
-                  },
-                  endWidgets: [
-                    IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
-                    ),
-                  ],
+    return CrossPlatformMenuBar(
+      menus: [
+        // First menu will be Apple menu (system provided)
+        PlatformMenu(
+          label: sidechain.rpc.chain.name,
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'About $sidechain.rpc.chain.name',
+                  onSelected: null,
                 ),
               ],
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<bool> displayShutdownModal(
-    BuildContext context,
-  ) async {
-    if (_closeAlertOpen) return false;
-    _closeAlertOpen = true;
-
-    var processesExited = Completer<bool>();
-    unawaited(_proccessProvider.shutdown().then((_) => processesExited.complete(true)));
-
-    if (!mounted) return true;
-
-    unawaited(
-      widgetDialog(
-        context: context,
-        title: 'Shutdown status',
-        subtitle: 'Shutting down nodes...',
-        child: SailColumn(
-          spacing: SailStyleValues.padding20,
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SailSpacing(SailStyleValues.padding08),
-            SailRow(
-              spacing: SailStyleValues.padding12,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _proccessProvider.runningProcesses.entries.map((entry) {
-                return ShutdownCard(
-                  chain: Binary.fromBinary(entry.value.binary)!,
-                  initializing: true,
-                  message: 'with pid ${entry.value.pid}',
-                  forceCleanup: () => entry.value.cleanup(),
-                );
-              }).toList(),
-            ),
-            const SailSpacing(SailStyleValues.padding10),
-            SailRow(
-              spacing: SailStyleValues.padding12,
-              mainAxisAlignment: MainAxisAlignment.end,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                SailButton.primary(
-                  'Force close',
-                  onPressed: () async {
-                    processesExited.complete(true);
-                    Navigator.of(context).pop(true);
-                    _closeAlertOpen = false;
-                  },
-                  size: ButtonSize.regular,
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Quit $sidechain.rpc.chain.name',
+                  shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
+                  onSelected: () => didRequestAppExit(),
                 ),
               ],
             ),
           ],
         ),
+
+        // This Node menu
+        PlatformMenu(
+          label: 'This Node',
+          menus: [
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Console',
+                  onSelected: () async {
+                    final applicationDir = await getApplicationSupportDirectory();
+                    final logFile = await getLogFile();
+
+                    final window = await DesktopMultiWindow.createWindow(
+                      jsonEncode({
+                        'window_type': 'console',
+                        'application_dir': applicationDir.path,
+                        'log_file': logFile.path,
+                      }),
+                    );
+                    await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
+                    await window.center();
+                    await window.setTitle('$sidechain.rpc.chain.name Console');
+                    await window.show();
+                  },
+                ),
+                PlatformMenuItem(
+                  label: 'View Logs',
+                  onSelected: () => GetIt.I.get<AppRouter>().push(
+                        LogRoute(
+                          title: '$sidechain.rpc.chain.name Logs',
+                          logPath: sidechain.rpc.logPath,
+                        ),
+                      ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+      child: Scaffold(
+        backgroundColor: theme.colors.background,
+        body: auto_router.AutoTabsRouter.builder(
+          homeIndex: Tabs.ParentChainPeg.index,
+          routes: routes,
+          builder: (context, children, tabsRouter) {
+            return Scaffold(
+              backgroundColor: theme.colors.background,
+              appBar: PreferredSize(
+                preferredSize: const Size.fromHeight(40),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colors.background,
+                  ),
+                  child: Builder(
+                    builder: (context) {
+                      final tabsRouter = AutoTabsRouter.of(context);
+                      return TopNav(tabsRouter: tabsRouter);
+                    },
+                  ),
+                ),
+              ),
+              body: Column(
+                children: [
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Colors.grey,
+                  ),
+                  Expanded(child: children[tabsRouter.activeIndex]),
+                  BottomNav(
+                    mainchainInfo: false,
+                    additionalConnection: ConnectionMonitor(
+                      rpc: sidechain.rpc,
+                      name: sidechain.rpc.chain.name,
+                    ),
+                    navigateToLogs: (title, logPath) {
+                      GetIt.I.get<AppRouter>().push(
+                            LogRoute(
+                              title: title,
+                              logPath: logPath,
+                            ),
+                          );
+                    },
+                    endWidgets: [
+                      IconButton(
+                        icon: const Icon(Icons.settings),
+                        onPressed: () => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
+  }
 
-    await processesExited.future;
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    await onShutdown(context);
+    return AppExitResponse.exit;
+  }
+
+  Future<bool> onShutdown(BuildContext context) async {
+    final router = GetIt.I.get<AppRouter>();
+    unawaited(router.push(const sailroutes.ShuttingDownRoute()));
+    final sidechain = GetIt.I.get<SidechainContainer>();
+    final processProvider = GetIt.I.get<ProcessProvider>();
+
+    await sidechain.rpc.stop();
+    await processProvider.shutdown();
+
     return true;
   }
 
@@ -216,15 +243,5 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  @override
-  Future<AppExitResponse> didRequestAppExit() async {
-    final shutdown = await displayShutdownModal(context);
-    if (shutdown) {
-      return AppExitResponse.exit;
-    }
-
-    return AppExitResponse.cancel;
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
@@ -25,20 +26,74 @@ import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/storage/sail_settings/font_settings.dart';
 import 'package:sidesail/storage/sail_settings/network_settings.dart';
+import 'package:sidesail/widgets/containers/dropdownactions/console.dart';
 
-Future<void> start() async {
+Future<void> start(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  Sidechain chain = Sidechain.fromString(RuntimeArgs.chain) ?? TestSidechain();
+  Directory? applicationDir;
+  File? logFile;
+  String? chainName;
 
-  await initDependencies(chain);
+  if (args.contains('multi_window')) {
+    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+
+    if (arguments['application_dir'] != null) {
+      applicationDir = Directory(arguments['application_dir']);
+    }
+    if (arguments['log_file'] != null) {
+      logFile = File(arguments['log_file']);
+    }
+
+    if (logFile == null || applicationDir == null) {
+      throw ArgumentError('Missing required arguments for multi-window mode: application_dir, log_file');
+    }
+  }
+
+  // Fall back to filesystem if not provided in args
+  applicationDir ??= await getApplicationSupportDirectory();
+  logFile ??= await getLogFile();
+  Sidechain chain = Sidechain.fromString(chainName ?? RuntimeArgs.chain) ?? TestSidechain();
+  final store = await KeyValueStore.create(dir: applicationDir);
+
+  await initDependencies(chain, applicationDir, logFile, store);
 
   SidechainContainer sidechain = GetIt.I.get<SidechainContainer>();
   AppRouter router = GetIt.I.get<AppRouter>();
   Logger log = GetIt.I.get<Logger>();
 
-  ClientSettings clientSettings = GetIt.I.get<ClientSettings>();
-  final font = (await clientSettings.getValue(FontSetting())).value;
+  if (args.contains('multi_window')) {
+    final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
+
+    Widget child = SailRawCard(
+      child: SailText.primary15('no window type provided, the programmers messed up'),
+    );
+
+    switch (arguments['window_type']) {
+      case 'console':
+        child = const ConsoleWindow();
+        break;
+    }
+
+    return runApp(
+      SailApp(
+        log: log,
+        dense: true,
+        builder: (context) => MaterialApp(
+          theme: ThemeData(
+            visualDensity: VisualDensity.compact,
+            fontFamily: 'Inter',
+          ),
+          home: Scaffold(
+            body: child,
+          ),
+        ),
+        accentColor: sidechain.rpc.chain.color,
+      ),
+    );
+  }
+
+  final font = (await GetIt.I.get<ClientSettings>().getValue(FontSetting())).value;
 
   runApp(
     SailApp(
@@ -68,29 +123,23 @@ bool isCurrentChainActive({
   return foundMatch != null;
 }
 
-void main() {
+void main(List<String> args) async {
   // the application is launched function because some startup things
   // are async
-  start();
+  await start(args);
 }
 
 // register all global dependencies, for use in views, or in view models
 // each dependency can only be registered once
-Future<void> initDependencies(Sidechain chain) async {
-  final applicationDir = await getApplicationSupportDirectory();
-  final logFile = await getLogFile();
+Future<void> initDependencies(
+  Sidechain chain,
+  Directory applicationDir,
+  File logFile,
+  KeyValueStore store,
+) async {
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
   GetIt.I.registerLazySingleton<Logger>(() => log);
 
-  final storage = await KeyValueStore.create();
-  final clientSettings = ClientSettings(
-    store: storage,
-    log: log,
-  );
-
-  GetIt.I.registerLazySingleton<ClientSettings>(
-    () => clientSettings,
-  );
   GetIt.I.registerLazySingleton<ProcessProvider>(
     () => ProcessProvider(
       appDir: applicationDir,
@@ -101,10 +150,18 @@ Future<void> initDependencies(Sidechain chain) async {
     () => NotificationProvider(),
   );
 
+  final clientSettings = ClientSettings(
+    store: store,
+    log: log,
+  );
+  GetIt.I.registerLazySingleton<ClientSettings>(
+    () => clientSettings,
+  );
+
   // Load initial binary states
   final binaries = await _loadBinaries(applicationDir);
   // then register any sidechain rpcs
-  final sidechain = await findSubRPC(chain, binaries);
+  final sidechain = await findSubRPC(chain, binaries, store: store);
   final sidechainContainer = await SidechainContainer.create(sidechain);
   GetIt.I.registerLazySingleton<SidechainContainer>(
     () => sidechainContainer,
@@ -174,10 +231,13 @@ Future<void> initDependencies(Sidechain chain) async {
 // register all rpc connections. We attempt to create all
 // rpcs in parallell, so they're ready instantly when swapping
 // we can also query the balance
-Future<SidechainRPC> findSubRPC(Sidechain chain, List<Binary> binaries) async {
+Future<SidechainRPC> findSubRPC(
+  Sidechain chain,
+  List<Binary> binaries, {
+  KeyValueStore? store,
+}) async {
   Logger log = GetIt.I.get<Logger>();
-  final clientSettings = GetIt.I.get<ClientSettings>();
-  final network = RuntimeArgs.network ?? (await clientSettings.getValue(NetworkSetting())).value.asString();
+  final network = RuntimeArgs.network ?? SailNetworkValues.regtest.asString();
 
   final conf = await findSidechainConf(chain, network);
 
@@ -223,10 +283,14 @@ Future<SidechainRPC> findSubRPC(Sidechain chain, List<Binary> binaries) async {
 
   if (chain == ZCash()) {
     log.i('starting init zcash RPC');
-    final settings = GetIt.I.get<ClientSettings>();
+    if (store == null) {
+      log.i('no store provided, taking from client settings');
+      final settings = GetIt.I.get<ClientSettings>();
+      store = settings.store;
+    }
 
     final zChain = MockZCashRPCLive(
-      storage: settings.store,
+      storage: store,
     );
     sidechain = zChain;
 

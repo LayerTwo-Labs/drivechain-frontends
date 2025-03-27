@@ -374,6 +374,11 @@ class ZcashRPCLive extends ZCashRPC {
   }
 
   @override
+  List<String> getMethods() {
+    return zcashRPCMethods;
+  }
+
+  @override
   Future<int> account() {
     return Future.value(0);
   }

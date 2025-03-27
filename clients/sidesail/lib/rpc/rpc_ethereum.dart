@@ -203,6 +203,11 @@ class EthereumRPCLive extends EthereumRPC {
   }) async {
     await super.initBinary(arg: arg, withBootConnectionRetry: withBootConnectionRetry);
   }
+
+  @override
+  List<String> getMethods() {
+    return ethRPCMethods;
+  }
 }
 
 /// List of all known RPC methods available /

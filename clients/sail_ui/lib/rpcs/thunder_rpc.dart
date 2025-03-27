@@ -17,6 +17,9 @@ abstract class ThunderRPC extends RPCConnection {
     required super.logPath,
     required super.restartOnFailure,
   });
+
+  List<String> getMethods();
+  Future<dynamic> callRAW(String method, [dynamic params]);
 }
 
 class ThunderLive extends ThunderRPC {
@@ -119,4 +122,24 @@ class ThunderLive extends ThunderRPC {
       warnings: [],
     );
   }
+
+  @override
+  List<String> getMethods() {
+    return thunderRPCMethods;
+  }
+
+  @override
+  Future<dynamic> callRAW(String method, [dynamic params]) async {
+    return await _client().call(method, params).catchError((err) {
+      log.t('rpc: $method threw exception: $err');
+      throw err;
+    });
+  }
 }
+
+// TODO: fill these out
+final thunderRPCMethods = [
+  'get-blockcount',
+  'get-block',
+  'get-block-header',
+];

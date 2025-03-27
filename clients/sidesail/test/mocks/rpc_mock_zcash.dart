@@ -331,4 +331,9 @@ class MockZCashRPC extends ZCashRPC {
       warnings: [],
     );
   }
+
+  @override
+  List<String> getMethods() {
+    return zcashRPCMethods;
+  }
 }

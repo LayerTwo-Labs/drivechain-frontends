@@ -380,6 +380,16 @@ class MockThunderRPC extends ThunderRPC {
   Future<BlockchainInfo> getBlockchainInfo() {
     throw UnimplementedError();
   }
+
+  @override
+  List<String> getMethods() {
+    return thunderRPCMethods;
+  }
+
+  @override
+  Future<dynamic> callRAW(String method, [dynamic params]) async {
+    return;
+  }
 }
 
 class MockBitnamesRPC extends BitnamesRPC {
@@ -441,6 +451,16 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() {
     throw UnimplementedError();
+  }
+
+  @override
+  List<String> getMethods() {
+    return [];
+  }
+
+  @override
+  Future<dynamic> callRAW(String method, [dynamic params]) async {
+    return;
   }
 }
 
