@@ -33,7 +33,6 @@ class _TopNavState extends State<TopNav> {
       fireOnViewModelReadyOnce: true,
       builder: ((context, model, child) {
         final sidechainNav = _navForSidechain(_sidechain.rpc.chain, model, widget.tabsRouter);
-        final trailingSidechainNav = _navForSidechainTrailing(_sidechain.rpc.chain, model, widget.tabsRouter);
 
         return SailRow(
           spacing: 0,
@@ -68,9 +67,7 @@ class _TopNavState extends State<TopNav> {
               ),
             ),
             ...sidechainNav,
-            ...trailingSidechainNav,
             Expanded(child: Container()),
-            const ToggleThemeButton(),
           ],
         );
       }),
@@ -101,14 +98,6 @@ class _TopNavState extends State<TopNav> {
         return [
           ...baseNav,
           QtTab(
-            label: 'Send/Receive Private',
-            active: tabsRouter.activeIndex == Tabs.ZCashTransfer.index,
-            onTap: () {
-              tabsRouter.setActiveIndex(Tabs.ZCashTransfer.index);
-            },
-            icon: SailSVGAsset.iconTabSidechainSend,
-          ),
-          QtTab(
             label: 'Shield/Deshield',
             active: tabsRouter.activeIndex == Tabs.ZCashShieldDeshield.index,
             onTap: () {
@@ -124,14 +113,6 @@ class _TopNavState extends State<TopNav> {
             },
             icon: SailSVGAsset.iconTabZCashMeltCast,
           ),
-          QtTab(
-            label: 'Operation Statuses',
-            active: tabsRouter.activeIndex == Tabs.ZCashOperationStatuses.index,
-            onTap: () {
-              tabsRouter.setActiveIndex(Tabs.ZCashOperationStatuses.index);
-            },
-            icon: SailSVGAsset.iconTabZCashOperationStatuses,
-          ),
         ];
 
       case ParentChain():
@@ -143,61 +124,6 @@ class _TopNavState extends State<TopNav> {
       default:
         throw Exception('could not handle unknown sidechain type ${chain.runtimeType}');
     }
-  }
-
-  List<QtTab> _navForSidechainTrailing(
-    Binary chain,
-    TopNavViewModel viewModel,
-    auto_router.TabsRouter tabsRouter,
-  ) {
-    List<QtTab> trailing = [];
-
-    switch (chain) {
-      case TestSidechain():
-        trailing = [
-          QtTab(
-            label: 'Console',
-            active: tabsRouter.activeIndex == Tabs.TestchainConsole.index,
-            onTap: () {
-              tabsRouter.setActiveIndex(Tabs.TestchainConsole.index);
-            },
-            icon: SailSVGAsset.iconTabConsole,
-          ),
-        ];
-        break;
-
-      case EthereumSidechain():
-        break;
-
-      case ZCash():
-        trailing = [
-          QtTab(
-            label: 'Console',
-            active: tabsRouter.activeIndex == Tabs.ZCashConsole.index,
-            onTap: () {
-              tabsRouter.setActiveIndex(Tabs.ZCashConsole.index);
-            },
-            icon: SailSVGAsset.iconTabConsole,
-          ),
-        ];
-        break;
-
-      case ParentChain():
-        break;
-    }
-
-    return [
-      ...trailing,
-      QtTab(
-        label: 'Settings',
-        active: tabsRouter.activeIndex == Tabs.SettingsHome.index,
-        onTap: () {
-          // default to second to last route (node settings)
-          tabsRouter.setActiveIndex(Tabs.SettingsHome.index);
-        },
-        icon: SailSVGAsset.iconTabSettings,
-      ),
-    ];
   }
 }
 

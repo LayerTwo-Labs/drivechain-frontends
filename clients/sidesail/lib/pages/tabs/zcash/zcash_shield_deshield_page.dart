@@ -4,8 +4,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sidesail/pages/tabs/home_page.dart';
-import 'package:sidesail/pages/tabs/zcash/zcash_transfer_page.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/widgets/containers/tabs/zcash_tab_widgets.dart';
@@ -22,17 +20,11 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashShieldTabViewModel(),
       builder: ((context, model, child) {
-        final tabsRouter = AutoTabsRouter.of(context);
-
-        return SailPage(
-          scrollable: true,
-          widgetTitle: ZCashWidgetTitle(
-            depositNudgeAction: () => tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index),
-          ),
-          body: Padding(
+        return QtPage(
+          child: Padding(
             padding: const EdgeInsets.only(bottom: SailStyleValues.padding32),
             child: SailColumn(
-              spacing: SailStyleValues.padding32,
+              spacing: SailStyleValues.padding16,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,6 +74,13 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+                SailButton.secondary(
+                  'View Z Operation Status',
+                  onPressed: () async {
+                    await router.push(const ZCashOperationStatusesTabRoute());
+                  },
+                  size: ButtonSize.regular,
                 ),
               ],
             ),

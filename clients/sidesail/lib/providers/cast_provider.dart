@@ -115,10 +115,6 @@ class CastProvider extends ChangeNotifier {
         executeAction: () => _executeCast(i, 0),
       );
 
-      log.d(
-        'created new bill executeTime=${newBill.executeTime} powerOf=${newBill.powerOf} amountSats=${newBill.castAmount}',
-      );
-
       futureCasts[i] = newBill;
     }
 
