@@ -730,7 +730,7 @@ class SailTableCell extends StatelessWidget {
       child: IconTheme(
         data: iconTheme,
         child: child ??
-            SailText.primary12(
+            SailText.secondary12(
               value,
               color: textColor,
               monospace: monospace,

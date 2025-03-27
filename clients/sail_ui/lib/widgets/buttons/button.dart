@@ -231,7 +231,7 @@ class _SailRawButtonState extends State<SailRawButton> with SingleTickerProvider
   }
 }
 
-enum SailButtonStyle { primary, secondary }
+enum SailButtonStyle { primary, secondary, text }
 
 class SailScaleButton extends StatefulWidget {
   final Future<void> Function()? onPressed;

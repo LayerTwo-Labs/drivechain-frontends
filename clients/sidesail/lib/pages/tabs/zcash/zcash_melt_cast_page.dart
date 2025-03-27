@@ -573,7 +573,11 @@ class MeltButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: SailStyleValues.padding08,
               children: [
-                SailSVG.icon(SailSVGAsset.iconMelt, color: theme.colors.text, height: 24),
+                SailSVG.icon(
+                  SailSVGAsset.iconMelt,
+                  color: theme.colors.text,
+                  height: 24,
+                ),
                 SailText.primary24('Melt', bold: true),
               ],
             ),
@@ -600,18 +604,30 @@ class CastButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return SailScaleButton(
-      onPressed: onPressed,
+    return InkWell(
+      onTap: onPressed,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6.0),
+          color: theme.colors.backgroundSecondary,
+          border: Border.all(
+            color: theme.colors.orange,
+            width: 1.0,
+          ),
+        ),
         child: Column(
           children: [
             SailRow(
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: SailStyleValues.padding08,
               children: [
-                SailSVG.icon(SailSVGAsset.iconCast, color: theme.colors.text, height: 24),
+                SailSVG.icon(
+                  SailSVGAsset.iconCast,
+                  color: theme.colors.text,
+                  height: 24,
+                ),
                 SailText.primary24('Cast', bold: true),
               ],
             ),

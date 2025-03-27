@@ -84,15 +84,15 @@ class SailColor {
   factory SailColor.darkTheme(Color primary) {
     return SailColor(
       background: SailColorScheme.black,
-      backgroundSecondary: SailColorScheme.blackLighter,
+      backgroundSecondary: SailColorScheme.blackKindaLight,
       backgroundActionModal: SailColorScheme.darkActionModalBackground,
       formField: SailColorScheme.blackLightest,
       formFieldBorder: SailColorScheme.greyDark,
       divider: SailColorScheme.greyDark,
       shadow: SailColorScheme.black.withValues(alpha: 0.5),
       text: SailColorScheme.white,
-      textSecondary: SailColorScheme.white,
-      textTertiary: SailColorScheme.greyMiddle,
+      textSecondary: SailColorScheme.greyMiddle,
+      textTertiary: SailColorScheme.greyDark,
       textHint: SailColorScheme.darkTextHint,
       iconHighlighted: primary,
       icon: SailColorScheme.white.withValues(alpha: 0.8),

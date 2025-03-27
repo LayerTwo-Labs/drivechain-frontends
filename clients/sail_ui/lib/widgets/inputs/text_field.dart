@@ -97,11 +97,11 @@ class SailTextField extends StatelessWidget {
             disabledBorder: InputBorder.none,
             enabledBorder: OutlineInputBorder(
               borderRadius: const BorderRadius.all(Radius.circular(6)),
-              borderSide: BorderSide(color: theme.colors.formFieldBorder),
+              borderSide: BorderSide(color: theme.colors.background),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: const BorderRadius.all(Radius.circular(6)),
-              borderSide: BorderSide(color: theme.colors.formFieldBorder),
+              borderSide: BorderSide(color: theme.colors.text),
             ),
             suffixStyle: TextStyle(
               color: SailTheme.of(context).colors.textTertiary,
@@ -122,7 +122,7 @@ class SailTextField extends StatelessWidget {
             prefix: prefixWidget,
             prefixIcon: prefixIcon,
             prefixIconConstraints: prefixIconConstraints,
-            fillColor: SailTheme.of(context).colors.background,
+            fillColor: SailTheme.of(context).colors.backgroundSecondary,
             filled: true,
             contentPadding: padding,
             hintText: hintText,

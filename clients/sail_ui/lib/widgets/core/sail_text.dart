@@ -227,6 +227,7 @@ class SailText {
     bool bold = false,
     bool italic = false,
     Color? color,
+    bool monospace = false,
   }) {
     return Builder(
       builder: (context) {
@@ -237,6 +238,7 @@ class SailText {
             color: color ?? theme.colors.textSecondary,
             fontWeight: bold ? SailStyleValues.boldWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+            fontFamily: monospace ? 'SourceCodePro' : 'Inter',
           ),
           textAlign: textAlign,
         );

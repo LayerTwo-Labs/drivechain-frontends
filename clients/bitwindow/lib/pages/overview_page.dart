@@ -121,7 +121,7 @@ class TransactionsView extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: SailStyleValues.padding16), // Add some space between the two tables
+            const SizedBox(width: SailStyleValues.padding16),
             Flexible(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
