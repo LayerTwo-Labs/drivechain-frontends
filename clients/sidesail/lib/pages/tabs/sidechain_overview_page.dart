@@ -235,7 +235,21 @@ class OverviewTabViewModel extends BaseViewModel {
   Future<void> generateReceiveAddress() async {
     setBusy(true);
     try {
-      receiveAddress = await _sidechain.rpc.getSideAddress();
+      while (true) {
+        try {
+          log.d('Attempting to generate receive address...');
+          receiveAddress = await _sidechain.rpc.getSideAddress();
+          if (receiveAddress != null) {
+            log.i('Successfully generated receive address: $receiveAddress');
+            break;
+          }
+          log.w('Generated address was null, retrying in 1 second...');
+        } catch (e) {
+          log.e('Failed to generate receive address', error: e);
+          log.d('Retrying in 1 second...');
+        }
+        await Future.delayed(const Duration(seconds: 1));
+      }
     } finally {
       setBusy(false);
       notifyListeners();

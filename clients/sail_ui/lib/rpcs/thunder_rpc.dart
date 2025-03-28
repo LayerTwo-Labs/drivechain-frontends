@@ -152,8 +152,47 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<List<CoreTransaction>> listTransactions() async {
-    // TODO: Implement once we know the transaction format
     throw UnimplementedError();
+  }
+
+  /// Get total sidechain wealth in BTC
+  Future<double> getSidechainWealth() async {
+    final wealthSats = await _client().call('sidechain-wealth-sats') as int;
+    return satoshiToBTC(wealthSats);
+  }
+
+  /// Create a deposit transaction
+  Future<String> createDeposit(String address, double amount, double fee) async {
+    final response = await _client().call('create-deposit', [
+      {
+        'address': address,
+        'value_sats': btcToSatoshi(amount),
+        'fee_sats': btcToSatoshi(fee),
+      }
+    ]);
+    return response as String;
+  }
+
+  /// Get pending withdrawal bundle
+  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() async {
+    final response = await _client().call('pending-withdrawal-bundle');
+    return response as Map<String, dynamic>?;
+  }
+
+  /// Connect to a peer
+  Future<void> connectPeer(String peerAddress) async {
+    await _client().call('connect-peer', [peerAddress]);
+  }
+
+  /// List connected peers
+  Future<List<Map<String, dynamic>>> listPeers() async {
+    final response = await _client().call('list-peers') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
+  }
+
+  /// Mine a block with optional coinbase value
+  Future<void> mine([int? coinbaseValueSats]) async {
+    await _client().call('mine', [coinbaseValueSats]);
   }
 
   @override

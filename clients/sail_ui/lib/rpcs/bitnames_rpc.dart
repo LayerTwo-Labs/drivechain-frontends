@@ -17,6 +17,30 @@ abstract class BitnamesRPC extends SidechainRPC {
     required super.restartOnFailure,
     required super.chain,
   });
+
+  /// Get balance in sats
+  Future<BalanceResponse> getBalance();
+
+  /// Get BitName data
+  Future<BitNameData?> getBitNameData(String name);
+
+  /// List all BitNames
+  Future<List<String>> listBitNames();
+
+  /// Connect to a peer
+  Future<void> connectPeer(String address);
+
+  /// List peers
+  Future<List<BitnamesPeerInfo>> listPeers();
+
+  /// List all UTXOs
+  Future<List<BitnamesUTXO>> listUtxos();
+
+  /// Register a BitName
+  Future<String> registerBitName(String plainName, BitNameData? data);
+
+  /// Reserve a BitName
+  Future<String> reserveBitName(String name);
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -79,19 +103,15 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<int> ping() async {
-    final response = await _client().call('balance') as Map<String, dynamic>;
-    return response['total_sats'] as int;
+    final response = await getBalance();
+    return response.totalSats;
   }
 
   @override
   Future<(double confirmed, double unconfirmed)> balance() async {
-    final response = await _client().call('balance') as Map<String, dynamic>;
-    final totalSats = response['total_sats'] as int;
-    final availableSats = response['available_sats'] as int;
-
-    final confirmed = satoshiToBTC(availableSats);
-    final unconfirmed = satoshiToBTC(totalSats - availableSats);
-
+    final response = await getBalance();
+    final confirmed = satoshiToBTC(response.availableSats);
+    final unconfirmed = satoshiToBTC(response.totalSats - response.availableSats);
     return (confirmed, unconfirmed);
   }
 
@@ -104,7 +124,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final blocks = await _client().call('get-blockcount') as int;
+    final blocks = await _client().call('getblockcount') as int;
     // can't trust the rpc, give it a moment to stop
     await Future.delayed(const Duration(seconds: 5));
     return BlockchainInfo(
@@ -181,6 +201,114 @@ class BitnamesLive extends BitnamesRPC {
     ]);
     return response as String;
   }
+
+  @override
+  Future<BalanceResponse> getBalance() async {
+    final response = await _client().call('balance') as Map<String, dynamic>;
+    return BalanceResponse.fromJson(response);
+  }
+
+  @override
+  Future<BitNameData?> getBitNameData(String name) async {
+    final response = await _client().call('bitname-data', [name]) as Map<String, dynamic>?;
+    return response != null ? BitNameData.fromJson(response) : null;
+  }
+
+  @override
+  Future<List<String>> listBitNames() async {
+    final response = await _client().call('bitnames') as List<dynamic>;
+    return response.cast<String>();
+  }
+
+  @override
+  Future<void> connectPeer(String address) async {
+    await _client().call('connect-peer', [address]);
+  }
+
+  @override
+  Future<List<BitnamesPeerInfo>> listPeers() async {
+    final response = await _client().call('list-peers') as List<dynamic>;
+    return response.map((e) => BitnamesPeerInfo.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<List<BitnamesUTXO>> listUtxos() async {
+    final response = await _client().call('list-utxos') as List<dynamic>;
+    return response.map((e) => BitnamesUTXO.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<String> registerBitName(String plainName, BitNameData? data) async {
+    final response = await _client().call('register-bitname', [
+      {
+        'plain_name': plainName,
+        'bitname_data': data?.toJson(),
+      },
+    ]);
+    return response as String;
+  }
+
+  @override
+  Future<String> reserveBitName(String name) async {
+    final response = await _client().call('reserve-bitname', [name]);
+    return response as String;
+  }
+
+  /// Additional methods from OpenAPI schema
+
+  /// Get a new encryption key
+  Future<String> getNewEncryptionKey() async {
+    final response = await _client().call('get-new-encryption-key');
+    return response as String;
+  }
+
+  /// Get a new verifying/signing key
+  Future<String> getNewVerifyingKey() async {
+    final response = await _client().call('get-new-verifying-key');
+    return response as String;
+  }
+
+  /// Sign an arbitrary message with the specified verifying key
+  Future<String> signArbitraryMessage(String message, String verifyingKey) async {
+    final response = await _client().call('sign-arbitrary-msg', [
+      {
+        'msg': message,
+        'verifying_key': verifyingKey,
+      },
+    ]);
+    return response as String;
+  }
+
+  /// Verify a signature on a message against the specified verifying key
+  Future<bool> verifySignature(String message, String signature, String verifyingKey) async {
+    final response = await _client().call('verify-signature', [
+      {
+        'msg': message,
+        'signature': signature,
+        'verifying_key': verifyingKey,
+        'dst': 'arbitrary',
+      },
+    ]);
+    return response as bool;
+  }
+
+  /// Get the best known mainchain block hash
+  Future<String?> getBestMainchainBlockHash() async {
+    final response = await _client().call('get-best-mainchain-block-hash');
+    return response as String?;
+  }
+
+  /// Get the best sidechain block hash known by Bitnames
+  Future<String?> getBestSidechainBlockHash() async {
+    final response = await _client().call('get-best-sidechain-block-hash');
+    return response as String?;
+  }
+
+  /// Get total sidechain wealth in sats
+  Future<int> getSidechainWealthSats() async {
+    final response = await _client().call('sidechain-wealth-sats');
+    return response as int;
+  }
 }
 
 final bitnamesRPCMethods = [
@@ -224,3 +352,85 @@ final bitnamesRPCMethods = [
   'withdraw',
   'help',
 ];
+
+/// Models for Bitnames RPC responses
+class BitNameData {
+  final String? commitment;
+  final String? encryptionPubkey;
+  final int? paymailFeeSats;
+  final String? signingPubkey;
+  final String? socketAddrV4;
+  final String? socketAddrV6;
+
+  BitNameData({
+    this.commitment,
+    this.encryptionPubkey,
+    this.paymailFeeSats,
+    this.signingPubkey,
+    this.socketAddrV4,
+    this.socketAddrV6,
+  });
+
+  Map<String, dynamic> toJson() => {
+        if (commitment != null) 'commitment': commitment,
+        if (encryptionPubkey != null) 'encryption_pubkey': encryptionPubkey,
+        if (paymailFeeSats != null) 'paymail_fee_sats': paymailFeeSats,
+        if (signingPubkey != null) 'signing_pubkey': signingPubkey,
+        if (socketAddrV4 != null) 'socket_addr_v4': socketAddrV4,
+        if (socketAddrV6 != null) 'socket_addr_v6': socketAddrV6,
+      };
+
+  factory BitNameData.fromJson(Map<String, dynamic> json) => BitNameData(
+        commitment: json['commitment'] as String?,
+        encryptionPubkey: json['encryption_pubkey'] as String?,
+        paymailFeeSats: json['paymail_fee_sats'] as int?,
+        signingPubkey: json['signing_pubkey'] as String?,
+        socketAddrV4: json['socket_addr_v4'] as String?,
+        socketAddrV6: json['socket_addr_v6'] as String?,
+      );
+}
+
+class BalanceResponse {
+  final int totalSats;
+  final int availableSats;
+
+  BalanceResponse({
+    required this.totalSats,
+    required this.availableSats,
+  });
+
+  factory BalanceResponse.fromJson(Map<String, dynamic> json) => BalanceResponse(
+        totalSats: json['total_sats'] as int,
+        availableSats: json['available_sats'] as int,
+      );
+}
+
+class BitnamesPeerInfo {
+  final String address;
+  final String status;
+
+  BitnamesPeerInfo({
+    required this.address,
+    required this.status,
+  });
+
+  factory BitnamesPeerInfo.fromJson(Map<String, dynamic> json) => BitnamesPeerInfo(
+        address: json['address'] as String,
+        status: json['status'] as String,
+      );
+}
+
+class BitnamesUTXO {
+  final String outpoint;
+  final Map<String, dynamic> output;
+
+  BitnamesUTXO({
+    required this.outpoint,
+    required this.output,
+  });
+
+  factory BitnamesUTXO.fromJson(Map<String, dynamic> json) => BitnamesUTXO(
+        outpoint: json['outpoint'] as String,
+        output: json['output'] as Map<String, dynamic>,
+      );
+}

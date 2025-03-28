@@ -529,6 +529,46 @@ class MockBitnamesRPC extends BitnamesRPC {
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
     return Future.value('txid_sidechain_send_5678');
   }
+
+  @override
+  Future<void> connectPeer(String address) async {
+    return Future.value();
+  }
+
+  @override
+  Future<BalanceResponse> getBalance() {
+    return Future.value(BalanceResponse(totalSats: 0, availableSats: 0));
+  }
+
+  @override
+  Future<BitNameData?> getBitNameData(String name) {
+    return Future.value(null);
+  }
+
+  @override
+  Future<List<String>> listBitNames() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<List<BitnamesPeerInfo>> listPeers() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<List<BitnamesUTXO>> listUtxos() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<String> registerBitName(String plainName, BitNameData? data) {
+    return Future.value('mock_txid_register_bitname');
+  }
+
+  @override
+  Future<String> reserveBitName(String name) {
+    return Future.value('mock_txid_reserve_bitname');
+  }
 }
 
 class MockBlockInfoProvider implements BlockInfoProvider {
