@@ -321,7 +321,8 @@ class MockThunderRPC extends ThunderRPC {
           conf: NodeConnectionSettings.empty(),
           binary: Thunder(),
           logPath: '',
-          restartOnFailure: false,
+          restartOnFailure: true,
+          chain: Thunder(),
         );
 
   bool _connected = false;
@@ -390,11 +391,47 @@ class MockThunderRPC extends ThunderRPC {
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     return;
   }
+
+  @override
+  Future<String> getDepositAddress() {
+    return Future.value('tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+  }
+
+  @override
+  Future<String> getSideAddress() {
+    return Future.value('tb1qyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy');
+  }
+
+  @override
+  Future<List<CoreTransaction>> listTransactions() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) {
+    return Future.value('txid_mainchain_send_1234');
+  }
+
+  @override
+  Future<double> sideEstimateFee() {
+    return Future.value(0.00001);
+  }
+
+  @override
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+    return Future.value('txid_sidechain_send_5678');
+  }
 }
 
 class MockBitnamesRPC extends BitnamesRPC {
   MockBitnamesRPC()
-      : super(conf: NodeConnectionSettings.empty(), binary: Bitnames(), logPath: '', restartOnFailure: true);
+      : super(
+          conf: NodeConnectionSettings.empty(),
+          binary: Bitnames(),
+          logPath: '',
+          restartOnFailure: true,
+          chain: Bitnames(),
+        );
 
   bool _connected = false;
   bool _initializing = false;
@@ -461,6 +498,36 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     return;
+  }
+
+  @override
+  Future<String> getDepositAddress() {
+    return Future.value('tb1qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+  }
+
+  @override
+  Future<String> getSideAddress() {
+    return Future.value('tb1qyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy');
+  }
+
+  @override
+  Future<List<CoreTransaction>> listTransactions() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) {
+    return Future.value('txid_mainchain_send_1234');
+  }
+
+  @override
+  Future<double> sideEstimateFee() {
+    return Future.value(0.00001);
+  }
+
+  @override
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
+    return Future.value('txid_sidechain_send_5678');
   }
 }
 
@@ -531,32 +598,32 @@ class MockBlockInfoProvider implements BlockInfoProvider {
 class MockBitcoindAPI implements BitcoindAPI {
   @override
   Future<List<Peer>> listPeers() {
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future<List<RecentTransaction>> listRecentTransactions() {
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50}) {
-    throw UnimplementedError();
+    return Future.value((<Block>[], false));
   }
 
   @override
   Future<GetBlockchainInfoResponse> getBlockchainInfo() {
-    throw UnimplementedError();
+    return Future.value(GetBlockchainInfoResponse());
   }
 
   @override
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget) {
-    throw UnimplementedError();
+    return Future.value(EstimateSmartFeeResponse());
   }
 
   @override
   Future<GetRawTransactionResponse> getRawTransaction(String txid) {
-    throw UnimplementedError();
+    return Future.value(GetRawTransactionResponse());
   }
 
   @override

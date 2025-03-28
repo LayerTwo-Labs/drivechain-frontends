@@ -6,20 +6,21 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/rpcs/rpc_sidechain.dart';
+import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 final log = GetIt.I.get<Logger>();
 
 /// API to the thunder server.
-abstract class ThunderRPC extends RPCConnection {
+abstract class ThunderRPC extends SidechainRPC {
   ThunderRPC({
     required super.conf,
     required super.binary,
     required super.logPath,
     required super.restartOnFailure,
+    required super.chain,
   });
-
-  List<String> getMethods();
-  Future<dynamic> callRAW(String method, [dynamic params]);
 }
 
 class ThunderLive extends ThunderRPC {
@@ -42,12 +43,14 @@ class ThunderLive extends ThunderRPC {
     required super.binary,
     required super.logPath,
     required super.restartOnFailure,
+    required super.chain,
   });
 
   // Async factory
   static Future<ThunderLive> create({
     required Binary binary,
     required String logPath,
+    required Sidechain chain,
   }) async {
     final conf = await getMainchainConf();
 
@@ -56,6 +59,7 @@ class ThunderLive extends ThunderRPC {
       binary: binary,
       logPath: logPath,
       restartOnFailure: false,
+      chain: chain,
     );
 
     await instance._init();
@@ -104,8 +108,6 @@ class ThunderLive extends ThunderRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final blocks = await _client().call('get-blockcount') as int;
-    // can't trust the rpc, give it a moment to stop
-    await Future.delayed(const Duration(seconds: 5));
     return BlockchainInfo(
       chain: 'signet',
       blocks: blocks,
@@ -135,11 +137,77 @@ class ThunderLive extends ThunderRPC {
       throw err;
     });
   }
+
+  @override
+  Future<String> getDepositAddress() async {
+    final response = await _client().call('get-new-address') as String;
+    return formatDepositAddress(response, chain.slot);
+  }
+
+  @override
+  Future<String> getSideAddress() async {
+    final response = await _client().call('get-new-address');
+    return response as String;
+  }
+
+  @override
+  Future<List<CoreTransaction>> listTransactions() async {
+    // TODO: Implement once we know the transaction format
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
+    final response = await _client().call('withdraw', [
+      address,
+      btcToSatoshi(amount),
+      btcToSatoshi(sidechainFee),
+      btcToSatoshi(mainchainFee),
+    ]);
+    return response as String;
+  }
+
+  @override
+  Future<double> sideEstimateFee() async {
+    // Thunder has fixed fees for now
+    return 0.00001;
+  }
+
+  @override
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
+    final response = await _client().call('transfer', [
+      address,
+      btcToSatoshi(amount),
+      subtractFeeFromAmount,
+    ]);
+    return response as String;
+  }
 }
 
-// TODO: fill these out
 final thunderRPCMethods = [
-  'get-blockcount',
+  'balance',
+  'connect-peer',
+  'create-deposit',
+  'format-deposit-address',
+  'generate-mnemonic',
+  'get-best-mainchain-block-hash',
+  'get-best-sidechain-block-hash',
   'get-block',
-  'get-block-header',
+  'get-bmm-inclusions',
+  'get-new-address',
+  'get-wallet-addresses',
+  'get-wallet-utxos',
+  'get-blockcount',
+  'latest-failed-withdrawal-bundle-height',
+  'list-peers',
+  'list-utxos',
+  'mine',
+  'pending-withdrawal-bundle',
+  'openapi-schema',
+  'remove-from-mempool',
+  'set-seed-from-mnemonic',
+  'sidechain-wealth',
+  'stop',
+  'transfer',
+  'withdraw',
 ];
