@@ -832,6 +832,8 @@ extension BinaryPaths on Binary {
       var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
       var b when b is EthereumSidechain => filePath([datadir(), 'ethereum.log']),
       var b when b is ZCash => filePath([datadir(), 'regtest', 'debug.log']),
+      var b when b is Thunder => filePath([datadir(), 'logs', 'TODO.log']),
+      var b when b is Bitnames => filePath([datadir(), 'logs', 'TODO.log']),
       var b when b is ParentChain => filePath([datadir(), 'debug.log']),
       var b when b is BitWindow => filePath([datadir(), 'debug.log']),
       var b when b is Enforcer => filePath([datadir(), 'bip300301_enforcer.log']),

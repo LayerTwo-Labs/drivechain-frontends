@@ -125,6 +125,7 @@ Future<void> initDependencies(Logger log) async {
           final thunder = await ThunderLive.create(
             binary: binary,
             logPath: path.join(binary.datadir(), 'thunder.log'),
+            chain: Sidechain.fromBinary(binary),
           );
           GetIt.I.registerSingleton<ThunderRPC>(thunder);
 
@@ -132,6 +133,7 @@ Future<void> initDependencies(Logger log) async {
           final bitnames = await BitnamesLive.create(
             binary: binary,
             logPath: path.join(binary.datadir(), 'bitnames.log'),
+            chain: Sidechain.fromBinary(binary),
           );
           GetIt.I.registerSingleton<BitnamesRPC>(bitnames);
       }

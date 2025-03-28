@@ -42,8 +42,8 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                             const SizedBox(height: SailStyleValues.padding16),
                             SailRawCard(
                               bottomPadding: false,
-                              title: 'Melt',
-                              subtitle: 'Click here to Melt ALL of your transparent Coins',
+                              title: 'Pending melts',
+                              subtitle: 'See list of ongoing melts and their status',
                               widgetHeaderEnd: HelpButton(onPressed: () => model.meltHelp(context)),
                               child: SizedBox(
                                 height: 300,
@@ -66,8 +66,8 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                             ),
                             const SizedBox(height: SailStyleValues.padding16),
                             SailRawCard(
-                              title: 'Cast',
-                              subtitle: 'Click here to Cast 95-100% of your z-value as 4 new Coins',
+                              title: 'Pending casts',
+                              subtitle: 'See list of ongoing casts and their status',
                               bottomPadding: false,
                               widgetHeaderEnd: SailRow(
                                 spacing: SailStyleValues.padding08,

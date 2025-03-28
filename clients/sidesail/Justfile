@@ -11,11 +11,13 @@ run:
     echo "What chain do you want to boot into?"
     echo "[1]: zcash"
     echo "[2]: thunder"
+    echo "[3]: bitnames"
     read -p "Enter choice [1-2]: " choice
 
     case $choice in
         1) chain="zcash" ;;
         2) chain="thunder" ;;
+        3) chain="bitnames" ;;
         *) echo "Invalid choice, defaulting to zcash"; chain="zcash" ;;
     esac
 

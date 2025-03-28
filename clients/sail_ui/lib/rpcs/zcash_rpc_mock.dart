@@ -10,10 +10,76 @@ import 'package:sail_ui/settings/secure_store.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 import 'package:synchronized/synchronized.dart';
 
+/// Represents a single UTXO for mock implementation
+class _MockUTXO {
+  final String txid;
+  final int vout;
+  final String address;
+  final double amount;
+  final int confirmations;
+  final String scriptPubKey; // For validation
+  final bool isChange;
+  final int time; // Add time field
+
+  _MockUTXO({
+    required this.txid,
+    required this.vout,
+    required this.address,
+    required this.amount,
+    required this.confirmations,
+    required this.scriptPubKey,
+    required this.time, // Add to constructor
+    this.isChange = false,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'txid': txid,
+        'vout': vout,
+        'address': address,
+        'amount': amount,
+        'confirmations': confirmations,
+        'scriptPubKey': scriptPubKey,
+        'isChange': isChange,
+        'time': time, // Add to JSON
+      };
+
+  factory _MockUTXO.fromJson(Map<String, dynamic> json) => _MockUTXO(
+        txid: json['txid'],
+        vout: json['vout'],
+        address: json['address'],
+        amount: json['amount'],
+        confirmations: json['confirmations'],
+        scriptPubKey: json['scriptPubKey'],
+        time: json['time'], // Add to fromJson
+        isChange: json['isChange'] ?? false,
+      );
+}
+
 /// A mock implementation of ZCashRPC that simulates a live node with persistent state
 class MockZCashRPCLive extends ZCashRPC {
   final KeyValueStore storage;
   final _lock = Lock();
+
+  // Add new storage keys
+  static const String _utxoSetKey = 'utxo_set';
+
+  // Helper methods for UTXO management
+  Future<List<_MockUTXO>> _getUTXOSet() async {
+    final utxoSetStr = await storage.getString(_utxoSetKey);
+    if (utxoSetStr == null) return [];
+    final utxoList = jsonDecode(utxoSetStr) as List;
+    return utxoList.map((u) => _MockUTXO.fromJson(u)).toList();
+  }
+
+  Future<void> _updateUTXOSet(List<_MockUTXO> utxos) async {
+    await _lock.synchronized(() async {
+      await storage.setString(
+        _utxoSetKey,
+        jsonEncode(utxos.map((u) => u.toJson()).toList()),
+      );
+      notifyListeners(); // Notify after UTXO set changes
+    });
+  }
 
   String _generateTxid() {
     final random = math.Random.secure();
@@ -27,7 +93,9 @@ class MockZCashRPCLive extends ZCashRPC {
           binary: ZCash(),
           logPath: './mocked.log',
           restartOnFailure: false,
-        );
+        ) {
+    _initializeUTXOSet(); // Initialize UTXO set when mock is created
+  }
 
   Future<String> _generateBlock() async {
     final blockHash = _generateTxid();
@@ -78,8 +146,8 @@ class MockZCashRPCLive extends ZCashRPC {
           blockindex: tx.confirmations == 0 ? blocks.length : tx.blockindex,
           blocktime: tx.confirmations == 0 ? timestamp : tx.blocktime,
           txid: tx.txid,
-          time: tx.time,
-          timereceived: tx.timereceived,
+          time: DateTime.fromMillisecondsSinceEpoch((tx.time.millisecondsSinceEpoch ~/ 1000) * 1000),
+          timereceived: DateTime.fromMillisecondsSinceEpoch((tx.timereceived.millisecondsSinceEpoch ~/ 1000) * 1000),
           comment: tx.comment,
           bip125Replaceable: tx.bip125Replaceable,
           abandoned: tx.abandoned,
@@ -118,47 +186,23 @@ class MockZCashRPCLive extends ZCashRPC {
   }
 
   Future<void> _updateTransparentTransactions(List<CoreTransaction> transactions) async {
-    // Remove any transactions that are:
-    // 1. Marked as spent
-    // 2. Have zero amount
-    final updatedTransactions = transactions.where((tx) {
-      try {
-        final raw = jsonDecode(tx.raw);
-        // Keep transaction only if:
-        // 1. It's not spent AND
-        // 2. It has a non-zero amount (for receive/generate transactions)
-        return raw['spent'] != true && !(tx.amount == 0 && (tx.category == 'receive' || tx.category == 'generate'));
-      } catch (_) {
-        return true; // Keep transaction if raw JSON is invalid
-      }
-    }).toList();
-
-    await storage.setString(
-      'transparent_transactions',
-      jsonEncode(updatedTransactions.map((t) => t.toJson()).toList()),
-    );
+    await _lock.synchronized(() async {
+      await storage.setString(
+        'transparent_transactions',
+        jsonEncode(transactions.map((t) => t.toJson()).toList()),
+      );
+      notifyListeners(); // Notify after transaction changes
+    });
   }
 
   Future<void> _updateShieldedTransactions(List<CoreTransaction> transactions) async {
-    // Remove any transactions that are:
-    // 1. Marked as spent
-    // 2. Have zero amount
-    final updatedTransactions = transactions.where((tx) {
-      try {
-        final raw = jsonDecode(tx.raw);
-        // Keep transaction only if:
-        // 1. It's not spent AND
-        // 2. It has a non-zero amount (for shield_receive transactions)
-        return raw['spent'] != true && !(tx.amount == 0 && tx.category == 'shield_receive');
-      } catch (_) {
-        return true; // Keep transaction if raw JSON is invalid
-      }
-    }).toList();
-
-    await storage.setString(
-      'shielded_transactions',
-      jsonEncode(updatedTransactions.map((t) => t.toJson()).toList()),
-    );
+    await _lock.synchronized(() async {
+      await storage.setString(
+        'shielded_transactions',
+        jsonEncode(transactions.map((t) => t.toJson()).toList()),
+      );
+      notifyListeners(); // Notify after shielded transaction changes
+    });
   }
 
   Future<List<CoreTransaction>> _getTransactions() async {
@@ -197,25 +241,25 @@ class MockZCashRPCLive extends ZCashRPC {
   Future<String> sendTransparent(String address, double amount, bool subtractFeeFromAmount) async {
     return await _lock.synchronized(() async {
       amount = cleanAmount(amount);
-      final fee = await sideEstimateFee();
-      final totalNeeded = subtractFeeFromAmount ? amount : amount + fee;
+      final fee = cleanAmount(await sideEstimateFee());
+      final totalNeeded = cleanAmount(subtractFeeFromAmount ? amount : amount + fee);
 
       // Get available UTXOs
-      final utxos = await listUnshieldedCoins();
-      if (utxos.isEmpty) {
+      final utxoSet = await _getUTXOSet();
+      if (utxoSet.isEmpty) {
         throw Exception('No UTXOs available');
       }
 
       // Sort UTXOs by amount, largest first
-      utxos.sort((a, b) => b.amount.compareTo(a.amount));
+      utxoSet.sort((a, b) => b.amount.compareTo(a.amount));
 
       // Find UTXOs to spend
       double totalAvailable = 0;
-      final utxosToSpend = <UnshieldedUTXO>[];
-      for (final utxo in utxos) {
+      final utxosToSpend = <_MockUTXO>[];
+      for (final utxo in utxoSet) {
         if (totalAvailable >= totalNeeded) break;
         utxosToSpend.add(utxo);
-        totalAvailable += utxo.amount;
+        totalAvailable = cleanAmount(totalAvailable + utxo.amount);
       }
 
       if (totalAvailable < totalNeeded) {
@@ -224,13 +268,52 @@ class MockZCashRPCLive extends ZCashRPC {
 
       final txid = _generateTxid();
       final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      // Remove spent UTXOs from set
+      utxoSet.removeWhere((utxo) => utxosToSpend.any((u) => u.txid == utxo.txid && u.vout == utxo.vout));
+
+      // Create new output UTXOs
+      final recipientAmount = cleanAmount(subtractFeeFromAmount ? amount - fee : amount);
+
+      // Add recipient output UTXO
+      utxoSet.add(
+        _MockUTXO(
+          txid: txid,
+          vout: 0,
+          address: address,
+          amount: recipientAmount,
+          confirmations: 0,
+          scriptPubKey: 'mock-script', // In real implementation, this would be proper script
+          isChange: false,
+          time: timestamp, // Add timestamp here
+        ),
+      );
+
+      // Handle change if needed
+      final change = cleanAmount(totalAvailable - totalNeeded);
+      if (change > 0) {
+        final myAddress = await getSideAddress();
+        utxoSet.add(
+          _MockUTXO(
+            txid: txid,
+            vout: 1,
+            address: myAddress,
+            amount: change,
+            confirmations: 0,
+            scriptPubKey: 'mock-script',
+            isChange: true,
+            time: timestamp, // Add timestamp here
+          ),
+        );
+      }
+
+      // Update UTXO set
+      await _updateUTXOSet(utxoSet);
+
+      // Update transaction history (keeping this for backwards compatibility)
       final transactions = await _getTransparentTransactions();
 
-      // Remove the original UTXOs that we're spending
-      final spentTxids = utxosToSpend.map((u) => u.txid).toSet();
-      transactions.removeWhere((tx) => spentTxids.contains(tx.txid));
-
-      // Add spending transaction for each input UTXO
+      // Add spending transactions for each input UTXO
       for (final utxo in utxosToSpend) {
         transactions.add(
           CoreTransaction(
@@ -256,8 +339,7 @@ class MockZCashRPCLive extends ZCashRPC {
         );
       }
 
-      // Add output transaction to recipient
-      final recipientAmount = subtractFeeFromAmount ? amount - fee : amount;
+      // Add recipient transaction
       transactions.add(
         CoreTransaction(
           address: address,
@@ -281,35 +363,8 @@ class MockZCashRPCLive extends ZCashRPC {
         ),
       );
 
-      // If there's change, create a new UTXO for it
-      final change = totalAvailable - totalNeeded;
-      if (change > 0) {
-        final myAddress = await getSideAddress();
-        transactions.add(
-          CoreTransaction(
-            address: myAddress,
-            category: 'receive',
-            amount: change,
-            fee: 0,
-            confirmations: 0,
-            txid: txid,
-            time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-            timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-            label: '',
-            vout: 1,
-            trusted: false,
-            blockhash: '',
-            blockindex: 0,
-            blocktime: 0,
-            comment: '',
-            bip125Replaceable: 'unknown',
-            abandoned: false,
-            raw: '{"txid": "$txid", "change": true}',
-          ),
-        );
-      }
-
       await _updateTransparentTransactions(transactions);
+
       return txid;
     });
   }
@@ -343,8 +398,8 @@ class MockZCashRPCLive extends ZCashRPC {
           fee: 0,
           confirmations: 0,
           txid: txid,
-          time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-          timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+          time: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
+          timereceived: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
           label: '',
           vout: 0,
           trusted: false,
@@ -367,8 +422,8 @@ class MockZCashRPCLive extends ZCashRPC {
           fee: 0,
           confirmations: 0,
           txid: txid,
-          time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-          timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+          time: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
+          timereceived: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
           label: '',
           vout: 1,
           trusted: false,
@@ -393,8 +448,8 @@ class MockZCashRPCLive extends ZCashRPC {
             fee: 0,
             confirmations: 0,
             txid: txid,
-            time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-            timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+            time: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
+            timereceived: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
             label: '',
             vout: 2,
             trusted: false,
@@ -446,8 +501,8 @@ class MockZCashRPCLive extends ZCashRPC {
           fee: -fee,
           confirmations: 0,
           txid: txid,
-          time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-          timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+          time: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
+          timereceived: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
           label: '',
           vout: 0,
           trusted: false,
@@ -470,8 +525,8 @@ class MockZCashRPCLive extends ZCashRPC {
           fee: 0,
           confirmations: 0,
           txid: txid,
-          time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-          timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+          time: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
+          timereceived: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
           label: '',
           vout: 0,
           trusted: false,
@@ -496,8 +551,8 @@ class MockZCashRPCLive extends ZCashRPC {
             fee: 0,
             confirmations: 0,
             txid: txid,
-            time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-            timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+            time: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
+            timereceived: DateTime.fromMillisecondsSinceEpoch((timestamp * 1000) * 1000),
             label: '',
             vout: 1,
             trusted: false,
@@ -746,5 +801,37 @@ class MockZCashRPCLive extends ZCashRPC {
   @override
   List<String> getMethods() {
     return zcashRPCMethods;
+  }
+
+  // Add method to initialize UTXO set from existing transactions
+  Future<void> _initializeUTXOSet() async {
+    final transactions = await _getTransparentTransactions();
+    final utxoSet = <_MockUTXO>[];
+
+    for (final tx in transactions) {
+      if ((tx.category == 'receive' || tx.category == 'generate') && tx.amount > 0) {
+        try {
+          final raw = jsonDecode(tx.raw);
+          if (raw['spent'] != true) {
+            utxoSet.add(
+              _MockUTXO(
+                txid: tx.txid,
+                vout: tx.vout,
+                address: tx.address,
+                amount: tx.amount,
+                confirmations: tx.confirmations,
+                scriptPubKey: 'mock-script',
+                isChange: raw['change'] == true,
+                time: tx.time.millisecondsSinceEpoch ~/ 1000,
+              ),
+            );
+          }
+        } catch (_) {
+          // Skip invalid transactions
+        }
+      }
+    }
+
+    await _updateUTXOSet(utxoSet);
   }
 }

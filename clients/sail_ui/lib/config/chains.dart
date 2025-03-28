@@ -37,6 +37,61 @@ abstract class Sidechain extends Binary {
     }
     return null;
   }
+
+  static Sidechain fromBinary(Binary binary) {
+    switch (binary.runtimeType) {
+      case TestSidechain _:
+        return TestSidechain(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          binary: binary.binary,
+          network: binary.network,
+          chainLayer: binary.chainLayer,
+        );
+      case ZCash _:
+        return ZCash(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          binary: binary.binary,
+          network: binary.network,
+          chainLayer: binary.chainLayer,
+        );
+      case Thunder _:
+        return Thunder(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          binary: binary.binary,
+          network: binary.network,
+          chainLayer: binary.chainLayer,
+        );
+      case Bitnames _:
+        return Bitnames(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          binary: binary.binary,
+          network: binary.network,
+          chainLayer: binary.chainLayer,
+        );
+      default:
+        throw Exception('Unknown sidechain binary type: ${binary.runtimeType}');
+    }
+  }
 }
 
 class TestSidechain extends Sidechain {

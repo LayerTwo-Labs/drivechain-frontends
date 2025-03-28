@@ -11,8 +11,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/config/runtime_args.dart';
 import 'package:sidesail/providers/bmm_provider.dart';
@@ -61,6 +63,8 @@ Future<void> start(List<String> args) async {
   SidechainContainer sidechain = GetIt.I.get<SidechainContainer>();
   AppRouter router = GetIt.I.get<AppRouter>();
   Logger log = GetIt.I.get<Logger>();
+
+  log.i('starting sidesail with chain: ${chain.name} ${RuntimeArgs.chain}');
 
   if (args.contains('multi_window')) {
     final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
@@ -297,6 +301,42 @@ Future<SidechainRPC> findSubRPC(
     if (!GetIt.I.isRegistered<ZCashRPC>()) {
       GetIt.I.registerLazySingleton<ZCashRPC>(
         () => zChain,
+      );
+    }
+  }
+
+  if (chain == Thunder()) {
+    log.i('starting init thunder RPC');
+
+    final binary = binaries.firstWhere((b) => b is Thunder);
+    final tChain = await ThunderLive.create(
+      binary: binary,
+      logPath: binary.logPath(),
+      chain: chain,
+    );
+    sidechain = tChain;
+
+    if (!GetIt.I.isRegistered<ThunderRPC>()) {
+      GetIt.I.registerLazySingleton<ThunderRPC>(
+        () => tChain,
+      );
+    }
+  }
+
+  if (chain == Bitnames()) {
+    log.i('starting init bitnames RPC');
+
+    final binary = binaries.firstWhere((b) => b is Bitnames);
+    final bChain = await BitnamesLive.create(
+      binary: binary,
+      logPath: binary.logPath(),
+      chain: chain,
+    );
+    sidechain = bChain;
+
+    if (!GetIt.I.isRegistered<BitnamesRPC>()) {
+      GetIt.I.registerLazySingleton<BitnamesRPC>(
+        () => bChain,
       );
     }
   }

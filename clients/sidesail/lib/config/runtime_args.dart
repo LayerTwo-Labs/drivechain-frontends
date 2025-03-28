@@ -20,10 +20,10 @@ abstract class RuntimeArgs {
     return Directory([dir.path, chain].join(Platform.pathSeparator));
   }
 
-  // use like flutter run --dart-define=SIDESAIL_CHAIN=ethereum
-  // or flutter build apk --dart-define=SIDESAIL_CHAIN=ethereum
-  static final String _chain = Platform.environment['SIDESAIL_CHAIN'] ?? const String.fromEnvironment('SIDESAIL_CHAIN');
-  static String chain = _chain.isNotEmpty ? _chain : 'zcash';
+  // use like flutter run --dart-define=SIDESAIL_CHAIN=thunder
+  // or flutter build apk --dart-define=SIDESAIL_CHAIN=thunder
+  static final String _chain = const String.fromEnvironment('SIDESAIL_CHAIN', defaultValue: '');
+  static String chain = _chain.isEmpty ? 'zcash' : _chain;
 
   static bool consoleLog = Platform.environment['SIDESAIL_LOG_CONSOLE']?.isNotEmpty ?? false;
 
