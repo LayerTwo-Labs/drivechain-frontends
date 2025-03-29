@@ -70,6 +70,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                       ),
                       SailRawCard(
                         title: 'Send on Sidechain',
+                        error: model.sendError,
                         child: SailColumn(
                           spacing: SailStyleValues.padding16,
                           children: [
@@ -87,17 +88,19 @@ class SidechainOverviewTabPage extends StatelessWidget {
                               label: 'Send',
                               onPressed: () => model.executeSendOnSidechain(context),
                               size: ButtonSize.small,
+                              loading: model.isSending,
                             ),
                           ],
                         ),
                       ),
                       SailRawCard(
                         title: 'Receive on Sidechain',
+                        error: model.receiveError,
                         child: SailColumn(
-                          spacing: SailStyleValues.padding04, // Further reduced spacing
+                          spacing: SailStyleValues.padding04,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (model.isBusy)
+                            if (model.isGeneratingAddress)
                               const Center(child: LoadingIndicator())
                             else ...[
                               SailRow(
@@ -184,6 +187,8 @@ class OverviewTabViewModel extends BaseViewModel {
 
   String? receiveAddress;
   double? sidechainFee;
+  String? sendError;
+  String? receiveError;
 
   // Properties for sending
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
@@ -200,6 +205,12 @@ class OverviewTabViewModel extends BaseViewModel {
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
   double get totalBalance => balance + pendingBalance;
+
+  bool _sendingTransaction = false;
+  bool _generatingAddress = false;
+
+  bool get isSending => _sendingTransaction;
+  bool get isGeneratingAddress => _generatingAddress;
 
   OverviewTabViewModel() {
     _initControllers();
@@ -235,37 +246,73 @@ class OverviewTabViewModel extends BaseViewModel {
   }
 
   Future<void> generateReceiveAddress() async {
-    setBusy(true);
+    _generatingAddress = true;
+    receiveError = null;
+    notifyListeners();
+
     try {
       receiveAddress = await _sidechain.rpc.getSideAddress();
+    } catch (error) {
+      log.e('Failed to generate receive address', error: error);
+      receiveError = error.toString();
+      receiveAddress = null;
     } finally {
-      setBusy(false);
+      _generatingAddress = false;
       notifyListeners();
     }
   }
 
   Future<void> executeSendOnSidechain(BuildContext context) async {
+    sendError = null;
+
     if (sendAmount == null) {
-      log.e('withdrawal amount was empty');
-      return;
-    }
-    if (sidechainFee == null) {
-      log.e('sidechain fee was empty');
+      sendError = 'Please enter a valid amount';
+      notifyListeners();
       return;
     }
 
-    final address = bitcoinAddressController.text;
+    if (sidechainFee == null) {
+      sendError = 'Could not calculate network fee';
+      notifyListeners();
+      return;
+    }
+
+    final address = bitcoinAddressController.text.trim();
+    if (address.isEmpty) {
+      sendError = 'Please enter a destination address';
+      notifyListeners();
+      return;
+    }
+
     if (!context.mounted) return;
 
-    setBusy(true);
+    _sendingTransaction = true;
+    notifyListeners();
+
     try {
-      _doSidechainSend(context, address, sendAmount!);
+      final txid = await _doSidechainSend(context, address, sendAmount!);
+      if (!context.mounted) return;
+
+      await successDialog(
+        context: context,
+        action: 'Send on sidechain',
+        title: 'You sent $sendAmount $ticker to $address',
+        subtitle: 'TXID: $txid',
+      );
+
+      // Clear the input fields after successful send
+      bitcoinAddressController.clear();
+      bitcoinAmountController.clear();
+    } catch (error) {
+      log.e('Send failed', error: error);
+      sendError = error.toString();
     } finally {
-      setBusy(false);
+      _sendingTransaction = false;
+      notifyListeners();
     }
   }
 
-  void _doSidechainSend(BuildContext context, String address, double amount) async {
+  Future<String> _doSidechainSend(BuildContext context, String address, double amount) async {
     log.i('doing sidechain withdrawal: $amount $ticker to $address with $sidechainFee SC fee');
 
     try {
@@ -278,24 +325,10 @@ class OverviewTabViewModel extends BaseViewModel {
       unawaited(_balanceProvider.fetch());
       unawaited(_transactionsProvider.fetch());
 
-      if (!context.mounted) return;
-
-      await successDialog(
-        context: context,
-        action: 'Send on sidechain',
-        title: 'You sent $amount $ticker to $address',
-        subtitle: 'TXID: $sendTXID',
-      );
+      return sendTXID;
     } catch (error) {
       log.e('Could not execute withdrawal', error: error);
-      if (!context.mounted) return;
-
-      await errorDialog(
-        context: context,
-        action: 'Send on sidechain',
-        title: 'Could not execute withdrawal',
-        subtitle: error.toString(),
-      );
+      rethrow;
     }
   }
 
