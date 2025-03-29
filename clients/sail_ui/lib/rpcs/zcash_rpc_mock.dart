@@ -239,134 +239,48 @@ class MockZCashRPCLive extends ZCashRPC {
 
   @override
   Future<String> sendTransparent(String address, double amount, bool subtractFeeFromAmount) async {
-    return await _lock.synchronized(() async {
-      amount = cleanAmount(amount);
-      final fee = cleanAmount(await sideEstimateFee());
-      final totalNeeded = cleanAmount(subtractFeeFromAmount ? amount : amount + fee);
+    final utxos = await _getUTXOSet();
+    if (utxos.isEmpty) {
+      throw Exception('No UTXOs available');
+    }
 
-      // Get available UTXOs
-      final utxoSet = await _getUTXOSet();
-      if (utxoSet.isEmpty) {
-        throw Exception('No UTXOs available');
-      }
+    final txid = _generateTxid();
+    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final fee = cleanAmount(await sideEstimateFee());
+    amount = cleanAmount(amount);
 
-      // Sort UTXOs by amount, largest first
-      utxoSet.sort((a, b) => b.amount.compareTo(a.amount));
+    final transactions = await _getTransparentTransactions();
 
-      // Find UTXOs to spend
-      double totalAvailable = 0;
-      final utxosToSpend = <_MockUTXO>[];
-      for (final utxo in utxoSet) {
-        if (totalAvailable >= totalNeeded) break;
-        utxosToSpend.add(utxo);
-        totalAvailable = cleanAmount(totalAvailable + utxo.amount);
-      }
+    // Add the send transaction
+    transactions.add(
+      CoreTransaction(
+        address: address,
+        category: 'send',
+        amount: -amount,
+        fee: -fee,
+        confirmations: 0,
+        txid: txid,
+        time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+        timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+        label: '',
+        vout: 0,
+        trusted: false,
+        blockhash: '',
+        blockindex: 0,
+        blocktime: timestamp,
+        comment: '',
+        bip125Replaceable: 'unknown',
+        abandoned: false,
+        raw: '{"txid": "$txid", "amount": $amount, "fee": $fee}',
+      ),
+    );
 
-      if (totalAvailable < totalNeeded) {
-        throw Exception('Insufficient funds: available=$totalAvailable, needed=$totalNeeded');
-      }
+    await _updateTransparentTransactions(transactions);
 
-      final txid = _generateTxid();
-      final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    // Trigger balance updates
+    notifyListeners();
 
-      // Remove spent UTXOs from set
-      utxoSet.removeWhere((utxo) => utxosToSpend.any((u) => u.txid == utxo.txid && u.vout == utxo.vout));
-
-      // Create new output UTXOs
-      final recipientAmount = cleanAmount(subtractFeeFromAmount ? amount - fee : amount);
-
-      // Add recipient output UTXO
-      utxoSet.add(
-        _MockUTXO(
-          txid: txid,
-          vout: 0,
-          address: address,
-          amount: recipientAmount,
-          confirmations: 0,
-          scriptPubKey: 'mock-script', // In real implementation, this would be proper script
-          isChange: false,
-          time: timestamp, // Add timestamp here
-        ),
-      );
-
-      // Handle change if needed
-      final change = cleanAmount(totalAvailable - totalNeeded);
-      if (change > 0) {
-        final myAddress = await getSideAddress();
-        utxoSet.add(
-          _MockUTXO(
-            txid: txid,
-            vout: 1,
-            address: myAddress,
-            amount: change,
-            confirmations: 0,
-            scriptPubKey: 'mock-script',
-            isChange: true,
-            time: timestamp, // Add timestamp here
-          ),
-        );
-      }
-
-      // Update UTXO set
-      await _updateUTXOSet(utxoSet);
-
-      // Update transaction history (keeping this for backwards compatibility)
-      final transactions = await _getTransparentTransactions();
-
-      // Add spending transactions for each input UTXO
-      for (final utxo in utxosToSpend) {
-        transactions.add(
-          CoreTransaction(
-            address: utxo.address,
-            category: 'send',
-            amount: -utxo.amount,
-            fee: 0,
-            confirmations: 0,
-            txid: txid,
-            time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-            timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-            label: '',
-            vout: 0,
-            trusted: false,
-            blockhash: '',
-            blockindex: 0,
-            blocktime: 0,
-            comment: '',
-            bip125Replaceable: 'unknown',
-            abandoned: false,
-            raw: '{"txid": "$txid", "spent": true, "spends": "${utxo.txid}"}',
-          ),
-        );
-      }
-
-      // Add recipient transaction
-      transactions.add(
-        CoreTransaction(
-          address: address,
-          category: 'send',
-          amount: -recipientAmount,
-          fee: -fee,
-          confirmations: 0,
-          txid: txid,
-          time: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-          timereceived: DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
-          label: '',
-          vout: 0,
-          trusted: false,
-          blockhash: '',
-          blockindex: 0,
-          blocktime: 0,
-          comment: '',
-          bip125Replaceable: 'unknown',
-          abandoned: false,
-          raw: '{"txid": "$txid"}',
-        ),
-      );
-
-      await _updateTransparentTransactions(transactions);
-
-      return txid;
-    });
+    return txid;
   }
 
   @override
