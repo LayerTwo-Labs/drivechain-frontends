@@ -28,134 +28,136 @@ class SidechainOverviewTabPage extends StatelessWidget {
             spacing: SailStyleValues.padding08,
             children: [
               Expanded(
-                child: SailColumn(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    // Top row with balance and receive
-                    SizedBox(
-                      height: 173, // Fixed height for top section
-                      child: SailRow(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Balance card
-                          Expanded(
-                            child: SailRawCard(
-                              title: 'Balance',
-                              child: SailColumn(
-                                mainAxisSize: MainAxisSize.min,
+                child: SingleChildScrollView(
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      // Top row with balance and receive
+                      SizedBox(
+                        height: 173, // Fixed height for top section
+                        child: SailRow(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Balance card
+                            Expanded(
+                              child: SailRawCard(
+                                title: 'Balance',
+                                child: SailColumn(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SailText.primary24(
+                                      '${formatBitcoin(model.totalBalance)} ${model.ticker}',
+                                      bold: true,
+                                    ),
+                                    const SizedBox(height: 4), // Further reduced spacing
+                                    BalanceRow(
+                                      label: 'Available',
+                                      amount: model.balance,
+                                      ticker: model.ticker,
+                                    ),
+                                    BalanceRow(
+                                      label: 'Pending',
+                                      amount: model.pendingBalance,
+                                      ticker: model.ticker,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SailRawCard(
+                        title: 'Send on Sidechain',
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding16,
+                          children: [
+                            SailText.secondary15('Pay to'),
+                            SailTextField(
+                              controller: model.bitcoinAddressController,
+                              hintText: 'Enter a bitcoin address',
+                            ),
+                            NumericField(
+                              label: 'Amount',
+                              controller: model.bitcoinAmountController,
+                              hintText: '0.00',
+                            ),
+                            QtButton(
+                              label: 'Send',
+                              onPressed: () => model.executeSendOnSidechain(context),
+                              size: ButtonSize.small,
+                            ),
+                          ],
+                        ),
+                      ),
+                      SailRawCard(
+                        title: 'Receive on Sidechain',
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding04, // Further reduced spacing
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (model.isBusy)
+                              const Center(child: LoadingIndicator())
+                            else ...[
+                              SailRow(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  SailText.primary24(
-                                    '${formatBitcoin(model.totalBalance)} ${model.ticker}',
-                                    bold: true,
+                                  // Left side with address field
+                                  Expanded(
+                                    child: IntrinsicHeight(
+                                      child: SailColumn(
+                                        mainAxisSize: MainAxisSize.max,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          SailTextField(
+                                            controller: TextEditingController(text: model.receiveAddress),
+                                            hintText: 'Generating deposit address...',
+                                            readOnly: true,
+                                            maxLines: 2,
+                                          ),
+                                          SailSpacing(80),
+                                          SailRow(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            spacing: SailStyleValues.padding08,
+                                            children: [
+                                              if (model.receiveAddress != null)
+                                                CopyButton(
+                                                  text: model.receiveAddress!,
+                                                ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(height: 4), // Further reduced spacing
-                                  BalanceRow(
-                                    label: 'Available',
-                                    amount: model.balance,
-                                    ticker: model.ticker,
-                                  ),
-                                  BalanceRow(
-                                    label: 'Pending',
-                                    amount: model.pendingBalance,
-                                    ticker: model.ticker,
+                                  const SizedBox(width: 8),
+                                  // Right side with QR code
+                                  SizedBox(
+                                    width: 170, // Further reduced size
+                                    height: 170, // Further reduced size
+                                    child: QrImageView(
+                                      padding: EdgeInsets.zero,
+                                      data: model.receiveAddress ?? '',
+                                      version: QrVersions.auto,
+                                      eyeStyle: QrEyeStyle(
+                                        color: context.sailTheme.colors.textSecondary,
+                                        eyeShape: QrEyeShape.square,
+                                      ),
+                                      dataModuleStyle: QrDataModuleStyle(
+                                        color: context.sailTheme.colors.textSecondary,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SailRawCard(
-                      title: 'Send on Sidechain',
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding16,
-                        children: [
-                          SailText.secondary15('Pay to'),
-                          SailTextField(
-                            controller: model.bitcoinAddressController,
-                            hintText: 'Enter a bitcoin address',
-                          ),
-                          NumericField(
-                            label: 'Amount',
-                            controller: model.bitcoinAmountController,
-                            hintText: '0.00',
-                          ),
-                          QtButton(
-                            label: 'Send',
-                            onPressed: () => model.executeSendOnSidechain(context),
-                            size: ButtonSize.small,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SailRawCard(
-                      title: 'Receive on Sidechain',
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding04, // Further reduced spacing
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (model.isBusy)
-                            const Center(child: LoadingIndicator())
-                          else ...[
-                            SailRow(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Left side with address field
-                                Expanded(
-                                  child: IntrinsicHeight(
-                                    child: SailColumn(
-                                      mainAxisSize: MainAxisSize.max,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        SailTextField(
-                                          controller: TextEditingController(text: model.receiveAddress),
-                                          hintText: 'Generating deposit address...',
-                                          readOnly: true,
-                                          maxLines: 2,
-                                        ),
-                                        SailSpacing(80),
-                                        SailRow(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          spacing: SailStyleValues.padding08,
-                                          children: [
-                                            if (model.receiveAddress != null)
-                                              CopyButton(
-                                                text: model.receiveAddress!,
-                                              ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // Right side with QR code
-                                SizedBox(
-                                  width: 170, // Further reduced size
-                                  height: 170, // Further reduced size
-                                  child: QrImageView(
-                                    padding: EdgeInsets.zero,
-                                    data: model.receiveAddress ?? '',
-                                    version: QrVersions.auto,
-                                    eyeStyle: QrEyeStyle(
-                                      color: context.sailTheme.colors.textSecondary,
-                                      eyeShape: QrEyeShape.square,
-                                    ),
-                                    dataModuleStyle: QrDataModuleStyle(
-                                      color: context.sailTheme.colors.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               // Transaction history
@@ -235,21 +237,7 @@ class OverviewTabViewModel extends BaseViewModel {
   Future<void> generateReceiveAddress() async {
     setBusy(true);
     try {
-      while (true) {
-        try {
-          log.d('Attempting to generate receive address...');
-          receiveAddress = await _sidechain.rpc.getSideAddress();
-          if (receiveAddress != null) {
-            log.i('Successfully generated receive address: $receiveAddress');
-            break;
-          }
-          log.w('Generated address was null, retrying in 1 second...');
-        } catch (e) {
-          log.e('Failed to generate receive address', error: e);
-          log.d('Retrying in 1 second...');
-        }
-        await Future.delayed(const Duration(seconds: 1));
-      }
+      receiveAddress = await _sidechain.rpc.getSideAddress();
     } finally {
       setBusy(false);
       notifyListeners();

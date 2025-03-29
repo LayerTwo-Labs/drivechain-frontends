@@ -17,25 +17,14 @@ class DepositWithdrawTabPage extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => DepositWithdrawTabViewModel(),
       builder: ((context, model, child) {
-        return SailPage(
-          body: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: SailStyleValues.padding08,
-                vertical: SailStyleValues.padding04,
-              ),
-              child: SailColumn(
-                spacing: SailStyleValues.padding32,
-                children: [
-                  SailColumn(
-                    spacing: SailStyleValues.padding32,
-                    children: [
-                      DepositTab(),
-                      WithdrawTab(),
-                    ],
-                  ),
-                ],
-              ),
+        return QtPage(
+          child: SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding16,
+              children: [
+                DepositTab(),
+                WithdrawTab(),
+              ],
             ),
           ),
         );
