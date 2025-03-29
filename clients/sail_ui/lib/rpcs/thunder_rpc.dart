@@ -107,7 +107,7 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    final blocks = await _client().call('get-blockcount') as int;
+    final blocks = await _client().call('getblockcount') as int;
     return BlockchainInfo(
       chain: 'signet',
       blocks: blocks,
@@ -140,69 +140,29 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<String> getDepositAddress() async {
-    final response = await _client().call('get-new-address') as String;
+    final response = await _client().call('get_new_address') as String;
     return formatDepositAddress(response, chain.slot);
   }
 
   @override
   Future<String> getSideAddress() async {
-    final response = await _client().call('get-new-address');
+    final response = await _client().call('get_new_address');
     return response as String;
   }
 
   @override
   Future<List<CoreTransaction>> listTransactions() async {
-    throw UnimplementedError();
-  }
-
-  /// Get total sidechain wealth in BTC
-  Future<double> getSidechainWealth() async {
-    final wealthSats = await _client().call('sidechain-wealth-sats') as int;
-    return satoshiToBTC(wealthSats);
-  }
-
-  /// Create a deposit transaction
-  Future<String> createDeposit(String address, double amount, double fee) async {
-    final response = await _client().call('create-deposit', [
-      {
-        'address': address,
-        'value_sats': btcToSatoshi(amount),
-        'fee_sats': btcToSatoshi(fee),
-      }
-    ]);
-    return response as String;
-  }
-
-  /// Get pending withdrawal bundle
-  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() async {
-    final response = await _client().call('pending-withdrawal-bundle');
-    return response as Map<String, dynamic>?;
-  }
-
-  /// Connect to a peer
-  Future<void> connectPeer(String peerAddress) async {
-    await _client().call('connect-peer', [peerAddress]);
-  }
-
-  /// List connected peers
-  Future<List<Map<String, dynamic>>> listPeers() async {
-    final response = await _client().call('list-peers') as List<dynamic>;
-    return response.cast<Map<String, dynamic>>();
-  }
-
-  /// Mine a block with optional coinbase value
-  Future<void> mine([int? coinbaseValueSats]) async {
-    await _client().call('mine', [coinbaseValueSats]);
+    return [];
   }
 
   @override
   Future<String> mainSend(String address, double amount, double sidechainFee, double mainchainFee) async {
-    final response = await _client().call('withdraw', [
-      address,
-      btcToSatoshi(amount),
-      btcToSatoshi(sidechainFee),
-      btcToSatoshi(mainchainFee),
-    ]);
+    final response = await _client().call('withdraw', {
+      'mainchain_address': address,
+      'amount_sats': btcToSatoshi(amount),
+      'fee_sats': btcToSatoshi(sidechainFee),
+      'mainchain_fee_sats': btcToSatoshi(mainchainFee),
+    });
     return response as String;
   }
 
@@ -214,38 +174,128 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
-    final response = await _client().call('transfer', [
-      address,
-      btcToSatoshi(amount),
-      subtractFeeFromAmount,
-    ]);
+    final response = await _client().call('transfer', {
+      'dest': address,
+      'value_sats': btcToSatoshi(amount),
+      'fee_sats': btcToSatoshi(0.00001), // Fixed fee
+    });
     return response as String;
+  }
+
+  /// Get total sidechain wealth in BTC
+  Future<double> getSidechainWealth() async {
+    final wealthSats = await _client().call('sidechain_wealth_sats') as int;
+    return satoshiToBTC(wealthSats);
+  }
+
+  /// Create a deposit transaction
+  Future<String> createDeposit(String address, double amount, double fee) async {
+    final response = await _client().call('create_deposit', {
+      'address': address,
+      'value_sats': btcToSatoshi(amount),
+      'fee_sats': btcToSatoshi(fee),
+    });
+    return response as String;
+  }
+
+  /// Get pending withdrawal bundle
+  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() async {
+    final response = await _client().call('pending_withdrawal_bundle');
+    return response as Map<String, dynamic>?;
+  }
+
+  /// Connect to a peer
+  Future<void> connectPeer(String peerAddress) async {
+    await _client().call('connect_peer', peerAddress);
+  }
+
+  /// List connected peers
+  Future<List<Map<String, dynamic>>> listPeers() async {
+    final response = await _client().call('list_peers') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
+  }
+
+  /// Mine a block with optional coinbase value
+  Future<void> mine([int? coinbaseValueSats]) async {
+    await _client().call('mine', coinbaseValueSats);
+  }
+
+  /// Get block by hash
+  Future<Map<String, dynamic>?> getBlock(String hash) async {
+    final response = await _client().call('get_block', hash);
+    return response as Map<String, dynamic>?;
+  }
+
+  /// Get best mainchain block hash
+  Future<String?> getBestMainchainBlockHash() async {
+    final response = await _client().call('get_best_mainchain_block_hash');
+    return response as String?;
+  }
+
+  /// Get best sidechain block hash
+  Future<String?> getBestSidechainBlockHash() async {
+    final response = await _client().call('get_best_sidechain_block_hash');
+    return response as String?;
+  }
+
+  /// Get BMM inclusions
+  Future<String> getBMMInclusions(String blockHash) async {
+    final response = await _client().call('get_bmm_inclusions', blockHash);
+    return response as String;
+  }
+
+  /// List all UTXOs
+  Future<List<Map<String, dynamic>>> listUTXOs() async {
+    final response = await _client().call('list_utxos') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
+  }
+
+  /// Remove transaction from mempool
+  Future<void> removeFromMempool(String txid) async {
+    await _client().call('remove_from_mempool', txid);
+  }
+
+  /// Get latest failed withdrawal bundle height
+  Future<int?> getLatestFailedWithdrawalBundleHeight() async {
+    final response = await _client().call('latest_failed_withdrawal_bundle_height');
+    return response as int?;
+  }
+
+  /// Generate new mnemonic
+  Future<String> generateMnemonic() async {
+    final response = await _client().call('generate_mnemonic');
+    return response as String;
+  }
+
+  /// Set seed from mnemonic
+  Future<void> setSeedFromMnemonic(String mnemonic) async {
+    await _client().call('set_seed_from_mnemonic', mnemonic);
   }
 }
 
 final thunderRPCMethods = [
   'balance',
-  'connect-peer',
-  'create-deposit',
-  'format-deposit-address',
-  'generate-mnemonic',
-  'get-best-mainchain-block-hash',
-  'get-best-sidechain-block-hash',
-  'get-block',
-  'get-bmm-inclusions',
-  'get-new-address',
-  'get-wallet-addresses',
-  'get-wallet-utxos',
-  'get-blockcount',
-  'latest-failed-withdrawal-bundle-height',
-  'list-peers',
-  'list-utxos',
+  'connect_peer',
+  'create_deposit',
+  'format_deposit_address',
+  'generate_mnemonic',
+  'get_best_mainchain_block_hash',
+  'get_best_sidechain_block_hash',
+  'get_block',
+  'get_bmm_inclusions',
+  'get_new_address',
+  'get_wallet_addresses',
+  'get_wallet_utxos',
+  'getblockcount',
+  'latest_failed_withdrawal_bundle_height',
+  'list_peers',
+  'list_utxos',
   'mine',
-  'pending-withdrawal-bundle',
-  'openapi-schema',
-  'remove-from-mempool',
-  'set-seed-from-mnemonic',
-  'sidechain-wealth',
+  'pending_withdrawal_bundle',
+  'openapi_schema',
+  'remove_from_mempool',
+  'set_seed_from_mnemonic',
+  'sidechain_wealth_sats',
   'stop',
   'transfer',
   'withdraw',
