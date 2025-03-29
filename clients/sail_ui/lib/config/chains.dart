@@ -171,18 +171,18 @@ class ZCash extends Sidechain {
           directories: directories ??
               DirectoryConfig(
                 base: {
-                  OS.linux: '.zside',
-                  OS.macos: 'ZcashDrivechain',
-                  OS.windows: 'ZcashDrivechain',
+                  OS.linux: '.zcash-drivechain',
+                  OS.macos: '/zcash-drivechain',
+                  OS.windows: '/zcash-drivechain',
                 },
               ),
           metadata: metadata ??
               MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/old-pre-cusf/',
+                baseUrl: 'https://releases.drivechain.info/',
                 files: {
                   OS.linux: 'L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.zip',
                   OS.macos: 'L2-S5-ZSide-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'NOT-AVAILABLE',
+                  OS.windows: 'L2-S5-ZSide-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
           network: network ?? NetworkConfig(port: 8232),
