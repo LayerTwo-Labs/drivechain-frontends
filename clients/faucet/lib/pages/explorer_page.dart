@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:faucet/providers/explorer_provider.dart';
 import 'package:flutter/material.dart';
@@ -132,33 +133,29 @@ class _ExplorerPageState extends State<ExplorerPage> {
                             ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Height: ${model.latestMainchainBlock?.blockHeight}'),
+                                  SailText.primary13('Height: ${model.latestMainchainBlock?.blockHeight}'),
                                   const SizedBox(height: 4),
-                                  Text(
+                                  SailText.primary13(
                                     'Hash: ${model.latestMainchainBlock?.hash}',
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
-                                  Text('Time: ${model.latestMainchainBlock?.formattedTime}'),
+                                  SailText.primary13('Time: ${model.latestMainchainBlock?.formattedTime}'),
                                   const SizedBox(height: 4),
-                                  Text(
+                                  SailText.primary13(
                                     model.latestMainchainBlock?.timeSince() ?? '',
-                                    style: TextStyle(
-                                      color: context.sailTheme.colors.orange,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    color: context.sailTheme.colors.orange,
+                                    bold: true,
                                   ),
                                 ],
                               )
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
+                                  SailText.primary13(
                                     'Unable to connect to Mainchain',
-                                    style: TextStyle(
-                                      color: context.sailTheme.colors.error,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    color: context.sailTheme.colors.error,
+                                    bold: true,
                                   ),
                                 ],
                               ),
@@ -174,33 +171,29 @@ class _ExplorerPageState extends State<ExplorerPage> {
                             ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Height: ${model.latestThunderBlock?.blockHeight}'),
+                                  SailText.primary13('Height: ${model.latestThunderBlock?.blockHeight}'),
                                   const SizedBox(height: 4),
-                                  Text(
+                                  SailText.primary13(
                                     'Hash: ${model.latestThunderBlock?.hash}',
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
-                                  Text('Time: ${model.latestThunderBlock?.formattedTime}'),
+                                  SailText.primary13('Time: ${model.latestThunderBlock?.formattedTime}'),
                                   const SizedBox(height: 4),
-                                  Text(
+                                  SailText.primary13(
                                     model.latestThunderBlock?.timeSince() ?? '',
-                                    style: TextStyle(
-                                      color: context.sailTheme.colors.orange,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    color: context.sailTheme.colors.orange,
+                                    bold: true,
                                   ),
                                 ],
                               )
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
+                                  SailText.primary13(
                                     'Unable to connect to Thunder',
-                                    style: TextStyle(
-                                      color: context.sailTheme.colors.error,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    color: context.sailTheme.colors.error,
+                                    bold: true,
                                   ),
                                 ],
                               ),
@@ -217,33 +210,29 @@ class _ExplorerPageState extends State<ExplorerPage> {
                                 ? Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Height: ${model.latestBitnamesBlock?.blockHeight}'),
+                                      SailText.primary13('Height: ${model.latestBitnamesBlock?.blockHeight}'),
                                       const SizedBox(height: 4),
-                                      Text(
+                                      SailText.primary13(
                                         'Hash: ${model.latestBitnamesBlock?.hash}',
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 4),
-                                      Text('Time: ${model.latestBitnamesBlock?.formattedTime}'),
+                                      SailText.primary13('Time: ${model.latestBitnamesBlock?.formattedTime}'),
                                       const SizedBox(height: 4),
-                                      Text(
+                                      SailText.primary13(
                                         model.latestBitnamesBlock?.timeSince() ?? '',
-                                        style: TextStyle(
-                                          color: context.sailTheme.colors.orange,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        color: context.sailTheme.colors.orange,
+                                        bold: true,
                                       ),
                                     ],
                                   )
                                 : Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
+                                      SailText.primary13(
                                         'Unable to connect to BitNames',
-                                        style: TextStyle(
-                                          color: context.sailTheme.colors.error,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        color: context.sailTheme.colors.error,
+                                        bold: true,
                                       ),
                                     ],
                                   ),
@@ -261,13 +250,9 @@ class _ExplorerPageState extends State<ExplorerPage> {
                       size: ButtonSize.regular,
                     ),
                     const SizedBox(width: 16),
-                    Text(
+                    SailText.secondary12(
                       'Auto-refreshes every 30 seconds',
-                      style: TextStyle(
-                        color: context.sailTheme.colors.textSecondary,
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      italic: true,
                     ),
                   ],
                 ),

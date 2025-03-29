@@ -183,58 +183,37 @@ class _FaucetPageState extends State<FaucetPage> {
                             color: context.sailTheme.colors.text,
                           ),
                         ),
-                        const SizedBox(width: 4.0),
                       ],
                     ),
                     const SizedBox(height: SailStyleValues.padding16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            children: [
-                              SailRow(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                spacing: SailStyleValues.padding08,
-                                children: [
-                                  Expanded(
-                                    child: NumericField(
-                                      label: 'Amount',
-                                      controller: model.amountController,
-                                      suffixWidget: MouseRegion(
-                                        cursor: SystemMouseCursors.click,
-                                        child: GestureDetector(
-                                          onTap: model.onMaxAmount,
-                                          child: SailText.primary15(
-                                            'MAX',
-                                            color: context.sailTheme.colors.orange,
-                                            underline: true,
-                                          ),
-                                        ),
-                                      ),
-                                      inputFormatters: [
-                                        CommaReplacerInputFormatter(),
-                                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
-                                      ],
-                                    ),
+                    Expanded(
+                      child: SailRow(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          Expanded(
+                            child: NumericField(
+                              label: 'Amount',
+                              controller: model.amountController,
+                              suffixWidget: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: model.onMaxAmount,
+                                  child: SailText.primary15(
+                                    'MAX',
+                                    color: context.sailTheme.colors.orange,
+                                    underline: true,
                                   ),
-                                  SailRow(
-                                    spacing: SailStyleValues.padding08,
-                                    children: [
-                                      UnitDropdown(
-                                        value: Unit.BTC,
-                                        onChanged: (value) {},
-                                        enabled: false,
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                ),
                               ),
-                              const SizedBox(height: SailStyleValues.padding16),
-                            ],
+                              inputFormatters: [
+                                CommaReplacerInputFormatter(),
+                                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
+                              ],
+                            ),
                           ),
-                        ),
-                        Expanded(child: Container()),
-                      ],
+                        ],
+                      ),
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

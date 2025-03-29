@@ -546,6 +546,7 @@ class DepositTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
+    final width = MediaQuery.of(context).size.width;
 
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => DepositWithdrawTabViewModel(),
@@ -592,7 +593,7 @@ class DepositTab extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (model.depositAddress != null)
+                if (model.depositAddress != null && width > 500)
                   SizedBox(
                     width: 180,
                     child: SailRawCard(
@@ -609,7 +610,6 @@ class DepositTab extends StatelessWidget {
                       ),
                     ),
                   ),
-                Expanded(child: Container()),
               ],
             ),
           ],
@@ -706,7 +706,6 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
                   ],
                 ),
               ),
-              Expanded(child: Container()),
             ],
           ),
           const SizedBox(height: SailStyleValues.padding16),

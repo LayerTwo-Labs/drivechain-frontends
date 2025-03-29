@@ -505,7 +505,7 @@ class QtButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
     final backgroundColor =
-        this.backgroundColor ?? (style == SailButtonStyle.secondary ? theme.colors.background : theme.colors.text);
+        this.backgroundColor ?? (style == SailButtonStyle.secondary ? theme.colors.background : theme.colors.primary);
     final foregroundColor = style == SailButtonStyle.secondary ? theme.colors.text : theme.colors.backgroundSecondary;
 
     final buttonPadding = padding ??
