@@ -59,7 +59,7 @@ class _TopNavState extends State<TopNav> {
               ],
             ),
             SizedBox(
-              height: 50,
+              height: 33,
               child: VerticalDivider(
                 width: 1,
                 thickness: 1,

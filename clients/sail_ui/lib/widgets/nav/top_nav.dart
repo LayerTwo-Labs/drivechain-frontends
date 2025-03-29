@@ -53,16 +53,16 @@ class QtTab extends StatelessWidget {
               ),
               child: SailRow(
                 mainAxisSize: MainAxisSize.max,
-                spacing: SailStyleValues.padding08,
+                spacing: SailStyleValues.padding04,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SailSVG.fromAsset(
                     icon,
-                    width: 24,
+                    height: 12,
                     color: theme.colors.text,
                   ),
-                  SailText.primary12(
+                  SailText.primary10(
                     label,
                   ),
                 ],
