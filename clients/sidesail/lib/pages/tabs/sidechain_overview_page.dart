@@ -592,26 +592,38 @@ class DetailRow extends StatelessWidget {
 
 class LatestWalletTransactionsViewModel extends BaseViewModel {
   final TransactionsProvider _txProvider = GetIt.I<TransactionsProvider>();
+  final TextEditingController searchController = TextEditingController();
+
   List<CoreTransaction> get entries => _txProvider.sidechainTransactions
       .where(
-        (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
+        (tx) => searchController.text.isEmpty || tx.txid.toLowerCase().contains(searchController.text.toLowerCase()),
       )
       .toList();
-
-  String sortColumn = 'date';
-  bool sortAscending = true;
-
-  final TextEditingController searchController = TextEditingController();
 
   LatestWalletTransactionsViewModel() {
     searchController.addListener(notifyListeners);
     _txProvider.addListener(notifyListeners);
+
+    // Initialize data
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    try {
+      setBusy(true);
+      await _txProvider.fetch();
+    } catch (e) {
+      // Handle error if needed
+    } finally {
+      setBusy(false);
+    }
   }
 
   @override
   void dispose() {
     searchController.removeListener(notifyListeners);
     _txProvider.removeListener(notifyListeners);
+    searchController.dispose();
     super.dispose();
   }
 }

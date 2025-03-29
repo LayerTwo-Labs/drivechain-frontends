@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -69,103 +72,114 @@ class SailTable extends StatefulWidget {
 class _SailTableState extends State<SailTable> {
   final ScrollController _horizontalController = ScrollController();
   final ScrollController _verticalController = ScrollController();
+  final List<double> _widths = [];
 
   String? _selectedId;
-  double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);
-
-  final _widths = <double>[];
-
   int? _sortColumnIndex;
   bool _sortAscending = true;
+  BoxConstraints? _currentConstraints;
+  double _startColumnWidth = 0;
+
+  double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);
 
   @override
   void initState() {
     super.initState();
+    _initializeState();
+    _verticalController.addListener(_checkScrollPosition);
+  }
+
+  void _initializeState() {
     _selectedId = widget.selectedRowId;
     _sortColumnIndex = widget.sortColumnIndex;
     _sortAscending = widget.sortAscending ?? true;
     _widths.addAll(widget.columnWidths);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        final parentWidth = context.size?.width ?? double.infinity;
-        if (parentWidth.isFinite) {
-          _resizeColumns(parentWidth, widget.columnWidths);
-        }
-      });
-    });
 
-    _verticalController.addListener(_checkScrollPosition);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final parentWidth = context.size?.width ?? double.infinity;
+      if (parentWidth.isFinite) {
+        _resizeColumns(parentWidth);
+      }
+    });
   }
 
   @override
   void dispose() {
-    super.dispose();
     _horizontalController.dispose();
     _verticalController.dispose();
+    super.dispose();
   }
 
-  void _resizeColumns(double parentWidth, List<double> columnWidths) {
-    final totalWidth = columnWidths.fold(0.0, (sum, width) => sum + width);
-    if (totalWidth > parentWidth) {
-      _scaleColumnsToFit(parentWidth, columnWidths, totalWidth);
-    } else if (totalWidth < parentWidth) {
-      _expandColumnsToFill(parentWidth, columnWidths);
-    } else {
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (_currentConstraints?.maxWidth != constraints.maxWidth) {
+          _currentConstraints = constraints;
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _resizeColumns(constraints.maxWidth);
+            });
+          }
+        }
+        return _buildTable(context, constraints);
+      },
+    );
+  }
+
+  void _resizeColumns(double parentWidth) {
+    if (parentWidth <= 0 || !mounted) return;
+
+    setState(() {
+      final totalWidth = widget.columnWidths.fold(0.0, (sum, width) => sum + width);
+      final minTotalWidth = widget.columnWidths.length * widget.defaultMinColumnWidth;
+      final effectiveParentWidth = max(parentWidth, minTotalWidth);
+
       _widths.clear();
-      _widths.addAll(columnWidths);
-    }
+      _distributeColumnWidths(effectiveParentWidth, totalWidth);
+    });
   }
 
-  void _scaleColumnsToFit(double parentWidth, List<double> columnWidths, double totalWidth) {
-    final scaleFactor = (parentWidth.floorToDouble()) / totalWidth; // Floor the parent width
+  void _distributeColumnWidths(double availableWidth, double totalWidth) {
+    double remainingWidth = availableWidth;
     _widths.clear();
-    double currentTotal = 0;
 
-    // Handle all columns except the last one
-    for (var i = 0; i < columnWidths.length - 1; i++) {
-      final scaledWidth = (columnWidths[i] * scaleFactor).floorToDouble();
-      var width = scaledWidth < columnWidths[i] ? columnWidths[i] : scaledWidth;
-      if (width < 0) {
-        width = 0;
+    // Account for resize handles in the total width
+    final numResizeHandles = widget.columnWidths.length - 1;
+    remainingWidth -= (numResizeHandles * 8); // Subtract resize handle widths from available space
+
+    for (var i = 0; i < widget.columnWidths.length; i++) {
+      final minWidth = widget.columnMinWidths?.elementAt(i) ?? widget.defaultMinColumnWidth;
+      _widths.add(minWidth);
+      remainingWidth -= minWidth;
+    }
+
+    if (remainingWidth > 0) {
+      for (var i = 0; i < widget.columnWidths.length; i++) {
+        final proportion = widget.columnWidths[i] / totalWidth;
+        final extraWidth = remainingWidth * proportion;
+        final maxWidth = widget.columnMaxWidths?.elementAt(i);
+
+        if (maxWidth != null) {
+          _widths[i] = min(_widths[i] + extraWidth, maxWidth);
+        } else {
+          _widths[i] += extraWidth;
+        }
       }
-      _widths.add(width);
-      currentTotal += width;
     }
-
-    // Give remaining width to last column
-    final lastWidth = parentWidth - currentTotal;
-    _widths.add(lastWidth);
-  }
-
-  void _expandColumnsToFill(double parentWidth, List<double> columnWidths) {
-    final totalWidth = columnWidths.fold(0.0, (sum, width) => sum + width);
-    final scaleFactor = (parentWidth.floorToDouble()) / totalWidth;
-    _widths.clear();
-    double currentTotal = 0;
-
-    // Handle all columns except the last one
-    for (var i = 0; i < columnWidths.length - 1; i++) {
-      final scaledWidth = (columnWidths[i] * scaleFactor).floorToDouble();
-      _widths.add(scaledWidth);
-      currentTotal += scaledWidth;
-    }
-
-    // Give remaining width to last column
-    final lastWidth = parentWidth - currentTotal;
-    _widths.add(lastWidth);
   }
 
   void _checkScrollPosition() {
-    if (widget.onScrollApproachingEnd == null) {
-      return;
-    }
-
+    if (widget.onScrollApproachingEnd == null) return;
     if (_verticalController.position.extentAfter < 100) {
       widget.onScrollApproachingEnd!();
     }
   }
 
-  void _sort(int columnIndex, bool ascending) {
+  void _handleSort(int columnIndex) {
+    if (!mounted) return;
+    final ascending = _sortColumnIndex != columnIndex || !_sortAscending;
     setState(() {
       _sortColumnIndex = columnIndex;
       _sortAscending = ascending;
@@ -173,355 +187,189 @@ class _SailTableState extends State<SailTable> {
     widget.onSort?.call(columnIndex, ascending);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-    var themeAltColor = theme.colors.background;
-    var altBgColor = widget.altBackgroundColor ?? themeAltColor;
-
-    var isWindows = context.isWindows;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        Widget innerListView;
-
-        if (widget.shrinkWrap) {
-          var children = <Widget>[];
-          for (int i = 0; i < widget.rowCount; i++) {
-            final rowId = widget.getRowId(i);
-            final isSelected = rowId == _selectedId;
-            var backgroundColor = i % 2 == 1 ? altBgColor : null;
-            var isLastRow = i == widget.rowCount - 1;
-            children.add(
-              _TableRow(
-                cells: widget.rowBuilder(context, i, isSelected),
-                widths: _widths,
-                height: widget.cellHeight,
-                selected: isSelected,
-                backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                grid: widget.drawGrid,
-                drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
-                onPressed: () {
-                  if (widget.selectableRows) {
-                    setState(() {
-                      _selectedId = _selectedId == rowId ? null : rowId;
-                    });
-                    widget.onSelectedRow?.call(_selectedId);
-                  }
-                },
-                onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
-                contextMenuItems: widget.contextMenuItems,
-                rowId: rowId,
-              ),
-            );
-          }
-
-          innerListView = Column(
-            mainAxisSize: MainAxisSize.min,
-            children: children,
-          );
-        } else {
-          innerListView = ListView.builder(
-            padding: EdgeInsets.symmetric(
-              vertical: isWindows || widget.drawGrid ? 0 : 6,
-            ),
-            shrinkWrap: widget.shrinkWrap,
-            physics: widget.physics,
-            itemCount: widget.rowCount,
-            controller: _verticalController,
-            prototypeItem: SizedBox(
-              height: widget.cellHeight,
-            ),
-            itemBuilder: (context, row) {
-              final rowId = widget.getRowId(row);
-              final isSelected = rowId == _selectedId;
-              var backgroundColor = row % 2 == 1 ? altBgColor : null;
-              var isLastRow = row == widget.rowCount - 1;
-              return _TableRow(
-                cells: widget.rowBuilder(context, row, isSelected),
-                widths: _widths,
-                height: widget.cellHeight,
-                selected: isSelected,
-                backgroundColor: isWindows || widget.drawGrid ? null : backgroundColor,
-                grid: widget.drawGrid,
-                drawBorder: (widget.drawLastRowsBorder && isLastRow) || !isLastRow,
-                onPressed: () {
-                  if (widget.selectableRows) {
-                    setState(() {
-                      _selectedId = _selectedId == rowId ? null : rowId;
-                    });
-                    widget.onSelectedRow?.call(_selectedId);
-                  }
-                },
-                onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
-                contextMenuItems: widget.contextMenuItems,
-                rowId: rowId,
-              );
-            },
-          );
-        }
-
-        // Update the header builder to include sort indicators and functionality
-        List<Widget> header = widget.headerBuilder(context).asMap().entries.map((entry) {
-          int i = entry.key;
-          Widget headerCell = entry.value;
-
-          if (headerCell is SailTableHeaderCell) {
-            return SailTableHeaderCell(
-              alignment: headerCell.alignment,
-              padding: headerCell.padding,
-              isSorted: _sortColumnIndex == i,
-              isAscending: _sortAscending,
-              onSort: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
-              name: headerCell.name,
-            );
-          }
-
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _sort(i, _sortColumnIndex != i || !_sortAscending),
-            child: headerCell,
-          );
-        }).toList();
-
-        double tableWidth = constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths;
-
-        return Scrollbar(
-          controller: _horizontalController,
-          scrollbarOrientation: ScrollbarOrientation.bottom,
-          child: SingleChildScrollView(
-            controller: _horizontalController,
-            scrollDirection: Axis.horizontal,
-            physics: const ClampingScrollPhysics(),
-            child: SizedBox(
-              width: tableWidth,
-              child: Column(
-                children: [
-                  _TableHeader(
-                    widths: _widths,
-                    decoration: widget.headerDecoration ??
-                        BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: theme.colors.divider, width: 1),
-                          ),
-                          color: theme.colors.backgroundSecondary,
-                        ),
-                    cells: header,
-                    grid: widget.drawGrid,
-                    resizableColumns: widget.resizableColumns,
-                    onStartResizeColumn: _onStartResizeColumn,
-                    onEndResizeColumn: _onEndResizeColumn,
-                    onResizedColumn: _onResizedColumn,
-                  ),
-                  if (!widget.shrinkWrap)
-                    Expanded(
-                      child: ScrollConfiguration(
-                        behavior: ScrollConfiguration.of(context).copyWith(),
-                        child: innerListView,
-                      ),
-                    ),
-                  if (widget.shrinkWrap) innerListView,
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant SailTable oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkScrollPosition();
-    });
-  }
-
-  double _startColumnWidth = 0;
-
-  void _onStartResizeColumn(int column) {
-    _startColumnWidth = _widths[column];
-  }
-
-  void _onEndResizeColumn(int column) {
-    if (widget.onColumnWidthsChanged != null) {
-      widget.onColumnWidthsChanged!(_widths);
-    }
-  }
-
-  void _onResizedColumn(int column, double delta) {
-    if (!widget.resizableColumns) {
-      return;
-    }
-
-    var minWidth = widget.columnMinWidths?.elementAt(column) ?? widget.defaultMinColumnWidth;
+  void _handleColumnResize(int column, double delta) {
+    if (!widget.resizableColumns || !mounted) return;
 
     setState(() {
-      var width = _startColumnWidth + delta;
-      if (width < minWidth) {
-        width = minWidth;
-      }
-      _widths[column] = width;
+      final minWidth = widget.columnMinWidths?.elementAt(column) ?? widget.defaultMinColumnWidth;
+      final maxWidth = widget.columnMaxWidths?.elementAt(column);
+      final newWidth = (_startColumnWidth + delta).clamp(
+        minWidth,
+        maxWidth ?? _currentConstraints!.maxWidth,
+      );
+
+      _widths[column] = newWidth;
+      widget.onColumnWidthsChanged?.call(_widths);
     });
   }
-}
 
-class _TableHeader extends StatelessWidget {
-  const _TableHeader({
-    required this.cells,
-    required this.widths,
-    required this.decoration,
-    required this.grid,
-    required this.resizableColumns,
-    required this.onResizedColumn,
-    required this.onStartResizeColumn,
-    required this.onEndResizeColumn,
-  });
+  Widget _buildTable(BuildContext context, BoxConstraints constraints) {
+    final tableWidth = constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths;
 
-  final List<Widget> cells;
-  final List<double> widths;
-  final BoxDecoration? decoration;
-  final bool grid;
-  final bool resizableColumns;
-  final void Function(int column, double delta) onResizedColumn;
-  final void Function(int column) onStartResizeColumn;
-  final void Function(int column) onEndResizeColumn;
-
-  @override
-  Widget build(BuildContext context) {
-    _TableColumnResizeHandleStyle handleStyle;
-    if (grid) {
-      handleStyle = _TableColumnResizeHandleStyle.full;
-    } else if (!resizableColumns) {
-      handleStyle = _TableColumnResizeHandleStyle.none;
-    } else if (context.isWindows) {
-      handleStyle = _TableColumnResizeHandleStyle.full;
-    } else {
-      handleStyle = _TableColumnResizeHandleStyle.partial;
-    }
-
-    var cellWidgets = <Widget>[];
-    int i = 0;
-    for (var cell in cells) {
-      var index = i;
-      var width = widths[i];
-      if (i == 0) {
-        width -= _TableColumnResizeHandle._width / 2;
-      } else {
-        width -= _TableColumnResizeHandle._width;
-      }
-
-      cellWidgets.add(
-        SizedBox(
-          width: width,
-          child: cell,
+    return Scrollbar(
+      controller: _horizontalController,
+      scrollbarOrientation: ScrollbarOrientation.bottom,
+      child: SingleChildScrollView(
+        controller: _horizontalController,
+        scrollDirection: Axis.horizontal,
+        physics: const ClampingScrollPhysics(),
+        child: SizedBox(
+          width: tableWidth,
+          child: OverflowBox(
+            maxWidth: tableWidth,
+            alignment: Alignment.topLeft,
+            child: Column(
+              children: [
+                _buildHeader(context),
+                if (!widget.shrinkWrap) Expanded(child: _buildRows(context)),
+                if (widget.shrinkWrap) _buildRows(context),
+              ],
+            ),
+          ),
         ),
-      );
-
-      cellWidgets.add(
-        _TableColumnResizeHandle(
-          style: handleStyle,
-          last: i == cells.length - 1,
-          onDragStart: () {
-            onStartResizeColumn(index);
-          },
-          onDragEnd: () {
-            onEndResizeColumn(index);
-          },
-          onDragUpdate: (delta) {
-            onResizedColumn(index, delta);
-          },
-        ),
-      );
-
-      i += 1;
-    }
-
-    return Container(
-      height: 48,
-      decoration: decoration,
-      padding: EdgeInsets.symmetric(
-        vertical: SailStyleValues.padding12,
-      ),
-      child: Row(
-        children: cellWidgets,
       ),
     );
   }
-}
 
-enum _TableColumnResizeHandleStyle {
-  none,
-  full,
-  partial,
-}
+  Widget _buildHeader(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final headerCells =
+        widget.headerBuilder(context).asMap().map((i, cell) => MapEntry(i, _wrapHeaderCell(i, cell))).values.toList();
 
-class _TableColumnResizeHandle extends StatefulWidget {
-  const _TableColumnResizeHandle({
-    required this.onDragUpdate,
-    required this.onDragStart,
-    required this.onDragEnd,
-    required this.last,
-    required this.style,
-  });
+    return Container(
+      decoration: widget.headerDecoration ??
+          BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: theme.colors.divider),
+            ),
+            color: theme.colors.backgroundSecondary,
+          ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: _addResizeHandles(headerCells),
+      ),
+    );
+  }
 
-  final ValueChanged<double> onDragUpdate;
-  final VoidCallback onDragStart;
-  final VoidCallback onDragEnd;
-  final bool last;
-  final _TableColumnResizeHandleStyle style;
+  Widget _wrapHeaderCell(int index, Widget cell) {
+    if (cell is SailTableHeaderCell) {
+      return SizedBox(
+        width: _widths[index],
+        child: ClipRect(
+          child: SailTableHeaderCell(
+            name: cell.name,
+            alignment: cell.alignment,
+            padding: cell.padding,
+            isSorted: _sortColumnIndex == index,
+            isAscending: _sortAscending,
+            onSort: () => _handleSort(index),
+          ),
+        ),
+      );
+    }
 
-  static const _width = 8.0;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _handleSort(index),
+      child: SizedBox(
+        width: _widths[index],
+        child: ClipRect(child: cell),
+      ),
+    );
+  }
 
-  @override
-  _TableColumnResizeHandleState createState() => _TableColumnResizeHandleState();
-}
+  List<Widget> _addResizeHandles(List<Widget> cells) {
+    final result = <Widget>[];
+    for (var i = 0; i < cells.length; i++) {
+      result.add(cells[i]);
 
-class _TableColumnResizeHandleState extends State<_TableColumnResizeHandle> {
-  double _downX = 0.0;
+      if (i < cells.length - 1 && widget.resizableColumns) {
+        result.add(_buildResizeHandle(i));
+      }
+    }
+    return result;
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    var verticalGap = widget.style == _TableColumnResizeHandleStyle.partial ? 2.0 : 0.0;
-
+  Widget _buildResizeHandle(int index) {
     return MouseRegion(
       cursor: SystemMouseCursors.resizeLeftRight,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (details) {
-          _downX = details.globalPosition.dx;
-          widget.onDragStart();
-        },
-        onHorizontalDragEnd: (details) {
-          widget.onDragEnd();
+        onHorizontalDragStart: (_) {
+          _startColumnWidth = _widths[index];
         },
         onHorizontalDragUpdate: (details) {
-          var globalDelta = details.globalPosition.dx - _downX;
-          widget.onDragUpdate(globalDelta);
+          _handleColumnResize(index, details.delta.dx);
         },
-        child: SizedBox(
-          width: widget.last ? _TableColumnResizeHandle._width / 2 : _TableColumnResizeHandle._width,
-          child: Container(
-            margin: EdgeInsets.only(
-              left: _TableColumnResizeHandle._width / 2 - 1,
-              top: verticalGap,
-              bottom: verticalGap,
-            ),
-            decoration: BoxDecoration(
-              border: widget.style == _TableColumnResizeHandleStyle.none
-                  ? null
-                  : Border(
-                      left: BorderSide(
-                        color: context.sailTheme.colors.divider,
-                        width: 1.0,
-                      ),
-                    ),
+        child: Container(
+          width: 8,
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: context.sailTheme.colors.divider,
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildRows(BuildContext context) {
+    if (widget.shrinkWrap) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          widget.rowCount,
+          (index) => _buildRow(context, index),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      controller: _verticalController,
+      itemCount: widget.rowCount,
+      itemBuilder: (context, index) => _buildRow(context, index),
+    );
+  }
+
+  Widget _buildRow(BuildContext context, int index) {
+    final rowId = widget.getRowId(index);
+    final isSelected = rowId == _selectedId;
+    final isLastRow = index == widget.rowCount - 1;
+    final backgroundColor = index % 2 == 1 ? widget.altBackgroundColor : null;
+
+    return _TableRow(
+      cells: widget.rowBuilder(context, index, isSelected),
+      widths: _widths,
+      height: widget.cellHeight,
+      selected: isSelected,
+      backgroundColor: backgroundColor,
+      grid: widget.drawGrid,
+      drawBorder: widget.drawLastRowsBorder || !isLastRow,
+      onPressed: () => _handleRowSelection(rowId),
+      onDoubleTap: widget.onDoubleTap == null ? null : () => widget.onDoubleTap!(rowId),
+      contextMenuItems: widget.contextMenuItems,
+      rowId: rowId,
+    );
+  }
+
+  void _handleRowSelection(String rowId) {
+    if (!widget.selectableRows) return;
+    setState(() {
+      _selectedId = _selectedId == rowId ? null : rowId;
+    });
+    widget.onSelectedRow?.call(_selectedId);
+  }
+
+  @override
+  void didUpdateWidget(SailTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!listEquals(oldWidget.columnWidths, widget.columnWidths)) {
+      _resizeColumns(_currentConstraints!.maxWidth);
+    }
   }
 }
 
@@ -565,7 +413,6 @@ class _TableRow extends StatelessWidget {
             },
             child: SailText.primary12('Copy value'),
           ),
-          // Add custom menu items if provided
           if (contextMenuItems != null)
             ...contextMenuItems!(rowId).map(
               (item) => SailMenuItem(
@@ -651,9 +498,7 @@ class _TableRow extends StatelessWidget {
         ),
       );
     } else {
-      contents = Container(
-        margin: EdgeInsets.symmetric(),
-        padding: EdgeInsets.symmetric(),
+      contents = DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
           color: selected ? theme.colors.primary : backgroundColor,
@@ -767,25 +612,30 @@ class SailTableHeaderCell extends StatelessWidget {
       onTap: onSort,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        alignment: alignment,
+        width: double.infinity,
         padding: padding,
-        child: SailRow(
-          mainAxisSize: MainAxisSize.max,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.start,
-          spacing: SailStyleValues.padding04,
           children: [
-            SailText.primary15(
-              name,
-              bold: true,
-              color: theme.colors.textSecondary.withValues(alpha: 0.7),
+            Flexible(
+              child: SailText.primary15(
+                name,
+                bold: true,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                color: theme.colors.textSecondary.withValues(alpha: 0.7),
+              ),
             ),
-            if (isSorted)
+            if (isSorted) ...[
+              const SizedBox(width: 4),
               Icon(
                 isAscending ? Icons.arrow_upward : Icons.arrow_downward,
                 size: 13,
-                color: SailTheme.of(context).colors.icon,
+                color: theme.colors.icon,
               ),
+            ],
           ],
         ),
       ),

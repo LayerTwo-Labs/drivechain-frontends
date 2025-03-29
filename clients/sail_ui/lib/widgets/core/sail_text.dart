@@ -5,11 +5,15 @@ class _Text extends StatelessWidget {
   final String label;
   final TextStyle style;
   final TextAlign? textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
 
   const _Text({
     required this.label,
     required this.style,
     this.textAlign,
+    this.maxLines,
+    this.overflow,
   });
 
   @override
@@ -24,6 +28,8 @@ class _Text extends StatelessWidget {
       textScaler: scaler,
       softWrap: true,
       textAlign: textAlign,
+      maxLines: maxLines,
+      overflow: overflow,
     );
   }
 }
@@ -104,6 +110,8 @@ class SailText {
     bool bold = false,
     Color? color,
     bool underline = false,
+    int? maxLines,
+    TextOverflow? overflow,
   }) {
     return Builder(
       builder: (context) {
@@ -116,6 +124,8 @@ class SailText {
             decoration: underline ? TextDecoration.underline : TextDecoration.none,
             decorationColor: underline ? (color ?? theme.colors.text) : null,
           ),
+          maxLines: maxLines,
+          overflow: overflow,
           textAlign: textAlign,
         );
       },
