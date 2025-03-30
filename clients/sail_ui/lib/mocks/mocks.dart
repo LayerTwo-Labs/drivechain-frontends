@@ -673,4 +673,90 @@ class MockBitcoindAPI implements BitcoindAPI {
   Future<Block> getBlock({String? hash, int? height}) async {
     return Block();
   }
+
+  @override
+  Future<AddMultisigAddressResponse> addMultisigAddress(int nRequired, List<String> keys, String label, String wallet) {
+    return Future.value(AddMultisigAddressResponse());
+  }
+
+  @override
+  Future<BackupWalletResponse> backupWallet(String destination, String wallet) {
+    return Future.value(BackupWalletResponse());
+  }
+
+  @override
+  Future<CreateMultisigResponse> createMultisig(int nRequired, List<String> keys) {
+    return Future.value(CreateMultisigResponse());
+  }
+
+  @override
+  Future<CreateWalletResponse> createWallet(
+    String name,
+    String passphrase,
+    bool avoidReuse,
+    bool disablePrivateKeys,
+    bool blank,
+  ) {
+    return Future.value(CreateWalletResponse());
+  }
+
+  @override
+  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet) {
+    return Future.value(DumpPrivKeyResponse());
+  }
+
+  @override
+  Future<DumpWalletResponse> dumpWallet(String filename, String wallet) {
+    return Future.value(DumpWalletResponse());
+  }
+
+  @override
+  Future<GetAccountResponse> getAccount(String address, String wallet) {
+    return Future.value(GetAccountResponse());
+  }
+
+  @override
+  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet) {
+    return Future.value(GetAddressesByAccountResponse());
+  }
+
+  @override
+  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet) {
+    return Future.value(ImportAddressResponse());
+  }
+
+  @override
+  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet) {
+    return Future.value(ImportPrivKeyResponse());
+  }
+
+  @override
+  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet) {
+    return Future.value(ImportPubKeyResponse());
+  }
+
+  @override
+  Future<ImportWalletResponse> importWallet(String filename, String wallet) {
+    return Future.value(ImportWalletResponse());
+  }
+
+  @override
+  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet) {
+    return Future.value(KeyPoolRefillResponse());
+  }
+
+  @override
+  Future<ListAccountsResponse> listAccounts(int minConf, String wallet) {
+    return Future.value(ListAccountsResponse());
+  }
+
+  @override
+  Future<SetAccountResponse> setAccount(String address, String account, String wallet) {
+    return Future.value(SetAccountResponse());
+  }
+
+  @override
+  Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet) {
+    return Future.value(UnloadWalletResponse());
+  }
 }

@@ -346,11 +346,13 @@ const SendTransactionRequest$json = {
     {'1': 'fee_rate', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.SendTransactionRequest.FeeRate', '9': 0, '10': 'feeRate', '17': true},
     {'1': 'op_return_message', '3': 3, '4': 1, '5': 11, '6': '.cusf.common.v1.Hex', '9': 1, '10': 'opReturnMessage', '17': true},
     {'1': 'required_utxos', '3': 4, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.SendTransactionRequest.RequiredUtxo', '10': 'requiredUtxos'},
+    {'1': 'drain_wallet_to', '3': 5, '4': 1, '5': 9, '9': 2, '10': 'drainWalletTo', '17': true},
   ],
   '3': [SendTransactionRequest_FeeRate$json, SendTransactionRequest_RequiredUtxo$json, SendTransactionRequest_DestinationsEntry$json],
   '8': [
     {'1': '_fee_rate'},
     {'1': '_op_return_message'},
+    {'1': '_drain_wallet_to'},
   ],
 };
 
@@ -393,12 +395,13 @@ final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64De
     'Fuc2FjdGlvblJlcXVlc3QuRmVlUmF0ZUgAUgdmZWVSYXRliAEBEkQKEW9wX3JldHVybl9tZXNz'
     'YWdlGAMgASgLMhMuY3VzZi5jb21tb24udjEuSGV4SAFSD29wUmV0dXJuTWVzc2FnZYgBARJdCg'
     '5yZXF1aXJlZF91dHhvcxgEIAMoCzI2LmN1c2YubWFpbmNoYWluLnYxLlNlbmRUcmFuc2FjdGlv'
-    'blJlcXVlc3QuUmVxdWlyZWRVdHhvUg1yZXF1aXJlZFV0eG9zGkwKB0ZlZVJhdGUSJAoNc2F0X3'
-    'Blcl92Ynl0ZRgBIAEoBEgAUgtzYXRQZXJWYnl0ZRIUCgRzYXRzGAIgASgESABSBHNhdHNCBQoD'
-    'ZmVlGlIKDFJlcXVpcmVkVXR4bxIuCgR0eGlkGAEgASgLMhouY3VzZi5jb21tb24udjEuUmV2ZX'
-    'JzZUhleFIEdHhpZBISCgR2b3V0GAIgASgNUgR2b3V0Gj8KEURlc3RpbmF0aW9uc0VudHJ5EhAK'
-    'A2tleRgBIAEoCVIDa2V5EhQKBXZhbHVlGAIgASgEUgV2YWx1ZToCOAFCCwoJX2ZlZV9yYXRlQh'
-    'QKEl9vcF9yZXR1cm5fbWVzc2FnZQ==');
+    'blJlcXVlc3QuUmVxdWlyZWRVdHhvUg1yZXF1aXJlZFV0eG9zEisKD2RyYWluX3dhbGxldF90bx'
+    'gFIAEoCUgCUg1kcmFpbldhbGxldFRviAEBGkwKB0ZlZVJhdGUSJAoNc2F0X3Blcl92Ynl0ZRgB'
+    'IAEoBEgAUgtzYXRQZXJWYnl0ZRIUCgRzYXRzGAIgASgESABSBHNhdHNCBQoDZmVlGlIKDFJlcX'
+    'VpcmVkVXR4bxIuCgR0eGlkGAEgASgLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIEdHhp'
+    'ZBISCgR2b3V0GAIgASgNUgR2b3V0Gj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCV'
+    'IDa2V5EhQKBXZhbHVlGAIgASgEUgV2YWx1ZToCOAFCCwoJX2ZlZV9yYXRlQhQKEl9vcF9yZXR1'
+    'cm5fbWVzc2FnZUISChBfZHJhaW5fd2FsbGV0X3Rv');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {
@@ -528,16 +531,27 @@ const ListUnspentOutputsResponse_Output$json = {
     {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
     {'1': 'value_sats', '3': 3, '4': 1, '5': 4, '10': 'valueSats'},
     {'1': 'is_internal', '3': 4, '4': 1, '5': 8, '10': 'isInternal'},
+    {'1': 'is_confirmed', '3': 5, '4': 1, '5': 8, '10': 'isConfirmed'},
+    {'1': 'confirmed_at_block', '3': 6, '4': 1, '5': 13, '10': 'confirmedAtBlock'},
+    {'1': 'confirmed_at_time', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'confirmedAtTime'},
+    {'1': 'confirmed_transitively', '3': 8, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'confirmedTransitively'},
+    {'1': 'unconfirmed_last_seen', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'unconfirmedLastSeen'},
   ],
 };
 
 /// Descriptor for `ListUnspentOutputsResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listUnspentOutputsResponseDescriptor = $convert.base64Decode(
     'ChpMaXN0VW5zcGVudE91dHB1dHNSZXNwb25zZRJOCgdvdXRwdXRzGAEgAygLMjQuY3VzZi5tYW'
-    'luY2hhaW4udjEuTGlzdFVuc3BlbnRPdXRwdXRzUmVzcG9uc2UuT3V0cHV0UgdvdXRwdXRzGowB'
+    'luY2hhaW4udjEuTGlzdFVuc3BlbnRPdXRwdXRzUmVzcG9uc2UuT3V0cHV0UgdvdXRwdXRzGsgD'
     'CgZPdXRwdXQSLgoEdHhpZBgBIAEoCzIaLmN1c2YuY29tbW9uLnYxLlJldmVyc2VIZXhSBHR4aW'
     'QSEgoEdm91dBgCIAEoDVIEdm91dBIdCgp2YWx1ZV9zYXRzGAMgASgEUgl2YWx1ZVNhdHMSHwoL'
-    'aXNfaW50ZXJuYWwYBCABKAhSCmlzSW50ZXJuYWw=');
+    'aXNfaW50ZXJuYWwYBCABKAhSCmlzSW50ZXJuYWwSIQoMaXNfY29uZmlybWVkGAUgASgIUgtpc0'
+    'NvbmZpcm1lZBIsChJjb25maXJtZWRfYXRfYmxvY2sYBiABKA1SEGNvbmZpcm1lZEF0QmxvY2sS'
+    'RgoRY29uZmlybWVkX2F0X3RpbWUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUg'
+    '9jb25maXJtZWRBdFRpbWUSUQoWY29uZmlybWVkX3RyYW5zaXRpdmVseRgIIAEoCzIaLmN1c2Yu'
+    'Y29tbW9uLnYxLlJldmVyc2VIZXhSFWNvbmZpcm1lZFRyYW5zaXRpdmVseRJOChV1bmNvbmZpcm'
+    '1lZF9sYXN0X3NlZW4YCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUhN1bmNvbmZp'
+    'cm1lZExhc3RTZWVu');
 
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',

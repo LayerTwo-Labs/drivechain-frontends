@@ -723,10 +723,14 @@ class BlockInfo extends $pb.GeneratedMessage {
 class GetBlockHeaderInfoRequest extends $pb.GeneratedMessage {
   factory GetBlockHeaderInfoRequest({
     $1.ReverseHex? blockHash,
+    $core.int? maxAncestors,
   }) {
     final $result = create();
     if (blockHash != null) {
       $result.blockHash = blockHash;
+    }
+    if (maxAncestors != null) {
+      $result.maxAncestors = maxAncestors;
     }
     return $result;
   }
@@ -736,6 +740,7 @@ class GetBlockHeaderInfoRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockHeaderInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $1.ReverseHex.create)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'maxAncestors', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -770,15 +775,30 @@ class GetBlockHeaderInfoRequest extends $pb.GeneratedMessage {
   void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureBlockHash() => $_ensure(0);
+
+  /// Request block header info for up to `max_ancestors` ancestors.
+  /// Fewer ancestors MAY be returned.
+  @$pb.TagNumber(2)
+  $core.int get maxAncestors => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set maxAncestors($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMaxAncestors() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMaxAncestors() => clearField(2);
 }
 
 class GetBlockHeaderInfoResponse extends $pb.GeneratedMessage {
   factory GetBlockHeaderInfoResponse({
     BlockHeaderInfo? headerInfo,
+    $core.Iterable<BlockHeaderInfo>? ancestorInfos,
   }) {
     final $result = create();
     if (headerInfo != null) {
       $result.headerInfo = headerInfo;
+    }
+    if (ancestorInfos != null) {
+      $result.ancestorInfos.addAll(ancestorInfos);
     }
     return $result;
   }
@@ -788,6 +808,7 @@ class GetBlockHeaderInfoResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockHeaderInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..aOM<BlockHeaderInfo>(1, _omitFieldNames ? '' : 'headerInfo', subBuilder: BlockHeaderInfo.create)
+    ..pc<BlockHeaderInfo>(2, _omitFieldNames ? '' : 'ancestorInfos', $pb.PbFieldType.PM, subBuilder: BlockHeaderInfo.create)
     ..hasRequiredFields = false
   ;
 
@@ -822,6 +843,10 @@ class GetBlockHeaderInfoResponse extends $pb.GeneratedMessage {
   void clearHeaderInfo() => clearField(1);
   @$pb.TagNumber(1)
   BlockHeaderInfo ensureHeaderInfo() => $_ensure(0);
+
+  /// Ancestors MUST be sorted newest-first
+  @$pb.TagNumber(2)
+  $core.List<BlockHeaderInfo> get ancestorInfos => $_getList(1);
 }
 
 class GetBlockInfoRequest extends $pb.GeneratedMessage {
@@ -969,6 +994,7 @@ class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {
   factory GetBmmHStarCommitmentRequest({
     $1.ReverseHex? blockHash,
     $0.UInt32Value? sidechainId,
+    $core.int? maxAncestors,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -976,6 +1002,9 @@ class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {
     }
     if (sidechainId != null) {
       $result.sidechainId = sidechainId;
+    }
+    if (maxAncestors != null) {
+      $result.maxAncestors = maxAncestors;
     }
     return $result;
   }
@@ -986,6 +1015,7 @@ class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBmmHStarCommitmentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $1.ReverseHex.create)
     ..aOM<$0.UInt32Value>(2, _omitFieldNames ? '' : 'sidechainId', subBuilder: $0.UInt32Value.create)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'maxAncestors', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -1031,6 +1061,17 @@ class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {
   void clearSidechainId() => clearField(2);
   @$pb.TagNumber(2)
   $0.UInt32Value ensureSidechainId() => $_ensure(1);
+
+  /// Request commitments for up to `max_ancestors` ancestors.
+  /// Fewer ancestors MAY be returned.
+  @$pb.TagNumber(3)
+  $core.int get maxAncestors => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set maxAncestors($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMaxAncestors() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMaxAncestors() => clearField(3);
 }
 
 class GetBmmHStarCommitmentResponse_BlockNotFoundError extends $pb.GeneratedMessage {
@@ -1085,13 +1126,69 @@ class GetBmmHStarCommitmentResponse_BlockNotFoundError extends $pb.GeneratedMess
   $1.ReverseHex ensureBlockHash() => $_ensure(0);
 }
 
-class GetBmmHStarCommitmentResponse_Commitment extends $pb.GeneratedMessage {
-  factory GetBmmHStarCommitmentResponse_Commitment({
+class GetBmmHStarCommitmentResponse_OptionalCommitment extends $pb.GeneratedMessage {
+  factory GetBmmHStarCommitmentResponse_OptionalCommitment({
     $1.ConsensusHex? commitment,
   }) {
     final $result = create();
     if (commitment != null) {
       $result.commitment = commitment;
+    }
+    return $result;
+  }
+  GetBmmHStarCommitmentResponse_OptionalCommitment._() : super();
+  factory GetBmmHStarCommitmentResponse_OptionalCommitment.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBmmHStarCommitmentResponse_OptionalCommitment.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBmmHStarCommitmentResponse.OptionalCommitment', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$1.ConsensusHex>(1, _omitFieldNames ? '' : 'commitment', subBuilder: $1.ConsensusHex.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBmmHStarCommitmentResponse_OptionalCommitment clone() => GetBmmHStarCommitmentResponse_OptionalCommitment()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBmmHStarCommitmentResponse_OptionalCommitment copyWith(void Function(GetBmmHStarCommitmentResponse_OptionalCommitment) updates) => super.copyWith((message) => updates(message as GetBmmHStarCommitmentResponse_OptionalCommitment)) as GetBmmHStarCommitmentResponse_OptionalCommitment;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBmmHStarCommitmentResponse_OptionalCommitment create() => GetBmmHStarCommitmentResponse_OptionalCommitment._();
+  GetBmmHStarCommitmentResponse_OptionalCommitment createEmptyInstance() => create();
+  static $pb.PbList<GetBmmHStarCommitmentResponse_OptionalCommitment> createRepeated() => $pb.PbList<GetBmmHStarCommitmentResponse_OptionalCommitment>();
+  @$core.pragma('dart2js:noInline')
+  static GetBmmHStarCommitmentResponse_OptionalCommitment getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBmmHStarCommitmentResponse_OptionalCommitment>(create);
+  static GetBmmHStarCommitmentResponse_OptionalCommitment? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.ConsensusHex get commitment => $_getN(0);
+  @$pb.TagNumber(1)
+  set commitment($1.ConsensusHex v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCommitment() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCommitment() => clearField(1);
+  @$pb.TagNumber(1)
+  $1.ConsensusHex ensureCommitment() => $_ensure(0);
+}
+
+class GetBmmHStarCommitmentResponse_Commitment extends $pb.GeneratedMessage {
+  factory GetBmmHStarCommitmentResponse_Commitment({
+    $1.ConsensusHex? commitment,
+    $core.Iterable<GetBmmHStarCommitmentResponse_OptionalCommitment>? ancestorCommitments,
+  }) {
+    final $result = create();
+    if (commitment != null) {
+      $result.commitment = commitment;
+    }
+    if (ancestorCommitments != null) {
+      $result.ancestorCommitments.addAll(ancestorCommitments);
     }
     return $result;
   }
@@ -1101,6 +1198,7 @@ class GetBmmHStarCommitmentResponse_Commitment extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBmmHStarCommitmentResponse.Commitment', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..aOM<$1.ConsensusHex>(1, _omitFieldNames ? '' : 'commitment', subBuilder: $1.ConsensusHex.create)
+    ..pc<GetBmmHStarCommitmentResponse_OptionalCommitment>(2, _omitFieldNames ? '' : 'ancestorCommitments', $pb.PbFieldType.PM, subBuilder: GetBmmHStarCommitmentResponse_OptionalCommitment.create)
     ..hasRequiredFields = false
   ;
 
@@ -1135,6 +1233,10 @@ class GetBmmHStarCommitmentResponse_Commitment extends $pb.GeneratedMessage {
   void clearCommitment() => clearField(1);
   @$pb.TagNumber(1)
   $1.ConsensusHex ensureCommitment() => $_ensure(0);
+
+  /// Ancestors MUST be sorted newest-first
+  @$pb.TagNumber(2)
+  $core.List<GetBmmHStarCommitmentResponse_OptionalCommitment> get ancestorCommitments => $_getList(1);
 }
 
 enum GetBmmHStarCommitmentResponse_Result {
@@ -3065,6 +3167,91 @@ class SubscribeEventsResponse extends $pb.GeneratedMessage {
   SubscribeEventsResponse_Event ensureEvent() => $_ensure(0);
 }
 
+class SubscribeHeaderSyncProgressRequest extends $pb.GeneratedMessage {
+  factory SubscribeHeaderSyncProgressRequest() => create();
+  SubscribeHeaderSyncProgressRequest._() : super();
+  factory SubscribeHeaderSyncProgressRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SubscribeHeaderSyncProgressRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SubscribeHeaderSyncProgressRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SubscribeHeaderSyncProgressRequest clone() => SubscribeHeaderSyncProgressRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SubscribeHeaderSyncProgressRequest copyWith(void Function(SubscribeHeaderSyncProgressRequest) updates) => super.copyWith((message) => updates(message as SubscribeHeaderSyncProgressRequest)) as SubscribeHeaderSyncProgressRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SubscribeHeaderSyncProgressRequest create() => SubscribeHeaderSyncProgressRequest._();
+  SubscribeHeaderSyncProgressRequest createEmptyInstance() => create();
+  static $pb.PbList<SubscribeHeaderSyncProgressRequest> createRepeated() => $pb.PbList<SubscribeHeaderSyncProgressRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SubscribeHeaderSyncProgressRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SubscribeHeaderSyncProgressRequest>(create);
+  static SubscribeHeaderSyncProgressRequest? _defaultInstance;
+}
+
+class SubscribeHeaderSyncProgressResponse extends $pb.GeneratedMessage {
+  factory SubscribeHeaderSyncProgressResponse({
+    $0.UInt32Value? currentHeight,
+  }) {
+    final $result = create();
+    if (currentHeight != null) {
+      $result.currentHeight = currentHeight;
+    }
+    return $result;
+  }
+  SubscribeHeaderSyncProgressResponse._() : super();
+  factory SubscribeHeaderSyncProgressResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SubscribeHeaderSyncProgressResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SubscribeHeaderSyncProgressResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<$0.UInt32Value>(1, _omitFieldNames ? '' : 'currentHeight', subBuilder: $0.UInt32Value.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SubscribeHeaderSyncProgressResponse clone() => SubscribeHeaderSyncProgressResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SubscribeHeaderSyncProgressResponse copyWith(void Function(SubscribeHeaderSyncProgressResponse) updates) => super.copyWith((message) => updates(message as SubscribeHeaderSyncProgressResponse)) as SubscribeHeaderSyncProgressResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SubscribeHeaderSyncProgressResponse create() => SubscribeHeaderSyncProgressResponse._();
+  SubscribeHeaderSyncProgressResponse createEmptyInstance() => create();
+  static $pb.PbList<SubscribeHeaderSyncProgressResponse> createRepeated() => $pb.PbList<SubscribeHeaderSyncProgressResponse>();
+  @$core.pragma('dart2js:noInline')
+  static SubscribeHeaderSyncProgressResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SubscribeHeaderSyncProgressResponse>(create);
+  static SubscribeHeaderSyncProgressResponse? _defaultInstance;
+
+  /// Current sync height may be unknown at the start of a sync
+  @$pb.TagNumber(1)
+  $0.UInt32Value get currentHeight => $_getN(0);
+  @$pb.TagNumber(1)
+  set currentHeight($0.UInt32Value v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCurrentHeight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCurrentHeight() => clearField(1);
+  @$pb.TagNumber(1)
+  $0.UInt32Value ensureCurrentHeight() => $_ensure(0);
+}
+
 class ValidatorServiceApi {
   $pb.RpcClient _client;
   ValidatorServiceApi(this._client);
@@ -3101,6 +3288,9 @@ class ValidatorServiceApi {
   ;
   $async.Future<SubscribeEventsResponse> subscribeEvents($pb.ClientContext? ctx, SubscribeEventsRequest request) =>
     _client.invoke<SubscribeEventsResponse>(ctx, 'ValidatorService', 'SubscribeEvents', request, SubscribeEventsResponse())
+  ;
+  $async.Future<SubscribeHeaderSyncProgressResponse> subscribeHeaderSyncProgress($pb.ClientContext? ctx, SubscribeHeaderSyncProgressRequest request) =>
+    _client.invoke<SubscribeHeaderSyncProgressResponse>(ctx, 'ValidatorService', 'SubscribeHeaderSyncProgress', request, SubscribeHeaderSyncProgressResponse())
   ;
 }
 

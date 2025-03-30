@@ -179,26 +179,34 @@ const GetBlockHeaderInfoRequest$json = {
   '1': 'GetBlockHeaderInfoRequest',
   '2': [
     {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
+    {'1': 'max_ancestors', '3': 2, '4': 1, '5': 13, '9': 0, '10': 'maxAncestors', '17': true},
+  ],
+  '8': [
+    {'1': '_max_ancestors'},
   ],
 };
 
 /// Descriptor for `GetBlockHeaderInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockHeaderInfoRequestDescriptor = $convert.base64Decode(
     'ChlHZXRCbG9ja0hlYWRlckluZm9SZXF1ZXN0EjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLm'
-    'NvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2g=');
+    'NvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSKAoNbWF4X2FuY2VzdG9ycxgCIAEoDUgA'
+    'UgxtYXhBbmNlc3RvcnOIAQFCEAoOX21heF9hbmNlc3RvcnM=');
 
 @$core.Deprecated('Use getBlockHeaderInfoResponseDescriptor instead')
 const GetBlockHeaderInfoResponse$json = {
   '1': 'GetBlockHeaderInfoResponse',
   '2': [
     {'1': 'header_info', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.BlockHeaderInfo', '10': 'headerInfo'},
+    {'1': 'ancestor_infos', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.BlockHeaderInfo', '10': 'ancestorInfos'},
   ],
 };
 
 /// Descriptor for `GetBlockHeaderInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockHeaderInfoResponseDescriptor = $convert.base64Decode(
     'ChpHZXRCbG9ja0hlYWRlckluZm9SZXNwb25zZRJDCgtoZWFkZXJfaW5mbxgBIAEoCzIiLmN1c2'
-    'YubWFpbmNoYWluLnYxLkJsb2NrSGVhZGVySW5mb1IKaGVhZGVySW5mbw==');
+    'YubWFpbmNoYWluLnYxLkJsb2NrSGVhZGVySW5mb1IKaGVhZGVySW5mbxJJCg5hbmNlc3Rvcl9p'
+    'bmZvcxgCIAMoCzIiLmN1c2YubWFpbmNoYWluLnYxLkJsb2NrSGVhZGVySW5mb1INYW5jZXN0b3'
+    'JJbmZvcw==');
 
 @$core.Deprecated('Use getBlockInfoRequestDescriptor instead')
 const GetBlockInfoRequest$json = {
@@ -236,6 +244,10 @@ const GetBmmHStarCommitmentRequest$json = {
   '2': [
     {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
     {'1': 'sidechain_id', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainId'},
+    {'1': 'max_ancestors', '3': 3, '4': 1, '5': 13, '9': 0, '10': 'maxAncestors', '17': true},
+  ],
+  '8': [
+    {'1': '_max_ancestors'},
   ],
 };
 
@@ -243,7 +255,8 @@ const GetBmmHStarCommitmentRequest$json = {
 final $typed_data.Uint8List getBmmHStarCommitmentRequestDescriptor = $convert.base64Decode(
     'ChxHZXRCbW1IU3RhckNvbW1pdG1lbnRSZXF1ZXN0EjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdX'
     'NmLmNvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSPwoMc2lkZWNoYWluX2lkGAIgASgL'
-    'MhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZA==');
+    'MhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZBIoCg1tYXhfYW5jZX'
+    'N0b3JzGAMgASgNSABSDG1heEFuY2VzdG9yc4gBAUIQCg5fbWF4X2FuY2VzdG9ycw==');
 
 @$core.Deprecated('Use getBmmHStarCommitmentResponseDescriptor instead')
 const GetBmmHStarCommitmentResponse$json = {
@@ -252,7 +265,7 @@ const GetBmmHStarCommitmentResponse$json = {
     {'1': 'block_not_found', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError', '9': 0, '10': 'blockNotFound'},
     {'1': 'commitment', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment', '9': 0, '10': 'commitment'},
   ],
-  '3': [GetBmmHStarCommitmentResponse_BlockNotFoundError$json, GetBmmHStarCommitmentResponse_Commitment$json],
+  '3': [GetBmmHStarCommitmentResponse_BlockNotFoundError$json, GetBmmHStarCommitmentResponse_OptionalCommitment$json, GetBmmHStarCommitmentResponse_Commitment$json],
   '8': [
     {'1': 'result'},
   ],
@@ -267,10 +280,22 @@ const GetBmmHStarCommitmentResponse_BlockNotFoundError$json = {
 };
 
 @$core.Deprecated('Use getBmmHStarCommitmentResponseDescriptor instead')
+const GetBmmHStarCommitmentResponse_OptionalCommitment$json = {
+  '1': 'OptionalCommitment',
+  '2': [
+    {'1': 'commitment', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '9': 0, '10': 'commitment', '17': true},
+  ],
+  '8': [
+    {'1': '_commitment'},
+  ],
+};
+
+@$core.Deprecated('Use getBmmHStarCommitmentResponseDescriptor instead')
 const GetBmmHStarCommitmentResponse_Commitment$json = {
   '1': 'Commitment',
   '2': [
     {'1': 'commitment', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '9': 0, '10': 'commitment', '17': true},
+    {'1': 'ancestor_commitments', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment', '10': 'ancestorCommitments'},
   ],
   '8': [
     {'1': '_commitment'},
@@ -284,9 +309,13 @@ final $typed_data.Uint8List getBmmHStarCommitmentResponseDescriptor = $convert.b
     'a05vdEZvdW5kRXJyb3JIAFINYmxvY2tOb3RGb3VuZBJdCgpjb21taXRtZW50GAIgASgLMjsuY3'
     'VzZi5tYWluY2hhaW4udjEuR2V0Qm1tSFN0YXJDb21taXRtZW50UmVzcG9uc2UuQ29tbWl0bWVu'
     'dEgAUgpjb21taXRtZW50Gk8KEkJsb2NrTm90Rm91bmRFcnJvchI5CgpibG9ja19oYXNoGAEgAS'
-    'gLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIJYmxvY2tIYXNoGl4KCkNvbW1pdG1lbnQS'
-    'QQoKY29tbWl0bWVudBgBIAEoCzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleEgAUgpjb2'
-    '1taXRtZW50iAEBQg0KC19jb21taXRtZW50QggKBnJlc3VsdA==');
+    'gLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIJYmxvY2tIYXNoGmYKEk9wdGlvbmFsQ29t'
+    'bWl0bWVudBJBCgpjb21taXRtZW50GAEgASgLMhwuY3VzZi5jb21tb24udjEuQ29uc2Vuc3VzSG'
+    'V4SABSCmNvbW1pdG1lbnSIAQFCDQoLX2NvbW1pdG1lbnQa1gEKCkNvbW1pdG1lbnQSQQoKY29t'
+    'bWl0bWVudBgBIAEoCzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleEgAUgpjb21taXRtZW'
+    '50iAEBEnYKFGFuY2VzdG9yX2NvbW1pdG1lbnRzGAIgAygLMkMuY3VzZi5tYWluY2hhaW4udjEu'
+    'R2V0Qm1tSFN0YXJDb21taXRtZW50UmVzcG9uc2UuT3B0aW9uYWxDb21taXRtZW50UhNhbmNlc3'
+    'RvckNvbW1pdG1lbnRzQg0KC19jb21taXRtZW50QggKBnJlc3VsdA==');
 
 @$core.Deprecated('Use getChainInfoRequestDescriptor instead')
 const GetChainInfoRequest$json = {
@@ -697,6 +726,32 @@ final $typed_data.Uint8List subscribeEventsResponseDescriptor = $convert.base64D
     'djEuQmxvY2tJbmZvUglibG9ja0luZm8aTAoPRGlzY29ubmVjdEJsb2NrEjkKCmJsb2NrX2hhc2'
     'gYASABKAsyGi5jdXNmLmNvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2hCBwoFZXZlbnQ=');
 
+@$core.Deprecated('Use subscribeHeaderSyncProgressRequestDescriptor instead')
+const SubscribeHeaderSyncProgressRequest$json = {
+  '1': 'SubscribeHeaderSyncProgressRequest',
+};
+
+/// Descriptor for `SubscribeHeaderSyncProgressRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List subscribeHeaderSyncProgressRequestDescriptor = $convert.base64Decode(
+    'CiJTdWJzY3JpYmVIZWFkZXJTeW5jUHJvZ3Jlc3NSZXF1ZXN0');
+
+@$core.Deprecated('Use subscribeHeaderSyncProgressResponseDescriptor instead')
+const SubscribeHeaderSyncProgressResponse$json = {
+  '1': 'SubscribeHeaderSyncProgressResponse',
+  '2': [
+    {'1': 'current_height', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '9': 0, '10': 'currentHeight', '17': true},
+  ],
+  '8': [
+    {'1': '_current_height'},
+  ],
+};
+
+/// Descriptor for `SubscribeHeaderSyncProgressResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List subscribeHeaderSyncProgressResponseDescriptor = $convert.base64Decode(
+    'CiNTdWJzY3JpYmVIZWFkZXJTeW5jUHJvZ3Jlc3NSZXNwb25zZRJICg5jdXJyZW50X2hlaWdodB'
+    'gBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZUgAUg1jdXJyZW50SGVpZ2h0iAEB'
+    'QhEKD19jdXJyZW50X2hlaWdodA==');
+
 const $core.Map<$core.String, $core.dynamic> ValidatorServiceBase$json = {
   '1': 'ValidatorService',
   '2': [
@@ -711,6 +766,7 @@ const $core.Map<$core.String, $core.dynamic> ValidatorServiceBase$json = {
     {'1': 'GetSidechains', '2': '.cusf.mainchain.v1.GetSidechainsRequest', '3': '.cusf.mainchain.v1.GetSidechainsResponse'},
     {'1': 'GetTwoWayPegData', '2': '.cusf.mainchain.v1.GetTwoWayPegDataRequest', '3': '.cusf.mainchain.v1.GetTwoWayPegDataResponse'},
     {'1': 'SubscribeEvents', '2': '.cusf.mainchain.v1.SubscribeEventsRequest', '3': '.cusf.mainchain.v1.SubscribeEventsResponse', '6': true},
+    {'1': 'SubscribeHeaderSyncProgress', '2': '.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest', '3': '.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse', '6': true},
   ],
 };
 
@@ -741,6 +797,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ValidatorS
   '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse': GetBmmHStarCommitmentResponse$json,
   '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError': GetBmmHStarCommitmentResponse_BlockNotFoundError$json,
   '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment': GetBmmHStarCommitmentResponse_Commitment$json,
+  '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment': GetBmmHStarCommitmentResponse_OptionalCommitment$json,
   '.cusf.mainchain.v1.GetChainInfoRequest': GetChainInfoRequest$json,
   '.cusf.mainchain.v1.GetChainInfoResponse': GetChainInfoResponse$json,
   '.cusf.mainchain.v1.GetChainTipRequest': GetChainTipRequest$json,
@@ -773,6 +830,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ValidatorS
   '.cusf.mainchain.v1.SubscribeEventsResponse.Event': SubscribeEventsResponse_Event$json,
   '.cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock': SubscribeEventsResponse_Event_ConnectBlock$json,
   '.cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock': SubscribeEventsResponse_Event_DisconnectBlock$json,
+  '.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest': SubscribeHeaderSyncProgressRequest$json,
+  '.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse': SubscribeHeaderSyncProgressResponse$json,
 };
 
 /// Descriptor for `ValidatorService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -798,5 +857,7 @@ final $typed_data.Uint8List validatorServiceDescriptor = $convert.base64Decode(
     'ZXRUd29XYXlQZWdEYXRhUmVxdWVzdBorLmN1c2YubWFpbmNoYWluLnYxLkdldFR3b1dheVBlZ0'
     'RhdGFSZXNwb25zZRJqCg9TdWJzY3JpYmVFdmVudHMSKS5jdXNmLm1haW5jaGFpbi52MS5TdWJz'
     'Y3JpYmVFdmVudHNSZXF1ZXN0GiouY3VzZi5tYWluY2hhaW4udjEuU3Vic2NyaWJlRXZlbnRzUm'
-    'VzcG9uc2UwAQ==');
+    'VzcG9uc2UwARKOAQobU3Vic2NyaWJlSGVhZGVyU3luY1Byb2dyZXNzEjUuY3VzZi5tYWluY2hh'
+    'aW4udjEuU3Vic2NyaWJlSGVhZGVyU3luY1Byb2dyZXNzUmVxdWVzdBo2LmN1c2YubWFpbmNoYW'
+    'luLnYxLlN1YnNjcmliZUhlYWRlclN5bmNQcm9ncmVzc1Jlc3BvbnNlMAE=');
 
