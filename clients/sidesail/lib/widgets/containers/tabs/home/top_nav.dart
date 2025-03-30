@@ -35,9 +35,10 @@ class _TopNavState extends State<TopNav> {
         final sidechainNav = _navForSidechain(_sidechain.rpc.chain, model, widget.tabsRouter);
 
         return SailRow(
-          spacing: 0,
+          leadingSpacing: true,
+          spacing: SailStyleValues.padding32,
           children: [
-            Row(
+            SailRow(
               children: [
                 QtTab(
                   label: 'Parent Chain',
@@ -45,26 +46,15 @@ class _TopNavState extends State<TopNav> {
                   onTap: () {
                     widget.tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
                   },
-                  icon: SailSVGAsset.iconTabPeg,
                 ),
-                if (_sidechain.rpc.chain == TestSidechain())
-                  QtTab(
-                    label: 'Blind Merged Mining',
-                    active: widget.tabsRouter.activeIndex == Tabs.ParentChainBMM.index,
-                    onTap: () {
-                      widget.tabsRouter.setActiveIndex(Tabs.ParentChainBMM.index);
-                    },
-                    icon: SailSVGAsset.iconTabBMM,
+                SizedBox(
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: theme.colors.divider,
                   ),
+                ),
               ],
-            ),
-            SizedBox(
-              height: 33,
-              child: VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: theme.colors.icon.withValues(alpha: 0.2),
-              ),
             ),
             ...sidechainNav,
             Expanded(child: Container()),
@@ -87,7 +77,6 @@ class _TopNavState extends State<TopNav> {
         onTap: () {
           tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
         },
-        icon: SailSVGAsset.iconTabTools,
       ),
     ];
 
@@ -103,7 +92,6 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
             },
-            icon: SailSVGAsset.iconTabZCashShieldDeshield,
           ),
           QtTab(
             label: 'Melt/Cast',
@@ -111,7 +99,6 @@ class _TopNavState extends State<TopNav> {
             onTap: () {
               tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
             },
-            icon: SailSVGAsset.iconTabZCashMeltCast,
           ),
         ];
 

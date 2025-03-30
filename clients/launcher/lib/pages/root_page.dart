@@ -71,40 +71,37 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                   ],
                 ),
               ),
-              child: Row(
+              child: SailRow(
+                leadingSpacing: true,
+                spacing: SailStyleValues.padding32,
                 children: [
                   QtTab(
-                    icon: SailSVGAsset.iconHome,
                     label: 'Overview',
                     active: tabsRouter.activeIndex == 0,
                     onTap: () => tabsRouter.setActiveIndex(0),
                   ),
                   QtTab(
-                    icon: SailSVGAsset.iconTabTools,
                     label: 'Tools',
                     active: tabsRouter.activeIndex == 1,
                     onTap: () => tabsRouter.setActiveIndex(1),
                   ),
                   QtTab(
-                    icon: SailSVGAsset.iconTabSettings,
                     label: 'Settings',
                     active: tabsRouter.activeIndex == 2,
                     onTap: () => tabsRouter.setActiveIndex(2),
                   ),
                   Expanded(child: Container()),
                   const WalletButton(),
-                  const SizedBox(width: 8),
-                  const ToggleThemeButton(),
                 ],
               ),
             ),
           ),
           body: Column(
             children: [
-              const Divider(
+              Divider(
                 height: 1,
                 thickness: 1,
-                color: Colors.grey,
+                color: theme.colors.divider,
               ),
               Expanded(child: child),
             ],
