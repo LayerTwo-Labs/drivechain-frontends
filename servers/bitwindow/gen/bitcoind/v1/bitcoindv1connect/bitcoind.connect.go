@@ -55,54 +55,6 @@ const (
 	// BitcoindServiceGetRawTransactionProcedure is the fully-qualified name of the BitcoindService's
 	// GetRawTransaction RPC.
 	BitcoindServiceGetRawTransactionProcedure = "/bitcoind.v1.BitcoindService/GetRawTransaction"
-	// BitcoindServiceCreateWalletProcedure is the fully-qualified name of the BitcoindService's
-	// CreateWallet RPC.
-	BitcoindServiceCreateWalletProcedure = "/bitcoind.v1.BitcoindService/CreateWallet"
-	// BitcoindServiceBackupWalletProcedure is the fully-qualified name of the BitcoindService's
-	// BackupWallet RPC.
-	BitcoindServiceBackupWalletProcedure = "/bitcoind.v1.BitcoindService/BackupWallet"
-	// BitcoindServiceDumpWalletProcedure is the fully-qualified name of the BitcoindService's
-	// DumpWallet RPC.
-	BitcoindServiceDumpWalletProcedure = "/bitcoind.v1.BitcoindService/DumpWallet"
-	// BitcoindServiceImportWalletProcedure is the fully-qualified name of the BitcoindService's
-	// ImportWallet RPC.
-	BitcoindServiceImportWalletProcedure = "/bitcoind.v1.BitcoindService/ImportWallet"
-	// BitcoindServiceUnloadWalletProcedure is the fully-qualified name of the BitcoindService's
-	// UnloadWallet RPC.
-	BitcoindServiceUnloadWalletProcedure = "/bitcoind.v1.BitcoindService/UnloadWallet"
-	// BitcoindServiceDumpPrivKeyProcedure is the fully-qualified name of the BitcoindService's
-	// DumpPrivKey RPC.
-	BitcoindServiceDumpPrivKeyProcedure = "/bitcoind.v1.BitcoindService/DumpPrivKey"
-	// BitcoindServiceImportPrivKeyProcedure is the fully-qualified name of the BitcoindService's
-	// ImportPrivKey RPC.
-	BitcoindServiceImportPrivKeyProcedure = "/bitcoind.v1.BitcoindService/ImportPrivKey"
-	// BitcoindServiceImportAddressProcedure is the fully-qualified name of the BitcoindService's
-	// ImportAddress RPC.
-	BitcoindServiceImportAddressProcedure = "/bitcoind.v1.BitcoindService/ImportAddress"
-	// BitcoindServiceImportPubKeyProcedure is the fully-qualified name of the BitcoindService's
-	// ImportPubKey RPC.
-	BitcoindServiceImportPubKeyProcedure = "/bitcoind.v1.BitcoindService/ImportPubKey"
-	// BitcoindServiceKeyPoolRefillProcedure is the fully-qualified name of the BitcoindService's
-	// KeyPoolRefill RPC.
-	BitcoindServiceKeyPoolRefillProcedure = "/bitcoind.v1.BitcoindService/KeyPoolRefill"
-	// BitcoindServiceGetAccountProcedure is the fully-qualified name of the BitcoindService's
-	// GetAccount RPC.
-	BitcoindServiceGetAccountProcedure = "/bitcoind.v1.BitcoindService/GetAccount"
-	// BitcoindServiceSetAccountProcedure is the fully-qualified name of the BitcoindService's
-	// SetAccount RPC.
-	BitcoindServiceSetAccountProcedure = "/bitcoind.v1.BitcoindService/SetAccount"
-	// BitcoindServiceGetAddressesByAccountProcedure is the fully-qualified name of the
-	// BitcoindService's GetAddressesByAccount RPC.
-	BitcoindServiceGetAddressesByAccountProcedure = "/bitcoind.v1.BitcoindService/GetAddressesByAccount"
-	// BitcoindServiceListAccountsProcedure is the fully-qualified name of the BitcoindService's
-	// ListAccounts RPC.
-	BitcoindServiceListAccountsProcedure = "/bitcoind.v1.BitcoindService/ListAccounts"
-	// BitcoindServiceAddMultisigAddressProcedure is the fully-qualified name of the BitcoindService's
-	// AddMultisigAddress RPC.
-	BitcoindServiceAddMultisigAddressProcedure = "/bitcoind.v1.BitcoindService/AddMultisigAddress"
-	// BitcoindServiceCreateMultisigProcedure is the fully-qualified name of the BitcoindService's
-	// CreateMultisig RPC.
-	BitcoindServiceCreateMultisigProcedure = "/bitcoind.v1.BitcoindService/CreateMultisig"
 )
 
 // BitcoindServiceClient is a client for the bitcoind.v1.BitcoindService service.
@@ -120,26 +72,6 @@ type BitcoindServiceClient interface {
 	// Lists very basic info about all peers
 	EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error)
 	GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error)
-	// Wallet management
-	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
-	BackupWallet(context.Context, *connect.Request[v1.BackupWalletRequest]) (*connect.Response[v1.BackupWalletResponse], error)
-	DumpWallet(context.Context, *connect.Request[v1.DumpWalletRequest]) (*connect.Response[v1.DumpWalletResponse], error)
-	ImportWallet(context.Context, *connect.Request[v1.ImportWalletRequest]) (*connect.Response[v1.ImportWalletResponse], error)
-	UnloadWallet(context.Context, *connect.Request[v1.UnloadWalletRequest]) (*connect.Response[v1.UnloadWalletResponse], error)
-	// Key/Address management
-	DumpPrivKey(context.Context, *connect.Request[v1.DumpPrivKeyRequest]) (*connect.Response[v1.DumpPrivKeyResponse], error)
-	ImportPrivKey(context.Context, *connect.Request[v1.ImportPrivKeyRequest]) (*connect.Response[v1.ImportPrivKeyResponse], error)
-	ImportAddress(context.Context, *connect.Request[v1.ImportAddressRequest]) (*connect.Response[v1.ImportAddressResponse], error)
-	ImportPubKey(context.Context, *connect.Request[v1.ImportPubKeyRequest]) (*connect.Response[v1.ImportPubKeyResponse], error)
-	KeyPoolRefill(context.Context, *connect.Request[v1.KeyPoolRefillRequest]) (*connect.Response[v1.KeyPoolRefillResponse], error)
-	// Account operations
-	GetAccount(context.Context, *connect.Request[v1.GetAccountRequest]) (*connect.Response[v1.GetAccountResponse], error)
-	SetAccount(context.Context, *connect.Request[v1.SetAccountRequest]) (*connect.Response[v1.SetAccountResponse], error)
-	GetAddressesByAccount(context.Context, *connect.Request[v1.GetAddressesByAccountRequest]) (*connect.Response[v1.GetAddressesByAccountResponse], error)
-	ListAccounts(context.Context, *connect.Request[v1.ListAccountsRequest]) (*connect.Response[v1.ListAccountsResponse], error)
-	// Multi-sig operations
-	AddMultisigAddress(context.Context, *connect.Request[v1.AddMultisigAddressRequest]) (*connect.Response[v1.AddMultisigAddressResponse], error)
-	CreateMultisig(context.Context, *connect.Request[v1.CreateMultisigRequest]) (*connect.Response[v1.CreateMultisigResponse], error)
 }
 
 // NewBitcoindServiceClient constructs a client for the bitcoind.v1.BitcoindService service. By
@@ -195,102 +127,6 @@ func NewBitcoindServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(bitcoindServiceMethods.ByName("GetRawTransaction")),
 			connect.WithClientOptions(opts...),
 		),
-		createWallet: connect.NewClient[v1.CreateWalletRequest, v1.CreateWalletResponse](
-			httpClient,
-			baseURL+BitcoindServiceCreateWalletProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("CreateWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		backupWallet: connect.NewClient[v1.BackupWalletRequest, v1.BackupWalletResponse](
-			httpClient,
-			baseURL+BitcoindServiceBackupWalletProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("BackupWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		dumpWallet: connect.NewClient[v1.DumpWalletRequest, v1.DumpWalletResponse](
-			httpClient,
-			baseURL+BitcoindServiceDumpWalletProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("DumpWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		importWallet: connect.NewClient[v1.ImportWalletRequest, v1.ImportWalletResponse](
-			httpClient,
-			baseURL+BitcoindServiceImportWalletProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("ImportWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		unloadWallet: connect.NewClient[v1.UnloadWalletRequest, v1.UnloadWalletResponse](
-			httpClient,
-			baseURL+BitcoindServiceUnloadWalletProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("UnloadWallet")),
-			connect.WithClientOptions(opts...),
-		),
-		dumpPrivKey: connect.NewClient[v1.DumpPrivKeyRequest, v1.DumpPrivKeyResponse](
-			httpClient,
-			baseURL+BitcoindServiceDumpPrivKeyProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("DumpPrivKey")),
-			connect.WithClientOptions(opts...),
-		),
-		importPrivKey: connect.NewClient[v1.ImportPrivKeyRequest, v1.ImportPrivKeyResponse](
-			httpClient,
-			baseURL+BitcoindServiceImportPrivKeyProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("ImportPrivKey")),
-			connect.WithClientOptions(opts...),
-		),
-		importAddress: connect.NewClient[v1.ImportAddressRequest, v1.ImportAddressResponse](
-			httpClient,
-			baseURL+BitcoindServiceImportAddressProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("ImportAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		importPubKey: connect.NewClient[v1.ImportPubKeyRequest, v1.ImportPubKeyResponse](
-			httpClient,
-			baseURL+BitcoindServiceImportPubKeyProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("ImportPubKey")),
-			connect.WithClientOptions(opts...),
-		),
-		keyPoolRefill: connect.NewClient[v1.KeyPoolRefillRequest, v1.KeyPoolRefillResponse](
-			httpClient,
-			baseURL+BitcoindServiceKeyPoolRefillProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("KeyPoolRefill")),
-			connect.WithClientOptions(opts...),
-		),
-		getAccount: connect.NewClient[v1.GetAccountRequest, v1.GetAccountResponse](
-			httpClient,
-			baseURL+BitcoindServiceGetAccountProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("GetAccount")),
-			connect.WithClientOptions(opts...),
-		),
-		setAccount: connect.NewClient[v1.SetAccountRequest, v1.SetAccountResponse](
-			httpClient,
-			baseURL+BitcoindServiceSetAccountProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("SetAccount")),
-			connect.WithClientOptions(opts...),
-		),
-		getAddressesByAccount: connect.NewClient[v1.GetAddressesByAccountRequest, v1.GetAddressesByAccountResponse](
-			httpClient,
-			baseURL+BitcoindServiceGetAddressesByAccountProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("GetAddressesByAccount")),
-			connect.WithClientOptions(opts...),
-		),
-		listAccounts: connect.NewClient[v1.ListAccountsRequest, v1.ListAccountsResponse](
-			httpClient,
-			baseURL+BitcoindServiceListAccountsProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("ListAccounts")),
-			connect.WithClientOptions(opts...),
-		),
-		addMultisigAddress: connect.NewClient[v1.AddMultisigAddressRequest, v1.AddMultisigAddressResponse](
-			httpClient,
-			baseURL+BitcoindServiceAddMultisigAddressProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("AddMultisigAddress")),
-			connect.WithClientOptions(opts...),
-		),
-		createMultisig: connect.NewClient[v1.CreateMultisigRequest, v1.CreateMultisigResponse](
-			httpClient,
-			baseURL+BitcoindServiceCreateMultisigProcedure,
-			connect.WithSchema(bitcoindServiceMethods.ByName("CreateMultisig")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -303,22 +139,6 @@ type bitcoindServiceClient struct {
 	listPeers              *connect.Client[emptypb.Empty, v1.ListPeersResponse]
 	estimateSmartFee       *connect.Client[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse]
 	getRawTransaction      *connect.Client[v1.GetRawTransactionRequest, v1.GetRawTransactionResponse]
-	createWallet           *connect.Client[v1.CreateWalletRequest, v1.CreateWalletResponse]
-	backupWallet           *connect.Client[v1.BackupWalletRequest, v1.BackupWalletResponse]
-	dumpWallet             *connect.Client[v1.DumpWalletRequest, v1.DumpWalletResponse]
-	importWallet           *connect.Client[v1.ImportWalletRequest, v1.ImportWalletResponse]
-	unloadWallet           *connect.Client[v1.UnloadWalletRequest, v1.UnloadWalletResponse]
-	dumpPrivKey            *connect.Client[v1.DumpPrivKeyRequest, v1.DumpPrivKeyResponse]
-	importPrivKey          *connect.Client[v1.ImportPrivKeyRequest, v1.ImportPrivKeyResponse]
-	importAddress          *connect.Client[v1.ImportAddressRequest, v1.ImportAddressResponse]
-	importPubKey           *connect.Client[v1.ImportPubKeyRequest, v1.ImportPubKeyResponse]
-	keyPoolRefill          *connect.Client[v1.KeyPoolRefillRequest, v1.KeyPoolRefillResponse]
-	getAccount             *connect.Client[v1.GetAccountRequest, v1.GetAccountResponse]
-	setAccount             *connect.Client[v1.SetAccountRequest, v1.SetAccountResponse]
-	getAddressesByAccount  *connect.Client[v1.GetAddressesByAccountRequest, v1.GetAddressesByAccountResponse]
-	listAccounts           *connect.Client[v1.ListAccountsRequest, v1.ListAccountsResponse]
-	addMultisigAddress     *connect.Client[v1.AddMultisigAddressRequest, v1.AddMultisigAddressResponse]
-	createMultisig         *connect.Client[v1.CreateMultisigRequest, v1.CreateMultisigResponse]
 }
 
 // ListRecentTransactions calls bitcoind.v1.BitcoindService.ListRecentTransactions.
@@ -356,86 +176,6 @@ func (c *bitcoindServiceClient) GetRawTransaction(ctx context.Context, req *conn
 	return c.getRawTransaction.CallUnary(ctx, req)
 }
 
-// CreateWallet calls bitcoind.v1.BitcoindService.CreateWallet.
-func (c *bitcoindServiceClient) CreateWallet(ctx context.Context, req *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error) {
-	return c.createWallet.CallUnary(ctx, req)
-}
-
-// BackupWallet calls bitcoind.v1.BitcoindService.BackupWallet.
-func (c *bitcoindServiceClient) BackupWallet(ctx context.Context, req *connect.Request[v1.BackupWalletRequest]) (*connect.Response[v1.BackupWalletResponse], error) {
-	return c.backupWallet.CallUnary(ctx, req)
-}
-
-// DumpWallet calls bitcoind.v1.BitcoindService.DumpWallet.
-func (c *bitcoindServiceClient) DumpWallet(ctx context.Context, req *connect.Request[v1.DumpWalletRequest]) (*connect.Response[v1.DumpWalletResponse], error) {
-	return c.dumpWallet.CallUnary(ctx, req)
-}
-
-// ImportWallet calls bitcoind.v1.BitcoindService.ImportWallet.
-func (c *bitcoindServiceClient) ImportWallet(ctx context.Context, req *connect.Request[v1.ImportWalletRequest]) (*connect.Response[v1.ImportWalletResponse], error) {
-	return c.importWallet.CallUnary(ctx, req)
-}
-
-// UnloadWallet calls bitcoind.v1.BitcoindService.UnloadWallet.
-func (c *bitcoindServiceClient) UnloadWallet(ctx context.Context, req *connect.Request[v1.UnloadWalletRequest]) (*connect.Response[v1.UnloadWalletResponse], error) {
-	return c.unloadWallet.CallUnary(ctx, req)
-}
-
-// DumpPrivKey calls bitcoind.v1.BitcoindService.DumpPrivKey.
-func (c *bitcoindServiceClient) DumpPrivKey(ctx context.Context, req *connect.Request[v1.DumpPrivKeyRequest]) (*connect.Response[v1.DumpPrivKeyResponse], error) {
-	return c.dumpPrivKey.CallUnary(ctx, req)
-}
-
-// ImportPrivKey calls bitcoind.v1.BitcoindService.ImportPrivKey.
-func (c *bitcoindServiceClient) ImportPrivKey(ctx context.Context, req *connect.Request[v1.ImportPrivKeyRequest]) (*connect.Response[v1.ImportPrivKeyResponse], error) {
-	return c.importPrivKey.CallUnary(ctx, req)
-}
-
-// ImportAddress calls bitcoind.v1.BitcoindService.ImportAddress.
-func (c *bitcoindServiceClient) ImportAddress(ctx context.Context, req *connect.Request[v1.ImportAddressRequest]) (*connect.Response[v1.ImportAddressResponse], error) {
-	return c.importAddress.CallUnary(ctx, req)
-}
-
-// ImportPubKey calls bitcoind.v1.BitcoindService.ImportPubKey.
-func (c *bitcoindServiceClient) ImportPubKey(ctx context.Context, req *connect.Request[v1.ImportPubKeyRequest]) (*connect.Response[v1.ImportPubKeyResponse], error) {
-	return c.importPubKey.CallUnary(ctx, req)
-}
-
-// KeyPoolRefill calls bitcoind.v1.BitcoindService.KeyPoolRefill.
-func (c *bitcoindServiceClient) KeyPoolRefill(ctx context.Context, req *connect.Request[v1.KeyPoolRefillRequest]) (*connect.Response[v1.KeyPoolRefillResponse], error) {
-	return c.keyPoolRefill.CallUnary(ctx, req)
-}
-
-// GetAccount calls bitcoind.v1.BitcoindService.GetAccount.
-func (c *bitcoindServiceClient) GetAccount(ctx context.Context, req *connect.Request[v1.GetAccountRequest]) (*connect.Response[v1.GetAccountResponse], error) {
-	return c.getAccount.CallUnary(ctx, req)
-}
-
-// SetAccount calls bitcoind.v1.BitcoindService.SetAccount.
-func (c *bitcoindServiceClient) SetAccount(ctx context.Context, req *connect.Request[v1.SetAccountRequest]) (*connect.Response[v1.SetAccountResponse], error) {
-	return c.setAccount.CallUnary(ctx, req)
-}
-
-// GetAddressesByAccount calls bitcoind.v1.BitcoindService.GetAddressesByAccount.
-func (c *bitcoindServiceClient) GetAddressesByAccount(ctx context.Context, req *connect.Request[v1.GetAddressesByAccountRequest]) (*connect.Response[v1.GetAddressesByAccountResponse], error) {
-	return c.getAddressesByAccount.CallUnary(ctx, req)
-}
-
-// ListAccounts calls bitcoind.v1.BitcoindService.ListAccounts.
-func (c *bitcoindServiceClient) ListAccounts(ctx context.Context, req *connect.Request[v1.ListAccountsRequest]) (*connect.Response[v1.ListAccountsResponse], error) {
-	return c.listAccounts.CallUnary(ctx, req)
-}
-
-// AddMultisigAddress calls bitcoind.v1.BitcoindService.AddMultisigAddress.
-func (c *bitcoindServiceClient) AddMultisigAddress(ctx context.Context, req *connect.Request[v1.AddMultisigAddressRequest]) (*connect.Response[v1.AddMultisigAddressResponse], error) {
-	return c.addMultisigAddress.CallUnary(ctx, req)
-}
-
-// CreateMultisig calls bitcoind.v1.BitcoindService.CreateMultisig.
-func (c *bitcoindServiceClient) CreateMultisig(ctx context.Context, req *connect.Request[v1.CreateMultisigRequest]) (*connect.Response[v1.CreateMultisigResponse], error) {
-	return c.createMultisig.CallUnary(ctx, req)
-}
-
 // BitcoindServiceHandler is an implementation of the bitcoind.v1.BitcoindService service.
 type BitcoindServiceHandler interface {
 	// Lists the ten most recent transactions, both confirmed and unconfirmed.
@@ -451,26 +191,6 @@ type BitcoindServiceHandler interface {
 	// Lists very basic info about all peers
 	EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error)
 	GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error)
-	// Wallet management
-	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
-	BackupWallet(context.Context, *connect.Request[v1.BackupWalletRequest]) (*connect.Response[v1.BackupWalletResponse], error)
-	DumpWallet(context.Context, *connect.Request[v1.DumpWalletRequest]) (*connect.Response[v1.DumpWalletResponse], error)
-	ImportWallet(context.Context, *connect.Request[v1.ImportWalletRequest]) (*connect.Response[v1.ImportWalletResponse], error)
-	UnloadWallet(context.Context, *connect.Request[v1.UnloadWalletRequest]) (*connect.Response[v1.UnloadWalletResponse], error)
-	// Key/Address management
-	DumpPrivKey(context.Context, *connect.Request[v1.DumpPrivKeyRequest]) (*connect.Response[v1.DumpPrivKeyResponse], error)
-	ImportPrivKey(context.Context, *connect.Request[v1.ImportPrivKeyRequest]) (*connect.Response[v1.ImportPrivKeyResponse], error)
-	ImportAddress(context.Context, *connect.Request[v1.ImportAddressRequest]) (*connect.Response[v1.ImportAddressResponse], error)
-	ImportPubKey(context.Context, *connect.Request[v1.ImportPubKeyRequest]) (*connect.Response[v1.ImportPubKeyResponse], error)
-	KeyPoolRefill(context.Context, *connect.Request[v1.KeyPoolRefillRequest]) (*connect.Response[v1.KeyPoolRefillResponse], error)
-	// Account operations
-	GetAccount(context.Context, *connect.Request[v1.GetAccountRequest]) (*connect.Response[v1.GetAccountResponse], error)
-	SetAccount(context.Context, *connect.Request[v1.SetAccountRequest]) (*connect.Response[v1.SetAccountResponse], error)
-	GetAddressesByAccount(context.Context, *connect.Request[v1.GetAddressesByAccountRequest]) (*connect.Response[v1.GetAddressesByAccountResponse], error)
-	ListAccounts(context.Context, *connect.Request[v1.ListAccountsRequest]) (*connect.Response[v1.ListAccountsResponse], error)
-	// Multi-sig operations
-	AddMultisigAddress(context.Context, *connect.Request[v1.AddMultisigAddressRequest]) (*connect.Response[v1.AddMultisigAddressResponse], error)
-	CreateMultisig(context.Context, *connect.Request[v1.CreateMultisigRequest]) (*connect.Response[v1.CreateMultisigResponse], error)
 }
 
 // NewBitcoindServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -522,102 +242,6 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 		connect.WithSchema(bitcoindServiceMethods.ByName("GetRawTransaction")),
 		connect.WithHandlerOptions(opts...),
 	)
-	bitcoindServiceCreateWalletHandler := connect.NewUnaryHandler(
-		BitcoindServiceCreateWalletProcedure,
-		svc.CreateWallet,
-		connect.WithSchema(bitcoindServiceMethods.ByName("CreateWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceBackupWalletHandler := connect.NewUnaryHandler(
-		BitcoindServiceBackupWalletProcedure,
-		svc.BackupWallet,
-		connect.WithSchema(bitcoindServiceMethods.ByName("BackupWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceDumpWalletHandler := connect.NewUnaryHandler(
-		BitcoindServiceDumpWalletProcedure,
-		svc.DumpWallet,
-		connect.WithSchema(bitcoindServiceMethods.ByName("DumpWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceImportWalletHandler := connect.NewUnaryHandler(
-		BitcoindServiceImportWalletProcedure,
-		svc.ImportWallet,
-		connect.WithSchema(bitcoindServiceMethods.ByName("ImportWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceUnloadWalletHandler := connect.NewUnaryHandler(
-		BitcoindServiceUnloadWalletProcedure,
-		svc.UnloadWallet,
-		connect.WithSchema(bitcoindServiceMethods.ByName("UnloadWallet")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceDumpPrivKeyHandler := connect.NewUnaryHandler(
-		BitcoindServiceDumpPrivKeyProcedure,
-		svc.DumpPrivKey,
-		connect.WithSchema(bitcoindServiceMethods.ByName("DumpPrivKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceImportPrivKeyHandler := connect.NewUnaryHandler(
-		BitcoindServiceImportPrivKeyProcedure,
-		svc.ImportPrivKey,
-		connect.WithSchema(bitcoindServiceMethods.ByName("ImportPrivKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceImportAddressHandler := connect.NewUnaryHandler(
-		BitcoindServiceImportAddressProcedure,
-		svc.ImportAddress,
-		connect.WithSchema(bitcoindServiceMethods.ByName("ImportAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceImportPubKeyHandler := connect.NewUnaryHandler(
-		BitcoindServiceImportPubKeyProcedure,
-		svc.ImportPubKey,
-		connect.WithSchema(bitcoindServiceMethods.ByName("ImportPubKey")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceKeyPoolRefillHandler := connect.NewUnaryHandler(
-		BitcoindServiceKeyPoolRefillProcedure,
-		svc.KeyPoolRefill,
-		connect.WithSchema(bitcoindServiceMethods.ByName("KeyPoolRefill")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceGetAccountHandler := connect.NewUnaryHandler(
-		BitcoindServiceGetAccountProcedure,
-		svc.GetAccount,
-		connect.WithSchema(bitcoindServiceMethods.ByName("GetAccount")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceSetAccountHandler := connect.NewUnaryHandler(
-		BitcoindServiceSetAccountProcedure,
-		svc.SetAccount,
-		connect.WithSchema(bitcoindServiceMethods.ByName("SetAccount")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceGetAddressesByAccountHandler := connect.NewUnaryHandler(
-		BitcoindServiceGetAddressesByAccountProcedure,
-		svc.GetAddressesByAccount,
-		connect.WithSchema(bitcoindServiceMethods.ByName("GetAddressesByAccount")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceListAccountsHandler := connect.NewUnaryHandler(
-		BitcoindServiceListAccountsProcedure,
-		svc.ListAccounts,
-		connect.WithSchema(bitcoindServiceMethods.ByName("ListAccounts")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceAddMultisigAddressHandler := connect.NewUnaryHandler(
-		BitcoindServiceAddMultisigAddressProcedure,
-		svc.AddMultisigAddress,
-		connect.WithSchema(bitcoindServiceMethods.ByName("AddMultisigAddress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bitcoindServiceCreateMultisigHandler := connect.NewUnaryHandler(
-		BitcoindServiceCreateMultisigProcedure,
-		svc.CreateMultisig,
-		connect.WithSchema(bitcoindServiceMethods.ByName("CreateMultisig")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/bitcoind.v1.BitcoindService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitcoindServiceListRecentTransactionsProcedure:
@@ -634,38 +258,6 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 			bitcoindServiceEstimateSmartFeeHandler.ServeHTTP(w, r)
 		case BitcoindServiceGetRawTransactionProcedure:
 			bitcoindServiceGetRawTransactionHandler.ServeHTTP(w, r)
-		case BitcoindServiceCreateWalletProcedure:
-			bitcoindServiceCreateWalletHandler.ServeHTTP(w, r)
-		case BitcoindServiceBackupWalletProcedure:
-			bitcoindServiceBackupWalletHandler.ServeHTTP(w, r)
-		case BitcoindServiceDumpWalletProcedure:
-			bitcoindServiceDumpWalletHandler.ServeHTTP(w, r)
-		case BitcoindServiceImportWalletProcedure:
-			bitcoindServiceImportWalletHandler.ServeHTTP(w, r)
-		case BitcoindServiceUnloadWalletProcedure:
-			bitcoindServiceUnloadWalletHandler.ServeHTTP(w, r)
-		case BitcoindServiceDumpPrivKeyProcedure:
-			bitcoindServiceDumpPrivKeyHandler.ServeHTTP(w, r)
-		case BitcoindServiceImportPrivKeyProcedure:
-			bitcoindServiceImportPrivKeyHandler.ServeHTTP(w, r)
-		case BitcoindServiceImportAddressProcedure:
-			bitcoindServiceImportAddressHandler.ServeHTTP(w, r)
-		case BitcoindServiceImportPubKeyProcedure:
-			bitcoindServiceImportPubKeyHandler.ServeHTTP(w, r)
-		case BitcoindServiceKeyPoolRefillProcedure:
-			bitcoindServiceKeyPoolRefillHandler.ServeHTTP(w, r)
-		case BitcoindServiceGetAccountProcedure:
-			bitcoindServiceGetAccountHandler.ServeHTTP(w, r)
-		case BitcoindServiceSetAccountProcedure:
-			bitcoindServiceSetAccountHandler.ServeHTTP(w, r)
-		case BitcoindServiceGetAddressesByAccountProcedure:
-			bitcoindServiceGetAddressesByAccountHandler.ServeHTTP(w, r)
-		case BitcoindServiceListAccountsProcedure:
-			bitcoindServiceListAccountsHandler.ServeHTTP(w, r)
-		case BitcoindServiceAddMultisigAddressProcedure:
-			bitcoindServiceAddMultisigAddressHandler.ServeHTTP(w, r)
-		case BitcoindServiceCreateMultisigProcedure:
-			bitcoindServiceCreateMultisigHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -701,68 +293,4 @@ func (UnimplementedBitcoindServiceHandler) EstimateSmartFee(context.Context, *co
 
 func (UnimplementedBitcoindServiceHandler) GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.GetRawTransaction is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.CreateWallet is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) BackupWallet(context.Context, *connect.Request[v1.BackupWalletRequest]) (*connect.Response[v1.BackupWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.BackupWallet is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) DumpWallet(context.Context, *connect.Request[v1.DumpWalletRequest]) (*connect.Response[v1.DumpWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.DumpWallet is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) ImportWallet(context.Context, *connect.Request[v1.ImportWalletRequest]) (*connect.Response[v1.ImportWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ImportWallet is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) UnloadWallet(context.Context, *connect.Request[v1.UnloadWalletRequest]) (*connect.Response[v1.UnloadWalletResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.UnloadWallet is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) DumpPrivKey(context.Context, *connect.Request[v1.DumpPrivKeyRequest]) (*connect.Response[v1.DumpPrivKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.DumpPrivKey is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) ImportPrivKey(context.Context, *connect.Request[v1.ImportPrivKeyRequest]) (*connect.Response[v1.ImportPrivKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ImportPrivKey is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) ImportAddress(context.Context, *connect.Request[v1.ImportAddressRequest]) (*connect.Response[v1.ImportAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ImportAddress is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) ImportPubKey(context.Context, *connect.Request[v1.ImportPubKeyRequest]) (*connect.Response[v1.ImportPubKeyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ImportPubKey is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) KeyPoolRefill(context.Context, *connect.Request[v1.KeyPoolRefillRequest]) (*connect.Response[v1.KeyPoolRefillResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.KeyPoolRefill is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) GetAccount(context.Context, *connect.Request[v1.GetAccountRequest]) (*connect.Response[v1.GetAccountResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.GetAccount is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) SetAccount(context.Context, *connect.Request[v1.SetAccountRequest]) (*connect.Response[v1.SetAccountResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.SetAccount is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) GetAddressesByAccount(context.Context, *connect.Request[v1.GetAddressesByAccountRequest]) (*connect.Response[v1.GetAddressesByAccountResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.GetAddressesByAccount is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) ListAccounts(context.Context, *connect.Request[v1.ListAccountsRequest]) (*connect.Response[v1.ListAccountsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.ListAccounts is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) AddMultisigAddress(context.Context, *connect.Request[v1.AddMultisigAddressRequest]) (*connect.Response[v1.AddMultisigAddressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.AddMultisigAddress is not implemented"))
-}
-
-func (UnimplementedBitcoindServiceHandler) CreateMultisig(context.Context, *connect.Request[v1.CreateMultisigRequest]) (*connect.Response[v1.CreateMultisigResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.CreateMultisig is not implemented"))
 }

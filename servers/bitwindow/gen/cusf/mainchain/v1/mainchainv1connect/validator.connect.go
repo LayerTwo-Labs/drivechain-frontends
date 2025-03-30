@@ -72,14 +72,11 @@ const (
 
 // ValidatorServiceClient is a client for the cusf.mainchain.v1.ValidatorService service.
 type ValidatorServiceClient interface {
-	// Fetches information about a specific mainchain block header,
-	// and optionally, it's ancestors
+	// Fetches information about a specific mainchain block header.
 	GetBlockHeaderInfo(context.Context, *connect.Request[v1.GetBlockHeaderInfoRequest]) (*connect.Response[v1.GetBlockHeaderInfoResponse], error)
 	// Fetches information about a specific mainchain block, and how it pertains
 	// to events happening on a specific sidechain.
 	GetBlockInfo(context.Context, *connect.Request[v1.GetBlockInfoRequest]) (*connect.Response[v1.GetBlockInfoResponse], error)
-	// Fetches BMM h* commitment for a specific mainchain block,
-	// and optionally, it's ancestors
 	GetBmmHStarCommitment(context.Context, *connect.Request[v1.GetBmmHStarCommitmentRequest]) (*connect.Response[v1.GetBmmHStarCommitmentResponse], error)
 	GetChainInfo(context.Context, *connect.Request[v1.GetChainInfoRequest]) (*connect.Response[v1.GetChainInfoResponse], error)
 	GetChainTip(context.Context, *connect.Request[v1.GetChainTipRequest]) (*connect.Response[v1.GetChainTipResponse], error)
@@ -243,14 +240,11 @@ func (c *validatorServiceClient) SubscribeEvents(ctx context.Context, req *conne
 
 // ValidatorServiceHandler is an implementation of the cusf.mainchain.v1.ValidatorService service.
 type ValidatorServiceHandler interface {
-	// Fetches information about a specific mainchain block header,
-	// and optionally, it's ancestors
+	// Fetches information about a specific mainchain block header.
 	GetBlockHeaderInfo(context.Context, *connect.Request[v1.GetBlockHeaderInfoRequest]) (*connect.Response[v1.GetBlockHeaderInfoResponse], error)
 	// Fetches information about a specific mainchain block, and how it pertains
 	// to events happening on a specific sidechain.
 	GetBlockInfo(context.Context, *connect.Request[v1.GetBlockInfoRequest]) (*connect.Response[v1.GetBlockInfoResponse], error)
-	// Fetches BMM h* commitment for a specific mainchain block,
-	// and optionally, it's ancestors
 	GetBmmHStarCommitment(context.Context, *connect.Request[v1.GetBmmHStarCommitmentRequest]) (*connect.Response[v1.GetBmmHStarCommitmentResponse], error)
 	GetChainInfo(context.Context, *connect.Request[v1.GetChainInfoRequest]) (*connect.Response[v1.GetChainInfoResponse], error)
 	GetChainTip(context.Context, *connect.Request[v1.GetChainTipRequest]) (*connect.Response[v1.GetChainTipResponse], error)
