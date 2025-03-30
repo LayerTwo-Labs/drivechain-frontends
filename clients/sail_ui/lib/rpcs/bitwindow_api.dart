@@ -89,6 +89,30 @@ abstract class BitcoindAPI {
   Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
   Future<GetRawTransactionResponse> getRawTransaction(String txid);
   Future<Block> getBlock({String? hash, int? height});
+
+  Future<CreateWalletResponse> createWallet(String name, String passphrase, bool avoidReuse);
+  Future<BackupWalletResponse> backupWallet(String name);
+  Future<DumpWalletResponse> dumpWallet(String name);
+  Future<ImportWalletResponse> importWallet(String name, String passphrase, String privateKey);
+  Future<UnloadWalletResponse> unloadWallet(String name);
+
+  // Key/Address management
+  Future<DumpPrivKeyResponse> dumpPrivKey(String address);
+  Future<ImportPrivKeyResponse> importPrivKey(String privKey, String label, bool rescan);
+  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan);
+  Future<ImportPubKeyResponse> importPubKey(String pubKey, String label, bool rescan);
+  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize);
+
+  // Account operations
+  Future<GetAccountResponse> getAccount(String address);
+
+  Future<SetAccountResponse> setAccount(String address, String account);
+  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account);
+  Future<ListAccountsResponse> listAccounts(int minConf);
+
+  // Multi-sig operations
+  Future<AddMultisigAddressResponse> addMultisigAddress(int nRequired, List<String> keys, String account);
+  Future<CreateMultisigResponse> createMultisig(int nRequired, List<String> keys);
 }
 
 abstract class DrivechainAPI {
@@ -544,6 +568,201 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response.block;
     } catch (e) {
       final error = 'could not get block: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  // Key/Address management
+  @override
+  Future<DumpPrivKeyResponse> dumpPrivKey(String address) async {
+    try {
+      log.d('Dumping private key for address: $address');
+      final response = await _client.dumpPrivKey(
+        DumpPrivKeyRequest()..address = address,
+      );
+      log.i('Successfully dumped private key');
+      return response;
+    } catch (e) {
+      final error = 'could not dump private key: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<ImportPrivKeyResponse> importPrivKey(String privKey, String label, bool rescan) async {
+    try {
+      log.d('Importing private key with label: $label');
+      final response = await _client.importPrivKey(
+        ImportPrivKeyRequest()
+          ..privKey = privKey
+          ..label = label
+          ..rescan = rescan,
+      );
+      log.i('Successfully imported private key');
+      return response;
+    } catch (e) {
+      final error = 'could not import private key: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan) async {
+    try {
+      log.d('Importing address: $address with label: $label');
+      final response = await _client.importAddress(
+        ImportAddressRequest()
+          ..address = address
+          ..label = label
+          ..rescan = rescan,
+      );
+      log.i('Successfully imported address');
+      return response;
+    } catch (e) {
+      final error = 'could not import address: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<ImportPubKeyResponse> importPubKey(String pubKey, String label, bool rescan) async {
+    try {
+      log.d('Importing public key with label: $label');
+      final response = await _client.importPubKey(
+        ImportPubKeyRequest()
+          ..pubKey = pubKey
+          ..label = label
+          ..rescan = rescan,
+      );
+      log.i('Successfully imported public key');
+      return response;
+    } catch (e) {
+      final error = 'could not import public key: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize) async {
+    try {
+      log.d('Refilling key pool to size: $newSize');
+      final response = await _client.keyPoolRefill(
+        KeyPoolRefillRequest()..newSize = newSize,
+      );
+      log.i('Successfully refilled key pool');
+      return response;
+    } catch (e) {
+      final error = 'could not refill key pool: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  // Account operations
+  @override
+  Future<GetAccountResponse> getAccount(String address) async {
+    try {
+      log.d('Getting account for address: $address');
+      final response = await _client.getAccount(
+        GetAccountRequest()..address = address,
+      );
+      log.i('Successfully got account');
+      return response;
+    } catch (e) {
+      final error = 'could not get account: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<SetAccountResponse> setAccount(String address, String account) async {
+    try {
+      log.d('Setting account: $account for address: $address');
+      final response = await _client.setAccount(
+        SetAccountRequest()
+          ..address = address
+          ..account = account,
+      );
+      log.i('Successfully set account');
+      return response;
+    } catch (e) {
+      final error = 'could not set account: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account) async {
+    try {
+      log.d('Getting addresses for account: $account');
+      final response = await _client.getAddressesByAccount(
+        GetAddressesByAccountRequest()..account = account,
+      );
+      log.i('Successfully got addresses for account');
+      return response;
+    } catch (e) {
+      final error = 'could not get addresses by account: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<ListAccountsResponse> listAccounts(int minConf) async {
+    try {
+      log.d('Listing accounts with minConf: $minConf');
+      final response = await _client.listAccounts(
+        ListAccountsRequest()..minConf = minConf,
+      );
+      log.i('Successfully listed accounts');
+      return response;
+    } catch (e) {
+      final error = 'could not list accounts: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  // Multi-sig operations
+  @override
+  Future<AddMultisigAddressResponse> addMultisigAddress(int nRequired, List<String> keys, String account) async {
+    try {
+      log.d('Adding multisig address: required=$nRequired, keys=${keys.length}, account=$account');
+      final response = await _client.addMultisigAddress(
+        AddMultisigAddressRequest()
+          ..nRequired = nRequired
+          ..keys.addAll(keys)
+          ..account = account,
+      );
+      log.i('Successfully added multisig address');
+      return response;
+    } catch (e) {
+      final error = 'could not add multisig address: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Future<CreateMultisigResponse> createMultisig(int nRequired, List<String> keys) async {
+    try {
+      log.d('Creating multisig: required=$nRequired, keys=${keys.length}');
+      final response = await _client.createMultisig(
+        CreateMultisigRequest()
+          ..nRequired = nRequired
+          ..keys.addAll(keys),
+      );
+      log.i('Successfully created multisig');
+      return response;
+    } catch (e) {
+      final error = 'could not create multisig: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }

@@ -10,7 +10,8 @@ abstract final class ValidatorService {
   /// Fully-qualified name of the ValidatorService service.
   static const name = 'cusf.mainchain.v1.ValidatorService';
 
-  /// Fetches information about a specific mainchain block header.
+  /// Fetches information about a specific mainchain block header,
+  /// and optionally, it's ancestors
   static const getBlockHeaderInfo = connect.Spec(
     '/$name/GetBlockHeaderInfo',
     connect.StreamType.unary,
@@ -27,6 +28,8 @@ abstract final class ValidatorService {
     cusfmainchainv1validator.GetBlockInfoResponse.new,
   );
 
+  /// Fetches BMM h* commitment for a specific mainchain block,
+  /// and optionally, it's ancestors
   static const getBmmHStarCommitment = connect.Spec(
     '/$name/GetBmmHStarCommitment',
     connect.StreamType.unary,

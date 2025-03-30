@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: cusf/mainchain/v1/validator.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -33,7 +33,7 @@ class Network extends $pb.ProtobufEnum {
   static final $core.Map<$core.int, Network> _byValue = $pb.ProtobufEnum.initByValue(values);
   static Network? valueOf($core.int value) => _byValue[value];
 
-  const Network._($core.int v, $core.String n) : super(v, n);
+  const Network._(super.v, super.n);
 }
 
 

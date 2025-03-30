@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: cusf/sidechain/v1/sidechain.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -14,6 +14,8 @@ import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
+
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class SequenceId extends $pb.GeneratedMessage {
   factory SequenceId({
@@ -62,7 +64,7 @@ class SequenceId extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasSequenceId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSequenceId() => clearField(1);
+  void clearSequenceId() => $_clearField(1);
 }
 
 class BlockHeaderInfo extends $pb.GeneratedMessage {
@@ -127,7 +129,7 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
-  void clearBlockHash() => clearField(1);
+  void clearBlockHash() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.List<$core.int> get prevBlockHash => $_getN(1);
@@ -136,7 +138,7 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasPrevBlockHash() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPrevBlockHash() => clearField(2);
+  void clearPrevBlockHash() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.List<$core.int> get prevMainBlockHash => $_getN(2);
@@ -145,7 +147,7 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasPrevMainBlockHash() => $_has(2);
   @$pb.TagNumber(3)
-  void clearPrevMainBlockHash() => clearField(3);
+  void clearPrevMainBlockHash() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.int get height => $_getIZ(3);
@@ -154,7 +156,7 @@ class BlockHeaderInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasHeight() => $_has(3);
   @$pb.TagNumber(4)
-  void clearHeight() => clearField(4);
+  void clearHeight() => $_clearField(4);
 }
 
 class BlockInfo extends $pb.GeneratedMessage {
@@ -264,11 +266,11 @@ class GetMempoolTxsResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   SequenceId get sequenceId => $_getN(0);
   @$pb.TagNumber(1)
-  set sequenceId(SequenceId v) { setField(1, v); }
+  set sequenceId(SequenceId v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSequenceId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSequenceId() => clearField(1);
+  void clearSequenceId() => $_clearField(1);
   @$pb.TagNumber(1)
   SequenceId ensureSequenceId() => $_ensure(0);
 }
@@ -384,7 +386,7 @@ class SubmitTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTransaction() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTransaction() => clearField(1);
+  void clearTransaction() => $_clearField(1);
 }
 
 class SubmitTransactionResponse extends $pb.GeneratedMessage {
@@ -499,22 +501,22 @@ class SubscribeEventsResponse_Event_ConnectBlock extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   BlockHeaderInfo get headerInfo => $_getN(0);
   @$pb.TagNumber(1)
-  set headerInfo(BlockHeaderInfo v) { setField(1, v); }
+  set headerInfo(BlockHeaderInfo v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHeaderInfo() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHeaderInfo() => clearField(1);
+  void clearHeaderInfo() => $_clearField(1);
   @$pb.TagNumber(1)
   BlockHeaderInfo ensureHeaderInfo() => $_ensure(0);
 
   @$pb.TagNumber(2)
   BlockInfo get blockInfo => $_getN(1);
   @$pb.TagNumber(2)
-  set blockInfo(BlockInfo v) { setField(2, v); }
+  set blockInfo(BlockInfo v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasBlockInfo() => $_has(1);
   @$pb.TagNumber(2)
-  void clearBlockInfo() => clearField(2);
+  void clearBlockInfo() => $_clearField(2);
   @$pb.TagNumber(2)
   BlockInfo ensureBlockInfo() => $_ensure(1);
 }
@@ -566,7 +568,7 @@ class SubscribeEventsResponse_Event_DisconnectBlock extends $pb.GeneratedMessage
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
-  void clearBlockHash() => clearField(1);
+  void clearBlockHash() => $_clearField(1);
 }
 
 class SubscribeEventsResponse_Event_MempoolTxAdded extends $pb.GeneratedMessage {
@@ -616,7 +618,7 @@ class SubscribeEventsResponse_Event_MempoolTxAdded extends $pb.GeneratedMessage 
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
+  void clearTxid() => $_clearField(1);
 }
 
 class SubscribeEventsResponse_Event_MempoolTxRemoved extends $pb.GeneratedMessage {
@@ -666,7 +668,7 @@ class SubscribeEventsResponse_Event_MempoolTxRemoved extends $pb.GeneratedMessag
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
+  void clearTxid() => $_clearField(1);
 }
 
 enum SubscribeEventsResponse_Event_Event {
@@ -741,49 +743,49 @@ class SubscribeEventsResponse_Event extends $pb.GeneratedMessage {
   static SubscribeEventsResponse_Event? _defaultInstance;
 
   SubscribeEventsResponse_Event_Event whichEvent() => _SubscribeEventsResponse_Event_EventByTag[$_whichOneof(0)]!;
-  void clearEvent() => clearField($_whichOneof(0));
+  void clearEvent() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
   SubscribeEventsResponse_Event_ConnectBlock get connectBlock => $_getN(0);
   @$pb.TagNumber(1)
-  set connectBlock(SubscribeEventsResponse_Event_ConnectBlock v) { setField(1, v); }
+  set connectBlock(SubscribeEventsResponse_Event_ConnectBlock v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasConnectBlock() => $_has(0);
   @$pb.TagNumber(1)
-  void clearConnectBlock() => clearField(1);
+  void clearConnectBlock() => $_clearField(1);
   @$pb.TagNumber(1)
   SubscribeEventsResponse_Event_ConnectBlock ensureConnectBlock() => $_ensure(0);
 
   @$pb.TagNumber(2)
   SubscribeEventsResponse_Event_DisconnectBlock get disconnectBlock => $_getN(1);
   @$pb.TagNumber(2)
-  set disconnectBlock(SubscribeEventsResponse_Event_DisconnectBlock v) { setField(2, v); }
+  set disconnectBlock(SubscribeEventsResponse_Event_DisconnectBlock v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasDisconnectBlock() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDisconnectBlock() => clearField(2);
+  void clearDisconnectBlock() => $_clearField(2);
   @$pb.TagNumber(2)
   SubscribeEventsResponse_Event_DisconnectBlock ensureDisconnectBlock() => $_ensure(1);
 
   @$pb.TagNumber(3)
   SubscribeEventsResponse_Event_MempoolTxAdded get mempoolTxAdded => $_getN(2);
   @$pb.TagNumber(3)
-  set mempoolTxAdded(SubscribeEventsResponse_Event_MempoolTxAdded v) { setField(3, v); }
+  set mempoolTxAdded(SubscribeEventsResponse_Event_MempoolTxAdded v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasMempoolTxAdded() => $_has(2);
   @$pb.TagNumber(3)
-  void clearMempoolTxAdded() => clearField(3);
+  void clearMempoolTxAdded() => $_clearField(3);
   @$pb.TagNumber(3)
   SubscribeEventsResponse_Event_MempoolTxAdded ensureMempoolTxAdded() => $_ensure(2);
 
   @$pb.TagNumber(4)
   SubscribeEventsResponse_Event_MempoolTxRemoved get mempoolTxRemoved => $_getN(3);
   @$pb.TagNumber(4)
-  set mempoolTxRemoved(SubscribeEventsResponse_Event_MempoolTxRemoved v) { setField(4, v); }
+  set mempoolTxRemoved(SubscribeEventsResponse_Event_MempoolTxRemoved v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasMempoolTxRemoved() => $_has(3);
   @$pb.TagNumber(4)
-  void clearMempoolTxRemoved() => clearField(4);
+  void clearMempoolTxRemoved() => $_clearField(4);
   @$pb.TagNumber(4)
   SubscribeEventsResponse_Event_MempoolTxRemoved ensureMempoolTxRemoved() => $_ensure(3);
 }
@@ -836,22 +838,22 @@ class SubscribeEventsResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   SequenceId get sequenceId => $_getN(0);
   @$pb.TagNumber(1)
-  set sequenceId(SequenceId v) { setField(1, v); }
+  set sequenceId(SequenceId v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSequenceId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSequenceId() => clearField(1);
+  void clearSequenceId() => $_clearField(1);
   @$pb.TagNumber(1)
   SequenceId ensureSequenceId() => $_ensure(0);
 
   @$pb.TagNumber(2)
   SubscribeEventsResponse_Event get event => $_getN(1);
   @$pb.TagNumber(2)
-  set event(SubscribeEventsResponse_Event v) { setField(2, v); }
+  set event(SubscribeEventsResponse_Event v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasEvent() => $_has(1);
   @$pb.TagNumber(2)
-  void clearEvent() => clearField(2);
+  void clearEvent() => $_clearField(2);
   @$pb.TagNumber(2)
   SubscribeEventsResponse_Event ensureEvent() => $_ensure(1);
 }

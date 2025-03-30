@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: cusf/common/v1/common.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -14,6 +14,8 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../../google/protobuf/wrappers.pb.dart' as $0;
+
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 /// / Consensus-encoded hex.
 /// / Variable length data uses a length prefix.
@@ -60,11 +62,11 @@ class ConsensusHex extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.StringValue get hex => $_getN(0);
   @$pb.TagNumber(1)
-  set hex($0.StringValue v) { setField(1, v); }
+  set hex($0.StringValue v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHex() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHex() => clearField(1);
+  void clearHex() => $_clearField(1);
   @$pb.TagNumber(1)
   $0.StringValue ensureHex() => $_ensure(0);
 }
@@ -114,11 +116,11 @@ class Hex extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.StringValue get hex => $_getN(0);
   @$pb.TagNumber(1)
-  set hex($0.StringValue v) { setField(1, v); }
+  set hex($0.StringValue v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHex() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHex() => clearField(1);
+  void clearHex() => $_clearField(1);
   @$pb.TagNumber(1)
   $0.StringValue ensureHex() => $_ensure(0);
 }
@@ -167,11 +169,11 @@ class ReverseHex extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.StringValue get hex => $_getN(0);
   @$pb.TagNumber(1)
-  set hex($0.StringValue v) { setField(1, v); }
+  set hex($0.StringValue v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHex() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHex() => clearField(1);
+  void clearHex() => $_clearField(1);
   @$pb.TagNumber(1)
   $0.StringValue ensureHex() => $_ensure(0);
 }

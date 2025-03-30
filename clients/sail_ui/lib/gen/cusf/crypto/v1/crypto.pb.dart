@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: cusf/crypto/v1/crypto.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -15,6 +15,8 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../common/v1/common.pb.dart' as $1;
+
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class HmacSha512Request extends $pb.GeneratedMessage {
   factory HmacSha512Request({
@@ -64,22 +66,22 @@ class HmacSha512Request extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.Hex get key => $_getN(0);
   @$pb.TagNumber(1)
-  set key($1.Hex v) { setField(1, v); }
+  set key($1.Hex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasKey() => $_has(0);
   @$pb.TagNumber(1)
-  void clearKey() => clearField(1);
+  void clearKey() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Hex ensureKey() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $1.Hex get msg => $_getN(1);
   @$pb.TagNumber(2)
-  set msg($1.Hex v) { setField(2, v); }
+  set msg($1.Hex v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasMsg() => $_has(1);
   @$pb.TagNumber(2)
-  void clearMsg() => clearField(2);
+  void clearMsg() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.Hex ensureMsg() => $_ensure(1);
 }
@@ -127,11 +129,11 @@ class HmacSha512Response extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.Hex get hmac => $_getN(0);
   @$pb.TagNumber(1)
-  set hmac($1.Hex v) { setField(1, v); }
+  set hmac($1.Hex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHmac() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHmac() => clearField(1);
+  void clearHmac() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Hex ensureHmac() => $_ensure(0);
 }
@@ -179,11 +181,11 @@ class Ripemd160Request extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.Hex get msg => $_getN(0);
   @$pb.TagNumber(1)
-  set msg($1.Hex v) { setField(1, v); }
+  set msg($1.Hex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasMsg() => $_has(0);
   @$pb.TagNumber(1)
-  void clearMsg() => clearField(1);
+  void clearMsg() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Hex ensureMsg() => $_ensure(0);
 }
@@ -231,11 +233,11 @@ class Ripemd160Response extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.Hex get digest => $_getN(0);
   @$pb.TagNumber(1)
-  set digest($1.Hex v) { setField(1, v); }
+  set digest($1.Hex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasDigest() => $_has(0);
   @$pb.TagNumber(1)
-  void clearDigest() => clearField(1);
+  void clearDigest() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Hex ensureDigest() => $_ensure(0);
 }
@@ -283,11 +285,11 @@ class Secp256k1SecretKeyToPublicKeyRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ConsensusHex get secretKey => $_getN(0);
   @$pb.TagNumber(1)
-  set secretKey($1.ConsensusHex v) { setField(1, v); }
+  set secretKey($1.ConsensusHex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSecretKey() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSecretKey() => clearField(1);
+  void clearSecretKey() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.ConsensusHex ensureSecretKey() => $_ensure(0);
 }
@@ -335,11 +337,11 @@ class Secp256k1SecretKeyToPublicKeyResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ConsensusHex get publicKey => $_getN(0);
   @$pb.TagNumber(1)
-  set publicKey($1.ConsensusHex v) { setField(1, v); }
+  set publicKey($1.ConsensusHex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasPublicKey() => $_has(0);
   @$pb.TagNumber(1)
-  void clearPublicKey() => clearField(1);
+  void clearPublicKey() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.ConsensusHex ensurePublicKey() => $_ensure(0);
 }
@@ -392,22 +394,22 @@ class Secp256k1SignRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.Hex get message => $_getN(0);
   @$pb.TagNumber(1)
-  set message($1.Hex v) { setField(1, v); }
+  set message($1.Hex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasMessage() => $_has(0);
   @$pb.TagNumber(1)
-  void clearMessage() => clearField(1);
+  void clearMessage() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Hex ensureMessage() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $1.ConsensusHex get secretKey => $_getN(1);
   @$pb.TagNumber(2)
-  set secretKey($1.ConsensusHex v) { setField(2, v); }
+  set secretKey($1.ConsensusHex v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasSecretKey() => $_has(1);
   @$pb.TagNumber(2)
-  void clearSecretKey() => clearField(2);
+  void clearSecretKey() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.ConsensusHex ensureSecretKey() => $_ensure(1);
 }
@@ -455,11 +457,11 @@ class Secp256k1SignResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.Hex get signature => $_getN(0);
   @$pb.TagNumber(1)
-  set signature($1.Hex v) { setField(1, v); }
+  set signature($1.Hex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSignature() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSignature() => clearField(1);
+  void clearSignature() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Hex ensureSignature() => $_ensure(0);
 }
@@ -517,33 +519,33 @@ class Secp256k1VerifyRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.Hex get message => $_getN(0);
   @$pb.TagNumber(1)
-  set message($1.Hex v) { setField(1, v); }
+  set message($1.Hex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasMessage() => $_has(0);
   @$pb.TagNumber(1)
-  void clearMessage() => clearField(1);
+  void clearMessage() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.Hex ensureMessage() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $1.Hex get signature => $_getN(1);
   @$pb.TagNumber(2)
-  set signature($1.Hex v) { setField(2, v); }
+  set signature($1.Hex v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasSignature() => $_has(1);
   @$pb.TagNumber(2)
-  void clearSignature() => clearField(2);
+  void clearSignature() => $_clearField(2);
   @$pb.TagNumber(2)
   $1.Hex ensureSignature() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $1.ConsensusHex get publicKey => $_getN(2);
   @$pb.TagNumber(3)
-  set publicKey($1.ConsensusHex v) { setField(3, v); }
+  set publicKey($1.ConsensusHex v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasPublicKey() => $_has(2);
   @$pb.TagNumber(3)
-  void clearPublicKey() => clearField(3);
+  void clearPublicKey() => $_clearField(3);
   @$pb.TagNumber(3)
   $1.ConsensusHex ensurePublicKey() => $_ensure(2);
 }
@@ -595,7 +597,7 @@ class Secp256k1VerifyResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasValid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearValid() => clearField(1);
+  void clearValid() => $_clearField(1);
 }
 
 class CryptoServiceApi {
