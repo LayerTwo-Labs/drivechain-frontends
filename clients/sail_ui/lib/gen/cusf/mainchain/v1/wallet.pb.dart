@@ -1653,6 +1653,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     SendTransactionRequest_FeeRate? feeRate,
     $1.Hex? opReturnMessage,
     $core.Iterable<SendTransactionRequest_RequiredUtxo>? requiredUtxos,
+    $core.String? drainWalletTo,
   }) {
     final $result = create();
     if (destinations != null) {
@@ -1667,6 +1668,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (requiredUtxos != null) {
       $result.requiredUtxos.addAll(requiredUtxos);
     }
+    if (drainWalletTo != null) {
+      $result.drainWalletTo = drainWalletTo;
+    }
     return $result;
   }
   SendTransactionRequest._() : super();
@@ -1678,6 +1682,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     ..aOM<SendTransactionRequest_FeeRate>(2, _omitFieldNames ? '' : 'feeRate', subBuilder: SendTransactionRequest_FeeRate.create)
     ..aOM<$1.Hex>(3, _omitFieldNames ? '' : 'opReturnMessage', subBuilder: $1.Hex.create)
     ..pc<SendTransactionRequest_RequiredUtxo>(4, _omitFieldNames ? '' : 'requiredUtxos', $pb.PbFieldType.PM, subBuilder: SendTransactionRequest_RequiredUtxo.create)
+    ..aOS(5, _omitFieldNames ? '' : 'drainWalletTo')
     ..hasRequiredFields = false
   ;
 
@@ -1731,8 +1736,21 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $1.Hex ensureOpReturnMessage() => $_ensure(2);
 
+  /// UTXOs that must be included in the transaction. Incompatible with
+  /// specifying a draining address.
   @$pb.TagNumber(4)
   $core.List<SendTransactionRequest_RequiredUtxo> get requiredUtxos => $_getList(3);
+
+  /// If set, the transaction will send all UTXOs in the wallet to this address.
+  /// Incompatible with specifying required UTXOs.
+  @$pb.TagNumber(5)
+  $core.String get drainWalletTo => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set drainWalletTo($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDrainWalletTo() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDrainWalletTo() => clearField(5);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -2149,6 +2167,11 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     $core.int? vout,
     $fixnum.Int64? valueSats,
     $core.bool? isInternal,
+    $core.bool? isConfirmed,
+    $core.int? confirmedAtBlock,
+    $5.Timestamp? confirmedAtTime,
+    $1.ReverseHex? confirmedTransitively,
+    $5.Timestamp? unconfirmedLastSeen,
   }) {
     final $result = create();
     if (txid != null) {
@@ -2163,6 +2186,21 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     if (isInternal != null) {
       $result.isInternal = isInternal;
     }
+    if (isConfirmed != null) {
+      $result.isConfirmed = isConfirmed;
+    }
+    if (confirmedAtBlock != null) {
+      $result.confirmedAtBlock = confirmedAtBlock;
+    }
+    if (confirmedAtTime != null) {
+      $result.confirmedAtTime = confirmedAtTime;
+    }
+    if (confirmedTransitively != null) {
+      $result.confirmedTransitively = confirmedTransitively;
+    }
+    if (unconfirmedLastSeen != null) {
+      $result.unconfirmedLastSeen = unconfirmedLastSeen;
+    }
     return $result;
   }
   ListUnspentOutputsResponse_Output._() : super();
@@ -2174,6 +2212,11 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(4, _omitFieldNames ? '' : 'isInternal')
+    ..aOB(5, _omitFieldNames ? '' : 'isConfirmed')
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'confirmedAtBlock', $pb.PbFieldType.OU3)
+    ..aOM<$5.Timestamp>(7, _omitFieldNames ? '' : 'confirmedAtTime', subBuilder: $5.Timestamp.create)
+    ..aOM<$1.ReverseHex>(8, _omitFieldNames ? '' : 'confirmedTransitively', subBuilder: $1.ReverseHex.create)
+    ..aOM<$5.Timestamp>(9, _omitFieldNames ? '' : 'unconfirmedLastSeen', subBuilder: $5.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -2237,6 +2280,57 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
   $core.bool hasIsInternal() => $_has(3);
   @$pb.TagNumber(4)
   void clearIsInternal() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get isConfirmed => $_getBF(4);
+  @$pb.TagNumber(5)
+  set isConfirmed($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasIsConfirmed() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearIsConfirmed() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get confirmedAtBlock => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set confirmedAtBlock($core.int v) { $_setUnsignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasConfirmedAtBlock() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearConfirmedAtBlock() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $5.Timestamp get confirmedAtTime => $_getN(6);
+  @$pb.TagNumber(7)
+  set confirmedAtTime($5.Timestamp v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasConfirmedAtTime() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearConfirmedAtTime() => clearField(7);
+  @$pb.TagNumber(7)
+  $5.Timestamp ensureConfirmedAtTime() => $_ensure(6);
+
+  @$pb.TagNumber(8)
+  $1.ReverseHex get confirmedTransitively => $_getN(7);
+  @$pb.TagNumber(8)
+  set confirmedTransitively($1.ReverseHex v) { setField(8, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasConfirmedTransitively() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearConfirmedTransitively() => clearField(8);
+  @$pb.TagNumber(8)
+  $1.ReverseHex ensureConfirmedTransitively() => $_ensure(7);
+
+  @$pb.TagNumber(9)
+  $5.Timestamp get unconfirmedLastSeen => $_getN(8);
+  @$pb.TagNumber(9)
+  set unconfirmedLastSeen($5.Timestamp v) { setField(9, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasUnconfirmedLastSeen() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearUnconfirmedLastSeen() => clearField(9);
+  @$pb.TagNumber(9)
+  $5.Timestamp ensureUnconfirmedLastSeen() => $_ensure(8);
 }
 
 class ListUnspentOutputsResponse extends $pb.GeneratedMessage {

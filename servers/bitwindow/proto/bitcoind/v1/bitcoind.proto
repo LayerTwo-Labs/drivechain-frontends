@@ -25,6 +25,30 @@ service BitcoindService {
   rpc EstimateSmartFee(EstimateSmartFeeRequest) returns (EstimateSmartFeeResponse);
 
   rpc GetRawTransaction(GetRawTransactionRequest) returns (GetRawTransactionResponse);
+
+  // Wallet management
+  rpc CreateWallet(CreateWalletRequest) returns (CreateWalletResponse);
+  rpc BackupWallet(BackupWalletRequest) returns (BackupWalletResponse);
+  rpc DumpWallet(DumpWalletRequest) returns (DumpWalletResponse);
+  rpc ImportWallet(ImportWalletRequest) returns (ImportWalletResponse);
+  rpc UnloadWallet(UnloadWalletRequest) returns (UnloadWalletResponse);
+
+  // Key/Address management
+  rpc DumpPrivKey(DumpPrivKeyRequest) returns (DumpPrivKeyResponse);
+  rpc ImportPrivKey(ImportPrivKeyRequest) returns (ImportPrivKeyResponse);
+  rpc ImportAddress(ImportAddressRequest) returns (ImportAddressResponse);
+  rpc ImportPubKey(ImportPubKeyRequest) returns (ImportPubKeyResponse);
+  rpc KeyPoolRefill(KeyPoolRefillRequest) returns (KeyPoolRefillResponse);
+
+  // Account operations
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+  rpc SetAccount(SetAccountRequest) returns (SetAccountResponse);
+  rpc GetAddressesByAccount(GetAddressesByAccountRequest) returns (GetAddressesByAccountResponse);
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+
+  // Multi-sig operations
+  rpc AddMultisigAddress(AddMultisigAddressRequest) returns (AddMultisigAddressResponse);
+  rpc CreateMultisig(CreateMultisigRequest) returns (CreateMultisigResponse);
 }
 
 message ListBlocksRequest {
@@ -166,4 +190,145 @@ message GetBlockRequest {
 
 message GetBlockResponse {
   Block block = 1;
+}
+
+message CreateWalletRequest {
+  string name = 1;
+  bool disable_private_keys = 2;
+  bool blank = 3;
+  string passphrase = 4;
+  bool avoid_reuse = 5;
+}
+
+message CreateWalletResponse {
+  string name = 1;
+  string warning = 2;
+}
+
+message BackupWalletRequest {
+  string destination = 1;
+  string wallet = 2;
+}
+
+message BackupWalletResponse {}
+
+message DumpWalletRequest {
+  string filename = 1;
+  string wallet = 2;
+}
+
+message DumpWalletResponse {
+  string filename = 1;
+}
+
+message ImportWalletRequest {
+  string filename = 1;
+  string wallet = 2;
+}
+
+message ImportWalletResponse {}
+
+message UnloadWalletRequest {
+  string wallet_name = 1;
+  string wallet = 2;
+}
+
+message UnloadWalletResponse {}
+
+message DumpPrivKeyRequest {
+  string address = 1;
+  string wallet = 2;
+}
+
+message DumpPrivKeyResponse {
+  string private_key = 1;
+}
+
+message ImportPrivKeyRequest {
+  string private_key = 1;
+  string label = 2;
+  bool rescan = 3;
+  string wallet = 4;
+}
+
+message ImportPrivKeyResponse {}
+
+message ImportAddressRequest {
+  string address = 1;
+  string label = 2;
+  bool rescan = 3;
+  string wallet = 4;
+}
+
+message ImportAddressResponse {}
+
+message ImportPubKeyRequest {
+  string pubkey = 1;
+  bool rescan = 2;
+  string wallet = 3;
+}
+
+message ImportPubKeyResponse {}
+
+message KeyPoolRefillRequest {
+  uint32 new_size = 1;
+  string wallet = 2;
+}
+
+message KeyPoolRefillResponse {}
+
+message GetAccountRequest {
+  string address = 1;
+  string wallet = 2;
+}
+
+message GetAccountResponse {
+  string account = 1;
+}
+
+message SetAccountRequest {
+  string address = 1;
+  string account = 2;
+  string wallet = 3;
+}
+
+message SetAccountResponse {}
+
+message GetAddressesByAccountRequest {
+  string account = 1;
+  string wallet = 2;
+}
+
+message GetAddressesByAccountResponse {
+  repeated string addresses = 1;
+}
+
+message ListAccountsRequest {
+  int32 min_conf = 1;
+  string wallet = 2;
+}
+
+message ListAccountsResponse {
+  map<string, double> accounts = 1;
+}
+
+message AddMultisigAddressRequest {
+  int32 required_sigs = 1;
+  repeated string keys = 2;
+  string label = 3;
+  string wallet = 4;
+}
+
+message AddMultisigAddressResponse {
+  string address = 1;
+}
+
+message CreateMultisigRequest {
+  int32 required_sigs = 1;
+  repeated string keys = 2;
+}
+
+message CreateMultisigResponse {
+  string address = 1;
+  string redeem_script = 2;
 }
