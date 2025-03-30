@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: cusf/mainchain/v1/common.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -15,6 +15,8 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../../google/protobuf/wrappers.pb.dart' as $0;
 import '../../common/v1/common.pb.dart' as $1;
+
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class OutPoint extends $pb.GeneratedMessage {
   factory OutPoint({
@@ -64,22 +66,22 @@ class OutPoint extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($1.ReverseHex v) { setField(1, v); }
+  set txid($1.ReverseHex v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
+  void clearTxid() => $_clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureTxid() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $0.UInt32Value get vout => $_getN(1);
   @$pb.TagNumber(2)
-  set vout($0.UInt32Value v) { setField(2, v); }
+  set vout($0.UInt32Value v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
-  void clearVout() => clearField(2);
+  void clearVout() => $_clearField(2);
   @$pb.TagNumber(2)
   $0.UInt32Value ensureVout() => $_ensure(1);
 }
@@ -142,44 +144,44 @@ class SidechainDeclaration_V0 extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.StringValue get title => $_getN(0);
   @$pb.TagNumber(1)
-  set title($0.StringValue v) { setField(1, v); }
+  set title($0.StringValue v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTitle() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTitle() => clearField(1);
+  void clearTitle() => $_clearField(1);
   @$pb.TagNumber(1)
   $0.StringValue ensureTitle() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $0.StringValue get description => $_getN(1);
   @$pb.TagNumber(2)
-  set description($0.StringValue v) { setField(2, v); }
+  set description($0.StringValue v) { $_setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasDescription() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDescription() => clearField(2);
+  void clearDescription() => $_clearField(2);
   @$pb.TagNumber(2)
   $0.StringValue ensureDescription() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $1.ConsensusHex get hashId1 => $_getN(2);
   @$pb.TagNumber(3)
-  set hashId1($1.ConsensusHex v) { setField(3, v); }
+  set hashId1($1.ConsensusHex v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasHashId1() => $_has(2);
   @$pb.TagNumber(3)
-  void clearHashId1() => clearField(3);
+  void clearHashId1() => $_clearField(3);
   @$pb.TagNumber(3)
   $1.ConsensusHex ensureHashId1() => $_ensure(2);
 
   @$pb.TagNumber(4)
   $1.Hex get hashId2 => $_getN(3);
   @$pb.TagNumber(4)
-  set hashId2($1.Hex v) { setField(4, v); }
+  set hashId2($1.Hex v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasHashId2() => $_has(3);
   @$pb.TagNumber(4)
-  void clearHashId2() => clearField(4);
+  void clearHashId2() => $_clearField(4);
   @$pb.TagNumber(4)
   $1.Hex ensureHashId2() => $_ensure(3);
 }
@@ -235,16 +237,16 @@ class SidechainDeclaration extends $pb.GeneratedMessage {
   static SidechainDeclaration? _defaultInstance;
 
   SidechainDeclaration_SidechainDeclaration whichSidechainDeclaration() => _SidechainDeclaration_SidechainDeclarationByTag[$_whichOneof(0)]!;
-  void clearSidechainDeclaration() => clearField($_whichOneof(0));
+  void clearSidechainDeclaration() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
   SidechainDeclaration_V0 get v0 => $_getN(0);
   @$pb.TagNumber(1)
-  set v0(SidechainDeclaration_V0 v) { setField(1, v); }
+  set v0(SidechainDeclaration_V0 v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasV0() => $_has(0);
   @$pb.TagNumber(1)
-  void clearV0() => clearField(1);
+  void clearV0() => $_clearField(1);
   @$pb.TagNumber(1)
   SidechainDeclaration_V0 ensureV0() => $_ensure(0);
 }

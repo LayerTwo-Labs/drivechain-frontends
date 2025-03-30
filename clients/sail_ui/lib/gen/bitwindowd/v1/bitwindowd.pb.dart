@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: bitwindowd/v1/bitwindowd.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -18,6 +18,8 @@ import 'package:protobuf/protobuf.dart' as $pb;
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
 import 'bitwindowd.pbenum.dart';
+
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'bitwindowd.pbenum.dart';
 
@@ -83,7 +85,7 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
+  void clearTxid() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.int get vout => $_getIZ(1);
@@ -92,7 +94,7 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
-  void clearVout() => clearField(2);
+  void clearVout() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.int get delaySeconds => $_getIZ(2);
@@ -101,7 +103,7 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasDelaySeconds() => $_has(2);
   @$pb.TagNumber(3)
-  void clearDelaySeconds() => clearField(3);
+  void clearDelaySeconds() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.int get numHops => $_getIZ(3);
@@ -110,7 +112,7 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasNumHops() => $_has(3);
   @$pb.TagNumber(4)
-  void clearNumHops() => clearField(4);
+  void clearNumHops() => $_clearField(4);
 }
 
 class ListDenialsResponse extends $pb.GeneratedMessage {
@@ -154,7 +156,7 @@ class ListDenialsResponse extends $pb.GeneratedMessage {
   static ListDenialsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<UnspentOutput> get utxos => $_getList(0);
+  $pb.PbList<UnspentOutput> get utxos => $_getList(0);
 }
 
 class UnspentOutput extends $pb.GeneratedMessage {
@@ -224,7 +226,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
+  void clearTxid() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.int get vout => $_getIZ(1);
@@ -233,7 +235,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
-  void clearVout() => clearField(2);
+  void clearVout() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $fixnum.Int64 get valueSats => $_getI64(2);
@@ -242,7 +244,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasValueSats() => $_has(2);
   @$pb.TagNumber(3)
-  void clearValueSats() => clearField(3);
+  void clearValueSats() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.bool get isInternal => $_getBF(3);
@@ -251,16 +253,16 @@ class UnspentOutput extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasIsInternal() => $_has(3);
   @$pb.TagNumber(4)
-  void clearIsInternal() => clearField(4);
+  void clearIsInternal() => $_clearField(4);
 
   @$pb.TagNumber(5)
   DeniabilityInfo get deniability => $_getN(4);
   @$pb.TagNumber(5)
-  set deniability(DeniabilityInfo v) { setField(5, v); }
+  set deniability(DeniabilityInfo v) { $_setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasDeniability() => $_has(4);
   @$pb.TagNumber(5)
-  void clearDeniability() => clearField(5);
+  void clearDeniability() => $_clearField(5);
   @$pb.TagNumber(5)
   DeniabilityInfo ensureDeniability() => $_ensure(4);
 }
@@ -357,7 +359,7 @@ class DeniabilityInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.int get numHops => $_getIZ(1);
@@ -366,7 +368,7 @@ class DeniabilityInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasNumHops() => $_has(1);
   @$pb.TagNumber(2)
-  void clearNumHops() => clearField(2);
+  void clearNumHops() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.int get delaySeconds => $_getIZ(2);
@@ -375,27 +377,27 @@ class DeniabilityInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasDelaySeconds() => $_has(2);
   @$pb.TagNumber(3)
-  void clearDelaySeconds() => clearField(3);
+  void clearDelaySeconds() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $0.Timestamp get createTime => $_getN(3);
   @$pb.TagNumber(4)
-  set createTime($0.Timestamp v) { setField(4, v); }
+  set createTime($0.Timestamp v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasCreateTime() => $_has(3);
   @$pb.TagNumber(4)
-  void clearCreateTime() => clearField(4);
+  void clearCreateTime() => $_clearField(4);
   @$pb.TagNumber(4)
   $0.Timestamp ensureCreateTime() => $_ensure(3);
 
   @$pb.TagNumber(5)
   $0.Timestamp get cancelTime => $_getN(4);
   @$pb.TagNumber(5)
-  set cancelTime($0.Timestamp v) { setField(5, v); }
+  set cancelTime($0.Timestamp v) { $_setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasCancelTime() => $_has(4);
   @$pb.TagNumber(5)
-  void clearCancelTime() => clearField(5);
+  void clearCancelTime() => $_clearField(5);
   @$pb.TagNumber(5)
   $0.Timestamp ensureCancelTime() => $_ensure(4);
 
@@ -406,21 +408,21 @@ class DeniabilityInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool hasCancelReason() => $_has(5);
   @$pb.TagNumber(6)
-  void clearCancelReason() => clearField(6);
+  void clearCancelReason() => $_clearField(6);
 
   @$pb.TagNumber(7)
   $0.Timestamp get nextExecution => $_getN(6);
   @$pb.TagNumber(7)
-  set nextExecution($0.Timestamp v) { setField(7, v); }
+  set nextExecution($0.Timestamp v) { $_setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasNextExecution() => $_has(6);
   @$pb.TagNumber(7)
-  void clearNextExecution() => clearField(7);
+  void clearNextExecution() => $_clearField(7);
   @$pb.TagNumber(7)
   $0.Timestamp ensureNextExecution() => $_ensure(6);
 
   @$pb.TagNumber(8)
-  $core.List<ExecutedDenial> get executions => $_getList(7);
+  $pb.PbList<ExecutedDenial> get executions => $_getList(7);
 
   @$pb.TagNumber(9)
   $core.int get hopsCompleted => $_getIZ(8);
@@ -429,7 +431,7 @@ class DeniabilityInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.bool hasHopsCompleted() => $_has(8);
   @$pb.TagNumber(9)
-  void clearHopsCompleted() => clearField(9);
+  void clearHopsCompleted() => $_clearField(9);
 
   @$pb.TagNumber(10)
   $core.bool get isActive => $_getBF(9);
@@ -438,7 +440,7 @@ class DeniabilityInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   $core.bool hasIsActive() => $_has(9);
   @$pb.TagNumber(10)
-  void clearIsActive() => clearField(10);
+  void clearIsActive() => $_clearField(10);
 }
 
 class ExecutedDenial extends $pb.GeneratedMessage {
@@ -518,7 +520,7 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $fixnum.Int64 get denialId => $_getI64(1);
@@ -527,7 +529,7 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasDenialId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDenialId() => clearField(2);
+  void clearDenialId() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get fromTxid => $_getSZ(2);
@@ -536,7 +538,7 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasFromTxid() => $_has(2);
   @$pb.TagNumber(3)
-  void clearFromTxid() => clearField(3);
+  void clearFromTxid() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.int get fromVout => $_getIZ(3);
@@ -545,7 +547,7 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasFromVout() => $_has(3);
   @$pb.TagNumber(4)
-  void clearFromVout() => clearField(4);
+  void clearFromVout() => $_clearField(4);
 
   @$pb.TagNumber(5)
   $core.String get toTxid => $_getSZ(4);
@@ -554,7 +556,7 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasToTxid() => $_has(4);
   @$pb.TagNumber(5)
-  void clearToTxid() => clearField(5);
+  void clearToTxid() => $_clearField(5);
 
   @$pb.TagNumber(6)
   $core.int get toVout => $_getIZ(5);
@@ -563,16 +565,16 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool hasToVout() => $_has(5);
   @$pb.TagNumber(6)
-  void clearToVout() => clearField(6);
+  void clearToVout() => $_clearField(6);
 
   @$pb.TagNumber(7)
   $0.Timestamp get createTime => $_getN(6);
   @$pb.TagNumber(7)
-  set createTime($0.Timestamp v) { setField(7, v); }
+  set createTime($0.Timestamp v) { $_setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasCreateTime() => $_has(6);
   @$pb.TagNumber(7)
-  void clearCreateTime() => clearField(7);
+  void clearCreateTime() => $_clearField(7);
   @$pb.TagNumber(7)
   $0.Timestamp ensureCreateTime() => $_ensure(6);
 }
@@ -624,7 +626,7 @@ class CancelDenialRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
 class CreateAddressBookEntryRequest extends $pb.GeneratedMessage {
@@ -684,7 +686,7 @@ class CreateAddressBookEntryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasLabel() => $_has(0);
   @$pb.TagNumber(1)
-  void clearLabel() => clearField(1);
+  void clearLabel() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get address => $_getSZ(1);
@@ -693,16 +695,16 @@ class CreateAddressBookEntryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasAddress() => $_has(1);
   @$pb.TagNumber(2)
-  void clearAddress() => clearField(2);
+  void clearAddress() => $_clearField(2);
 
   @$pb.TagNumber(3)
   Direction get direction => $_getN(2);
   @$pb.TagNumber(3)
-  set direction(Direction v) { setField(3, v); }
+  set direction(Direction v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasDirection() => $_has(2);
   @$pb.TagNumber(3)
-  void clearDirection() => clearField(3);
+  void clearDirection() => $_clearField(3);
 }
 
 class AddressBookEntry extends $pb.GeneratedMessage {
@@ -772,7 +774,7 @@ class AddressBookEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get label => $_getSZ(1);
@@ -781,7 +783,7 @@ class AddressBookEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasLabel() => $_has(1);
   @$pb.TagNumber(2)
-  void clearLabel() => clearField(2);
+  void clearLabel() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get address => $_getSZ(2);
@@ -790,25 +792,25 @@ class AddressBookEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasAddress() => $_has(2);
   @$pb.TagNumber(3)
-  void clearAddress() => clearField(3);
+  void clearAddress() => $_clearField(3);
 
   @$pb.TagNumber(4)
   Direction get direction => $_getN(3);
   @$pb.TagNumber(4)
-  set direction(Direction v) { setField(4, v); }
+  set direction(Direction v) { $_setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasDirection() => $_has(3);
   @$pb.TagNumber(4)
-  void clearDirection() => clearField(4);
+  void clearDirection() => $_clearField(4);
 
   @$pb.TagNumber(5)
   $0.Timestamp get createTime => $_getN(4);
   @$pb.TagNumber(5)
-  set createTime($0.Timestamp v) { setField(5, v); }
+  set createTime($0.Timestamp v) { $_setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasCreateTime() => $_has(4);
   @$pb.TagNumber(5)
-  void clearCreateTime() => clearField(5);
+  void clearCreateTime() => $_clearField(5);
   @$pb.TagNumber(5)
   $0.Timestamp ensureCreateTime() => $_ensure(4);
 }
@@ -854,7 +856,7 @@ class ListAddressBookResponse extends $pb.GeneratedMessage {
   static ListAddressBookResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<AddressBookEntry> get entries => $_getList(0);
+  $pb.PbList<AddressBookEntry> get entries => $_getList(0);
 }
 
 class UpdateAddressBookEntryRequest extends $pb.GeneratedMessage {
@@ -914,7 +916,7 @@ class UpdateAddressBookEntryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get label => $_getSZ(1);
@@ -923,7 +925,7 @@ class UpdateAddressBookEntryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasLabel() => $_has(1);
   @$pb.TagNumber(2)
-  void clearLabel() => clearField(2);
+  void clearLabel() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get address => $_getSZ(2);
@@ -932,7 +934,7 @@ class UpdateAddressBookEntryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasAddress() => $_has(2);
   @$pb.TagNumber(3)
-  void clearAddress() => clearField(3);
+  void clearAddress() => $_clearField(3);
 }
 
 class DeleteAddressBookEntryRequest extends $pb.GeneratedMessage {
@@ -982,7 +984,7 @@ class DeleteAddressBookEntryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => clearField(1);
+  void clearId() => $_clearField(1);
 }
 
 class BitwindowdServiceApi {
@@ -992,6 +994,7 @@ class BitwindowdServiceApi {
   $async.Future<$1.Empty> stop($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'Stop', request, $1.Empty())
   ;
+  /// Deniability operations
   $async.Future<$1.Empty> createDenial($pb.ClientContext? ctx, CreateDenialRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CreateDenial', request, $1.Empty())
   ;
@@ -1001,6 +1004,7 @@ class BitwindowdServiceApi {
   $async.Future<$1.Empty> cancelDenial($pb.ClientContext? ctx, CancelDenialRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CancelDenial', request, $1.Empty())
   ;
+  /// Wallet operations
   $async.Future<$1.Empty> createAddressBookEntry($pb.ClientContext? ctx, CreateAddressBookEntryRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CreateAddressBookEntry', request, $1.Empty())
   ;

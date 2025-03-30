@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: drivechain/v1/drivechain.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -14,6 +14,8 @@ import 'dart:core' as $core;
 
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
+
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class ListSidechainsRequest extends $pb.GeneratedMessage {
   factory ListSidechainsRequest() => create();
@@ -154,7 +156,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTitle() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTitle() => clearField(1);
+  void clearTitle() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get description => $_getSZ(1);
@@ -163,7 +165,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasDescription() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDescription() => clearField(2);
+  void clearDescription() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.int get nversion => $_getIZ(2);
@@ -172,7 +174,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasNversion() => $_has(2);
   @$pb.TagNumber(3)
-  void clearNversion() => clearField(3);
+  void clearNversion() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.String get hashid1 => $_getSZ(3);
@@ -181,7 +183,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasHashid1() => $_has(3);
   @$pb.TagNumber(4)
-  void clearHashid1() => clearField(4);
+  void clearHashid1() => $_clearField(4);
 
   @$pb.TagNumber(5)
   $core.String get hashid2 => $_getSZ(4);
@@ -190,7 +192,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasHashid2() => $_has(4);
   @$pb.TagNumber(5)
-  void clearHashid2() => clearField(5);
+  void clearHashid2() => $_clearField(5);
 
   @$pb.TagNumber(6)
   $core.int get slot => $_getIZ(5);
@@ -199,7 +201,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool hasSlot() => $_has(5);
   @$pb.TagNumber(6)
-  void clearSlot() => clearField(6);
+  void clearSlot() => $_clearField(6);
 
   @$pb.TagNumber(7)
   $core.int get voteCount => $_getIZ(6);
@@ -208,7 +210,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.bool hasVoteCount() => $_has(6);
   @$pb.TagNumber(7)
-  void clearVoteCount() => clearField(7);
+  void clearVoteCount() => $_clearField(7);
 
   @$pb.TagNumber(8)
   $core.int get proposalHeight => $_getIZ(7);
@@ -217,7 +219,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.bool hasProposalHeight() => $_has(7);
   @$pb.TagNumber(8)
-  void clearProposalHeight() => clearField(8);
+  void clearProposalHeight() => $_clearField(8);
 
   @$pb.TagNumber(9)
   $core.int get activationHeight => $_getIZ(8);
@@ -226,7 +228,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.bool hasActivationHeight() => $_has(8);
   @$pb.TagNumber(9)
-  void clearActivationHeight() => clearField(9);
+  void clearActivationHeight() => $_clearField(9);
 
   @$pb.TagNumber(10)
   $core.String get descriptionHex => $_getSZ(9);
@@ -235,7 +237,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   $core.bool hasDescriptionHex() => $_has(9);
   @$pb.TagNumber(10)
-  void clearDescriptionHex() => clearField(10);
+  void clearDescriptionHex() => $_clearField(10);
 
   @$pb.TagNumber(11)
   $fixnum.Int64 get balanceSatoshi => $_getI64(10);
@@ -244,7 +246,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   $core.bool hasBalanceSatoshi() => $_has(10);
   @$pb.TagNumber(11)
-  void clearBalanceSatoshi() => clearField(11);
+  void clearBalanceSatoshi() => $_clearField(11);
 
   @$pb.TagNumber(12)
   $core.String get chaintipTxid => $_getSZ(11);
@@ -253,7 +255,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(12)
   $core.bool hasChaintipTxid() => $_has(11);
   @$pb.TagNumber(12)
-  void clearChaintipTxid() => clearField(12);
+  void clearChaintipTxid() => $_clearField(12);
 
   @$pb.TagNumber(13)
   $core.int get chaintipVout => $_getIZ(12);
@@ -262,7 +264,7 @@ class ListSidechainsResponse_Sidechain extends $pb.GeneratedMessage {
   @$pb.TagNumber(13)
   $core.bool hasChaintipVout() => $_has(12);
   @$pb.TagNumber(13)
-  void clearChaintipVout() => clearField(13);
+  void clearChaintipVout() => $_clearField(13);
 }
 
 class ListSidechainsResponse extends $pb.GeneratedMessage {
@@ -306,7 +308,7 @@ class ListSidechainsResponse extends $pb.GeneratedMessage {
   static ListSidechainsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<ListSidechainsResponse_Sidechain> get sidechains => $_getList(0);
+  $pb.PbList<ListSidechainsResponse_Sidechain> get sidechains => $_getList(0);
 }
 
 class ListSidechainProposalsRequest extends $pb.GeneratedMessage {
@@ -413,7 +415,7 @@ class SidechainProposal extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasSlot() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSlot() => clearField(1);
+  void clearSlot() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.List<$core.int> get data => $_getN(1);
@@ -422,7 +424,7 @@ class SidechainProposal extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasData() => $_has(1);
   @$pb.TagNumber(2)
-  void clearData() => clearField(2);
+  void clearData() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get dataHash => $_getSZ(2);
@@ -431,7 +433,7 @@ class SidechainProposal extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasDataHash() => $_has(2);
   @$pb.TagNumber(3)
-  void clearDataHash() => clearField(3);
+  void clearDataHash() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.int get voteCount => $_getIZ(3);
@@ -440,7 +442,7 @@ class SidechainProposal extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasVoteCount() => $_has(3);
   @$pb.TagNumber(4)
-  void clearVoteCount() => clearField(4);
+  void clearVoteCount() => $_clearField(4);
 
   @$pb.TagNumber(5)
   $core.int get proposalHeight => $_getIZ(4);
@@ -449,7 +451,7 @@ class SidechainProposal extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasProposalHeight() => $_has(4);
   @$pb.TagNumber(5)
-  void clearProposalHeight() => clearField(5);
+  void clearProposalHeight() => $_clearField(5);
 
   @$pb.TagNumber(6)
   $core.int get proposalAge => $_getIZ(5);
@@ -458,7 +460,7 @@ class SidechainProposal extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool hasProposalAge() => $_has(5);
   @$pb.TagNumber(6)
-  void clearProposalAge() => clearField(6);
+  void clearProposalAge() => $_clearField(6);
 }
 
 class ListSidechainProposalsResponse extends $pb.GeneratedMessage {
@@ -502,7 +504,7 @@ class ListSidechainProposalsResponse extends $pb.GeneratedMessage {
   static ListSidechainProposalsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<SidechainProposal> get proposals => $_getList(0);
+  $pb.PbList<SidechainProposal> get proposals => $_getList(0);
 }
 
 class DrivechainServiceApi {
