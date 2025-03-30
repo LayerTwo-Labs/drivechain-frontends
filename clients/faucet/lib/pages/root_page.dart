@@ -37,22 +37,19 @@ class RootPage extends StatelessWidget {
               child: Builder(
                 builder: (context) {
                   final tabsRouter = AutoTabsRouter.of(context);
-                  return Row(
+                  return SailRow(
+                    spacing: SailStyleValues.padding32,
                     children: [
                       QtTab(
-                        icon: SailSVGAsset.iconHome,
                         label: 'Faucet',
                         active: tabsRouter.activeIndex == 0,
                         onTap: () => tabsRouter.setActiveIndex(0),
                       ),
                       QtTab(
-                        icon: SailSVGAsset.iconTabWithdrawalExplorer,
                         label: 'Explorer',
                         active: tabsRouter.activeIndex == 1,
                         onTap: () => tabsRouter.setActiveIndex(1),
                       ),
-                      Expanded(child: Container()),
-                      const ToggleThemeButton(),
                     ],
                   );
                 },
@@ -61,10 +58,10 @@ class RootPage extends StatelessWidget {
           ),
           body: Column(
             children: [
-              const Divider(
+              Divider(
                 height: 1,
                 thickness: 1,
-                color: Colors.grey,
+                color: theme.colors.divider,
               ),
               Expanded(child: child),
             ],
