@@ -189,46 +189,59 @@ class ProcessProvider extends ChangeNotifier {
   }
 
   Future<File> _resolveBinaryPath(String binary) async {
+    log.d('Resolving binary path for: $binary');
+
     // First find all possible paths the binary might be in,
     // such as .exe, .app, /assets/bin, $datadir/assets etc.
     final possiblePaths = _getPossibleBinaryPaths(binary);
+    log.d('Generated possible binary paths: $possiblePaths');
 
     // Check if binary exists in any of the possible paths
     for (final binaryPath in possiblePaths) {
+      log.d('Checking path: $binaryPath');
       if (Directory(binaryPath).existsSync() || File(binaryPath).existsSync()) {
+        log.d('Found existing binary at: $binaryPath');
         var resolvedPath = binaryPath;
         // Handle .app bundles on macOS
         if (Platform.isMacOS && (binary.endsWith('.app') || binaryPath.endsWith('.app'))) {
+          log.d('Resolving macOS .app bundle path');
           resolvedPath = path.join(
             binaryPath,
             'Contents',
             'MacOS',
             path.basenameWithoutExtension(binaryPath),
           );
+          log.d('Resolved macOS bundle path to: $resolvedPath');
         }
         return File(resolvedPath);
       }
     }
 
+    log.d('Binary not found in filesystem, attempting to load from assets bundle');
     return _fileFromAssetsBundle(binary, possiblePaths);
   }
 
   Future<File> _fileFromAssetsBundle(String binary, List<String> possiblePaths) async {
+    log.d('Loading binary from assets bundle: $binary');
     // If not found in datadir/assets, try loading from bundled assets
     ByteData? binResource;
     String? foundPath;
 
     for (final assetPath in possiblePaths) {
       try {
+        log.d('Attempting to load from assets/bin/$assetPath');
         binResource = await rootBundle.load('assets/bin/$assetPath');
         foundPath = assetPath;
+        log.d('Successfully loaded binary from assets: $assetPath');
         break;
       } catch (e) {
+        log.d('Failed to load from $assetPath: $e');
         continue;
       }
     }
 
     if (binResource == null || foundPath == null) {
+      log.e('Could not find binary $binary in any location');
       throw Exception('Could not find binary $binary in any location');
     }
 
@@ -238,27 +251,33 @@ class ProcessProvider extends ChangeNotifier {
     final randDir = Directory(
       filePath([temp.path, ts.millisecondsSinceEpoch.toString()]),
     );
+    log.d('Creating temporary directory at: ${randDir.path}');
     await randDir.create();
 
     final file = File(filePath([randDir.path, foundPath]));
+    log.d('Writing binary to temporary file: ${file.path}');
 
     final buffer = binResource.buffer;
     await file.writeAsBytes(
       buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
     );
+    log.d('Successfully wrote binary to temporary file');
 
     return file;
   }
 
   List<String> _getPossibleBinaryPaths(String baseBinary) {
+    log.d('Generating possible paths for binary: $baseBinary');
     final paths = <String>[baseBinary];
     // Add platform-specific extensions
     if (Platform.isWindows) {
+      log.d('Adding Windows-specific .exe extension');
       paths.add('$baseBinary.exe');
     }
 
     if (appDir != null) {
       final assetPath = path.join(appDir!.path, 'assets');
+      log.d('Adding asset directory paths from: $assetPath');
       // Add asset directory variants
       paths.addAll([
         path.join(assetPath, baseBinary),
@@ -268,6 +287,7 @@ class ProcessProvider extends ChangeNotifier {
       log.d('appDir is null, not adding asset paths');
     }
 
+    log.d('Generated paths: $paths');
     return paths;
   }
 }
