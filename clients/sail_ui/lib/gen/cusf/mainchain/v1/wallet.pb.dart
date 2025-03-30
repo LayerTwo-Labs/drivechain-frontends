@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: cusf/mainchain/v1/wallet.proto
 //
-// @dart = 3.3
+// @dart = 2.12
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -19,8 +19,6 @@ import '../../../google/protobuf/timestamp.pb.dart' as $5;
 import '../../../google/protobuf/wrappers.pb.dart' as $0;
 import '../../common/v1/common.pb.dart' as $1;
 import 'common.pb.dart' as $3;
-
-export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class WalletTransaction_Confirmation extends $pb.GeneratedMessage {
   factory WalletTransaction_Confirmation({
@@ -79,27 +77,27 @@ class WalletTransaction_Confirmation extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasHeight() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHeight() => $_clearField(1);
+  void clearHeight() => clearField(1);
 
   @$pb.TagNumber(2)
   $1.ReverseHex get blockHash => $_getN(1);
   @$pb.TagNumber(2)
-  set blockHash($1.ReverseHex v) { $_setField(2, v); }
+  set blockHash($1.ReverseHex v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasBlockHash() => $_has(1);
   @$pb.TagNumber(2)
-  void clearBlockHash() => $_clearField(2);
+  void clearBlockHash() => clearField(2);
   @$pb.TagNumber(2)
   $1.ReverseHex ensureBlockHash() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $5.Timestamp get timestamp => $_getN(2);
   @$pb.TagNumber(3)
-  set timestamp($5.Timestamp v) { $_setField(3, v); }
+  set timestamp($5.Timestamp v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasTimestamp() => $_has(2);
   @$pb.TagNumber(3)
-  void clearTimestamp() => $_clearField(3);
+  void clearTimestamp() => clearField(3);
   @$pb.TagNumber(3)
   $5.Timestamp ensureTimestamp() => $_ensure(2);
 }
@@ -167,11 +165,11 @@ class WalletTransaction extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($1.ReverseHex v) { $_setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureTxid() => $_ensure(0);
 
@@ -182,7 +180,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasFeeSats() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFeeSats() => $_clearField(2);
+  void clearFeeSats() => clearField(2);
 
   @$pb.TagNumber(3)
   $fixnum.Int64 get receivedSats => $_getI64(2);
@@ -191,7 +189,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasReceivedSats() => $_has(2);
   @$pb.TagNumber(3)
-  void clearReceivedSats() => $_clearField(3);
+  void clearReceivedSats() => clearField(3);
 
   @$pb.TagNumber(4)
   $fixnum.Int64 get sentSats => $_getI64(3);
@@ -200,16 +198,16 @@ class WalletTransaction extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasSentSats() => $_has(3);
   @$pb.TagNumber(4)
-  void clearSentSats() => $_clearField(4);
+  void clearSentSats() => clearField(4);
 
   @$pb.TagNumber(5)
   WalletTransaction_Confirmation get confirmationInfo => $_getN(4);
   @$pb.TagNumber(5)
-  set confirmationInfo(WalletTransaction_Confirmation v) { $_setField(5, v); }
+  set confirmationInfo(WalletTransaction_Confirmation v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasConfirmationInfo() => $_has(4);
   @$pb.TagNumber(5)
-  void clearConfirmationInfo() => $_clearField(5);
+  void clearConfirmationInfo() => clearField(5);
   @$pb.TagNumber(5)
   WalletTransaction_Confirmation ensureConfirmationInfo() => $_ensure(4);
 }
@@ -262,22 +260,22 @@ class BroadcastWithdrawalBundleRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($0.UInt32Value v) { $_setField(1, v); }
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSidechainId() => $_clearField(1);
+  void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
   $0.UInt32Value ensureSidechainId() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $0.BytesValue get transaction => $_getN(1);
   @$pb.TagNumber(2)
-  set transaction($0.BytesValue v) { $_setField(2, v); }
+  set transaction($0.BytesValue v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasTransaction() => $_has(1);
   @$pb.TagNumber(2)
-  void clearTransaction() => $_clearField(2);
+  void clearTransaction() => clearField(2);
   @$pb.TagNumber(2)
   $0.BytesValue ensureTransaction() => $_ensure(1);
 }
@@ -377,55 +375,55 @@ class CreateBmmCriticalDataTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($0.UInt32Value v) { $_setField(1, v); }
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSidechainId() => $_clearField(1);
+  void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
   $0.UInt32Value ensureSidechainId() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $0.UInt64Value get valueSats => $_getN(1);
   @$pb.TagNumber(2)
-  set valueSats($0.UInt64Value v) { $_setField(2, v); }
+  set valueSats($0.UInt64Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasValueSats() => $_has(1);
   @$pb.TagNumber(2)
-  void clearValueSats() => $_clearField(2);
+  void clearValueSats() => clearField(2);
   @$pb.TagNumber(2)
   $0.UInt64Value ensureValueSats() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $0.UInt32Value get height => $_getN(2);
   @$pb.TagNumber(3)
-  set height($0.UInt32Value v) { $_setField(3, v); }
+  set height($0.UInt32Value v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasHeight() => $_has(2);
   @$pb.TagNumber(3)
-  void clearHeight() => $_clearField(3);
+  void clearHeight() => clearField(3);
   @$pb.TagNumber(3)
   $0.UInt32Value ensureHeight() => $_ensure(2);
 
   @$pb.TagNumber(4)
   $1.ConsensusHex get criticalHash => $_getN(3);
   @$pb.TagNumber(4)
-  set criticalHash($1.ConsensusHex v) { $_setField(4, v); }
+  set criticalHash($1.ConsensusHex v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasCriticalHash() => $_has(3);
   @$pb.TagNumber(4)
-  void clearCriticalHash() => $_clearField(4);
+  void clearCriticalHash() => clearField(4);
   @$pb.TagNumber(4)
   $1.ConsensusHex ensureCriticalHash() => $_ensure(3);
 
   @$pb.TagNumber(5)
   $1.ReverseHex get prevBytes => $_getN(4);
   @$pb.TagNumber(5)
-  set prevBytes($1.ReverseHex v) { $_setField(5, v); }
+  set prevBytes($1.ReverseHex v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasPrevBytes() => $_has(4);
   @$pb.TagNumber(5)
-  void clearPrevBytes() => $_clearField(5);
+  void clearPrevBytes() => clearField(5);
   @$pb.TagNumber(5)
   $1.ReverseHex ensurePrevBytes() => $_ensure(4);
 }
@@ -473,11 +471,11 @@ class CreateBmmCriticalDataTransactionResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($1.ReverseHex v) { $_setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureTxid() => $_ensure(0);
 }
@@ -540,11 +538,11 @@ class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($0.UInt32Value v) { $_setField(1, v); }
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSidechainId() => $_clearField(1);
+  void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
   $0.UInt32Value ensureSidechainId() => $_ensure(0);
 
@@ -560,33 +558,33 @@ class CreateDepositTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $0.StringValue get address => $_getN(1);
   @$pb.TagNumber(2)
-  set address($0.StringValue v) { $_setField(2, v); }
+  set address($0.StringValue v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasAddress() => $_has(1);
   @$pb.TagNumber(2)
-  void clearAddress() => $_clearField(2);
+  void clearAddress() => clearField(2);
   @$pb.TagNumber(2)
   $0.StringValue ensureAddress() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $0.UInt64Value get valueSats => $_getN(2);
   @$pb.TagNumber(3)
-  set valueSats($0.UInt64Value v) { $_setField(3, v); }
+  set valueSats($0.UInt64Value v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasValueSats() => $_has(2);
   @$pb.TagNumber(3)
-  void clearValueSats() => $_clearField(3);
+  void clearValueSats() => clearField(3);
   @$pb.TagNumber(3)
   $0.UInt64Value ensureValueSats() => $_ensure(2);
 
   @$pb.TagNumber(4)
   $0.UInt64Value get feeSats => $_getN(3);
   @$pb.TagNumber(4)
-  set feeSats($0.UInt64Value v) { $_setField(4, v); }
+  set feeSats($0.UInt64Value v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasFeeSats() => $_has(3);
   @$pb.TagNumber(4)
-  void clearFeeSats() => $_clearField(4);
+  void clearFeeSats() => clearField(4);
   @$pb.TagNumber(4)
   $0.UInt64Value ensureFeeSats() => $_ensure(3);
 }
@@ -634,11 +632,11 @@ class CreateDepositTransactionResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($1.ReverseHex v) { $_setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureTxid() => $_ensure(0);
 }
@@ -722,7 +720,7 @@ class CreateNewAddressResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasAddress() => $_has(0);
   @$pb.TagNumber(1)
-  void clearAddress() => $_clearField(1);
+  void clearAddress() => clearField(1);
 }
 
 class CreateSidechainProposalRequest extends $pb.GeneratedMessage {
@@ -773,22 +771,22 @@ class CreateSidechainProposalRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.UInt32Value get sidechainId => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainId($0.UInt32Value v) { $_setField(1, v); }
+  set sidechainId($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSidechainId() => $_clearField(1);
+  void clearSidechainId() => clearField(1);
   @$pb.TagNumber(1)
   $0.UInt32Value ensureSidechainId() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $3.SidechainDeclaration get declaration => $_getN(1);
   @$pb.TagNumber(2)
-  set declaration($3.SidechainDeclaration v) { $_setField(2, v); }
+  set declaration($3.SidechainDeclaration v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasDeclaration() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDeclaration() => $_clearField(2);
+  void clearDeclaration() => clearField(2);
   @$pb.TagNumber(2)
   $3.SidechainDeclaration ensureDeclaration() => $_ensure(1);
 }
@@ -856,55 +854,55 @@ class CreateSidechainProposalResponse_Confirmed extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($1.ReverseHex v) { $_setField(1, v); }
+  set blockHash($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
-  void clearBlockHash() => $_clearField(1);
+  void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureBlockHash() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $0.UInt32Value get confirmations => $_getN(1);
   @$pb.TagNumber(2)
-  set confirmations($0.UInt32Value v) { $_setField(2, v); }
+  set confirmations($0.UInt32Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasConfirmations() => $_has(1);
   @$pb.TagNumber(2)
-  void clearConfirmations() => $_clearField(2);
+  void clearConfirmations() => clearField(2);
   @$pb.TagNumber(2)
   $0.UInt32Value ensureConfirmations() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $0.UInt32Value get height => $_getN(2);
   @$pb.TagNumber(3)
-  set height($0.UInt32Value v) { $_setField(3, v); }
+  set height($0.UInt32Value v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasHeight() => $_has(2);
   @$pb.TagNumber(3)
-  void clearHeight() => $_clearField(3);
+  void clearHeight() => clearField(3);
   @$pb.TagNumber(3)
   $0.UInt32Value ensureHeight() => $_ensure(2);
 
   @$pb.TagNumber(4)
   $3.OutPoint get outpoint => $_getN(3);
   @$pb.TagNumber(4)
-  set outpoint($3.OutPoint v) { $_setField(4, v); }
+  set outpoint($3.OutPoint v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasOutpoint() => $_has(3);
   @$pb.TagNumber(4)
-  void clearOutpoint() => $_clearField(4);
+  void clearOutpoint() => clearField(4);
   @$pb.TagNumber(4)
   $3.OutPoint ensureOutpoint() => $_ensure(3);
 
   @$pb.TagNumber(5)
   $1.ReverseHex get prevBlockHash => $_getN(4);
   @$pb.TagNumber(5)
-  set prevBlockHash($1.ReverseHex v) { $_setField(5, v); }
+  set prevBlockHash($1.ReverseHex v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasPrevBlockHash() => $_has(4);
   @$pb.TagNumber(5)
-  void clearPrevBlockHash() => $_clearField(5);
+  void clearPrevBlockHash() => clearField(5);
   @$pb.TagNumber(5)
   $1.ReverseHex ensurePrevBlockHash() => $_ensure(4);
 }
@@ -962,33 +960,33 @@ class CreateSidechainProposalResponse_NotConfirmed extends $pb.GeneratedMessage 
   @$pb.TagNumber(1)
   $1.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($1.ReverseHex v) { $_setField(1, v); }
+  set blockHash($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
-  void clearBlockHash() => $_clearField(1);
+  void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureBlockHash() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $0.UInt32Value get height => $_getN(1);
   @$pb.TagNumber(2)
-  set height($0.UInt32Value v) { $_setField(2, v); }
+  set height($0.UInt32Value v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasHeight() => $_has(1);
   @$pb.TagNumber(2)
-  void clearHeight() => $_clearField(2);
+  void clearHeight() => clearField(2);
   @$pb.TagNumber(2)
   $0.UInt32Value ensureHeight() => $_ensure(1);
 
   @$pb.TagNumber(3)
   $1.ReverseHex get prevBlockHash => $_getN(2);
   @$pb.TagNumber(3)
-  set prevBlockHash($1.ReverseHex v) { $_setField(3, v); }
+  set prevBlockHash($1.ReverseHex v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasPrevBlockHash() => $_has(2);
   @$pb.TagNumber(3)
-  void clearPrevBlockHash() => $_clearField(3);
+  void clearPrevBlockHash() => clearField(3);
   @$pb.TagNumber(3)
   $1.ReverseHex ensurePrevBlockHash() => $_ensure(2);
 }
@@ -1051,27 +1049,27 @@ class CreateSidechainProposalResponse extends $pb.GeneratedMessage {
   static CreateSidechainProposalResponse? _defaultInstance;
 
   CreateSidechainProposalResponse_Event whichEvent() => _CreateSidechainProposalResponse_EventByTag[$_whichOneof(0)]!;
-  void clearEvent() => $_clearField($_whichOneof(0));
+  void clearEvent() => clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
   CreateSidechainProposalResponse_Confirmed get confirmed => $_getN(0);
   @$pb.TagNumber(1)
-  set confirmed(CreateSidechainProposalResponse_Confirmed v) { $_setField(1, v); }
+  set confirmed(CreateSidechainProposalResponse_Confirmed v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasConfirmed() => $_has(0);
   @$pb.TagNumber(1)
-  void clearConfirmed() => $_clearField(1);
+  void clearConfirmed() => clearField(1);
   @$pb.TagNumber(1)
   CreateSidechainProposalResponse_Confirmed ensureConfirmed() => $_ensure(0);
 
   @$pb.TagNumber(2)
   CreateSidechainProposalResponse_NotConfirmed get notConfirmed => $_getN(1);
   @$pb.TagNumber(2)
-  set notConfirmed(CreateSidechainProposalResponse_NotConfirmed v) { $_setField(2, v); }
+  set notConfirmed(CreateSidechainProposalResponse_NotConfirmed v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasNotConfirmed() => $_has(1);
   @$pb.TagNumber(2)
-  void clearNotConfirmed() => $_clearField(2);
+  void clearNotConfirmed() => clearField(2);
   @$pb.TagNumber(2)
   CreateSidechainProposalResponse_NotConfirmed ensureNotConfirmed() => $_ensure(1);
 }
@@ -1128,7 +1126,7 @@ class CreateWalletRequest extends $pb.GeneratedMessage {
 
   /// BIP39 mnemonic. 12 or 24 words.
   @$pb.TagNumber(1)
-  $pb.PbList<$core.String> get mnemonicWords => $_getList(0);
+  $core.List<$core.String> get mnemonicWords => $_getList(0);
 
   /// Path to a file containing the mnemonic.
   @$pb.TagNumber(2)
@@ -1138,7 +1136,7 @@ class CreateWalletRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasMnemonicPath() => $_has(1);
   @$pb.TagNumber(2)
-  void clearMnemonicPath() => $_clearField(2);
+  void clearMnemonicPath() => clearField(2);
 
   /// Password for the wallet. Used to encrypt the mnemonic in storage.
   /// NOT a BIP39 passphrase.
@@ -1149,7 +1147,7 @@ class CreateWalletRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasPassword() => $_has(2);
   @$pb.TagNumber(3)
-  void clearPassword() => $_clearField(3);
+  void clearPassword() => clearField(3);
 }
 
 class CreateWalletResponse extends $pb.GeneratedMessage {
@@ -1268,7 +1266,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasConfirmedSats() => $_has(0);
   @$pb.TagNumber(1)
-  void clearConfirmedSats() => $_clearField(1);
+  void clearConfirmedSats() => clearField(1);
 
   @$pb.TagNumber(2)
   $fixnum.Int64 get pendingSats => $_getI64(1);
@@ -1277,7 +1275,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasPendingSats() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPendingSats() => $_clearField(2);
+  void clearPendingSats() => clearField(2);
 }
 
 class ListSidechainDepositTransactionsRequest extends $pb.GeneratedMessage {
@@ -1360,22 +1358,22 @@ class ListSidechainDepositTransactionsResponse_SidechainDepositTransaction exten
   @$pb.TagNumber(1)
   $0.UInt32Value get sidechainNumber => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechainNumber($0.UInt32Value v) { $_setField(1, v); }
+  set sidechainNumber($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainNumber() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSidechainNumber() => $_clearField(1);
+  void clearSidechainNumber() => clearField(1);
   @$pb.TagNumber(1)
   $0.UInt32Value ensureSidechainNumber() => $_ensure(0);
 
   @$pb.TagNumber(2)
   WalletTransaction get tx => $_getN(1);
   @$pb.TagNumber(2)
-  set tx(WalletTransaction v) { $_setField(2, v); }
+  set tx(WalletTransaction v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasTx() => $_has(1);
   @$pb.TagNumber(2)
-  void clearTx() => $_clearField(2);
+  void clearTx() => clearField(2);
   @$pb.TagNumber(2)
   WalletTransaction ensureTx() => $_ensure(1);
 }
@@ -1421,7 +1419,7 @@ class ListSidechainDepositTransactionsResponse extends $pb.GeneratedMessage {
   static ListSidechainDepositTransactionsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $pb.PbList<ListSidechainDepositTransactionsResponse_SidechainDepositTransaction> get transactions => $_getList(0);
+  $core.List<ListSidechainDepositTransactionsResponse_SidechainDepositTransaction> get transactions => $_getList(0);
 }
 
 class ListTransactionsRequest extends $pb.GeneratedMessage {
@@ -1497,7 +1495,7 @@ class ListTransactionsResponse extends $pb.GeneratedMessage {
   static ListTransactionsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $pb.PbList<WalletTransaction> get transactions => $_getList(0);
+  $core.List<WalletTransaction> get transactions => $_getList(0);
 }
 
 enum SendTransactionRequest_FeeRate_Fee {
@@ -1558,7 +1556,7 @@ class SendTransactionRequest_FeeRate extends $pb.GeneratedMessage {
   static SendTransactionRequest_FeeRate? _defaultInstance;
 
   SendTransactionRequest_FeeRate_Fee whichFee() => _SendTransactionRequest_FeeRate_FeeByTag[$_whichOneof(0)]!;
-  void clearFee() => $_clearField($_whichOneof(0));
+  void clearFee() => clearField($_whichOneof(0));
 
   /// Fee rate, measured in sat/vbyte.
   @$pb.TagNumber(1)
@@ -1568,7 +1566,7 @@ class SendTransactionRequest_FeeRate extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasSatPerVbyte() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSatPerVbyte() => $_clearField(1);
+  void clearSatPerVbyte() => clearField(1);
 
   /// Fee amount, measured in sats.
   @$pb.TagNumber(2)
@@ -1578,7 +1576,7 @@ class SendTransactionRequest_FeeRate extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasSats() => $_has(1);
   @$pb.TagNumber(2)
-  void clearSats() => $_clearField(2);
+  void clearSats() => clearField(2);
 }
 
 /// A previous unspent transaction output that must be included in the
@@ -1631,11 +1629,11 @@ class SendTransactionRequest_RequiredUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($1.ReverseHex v) { $_setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureTxid() => $_ensure(0);
 
@@ -1646,16 +1644,15 @@ class SendTransactionRequest_RequiredUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
-  void clearVout() => $_clearField(2);
+  void clearVout() => clearField(2);
 }
 
 class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest({
-    $pb.PbMap<$core.String, $fixnum.Int64>? destinations,
+    $core.Map<$core.String, $fixnum.Int64>? destinations,
     SendTransactionRequest_FeeRate? feeRate,
     $1.Hex? opReturnMessage,
     $core.Iterable<SendTransactionRequest_RequiredUtxo>? requiredUtxos,
-    $core.String? drainWalletTo,
   }) {
     final $result = create();
     if (destinations != null) {
@@ -1670,9 +1667,6 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (requiredUtxos != null) {
       $result.requiredUtxos.addAll(requiredUtxos);
     }
-    if (drainWalletTo != null) {
-      $result.drainWalletTo = drainWalletTo;
-    }
     return $result;
   }
   SendTransactionRequest._() : super();
@@ -1684,7 +1678,6 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     ..aOM<SendTransactionRequest_FeeRate>(2, _omitFieldNames ? '' : 'feeRate', subBuilder: SendTransactionRequest_FeeRate.create)
     ..aOM<$1.Hex>(3, _omitFieldNames ? '' : 'opReturnMessage', subBuilder: $1.Hex.create)
     ..pc<SendTransactionRequest_RequiredUtxo>(4, _omitFieldNames ? '' : 'requiredUtxos', $pb.PbFieldType.PM, subBuilder: SendTransactionRequest_RequiredUtxo.create)
-    ..aOS(5, _omitFieldNames ? '' : 'drainWalletTo')
     ..hasRequiredFields = false
   ;
 
@@ -1711,17 +1704,17 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
 
   /// Address -> satoshi amount
   @$pb.TagNumber(1)
-  $pb.PbMap<$core.String, $fixnum.Int64> get destinations => $_getMap(0);
+  $core.Map<$core.String, $fixnum.Int64> get destinations => $_getMap(0);
 
   /// If not set, a reasonable rate is used by asking Core for an estimate.
   @$pb.TagNumber(2)
   SendTransactionRequest_FeeRate get feeRate => $_getN(1);
   @$pb.TagNumber(2)
-  set feeRate(SendTransactionRequest_FeeRate v) { $_setField(2, v); }
+  set feeRate(SendTransactionRequest_FeeRate v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasFeeRate() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFeeRate() => $_clearField(2);
+  void clearFeeRate() => clearField(2);
   @$pb.TagNumber(2)
   SendTransactionRequest_FeeRate ensureFeeRate() => $_ensure(1);
 
@@ -1730,29 +1723,16 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $1.Hex get opReturnMessage => $_getN(2);
   @$pb.TagNumber(3)
-  set opReturnMessage($1.Hex v) { $_setField(3, v); }
+  set opReturnMessage($1.Hex v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasOpReturnMessage() => $_has(2);
   @$pb.TagNumber(3)
-  void clearOpReturnMessage() => $_clearField(3);
+  void clearOpReturnMessage() => clearField(3);
   @$pb.TagNumber(3)
   $1.Hex ensureOpReturnMessage() => $_ensure(2);
 
-  /// UTXOs that must be included in the transaction. Incompatible with
-  /// specifying a draining address.
   @$pb.TagNumber(4)
-  $pb.PbList<SendTransactionRequest_RequiredUtxo> get requiredUtxos => $_getList(3);
-
-  /// If set, the transaction will send all UTXOs in the wallet to this address.
-  /// Incompatible with specifying required UTXOs.
-  @$pb.TagNumber(5)
-  $core.String get drainWalletTo => $_getSZ(4);
-  @$pb.TagNumber(5)
-  set drainWalletTo($core.String v) { $_setString(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasDrainWalletTo() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearDrainWalletTo() => $_clearField(5);
+  $core.List<SendTransactionRequest_RequiredUtxo> get requiredUtxos => $_getList(3);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -1798,11 +1778,11 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($1.ReverseHex v) { $_setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureTxid() => $_ensure(0);
 }
@@ -1854,7 +1834,7 @@ class UnlockWalletRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasPassword() => $_has(0);
   @$pb.TagNumber(1)
-  void clearPassword() => $_clearField(1);
+  void clearPassword() => clearField(1);
 }
 
 class UnlockWalletResponse extends $pb.GeneratedMessage {
@@ -1938,11 +1918,11 @@ class GenerateBlocksRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.UInt32Value get blocks => $_getN(0);
   @$pb.TagNumber(1)
-  set blocks($0.UInt32Value v) { $_setField(1, v); }
+  set blocks($0.UInt32Value v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlocks() => $_has(0);
   @$pb.TagNumber(1)
-  void clearBlocks() => $_clearField(1);
+  void clearBlocks() => clearField(1);
   @$pb.TagNumber(1)
   $0.UInt32Value ensureBlocks() => $_ensure(0);
 
@@ -1955,7 +1935,7 @@ class GenerateBlocksRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasAckAllProposals() => $_has(1);
   @$pb.TagNumber(2)
-  void clearAckAllProposals() => $_clearField(2);
+  void clearAckAllProposals() => clearField(2);
 }
 
 class GenerateBlocksResponse extends $pb.GeneratedMessage {
@@ -2001,11 +1981,11 @@ class GenerateBlocksResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get blockHash => $_getN(0);
   @$pb.TagNumber(1)
-  set blockHash($1.ReverseHex v) { $_setField(1, v); }
+  set blockHash($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
-  void clearBlockHash() => $_clearField(1);
+  void clearBlockHash() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureBlockHash() => $_ensure(0);
 }
@@ -2047,7 +2027,7 @@ class GetInfoResponse extends $pb.GeneratedMessage {
     $core.String? network,
     $core.int? transactionCount,
     $core.int? unspentOutputCount,
-    $pb.PbMap<$core.String, $core.String>? descriptors,
+    $core.Map<$core.String, $core.String>? descriptors,
   }) {
     final $result = create();
     if (network != null) {
@@ -2105,7 +2085,7 @@ class GetInfoResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasNetwork() => $_has(0);
   @$pb.TagNumber(1)
-  void clearNetwork() => $_clearField(1);
+  void clearNetwork() => clearField(1);
 
   /// Total number of transactions in the wallet
   @$pb.TagNumber(2)
@@ -2115,7 +2095,7 @@ class GetInfoResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasTransactionCount() => $_has(1);
   @$pb.TagNumber(2)
-  void clearTransactionCount() => $_clearField(2);
+  void clearTransactionCount() => clearField(2);
 
   /// Number of UTXOs in the wallet.
   @$pb.TagNumber(3)
@@ -2125,10 +2105,10 @@ class GetInfoResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasUnspentOutputCount() => $_has(2);
   @$pb.TagNumber(3)
-  void clearUnspentOutputCount() => $_clearField(3);
+  void clearUnspentOutputCount() => clearField(3);
 
   @$pb.TagNumber(4)
-  $pb.PbMap<$core.String, $core.String> get descriptors => $_getMap(3);
+  $core.Map<$core.String, $core.String> get descriptors => $_getMap(3);
 }
 
 class ListUnspentOutputsRequest extends $pb.GeneratedMessage {
@@ -2169,11 +2149,6 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     $core.int? vout,
     $fixnum.Int64? valueSats,
     $core.bool? isInternal,
-    $core.bool? isConfirmed,
-    $core.int? confirmedAtBlock,
-    $5.Timestamp? confirmedAtTime,
-    $1.ReverseHex? confirmedTransitively,
-    $5.Timestamp? unconfirmedLastSeen,
   }) {
     final $result = create();
     if (txid != null) {
@@ -2188,21 +2163,6 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     if (isInternal != null) {
       $result.isInternal = isInternal;
     }
-    if (isConfirmed != null) {
-      $result.isConfirmed = isConfirmed;
-    }
-    if (confirmedAtBlock != null) {
-      $result.confirmedAtBlock = confirmedAtBlock;
-    }
-    if (confirmedAtTime != null) {
-      $result.confirmedAtTime = confirmedAtTime;
-    }
-    if (confirmedTransitively != null) {
-      $result.confirmedTransitively = confirmedTransitively;
-    }
-    if (unconfirmedLastSeen != null) {
-      $result.unconfirmedLastSeen = unconfirmedLastSeen;
-    }
     return $result;
   }
   ListUnspentOutputsResponse_Output._() : super();
@@ -2214,11 +2174,6 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(4, _omitFieldNames ? '' : 'isInternal')
-    ..aOB(5, _omitFieldNames ? '' : 'isConfirmed')
-    ..a<$core.int>(6, _omitFieldNames ? '' : 'confirmedAtBlock', $pb.PbFieldType.OU3)
-    ..aOM<$5.Timestamp>(7, _omitFieldNames ? '' : 'confirmedAtTime', subBuilder: $5.Timestamp.create)
-    ..aOM<$1.ReverseHex>(8, _omitFieldNames ? '' : 'confirmedTransitively', subBuilder: $1.ReverseHex.create)
-    ..aOM<$5.Timestamp>(9, _omitFieldNames ? '' : 'unconfirmedLastSeen', subBuilder: $5.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -2246,11 +2201,11 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $1.ReverseHex get txid => $_getN(0);
   @$pb.TagNumber(1)
-  set txid($1.ReverseHex v) { $_setField(1, v); }
+  set txid($1.ReverseHex v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
   @$pb.TagNumber(1)
   $1.ReverseHex ensureTxid() => $_ensure(0);
 
@@ -2261,7 +2216,7 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
-  void clearVout() => $_clearField(2);
+  void clearVout() => clearField(2);
 
   @$pb.TagNumber(3)
   $fixnum.Int64 get valueSats => $_getI64(2);
@@ -2270,7 +2225,7 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasValueSats() => $_has(2);
   @$pb.TagNumber(3)
-  void clearValueSats() => $_clearField(3);
+  void clearValueSats() => clearField(3);
 
   /// An internal output is one that was created by the wallet itself
   /// as change output for a transaction.
@@ -2281,58 +2236,7 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasIsInternal() => $_has(3);
   @$pb.TagNumber(4)
-  void clearIsInternal() => $_clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.bool get isConfirmed => $_getBF(4);
-  @$pb.TagNumber(5)
-  set isConfirmed($core.bool v) { $_setBool(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasIsConfirmed() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearIsConfirmed() => $_clearField(5);
-
-  @$pb.TagNumber(6)
-  $core.int get confirmedAtBlock => $_getIZ(5);
-  @$pb.TagNumber(6)
-  set confirmedAtBlock($core.int v) { $_setUnsignedInt32(5, v); }
-  @$pb.TagNumber(6)
-  $core.bool hasConfirmedAtBlock() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearConfirmedAtBlock() => $_clearField(6);
-
-  @$pb.TagNumber(7)
-  $5.Timestamp get confirmedAtTime => $_getN(6);
-  @$pb.TagNumber(7)
-  set confirmedAtTime($5.Timestamp v) { $_setField(7, v); }
-  @$pb.TagNumber(7)
-  $core.bool hasConfirmedAtTime() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearConfirmedAtTime() => $_clearField(7);
-  @$pb.TagNumber(7)
-  $5.Timestamp ensureConfirmedAtTime() => $_ensure(6);
-
-  @$pb.TagNumber(8)
-  $1.ReverseHex get confirmedTransitively => $_getN(7);
-  @$pb.TagNumber(8)
-  set confirmedTransitively($1.ReverseHex v) { $_setField(8, v); }
-  @$pb.TagNumber(8)
-  $core.bool hasConfirmedTransitively() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearConfirmedTransitively() => $_clearField(8);
-  @$pb.TagNumber(8)
-  $1.ReverseHex ensureConfirmedTransitively() => $_ensure(7);
-
-  @$pb.TagNumber(9)
-  $5.Timestamp get unconfirmedLastSeen => $_getN(8);
-  @$pb.TagNumber(9)
-  set unconfirmedLastSeen($5.Timestamp v) { $_setField(9, v); }
-  @$pb.TagNumber(9)
-  $core.bool hasUnconfirmedLastSeen() => $_has(8);
-  @$pb.TagNumber(9)
-  void clearUnconfirmedLastSeen() => $_clearField(9);
-  @$pb.TagNumber(9)
-  $5.Timestamp ensureUnconfirmedLastSeen() => $_ensure(8);
+  void clearIsInternal() => clearField(4);
 }
 
 class ListUnspentOutputsResponse extends $pb.GeneratedMessage {
@@ -2376,7 +2280,7 @@ class ListUnspentOutputsResponse extends $pb.GeneratedMessage {
   static ListUnspentOutputsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $pb.PbList<ListUnspentOutputsResponse_Output> get outputs => $_getList(0);
+  $core.List<ListUnspentOutputsResponse_Output> get outputs => $_getList(0);
 }
 
 class WalletServiceApi {
@@ -2395,12 +2299,6 @@ class WalletServiceApi {
   $async.Future<CreateNewAddressResponse> createNewAddress($pb.ClientContext? ctx, CreateNewAddressRequest request) =>
     _client.invoke<CreateNewAddressResponse>(ctx, 'WalletService', 'CreateNewAddress', request, CreateNewAddressResponse())
   ;
-  /// Create a new sidechain proposal (M1 in BIP300) and persist to the local
-  /// database for further processing.
-  /// Sidechain proposals must be included in the coinbase transaction of a
-  /// newly mined block, so this proposal is not active until the wallet has
-  /// been able to generate a new block.
-  /// Returns a stream of (non-)confirmation events for the sidechain proposal.
   $async.Future<CreateSidechainProposalResponse> createSidechainProposal($pb.ClientContext? ctx, CreateSidechainProposalRequest request) =>
     _client.invoke<CreateSidechainProposalResponse>(ctx, 'WalletService', 'CreateSidechainProposal', request, CreateSidechainProposalResponse())
   ;
@@ -2428,7 +2326,6 @@ class WalletServiceApi {
   $async.Future<UnlockWalletResponse> unlockWallet($pb.ClientContext? ctx, UnlockWalletRequest request) =>
     _client.invoke<UnlockWalletResponse>(ctx, 'WalletService', 'UnlockWallet', request, UnlockWalletResponse())
   ;
-  /// Available on regtest and signet only.
   $async.Future<GenerateBlocksResponse> generateBlocks($pb.ClientContext? ctx, GenerateBlocksRequest request) =>
     _client.invoke<GenerateBlocksResponse>(ctx, 'WalletService', 'GenerateBlocks', request, GenerateBlocksResponse())
   ;

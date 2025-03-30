@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: cusf/sidechain/v1/sidechain.proto
 //
-// @dart = 3.3
+// @dart = 2.12
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names

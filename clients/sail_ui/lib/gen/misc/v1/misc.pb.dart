@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: misc/v1/misc.proto
 //
-// @dart = 3.3
+// @dart = 2.12
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -17,8 +17,6 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
-
-export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class ListOPReturnResponse extends $pb.GeneratedMessage {
   factory ListOPReturnResponse({
@@ -61,7 +59,7 @@ class ListOPReturnResponse extends $pb.GeneratedMessage {
   static ListOPReturnResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $pb.PbList<OPReturn> get opReturns => $_getList(0);
+  $core.List<OPReturn> get opReturns => $_getList(0);
 }
 
 class OPReturn extends $pb.GeneratedMessage {
@@ -141,7 +139,7 @@ class OPReturn extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => $_clearField(1);
+  void clearId() => clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get message => $_getSZ(1);
@@ -150,7 +148,7 @@ class OPReturn extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasMessage() => $_has(1);
   @$pb.TagNumber(2)
-  void clearMessage() => $_clearField(2);
+  void clearMessage() => clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get txid => $_getSZ(2);
@@ -159,7 +157,7 @@ class OPReturn extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasTxid() => $_has(2);
   @$pb.TagNumber(3)
-  void clearTxid() => $_clearField(3);
+  void clearTxid() => clearField(3);
 
   @$pb.TagNumber(4)
   $core.int get vout => $_getIZ(3);
@@ -168,7 +166,7 @@ class OPReturn extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasVout() => $_has(3);
   @$pb.TagNumber(4)
-  void clearVout() => $_clearField(4);
+  void clearVout() => clearField(4);
 
   @$pb.TagNumber(5)
   $core.int get height => $_getIZ(4);
@@ -177,7 +175,7 @@ class OPReturn extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasHeight() => $_has(4);
   @$pb.TagNumber(5)
-  void clearHeight() => $_clearField(5);
+  void clearHeight() => clearField(5);
 
   @$pb.TagNumber(6)
   $fixnum.Int64 get feeSats => $_getI64(5);
@@ -186,16 +184,16 @@ class OPReturn extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool hasFeeSats() => $_has(5);
   @$pb.TagNumber(6)
-  void clearFeeSats() => $_clearField(6);
+  void clearFeeSats() => clearField(6);
 
   @$pb.TagNumber(7)
   $0.Timestamp get createTime => $_getN(6);
   @$pb.TagNumber(7)
-  set createTime($0.Timestamp v) { $_setField(7, v); }
+  set createTime($0.Timestamp v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasCreateTime() => $_has(6);
   @$pb.TagNumber(7)
-  void clearCreateTime() => $_clearField(7);
+  void clearCreateTime() => clearField(7);
   @$pb.TagNumber(7)
   $0.Timestamp ensureCreateTime() => $_ensure(6);
 }
@@ -257,7 +255,7 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTopic() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTopic() => $_clearField(1);
+  void clearTopic() => clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get headline => $_getSZ(1);
@@ -266,7 +264,7 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasHeadline() => $_has(1);
   @$pb.TagNumber(2)
-  void clearHeadline() => $_clearField(2);
+  void clearHeadline() => clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get content => $_getSZ(2);
@@ -275,7 +273,7 @@ class BroadcastNewsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasContent() => $_has(2);
   @$pb.TagNumber(3)
-  void clearContent() => $_clearField(3);
+  void clearContent() => clearField(3);
 }
 
 class BroadcastNewsResponse extends $pb.GeneratedMessage {
@@ -325,7 +323,7 @@ class BroadcastNewsResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
 }
 
 class CreateTopicRequest extends $pb.GeneratedMessage {
@@ -380,7 +378,7 @@ class CreateTopicRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTopic() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTopic() => $_clearField(1);
+  void clearTopic() => clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
@@ -389,7 +387,7 @@ class CreateTopicRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
-  void clearName() => $_clearField(2);
+  void clearName() => clearField(2);
 }
 
 class CreateTopicResponse extends $pb.GeneratedMessage {
@@ -439,7 +437,7 @@ class CreateTopicResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
 }
 
 class Topic extends $pb.GeneratedMessage {
@@ -504,7 +502,7 @@ class Topic extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => $_clearField(1);
+  void clearId() => clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get topic => $_getSZ(1);
@@ -513,7 +511,7 @@ class Topic extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasTopic() => $_has(1);
   @$pb.TagNumber(2)
-  void clearTopic() => $_clearField(2);
+  void clearTopic() => clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get name => $_getSZ(2);
@@ -522,16 +520,16 @@ class Topic extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasName() => $_has(2);
   @$pb.TagNumber(3)
-  void clearName() => $_clearField(3);
+  void clearName() => clearField(3);
 
   @$pb.TagNumber(4)
   $0.Timestamp get createTime => $_getN(3);
   @$pb.TagNumber(4)
-  set createTime($0.Timestamp v) { $_setField(4, v); }
+  set createTime($0.Timestamp v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasCreateTime() => $_has(3);
   @$pb.TagNumber(4)
-  void clearCreateTime() => $_clearField(4);
+  void clearCreateTime() => clearField(4);
   @$pb.TagNumber(4)
   $0.Timestamp ensureCreateTime() => $_ensure(3);
 }
@@ -577,7 +575,7 @@ class ListTopicsResponse extends $pb.GeneratedMessage {
   static ListTopicsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $pb.PbList<Topic> get topics => $_getList(0);
+  $core.List<Topic> get topics => $_getList(0);
 }
 
 class ListCoinNewsRequest extends $pb.GeneratedMessage {
@@ -628,7 +626,7 @@ class ListCoinNewsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTopic() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTopic() => $_clearField(1);
+  void clearTopic() => clearField(1);
 }
 
 class CoinNews extends $pb.GeneratedMessage {
@@ -703,7 +701,7 @@ class CoinNews extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => $_clearField(1);
+  void clearId() => clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get topic => $_getSZ(1);
@@ -712,7 +710,7 @@ class CoinNews extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasTopic() => $_has(1);
   @$pb.TagNumber(2)
-  void clearTopic() => $_clearField(2);
+  void clearTopic() => clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get headline => $_getSZ(2);
@@ -721,7 +719,7 @@ class CoinNews extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasHeadline() => $_has(2);
   @$pb.TagNumber(3)
-  void clearHeadline() => $_clearField(3);
+  void clearHeadline() => clearField(3);
 
   @$pb.TagNumber(4)
   $core.String get content => $_getSZ(3);
@@ -730,7 +728,7 @@ class CoinNews extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasContent() => $_has(3);
   @$pb.TagNumber(4)
-  void clearContent() => $_clearField(4);
+  void clearContent() => clearField(4);
 
   @$pb.TagNumber(5)
   $fixnum.Int64 get feeSats => $_getI64(4);
@@ -739,16 +737,16 @@ class CoinNews extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasFeeSats() => $_has(4);
   @$pb.TagNumber(5)
-  void clearFeeSats() => $_clearField(5);
+  void clearFeeSats() => clearField(5);
 
   @$pb.TagNumber(6)
   $0.Timestamp get createTime => $_getN(5);
   @$pb.TagNumber(6)
-  set createTime($0.Timestamp v) { $_setField(6, v); }
+  set createTime($0.Timestamp v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasCreateTime() => $_has(5);
   @$pb.TagNumber(6)
-  void clearCreateTime() => $_clearField(6);
+  void clearCreateTime() => clearField(6);
   @$pb.TagNumber(6)
   $0.Timestamp ensureCreateTime() => $_ensure(5);
 }
@@ -794,7 +792,7 @@ class ListCoinNewsResponse extends $pb.GeneratedMessage {
   static ListCoinNewsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $pb.PbList<CoinNews> get coinNews => $_getList(0);
+  $core.List<CoinNews> get coinNews => $_getList(0);
 }
 
 class MiscServiceApi {

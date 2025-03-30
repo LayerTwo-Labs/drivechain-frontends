@@ -6,8 +6,11 @@ format:
 
 lint: format fix
 
-gen:
-    echo "to generate stuff for bitwindow, go into sail_ui and run just gen"
+gen-enforcer:
+    buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
+
+gen: gen-enforcer
+    buf generate ../../servers/bitwindow
 
 clean:
     rm assets/bin/*
