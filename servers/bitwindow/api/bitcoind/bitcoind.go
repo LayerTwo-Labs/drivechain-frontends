@@ -485,3 +485,311 @@ func (s *Server) GetBlock(ctx context.Context, c *connect.Request[pb.GetBlockReq
 		},
 	}), nil
 }
+
+// AddMultisigAddress implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) AddMultisigAddress(ctx context.Context, req *connect.Request[pb.AddMultisigAddressRequest]) (*connect.Response[pb.AddMultisigAddressResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.AddMultisigAddress(ctx, connect.NewRequest(&corepb.AddMultisigAddressRequest{
+		RequiredSigs: req.Msg.RequiredSigs,
+		Keys:         req.Msg.Keys,
+		Label:        req.Msg.Label,
+		Wallet:       req.Msg.Wallet,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not add multisig address: %w", err)
+	}
+
+	return connect.NewResponse(&pb.AddMultisigAddressResponse{
+		Address: res.Msg.Address,
+	}), nil
+}
+
+// BackupWallet implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) BackupWallet(ctx context.Context, req *connect.Request[pb.BackupWalletRequest]) (*connect.Response[pb.BackupWalletResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = bitcoind.BackupWallet(ctx, connect.NewRequest(&corepb.BackupWalletRequest{
+		Destination: req.Msg.Destination,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not backup wallet: %w", err)
+	}
+
+	return connect.NewResponse(&pb.BackupWalletResponse{}), nil
+}
+
+// CreateMultisig implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) CreateMultisig(ctx context.Context, req *connect.Request[pb.CreateMultisigRequest]) (*connect.Response[pb.CreateMultisigResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.CreateMultisig(ctx, connect.NewRequest(&corepb.CreateMultisigRequest{
+		RequiredSigs: req.Msg.RequiredSigs,
+		Keys:         req.Msg.Keys,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not create multisig: %w", err)
+	}
+
+	return connect.NewResponse(&pb.CreateMultisigResponse{
+		Address:      res.Msg.Address,
+		RedeemScript: res.Msg.RedeemScript,
+	}), nil
+}
+
+// CreateWallet implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) CreateWallet(ctx context.Context, req *connect.Request[pb.CreateWalletRequest]) (*connect.Response[pb.CreateWalletResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.CreateWallet(ctx, connect.NewRequest(&corepb.CreateWalletRequest{
+		Name:               req.Msg.Name,
+		DisablePrivateKeys: req.Msg.DisablePrivateKeys,
+		Blank:              req.Msg.Blank,
+		Passphrase:         req.Msg.Passphrase,
+		AvoidReuse:         req.Msg.AvoidReuse,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not create wallet: %w", err)
+	}
+
+	return connect.NewResponse(&pb.CreateWalletResponse{
+		Name:    res.Msg.Name,
+		Warning: res.Msg.Warning,
+	}), nil
+}
+
+// DumpPrivKey implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) DumpPrivKey(ctx context.Context, req *connect.Request[pb.DumpPrivKeyRequest]) (*connect.Response[pb.DumpPrivKeyResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.DumpPrivKey(ctx, connect.NewRequest(&corepb.DumpPrivKeyRequest{
+		Address: req.Msg.Address,
+		Wallet:  req.Msg.Wallet,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not dump private key: %w", err)
+	}
+
+	return connect.NewResponse(&pb.DumpPrivKeyResponse{
+		PrivateKey: res.Msg.PrivateKey,
+	}), nil
+}
+
+// DumpWallet implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) DumpWallet(ctx context.Context, req *connect.Request[pb.DumpWalletRequest]) (*connect.Response[pb.DumpWalletResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.DumpWallet(ctx, connect.NewRequest(&corepb.DumpWalletRequest{
+		Filename: req.Msg.Filename,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not dump wallet: %w", err)
+	}
+
+	return connect.NewResponse(&pb.DumpWalletResponse{
+		Filename: res.Msg.Filename,
+	}), nil
+}
+
+// GetAccount implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) GetAccount(ctx context.Context, req *connect.Request[pb.GetAccountRequest]) (*connect.Response[pb.GetAccountResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.GetAccount(ctx, connect.NewRequest(&corepb.GetAccountRequest{
+		Address: req.Msg.Address,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not get account: %w", err)
+	}
+
+	return connect.NewResponse(&pb.GetAccountResponse{
+		Account: res.Msg.Account,
+	}), nil
+}
+
+// GetAddressesByAccount implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) GetAddressesByAccount(ctx context.Context, req *connect.Request[pb.GetAddressesByAccountRequest]) (*connect.Response[pb.GetAddressesByAccountResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.GetAddressesByAccount(ctx, connect.NewRequest(&corepb.GetAddressesByAccountRequest{
+		Account: req.Msg.Account,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not get addresses: %w", err)
+	}
+
+	return connect.NewResponse(&pb.GetAddressesByAccountResponse{
+		Addresses: res.Msg.Addresses,
+	}), nil
+}
+
+// ImportAddress implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) ImportAddress(ctx context.Context, req *connect.Request[pb.ImportAddressRequest]) (*connect.Response[pb.ImportAddressResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = bitcoind.ImportAddress(ctx, connect.NewRequest(&corepb.ImportAddressRequest{
+		Address: req.Msg.Address,
+		Label:   req.Msg.Label,
+		Rescan:  req.Msg.Rescan,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not import address: %w", err)
+	}
+
+	return connect.NewResponse(&pb.ImportAddressResponse{}), nil
+}
+
+// ImportPrivKey implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) ImportPrivKey(ctx context.Context, req *connect.Request[pb.ImportPrivKeyRequest]) (*connect.Response[pb.ImportPrivKeyResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = bitcoind.ImportPrivKey(ctx, connect.NewRequest(&corepb.ImportPrivKeyRequest{
+		PrivateKey: req.Msg.PrivateKey,
+		Label:      req.Msg.Label,
+		Rescan:     req.Msg.Rescan,
+		Wallet:     req.Msg.Wallet,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not import private key: %w", err)
+	}
+
+	return connect.NewResponse(&pb.ImportPrivKeyResponse{}), nil
+}
+
+// ImportPubKey implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) ImportPubKey(ctx context.Context, req *connect.Request[pb.ImportPubKeyRequest]) (*connect.Response[pb.ImportPubKeyResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = bitcoind.ImportPubKey(ctx, connect.NewRequest(&corepb.ImportPubKeyRequest{
+		Pubkey: req.Msg.Pubkey,
+		Rescan: req.Msg.Rescan,
+		Wallet: req.Msg.Wallet,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not import public key: %w", err)
+	}
+
+	return connect.NewResponse(&pb.ImportPubKeyResponse{}), nil
+}
+
+// ImportWallet implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) ImportWallet(ctx context.Context, req *connect.Request[pb.ImportWalletRequest]) (*connect.Response[pb.ImportWalletResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = bitcoind.ImportWallet(ctx, connect.NewRequest(&corepb.ImportWalletRequest{
+		Filename: req.Msg.Filename,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not import wallet: %w", err)
+	}
+
+	return connect.NewResponse(&pb.ImportWalletResponse{}), nil
+}
+
+// KeyPoolRefill implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) KeyPoolRefill(ctx context.Context, req *connect.Request[pb.KeyPoolRefillRequest]) (*connect.Response[pb.KeyPoolRefillResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = bitcoind.KeyPoolRefill(ctx, connect.NewRequest(&corepb.KeyPoolRefillRequest{
+		NewSize: req.Msg.NewSize,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not refill keypool: %w", err)
+	}
+
+	return connect.NewResponse(&pb.KeyPoolRefillResponse{}), nil
+}
+
+// ListAccounts implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) ListAccounts(ctx context.Context, req *connect.Request[pb.ListAccountsRequest]) (*connect.Response[pb.ListAccountsResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.ListAccounts(ctx, connect.NewRequest(&corepb.ListAccountsRequest{
+		MinConf: req.Msg.MinConf,
+		Wallet:  req.Msg.Wallet,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not list accounts: %w", err)
+	}
+
+	return connect.NewResponse(&pb.ListAccountsResponse{
+		Accounts: res.Msg.Accounts,
+	}), nil
+}
+
+// SetAccount implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) SetAccount(ctx context.Context, req *connect.Request[pb.SetAccountRequest]) (*connect.Response[pb.SetAccountResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = bitcoind.SetAccount(ctx, connect.NewRequest(&corepb.SetAccountRequest{
+		Address: req.Msg.Address,
+		Account: req.Msg.Account,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not set account: %w", err)
+	}
+
+	return connect.NewResponse(&pb.SetAccountResponse{}), nil
+}
+
+// UnloadWallet implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) UnloadWallet(ctx context.Context, req *connect.Request[pb.UnloadWalletRequest]) (*connect.Response[pb.UnloadWalletResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = bitcoind.UnloadWallet(ctx, connect.NewRequest(&corepb.UnloadWalletRequest{
+		WalletName: req.Msg.WalletName,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not unload wallet: %w", err)
+	}
+
+	return connect.NewResponse(&pb.UnloadWalletResponse{}), nil
+}
