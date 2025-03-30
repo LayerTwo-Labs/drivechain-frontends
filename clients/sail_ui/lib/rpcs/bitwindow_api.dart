@@ -90,40 +90,29 @@ abstract class BitcoindAPI {
   Future<GetRawTransactionResponse> getRawTransaction(String txid);
   Future<Block> getBlock({String? hash, int? height});
 
-  Future<CreateWalletResponse> createWallet(
-    String name,
-    String passphrase,
-    bool avoidReuse,
-    bool disablePrivateKeys,
-    bool blank,
-  );
-  Future<BackupWalletResponse> backupWallet(String destination, String wallet);
-  Future<DumpWalletResponse> dumpWallet(String filename, String wallet);
-  Future<ImportWalletResponse> importWallet(String filename, String wallet);
-  Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet);
+  Future<CreateWalletResponse> createWallet(String name, String passphrase, bool avoidReuse);
+  Future<BackupWalletResponse> backupWallet(String name);
+  Future<DumpWalletResponse> dumpWallet(String name);
+  Future<ImportWalletResponse> importWallet(String name, String passphrase, String privateKey);
+  Future<UnloadWalletResponse> unloadWallet(String name);
 
   // Key/Address management
-  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet);
-  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet);
-  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet);
-  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet);
-  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet);
+  Future<DumpPrivKeyResponse> dumpPrivKey(String address);
+  Future<ImportPrivKeyResponse> importPrivKey(String privKey, String label, bool rescan);
+  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan);
+  Future<ImportPubKeyResponse> importPubKey(String pubKey, String label, bool rescan);
+  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize);
 
   // Account operations
-  Future<GetAccountResponse> getAccount(String address, String wallet);
+  Future<GetAccountResponse> getAccount(String address);
 
-  Future<SetAccountResponse> setAccount(String address, String account, String wallet);
-  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet);
-  Future<ListAccountsResponse> listAccounts(int minConf, String wallet);
+  Future<SetAccountResponse> setAccount(String address, String account);
+  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account);
+  Future<ListAccountsResponse> listAccounts(int minConf);
 
   // Multi-sig operations
-  Future<AddMultisigAddressResponse> addMultisigAddress(
-    int requiredSigs,
-    List<String> keys,
-    String label,
-    String wallet,
-  );
-  Future<CreateMultisigResponse> createMultisig(int requiredSigs, List<String> keys);
+  Future<AddMultisigAddressResponse> addMultisigAddress(int nRequired, List<String> keys, String account);
+  Future<CreateMultisigResponse> createMultisig(int nRequired, List<String> keys);
 }
 
 abstract class DrivechainAPI {
@@ -586,7 +575,7 @@ class _BitcoindAPILive implements BitcoindAPI {
 
   // Key/Address management
   @override
-  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet) async {
+  Future<DumpPrivKeyResponse> dumpPrivKey(String address) async {
     try {
       log.d('Dumping private key for address: $address');
       final response = await _client.dumpPrivKey(
@@ -602,15 +591,14 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet) async {
+  Future<ImportPrivKeyResponse> importPrivKey(String privKey, String label, bool rescan) async {
     try {
       log.d('Importing private key with label: $label');
       final response = await _client.importPrivKey(
         ImportPrivKeyRequest()
-          ..privateKey = privateKey
+          ..privKey = privKey
           ..label = label
-          ..rescan = rescan
-          ..wallet = wallet,
+          ..rescan = rescan,
       );
       log.i('Successfully imported private key');
       return response;
@@ -622,15 +610,14 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet) async {
+  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan) async {
     try {
       log.d('Importing address: $address with label: $label');
       final response = await _client.importAddress(
         ImportAddressRequest()
           ..address = address
           ..label = label
-          ..rescan = rescan
-          ..wallet = wallet,
+          ..rescan = rescan,
       );
       log.i('Successfully imported address');
       return response;
@@ -642,14 +629,14 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet) async {
+  Future<ImportPubKeyResponse> importPubKey(String pubKey, String label, bool rescan) async {
     try {
-      log.d('Importing public key');
+      log.d('Importing public key with label: $label');
       final response = await _client.importPubKey(
         ImportPubKeyRequest()
-          ..pubkey = pubkey
-          ..rescan = rescan
-          ..wallet = wallet,
+          ..pubKey = pubKey
+          ..label = label
+          ..rescan = rescan,
       );
       log.i('Successfully imported public key');
       return response;
@@ -661,7 +648,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet) async {
+  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize) async {
     try {
       log.d('Refilling key pool to size: $newSize');
       final response = await _client.keyPoolRefill(
@@ -678,7 +665,7 @@ class _BitcoindAPILive implements BitcoindAPI {
 
   // Account operations
   @override
-  Future<GetAccountResponse> getAccount(String address, String wallet) async {
+  Future<GetAccountResponse> getAccount(String address) async {
     try {
       log.d('Getting account for address: $address');
       final response = await _client.getAccount(
@@ -694,14 +681,13 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<SetAccountResponse> setAccount(String address, String account, String wallet) async {
+  Future<SetAccountResponse> setAccount(String address, String account) async {
     try {
       log.d('Setting account: $account for address: $address');
       final response = await _client.setAccount(
         SetAccountRequest()
           ..address = address
-          ..account = account
-          ..wallet = wallet,
+          ..account = account,
       );
       log.i('Successfully set account');
       return response;
@@ -713,7 +699,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet) async {
+  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account) async {
     try {
       log.d('Getting addresses for account: $account');
       final response = await _client.getAddressesByAccount(
@@ -729,7 +715,7 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<ListAccountsResponse> listAccounts(int minConf, String wallet) async {
+  Future<ListAccountsResponse> listAccounts(int minConf) async {
     try {
       log.d('Listing accounts with minConf: $minConf');
       final response = await _client.listAccounts(
@@ -746,20 +732,14 @@ class _BitcoindAPILive implements BitcoindAPI {
 
   // Multi-sig operations
   @override
-  Future<AddMultisigAddressResponse> addMultisigAddress(
-    int requiredSigs,
-    List<String> keys,
-    String label,
-    String wallet,
-  ) async {
+  Future<AddMultisigAddressResponse> addMultisigAddress(int nRequired, List<String> keys, String account) async {
     try {
-      log.d('Adding multisig address: required=$requiredSigs, keys=${keys.length}, account=$label');
+      log.d('Adding multisig address: required=$nRequired, keys=${keys.length}, account=$account');
       final response = await _client.addMultisigAddress(
         AddMultisigAddressRequest()
-          ..requiredSigs = requiredSigs
+          ..nRequired = nRequired
           ..keys.addAll(keys)
-          ..label = label
-          ..wallet = wallet,
+          ..account = account,
       );
       log.i('Successfully added multisig address');
       return response;
@@ -771,117 +751,18 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 
   @override
-  Future<CreateMultisigResponse> createMultisig(int requiredSigs, List<String> keys) async {
+  Future<CreateMultisigResponse> createMultisig(int nRequired, List<String> keys) async {
     try {
-      log.d('Creating multisig: required=$requiredSigs, keys=${keys.length}');
+      log.d('Creating multisig: required=$nRequired, keys=${keys.length}');
       final response = await _client.createMultisig(
         CreateMultisigRequest()
-          ..requiredSigs = requiredSigs
+          ..nRequired = nRequired
           ..keys.addAll(keys),
       );
       log.i('Successfully created multisig');
       return response;
     } catch (e) {
       final error = 'could not create multisig: ${extractConnectException(e)}';
-      log.e(error);
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<BackupWalletResponse> backupWallet(String destination, String wallet) async {
-    try {
-      log.d('Backing up wallet: $wallet to $destination');
-      final response = await _client.backupWallet(
-        BackupWalletRequest()
-          ..destination = destination
-          ..wallet = wallet,
-      );
-      log.i('Successfully backed up wallet');
-      return response;
-    } catch (e) {
-      final error = 'could not backup wallet: ${extractConnectException(e)}';
-      log.e(error);
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<CreateWalletResponse> createWallet(
-    String name,
-    String passphrase,
-    bool avoidReuse,
-    bool disablePrivateKeys,
-    bool blank,
-  ) async {
-    try {
-      log.d('Creating wallet: $name');
-      final response = await _client.createWallet(
-        CreateWalletRequest()
-          ..name = name
-          ..passphrase = passphrase
-          ..avoidReuse = avoidReuse
-          ..disablePrivateKeys = disablePrivateKeys
-          ..blank = blank,
-      );
-      log.i('Successfully created wallet');
-      return response;
-    } catch (e) {
-      final error = 'could not create wallet: ${extractConnectException(e)}';
-      log.e(error);
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<DumpWalletResponse> dumpWallet(String filename, String wallet) async {
-    try {
-      log.d('Dumping wallet: $wallet to $filename');
-      final response = await _client.dumpWallet(
-        DumpWalletRequest()
-          ..filename = filename
-          ..wallet = wallet,
-      );
-      log.i('Successfully dumped wallet');
-      return response;
-    } catch (e) {
-      final error = 'could not dump wallet: ${extractConnectException(e)}';
-      log.e(error);
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<ImportWalletResponse> importWallet(String filename, String wallet) async {
-    try {
-      log.d('Importing wallet from $filename');
-      final response = await _client.importWallet(
-        ImportWalletRequest()
-          ..filename = filename
-          ..wallet = wallet,
-      );
-      log.i('Successfully imported wallet');
-      return response;
-    } catch (e) {
-      final error = 'could not import wallet: ${extractConnectException(e)}';
-      log.e(error);
-      throw BitcoindException(error);
-    }
-  }
-
-  @override
-  Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet) async {
-    try {
-      log.d('Unloading wallet: $walletName');
-      final response = await _client.unloadWallet(
-        UnloadWalletRequest()
-          ..walletName = walletName
-          ..wallet = wallet,
-      );
-      log.i('Successfully unloaded wallet');
-      return response;
-    } catch (e) {
-      final error = 'could not unload wallet: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }
