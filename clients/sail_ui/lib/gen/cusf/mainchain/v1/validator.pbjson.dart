@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: cusf/mainchain/v1/validator.proto
 //
-// @dart = 3.3
+// @dart = 2.12
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -179,34 +179,26 @@ const GetBlockHeaderInfoRequest$json = {
   '1': 'GetBlockHeaderInfoRequest',
   '2': [
     {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
-    {'1': 'max_ancestors', '3': 2, '4': 1, '5': 13, '9': 0, '10': 'maxAncestors', '17': true},
-  ],
-  '8': [
-    {'1': '_max_ancestors'},
   ],
 };
 
 /// Descriptor for `GetBlockHeaderInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockHeaderInfoRequestDescriptor = $convert.base64Decode(
     'ChlHZXRCbG9ja0hlYWRlckluZm9SZXF1ZXN0EjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLm'
-    'NvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSKAoNbWF4X2FuY2VzdG9ycxgCIAEoDUgA'
-    'UgxtYXhBbmNlc3RvcnOIAQFCEAoOX21heF9hbmNlc3RvcnM=');
+    'NvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2g=');
 
 @$core.Deprecated('Use getBlockHeaderInfoResponseDescriptor instead')
 const GetBlockHeaderInfoResponse$json = {
   '1': 'GetBlockHeaderInfoResponse',
   '2': [
     {'1': 'header_info', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.BlockHeaderInfo', '10': 'headerInfo'},
-    {'1': 'ancestor_infos', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.BlockHeaderInfo', '10': 'ancestorInfos'},
   ],
 };
 
 /// Descriptor for `GetBlockHeaderInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockHeaderInfoResponseDescriptor = $convert.base64Decode(
     'ChpHZXRCbG9ja0hlYWRlckluZm9SZXNwb25zZRJDCgtoZWFkZXJfaW5mbxgBIAEoCzIiLmN1c2'
-    'YubWFpbmNoYWluLnYxLkJsb2NrSGVhZGVySW5mb1IKaGVhZGVySW5mbxJJCg5hbmNlc3Rvcl9p'
-    'bmZvcxgCIAMoCzIiLmN1c2YubWFpbmNoYWluLnYxLkJsb2NrSGVhZGVySW5mb1INYW5jZXN0b3'
-    'JJbmZvcw==');
+    'YubWFpbmNoYWluLnYxLkJsb2NrSGVhZGVySW5mb1IKaGVhZGVySW5mbw==');
 
 @$core.Deprecated('Use getBlockInfoRequestDescriptor instead')
 const GetBlockInfoRequest$json = {
@@ -244,10 +236,6 @@ const GetBmmHStarCommitmentRequest$json = {
   '2': [
     {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
     {'1': 'sidechain_id', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainId'},
-    {'1': 'max_ancestors', '3': 3, '4': 1, '5': 13, '9': 0, '10': 'maxAncestors', '17': true},
-  ],
-  '8': [
-    {'1': '_max_ancestors'},
   ],
 };
 
@@ -255,8 +243,7 @@ const GetBmmHStarCommitmentRequest$json = {
 final $typed_data.Uint8List getBmmHStarCommitmentRequestDescriptor = $convert.base64Decode(
     'ChxHZXRCbW1IU3RhckNvbW1pdG1lbnRSZXF1ZXN0EjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdX'
     'NmLmNvbW1vbi52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSPwoMc2lkZWNoYWluX2lkGAIgASgL'
-    'MhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZBIoCg1tYXhfYW5jZX'
-    'N0b3JzGAMgASgNSABSDG1heEFuY2VzdG9yc4gBAUIQCg5fbWF4X2FuY2VzdG9ycw==');
+    'MhwuZ29vZ2xlLnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZA==');
 
 @$core.Deprecated('Use getBmmHStarCommitmentResponseDescriptor instead')
 const GetBmmHStarCommitmentResponse$json = {
@@ -265,7 +252,7 @@ const GetBmmHStarCommitmentResponse$json = {
     {'1': 'block_not_found', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError', '9': 0, '10': 'blockNotFound'},
     {'1': 'commitment', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment', '9': 0, '10': 'commitment'},
   ],
-  '3': [GetBmmHStarCommitmentResponse_BlockNotFoundError$json, GetBmmHStarCommitmentResponse_OptionalCommitment$json, GetBmmHStarCommitmentResponse_Commitment$json],
+  '3': [GetBmmHStarCommitmentResponse_BlockNotFoundError$json, GetBmmHStarCommitmentResponse_Commitment$json],
   '8': [
     {'1': 'result'},
   ],
@@ -280,22 +267,10 @@ const GetBmmHStarCommitmentResponse_BlockNotFoundError$json = {
 };
 
 @$core.Deprecated('Use getBmmHStarCommitmentResponseDescriptor instead')
-const GetBmmHStarCommitmentResponse_OptionalCommitment$json = {
-  '1': 'OptionalCommitment',
-  '2': [
-    {'1': 'commitment', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '9': 0, '10': 'commitment', '17': true},
-  ],
-  '8': [
-    {'1': '_commitment'},
-  ],
-};
-
-@$core.Deprecated('Use getBmmHStarCommitmentResponseDescriptor instead')
 const GetBmmHStarCommitmentResponse_Commitment$json = {
   '1': 'Commitment',
   '2': [
     {'1': 'commitment', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ConsensusHex', '9': 0, '10': 'commitment', '17': true},
-    {'1': 'ancestor_commitments', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment', '10': 'ancestorCommitments'},
   ],
   '8': [
     {'1': '_commitment'},
@@ -309,13 +284,9 @@ final $typed_data.Uint8List getBmmHStarCommitmentResponseDescriptor = $convert.b
     'a05vdEZvdW5kRXJyb3JIAFINYmxvY2tOb3RGb3VuZBJdCgpjb21taXRtZW50GAIgASgLMjsuY3'
     'VzZi5tYWluY2hhaW4udjEuR2V0Qm1tSFN0YXJDb21taXRtZW50UmVzcG9uc2UuQ29tbWl0bWVu'
     'dEgAUgpjb21taXRtZW50Gk8KEkJsb2NrTm90Rm91bmRFcnJvchI5CgpibG9ja19oYXNoGAEgAS'
-    'gLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIJYmxvY2tIYXNoGmYKEk9wdGlvbmFsQ29t'
-    'bWl0bWVudBJBCgpjb21taXRtZW50GAEgASgLMhwuY3VzZi5jb21tb24udjEuQ29uc2Vuc3VzSG'
-    'V4SABSCmNvbW1pdG1lbnSIAQFCDQoLX2NvbW1pdG1lbnQa1gEKCkNvbW1pdG1lbnQSQQoKY29t'
-    'bWl0bWVudBgBIAEoCzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleEgAUgpjb21taXRtZW'
-    '50iAEBEnYKFGFuY2VzdG9yX2NvbW1pdG1lbnRzGAIgAygLMkMuY3VzZi5tYWluY2hhaW4udjEu'
-    'R2V0Qm1tSFN0YXJDb21taXRtZW50UmVzcG9uc2UuT3B0aW9uYWxDb21taXRtZW50UhNhbmNlc3'
-    'RvckNvbW1pdG1lbnRzQg0KC19jb21taXRtZW50QggKBnJlc3VsdA==');
+    'gLMhouY3VzZi5jb21tb24udjEuUmV2ZXJzZUhleFIJYmxvY2tIYXNoGl4KCkNvbW1pdG1lbnQS'
+    'QQoKY29tbWl0bWVudBgBIAEoCzIcLmN1c2YuY29tbW9uLnYxLkNvbnNlbnN1c0hleEgAUgpjb2'
+    '1taXRtZW50iAEBQg0KC19jb21taXRtZW50QggKBnJlc3VsdA==');
 
 @$core.Deprecated('Use getChainInfoRequestDescriptor instead')
 const GetChainInfoRequest$json = {
@@ -770,7 +741,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ValidatorS
   '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse': GetBmmHStarCommitmentResponse$json,
   '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError': GetBmmHStarCommitmentResponse_BlockNotFoundError$json,
   '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment': GetBmmHStarCommitmentResponse_Commitment$json,
-  '.cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment': GetBmmHStarCommitmentResponse_OptionalCommitment$json,
   '.cusf.mainchain.v1.GetChainInfoRequest': GetChainInfoRequest$json,
   '.cusf.mainchain.v1.GetChainInfoResponse': GetChainInfoResponse$json,
   '.cusf.mainchain.v1.GetChainTipRequest': GetChainTipRequest$json,

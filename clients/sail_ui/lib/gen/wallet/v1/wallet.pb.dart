@@ -2,7 +2,7 @@
 //  Generated code. Do not modify.
 //  source: wallet/v1/wallet.proto
 //
-// @dart = 3.3
+// @dart = 2.12
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
@@ -17,8 +17,6 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
-
-export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class GetNewAddressResponse extends $pb.GeneratedMessage {
   factory GetNewAddressResponse({
@@ -72,7 +70,7 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasAddress() => $_has(0);
   @$pb.TagNumber(1)
-  void clearAddress() => $_clearField(1);
+  void clearAddress() => clearField(1);
 
   @$pb.TagNumber(2)
   $core.int get index => $_getIZ(1);
@@ -81,7 +79,7 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasIndex() => $_has(1);
   @$pb.TagNumber(2)
-  void clearIndex() => $_clearField(2);
+  void clearIndex() => clearField(2);
 }
 
 class SendTransactionRequest extends $pb.GeneratedMessage {
@@ -152,7 +150,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasDestination() => $_has(0);
   @$pb.TagNumber(1)
-  void clearDestination() => $_clearField(1);
+  void clearDestination() => clearField(1);
 
   /// The amount in satoshi to send.
   @$pb.TagNumber(2)
@@ -162,7 +160,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasAmount() => $_has(1);
   @$pb.TagNumber(2)
-  void clearAmount() => $_clearField(2);
+  void clearAmount() => clearField(2);
 
   /// Fee rate, measured in BTC/kvB. If set to zero, a reasonable
   /// rate is used by asking Core for an estimate.
@@ -173,7 +171,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasFeeRate() => $_has(2);
   @$pb.TagNumber(3)
-  void clearFeeRate() => $_clearField(3);
+  void clearFeeRate() => clearField(3);
 
   /// Message to include as an OP_RETURN output
   @$pb.TagNumber(4)
@@ -183,7 +181,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasOpReturnMessage() => $_has(3);
   @$pb.TagNumber(4)
-  void clearOpReturnMessage() => $_clearField(4);
+  void clearOpReturnMessage() => clearField(4);
 
   /// If set, will save the address with this label in the address book
   @$pb.TagNumber(5)
@@ -193,7 +191,7 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool hasLabel() => $_has(4);
   @$pb.TagNumber(5)
-  void clearLabel() => $_clearField(5);
+  void clearLabel() => clearField(5);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -243,7 +241,7 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
 }
 
 class GetBalanceResponse extends $pb.GeneratedMessage {
@@ -298,7 +296,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasConfirmedSatoshi() => $_has(0);
   @$pb.TagNumber(1)
-  void clearConfirmedSatoshi() => $_clearField(1);
+  void clearConfirmedSatoshi() => clearField(1);
 
   @$pb.TagNumber(2)
   $fixnum.Int64 get pendingSatoshi => $_getI64(1);
@@ -307,7 +305,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasPendingSatoshi() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPendingSatoshi() => $_clearField(2);
+  void clearPendingSatoshi() => clearField(2);
 }
 
 class ListTransactionsResponse extends $pb.GeneratedMessage {
@@ -351,7 +349,7 @@ class ListTransactionsResponse extends $pb.GeneratedMessage {
   static ListTransactionsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $pb.PbList<WalletTransaction> get transactions => $_getList(0);
+  $core.List<WalletTransaction> get transactions => $_getList(0);
 }
 
 class Confirmation extends $pb.GeneratedMessage {
@@ -406,16 +404,16 @@ class Confirmation extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasHeight() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHeight() => $_clearField(1);
+  void clearHeight() => clearField(1);
 
   @$pb.TagNumber(2)
   $0.Timestamp get timestamp => $_getN(1);
   @$pb.TagNumber(2)
-  set timestamp($0.Timestamp v) { $_setField(2, v); }
+  set timestamp($0.Timestamp v) { setField(2, v); }
   @$pb.TagNumber(2)
   $core.bool hasTimestamp() => $_has(1);
   @$pb.TagNumber(2)
-  void clearTimestamp() => $_clearField(2);
+  void clearTimestamp() => clearField(2);
   @$pb.TagNumber(2)
   $0.Timestamp ensureTimestamp() => $_ensure(1);
 }
@@ -487,7 +485,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
 
   @$pb.TagNumber(2)
   $fixnum.Int64 get feeSats => $_getI64(1);
@@ -496,7 +494,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasFeeSats() => $_has(1);
   @$pb.TagNumber(2)
-  void clearFeeSats() => $_clearField(2);
+  void clearFeeSats() => clearField(2);
 
   @$pb.TagNumber(3)
   $fixnum.Int64 get receivedSatoshi => $_getI64(2);
@@ -505,7 +503,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasReceivedSatoshi() => $_has(2);
   @$pb.TagNumber(3)
-  void clearReceivedSatoshi() => $_clearField(3);
+  void clearReceivedSatoshi() => clearField(3);
 
   @$pb.TagNumber(4)
   $fixnum.Int64 get sentSatoshi => $_getI64(3);
@@ -514,16 +512,16 @@ class WalletTransaction extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasSentSatoshi() => $_has(3);
   @$pb.TagNumber(4)
-  void clearSentSatoshi() => $_clearField(4);
+  void clearSentSatoshi() => clearField(4);
 
   @$pb.TagNumber(5)
   Confirmation get confirmationTime => $_getN(4);
   @$pb.TagNumber(5)
-  set confirmationTime(Confirmation v) { $_setField(5, v); }
+  set confirmationTime(Confirmation v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasConfirmationTime() => $_has(4);
   @$pb.TagNumber(5)
-  void clearConfirmationTime() => $_clearField(5);
+  void clearConfirmationTime() => clearField(5);
   @$pb.TagNumber(5)
   Confirmation ensureConfirmationTime() => $_ensure(4);
 }
@@ -575,7 +573,7 @@ class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasSlot() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSlot() => $_clearField(1);
+  void clearSlot() => clearField(1);
 }
 
 class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessage {
@@ -645,7 +643,7 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get address => $_getSZ(1);
@@ -654,7 +652,7 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
   @$pb.TagNumber(2)
   $core.bool hasAddress() => $_has(1);
   @$pb.TagNumber(2)
-  void clearAddress() => $_clearField(2);
+  void clearAddress() => clearField(2);
 
   @$pb.TagNumber(3)
   $core.double get amount => $_getN(2);
@@ -663,7 +661,7 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
   @$pb.TagNumber(3)
   $core.bool hasAmount() => $_has(2);
   @$pb.TagNumber(3)
-  void clearAmount() => $_clearField(3);
+  void clearAmount() => clearField(3);
 
   @$pb.TagNumber(4)
   $core.double get fee => $_getN(3);
@@ -672,7 +670,7 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
   @$pb.TagNumber(4)
   $core.bool hasFee() => $_has(3);
   @$pb.TagNumber(4)
-  void clearFee() => $_clearField(4);
+  void clearFee() => clearField(4);
 
   @$pb.TagNumber(5)
   $core.int get confirmations => $_getIZ(4);
@@ -681,7 +679,7 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
   @$pb.TagNumber(5)
   $core.bool hasConfirmations() => $_has(4);
   @$pb.TagNumber(5)
-  void clearConfirmations() => $_clearField(5);
+  void clearConfirmations() => clearField(5);
 }
 
 class ListSidechainDepositsResponse extends $pb.GeneratedMessage {
@@ -725,7 +723,7 @@ class ListSidechainDepositsResponse extends $pb.GeneratedMessage {
   static ListSidechainDepositsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $pb.PbList<ListSidechainDepositsResponse_SidechainDeposit> get deposits => $_getList(0);
+  $core.List<ListSidechainDepositsResponse_SidechainDeposit> get deposits => $_getList(0);
 }
 
 class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
@@ -791,7 +789,7 @@ class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasSlot() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSlot() => $_clearField(1);
+  void clearSlot() => clearField(1);
 
   /// The sidechain deposit address to send to.
   @$pb.TagNumber(2)
@@ -801,7 +799,7 @@ class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasDestination() => $_has(1);
   @$pb.TagNumber(2)
-  void clearDestination() => $_clearField(2);
+  void clearDestination() => clearField(2);
 
   /// The amount in BTC to send. eg 0.1
   @$pb.TagNumber(3)
@@ -811,7 +809,7 @@ class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasAmount() => $_has(2);
   @$pb.TagNumber(3)
-  void clearAmount() => $_clearField(3);
+  void clearAmount() => clearField(3);
 
   /// The fee in BTC
   @$pb.TagNumber(4)
@@ -821,7 +819,7 @@ class CreateSidechainDepositRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasFee() => $_has(3);
   @$pb.TagNumber(4)
-  void clearFee() => $_clearField(4);
+  void clearFee() => clearField(4);
 }
 
 class CreateSidechainDepositResponse extends $pb.GeneratedMessage {
@@ -871,7 +869,7 @@ class CreateSidechainDepositResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearTxid() => $_clearField(1);
+  void clearTxid() => clearField(1);
 }
 
 class SignMessageRequest extends $pb.GeneratedMessage {
@@ -921,7 +919,7 @@ class SignMessageRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasMessage() => $_has(0);
   @$pb.TagNumber(1)
-  void clearMessage() => $_clearField(1);
+  void clearMessage() => clearField(1);
 }
 
 class SignMessageResponse extends $pb.GeneratedMessage {
@@ -971,7 +969,7 @@ class SignMessageResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasSignature() => $_has(0);
   @$pb.TagNumber(1)
-  void clearSignature() => $_clearField(1);
+  void clearSignature() => clearField(1);
 }
 
 class VerifyMessageRequest extends $pb.GeneratedMessage {
@@ -1031,7 +1029,7 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasMessage() => $_has(0);
   @$pb.TagNumber(1)
-  void clearMessage() => $_clearField(1);
+  void clearMessage() => clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get signature => $_getSZ(1);
@@ -1040,7 +1038,7 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasSignature() => $_has(1);
   @$pb.TagNumber(2)
-  void clearSignature() => $_clearField(2);
+  void clearSignature() => clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get publicKey => $_getSZ(2);
@@ -1049,7 +1047,7 @@ class VerifyMessageRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool hasPublicKey() => $_has(2);
   @$pb.TagNumber(3)
-  void clearPublicKey() => $_clearField(3);
+  void clearPublicKey() => clearField(3);
 }
 
 class VerifyMessageResponse extends $pb.GeneratedMessage {
@@ -1099,7 +1097,7 @@ class VerifyMessageResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasValid() => $_has(0);
   @$pb.TagNumber(1)
-  void clearValid() => $_clearField(1);
+  void clearValid() => clearField(1);
 }
 
 class WalletServiceApi {
@@ -1112,8 +1110,6 @@ class WalletServiceApi {
   $async.Future<GetBalanceResponse> getBalance($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<GetBalanceResponse>(ctx, 'WalletService', 'GetBalance', request, GetBalanceResponse())
   ;
-  /// Problem: deriving nilly willy here is potentially problematic. There's no way of listing
-  /// out unused addresses, so we risk crossing the sync gap.
   $async.Future<GetNewAddressResponse> getNewAddress($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<GetNewAddressResponse>(ctx, 'WalletService', 'GetNewAddress', request, GetNewAddressResponse())
   ;
