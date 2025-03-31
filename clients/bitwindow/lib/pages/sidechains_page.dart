@@ -108,7 +108,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
           ),
           const SizedBox(height: SailStyleValues.padding16),
           Center(
-            child: QtButton(
+            child: SailButton(
               label: 'Add / Remove',
               onPressed: () => showSidechainActivationManagementModal(context),
             ),
@@ -436,8 +436,9 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                   size: TextFieldSize.small,
                 ),
               ),
-              QtIconButton(
-                tooltip: 'Paste from clipboard',
+              SailButton(
+                label: '',
+                variant: ButtonVariant.ghost,
                 onPressed: () async {
                   try {
                     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
@@ -450,24 +451,13 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                     showSnackBar(context, 'Error accessing clipboard');
                   }
                 },
-                icon: Icon(
-                  Icons.content_paste_rounded,
-                  size: 20.0,
-                  color: context.sailTheme.colors.text,
-                ),
+                icon: SailSVGAsset.iconCopy,
               ),
-              QtIconButton(
-                tooltip: 'Format Deposit Address',
+              SailButton(
+                label: '',
+                variant: ButtonVariant.ghost,
                 onPressed: viewModel.formatAddress,
-                icon: SailSVG.fromAsset(
-                  SailSVGAsset.iconFormat,
-                  width: 20,
-                  color: context.sailTheme.colors.text,
-                ),
-              ),
-              Expanded(
-                flex: 1, // This makes the remaining space take up 1/3
-                child: Container(),
+                icon: SailSVGAsset.iconFormat,
               ),
             ],
           ),
@@ -500,7 +490,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
               color: context.sailTheme.colors.textTertiary,
             ),
           ),
-          QtButton(
+          SailButton(
             label: 'Deposit',
             disabled: viewModel.addressController.text == '' ||
                 viewModel.depositAmountController.text == '' ||

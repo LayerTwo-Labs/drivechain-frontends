@@ -280,9 +280,10 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       SailText.primary13('Hash Calculator', bold: true),
-                      SailTextButton(
+                      SailButton(
                         label: '?',
                         onPressed: () async => _showHelpDialog(context),
+                        variant: ButtonVariant.ghost,
                       ),
                     ],
                   ),
@@ -326,16 +327,16 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                                 color: theme.colors.error,
                               ),
                             const Spacer(),
-                            SailButton.secondary(
-                              'Clear',
+                            SailButton(
+                              label: 'Clear',
                               onPressed: () async {
                                 _inputController.clear();
                                 _hmacKeyController.clear();
                               },
-                              size: ButtonSize.small,
+                              variant: ButtonVariant.secondary,
                             ),
-                            SailButton.secondary(
-                              'Paste',
+                            SailButton(
+                              label: 'Paste',
                               onPressed: () async {
                                 final data = await Clipboard.getData(Clipboard.kTextPlain);
                                 final text = data?.text;
@@ -343,11 +344,11 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                                   _inputController.text = text;
                                 }
                               },
-                              size: ButtonSize.small,
+                              variant: ButtonVariant.secondary,
                             ),
                             if (_isHexMode)
-                              SailButton.secondary(
-                                'Flip Bytes',
+                              SailButton(
+                                label: 'Flip Bytes',
                                 onPressed: () async {
                                   if (_isValidHex(_inputController.text)) {
                                     final bytes = _getInputBytes().toList().reversed.toList();
@@ -355,7 +356,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                                         bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
                                   }
                                 },
-                                size: ButtonSize.small,
+                                variant: ButtonVariant.secondary,
                               ),
                           ],
                         ),

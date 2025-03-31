@@ -108,21 +108,10 @@ class _SignMessageTabState extends State<SignMessageTab> {
             hintText: 'Signature',
           ),
           const SizedBox(height: 24),
-          QtButton(
-            size: ButtonSize.small,
+          SailButton(
             onPressed: _signMessage,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailSVG.fromAsset(
-                  SailSVGAsset.iconPen,
-                  height: 13,
-                  color: theme.colors.background,
-                ),
-                const SizedBox(width: 8),
-                SailText.background13('Sign Message'),
-              ],
-            ),
+            label: 'Sign Message',
+            icon: SailSVGAsset.iconPen,
           ),
           if (_error != null) ...[
             const SizedBox(height: 16),
@@ -215,21 +204,10 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
             label: 'Signature',
             hintText: '',
           ),
-          QtButton(
-            size: ButtonSize.small,
+          SailButton(
+            label: 'Verify Message',
+            icon: SailSVGAsset.iconQuestion,
             onPressed: _verifyMessage,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailSVG.fromAsset(
-                  SailSVGAsset.iconQuestion,
-                  height: 13,
-                  color: theme.colors.background,
-                ),
-                const SizedBox(width: 8),
-                SailText.background13('Verify Message'),
-              ],
-            ),
           ),
           if (_error != null) ...[
             Row(

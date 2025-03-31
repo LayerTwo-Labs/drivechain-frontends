@@ -219,10 +219,9 @@ class _AddressBookContentState extends State<AddressBookContent> {
               child: SailRow(
                 spacing: SailStyleValues.padding08,
                 children: [
-                  QtButton(
+                  SailButton(
                     label: 'Create New Sending Address',
                     onPressed: () async => _showCreateDialog(context),
-                    size: ButtonSize.small,
                   ),
                 ],
               ),
@@ -263,15 +262,13 @@ class _AddressBookContentState extends State<AddressBookContent> {
                     child: SailRow(
                       spacing: SailStyleValues.padding08,
                       children: [
-                        QtButton(
+                        SailButton(
                           label: 'Edit Label',
                           onPressed: () async => _showEditDialog(context, entry),
-                          size: ButtonSize.small,
                         ),
-                        QtButton(
+                        SailButton(
                           label: 'Delete',
                           onPressed: () async => _showDeleteConfirmation(context, entry),
-                          size: ButtonSize.small,
                         ),
                       ],
                     ),
@@ -347,7 +344,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
                     hintText: 'Enter a label to remember this address by',
                     size: TextFieldSize.small,
                   ),
-                  QtButton(
+                  SailButton(
                     label: 'Save',
                     onPressed: () async {
                       try {
@@ -360,7 +357,6 @@ class _AddressBookContentState extends State<AddressBookContent> {
                         // Error is handled by the model
                       }
                     },
-                    size: ButtonSize.small,
                     disabled: model.editLabelController.text.isEmpty,
                   ),
                 ],
@@ -406,13 +402,12 @@ class _AddressBookContentState extends State<AddressBookContent> {
                     hintText: 'Enter a label for this address',
                     size: TextFieldSize.small,
                   ),
-                  QtButton(
+                  SailButton(
                     label: 'Create',
                     onPressed: () async {
                       await model.createEntry();
                       if (context.mounted) Navigator.pop(context);
                     },
-                    size: ButtonSize.small,
                     disabled: model.labelController.text.isEmpty || model.addressController.text.isEmpty,
                   ),
                 ],
@@ -449,7 +444,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
                   SailRow(
                     spacing: SailStyleValues.padding08,
                     children: [
-                      QtButton(
+                      SailButton(
                         label: 'Delete',
                         onPressed: () async {
                           try {
@@ -462,12 +457,10 @@ class _AddressBookContentState extends State<AddressBookContent> {
                             // Error is handled by the model
                           }
                         },
-                        size: ButtonSize.small,
                       ),
-                      QtButton(
+                      SailButton(
                         label: 'Cancel',
                         onPressed: () async => Navigator.pop(context),
-                        size: ButtonSize.small,
                       ),
                     ],
                   ),

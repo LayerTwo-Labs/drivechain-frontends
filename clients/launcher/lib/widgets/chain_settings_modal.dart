@@ -150,10 +150,10 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                 const SizedBox(height: 24),
                 if (baseDir != null)
                   Center(
-                    child: SailButton.primary(
-                      'Open Installation Directory',
+                    child: SailButton(
+                      label: 'Open Installation Directory',
                       onPressed: () async => _openDownloadLocation(widget.chain),
-                      size: ButtonSize.regular,
+                      variant: ButtonVariant.primary,
                     ),
                   ),
               ],

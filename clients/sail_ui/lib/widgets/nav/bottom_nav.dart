@@ -100,10 +100,8 @@ class BottomNav extends StatelessWidget {
                   ),
                 ),
                 Expanded(child: Container()),
-                SailRawButton(
-                  onPressed: () async => displayConnectionStatusDialog(context),
-                  disabled: false,
-                  loading: false,
+                InkWell(
+                  onTap: () async => displayConnectionStatusDialog(context),
                   child: Tooltip(
                     message: model.connectionStatus,
                     child: DecoratedBox(

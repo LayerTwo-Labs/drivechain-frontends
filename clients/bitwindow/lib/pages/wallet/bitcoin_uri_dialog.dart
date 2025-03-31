@@ -68,7 +68,7 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
                 if (_parsedURI!.label != null) SailText.primary13('Label: ${_parsedURI!.label}'),
                 if (_parsedURI!.message != null) SailText.primary13('Message: ${_parsedURI!.message}'),
               ],
-              QtButton(
+              SailButton(
                 label: 'Use',
                 onPressed: () async {
                   if (_parsedURI != null) {
@@ -76,7 +76,6 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
                   }
                 },
                 disabled: _parsedURI == null,
-                size: ButtonSize.small,
               ),
             ],
           ),

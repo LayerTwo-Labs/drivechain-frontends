@@ -75,12 +75,12 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                SailButton.secondary(
-                  'View Z Operation Status',
+                SailButton(
+                  variant: ButtonVariant.secondary,
+                  label: 'View Z Operation Status',
                   onPressed: () async {
                     await router.push(const ZCashOperationStatusesTabRoute());
                   },
-                  size: ButtonSize.regular,
                 ),
               ],
             ),
@@ -230,10 +230,16 @@ class _UnshieldedUTXOTableState extends State<UnshieldedUTXOTable> {
         return [
           SailTableCell(
             value: '',
-            child: SailButton.secondary(
-              'Shield',
+            child: SailButton(
+              label: 'Shield',
+              variant: ButtonVariant.secondary,
+              padding: const EdgeInsets.only(
+                left: 12,
+                right: 12,
+                top: 2,
+                bottom: 2,
+              ),
               onPressed: () => widget.onShield(entry),
-              size: ButtonSize.small,
             ),
           ),
           SailTableCell(value: formatBitcoin(entry.amount)),
@@ -316,10 +322,16 @@ class _ShieldedUTXOTableState extends State<ShieldedUTXOTable> {
         return [
           SailTableCell(
             value: '',
-            child: SailButton.secondary(
-              'Deshield',
+            child: SailButton(
+              label: 'Deshield',
+              variant: ButtonVariant.secondary,
+              padding: const EdgeInsets.only(
+                left: 12,
+                right: 12,
+                top: 2,
+                bottom: 2,
+              ),
               onPressed: () => widget.onDeshield(entry),
-              size: ButtonSize.small,
             ),
           ),
           SailTableCell(value: formatBitcoin(entry.amount)),

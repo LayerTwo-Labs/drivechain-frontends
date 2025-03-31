@@ -167,10 +167,11 @@ class DialogHeader extends StatelessWidget {
         Expanded(
           child: CardHeader(title: title, subtitle: subtitle),
         ),
-        SailScaleButton(
+        SailButton(
+          label: '',
+          variant: ButtonVariant.ghost,
+          icon: SailSVGAsset.iconClose,
           onPressed: onClose,
-          style: SailButtonStyle.secondary,
-          child: SailSVG.icon(SailSVGAsset.iconClose),
         ),
       ],
     );
@@ -191,17 +192,18 @@ class DialogButtons extends StatelessWidget {
       spacing: SailStyleValues.padding08,
       children: [
         Expanded(child: Container()),
-        SailTextButton(
+        SailButton(
           label: onPressed != null ? 'Cancel' : 'Close',
+          variant: ButtonVariant.ghost,
           onPressed: () async {
             Navigator.of(context).pop();
           },
         ),
         if (onPressed != null)
-          SailButton.primary(
-            'Confirm',
+          SailButton(
+            label: 'Confirm',
+            variant: ButtonVariant.primary,
             onPressed: onPressed!,
-            size: ButtonSize.regular,
           ),
       ],
     );

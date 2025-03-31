@@ -74,20 +74,18 @@ class SettingsTabPage extends StatelessWidget {
                                 SailRow(
                                   spacing: SailStyleValues.padding16,
                                   children: [
-                                    SailButton.primary(
-                                      'Inter',
+                                    SailButton(
+                                      label: 'Inter',
                                       onPressed: () async {
                                         settingsmodel.setFont(SailFontValues.inter);
                                       },
-                                      size: ButtonSize.regular,
                                       disabled: settingsmodel.font == SailFontValues.inter,
                                     ),
-                                    SailButton.primary(
-                                      'Source Code Pro',
+                                    SailButton(
+                                      label: 'Source Code Pro',
                                       onPressed: () async {
                                         settingsmodel.setFont(SailFontValues.sourceCodePro);
                                       },
-                                      size: ButtonSize.regular,
                                       disabled: settingsmodel.font == SailFontValues.sourceCodePro,
                                     ),
                                   ],
@@ -105,10 +103,10 @@ class SettingsTabPage extends StatelessWidget {
                       ),
                       const SailSpacing(SailStyleValues.padding20),
                       SailText.primary20('Log file', bold: true),
-                      SailButton.secondary(
-                        'Open Log File',
+                      SailButton(
+                        label: 'Open Log File',
                         onPressed: settingsmodel.openLogRoute,
-                        size: ButtonSize.regular,
+                        variant: ButtonVariant.secondary,
                       ),
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 350),
@@ -191,8 +189,9 @@ class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewMode
           label: 'Config path',
           controller: settings.configPathController,
           hintText: '/the/path/to/your/somethingchain.conf',
-          suffixWidget: SailTextButton(
+          suffixWidget: SailButton(
             label: 'Read file',
+            variant: ButtonVariant.ghost,
             onPressed: () async => settings.readAndSetValuesFromFile(chain, viewModel.network),
           ),
         ),
@@ -220,21 +219,20 @@ class TweakNodeConnectionSettings extends ViewModelWidget<NodeConnectionViewMode
           spacing: SailStyleValues.padding10,
           children: [
             Expanded(child: Container()),
-            SailButton.secondary(
-              'Reset to config file values',
+            SailButton(
+              label: 'Reset to config file values',
               disabled: !settings.inputDifferentThanFile,
               onPressed: () async {
                 settings.resetToFileValues();
               },
-              size: ButtonSize.regular,
+              variant: ButtonVariant.secondary,
             ),
-            SailButton.primary(
-              'Test connection',
+            SailButton(
+              label: 'Test connection',
               loading: loading,
               onPressed: () async {
                 testConnectionValues();
               },
-              size: ButtonSize.regular,
             ),
           ],
         ),

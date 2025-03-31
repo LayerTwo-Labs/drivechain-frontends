@@ -1,10 +1,11 @@
+import 'dart:io';
+
+import 'package:bitwindow/env.dart';
 import 'package:flutter/material.dart';
-import 'package:sail_ui/sail_ui.dart';
-import 'package:stacked/stacked.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'dart:io';
-import 'package:bitwindow/env.dart';
+import 'package:sail_ui/sail_ui.dart';
+import 'package:stacked/stacked.dart';
 
 class CreateMultisigModal extends StatelessWidget {
   const CreateMultisigModal({super.key});
@@ -139,17 +140,17 @@ class CreateMultisigModal extends StatelessWidget {
                     spacing: SailStyleValues.padding08,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      QtButton(
-                        style: SailButtonStyle.secondary,
-                        label: 'Cancel',
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                      QtButton(
+                      SailButton(
                         label: 'Create',
                         onPressed: model.canCreate ? () => model.create(context) : null,
                         loading: model.isBusy,
+                      ),
+                      SailButton(
+                        label: 'Cancel',
+                        variant: ButtonVariant.ghost,
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                        },
                       ),
                     ],
                   ),

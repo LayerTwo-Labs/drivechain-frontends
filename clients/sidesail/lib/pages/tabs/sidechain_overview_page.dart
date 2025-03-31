@@ -84,10 +84,9 @@ class SidechainOverviewTabPage extends StatelessWidget {
                               controller: model.bitcoinAmountController,
                               hintText: '0.00',
                             ),
-                            QtButton(
+                            SailButton(
                               label: 'Send',
                               onPressed: () => model.executeSendOnSidechain(context),
-                              size: ButtonSize.small,
                               loading: model.isSending,
                             ),
                           ],

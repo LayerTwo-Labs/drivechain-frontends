@@ -45,16 +45,16 @@ class SettingsPage extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               children: [
-                SailButton.secondary(
-                  'Open Starters Directory',
+                SailButton(
+                  label: 'Open Starters Directory',
                   onPressed: _openWalletStarterDirectory,
-                  size: ButtonSize.regular,
+                  variant: ButtonVariant.secondary,
                 ),
                 const SizedBox(width: 16),
-                SailButton.secondary(
-                  'Delete All Starters',
+                SailButton(
+                  label: 'Delete All Starters',
                   onPressed: () => _showDeleteConfirmation(context, tabsRouter),
-                  size: ButtonSize.regular,
+                  variant: ButtonVariant.secondary,
                 ),
               ],
             ),
@@ -93,15 +93,15 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
         actions: [
-          SailButton.secondary(
-            'Return',
+          SailButton(
+            label: 'Return',
             onPressed: () async => navigator.pop(false),
-            size: ButtonSize.regular,
+            variant: ButtonVariant.secondary,
           ),
-          SailButton.primary(
-            'Delete',
+          SailButton(
+            label: 'Delete',
             onPressed: () async => navigator.pop(true),
-            size: ButtonSize.regular,
+            variant: ButtonVariant.primary,
           ),
         ],
       ),

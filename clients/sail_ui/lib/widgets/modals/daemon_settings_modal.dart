@@ -70,10 +70,9 @@ class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsMo
                   spacing: SailStyleValues.padding08,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    QtButton(
+                    SailButton(
                       label: 'Close',
                       onPressed: () async => Navigator.pop(context),
-                      size: ButtonSize.small,
                     ),
                   ],
                 ),

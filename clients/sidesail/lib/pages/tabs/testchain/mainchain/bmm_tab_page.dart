@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
@@ -27,23 +26,19 @@ class BlindMergedMiningTabPage extends StatelessWidget {
               Row(
                 children: [
                   const SizedBox(width: 10),
-                  SailButton.icon(
+                  SailButton(
+                    variant: ButtonVariant.secondary,
                     onPressed: model.running ? null : () async => model.toggleRunning(true),
                     disabled: model.running,
-                    icon: const Icon(
-                      Icons.play_arrow,
-                      size: SailStyleValues.iconSizePrimary,
-                    ),
+                    icon: SailSVGAsset.iconArrowForward,
                     label: 'Start mining',
                   ),
                   const SizedBox(width: 10),
-                  SailButton.icon(
+                  SailButton(
+                    variant: ButtonVariant.secondary,
                     onPressed: !model.running ? null : () async => model.toggleRunning(false),
                     disabled: !model.running,
-                    icon: const Icon(
-                      Icons.stop,
-                      size: SailStyleValues.iconSizePrimary,
-                    ),
+                    icon: SailSVGAsset.iconArrow,
                     label: 'Stop mining',
                   ),
                 ],
@@ -77,62 +72,67 @@ class BlindMergedMiningTabPage extends StatelessWidget {
               children: [
                 const SizedBox(height: 20),
                 model.bmmAttempts.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding16,
-                          children: [
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                maxWidth: 640,
-                              ),
-                              child: SailText.primary13(
-                                'Blind Merged Mining (BMM) is the mechanism used for mining on a sidechain.\n\n'
-                                'Pressing the "start" button here starts the BMM process. The BMM process consists '
-                                'of a sequence of attempts which can succeed or fail. When an attempt is first made '
-                                'it has a pending status. The next attempt decides the outcome of the previous one, '
-                                'which is reflected in the table below.\n\n'
-                                'A BMM attempt can also fail to be created in its entirety. In that case, it is not '
-                                "added to the table. Notably, a BMM attempt only succeeds if there's been mined at"
-                                'least 1 block on the mainchain since the last BMM attempt.\n\n'
-                                "A BMM attempt includes a satoshi denominated 'bid' amount. This amount is paid to "
-                                'the the mainchain miners for the right to construct a new sidechain block. The '
-                                'profit from mining the sidechain block is the total fees collected on the sidechain, '
-                                'minus the bid to the mainchain miners. If the fees collected on the sidechain is '
-                                'less than the bid amount, the profit goes negative (money lost!)'
-                                '',
-                              ),
-                            ),
-                            SailText.primary20(
-                              'No BMM attempts yet. Click the start button!\n(and automine at the same time)',
-                              bold: true,
-                            ),
-                          ],
-                        ),
-                      )
-                    : Flexible(
-                        child: SingleChildScrollView(
-                          child: DashboardGroup(
-                            title: 'Blind Merged Mining attempts',
-                            widgetTrailing: SailText.secondary13(model.bmmAttempts.length.toString()),
+                    ? _buildEmptyState()
+                    : Expanded(
+                        child: SailRawCard(
+                          title: 'Blind Merged Mining attempts',
+                          subtitle: '${model.bmmAttempts.length} attempts',
+                          child: Column(
                             children: [
-                              SailColumn(
-                                spacing: 0,
-                                withDivider: true,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: model.bmmAttempts.length,
-                                    itemBuilder: (context, index) => BMMAttemptView(
-                                      key: ValueKey<String>(model.bmmAttempts[index].result.txid),
-                                      bmmAttempt: model.bmmAttempts[index],
-                                      onPressed: () => {},
-                                    ),
-                                  ),
-                                ],
+                              SailSpacing(SailStyleValues.padding16),
+                              Expanded(
+                                child: SailTable(
+                                  getRowId: (index) => model.bmmAttempts[index].result.txid,
+                                  headerBuilder: (context) => [
+                                    const SailTableHeaderCell(name: 'Status'),
+                                    const SailTableHeaderCell(name: 'Transaction'),
+                                    const SailTableHeaderCell(name: 'Block Height'),
+                                    const SailTableHeaderCell(name: 'Bid Amount'),
+                                  ],
+                                  rowBuilder: (context, row, selected) {
+                                    final attempt = model.bmmAttempts[row];
+                                    final (status, icon) = attempt.status();
+
+                                    return [
+                                      SailTableCell(
+                                        value: status,
+                                        child: Row(
+                                          children: [
+                                            Tooltip(
+                                              message: status,
+                                              child: SailSVG.icon(icon, width: 13),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            SailText.primary12(status),
+                                          ],
+                                        ),
+                                      ),
+                                      SailTableCell(
+                                        value: attempt.result.txid,
+                                        monospace: true,
+                                      ),
+                                      SailTableCell(
+                                        value: attempt.mainchainBlockHeight.toString(),
+                                        monospace: true,
+                                      ),
+                                      SailTableCell(
+                                        value: '${attempt.bidSatoshis} sats',
+                                        monospace: true,
+                                      ),
+                                    ];
+                                  },
+                                  rowCount: model.bmmAttempts.length,
+                                  columnWidths: const [-1, -1, -1, -1],
+                                  drawGrid: true,
+                                  onDoubleTap: (rowId) {
+                                    final attempt = model.bmmAttempts.firstWhere(
+                                      (a) => a.result.txid == rowId,
+                                    );
+                                    _showBMMDetails(context, attempt);
+                                  },
+                                ),
                               ),
+                              const SizedBox(height: 16),
                             ],
                           ),
                         ),
@@ -142,6 +142,71 @@ class BlindMergedMiningTabPage extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: SailColumn(
+        spacing: SailStyleValues.padding16,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: SailText.primary13(
+              'Blind Merged Mining (BMM) is the mechanism used for mining on a sidechain.\n\n'
+              'Pressing the "start" button here starts the BMM process. The BMM process consists '
+              'of a sequence of attempts which can succeed or fail. When an attempt is first made '
+              'it has a pending status. The next attempt decides the outcome of the previous one, '
+              'which is reflected in the table below.\n\n'
+              'A BMM attempt can also fail to be created in its entirety. In that case, it is not '
+              "added to the table. Notably, a BMM attempt only succeeds if there's been mined at"
+              'least 1 block on the mainchain since the last BMM attempt.\n\n'
+              "A BMM attempt includes a satoshi denominated 'bid' amount. This amount is paid to "
+              'the the mainchain miners for the right to construct a new sidechain block. The '
+              'profit from mining the sidechain block is the total fees collected on the sidechain, '
+              'minus the bid to the mainchain miners. If the fees collected on the sidechain is '
+              'less than the bid amount, the profit goes negative (money lost!)'
+              '',
+            ),
+          ),
+          SailText.primary20(
+            'No BMM attempts yet. Click the start button!\n(and automine at the same time)',
+            bold: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBMMDetails(BuildContext context, BmmAttempt attempt) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SailRawCard(
+            title: 'BMM Attempt Details',
+            subtitle: attempt.result.txid,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow(label: 'Status', value: attempt.status().$1),
+                  DetailRow(label: 'Transaction ID', value: attempt.result.txid),
+                  DetailRow(label: 'Block Height', value: attempt.mainchainBlockHeight.toString()),
+                  DetailRow(label: 'Bid Amount', value: '${attempt.bidSatoshis} sats'),
+                  DetailRow(label: 'Number of Transactions', value: attempt.result.ntxn.toString()),
+                  DetailRow(label: 'Total Fees', value: '${attempt.result.nfees} sats'),
+                  const SailSpacing(SailStyleValues.padding16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -229,45 +294,73 @@ List<T> removeNulls<T>(List<T?> xs) {
   return xs.where((element) => element != null).cast<T>().toList();
 }
 
-class BMMAttemptView extends StatelessWidget {
-  final BmmAttempt bmmAttempt;
-  final VoidCallback onPressed;
+class DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
 
-  const BMMAttemptView({
+  const DetailRow({
     super.key,
-    required this.bmmAttempt,
-    required this.onPressed,
+    required this.label,
+    required this.value,
   });
-
-  String get ticker => GetIt.I.get<SidechainContainer>().rpc.chain.ticker;
-
-  Map<String, dynamic> get decodedAttempt => jsonDecode(bmmAttempt.result.raw);
 
   @override
   Widget build(BuildContext context) {
-    final (status, icon) = bmmAttempt.status();
-
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        width: 180,
-        icon: Tooltip(
-          message: status,
-          child: SailSVG.icon(icon, width: 13),
-        ),
-        copyable: false,
-        label: status,
-        value: extractTXTitle(bmmAttempt),
-      ),
-      expandedEntry: ExpandedTXView(
-        decodedTX: decodedAttempt,
-        width: 180,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: SailText.primary13(
+              label,
+              bold: true,
+            ),
+          ),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  String extractTXTitle(BmmAttempt attempt) {
-    String title =
-        '${formatBitcoin(satoshiToBTC(attempt.bidSatoshis), symbol: ticker)} bid containing ${attempt.result.ntxn} transaction(s) with ${formatBitcoin(satoshiToBTC(attempt.result.nfees), symbol: ticker)} total fees';
-    return title;
+class BorderedSection extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const BorderedSection({
+    super.key,
+    required this.title,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary13(title, bold: true),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: SailTheme.of(context).colors.divider,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: child,
+        ),
+      ],
+    );
   }
 }

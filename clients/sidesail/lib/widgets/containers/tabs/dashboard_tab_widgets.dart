@@ -30,11 +30,11 @@ class SendOnSidechainAction extends StatelessWidget {
       builder: ((context, model, child) {
         return DashboardActionModal(
           'Send on sidechain',
-          endActionButton: SailButton.primary(
-            'Execute send',
+          endActionButton: SailButton(
+            variant: ButtonVariant.primary,
+            label: 'Execute send',
             disabled: model.bitcoinAddressController.text.isEmpty || model.bitcoinAmountController.text.isEmpty,
             loading: model.isBusy,
-            size: ButtonSize.regular,
             onPressed: () async {
               model.executeSendOnSidechain(context);
             },
@@ -236,10 +236,10 @@ class ReceiveAction extends StatelessWidget {
           padding: const EdgeInsets.only(left: SailStyleValues.padding04),
           child: DashboardActionModal(
             customTitle ?? 'Receive on sidechain',
-            endActionButton: SailButton.primary(
-              'Generate new address',
+            endActionButton: SailButton(
+              variant: ButtonVariant.primary,
+              label: 'Generate new address',
               loading: model.isBusy,
-              size: ButtonSize.regular,
               onPressed: () async {
                 await model.generateSidechainAddress();
               },

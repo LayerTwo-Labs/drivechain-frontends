@@ -285,16 +285,17 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           SizedBox(
             width: double.infinity,
             height: 48,
-            child: SailButton.primary(
-              'Create Wallet',
+            child: SailButton(
+              label: 'Create Wallet',
               onPressed: () async => setState(() => _currentScreen = WelcomeScreen.create),
-              size: ButtonSize.regular,
+              variant: ButtonVariant.primary,
             ),
           ),
           const SizedBox(height: SailStyleValues.padding08),
-          SailTextButton(
+          SailButton(
             label: 'Restore Wallet',
             onPressed: () async => setState(() => _currentScreen = WelcomeScreen.restore),
+            variant: ButtonVariant.ghost,
           ),
         ],
       ),
@@ -326,11 +327,11 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             child: SizedBox(
               width: 120,
               height: 40,
-              child: SailButton.primary(
-                'Restore',
+              child: SailButton(
+                label: 'Restore',
                 onPressed: _handleRestore,
                 disabled: !_isValidInput,
-                size: ButtonSize.regular,
+                variant: ButtonVariant.primary,
               ),
             ),
           ),
@@ -353,16 +354,17 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           SizedBox(
             width: double.infinity,
             height: 48,
-            child: SailButton.primary(
-              'Fast Wallet',
+            child: SailButton(
+              label: 'Fast Wallet',
               onPressed: _handleFastMode,
-              size: ButtonSize.regular,
+              variant: ButtonVariant.primary,
             ),
           ),
           const SizedBox(height: SailStyleValues.padding08),
-          SailTextButton(
+          SailButton(
             label: 'Advanced',
             onPressed: () async => setState(() => _currentScreen = WelcomeScreen.advanced),
+            variant: ButtonVariant.ghost,
           ),
         ],
       ),
@@ -639,9 +641,9 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                   if (_currentWalletData.containsKey('mnemonic'))
                     SizedBox(
                       height: 40,
-                      child: SailButton.secondary(
-                        'Copy Mnemonic',
-                        size: ButtonSize.small,
+                      child: SailButton(
+                        label: 'Copy Mnemonic',
+                        variant: ButtonVariant.secondary,
                         onPressed: () async {
                           await Clipboard.setData(ClipboardData(text: _currentWalletData['mnemonic']));
                           if (mounted) {
@@ -658,9 +660,9 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                   const Spacer(),
                   SizedBox(
                     height: 40,
-                    child: SailButton.secondary(
-                      'Random',
-                      size: ButtonSize.small,
+                    child: SailButton(
+                      label: 'Random',
+                      variant: ButtonVariant.secondary,
                       onPressed: () async {
                         setState(() {
                           _isHexMode = true; // Force hex mode
@@ -675,9 +677,9 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                   ),
                   SizedBox(
                     height: 40,
-                    child: SailButton.primary(
-                      'Create Wallet',
-                      size: ButtonSize.small,
+                    child: SailButton(
+                      label: 'Create Wallet',
+                      variant: ButtonVariant.primary,
                       disabled: !_isValidInput,
                       onPressed: () => _handleAdvancedCreate(),
                     ),
@@ -878,7 +880,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                   spacing: SailStyleValues.padding08,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    SailTextButton(
+                    SailButton(
                       label: '←',
                       onPressed: () async {
                         if (_currentScreen == WelcomeScreen.advanced) {
@@ -891,6 +893,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                           });
                         }
                       },
+                      variant: ButtonVariant.ghost,
                     ),
                     Expanded(
                       child: Center(
@@ -898,9 +901,10 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
                       ),
                     ),
                     if (_currentScreen == WelcomeScreen.advanced)
-                      SailTextButton(
+                      SailButton(
                         label: '?',
                         onPressed: _showAdvancedHelp,
+                        variant: ButtonVariant.ghost,
                       )
                     else
                       const SizedBox(width: 36, height: 24),

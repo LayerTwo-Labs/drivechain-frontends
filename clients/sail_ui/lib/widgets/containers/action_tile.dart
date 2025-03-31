@@ -9,7 +9,7 @@ enum Category {
 class ActionTile extends StatelessWidget {
   final String title;
   final Category category;
-  final IconData? icon;
+  final SailSVGAsset? icon;
   final Future<void> Function() onTap;
 
   const ActionTile({
@@ -22,25 +22,11 @@ class ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return SailScaleButton(
+    return SailButton(
+      label: title,
+      variant: ButtonVariant.outline,
       onPressed: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding16, horizontal: SailStyleValues.padding32),
-        child: Row(
-          children: [
-            if (icon != null)
-              Icon(
-                icon!,
-                size: 14,
-                color: theme.colors.text,
-              ),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.primary13(title),
-          ],
-        ),
-      ),
+      icon: icon,
     );
   }
 }

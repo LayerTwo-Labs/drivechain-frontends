@@ -4,7 +4,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
 import 'package:sidesail/pages/tabs/settings/settings_tab.dart';
-import 'package:sidesail/pages/tabs/sidechain_explorer_tab_page.dart';
 import 'package:sidesail/pages/tabs/sidechain_overview_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/bmm_tab_page.dart';
 import 'package:sidesail/pages/tabs/testchain/mainchain/deposit_withdraw_tab_route.dart';
@@ -43,9 +42,6 @@ class AppRouter extends RootStackRouter {
           page: HomeRoute.page,
           initial: true,
           children: [
-            AutoRoute(
-              page: SidechainExplorerTabRoute.page,
-            ),
             AutoRoute(
               page: DepositWithdrawTabRoute.page,
             ),

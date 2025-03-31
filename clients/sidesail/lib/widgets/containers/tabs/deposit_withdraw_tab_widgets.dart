@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:collection/collection.dart';
-import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -11,8 +9,6 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
-import 'package:sidesail/rpc/rpc_testchain.dart';
-import 'package:sidesail/rpc/rpc_withdrawal_bundle.dart';
 import 'package:stacked/stacked.dart';
 
 class DepositWithdrawHelp extends StatelessWidget {
@@ -59,354 +55,6 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
   void dispose() {
     super.dispose();
     _balanceProvider.removeListener(notifyListeners);
-  }
-}
-
-class WithdrawalExplorer extends StatelessWidget {
-  const WithdrawalExplorer({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => WithdrawalBundleViewViewModel(),
-      builder: ((context, model, child) {
-        return SingleChildScrollView(
-          child: Column(
-            children: [
-              SailRow(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: SailStyleValues.padding10,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: SailStyleValues.padding32,
-                      vertical: SailStyleValues.padding16,
-                    ),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 600),
-                      child: SailTextField(
-                        controller: model.searchController,
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
-                          child: SailSVG.icon(SailSVGAsset.iconSearch),
-                        ),
-                        prefixIconConstraints: const BoxConstraints(maxHeight: 20),
-                        hintText: 'Search for TXID',
-                      ),
-                    ),
-                  ),
-                  // eat up the rest of the space by adding an empty expanded
-                  Expanded(
-                    child: Container(),
-                  ),
-                ],
-              ),
-              DashboardGroup(
-                title: 'Unbundled transactions',
-                widgetTrailing: SailText.secondary13('${model.unbundledTransactions.length}'),
-                children: [
-                  SailColumn(
-                    spacing: 0,
-                    withDivider: true,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: (model.unbundledTransactions).map((e) => UnbundledWithdrawalView(withdrawal: e)).toList(),
-                  ),
-                ],
-              ),
-              const SailSpacing(SailStyleValues.padding32),
-              DashboardGroup(
-                title: 'Bundle history',
-                widgetTrailing: SailText.secondary13('${model.bundles.length} bundle(s)'),
-                children: [
-                  SailColumn(
-                    spacing: 0,
-                    withDivider: true,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ...[
-                        if (!model.hasDoneInitialFetch) LoadingIndicator.overlay(),
-                        if (model.bundleCount == 0)
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(SailStyleValues.padding32),
-                              child: SailText.primary20('No withdrawal bundle'),
-                            ),
-                          ),
-                      ],
-                      ...model.bundles.map(
-                        (bundle) => BundleView(
-                          bundle: bundle,
-                          timesOutIn: model.timesOutIn(bundle.hash),
-                          votes: model.votes(bundle.hash),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class WithdrawalBundleViewViewModel extends BaseViewModel {
-  final searchController = TextEditingController();
-
-  WithdrawalBundleViewViewModel() {
-    _startWithdrawalBundleFetch();
-  }
-
-  Timer? _withdrawalBundleTimer;
-
-  bool hasDoneInitialFetch = false;
-
-  WithdrawalBundle? currentBundle;
-  int? votesCurrentBundle;
-
-  List<WithdrawalBundle> successfulBundles = [];
-  List<WithdrawalBundle> failedBundles = [];
-
-  int get bundleCount => successfulBundles.length + failedBundles.length + (currentBundle != null ? 1 : 0);
-  Iterable<WithdrawalBundle> get bundles => [
-        if (currentBundle != null) currentBundle!,
-        ...successfulBundles,
-        ...failedBundles,
-      ]
-          .where((element) => searchController.text == '' || element.hash.contains(searchController.text))
-          .sortedByCompare(
-            (
-              b1,
-            ) =>
-                b1.blockHeight,
-            (a, b) => a.compareTo(b),
-          )
-          .reversed; // we want the newest first!
-
-  final List<Withdrawal> _unbundledTransactions = [];
-  Iterable<Withdrawal> get unbundledTransactions => _unbundledTransactions
-      .where((element) => searchController.text == '' || element.hashBlindTx.contains(searchController.text));
-
-  int votes(String hash) {
-    bool byHash(WithdrawalBundle bundle) => bundle.hash == hash;
-
-    if (successfulBundles.firstWhereOrNull(byHash) != null) {
-      return bundleVotesRequired;
-    }
-
-    if (failedBundles.firstWhereOrNull(byHash) != null) {
-      return 0;
-    }
-
-    if (hash == currentBundle?.hash) {
-      return votesCurrentBundle ?? 0;
-    }
-
-    throw 'received hash for unknown bundle: $hash';
-  }
-
-  /// Block count until a bundle times out
-  int timesOutIn(String hash) {
-    return 0;
-  }
-
-  void _fetchWithdrawalBundle() async {
-    try {
-      return;
-    } on RPCException catch (err) {
-      if (err.errorCode != TestchainRPCError.errNoWithdrawalBundle) {
-        rethrow;
-      }
-    } finally {
-      hasDoneInitialFetch = true;
-      notifyListeners();
-    }
-  }
-
-  void _startWithdrawalBundleFetch() {
-    _withdrawalBundleTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      _fetchWithdrawalBundle();
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _withdrawalBundleTimer?.cancel();
-  }
-}
-
-class UnbundledWithdrawalView extends StatelessWidget {
-  const UnbundledWithdrawalView({
-    super.key,
-    required this.withdrawal,
-  });
-
-  final Withdrawal withdrawal;
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        width: bundleViewWidth,
-        icon: Tooltip(
-          message: 'Pending',
-          child: SailSVG.icon(
-            SailSVGAsset.iconPendingHalf,
-            width: 13,
-          ),
-        ),
-        copyable: false,
-        label: '',
-        value: '${formatBitcoin(satoshiToBTC(withdrawal.amountSatoshi))} BTC to ${withdrawal.address}',
-      ),
-      expandedEntry: ExpandedUnbundledWithdrawalView(
-        withdrawal: withdrawal,
-      ),
-    );
-  }
-}
-
-const int bundleVotesRequired = 13150; // higher on mainnet. take into consideration, somehow
-
-class BundleView extends StatelessWidget {
-  final WithdrawalBundle bundle;
-
-  (String, SailSVGAsset) statusAndIcon() {
-    switch (bundle.status) {
-      case BundleStatus.pending:
-        return ('Pending', SailSVGAsset.iconPendingHalf);
-
-      case BundleStatus.failed:
-        return ('Failed', SailSVGAsset.iconFailed);
-
-      case BundleStatus.success:
-        return ('Final', SailSVGAsset.iconSuccess);
-    }
-  }
-
-  final int votes;
-
-  /// Blocks left until the bundle times out.
-  final int timesOutIn;
-
-  const BundleView({
-    super.key,
-    required this.timesOutIn,
-    required this.votes,
-    required this.bundle,
-  });
-
-  String get ticker => GetIt.I.get<SidechainContainer>().rpc.chain.ticker;
-
-  @override
-  Widget build(BuildContext context) {
-    final (tooltipMessage, icon) = statusAndIcon();
-
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        width: bundleViewWidth,
-        icon: Tooltip(
-          message: tooltipMessage,
-          child: SailSVG.icon(icon, width: 13),
-        ),
-        copyable: false,
-        label: bundle.status == BundleStatus.failed ? 'Failed' : '$votes/$bundleVotesRequired ACKs',
-        value: 'Withdraw ${formatBitcoin(bundle.totalBitcoin)} BTC in ${bundle.withdrawals.length} transactions',
-      ),
-      expandedEntry: ExpandedBundleView(timesOutIn: timesOutIn, bundle: bundle),
-    );
-  }
-
-  String extractTitle(Withdrawal withdrawal) {
-    final title = '${formatBitcoin((withdrawal.amountSatoshi / 100000000))} $ticker';
-
-    return '$title to ${withdrawal.address}';
-  }
-}
-
-const bundleViewWidth = 135.0;
-
-class ExpandedBundleView extends StatelessWidget {
-  final WithdrawalBundle bundle;
-  final int timesOutIn;
-
-  const ExpandedBundleView({
-    super.key,
-    required this.timesOutIn,
-    required this.bundle,
-  });
-
-  // https://github.com/LayerTwo-Labs/testchain/blob/ba78df157fcb9f85d898f65db43c2842ab9473ff/src/policy/corepolicy.h#L31-L32
-  static const int maxStandardTxWeight = 400000;
-
-  // https://github.com/LayerTwo-Labs/testchain/blob/ba78df157fcb9f85d898f65db43c2842ab9473ff/src/policy/corepolicy.h#L25
-  static const int witnessScaleFactor = 4;
-
-  // https://github.com/LayerTwo-Labs/testchain/blob/ba78df157fcb9f85d898f65db43c2842ab9473ff/src/policy/corepolicy.h#L25
-  static const double maxWeight = (maxStandardTxWeight / witnessScaleFactor) / 2;
-
-  Map<String, dynamic> get _values => {
-        if (bundle.status == BundleStatus.pending) 'blocks until timeout': timesOutIn,
-        'block hash': bundle.hash,
-        'total amount': formatBitcoin(bundle.totalBitcoin),
-        'withdrawal count': bundle.withdrawals.length,
-        'created at height': bundle.blockHeight,
-        'total fees': formatBitcoin(bundle.totalFeesBitcoin),
-        'total size': '${bundle.bundleSize}/${maxWeight.toInt()} weight units',
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding08,
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: _values.keys.map((
-        key,
-      ) {
-        return SingleValueContainer(
-          label: key,
-          value: _values[key],
-          width: bundleViewWidth,
-        );
-      }).toList(),
-    );
-  }
-}
-
-class ExpandedUnbundledWithdrawalView extends StatelessWidget {
-  final Withdrawal withdrawal;
-
-  const ExpandedUnbundledWithdrawalView({
-    super.key,
-    required this.withdrawal,
-  });
-
-  Map<String, dynamic> get _values => {
-        'hashblindtx': withdrawal.hashBlindTx,
-        'amount': formatBitcoin(satoshiToBTC(withdrawal.amountSatoshi)),
-        'amountmainchainfee': formatBitcoin(satoshiToBTC(withdrawal.mainchainFeesSatoshi)),
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding08,
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: _values.keys.map((
-        key,
-      ) {
-        return SingleValueContainer(
-          label: key,
-          value: _values[key],
-          width: bundleViewWidth,
-        );
-      }).toList(),
-    );
   }
 }
 
@@ -641,8 +289,9 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
                   size: TextFieldSize.small,
                 ),
               ),
-              QtIconButton(
-                tooltip: 'Paste from clipboard',
+              SailButton(
+                variant: ButtonVariant.secondary,
+                label: '',
                 onPressed: () async {
                   try {
                     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
@@ -654,11 +303,7 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
                     showSnackBar(context, 'Error accessing clipboard');
                   }
                 },
-                icon: Icon(
-                  Icons.content_paste_rounded,
-                  size: 20.0,
-                  color: context.sailTheme.colors.text,
-                ),
+                icon: SailSVGAsset.iconCopy, // TODO: add paste icon
               ),
               const SizedBox(width: 4.0),
             ],
@@ -715,21 +360,19 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  QtButton(
+                  SailButton(
                     label: 'Send',
                     onPressed: () => viewModel.executePegOut(context),
-                    size: ButtonSize.small,
                   ),
                   const SizedBox(width: SailStyleValues.padding08),
-                  QtButton(
-                    style: SailButtonStyle.secondary,
+                  SailButton(
+                    variant: ButtonVariant.secondary,
                     label: 'Clear All',
                     onPressed: () async {
                       viewModel.bitcoinAddressController.clear();
                       viewModel.bitcoinAmountController.clear();
                       viewModel.labelController.clear();
                     },
-                    size: ButtonSize.small,
                   ),
                 ],
               ),

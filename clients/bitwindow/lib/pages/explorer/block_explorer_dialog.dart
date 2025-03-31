@@ -45,10 +45,10 @@ class BlockExplorerDialog extends StatelessWidget {
                       hintText: 'Enter a block height or hash',
                     ),
                   ),
-                  QtButton(
+                  SailButton(
                     onPressed: () => model.searchBlock(model.searchController.text),
                     label: 'Search',
-                    size: ButtonSize.small,
+                    variant: ButtonVariant.primary,
                   ),
                 ],
               ),

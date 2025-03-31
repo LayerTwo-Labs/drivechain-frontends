@@ -1,9 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:sail_ui/sail_ui.dart';
-
 class CoreTransaction {
   final String address;
   final String category;
@@ -102,58 +98,4 @@ class CoreTransaction {
         'bip125-replaceable': bip125Replaceable,
         'abandoned': abandoned,
       };
-}
-
-class CoreTransactionView extends StatelessWidget {
-  final CoreTransaction tx;
-  final String ticker;
-  final bool externalDirection;
-
-  const CoreTransactionView({
-    super.key,
-    required this.tx,
-    required this.ticker,
-    this.externalDirection = false,
-  });
-
-  Map<String, dynamic> get decodedTx => jsonDecode(tx.raw);
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        width: 95,
-        copyable: false,
-        icon: tx.confirmations >= 1
-            ? Tooltip(
-                message: '${tx.confirmations} confirmations',
-                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-              )
-            : Tooltip(
-                message: 'Unconfirmed',
-                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-              ),
-        value: extractTXTitle(tx),
-        trailingText: DateFormat('dd MMM HH:mm:ss').format(tx.time),
-      ),
-      expandedEntry: ExpandedTXView(
-        decodedTX: decodedTx,
-        width: 95,
-      ),
-    );
-  }
-
-  String extractTXTitle(CoreTransaction tx) {
-    String title = formatBitcoin(tx.amount, symbol: ticker);
-
-    if (tx.address.isEmpty) {
-      return '$title in ${tx.txid}';
-    }
-
-    if (tx.amount.isNegative || tx.amount == 0) {
-      return '$title ${externalDirection ? 'to' : 'to'} ${tx.address}';
-    }
-
-    return '${externalDirection ? "" : "+"} $title ${externalDirection ? 'to' : 'from'} ${tx.address}';
-  }
 }

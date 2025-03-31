@@ -26,8 +26,8 @@ class SailNotification extends StatelessWidget {
       onDismissed: (direction) {
         removeNotification(content);
       },
-      child: SailScaleButton(
-        onPressed: onPressed,
+      child: InkWell(
+        onTap: onPressed,
         child: Card(
           color: theme.colors.text,
           child: Padding(
@@ -52,12 +52,10 @@ class SailNotification extends StatelessWidget {
                     ],
                   ),
                 ),
-                SailScaleButton(
-                  child: Icon(
-                    Icons.close,
-                    color: theme.colors.background,
-                    size: 14,
-                  ),
+                SailButton(
+                  label: '',
+                  variant: ButtonVariant.outline,
+                  icon: SailSVGAsset.iconClose,
                   onPressed: () async {
                     removeNotification(content);
                   },

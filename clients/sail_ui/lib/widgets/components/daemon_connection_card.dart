@@ -43,7 +43,9 @@ class DaemonConnectionCard extends StatelessWidget {
                         : theme.colors.error,
           ),
           Expanded(child: Container()),
-          SailScaleButton(
+          SailButton(
+            label: '',
+            variant: ButtonVariant.outline,
             onPressed: () async {
               await showDialog(
                 context: context,
@@ -52,29 +54,22 @@ class DaemonConnectionCard extends StatelessWidget {
                 ),
               );
             },
-            pressed: connection.initializingBinary,
-            child: SailSVG.fromAsset(
-              SailSVGAsset.iconTabSettings,
-              width: 18,
-              color: theme.colors.text,
-            ),
+            loading: connection.initializingBinary,
+            icon: SailSVGAsset.iconTabSettings,
           ),
-          SailScaleButton(
+          SailButton(
+            label: '',
+            variant: ButtonVariant.outline,
             onPressed: restartDaemon,
-            pressed: connection.initializingBinary,
-            child: InitializingDaemonSVG(
-              animate: connection.initializingBinary,
-            ),
+            loading: connection.initializingBinary,
+            icon: SailSVGAsset.iconRestart,
           ),
           if (deleteFunction != null)
-            SailScaleButton(
+            SailButton(
+              label: '',
+              variant: ButtonVariant.outline,
               onPressed: deleteFunction,
-              pressed: false,
-              child: SailSVG.fromAsset(
-                SailSVGAsset.iconDelete,
-                width: 18,
-                color: theme.colors.text,
-              ),
+              icon: SailSVGAsset.iconDelete,
             ),
         ],
       ),
