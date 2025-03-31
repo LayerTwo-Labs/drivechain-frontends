@@ -437,8 +437,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                 ),
               ),
               SailButton(
-                label: '',
-                variant: ButtonVariant.ghost,
+                variant: ButtonVariant.icon,
                 onPressed: () async {
                   try {
                     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
@@ -454,8 +453,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                 icon: SailSVGAsset.iconCopy,
               ),
               SailButton(
-                label: '',
-                variant: ButtonVariant.ghost,
+                variant: ButtonVariant.icon,
                 onPressed: viewModel.formatAddress,
                 icon: SailSVGAsset.iconFormat,
               ),

@@ -9,10 +9,11 @@ enum ButtonVariant {
   outline,
   ghost,
   link,
+  icon,
 }
 
 class SailButton extends StatelessWidget {
-  final String label;
+  final String? label;
   final Future<void> Function()? onPressed;
   final ButtonVariant variant;
   final bool loading;
@@ -22,14 +23,21 @@ class SailButton extends StatelessWidget {
 
   const SailButton({
     super.key,
-    required this.label,
+    this.label,
     required this.onPressed,
     this.variant = ButtonVariant.primary,
     this.loading = false,
     this.disabled = false,
     this.icon,
     this.padding,
-  });
+  })  : assert(
+          variant != ButtonVariant.icon || (icon != null && label == null),
+          'Icon must be set with no label for icon-variant',
+        ),
+        assert(
+          variant == ButtonVariant.icon || (label != null),
+          'Label must be set',
+        );
 
   @override
   Widget build(BuildContext context) {
@@ -49,12 +57,14 @@ class SailButton extends StatelessWidget {
       hoverColor: style.hoverColor,
       child: Padding(
         padding: padding ??
-            const EdgeInsets.only(
-              top: 8,
-              bottom: 8,
-              left: 12,
-              right: 12,
-            ),
+            (variant == ButtonVariant.icon
+                ? EdgeInsets.all(12)
+                : const EdgeInsets.only(
+                    top: 8,
+                    bottom: 8,
+                    left: 12,
+                    right: 12,
+                  )),
         child: content,
       ),
     );
@@ -64,30 +74,26 @@ class SailButton extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (icon != null) ...[
+        if (loading) ...[
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: LoadingIndicator.insideButton(foregroundColor),
+          ),
+          const SizedBox(width: 8),
+        ] else if (icon != null) ...[
           SailSVG.fromAsset(
             icon!,
             color: foregroundColor,
             width: 14,
           ),
-          const SizedBox(width: 8),
+          if (label != null) const SizedBox(width: 8),
         ],
-        if (loading) ...[
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: LoadingIndicator.insideButton(foregroundColor),
-          ),
-          const SizedBox(width: 8),
+        if (label != null)
           SailText.primary12(
-            'Please wait',
-            color: foregroundColor,
-            bold: true,
-          ),
-        ] else
-          SailText.primary12(
-            label,
+            loading ? 'Please wait' : label!,
             color: foregroundColor,
             bold: true,
             decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
@@ -97,7 +103,6 @@ class SailButton extends StatelessWidget {
   }
 }
 
-// Helper class to manage variant-specific styling
 class _ButtonVariantStyle {
   final Color backgroundColor;
   final Color foregroundColor;
@@ -151,10 +156,15 @@ _ButtonVariantStyle _getVariantStyle(ButtonVariant variant, SailColor colors) {
         foregroundColor: colors.linkButtonText,
         hoverColor: colors.linkButtonText,
       );
+    case ButtonVariant.icon:
+      return _ButtonVariantStyle(
+        backgroundColor: Colors.transparent,
+        foregroundColor: colors.ghostButtonText,
+        hoverColor: colors.ghostButtonHover,
+      );
   }
 }
 
-// Update CopyButton to use new SailButton
 class CopyButton extends StatelessWidget {
   final String text;
 

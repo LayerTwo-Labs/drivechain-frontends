@@ -27,8 +27,7 @@ class _ToggleThemeButtonState extends State<ToggleThemeButton> {
     final app = SailApp.of(context);
 
     return SailButton(
-      label: '',
-      variant: ButtonVariant.secondary,
+      variant: ButtonVariant.icon,
       onPressed: () async {
         final SailThemeValues nextTheme = _currentTheme.toggleTheme();
         await setTheme(nextTheme);

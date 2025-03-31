@@ -53,8 +53,7 @@ class SailNotification extends StatelessWidget {
                   ),
                 ),
                 SailButton(
-                  label: '',
-                  variant: ButtonVariant.outline,
+                  variant: ButtonVariant.icon,
                   icon: SailSVGAsset.iconClose,
                   onPressed: () async {
                     removeNotification(content);

@@ -79,8 +79,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                                 children: [
                                   HelpButton(onPressed: () => model.castHelp(context)),
                                   SailButton(
-                                    label: '',
-                                    variant: ButtonVariant.ghost,
+                                    variant: ButtonVariant.icon,
                                     onPressed: () => model.viewBills(),
                                     icon: SailSVGAsset.iconCalendar,
                                   ),
@@ -222,8 +221,7 @@ class ZCashMeltCast extends StatelessWidget {
                             children: [
                               HelpButton(onPressed: () => model.castHelp(context)),
                               SailButton(
-                                label: '',
-                                variant: ButtonVariant.outline,
+                                variant: ButtonVariant.icon,
                                 onPressed: () => model.viewBills(),
                                 icon: SailSVGAsset.iconCalendar,
                               ),

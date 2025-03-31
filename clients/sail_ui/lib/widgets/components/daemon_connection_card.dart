@@ -44,8 +44,7 @@ class DaemonConnectionCard extends StatelessWidget {
           ),
           Expanded(child: Container()),
           SailButton(
-            label: '',
-            variant: ButtonVariant.outline,
+            variant: ButtonVariant.icon,
             onPressed: () async {
               await showDialog(
                 context: context,
@@ -58,16 +57,14 @@ class DaemonConnectionCard extends StatelessWidget {
             icon: SailSVGAsset.iconTabSettings,
           ),
           SailButton(
-            label: '',
-            variant: ButtonVariant.outline,
+            variant: ButtonVariant.icon,
             onPressed: restartDaemon,
             loading: connection.initializingBinary,
             icon: SailSVGAsset.iconRestart,
           ),
           if (deleteFunction != null)
             SailButton(
-              label: '',
-              variant: ButtonVariant.outline,
+              variant: ButtonVariant.icon,
               onPressed: deleteFunction,
               icon: SailSVGAsset.iconDelete,
             ),

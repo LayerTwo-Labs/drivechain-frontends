@@ -111,9 +111,8 @@ class _WalletButtonState extends State<WalletButton> {
                       children: [
                         SailText.primary13('Wallet'),
                         SailButton(
-                          variant: ButtonVariant.secondary,
+                          variant: ButtonVariant.icon,
                           onPressed: _removeOverlay,
-                          label: '',
                           icon: SailSVGAsset.iconClose,
                         ),
                       ],

@@ -37,8 +37,7 @@ class ShutdownCard extends StatelessWidget {
                 SailText.primary13('${chain.name} daemon'),
                 Expanded(child: Container()),
                 SailButton(
-                  label: '',
-                  variant: ButtonVariant.ghost,
+                  variant: ButtonVariant.icon,
                   icon: SailSVGAsset.iconRestart,
                   onPressed: forceCleanup,
                   loading: initializing,
