@@ -143,7 +143,6 @@ class CreateMultisigModal extends StatelessWidget {
                       SailButton(
                         label: 'Create',
                         onPressed: model.canCreate ? () => model.create(context) : null,
-                        loading: model.isBusy,
                       ),
                       SailButton(
                         label: 'Cancel',

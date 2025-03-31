@@ -12,7 +12,7 @@ enum ButtonVariant {
   icon,
 }
 
-class SailButton extends StatelessWidget {
+class SailButton extends StatefulWidget {
   final String? label;
   final Future<void> Function()? onPressed;
   final ButtonVariant variant;
@@ -40,24 +40,50 @@ class SailButton extends StatelessWidget {
         );
 
   @override
+  State<SailButton> createState() => _SailButtonState();
+}
+
+class _SailButtonState extends State<SailButton> {
+  bool _internalLoading = false;
+
+  bool get _isLoading => widget.loading || _internalLoading;
+
+  Future<void> _handlePress() async {
+    if (widget.onPressed == null || _isLoading) return;
+
+    try {
+      setState(() => _internalLoading = true);
+      await widget.onPressed!();
+      if (mounted) {
+        setState(() => _internalLoading = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _internalLoading = false);
+      }
+      rethrow;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final colors = theme.colors;
 
-    final style = _getVariantStyle(variant, colors);
-    final content = _buildButtonContent(style.foregroundColor, variant);
+    final style = _getVariantStyle(widget.variant, colors);
+    final content = _buildButtonContent(style.foregroundColor, widget.variant);
 
     return _SailScaleButton(
-      onPressed: onPressed,
-      disabled: disabled,
-      loading: loading,
-      variant: variant,
+      onPressed: _handlePress,
+      disabled: widget.disabled,
+      loading: _isLoading,
+      variant: widget.variant,
       color: style.backgroundColor,
       borderColor: style.borderColor,
       hoverColor: style.hoverColor,
       child: Padding(
-        padding: padding ??
-            (variant == ButtonVariant.icon
+        padding: widget.padding ??
+            (widget.variant == ButtonVariant.icon
                 ? EdgeInsets.all(12)
                 : const EdgeInsets.only(
                     top: 8,
@@ -76,24 +102,24 @@ class SailButton extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (loading) ...[
+        if (_isLoading) ...[
           SizedBox(
             width: 12,
             height: 12,
             child: LoadingIndicator.insideButton(foregroundColor),
           ),
           const SizedBox(width: 8),
-        ] else if (icon != null) ...[
+        ] else if (widget.icon != null) ...[
           SailSVG.fromAsset(
-            icon!,
+            widget.icon!,
             color: foregroundColor,
             width: 14,
           ),
-          if (label != null) const SizedBox(width: 8),
+          if (widget.label != null) const SizedBox(width: 8),
         ],
-        if (label != null)
+        if (widget.label != null)
           SailText.primary12(
-            loading ? 'Please wait' : label!,
+            _isLoading ? 'Please wait' : widget.label!,
             color: foregroundColor,
             bold: true,
             decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,

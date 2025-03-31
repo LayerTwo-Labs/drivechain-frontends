@@ -59,13 +59,12 @@ class SidechainProposalView extends StatelessWidget {
                   _buildOptionalSection(context, model),
                   const SizedBox(height: SailStyleValues.padding25),
                   SailButton(
+                    label: 'Propose Sidechain',
                     onPressed: () async {
                       if (model.formKey.currentState!.validate()) {
                         await model.proposeSidechain(context);
                       }
                     },
-                    loading: model.isProposing,
-                    label: 'Propose Sidechain',
                   ),
                 ],
               ),
