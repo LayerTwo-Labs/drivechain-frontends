@@ -78,17 +78,15 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       currentDisplay = widget.hint ?? const SizedBox();
     }
 
-    final button = QtButton(
-      size: ButtonSize.small,
-      onPressed: () async {
+    final button = InkWell(
+      onTap: () async {
         if (_controller.isOpen) {
           _controller.close();
         } else {
           _controller.open();
         }
       },
-      style: SailButtonStyle.secondary,
-      disabled: !widget.enabled,
+      // TODO: Restyle this button......
       child: SailRow(
         spacing: SailStyleValues.padding08,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

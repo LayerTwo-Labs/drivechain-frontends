@@ -110,18 +110,11 @@ class _WalletButtonState extends State<WalletButton> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         SailText.primary13('Wallet'),
-                        SailScaleButton(
-                          style: SailButtonStyle.secondary,
+                        SailButton(
+                          variant: ButtonVariant.secondary,
                           onPressed: _removeOverlay,
-                          child: Builder(
-                            builder: (context) {
-                              final theme = SailTheme.of(context);
-                              return SailSVG.icon(
-                                SailSVGAsset.iconClose,
-                                color: theme.colors.text,
-                              );
-                            },
-                          ),
+                          label: '',
+                          icon: SailSVGAsset.iconClose,
                         ),
                       ],
                     ),
@@ -148,27 +141,13 @@ class _WalletButtonState extends State<WalletButton> {
                           children: [
                             const SizedBox(width: 8),
                             Expanded(
-                              child: SailScaleButton(
-                                style: SailButtonStyle.primary,
+                              child: SailButton(
+                                label: 'Receive',
+                                variant: ButtonVariant.primary,
                                 onPressed: () async {
                                   await launchUrl(Uri.parse('https://drivechain.live'));
                                 },
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Builder(
-                                      builder: (context) {
-                                        final theme = SailTheme.of(context);
-                                        return SailSVG.icon(
-                                          SailSVGAsset.iconReceive,
-                                          color: theme.colors.text,
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(width: 8),
-                                    SailText.primary12('Receive'),
-                                  ],
-                                ),
+                                icon: SailSVGAsset.iconReceive,
                               ),
                             ),
                           ],
@@ -279,30 +258,23 @@ class _WalletButtonState extends State<WalletButton> {
                             ),
                           ),
                           if (viewModel.address != null)
-                            SailScaleButton(
-                              style: SailButtonStyle.secondary,
+                            SailButton(
+                              label: 'Copy Address',
+                              variant: ButtonVariant.secondary,
                               onPressed: () async {
                                 await Clipboard.setData(ClipboardData(text: viewModel.address!));
                               },
-                              child: Builder(
-                                builder: (context) {
-                                  final theme = SailTheme.of(context);
-                                  return SailSVG.icon(
-                                    SailSVGAsset.iconCopy,
-                                    color: theme.colors.text,
-                                  );
-                                },
-                              ),
+                              icon: SailSVGAsset.iconCopy,
                             ),
                         ],
                       ),
                     ),
-                  SailButton.primary(
-                    'Open Faucet In Browser',
+                  SailButton(
+                    label: 'Open Faucet In Browser',
+                    variant: ButtonVariant.link,
                     onPressed: () async {
                       await launchUrl(Uri.parse('https://drivechain.live'));
                     },
-                    size: ButtonSize.regular,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -365,8 +337,9 @@ class _WalletButtonState extends State<WalletButton> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: SailScaleButton(
-        style: SailButtonStyle.secondary,
+      child: SailButton(
+        label: 'Wallet',
+        variant: ButtonVariant.secondary,
         onPressed: () async {
           if (_overlayEntry == null) {
             await _showModal();
@@ -374,24 +347,7 @@ class _WalletButtonState extends State<WalletButton> {
             await _removeOverlay();
           }
         },
-        child: Tooltip(
-          message: 'Wallet',
-          child: SailPadding(
-            padding: const EdgeInsets.only(
-              right: SailStyleValues.padding10,
-            ),
-            child: Builder(
-              builder: (context) {
-                final theme = SailTheme.of(context);
-                return SailSVG.fromAsset(
-                  SailSVGAsset.iconWallet,
-                  height: 20,
-                  color: theme.colors.text,
-                );
-              },
-            ),
-          ),
-        ),
+        icon: SailSVGAsset.iconWallet,
       ),
     );
   }

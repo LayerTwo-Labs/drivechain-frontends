@@ -30,8 +30,8 @@ class ConnectionStatusChip extends StatelessWidget {
           left: BorderSide(color: theme.colors.formFieldBorder, width: 0.5),
         ),
       ),
-      child: SailScaleButton(
-        onPressed: onPressed,
+      child: InkWell(
+        onTap: onPressed,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             vertical: SailStyleValues.padding04,

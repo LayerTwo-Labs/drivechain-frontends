@@ -47,9 +47,10 @@ class SidechainProposalView extends StatelessWidget {
                     children: [
                       SailText.primary12('Optional (but recommended)'),
                       const SizedBox(width: SailStyleValues.padding08),
-                      QtIconButton(
-                        tooltip: 'Read more',
-                        icon: const Icon(Icons.info_outline, size: 16),
+                      SailButton(
+                        label: 'Read more',
+                        variant: ButtonVariant.ghost,
+                        icon: SailSVGAsset.iconInfo,
                         onPressed: () async => _showInfoDialog(context),
                       ),
                     ],
@@ -57,19 +58,14 @@ class SidechainProposalView extends StatelessWidget {
                   const SizedBox(height: SailStyleValues.padding08),
                   _buildOptionalSection(context, model),
                   const SizedBox(height: SailStyleValues.padding25),
-                  QtButton(
+                  SailButton(
                     onPressed: () async {
                       if (model.formKey.currentState!.validate()) {
                         await model.proposeSidechain(context);
                       }
                     },
-                    child: model.isProposing
-                        ? const SizedBox(
-                            width: 13,
-                            height: 13,
-                            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-                          )
-                        : SailText.background13('Propose Sidechain'),
+                    loading: model.isProposing,
+                    label: 'Propose Sidechain',
                   ),
                 ],
               ),

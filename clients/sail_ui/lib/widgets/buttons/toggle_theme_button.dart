@@ -26,26 +26,19 @@ class _ToggleThemeButtonState extends State<ToggleThemeButton> {
   Widget build(BuildContext context) {
     final app = SailApp.of(context);
 
-    return SailScaleButton(
-      style: SailButtonStyle.secondary,
+    return SailButton(
+      label: '',
+      variant: ButtonVariant.secondary,
       onPressed: () async {
         final SailThemeValues nextTheme = _currentTheme.toggleTheme();
         await setTheme(nextTheme);
         await app.loadTheme(nextTheme);
       },
-      child: Tooltip(
-        message: 'Current theme is ${_currentTheme.toReadable()}',
-        child: SailPadding(
-          padding: const EdgeInsets.only(
-            right: SailStyleValues.padding10,
-          ),
-          child: themeIcon(_currentTheme),
-        ),
-      ),
+      icon: themeIcon(_currentTheme),
     );
   }
 
-  Widget themeIcon(SailThemeValues currentTheme) {
+  SailSVGAsset themeIcon(SailThemeValues currentTheme) {
     SailSVGAsset icon;
     if (currentTheme == SailThemeValues.system) {
       icon = SailSVGAsset.iconLightDarkMode;
@@ -55,10 +48,7 @@ class _ToggleThemeButtonState extends State<ToggleThemeButton> {
       icon = SailSVGAsset.iconDarkMode;
     }
 
-    return SailSVG.fromAsset(
-      icon,
-      height: icon == SailSVGAsset.iconLightMode ? 18 : null,
-    );
+    return icon;
   }
 
   Future<void> setTheme(SailThemeValues newTheme) async {

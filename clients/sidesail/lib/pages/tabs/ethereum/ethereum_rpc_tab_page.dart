@@ -26,8 +26,8 @@ class EthereumRPCTabPage extends StatelessWidget {
             spacing: SailStyleValues.padding08,
             children: [
               if (model.account == null)
-                SailButton.primary(
-                  'Create account',
+                SailButton(
+                  label: 'Create account',
                   onPressed: () async {
                     try {
                       await model.createAccount();
@@ -45,7 +45,6 @@ class EthereumRPCTabPage extends StatelessWidget {
                     }
                   },
                   loading: model.isBusy,
-                  size: ButtonSize.small,
                 ),
               if (model.account == null)
                 SailText.secondary12('You need an account to deposit and withdraw sidechain-coins'),

@@ -21,9 +21,6 @@ import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
 // IMPORTANT: Update router.dart AND routes in HomePage further down
 // in this file, when updating here. Route order should match exactly
 enum Tabs {
-  // common routes
-  SidechainExplorer,
-
   // parent chain routes
   ParentChainPeg,
   ParentChainBMM,
@@ -78,9 +75,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     // index, and showing the sidenav for a specific chain
     // IMPORTANT: Must matche exactly the order in router.dart
     const routes = [
-      // common routes
-      SidechainExplorerTabRoute(),
-
       // parent chain routes
       DepositWithdrawTabRoute(),
       BlindMergedMiningTabRoute(),
@@ -98,7 +92,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     return CrossPlatformMenuBar(
       menus: [
-        // First menu will be Apple menu (system provided)
         PlatformMenu(
           label: sidechain.rpc.chain.name,
           menus: [

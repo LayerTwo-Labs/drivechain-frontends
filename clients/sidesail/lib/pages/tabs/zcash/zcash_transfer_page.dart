@@ -1,12 +1,14 @@
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart' as foundation;
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/pages/tabs/home_page.dart';
+import 'package:sidesail/pages/tabs/sidechain_overview_page.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
 import 'package:sidesail/providers/zcash_provider.dart';
 import 'package:sidesail/routing/router.dart';
@@ -54,7 +56,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                               ActionTile(
                                 title: 'Send transparent coins',
                                 category: Category.sidechain,
-                                icon: Icons.remove,
+                                icon: SailSVGAsset.iconArrowForward,
                                 onTap: () async {
                                   model.sendTransparent(context);
                                 },
@@ -62,7 +64,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                               ActionTile(
                                 title: 'Receive transparent coins',
                                 category: Category.sidechain,
-                                icon: Icons.remove,
+                                icon: SailSVGAsset.iconArrow,
                                 onTap: () async {
                                   model.receiveTransparent(context);
                                 },
@@ -71,25 +73,13 @@ class ZCashTransferTabPage extends StatelessWidget {
                           ),
                           DashboardGroup(
                             title: 'Transparent UTXOs',
-                            widgetTrailing: SailText.secondary13(model.transparentUTXOs.length.toString()),
-                            widgetEnd: SailToggle(
-                              label: 'Hide dust UTXOs',
-                              value: model.hideDust,
-                              onChanged: (to) => model.setHideDust(to),
-                            ),
                             children: [
-                              SailColumn(
-                                spacing: 0,
-                                withDivider: true,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  for (final utxo in model.transparentUTXOs)
-                                    UnshieldedUTXOView(
-                                      utxo: utxo,
-                                      shieldAction: null,
-                                      meltMode: true,
-                                    ),
-                                ],
+                              TransparentUTXOTable(
+                                entries: model.transparentUTXOs,
+                                searchWidget: LargeEmbeddedInput(
+                                  controller: model.searchController,
+                                  hintText: 'Search UTXOs...',
+                                ),
                               ),
                             ],
                           ),
@@ -111,7 +101,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                               ActionTile(
                                 title: 'Send private coins',
                                 category: Category.sidechain,
-                                icon: Icons.remove,
+                                icon: SailSVGAsset.iconArrowForward,
                                 onTap: () async {
                                   await model.sendPrivate(context);
                                 },
@@ -119,7 +109,7 @@ class ZCashTransferTabPage extends StatelessWidget {
                               ActionTile(
                                 title: 'Receive private coins',
                                 category: Category.sidechain,
-                                icon: Icons.add,
+                                icon: SailSVGAsset.iconArrow,
                                 onTap: () async {
                                   model.receivePrivate(context);
                                 },
@@ -128,20 +118,13 @@ class ZCashTransferTabPage extends StatelessWidget {
                           ),
                           DashboardGroup(
                             title: 'Private UTXOs',
-                            widgetTrailing: SailText.secondary13(model.shieldedUTXOs.length.toString()),
                             children: [
-                              SailColumn(
-                                spacing: 0,
-                                withDivider: true,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  for (final utxo in model.shieldedUTXOs)
-                                    ShieldedUTXOView(
-                                      utxo: utxo,
-                                      deshieldAction: null,
-                                      castMode: true,
-                                    ),
-                                ],
+                              PrivateUTXOTable(
+                                entries: model.shieldedUTXOs,
+                                searchWidget: LargeEmbeddedInput(
+                                  controller: model.privateSearchController,
+                                  hintText: 'Search UTXOs...',
+                                ),
                               ),
                             ],
                           ),
@@ -168,9 +151,23 @@ class ZCashTransferTabViewModel extends BaseViewModel {
 
   String get zcashAddress => _zcashProvider.zcashAddress;
   List<OperationStatus> get operations => _zcashProvider.operations.reversed.toList();
-  List<UnshieldedUTXO> get transparentUTXOs =>
-      _zcashProvider.unshieldedUTXOs.where((u) => !hideDust || u.amount > zcashFee).toList();
-  List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs;
+  final TextEditingController searchController = TextEditingController();
+  final TextEditingController privateSearchController = TextEditingController();
+
+  List<UnshieldedUTXO> get transparentUTXOs => _zcashProvider.unshieldedUTXOs
+      .where(
+        (utxo) =>
+            (!hideDust || utxo.amount > zcashFee) &&
+            (searchController.text.isEmpty ||
+                utxo.txid.contains(searchController.text) ||
+                utxo.address.contains(searchController.text)),
+      )
+      .toList();
+  List<ShieldedUTXO> get shieldedUTXOs => _zcashProvider.shieldedUTXOs
+      .where(
+        (utxo) => privateSearchController.text.isEmpty || utxo.txid.contains(privateSearchController.text),
+      )
+      .toList();
 
   double get balance => _balanceProvider.balance + _balanceProvider.pendingBalance;
 
@@ -182,6 +179,8 @@ class ZCashTransferTabViewModel extends BaseViewModel {
   }
 
   ZCashTransferTabViewModel() {
+    searchController.addListener(notifyListeners);
+    privateSearchController.addListener(notifyListeners);
     _zcashProvider.addListener(notifyListeners);
     _balanceProvider.addListener(notifyListeners);
     _transactionsProvider.addListener(notifyListeners);
@@ -250,6 +249,8 @@ class ZCashTransferTabViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    searchController.removeListener(notifyListeners);
+    privateSearchController.removeListener(notifyListeners);
     super.dispose();
     _zcashProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
@@ -285,8 +286,9 @@ class ZCashWidgetTitle extends StatelessWidget {
         return SailRow(
           spacing: SailStyleValues.padding08,
           children: [
-            SailButton.primary(
-              'Deposit coins',
+            SailButton(
+              label: 'Deposit coins',
+              variant: ButtonVariant.primary,
               onPressed: () async {
                 try {
                   depositNudgeAction();
@@ -304,7 +306,6 @@ class ZCashWidgetTitle extends StatelessWidget {
                 }
               },
               loading: model.isBusy,
-              size: ButtonSize.small,
             ),
             SailText.secondary12(
               'To get started, you must deposit coins to your sidechain. Deposit on the Parent Chain tab',
@@ -337,5 +338,370 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
     super.dispose();
     _zcashProvider.removeListener(notifyListeners);
     _balanceProvider.removeListener(notifyListeners);
+  }
+}
+
+class TransparentUTXOTable extends StatefulWidget {
+  final List<UnshieldedUTXO> entries;
+  final Widget searchWidget;
+
+  const TransparentUTXOTable({
+    super.key,
+    required this.entries,
+    required this.searchWidget,
+  });
+
+  @override
+  State<TransparentUTXOTable> createState() => _TransparentUTXOTableState();
+}
+
+class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
+  String sortColumn = 'amount';
+  bool sortAscending = true;
+  List<UnshieldedUTXO> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    entries = widget.entries;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!foundation.listEquals(entries, widget.entries)) {
+      entries = List.from(widget.entries);
+      sortEntries();
+    }
+  }
+
+  void onSort(String column) {
+    setState(() {
+      if (sortColumn == column) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
+      }
+      sortEntries();
+    });
+  }
+
+  void sortEntries() {
+    entries.sort((a, b) {
+      dynamic aValue;
+      dynamic bValue;
+
+      switch (sortColumn) {
+        case 'confirmations':
+          aValue = a.confirmations;
+          bValue = b.confirmations;
+          break;
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case 'address':
+          aValue = a.address;
+          bValue = b.address;
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return SailRawCard(
+          title: 'Transparent UTXOs',
+          subtitle: 'List of unspent transaction outputs in your transparent address',
+          bottomPadding: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: SailStyleValues.padding16,
+                ),
+                child: widget.searchWidget,
+              ),
+              Expanded(
+                child: SailTable(
+                  getRowId: (index) => widget.entries[index].txid,
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(
+                      name: 'Confirmations',
+                      onSort: () => onSort('confirmations'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Amount',
+                      onSort: () => onSort('amount'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Address',
+                      onSort: () => onSort('address'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'TxID',
+                      onSort: () => onSort('txid'),
+                    ),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final entry = widget.entries[row];
+                    return [
+                      SailTableCell(
+                        value: entry.confirmations.toString(),
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: formatBitcoin(entry.amount),
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: entry.address,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: entry.txid,
+                        monospace: true,
+                      ),
+                    ];
+                  },
+                  rowCount: widget.entries.length,
+                  columnWidths: const [100, 150, 200, 200],
+                  drawGrid: true,
+                  sortColumnIndex: [
+                    'confirmations',
+                    'amount',
+                    'address',
+                    'txid',
+                  ].indexOf(sortColumn),
+                  sortAscending: sortAscending,
+                  onSort: (columnIndex, ascending) {
+                    onSort(['confirmations', 'amount', 'address', 'txid'][columnIndex]);
+                  },
+                  onDoubleTap: (rowId) {
+                    final utxo = widget.entries.firstWhere(
+                      (u) => u.txid == rowId,
+                    );
+                    _showUtxoDetails(context, utxo);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showUtxoDetails(BuildContext context, UnshieldedUTXO utxo) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SailRawCard(
+            title: 'UTXO Details',
+            subtitle: 'Details of the selected UTXO',
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow(label: 'TxID', value: utxo.txid),
+                  DetailRow(label: 'Amount', value: formatBitcoin(utxo.amount)),
+                  DetailRow(label: 'Address', value: utxo.address),
+                  DetailRow(label: 'Confirmations', value: utxo.confirmations.toString()),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PrivateUTXOTable extends StatefulWidget {
+  final List<ShieldedUTXO> entries;
+  final Widget searchWidget;
+
+  const PrivateUTXOTable({
+    super.key,
+    required this.entries,
+    required this.searchWidget,
+  });
+
+  @override
+  State<PrivateUTXOTable> createState() => _PrivateUTXOTableState();
+}
+
+class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
+  String sortColumn = 'amount';
+  bool sortAscending = true;
+  List<ShieldedUTXO> entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    entries = widget.entries;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!foundation.listEquals(entries, widget.entries)) {
+      entries = List.from(widget.entries);
+      sortEntries();
+    }
+  }
+
+  void onSort(String column) {
+    setState(() {
+      if (sortColumn == column) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
+      }
+      sortEntries();
+    });
+  }
+
+  void sortEntries() {
+    entries.sort((a, b) {
+      dynamic aValue;
+      dynamic bValue;
+
+      switch (sortColumn) {
+        case 'confirmations':
+          aValue = a.confirmations;
+          bValue = b.confirmations;
+          break;
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+      }
+
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return SailRawCard(
+          title: 'Private UTXOs',
+          subtitle: 'List of unspent transaction outputs in your private address',
+          bottomPadding: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: SailStyleValues.padding16,
+                ),
+                child: widget.searchWidget,
+              ),
+              Expanded(
+                child: SailTable(
+                  getRowId: (index) => widget.entries[index].txid,
+                  headerBuilder: (context) => [
+                    SailTableHeaderCell(
+                      name: 'Confirmations',
+                      onSort: () => onSort('confirmations'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Amount',
+                      onSort: () => onSort('amount'),
+                    ),
+                    SailTableHeaderCell(
+                      name: 'TxID',
+                      onSort: () => onSort('txid'),
+                    ),
+                  ],
+                  rowBuilder: (context, row, selected) {
+                    final entry = widget.entries[row];
+                    return [
+                      SailTableCell(
+                        value: entry.confirmations.toString(),
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: formatBitcoin(entry.amount),
+                        monospace: true,
+                        textColor: getCastColor(entry.amount),
+                      ),
+                      SailTableCell(
+                        value: entry.txid,
+                        monospace: true,
+                      ),
+                    ];
+                  },
+                  rowCount: widget.entries.length,
+                  columnWidths: const [100, 150, 200],
+                  drawGrid: true,
+                  sortColumnIndex: [
+                    'confirmations',
+                    'amount',
+                    'txid',
+                  ].indexOf(sortColumn),
+                  sortAscending: sortAscending,
+                  onSort: (columnIndex, ascending) {
+                    onSort(['confirmations', 'amount', 'txid'][columnIndex]);
+                  },
+                  onDoubleTap: (rowId) {
+                    final utxo = widget.entries.firstWhere(
+                      (u) => u.txid == rowId,
+                    );
+                    _showUtxoDetails(context, utxo);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showUtxoDetails(BuildContext context, ShieldedUTXO utxo) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SailRawCard(
+            title: 'UTXO Details',
+            subtitle: 'Details of the selected UTXO',
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow(label: 'TxID', value: utxo.txid),
+                  DetailRow(label: 'Amount', value: formatBitcoin(utxo.amount)),
+                  DetailRow(label: 'Confirmations', value: utxo.confirmations.toString()),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

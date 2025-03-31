@@ -1,9 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:sail_ui/sail_ui.dart';
-
 class UTXO {
   final String txid;
   final int vout;
@@ -83,69 +79,4 @@ class UTXO {
         'time': time,
         'raw': raw,
       };
-}
-
-class UTXOView extends StatelessWidget {
-  final UTXO utxo;
-  final bool externalDirection;
-
-  const UTXOView({
-    super.key,
-    required this.utxo,
-    this.externalDirection = false,
-  });
-
-  Map<String, dynamic> get decodedUTXO => jsonDecode(utxo.raw);
-
-  String get formattedDate {
-    if (utxo.time == null) {
-      return '';
-    }
-
-    final date = DateTime.fromMillisecondsSinceEpoch(utxo.time! * 1000);
-    String locale = WidgetsBinding.instance.platformDispatcher.locale.toString();
-    var formatter = DateFormat.yMMMMd(locale).add_Hm();
-    String formattedDate = formatter.format(date);
-
-    return formattedDate;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        width: 95,
-        icon: utxo.confirmations >= 1
-            ? Tooltip(
-                message: '${utxo.confirmations} confirmations',
-                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-              )
-            : Tooltip(
-                message: 'Unconfirmed',
-                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-              ),
-        copyable: false,
-        value: extractTXTitle(utxo),
-        trailingText: formattedDate,
-      ),
-      expandedEntry: ExpandedTXView(
-        decodedTX: decodedUTXO,
-        width: 95,
-      ),
-    );
-  }
-
-  String extractTXTitle(UTXO tx) {
-    String title = formatBitcoin(tx.amount);
-
-    if (tx.address.isEmpty) {
-      return '$title in ${tx.txid}';
-    }
-
-    if (tx.amount.isNegative || tx.amount == 0) {
-      return '$title to ${tx.address}';
-    }
-
-    return '+$title from ${tx.address}';
-  }
 }

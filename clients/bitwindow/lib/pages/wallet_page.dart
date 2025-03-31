@@ -184,8 +184,9 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                 }).toList(),
                 onChanged: viewModel.onAddressSelected,
               ),
-              QtIconButton(
-                tooltip: 'Paste from clipboard',
+              SailButton(
+                label: 'Paste from clipboard',
+                variant: ButtonVariant.outline,
                 onPressed: () async {
                   try {
                     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
@@ -197,11 +198,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                     showSnackBar(context, 'Error accessing clipboard');
                   }
                 },
-                icon: Icon(
-                  Icons.content_paste_rounded,
-                  size: 20.0,
-                  color: context.sailTheme.colors.text,
-                ),
+                icon: SailSVGAsset.iconCopy, // TODO: add icon for iconPaste
               ),
               const SizedBox(width: 4.0),
             ],
@@ -220,16 +217,10 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                           child: NumericField(
                             label: 'Amount',
                             controller: viewModel.amountController,
-                            suffixWidget: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: viewModel.onUseAvailableBalance,
-                                child: SailText.primary15(
-                                  'MAX',
-                                  color: context.sailTheme.colors.orange,
-                                  underline: true,
-                                ),
-                              ),
+                            suffixWidget: SailButton(
+                              label: 'MAX',
+                              variant: ButtonVariant.link,
+                              onPressed: viewModel.onUseAvailableBalance,
                             ),
                           ),
                         ),
@@ -260,7 +251,6 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                   ],
                 ),
               ),
-              Expanded(child: Container()),
             ],
           ),
           const SizedBox(height: SailStyleValues.padding16),
@@ -270,17 +260,15 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  QtButton(
+                  SailButton(
                     label: 'Send',
                     onPressed: () => viewModel.sendTransaction(context),
-                    size: ButtonSize.small,
                   ),
                   const SizedBox(width: SailStyleValues.padding08),
-                  QtButton(
-                    style: SailButtonStyle.secondary,
+                  SailButton(
+                    variant: ButtonVariant.secondary,
                     label: 'Clear All',
                     onPressed: viewModel.clearAll,
-                    size: ButtonSize.small,
                   ),
                 ],
               ),
@@ -755,7 +743,7 @@ class ReceiveTab extends StatelessWidget {
                                   size: TextFieldSize.small,
                                 ),
                               ),
-                              QtButton(
+                              SailButton(
                                 label: model.hasExistingLabel ? 'Update Label' : 'Save Label',
                                 onPressed: () async {
                                   try {
@@ -770,12 +758,11 @@ class ReceiveTab extends StatelessWidget {
                                 },
                                 disabled: model.isBusy || !model.hasLabelChanged,
                                 loading: model.isBusy,
-                                size: ButtonSize.small,
                               ),
                             ],
                           ),
                           if (model.address.isEmpty)
-                            QtButton(
+                            SailButton(
                               label: 'Generate new address',
                               onPressed: model.generateNewAddress,
                               loading: model.isBusy,
@@ -800,7 +787,6 @@ class ReceiveTab extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Expanded(child: Container()),
                 ],
               ),
             ],
@@ -1390,15 +1376,13 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                     value: canCancel ? 'Cancel' : '-',
                     monospace: true,
                     child: canCancel
-                        ? QtButton(
+                        ? SailButton(
                             label: 'Cancel',
                             onPressed: () async => widget.onCancel(utxo.deniability.id),
-                            size: ButtonSize.small,
                           )
-                        : QtButton(
+                        : SailButton(
                             label: 'Deny',
                             onPressed: () async => widget.onDeny(utxo.txid, utxo.vout),
-                            size: ButtonSize.small,
                           ),
                   ),
                 ];
@@ -1752,16 +1736,14 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
                           hintText: "m/44'/0'/0'/0",
                         ),
                       ),
-                      QtButton(
+                      SailButton(
                         label: 'Previous',
                         onPressed: _currentPage > 0 ? _previousPage : null,
-                        size: ButtonSize.small,
                       ),
                       SailText.primary12('Page ${_currentPage + 1}'),
-                      QtButton(
+                      SailButton(
                         label: 'Next',
                         onPressed: _nextPage,
-                        size: ButtonSize.small,
                       ),
                     ],
                   ),
@@ -1781,15 +1763,10 @@ class _HDWalletExplorerTabState extends State<HDWalletExplorerTab> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   const SailTableHeaderCell(name: 'Private Keys'),
-                                  SailRawButton(
-                                    disabled: false,
-                                    loading: false,
+                                  SailButton(
+                                    variant: ButtonVariant.secondary,
+                                    label: _showPrivateKeys ? 'Hide' : 'Show',
                                     onPressed: () async => setState(() => _showPrivateKeys = !_showPrivateKeys),
-                                    child: SailText.primary13(
-                                      !_showPrivateKeys ? 'Show' : 'Hide',
-                                      bold: true,
-                                      color: context.sailTheme.colors.text,
-                                    ),
                                   ),
                                 ],
                               ),
@@ -1880,10 +1857,9 @@ class BitDriveTab extends StatelessWidget {
                                   SailRow(
                                     spacing: SailStyleValues.padding08,
                                     children: [
-                                      QtButton(
+                                      SailButton(
                                         label: 'Choose File',
                                         onPressed: () => model.pickFile(context),
-                                        size: ButtonSize.small,
                                       ),
                                       if (model.selectedFileName != null)
                                         Expanded(
@@ -1892,14 +1868,10 @@ class BitDriveTab extends StatelessWidget {
                                           ),
                                         ),
                                       if (model.selectedFileName != null)
-                                        QtIconButton(
-                                          tooltip: 'Clear selected file',
+                                        SailButton(
+                                          label: '',
+                                          icon: SailSVGAsset.iconClose,
                                           onPressed: model.clearSelectedFile,
-                                          icon: Icon(
-                                            Icons.close,
-                                            size: 16.0,
-                                            color: context.sailTheme.colors.text,
-                                          ),
                                         ),
                                     ],
                                   ),
@@ -1924,32 +1896,19 @@ class BitDriveTab extends StatelessWidget {
                                           hintText: '0.0001',
                                         ),
                                       ),
-                                      Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          QtIconButton(
-                                            tooltip: 'Increase fee',
-                                            onPressed: () async {
-                                              model.adjustFee(0.0001);
-                                            },
-                                            icon: Icon(
-                                              Icons.arrow_upward,
-                                              size: 12.0,
-                                              color: context.sailTheme.colors.text,
-                                            ),
-                                          ),
-                                          QtIconButton(
-                                            tooltip: 'Decrease fee',
-                                            onPressed: () async {
-                                              model.adjustFee(-0.0001);
-                                            },
-                                            icon: Icon(
-                                              Icons.arrow_downward,
-                                              size: 12.0,
-                                              color: context.sailTheme.colors.text,
-                                            ),
-                                          ),
-                                        ],
+                                      SailButton(
+                                        label: '',
+                                        icon: SailSVGAsset.iconArrow,
+                                        onPressed: () async {
+                                          model.adjustFee(0.0001);
+                                        },
+                                      ),
+                                      SailButton(
+                                        label: '',
+                                        icon: SailSVGAsset.iconArrow,
+                                        onPressed: () async {
+                                          model.adjustFee(-0.0001);
+                                        },
                                       ),
                                     ],
                                   ),
@@ -1959,11 +1918,11 @@ class BitDriveTab extends StatelessWidget {
                                     label: 'Encrypt',
                                   ),
                                   const SailSpacing(SailStyleValues.padding16),
-                                  QtButton(
+                                  SailButton(
                                     label: 'Store',
                                     onPressed: model.canStore ? () => model.store(context) : null,
                                     loading: model.isBusy,
-                                    style: model.canStore ? SailButtonStyle.primary : SailButtonStyle.secondary,
+                                    variant: model.canStore ? ButtonVariant.primary : ButtonVariant.secondary,
                                   ),
                                 ],
                               ),
@@ -1987,11 +1946,10 @@ class BitDriveTab extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        QtButton(
+                        SailButton(
                           label: 'Open BitDrive',
                           onPressed: model._bitdriveDir != null ? () => model.openBitdriveDir() : null,
-                          size: ButtonSize.small,
-                          style: SailButtonStyle.secondary,
+                          variant: ButtonVariant.secondary,
                         ),
                       ],
                     ),

@@ -1,12 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/cast_provider.dart';
@@ -27,11 +24,10 @@ class ShieldUTXOAction extends StatelessWidget {
       builder: ((context, model, child) {
         return DashboardActionModal(
           'Shield coins',
-          endActionButton: SailButton.primary(
-            'Execute shield',
+          endActionButton: SailButton(
+            label: 'Execute shield',
             disabled: model.bitcoinAmountController.text.isEmpty,
             loading: model.isBusy,
-            size: ButtonSize.regular,
             onPressed: () async {
               model.executeShield(context, utxo);
             },
@@ -192,11 +188,10 @@ class DeshieldUTXOAction extends StatelessWidget {
       builder: ((context, model, child) {
         return DashboardActionModal(
           'Deshield coins',
-          endActionButton: SailButton.primary(
-            'Execute deshield',
+          endActionButton: SailButton(
+            label: 'Execute deshield',
             disabled: model.bitcoinAmountController.text.isEmpty,
             loading: model.isBusy,
-            size: ButtonSize.regular,
             onPressed: () async {
               model.executeDeshield(context, utxo);
             },
@@ -355,11 +350,10 @@ class CastSingleUTXOAction extends StatelessWidget {
       builder: ((context, model, child) {
         return DashboardActionModal(
           'Cast single UTXO',
-          endActionButton: SailButton.primary(
-            'Execute cast',
+          endActionButton: SailButton(
+            label: 'Execute cast',
             loading: model.isBusy,
             disabled: model.includedInBills == null,
-            size: ButtonSize.regular,
             onPressed: () async {
               model.executeCast(context, utxo);
             },
@@ -508,10 +502,9 @@ class MeltAction extends StatelessWidget {
         return SingleChildScrollView(
           child: DashboardActionModal(
             doEverythingMode ? 'Do everything for me' : 'Melt UTXOs',
-            endActionButton: SailButton.primary(
-              doEverythingMode ? 'Execute melt, then cast' : 'Execute melt',
+            endActionButton: SailButton(
+              label: doEverythingMode ? 'Execute melt, then cast' : 'Execute melt',
               loading: model.isBusy,
-              size: ButtonSize.regular,
               onPressed: () async {
                 model.melt(
                   context,
@@ -662,10 +655,9 @@ class MeltSingleUTXOAction extends StatelessWidget {
       builder: ((context, model, child) {
         return DashboardActionModal(
           'Melt single UTXO',
-          endActionButton: SailButton.primary(
-            'Execute melt',
+          endActionButton: SailButton(
+            label: 'Execute melt',
             loading: model.isBusy,
-            size: ButtonSize.regular,
             onPressed: () async {
               model.melt(context, utxo);
             },
@@ -778,10 +770,9 @@ class CastAction extends StatelessWidget {
         return SingleChildScrollView(
           child: DashboardActionModal(
             'Cast UTXOs',
-            endActionButton: SailButton.primary(
-              'Execute cast',
+            endActionButton: SailButton(
+              label: 'Execute cast',
               loading: model.isBusy,
-              size: ButtonSize.regular,
               onPressed: () async {
                 model.cast(context);
               },
@@ -920,303 +911,6 @@ class CastActionViewModel extends BaseViewModel {
         subtitle: error.toString(),
       );
     }
-  }
-}
-
-class OperationView extends StatelessWidget {
-  final OperationStatus tx;
-
-  const OperationView({
-    super.key,
-    required this.tx,
-  });
-
-  Map<String, dynamic> get decodedTX => jsonDecode(tx.raw);
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        width: 115,
-        icon: tx.status == 'success'
-            ? Tooltip(
-                message: 'Success',
-                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-              )
-            : Tooltip(
-                message: 'Failed',
-                child: SailSVG.icon(SailSVGAsset.iconFailed, width: 13),
-              ),
-        copyable: false,
-        label: tx.method,
-        value: tx.id,
-        trailingText: DateFormat('dd MMM HH:mm:ss').format(tx.creationTime),
-      ),
-      expandedEntry: ExpandedTXView(
-        decodedTX: decodedTX,
-        width: 115,
-      ),
-    );
-  }
-}
-
-class UnshieldedUTXOView extends StatelessWidget {
-  final UnshieldedUTXO utxo;
-  final Future<void> Function()? shieldAction;
-  final bool meltMode;
-
-  const UnshieldedUTXOView({
-    super.key,
-    required this.utxo,
-    required this.shieldAction,
-    required this.meltMode,
-  });
-
-  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
-
-  Map<String, dynamic> get decodedUTXO => jsonDecode(utxo.raw);
-  Color? get utxoColor => getCastColor(utxo.amount);
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        prefixAction: shieldAction == null
-            ? null
-            : SailButton.secondary(
-                meltMode ? 'Melt' : 'Shield',
-                onPressed: shieldAction!,
-                size: ButtonSize.small,
-                disabled: utxo.amount <= zcashFee,
-              ),
-        icon: utxo.confirmations >= 1
-            ? Tooltip(
-                message: '${utxo.confirmations} confirmations',
-                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-              )
-            : Tooltip(
-                message: 'Unconfirmed',
-                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-              ),
-        color: utxoColor,
-        copyable: false,
-        label: formatBitcoin(utxo.amount, symbol: _sidechainContainer.rpc.chain.ticker),
-        labelTooltip: isCastAmount(utxo.amount) ? 'Casted, safe UTXO' : 'Not casted, unsafe UTXO',
-        value: utxo.address,
-      ),
-      expandedEntry: ExpandedTXView(
-        decodedTX: decodedUTXO,
-        width: 115,
-      ),
-    );
-  }
-}
-
-class ShieldedUTXOView extends StatelessWidget {
-  final ShieldedUTXO utxo;
-  final Future<void> Function()? deshieldAction;
-  final bool castMode;
-
-  const ShieldedUTXOView({
-    super.key,
-    required this.utxo,
-    required this.deshieldAction,
-    required this.castMode,
-  });
-
-  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
-
-  Map<String, dynamic> get decodedUTXO => jsonDecode(utxo.raw);
-  Color? get utxoColor => getCastColor(utxo.amount);
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        prefixAction: deshieldAction == null
-            ? null
-            : SailButton.secondary(
-                castMode ? 'Cast' : 'Deshield',
-                onPressed: deshieldAction!,
-                size: ButtonSize.small,
-                disabled: utxo.amount <= zcashFee,
-              ),
-        icon: utxo.confirmations >= 1
-            ? Tooltip(
-                message: '${utxo.confirmations} confirmations',
-                child: SailSVG.icon(SailSVGAsset.iconSuccess, width: 13),
-              )
-            : Tooltip(
-                message: 'Unconfirmed',
-                child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-              ),
-        color: utxoColor,
-        copyable: false,
-        label: formatBitcoin(utxo.amount, symbol: _sidechainContainer.rpc.chain.ticker),
-        labelTooltip: isCastAmount(utxo.amount) ? 'Melted, safe UTXO' : 'Not melted, unsafe amount',
-        value: utxo.txid,
-        trailingText: '',
-      ),
-      expandedEntry: ExpandedTXView(
-        decodedTX: decodedUTXO,
-        width: 115,
-      ),
-    );
-  }
-}
-
-class PendingCastView extends StatefulWidget {
-  final PendingCastBill pending;
-  final Binary chain;
-
-  const PendingCastView({
-    super.key,
-    required this.pending,
-    required this.chain,
-  });
-
-  @override
-  State<PendingCastView> createState() => _PendingCastViewState();
-}
-
-class _PendingCastViewState extends State<PendingCastView> {
-  int executeInSeconds = 0;
-  late Map<String, dynamic> expandInfo;
-
-  // for counting down until execution
-  Timer? _timer;
-  Duration _timeLeft = const Duration();
-
-  void _startTimer() {
-    _timer?.cancel(); // Cancel any existing timer
-    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
-      setState(() {
-        _timeLeft = widget.pending.executeTime.difference(DateTime.now());
-        if (_timeLeft.isNegative) {
-          _timeLeft = const Duration(seconds: 0);
-          _timer?.cancel();
-        }
-      });
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    expandInfo = convertPendingShieldsToMap(widget.pending.pendingShields);
-    _startTimer();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    String countdownText = _timeLeft.isNegative ? 'Executing...' : 'Executing in ${_timeLeft.inSeconds} seconds';
-
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        icon: Tooltip(
-          message: 'Waiting for timer to expire',
-          child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-        ),
-        copyable: false,
-        label: formatBitcoin(widget.pending.castAmount, symbol: widget.chain.ticker),
-        value:
-            widget.pending.pendingShields.isNotEmpty ? 'Will deshield ${widget.pending.pendingShields.length} txs' : '',
-        trailingText: countdownText,
-      ),
-      expandedEntry: ExpandedTXView(
-        decodedTX: expandInfo,
-        width: 105,
-      ),
-    );
-  }
-
-  Map<String, dynamic> convertPendingShieldsToMap(List<PendingDeshield> pendingShields) {
-    Map<String, dynamic> resultMap = {};
-
-    for (int i = 0; i < pendingShields.length; i++) {
-      resultMap[i.toString()] = pendingShields[i].fromUTXO.txid;
-    }
-
-    return resultMap;
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-}
-
-class PendingMeltView extends StatefulWidget {
-  final PendingShield tx;
-
-  const PendingMeltView({
-    super.key,
-    required this.tx,
-  });
-
-  @override
-  State<PendingMeltView> createState() => _PendingMeltViewState();
-}
-
-class _PendingMeltViewState extends State<PendingMeltView> {
-  SidechainContainer get _sidechainContainer => GetIt.I.get<SidechainContainer>();
-
-  int executeInSeconds = 0;
-  late Map<String, dynamic> decodedTX;
-
-  // for counting down until execution
-  Timer? _timer;
-  Duration _timeLeft = const Duration();
-
-  void _startTimer() {
-    _timer?.cancel(); // Cancel any existing timer
-    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
-      setState(() {
-        _timeLeft = widget.tx.executeTime.difference(DateTime.now());
-        if (_timeLeft.isNegative) {
-          _timeLeft = const Duration(seconds: 0);
-          _timer?.cancel();
-        }
-      });
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _startTimer();
-    decodedTX = jsonDecode(widget.tx.utxo.raw);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    String countdownText = _timeLeft.inSeconds <= 0 ? 'Executing...' : 'Executing in ${_timeLeft.inSeconds} seconds';
-
-    return ExpandableListEntry(
-      entry: SingleValueContainer(
-        width: 105,
-        icon: Tooltip(
-          message: 'Waiting for timer to expire',
-          child: SailSVG.icon(SailSVGAsset.iconPending, width: 13),
-        ),
-        copyable: false,
-        label: formatBitcoin(widget.tx.utxo.amount, symbol: _sidechainContainer.rpc.chain.ticker),
-        value:
-            'Will melt ${widget.tx.utxo.amount} ${_sidechainContainer.rpc.chain.ticker} from ${widget.tx.utxo.address}',
-        trailingText: countdownText,
-      ),
-      expandedEntry: ExpandedTXView(
-        decodedTX: decodedTX,
-        width: 105,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
   }
 }
 

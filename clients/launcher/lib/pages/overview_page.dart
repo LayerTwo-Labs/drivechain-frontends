@@ -167,40 +167,40 @@ class _OverviewPageState extends State<OverviewPage> {
     final isDownloaded = binary.isDownloaded;
 
     if (stopping) {
-      return SailButton.primary(
-        'Stopping...',
+      return SailButton(
+        label: 'Stopping...',
         onPressed: () async {},
-        size: ButtonSize.regular,
+        variant: ButtonVariant.primary,
         loading: true,
       );
     }
 
     if (isRunning) {
-      return SailButton.secondary(
-        'Stop',
+      return SailButton(
+        label: 'Stop',
         onPressed: () async {
           await _stopBinary(binary);
         },
-        size: ButtonSize.regular,
+        variant: ButtonVariant.secondary,
       );
     }
 
     if (isInitializing) {
-      return SailButton.primary(
-        'Launching...',
+      return SailButton(
+        label: 'Launching...',
         onPressed: () async {}, // Disable button while initializing
-        size: ButtonSize.regular,
+        variant: ButtonVariant.primary,
         loading: true,
       );
     }
 
     if (isProcessRunning) {
-      return SailButton.secondary(
-        'Kill',
+      return SailButton(
+        label: 'Kill',
         onPressed: () async {
           await _stopBinary(binary);
         },
-        size: ButtonSize.regular,
+        variant: ButtonVariant.secondary,
       );
     }
 
@@ -209,19 +209,19 @@ class _OverviewPageState extends State<OverviewPage> {
 
       return Tooltip(
         message: canStart ?? 'Launch ${binary.name}',
-        child: SailButton.primary(
-          'Launch',
+        child: SailButton(
+          label: 'Launch',
           onPressed: () => _binaryProvider.startBinary(binary, useStarter: _useStarter[binary.name] ?? false),
-          size: ButtonSize.regular,
+          variant: ButtonVariant.primary,
           disabled: canStart != null,
         ),
       );
     }
 
-    return SailButton.primary(
-      'Download',
+    return SailButton(
+      label: 'Download',
       onPressed: () => _downloadBinary(context, binary),
-      size: ButtonSize.regular,
+      variant: ButtonVariant.primary,
       loading: status != null && status.progress != 1.0 && status.progress != 0.0,
     );
   }
@@ -401,10 +401,10 @@ class _OverviewPageState extends State<OverviewPage> {
               if (binary.updateAvailable && (status?.progress == 1.0 || status?.progress == 0 || status == null)) ...[
                 const SizedBox(width: 12),
                 Center(
-                  child: SailButton.primary(
-                    'Update Now',
+                  child: SailButton(
+                    label: 'Update Now',
                     onPressed: () => _updateBinary(binary),
-                    size: ButtonSize.regular,
+                    variant: ButtonVariant.primary,
                   ),
                 ),
               ],
@@ -490,8 +490,8 @@ class _OverviewPageState extends State<OverviewPage> {
                                               (b) => b.isDownloaded,
                                             );
 
-                                            return SailButton.primary(
-                                              allL1Downloaded ? 'Boot Layer 1' : 'Download and Boot Layer 1',
+                                            return SailButton(
+                                              label: allL1Downloaded ? 'Boot Layer 1' : 'Download and Boot Layer 1',
                                               onPressed: () async {
                                                 try {
                                                   await _binaryProvider.downloadThenBootBinary(
@@ -508,7 +508,7 @@ class _OverviewPageState extends State<OverviewPage> {
                                                   );
                                                 }
                                               },
-                                              size: ButtonSize.regular,
+                                              variant: ButtonVariant.primary,
                                             );
                                           },
                                         ),

@@ -34,8 +34,9 @@ class StaticField extends StatelessWidget {
               ),
             ),
             if (copyable)
-              QtIconButton(
-                tooltip: 'Copy to clipboard',
+              SailButton(
+                label: '',
+                variant: ButtonVariant.ghost,
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: value));
                   if (!context.mounted) return;
@@ -46,11 +47,7 @@ class StaticField extends StatelessWidget {
                     ),
                   );
                 },
-                icon: Icon(
-                  Icons.copy,
-                  size: 16,
-                  color: context.sailTheme.colors.text,
-                ),
+                icon: SailSVGAsset.iconCopy,
               ),
           ],
         ),
@@ -78,8 +75,8 @@ class StaticActionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailScaleButton(
-      onPressed: copyable
+    return InkWell(
+      onTap: copyable
           ? () async {
               // If we contain spaces, make sure to copy a quoted string. This makes
               // it possible to copy-paste log file locations into a file viewer,

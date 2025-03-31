@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
-import 'package:bitwindow/widgets/error_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -94,12 +93,6 @@ class TransactionsView extends StatelessWidget {
     return ViewModelBuilder<TransactionsViewModel>.reactive(
       viewModelBuilder: () => TransactionsViewModel(),
       builder: (context, model, child) {
-        if (model.hasErrorForKey('blockchain')) {
-          return ErrorContainer(
-            error: model.error('blockchain').toString(),
-          );
-        }
-
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -111,6 +104,7 @@ class TransactionsView extends StatelessWidget {
                     bottomPadding: false,
                     title: 'Latest Transactions',
                     subtitle: 'View the latest transactions on the sidechain',
+                    error: model.hasErrorForKey('blockchain') ? model.error('blockchain').toString() : null,
                     child: SizedBox(
                       height: 300,
                       child: LatestTransactionTable(
@@ -479,17 +473,15 @@ class CoinNewsView extends StatelessWidget {
             child: SailRow(
               spacing: SailStyleValues.padding08,
               children: [
-                QtButton(
+                SailButton(
                   label: 'Create Topic',
                   onPressed: () => displayCreateTopicDialog(context),
-                  size: ButtonSize.small,
-                  style: SailButtonStyle.secondary,
+                  variant: ButtonVariant.secondary,
                 ),
-                QtButton(
+                SailButton(
                   label: 'Graffitti Explorer',
                   onPressed: () => displayGraffittiExplorerDialog(context),
-                  size: ButtonSize.small,
-                  style: SailButtonStyle.secondary,
+                  variant: ButtonVariant.secondary,
                 ),
               ],
             ),
@@ -521,10 +513,9 @@ class CoinNewsView extends StatelessWidget {
                           onChanged: viewModel.setLeftTopic,
                           value: viewModel.leftTopic,
                         ),
-                        QtButton(
+                        SailButton(
                           label: 'Broadcast to ${viewModel.leftTopic.name}',
                           onPressed: () => displayBroadcastNewsDialog(context, initialTopic: viewModel.leftTopic),
-                          size: ButtonSize.small,
                         ),
                       ],
                     ),
@@ -562,10 +553,9 @@ class CoinNewsView extends StatelessWidget {
                           onChanged: viewModel.setRightTopic,
                           value: viewModel.rightTopic,
                         ),
-                        QtButton(
+                        SailButton(
                           label: 'Broadcast to ${viewModel.rightTopic.name}',
                           onPressed: () => displayBroadcastNewsDialog(context, initialTopic: viewModel.rightTopic),
-                          size: ButtonSize.small,
                         ),
                       ],
                     ),
@@ -673,10 +663,9 @@ class BroadcastNewsView extends StatelessWidget {
                 hintText: 'Enter news content',
                 minLines: 10,
               ),
-              QtButton(
+              SailButton(
                 label: 'Broadcast',
                 onPressed: () => viewModel.broadcastNews(context),
-                size: ButtonSize.small,
                 disabled: viewModel.headlineController.text.isEmpty || viewModel.headlineController.text.length > 64,
               ),
             ],
@@ -785,10 +774,9 @@ class CreateTopicView extends StatelessWidget {
               hintText: 'Enter a name (e.g. "US Weekly")',
               size: TextFieldSize.small,
             ),
-            QtButton(
+            SailButton(
               label: 'Create',
               onPressed: () => viewModel.createTopic(context),
-              size: ButtonSize.small,
               disabled: viewModel.identifierController.text.isEmpty ||
                   viewModel.nameController.text.isEmpty ||
                   viewModel.identifierController.text.length != 8,
@@ -875,10 +863,9 @@ class NewGraffittiView extends StatelessWidget {
               hintText: 'Enter a message',
               size: TextFieldSize.small,
             ),
-            QtButton(
+            SailButton(
               label: 'Broadcast',
               onPressed: () => viewModel.createGraffitti(context),
-              size: ButtonSize.small,
               disabled: viewModel.messageController.text.isEmpty,
             ),
           ],
@@ -1009,10 +996,9 @@ class GraffittiExplorerView extends StatelessWidget {
           leadingSpacing: true,
           children: [
             // add button here, that opens ANOTHER dialog, where you can enter a message.
-            QtButton(
+            SailButton(
               label: 'New Graffitti',
               onPressed: () => newGraffittiDialog(context),
-              size: ButtonSize.small,
             ),
             Expanded(
               child: GraffittiTable(

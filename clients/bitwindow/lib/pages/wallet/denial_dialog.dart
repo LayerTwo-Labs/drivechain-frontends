@@ -135,17 +135,15 @@ class _DenialDialogState extends State<DenialDialog> {
                   spacing: SailStyleValues.padding08,
                   children: [
                     SailText.primary15('Defaults:'),
-                    QtButton(
+                    SailButton(
                       label: 'Normal',
                       onPressed: setNormalDefaults,
-                      size: ButtonSize.small,
-                      style: SailButtonStyle.secondary,
+                      variant: ButtonVariant.secondary,
                     ),
-                    QtButton(
+                    SailButton(
                       label: 'Paranoid',
                       onPressed: setParanoidDefaults,
-                      size: ButtonSize.small,
-                      style: SailButtonStyle.secondary,
+                      variant: ButtonVariant.secondary,
                     ),
                   ],
                 ),
@@ -157,18 +155,18 @@ class _DenialDialogState extends State<DenialDialog> {
                   spacing: SailStyleValues.padding08,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    QtButton(
+                    SailButton(
                       label: 'Start',
                       onPressed: () async {
                         final hops = int.tryParse(hopsController.text) ?? 3;
                         await widget.onSubmit(hops, getTotalSeconds());
                         if (context.mounted) Navigator.pop(context);
                       },
-                      size: ButtonSize.small,
                     ),
-                    SailTextButton(
+                    SailButton(
                       label: 'Cancel',
                       onPressed: () async => Navigator.pop(context),
+                      variant: ButtonVariant.ghost,
                     ),
                   ],
                 ),

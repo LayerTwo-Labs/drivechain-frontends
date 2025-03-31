@@ -244,10 +244,10 @@ class _ExplorerPageState extends State<ExplorerPage> {
                 // Refresh button with auto-refresh indicator
                 Row(
                   children: [
-                    SailButton.primary(
-                      'Refresh Now',
+                    SailButton(
+                      label: 'Refresh Now',
                       onPressed: () async => model.refreshData(),
-                      size: ButtonSize.regular,
+                      variant: ButtonVariant.primary,
                     ),
                     const SizedBox(width: 16),
                     SailText.secondary12(

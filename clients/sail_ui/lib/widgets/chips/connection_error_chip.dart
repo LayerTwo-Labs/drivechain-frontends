@@ -13,38 +13,11 @@ class ConnectionErrorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return SailScaleButton(
+    return SailButton(
+      label: 'Not connected to $chain',
+      variant: ButtonVariant.outline,
+      icon: SailSVGAsset.iconGlobe,
       onPressed: onPressed,
-      child: SailErrorShadow(
-        enabled: true,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(Radius.circular(4)),
-            color: theme.colors.error,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: SailStyleValues.padding04,
-              horizontal: SailStyleValues.padding10,
-            ),
-            child: SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                SailSVG.fromAsset(
-                  SailSVGAsset.iconGlobe,
-                  color: Colors.white,
-                ),
-                SailText.primary12(
-                  'Not connected to $chain',
-                  color: Colors.white,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -29,17 +29,16 @@ class LoadingIndicator extends StatelessWidget {
     );
   }
 
-  static Widget insideButton() {
+  static Widget insideButton(Color color) {
     return Builder(
       builder: (context) {
-        final theme = SailTheme.of(context);
         return SizedBox(
           width: SailStyleValues.padding16,
           height: SailStyleValues.padding16,
           child: Stack(
             children: [
               Center(
-                child: LoadingIndicator(color: theme.colors.backgroundSecondary),
+                child: LoadingIndicator(color: color),
               ),
               const AbsorbPointer(),
             ],

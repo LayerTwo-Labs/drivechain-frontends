@@ -151,25 +151,6 @@ class SettingsTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [SidechainExplorerTabPage]
-class SidechainExplorerTabRoute extends PageRouteInfo<void> {
-  const SidechainExplorerTabRoute({List<PageRouteInfo>? children})
-      : super(
-          SidechainExplorerTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'SidechainExplorerTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const SidechainExplorerTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [SidechainOverviewTabPage]
 class SidechainOverviewTabRoute extends PageRouteInfo<void> {
   const SidechainOverviewTabRoute({List<PageRouteInfo>? children})

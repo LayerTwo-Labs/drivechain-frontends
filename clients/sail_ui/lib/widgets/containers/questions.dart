@@ -50,8 +50,9 @@ class QuestionContainer extends StatelessWidget {
                         spacing: SailStyleValues.padding10,
                         children: [
                           Expanded(child: Container()),
-                          SailTextButton(
+                          SailButton(
                             label: 'Close',
+                            variant: ButtonVariant.ghost,
                             onPressed: () async {
                               Navigator.of(context).pop();
                             },
@@ -80,9 +81,11 @@ class HelpButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailScaleButton(
+    return SailButton(
+      label: '',
+      variant: ButtonVariant.ghost,
       onPressed: onPressed,
-      child: SailSVG.icon(SailSVGAsset.iconQuestion),
+      icon: SailSVGAsset.iconQuestion,
     );
   }
 }

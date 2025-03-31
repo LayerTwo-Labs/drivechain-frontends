@@ -96,12 +96,12 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
                 const SizedBox(width: 8),
                 SailText.secondary13('Use localhost (debug) server'),
                 const SizedBox(width: 24),
-                SailButton.secondary(
-                  viewModel.isConnected ? 'Disconnect' : 'Connect',
+                SailButton(
+                  label: viewModel.isConnected ? 'Disconnect' : 'Connect',
                   onPressed: () async {
                     await viewModel.connectToServerDummy();
                   },
-                  size: ButtonSize.small,
+                  variant: ButtonVariant.secondary,
                 ),
               ],
             ),
@@ -131,12 +131,12 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
               ],
             ),
             const SizedBox(height: 16),
-            SailButton.primary(
-              'Request Withdrawal',
+            SailButton(
+              label: 'Request Withdrawal',
               onPressed: () async {
                 viewModel.requestWithdrawalDummy();
               },
-              size: ButtonSize.regular,
+              variant: ButtonVariant.primary,
             ),
             const SizedBox(height: 24),
 
@@ -164,25 +164,25 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                SailButton.secondary(
-                  'Copy Address',
+                SailButton(
+                  label: 'Copy Address',
                   onPressed: () async {
                     // Placeholder for copying address to clipboard
                     // In real code, you'd copy `viewModel.invoiceAddress`
                   },
-                  size: ButtonSize.regular,
+                  variant: ButtonVariant.secondary,
                 ),
               ],
             ),
             const SizedBox(height: 16),
 
             // Mark Invoice as Paid
-            SailButton.primary(
-              'Invoice Paid',
+            SailButton(
+              label: 'Invoice Paid',
               onPressed: () async {
                 viewModel.invoicePaidDummy();
               },
-              size: ButtonSize.regular,
+              variant: ButtonVariant.primary,
             ),
             const SizedBox(height: 24),
 
@@ -383,23 +383,23 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                     children: [
                                       if (hasMnemonic) ...[
                                         if (!isRevealed)
-                                          SailButton.secondary(
-                                            'Reveal',
+                                          SailButton(
+                                            label: 'Reveal',
                                             onPressed: () async => viewModel.toggleStarterReveal(starter['name'], true),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           )
                                         else ...[
-                                          SailButton.secondary(
-                                            'Copy',
+                                          SailButton(
+                                            label: 'Copy',
                                             onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           ),
                                           const SizedBox(width: 8),
-                                          SailButton.secondary(
-                                            'Hide',
+                                          SailButton(
+                                            label: 'Hide',
                                             onPressed: () async =>
                                                 viewModel.toggleStarterReveal(starter['name'], false),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           ),
                                         ],
                                       ],
@@ -471,28 +471,28 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                     children: [
                                       if (hasMnemonic) ...[
                                         if (!isRevealed)
-                                          SailButton.secondary(
-                                            'Reveal',
+                                          SailButton(
+                                            label: 'Reveal',
                                             onPressed: () async => viewModel.toggleStarterReveal(starter['name'], true),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           )
                                         else ...[
-                                          SailButton.secondary(
-                                            'Copy',
+                                          SailButton(
+                                            label: 'Copy',
                                             onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           ),
                                           const SizedBox(width: 8),
-                                          SailButton.secondary(
-                                            'Hide',
+                                          SailButton(
+                                            label: 'Hide',
                                             onPressed: () async =>
                                                 viewModel.toggleStarterReveal(starter['name'], false),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           ),
                                         ],
                                         const SizedBox(width: 8),
-                                        SailButton.secondary(
-                                          'Delete Starter',
+                                        SailButton(
+                                          label: 'Delete Starter',
                                           onPressed: () async {
                                             try {
                                               if (starter['chain_layer'] == 1) {
@@ -515,11 +515,11 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                               }
                                             }
                                           },
-                                          size: ButtonSize.small,
+                                          variant: ButtonVariant.secondary,
                                         ),
                                       ] else ...[
-                                        SailButton.primary(
-                                          'Generate Starter',
+                                        SailButton(
+                                          label: 'Generate Starter',
                                           onPressed: () async {
                                             try {
                                               await viewModel.generateL1Starter();
@@ -534,7 +534,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                               }
                                             }
                                           },
-                                          size: ButtonSize.small,
+                                          variant: ButtonVariant.primary,
                                         ),
                                       ],
                                     ],
@@ -606,28 +606,28 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                     children: [
                                       if (hasMnemonic) ...[
                                         if (!isRevealed)
-                                          SailButton.secondary(
-                                            'Reveal',
+                                          SailButton(
+                                            label: 'Reveal',
                                             onPressed: () async => viewModel.toggleStarterReveal(starter['name'], true),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           )
                                         else ...[
-                                          SailButton.secondary(
-                                            'Copy',
+                                          SailButton(
+                                            label: 'Copy',
                                             onPressed: () => viewModel.copyStarterMnemonic(starter['mnemonic']),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           ),
                                           const SizedBox(width: 8),
-                                          SailButton.secondary(
-                                            'Hide',
+                                          SailButton(
+                                            label: 'Hide',
                                             onPressed: () async =>
                                                 viewModel.toggleStarterReveal(starter['name'], false),
-                                            size: ButtonSize.small,
+                                            variant: ButtonVariant.secondary,
                                           ),
                                         ],
                                         const SizedBox(width: 8),
-                                        SailButton.secondary(
-                                          'Delete Starter',
+                                        SailButton(
+                                          label: 'Delete Starter',
                                           onPressed: () async {
                                             try {
                                               if (starter['chain_layer'] == 1) {
@@ -650,11 +650,11 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                               }
                                             }
                                           },
-                                          size: ButtonSize.small,
+                                          variant: ButtonVariant.secondary,
                                         ),
                                       ] else ...[
-                                        SailButton.primary(
-                                          'Generate Starter',
+                                        SailButton(
+                                          label: 'Generate Starter',
                                           onPressed: () async {
                                             try {
                                               await viewModel.generateStarter(sidechainSlot!);
@@ -669,7 +669,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                                               }
                                             }
                                           },
-                                          size: ButtonSize.small,
+                                          variant: ButtonVariant.primary,
                                         ),
                                       ],
                                     ],

@@ -28,6 +28,28 @@ class SailColor {
   final Color actionHeader;
   final Color chip;
 
+  // Button-specific colors
+  final Color primaryButtonBackground;
+  final Color primaryButtonText;
+  final Color primaryButtonHover;
+
+  final Color secondaryButtonBackground;
+  final Color secondaryButtonText;
+  final Color secondaryButtonHover;
+
+  final Color destructiveButtonBackground;
+  final Color destructiveButtonText;
+  final Color destructiveButtonHover;
+
+  final Color outlineButtonText;
+  final Color outlineButtonBorder;
+  final Color outlineButtonHover;
+
+  final Color ghostButtonText;
+  final Color ghostButtonHover;
+
+  final Color linkButtonText;
+
   SailColor({
     required this.background,
     required this.backgroundSecondary,
@@ -52,6 +74,21 @@ class SailColor {
     required this.actionHeader,
     required this.chip,
     required this.disabledBackground,
+    required this.primaryButtonBackground,
+    required this.primaryButtonText,
+    required this.primaryButtonHover,
+    required this.secondaryButtonBackground,
+    required this.secondaryButtonText,
+    required this.secondaryButtonHover,
+    required this.destructiveButtonBackground,
+    required this.destructiveButtonText,
+    required this.destructiveButtonHover,
+    required this.outlineButtonText,
+    required this.outlineButtonBorder,
+    required this.outlineButtonHover,
+    required this.ghostButtonText,
+    required this.ghostButtonHover,
+    required this.linkButtonText,
   });
 
   factory SailColor.lightTheme(Color primary) {
@@ -79,6 +116,21 @@ class SailColor {
       chip: SailColorScheme.greyMiddle.withValues(alpha: 0.21),
       popoverBackground: SailColorScheme.white,
       disabledBackground: SailColorScheme.greyLight.withValues(alpha: 0.1),
+      primaryButtonBackground: primary,
+      primaryButtonText: Color(0xffFAFAFA),
+      primaryButtonHover: primary.withValues(alpha: 0.9),
+      secondaryButtonBackground: Color(0xffF4F4F5),
+      secondaryButtonText: Color(0xff18181B),
+      secondaryButtonHover: Color(0xffF4F4F5).withValues(alpha: 0.9),
+      destructiveButtonBackground: Color(0xffDC2626),
+      destructiveButtonText: Color(0xffFAFAFA),
+      destructiveButtonHover: Color(0xffDC2626).withValues(alpha: 0.9),
+      outlineButtonText: Color(0xff09090B),
+      outlineButtonBorder: Color(0xffE4E4E7),
+      outlineButtonHover: Color(0xffF4F4F5),
+      ghostButtonText: Color(0xff09090B),
+      ghostButtonHover: Color(0xffF4F4F5),
+      linkButtonText: Color(0xff18181B),
     );
   }
   factory SailColor.darkTheme(Color primary) {
@@ -106,6 +158,21 @@ class SailColor {
       chip: SailColorScheme.greyDark,
       popoverBackground: SailColorScheme.blackLighter,
       disabledBackground: SailColorScheme.greyDark.withValues(alpha: 0.2),
+      primaryButtonBackground: primary,
+      primaryButtonText: Color(0xff18181B),
+      primaryButtonHover: primary.withValues(alpha: 0.9),
+      secondaryButtonBackground: Color(0xff27272A),
+      secondaryButtonText: Color(0xffFAFAFA),
+      secondaryButtonHover: Color(0xff27272A).withValues(alpha: 0.9),
+      destructiveButtonBackground: Color(0xff7F1D1D),
+      destructiveButtonText: Color(0xffFEF2F2),
+      destructiveButtonHover: Color(0xffDC2626).withValues(alpha: 0.9),
+      outlineButtonText: Color(0xffFAFAFA),
+      outlineButtonBorder: Color(0xff27272A),
+      outlineButtonHover: Color(0xff27272A),
+      ghostButtonText: Color(0xffFAFAFA),
+      ghostButtonHover: Color(0xff27272A),
+      linkButtonText: Color(0xffFAFAFA),
     );
   }
 }

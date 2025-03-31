@@ -44,8 +44,9 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                     width: 80, // Match left spacing
                     child: Align(
                       alignment: Alignment.centerRight,
-                      child: SailTextButton(
+                      child: SailButton(
                         label: 'Done',
+                        variant: ButtonVariant.ghost,
                         onPressed: () async => Navigator.of(context).pop(),
                       ),
                     ),

@@ -163,8 +163,9 @@ class _FaucetPageState extends State<FaucetPage> {
                           ),
                         ),
                         const SizedBox(width: 4.0),
-                        QtIconButton(
-                          tooltip: 'Paste from clipboard',
+                        SailButton(
+                          label: '',
+                          variant: ButtonVariant.outline,
                           onPressed: () async {
                             try {
                               final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
@@ -177,11 +178,7 @@ class _FaucetPageState extends State<FaucetPage> {
                               showSnackBar(context, 'Clipboard not available');
                             }
                           },
-                          icon: Icon(
-                            Icons.content_paste_rounded,
-                            size: 20.0,
-                            color: context.sailTheme.colors.text,
-                          ),
+                          icon: SailSVGAsset.iconCopy, // TODO: add icon for iconPaste
                         ),
                       ],
                     ),
@@ -195,16 +192,12 @@ class _FaucetPageState extends State<FaucetPage> {
                             child: NumericField(
                               label: 'Amount',
                               controller: model.amountController,
-                              suffixWidget: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: GestureDetector(
-                                  onTap: model.onMaxAmount,
-                                  child: SailText.primary15(
-                                    'MAX',
-                                    color: context.sailTheme.colors.orange,
-                                    underline: true,
-                                  ),
-                                ),
+                              suffixWidget: SailButton(
+                                label: 'MAX',
+                                variant: ButtonVariant.link,
+                                onPressed: () async {
+                                  model.onMaxAmount();
+                                },
                               ),
                               inputFormatters: [
                                 CommaReplacerInputFormatter(),
@@ -221,20 +214,18 @@ class _FaucetPageState extends State<FaucetPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            QtButton(
+                            SailButton(
                               label: 'Send',
                               onPressed: () => model.claim(context),
-                              size: ButtonSize.small,
                               disabled: model.isBusy ||
                                   model.amountController.text == '' ||
                                   model.addressController.text == '',
                             ),
                             const SizedBox(width: SailStyleValues.padding08),
-                            QtButton(
-                              style: SailButtonStyle.secondary,
+                            SailButton(
+                              variant: ButtonVariant.secondary,
                               label: 'Clear All',
                               onPressed: model.clearAll,
-                              size: ButtonSize.small,
                             ),
                           ],
                         ),
