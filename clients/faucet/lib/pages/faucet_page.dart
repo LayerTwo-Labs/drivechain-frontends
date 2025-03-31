@@ -164,8 +164,7 @@ class _FaucetPageState extends State<FaucetPage> {
                         ),
                         const SizedBox(width: 4.0),
                         SailButton(
-                          label: '',
-                          variant: ButtonVariant.outline,
+                          variant: ButtonVariant.icon,
                           onPressed: () async {
                             try {
                               final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);

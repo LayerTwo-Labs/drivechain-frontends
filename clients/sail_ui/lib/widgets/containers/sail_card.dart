@@ -95,8 +95,7 @@ class SailRawCard extends StatelessWidget {
                           children: [
                             if (newWindowIdentifier != null)
                               SailButton(
-                                label: '',
-                                variant: ButtonVariant.ghost,
+                                variant: ButtonVariant.icon,
                                 icon: SailSVGAsset.iconNewWindow,
                                 onPressed: () async {
                                   final window = await DesktopMultiWindow.createWindow(
@@ -114,8 +113,7 @@ class SailRawCard extends StatelessWidget {
                               ),
                             if (withCloseButton)
                               SailButton(
-                                label: '',
-                                variant: ButtonVariant.ghost,
+                                variant: ButtonVariant.icon,
                                 icon: SailSVGAsset.iconClose,
                                 onPressed: () async => Navigator.of(context).pop(),
                               ),
@@ -144,8 +142,7 @@ class SailRawCard extends StatelessWidget {
                               if (widgetHeaderEnd != null) widgetHeaderEnd!,
                               if (newWindowIdentifier != null)
                                 SailButton(
-                                  label: '',
-                                  variant: ButtonVariant.ghost,
+                                  variant: ButtonVariant.icon,
                                   icon: SailSVGAsset.iconNewWindow,
                                   onPressed: () async {
                                     final window = await DesktopMultiWindow.createWindow(
@@ -163,8 +160,7 @@ class SailRawCard extends StatelessWidget {
                                 ),
                               if (withCloseButton)
                                 SailButton(
-                                  label: '',
-                                  variant: ButtonVariant.ghost,
+                                  variant: ButtonVariant.icon,
                                   icon: SailSVGAsset.iconClose,
                                   onPressed: () async => Navigator.of(context).pop(),
                                 ),
@@ -181,8 +177,7 @@ class SailRawCard extends StatelessWidget {
                         children: [
                           if (newWindowIdentifier != null)
                             SailButton(
-                              label: '',
-                              variant: ButtonVariant.ghost,
+                              variant: ButtonVariant.icon,
                               icon: SailSVGAsset.iconNewWindow,
                               onPressed: () async {
                                 final window = await DesktopMultiWindow.createWindow(
@@ -200,8 +195,7 @@ class SailRawCard extends StatelessWidget {
                             ),
                           if (withCloseButton)
                             SailButton(
-                              label: '',
-                              variant: ButtonVariant.ghost,
+                              variant: ButtonVariant.icon,
                               icon: SailSVGAsset.iconClose,
                               onPressed: () async => Navigator.of(context).pop(),
                             ),

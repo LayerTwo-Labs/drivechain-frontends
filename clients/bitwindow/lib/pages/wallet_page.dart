@@ -1869,7 +1869,7 @@ class BitDriveTab extends StatelessWidget {
                                         ),
                                       if (model.selectedFileName != null)
                                         SailButton(
-                                          label: '',
+                                          variant: ButtonVariant.icon,
                                           icon: SailSVGAsset.iconClose,
                                           onPressed: model.clearSelectedFile,
                                         ),
@@ -1897,14 +1897,14 @@ class BitDriveTab extends StatelessWidget {
                                         ),
                                       ),
                                       SailButton(
-                                        label: '',
+                                        variant: ButtonVariant.icon,
                                         icon: SailSVGAsset.iconArrow,
                                         onPressed: () async {
                                           model.adjustFee(0.0001);
                                         },
                                       ),
                                       SailButton(
-                                        label: '',
+                                        variant: ButtonVariant.icon,
                                         icon: SailSVGAsset.iconArrow,
                                         onPressed: () async {
                                           model.adjustFee(-0.0001);

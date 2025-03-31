@@ -35,8 +35,7 @@ class StaticField extends StatelessWidget {
             ),
             if (copyable)
               SailButton(
-                label: '',
-                variant: ButtonVariant.ghost,
+                variant: ButtonVariant.icon,
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: value));
                   if (!context.mounted) return;

@@ -72,6 +72,9 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
   double? sidechainFee;
   double? mainchainFee;
 
+  String? depositError;
+  String? withdrawError;
+
   double? get pegAmount => double.tryParse(bitcoinAmountController.text);
   double? get maxAmount => max(_balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0), 0);
 
@@ -119,8 +122,12 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
 
   Future<void> generateDepositAddress() async {
     setBusy(true);
+    depositError = null;
     try {
       depositAddress = await _sidechain.rpc.getDepositAddress();
+    } catch (error) {
+      log.e('Failed to generate deposit address', error: error);
+      depositError = 'Failed to generate deposit address: ${error.toString()}';
     } finally {
       setBusy(false);
       notifyListeners();
@@ -128,12 +135,29 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
   }
 
   Future<void> executePegOut(BuildContext context) async {
-    if (pegAmount == null || sidechainFee == null) {
+    if (pegAmount == null) {
+      withdrawError = 'Invalid amount or fees not calculated';
+      notifyListeners();
       log.e('Invalid peg out parameters');
       return;
     }
 
+    if (sidechainFee == null) {
+      await estimateSidechainFee();
+      if (sidechainFee == null) {
+        sidechainFee = 0.0001;
+        notifyListeners();
+      }
+    }
+
+    if (bitcoinAddressController.text.isEmpty) {
+      withdrawError = 'Bitcoin address is required';
+      notifyListeners();
+      return;
+    }
+
     setBusy(true);
+    withdrawError = null;
     try {
       final withdrawalTxid = await _sidechain.rpc.mainSend(
         bitcoinAddressController.text,
@@ -155,6 +179,7 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
       );
     } catch (error) {
       log.e('Could not execute withdraw', error: error);
+      withdrawError = error.toString();
       if (!context.mounted) return;
 
       await errorDialog(
@@ -165,6 +190,7 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
       );
     } finally {
       setBusy(false);
+      notifyListeners();
     }
   }
 
@@ -211,6 +237,7 @@ class DepositTab extends StatelessWidget {
                   child: SailRawCard(
                     title: 'Deposit from Parent Chain',
                     subtitle: 'Deposit coins to the sidechain',
+                    error: model.depositError,
                     widgetHeaderEnd: HelpButton(onPressed: () async => model.castHelp(context)),
                     child: SailColumn(
                       spacing: SailStyleValues.padding16,
@@ -275,6 +302,7 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
     return SailRawCard(
       title: 'Withdraw to Parent Chain',
       subtitle: 'Withdraw bitcoin from the sidechain to the parent chain',
+      error: viewModel.withdrawError,
       child: Column(
         children: [
           Row(
@@ -290,8 +318,7 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
                 ),
               ),
               SailButton(
-                variant: ButtonVariant.secondary,
-                label: '',
+                variant: ButtonVariant.icon,
                 onPressed: () async {
                   try {
                     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);

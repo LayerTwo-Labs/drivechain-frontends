@@ -168,8 +168,7 @@ class DialogHeader extends StatelessWidget {
           child: CardHeader(title: title, subtitle: subtitle),
         ),
         SailButton(
-          label: '',
-          variant: ButtonVariant.ghost,
+          variant: ButtonVariant.icon,
           icon: SailSVGAsset.iconClose,
           onPressed: onClose,
         ),

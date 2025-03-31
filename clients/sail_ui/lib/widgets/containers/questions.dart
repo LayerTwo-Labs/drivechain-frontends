@@ -82,8 +82,7 @@ class HelpButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailButton(
-      label: '',
-      variant: ButtonVariant.ghost,
+      variant: ButtonVariant.icon,
       onPressed: onPressed,
       icon: SailSVGAsset.iconQuestion,
     );
