@@ -35,7 +35,7 @@ dependencies:
   dotted_border: ^2.1.0
   window_manager: ^0.4.3
   synchronized: ^3.3.1
-  provider: ^6.1.2
+  provider: ^6.1.4
   dart_bip32_bip44: ^0.2.0
   bip39_mnemonic: ^3.0.9
   crypto: ^3.0.6
