@@ -494,7 +494,6 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                 viewModel.depositAmountController.text == '' ||
                 viewModel.feeController.text == '',
             onPressed: () async => viewModel.deposit(context),
-            loading: viewModel.isBusy,
           ),
           const SizedBox(height: SailStyleValues.padding16),
           const Expanded(

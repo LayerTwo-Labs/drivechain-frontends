@@ -757,7 +757,6 @@ class ReceiveTab extends StatelessWidget {
                                   }
                                 },
                                 disabled: model.isBusy || !model.hasLabelChanged,
-                                loading: model.isBusy,
                               ),
                             ],
                           ),
@@ -765,7 +764,6 @@ class ReceiveTab extends StatelessWidget {
                             SailButton(
                               label: 'Generate new address',
                               onPressed: model.generateNewAddress,
-                              loading: model.isBusy,
                             ),
                         ],
                       ),
@@ -1921,7 +1919,6 @@ class BitDriveTab extends StatelessWidget {
                                   SailButton(
                                     label: 'Store',
                                     onPressed: model.canStore ? () => model.store(context) : null,
-                                    loading: model.isBusy,
                                     variant: model.canStore ? ButtonVariant.primary : ButtonVariant.secondary,
                                   ),
                                 ],
