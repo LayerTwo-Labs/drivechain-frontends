@@ -86,7 +86,8 @@ class BitDriveProvider extends ChangeNotifier {
   Future<Uint8List> _encryptContent(Uint8List content) async {
     try {
       // Get private key from HD wallet at m/44'/0'/0'/4000
-      final privateKeyHex = await hdWallet.derivePrivateKey(BITDRIVE_DERIVATION_PATH);
+      final keyInfo = await hdWallet.deriveKeyInfo(hdWallet.mnemonic ?? '', BITDRIVE_DERIVATION_PATH);
+      final privateKeyHex = keyInfo['privateKey'] ?? '';
 
       // Convert hex to bytes
       final keyBytes = Uint8List.fromList(hex.decode(privateKeyHex));
@@ -110,7 +111,8 @@ class BitDriveProvider extends ChangeNotifier {
   Future<Uint8List> _decryptContent(Uint8List encryptedContent) async {
     try {
       // Get private key from HD wallet at m/44'/0'/0'/4000
-      final privateKeyHex = await hdWallet.derivePrivateKey(BITDRIVE_DERIVATION_PATH);
+      final keyInfo = await hdWallet.deriveKeyInfo(hdWallet.mnemonic ?? '', BITDRIVE_DERIVATION_PATH);
+      final privateKeyHex = keyInfo['privateKey'] ?? '';
 
       // Convert hex to bytes
       final keyBytes = Uint8List.fromList(hex.decode(privateKeyHex));
