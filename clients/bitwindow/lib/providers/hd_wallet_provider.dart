@@ -18,11 +18,15 @@ class HDWalletProvider extends ChangeNotifier {
   String? _masterKey;
   String? _error;
   bool _initialized = false;
+  final bool _isProcessing = false;
+  String? _mnemonic;
 
   String? get seedHex => _seedHex;
   String? get masterKey => _masterKey;
   String? get error => _error;
   bool get isInitialized => _initialized;
+  bool get isProcessing => _isProcessing;
+  String? get mnemonic => _mnemonic;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -37,9 +41,7 @@ class HDWalletProvider extends ChangeNotifier {
   }
 
   Future<List<String>> _getMnemonicPaths() async {
-    var mnemonicPaths = <String>[];
-    String base = '';
-
+    final String base;
     if (Platform.isMacOS) {
       base = '${Platform.environment['HOME']}/Library/Application Support';
     } else if (Platform.isLinux) {
@@ -50,10 +52,21 @@ class HDWalletProvider extends ChangeNotifier {
       throw Exception('Unsupported platform');
     }
 
-    mnemonicPaths.add(path.join(base, 'com.layertwolabs.launcher', 'wallet_starters', 'mnemonics', 'l1.txt'));
-    mnemonicPaths.add(path.join(base, 'drivechain-launcher', 'wallet_starters', 'mnemonics', 'l1.txt'));
+    return [
+      path.join(base, 'com.layertwolabs.launcher', 'wallet_starters', 'mnemonics', 'l1.txt'),
+      path.join(base, 'drivechain-launcher', 'wallet_starters', 'mnemonics', 'l1.txt'),
+    ];
+  }
 
-    return mnemonicPaths;
+  Future<bool> loadMnemonic() async {
+    try {
+      await _loadMnemonic();
+      return true;
+    } catch (e) {
+      _error = "Couldn't load wallet mnemonic: $e";
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<void> _loadMnemonic() async {
@@ -64,11 +77,9 @@ class HDWalletProvider extends ChangeNotifier {
       for (final path in paths) {
         try {
           file = File(path);
-          if (await file.exists()) {
-            break;
-          }
+          if (await file.exists()) break;
         } catch (e) {
-          log.e('could not load mnemonic from $path: $e');
+          // Continue to next path
         }
       }
 
@@ -76,8 +87,8 @@ class HDWalletProvider extends ChangeNotifier {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
-      final mnemonic = (await file.readAsString()).trim();
-      final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
+      _mnemonic = (await file.readAsString()).trim();
+      final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
       _seedHex = hex.encode(mnemonicObj.seed);
 
       final chain = Chain.seed(_seedHex!);
@@ -88,109 +99,97 @@ class HDWalletProvider extends ChangeNotifier {
       _initialized = true;
     } catch (e) {
       _error = "Couldn't sync to wallet for HD Explorer";
-      _seedHex = null;
-      _masterKey = null;
+      _seedHex = _masterKey = _mnemonic = null;
       _initialized = false;
     }
   }
 
-  Future<String> derivePrivateKey(String path) async {
-    log.d('Attempting to derive private key, initialized: $_initialized');
-    if (!_initialized) await init();
-
+  Future<bool> validateMnemonic(String mnemonic) async {
     try {
-      final chain = Chain.seed(_seedHex!);
-      final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
-      return extendedPrivateKey.privateKeyHex();
+      Mnemonic.fromSentence(mnemonic, Language.english);
+      return true;
     } catch (e) {
-      log.e('Error deriving private key: $e');
+      return false;
+    }
+  }
+
+  Future<String> generateRandomMnemonic() async {
+    try {
+      final mnemonic = Mnemonic.generate(
+        Language.english,
+        entropyLength: 128,
+        passphrase: 'layertwolabs',
+      );
+      return mnemonic.sentence;
+    } catch (e) {
+      _error = 'Error generating random mnemonic';
+      notifyListeners();
       return '';
     }
   }
 
-  Future<String> deriveWIF(String path) async {
+  // Combined key derivation method that can return any needed info
+  Future<Map<String, String>> deriveKeyInfo(String mnemonic, String path) async {
     try {
-      final privateKeyHex = await derivePrivateKey(path);
-      final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
-      final privateKeyBytes = hex.decode(cleanHex);
-
-      final buffer = Uint8List(34);
-      buffer[0] = 0x80; // Version byte for mainnet private key
-      buffer.setRange(1, 33, privateKeyBytes);
-      buffer[33] = 0x01; // Compression byte
-
-      final hash1 = SHA256Digest().process(buffer);
-      final hash2 = SHA256Digest().process(hash1);
-      final checksum = hash2.sublist(0, 4);
-
-      final wifBytes = Uint8List(38);
-      wifBytes.setRange(0, 34, buffer);
-      wifBytes.setRange(34, 38, checksum);
-
-      return base58.encode(wifBytes);
-    } catch (e) {
-      log.e('Error deriving WIF: $e');
-      return '';
-    }
-  }
-
-  Future<String> deriveAddress(String path) async {
-    if (!_initialized) await init();
-
-    try {
-      final chain = Chain.seed(_seedHex!);
+      final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english);
+      final seedHex = hex.encode(mnemonicObj.seed);
+      final chain = Chain.seed(seedHex);
       final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
+      final privateKeyHex = extendedPrivateKey.privateKeyHex();
       final publicKey = extendedPrivateKey.publicKey();
 
+      // Return empty results if something is wrong
       final q = publicKey.q;
-      if (q == null) {
-        log.e('Public key point is null');
-        return '';
-      }
+      if (q == null) return {};
 
       final pubKeyBytes = q.getEncoded(true);
-      final sha256Result = SHA256Digest().process(Uint8List.fromList(pubKeyBytes));
+      final pubKeyHex = hex.encode(pubKeyBytes);
+
+      // Derive Bitcoin address
+      final sha256Digest = SHA256Digest();
       final ripemd160 = RIPEMD160Digest();
+      final sha256Result = sha256Digest.process(Uint8List.fromList(pubKeyBytes));
       final pubKeyHash = ripemd160.process(sha256Result);
 
       final versionedHash = Uint8List(21);
-      versionedHash[0] = 0x00; // Version byte for mainnet address
+      versionedHash[0] = 0x00; // Version byte for mainnet
       versionedHash.setRange(1, 21, pubKeyHash);
 
-      final firstSHA = SHA256Digest().process(versionedHash.sublist(0, 21));
-      final doubleSHA = SHA256Digest().process(firstSHA);
-      final checksum = doubleSHA.sublist(0, 4);
+      final hash1 = sha256Digest.process(versionedHash);
+      final hash2 = sha256Digest.process(hash1);
+      final checksum = hash2.sublist(0, 4);
 
       final addressBytes = Uint8List(25);
       addressBytes.setRange(0, 21, versionedHash);
       addressBytes.setRange(21, 25, checksum);
+      final address = base58.encode(addressBytes);
 
-      return base58.encode(addressBytes);
+      // Derive WIF
+      final cleanHex = privateKeyHex.startsWith('00') ? privateKeyHex.substring(2) : privateKeyHex;
+      final privateKeyBytes = hex.decode(cleanHex);
+
+      final wifBuffer = Uint8List(34);
+      wifBuffer[0] = 0x80; // Version byte for mainnet private key
+      wifBuffer.setRange(1, 33, privateKeyBytes);
+      wifBuffer[33] = 0x01; // Compression byte
+
+      final wifHash1 = sha256Digest.process(wifBuffer);
+      final wifHash2 = sha256Digest.process(wifHash1);
+      final wifChecksum = wifHash2.sublist(0, 4);
+
+      final wifBytes = Uint8List(38);
+      wifBytes.setRange(0, 34, wifBuffer);
+      wifBytes.setRange(34, 38, wifChecksum);
+      final wif = base58.encode(wifBytes);
+
+      return {
+        'privateKey': privateKeyHex,
+        'publicKey': pubKeyHex,
+        'address': address,
+        'wif': wif,
+      };
     } catch (e) {
-      log.e('Error deriving address: $e');
-      return '';
-    }
-  }
-
-  Future<String> derivePublicKey(String path) async {
-    if (!_initialized) await init();
-
-    try {
-      final chain = Chain.seed(_seedHex!);
-      final extendedPrivateKey = chain.forPath(path) as ExtendedPrivateKey;
-      final publicKey = extendedPrivateKey.publicKey();
-
-      final q = publicKey.q;
-      if (q == null) {
-        log.e('Public key point is null');
-        return '';
-      }
-
-      final pubKeyBytes = q.getEncoded(true);
-      return hex.encode(pubKeyBytes);
-    } catch (e) {
-      log.e('Error deriving public key: $e');
-      return '';
+      return {};
     }
   }
 }

@@ -239,6 +239,32 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                     );
                   },
                 ),
+                PlatformMenuItem(
+                  label: 'HD Wallet Explorer',
+                  onSelected: () {
+                    // First set the selected dropdown tab
+                    WalletPage.setSelectedDropdownTab('HD Wallet Explorer');
+
+                    // Then switch to wallet tab
+                    final tabsRouter = _routerKey.currentState?.controller;
+                    tabsRouter?.setActiveIndex(1);
+
+                    // Use a double post-frame callback for proper timing:
+                    // First callback waits for tab navigation to complete
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      // Second callback waits for the wallet page to be fully built
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (WalletPage.tabKey.currentState != null) {
+                          // Select the Tools dropdown tab (index 3)
+                          WalletPage.tabKey.currentState!.setIndex(3);
+
+                          // Force a rebuild of the wallet page
+                          WalletPage.setSelectedDropdownTab('HD Wallet Explorer');
+                        }
+                      });
+                    });
+                  },
+                ),
               ],
             ),
           ],
