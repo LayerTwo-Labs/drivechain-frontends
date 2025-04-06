@@ -22,6 +22,23 @@ class BitDriveContent {
   });
 }
 
+// Class to store information about pending downloads
+class PendingDownload {
+  final String txid;
+  final bool isEncrypted;
+  final int timestamp;
+  final String fileType;
+
+  PendingDownload({
+    required this.txid,
+    required this.isEncrypted,
+    required this.timestamp,
+    required this.fileType,
+  });
+
+  String get fileName => '$timestamp.$fileType';
+}
+
 class BitDriveProvider extends ChangeNotifier {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   Logger get log => GetIt.I.get<Logger>();
@@ -33,6 +50,15 @@ class BitDriveProvider extends ChangeNotifier {
   bool _isFetching = false;
   bool _hasRestoredFiles = false;
 
+  // Scan and download state
+  bool _isScanning = false;
+  bool get isScanning => _isScanning;
+  final List<PendingDownload> _pendingDownloads = [];
+  int get pendingDownloadsCount => _pendingDownloads.length;
+  bool get hasPendingDownloads => _pendingDownloads.isNotEmpty;
+  bool _isDownloading = false;
+  bool get isDownloading => _isDownloading;
+
   // File/text content to be stored
   Uint8List? fileContent;
   String? textContent;
@@ -42,9 +68,11 @@ class BitDriveProvider extends ChangeNotifier {
   double fee = 0.0001;
   String? _bitdriveDir;
 
-  // Encryption constants
+  // Constants
   static const int BITDRIVE_DERIVATION_INDEX = 4000;
   static const String BITDRIVE_DERIVATION_PATH = "m/44'/0'/0'/$BITDRIVE_DERIVATION_INDEX";
+  static const String AUTH_KEY_PATH = "m/44'/0'/0'/$BITDRIVE_DERIVATION_INDEX/1";
+  static const int AUTH_TAG_SIZE = 8; // 8 bytes auth tag
 
   BitDriveProvider() {
     // Listen for blockchain sync status changes
@@ -59,83 +87,132 @@ class BitDriveProvider extends ChangeNotifier {
 
   void _onSyncStatusChanged() async {
     if (!_hasRestoredFiles && blockchainProvider.isSynced) {
-      log.i('BitDrive: Wallet is synced, starting file restoration...');
+      log.i('BitDrive: Starting file restoration on sync');
       await autoRestoreFiles();
       _hasRestoredFiles = true;
     }
   }
 
-  Future<Uint8List> _extendKey(Uint8List initialKey, int targetLength) async {
-    var currentKey = initialKey;
-    var extendedKey = <int>[];
+  // Optimized key stream generation
+  Future<Uint8List> _deriveKeyStream(int timestamp, String fileType, int length) async {
+    // Get wallet key and create a deterministic seed based on file metadata
+    final keyInfo = await hdWallet.deriveKeyInfo(hdWallet.mnemonic ?? '', BITDRIVE_DERIVATION_PATH);
+    final privateKeyHex = keyInfo['privateKey'] ?? '';
 
-    while (extendedKey.length < targetLength) {
-      // Store left half
-      final digest = sha256.convert(currentKey);
-      final leftHalf = Uint8List.fromList(digest.bytes.sublist(0, 16));
-      extendedKey.addAll(leftHalf);
+    // Create seed value from key and metadata
+    final seedValue = utf8.encode('$privateKeyHex:$timestamp:$fileType');
+    final seed = sha256.convert(seedValue).bytes;
 
-      // Use right half for next iteration
-      currentKey = Uint8List.fromList(digest.bytes.sublist(16));
+    // Optimized stream generation with pre-allocated buffer
+    final result = Uint8List(length);
+    var bytesGenerated = 0;
+    var counter = 0;
+
+    while (bytesGenerated < length) {
+      // Create counter bytes
+      final counterData = ByteData(4)..setUint32(0, counter);
+      final counterBytes = counterData.buffer.asUint8List();
+
+      // Generate block
+      final blockInput = Uint8List(seed.length + counterBytes.length);
+      blockInput.setAll(0, seed);
+      blockInput.setAll(seed.length, counterBytes);
+
+      final block = sha256.convert(blockInput).bytes;
+
+      // Copy block to result
+      final bytesToCopy = min(block.length, length - bytesGenerated);
+      result.setRange(bytesGenerated, bytesGenerated + bytesToCopy, block);
+
+      bytesGenerated += bytesToCopy;
+      counter++;
     }
 
-    // Trim to exact length needed
-    return Uint8List.fromList(extendedKey.sublist(0, targetLength));
+    return result;
   }
 
-  Future<Uint8List> _encryptContent(Uint8List content) async {
+  Future<Uint8List> _deriveAuthKey() async {
+    final keyInfo = await hdWallet.deriveKeyInfo(hdWallet.mnemonic ?? '', AUTH_KEY_PATH);
+    final privateKeyHex = keyInfo['privateKey'] ?? '';
+    return Uint8List.fromList(hex.decode(privateKeyHex));
+  }
+
+  Future<Uint8List> _encryptContent(Uint8List content, int timestamp, String fileType) async {
     try {
-      // Get private key from HD wallet at m/44'/0'/0'/4000
-      final keyInfo = await hdWallet.deriveKeyInfo(hdWallet.mnemonic ?? '', BITDRIVE_DERIVATION_PATH);
-      final privateKeyHex = keyInfo['privateKey'] ?? '';
-
-      // Convert hex to bytes
-      final keyBytes = Uint8List.fromList(hex.decode(privateKeyHex));
-
-      // Extend the key to content length
-      final extendedKey = await _extendKey(keyBytes, content.length);
-
-      // XOR the content with extended key
+      // Generate key stream and perform XOR encryption
+      final keyStream = await _deriveKeyStream(timestamp, fileType, content.length);
       final encrypted = Uint8List(content.length);
+
       for (var i = 0; i < content.length; i++) {
-        encrypted[i] = content[i] ^ extendedKey[i];
+        encrypted[i] = content[i] ^ keyStream[i];
       }
 
-      return encrypted;
+      // Generate truncated authentication tag
+      final authKey = await _deriveAuthKey();
+      final tag = Uint8List.fromList(Hmac(sha256, authKey).convert(encrypted).bytes.sublist(0, AUTH_TAG_SIZE));
+
+      // Combine encrypted content with tag
+      final result = Uint8List(encrypted.length + tag.length);
+      result.setAll(0, encrypted);
+      result.setAll(encrypted.length, tag);
+
+      log.d('BitDrive: Encrypted ${content.length} bytes to ${result.length} bytes');
+      return result;
     } catch (e) {
-      log.e('BitDrive: Error encrypting content: $e');
+      log.e('BitDrive: Encryption error: $e');
       rethrow;
     }
   }
 
-  Future<Uint8List> _decryptContent(Uint8List encryptedContent) async {
+  Future<Uint8List> _decryptContent(Uint8List encryptedData, int timestamp, String fileType) async {
     try {
-      // Get private key from HD wallet at m/44'/0'/0'/4000
-      final keyInfo = await hdWallet.deriveKeyInfo(hdWallet.mnemonic ?? '', BITDRIVE_DERIVATION_PATH);
-      final privateKeyHex = keyInfo['privateKey'] ?? '';
+      if (encryptedData.length <= AUTH_TAG_SIZE) {
+        throw Exception('Invalid encrypted data: too short');
+      }
 
-      // Convert hex to bytes
-      final keyBytes = Uint8List.fromList(hex.decode(privateKeyHex));
+      // Extract content and authentication tag
+      final contentLength = encryptedData.length - AUTH_TAG_SIZE;
+      final encryptedContent = encryptedData.sublist(0, contentLength);
+      final receivedTag = encryptedData.sublist(contentLength);
 
-      // Extend the key to encrypted content length
-      final extendedKey = await _extendKey(keyBytes, encryptedContent.length);
+      // Verify authentication tag
+      final authKey = await _deriveAuthKey();
+      final hmac = Hmac(sha256, authKey);
+      final calculatedTag = hmac.convert(encryptedContent).bytes.sublist(0, AUTH_TAG_SIZE);
 
-      // XOR the encrypted content with extended key to decrypt
-      final decrypted = Uint8List(encryptedContent.length);
-      for (var i = 0; i < encryptedContent.length; i++) {
-        decrypted[i] = encryptedContent[i] ^ extendedKey[i];
+      // Constant-time comparison
+      if (!_constantTimeEquals(receivedTag, calculatedTag)) {
+        throw Exception('Authentication failed: data may be corrupted');
+      }
+
+      // Decrypt content
+      final keyStream = await _deriveKeyStream(timestamp, fileType, contentLength);
+      final decrypted = Uint8List(contentLength);
+
+      for (var i = 0; i < contentLength; i++) {
+        decrypted[i] = encryptedContent[i] ^ keyStream[i];
       }
 
       return decrypted;
     } catch (e) {
-      log.e('BitDrive: Error decrypting content: $e');
+      log.e('BitDrive: Decryption error: $e');
       rethrow;
     }
   }
 
+  // Constant-time comparison to prevent timing attacks
+  bool _constantTimeEquals(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+
+    var equal = true;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) equal = false;
+    }
+    return equal;
+  }
+
   Future<void> init() async {
     try {
-      // Initialize BitDrive directory
       final appDir = await Environment.datadir();
       _bitdriveDir = path.join(appDir.path, 'bitdrive');
       final dir = Directory(_bitdriveDir!);
@@ -143,9 +220,7 @@ class BitDriveProvider extends ChangeNotifier {
         await dir.create(recursive: true);
       }
 
-      // Only restore files if wallet is already synced
       if (blockchainProvider.isSynced && !_hasRestoredFiles) {
-        log.i('BitDrive: Wallet is already synced, starting file restoration...');
         await autoRestoreFiles();
         _hasRestoredFiles = true;
       }
@@ -153,7 +228,7 @@ class BitDriveProvider extends ChangeNotifier {
       initialized = true;
       notifyListeners();
     } catch (e) {
-      log.e('Error initializing BitDrive: $e');
+      log.e('BitDrive init error: $e');
       error = e.toString();
       notifyListeners();
     }
@@ -163,73 +238,52 @@ class BitDriveProvider extends ChangeNotifier {
     if (_bitdriveDir == null) return;
 
     try {
-      log.i('BitDrive: Starting automatic file restoration...');
-
-      // Get wallet transactions
+      log.i('BitDrive: Starting file restoration...');
       final walletTxs = await api.wallet.listTransactions();
-      log.d('BitDrive: Found ${walletTxs.length} wallet transactions');
 
       var restoredCount = 0;
-      // Process each transaction
       for (final tx in walletTxs) {
         try {
-          // Check if transaction has an OP_RETURN
           if (!await hasOpReturn(tx.txid)) continue;
 
-          // Get the OP_RETURN data
           final opReturns = await api.misc.listOPReturns();
           final opReturn = opReturns.firstWhere(
             (op) => op.txid == tx.txid,
-            orElse: () => throw Exception('No OP_RETURN found for transaction'),
+            orElse: () => throw Exception('No OP_RETURN found'),
           );
 
-          // Skip if not a BitDrive message
           if (!opReturn.message.contains('|')) continue;
 
-          // Parse metadata
           final parts = opReturn.message.split('|');
           if (parts.length != 2) continue;
 
           final metadataBytes = base64.decode(parts[0]);
           if (metadataBytes.length != 9) continue;
 
-          // Extract metadata
           final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
           final isEncrypted = metadata.getUint8(0) == 1;
           final timestamp = metadata.getUint32(1);
           final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
 
-          // Generate filename using just timestamp
           final fileName = '$timestamp.$fileType';
           final file = File(path.join(_bitdriveDir!, fileName));
 
-          // Skip if file already exists
-          if (await file.exists()) {
-            log.d('BitDrive: File $fileName already exists, skipping...');
-            continue;
-          }
+          if (await file.exists()) continue;
 
-          log.d('BitDrive: Found file with encryption=$isEncrypted, timestamp=$timestamp, type=$fileType');
-
-          // Decode content
           final contentBytes = base64.decode(parts[1]);
+          final content = isEncrypted ? await _decryptContent(contentBytes, timestamp, fileType) : contentBytes;
 
-          // Decrypt if necessary
-          final content = isEncrypted ? await _decryptContent(contentBytes) : contentBytes;
-
-          // Save file
           await file.writeAsBytes(content);
           restoredCount++;
-          log.d('BitDrive: Restored $fileName');
         } catch (e) {
-          log.e('BitDrive: Error processing transaction ${tx.txid}: $e');
+          log.e('BitDrive: Error processing tx ${tx.txid}: $e');
           continue;
         }
       }
 
-      log.i('BitDrive: Automatic restoration complete. Restored $restoredCount files.');
+      log.i('BitDrive: Restored $restoredCount files');
     } catch (e) {
-      log.e('BitDrive: Error during automatic file restoration: $e');
+      log.e('BitDrive: Restoration error: $e');
       error = e.toString();
       notifyListeners();
     }
@@ -276,6 +330,7 @@ class BitDriveProvider extends ChangeNotifier {
   Future<void> store() async {
     if (_isFetching) return;
     _isFetching = true;
+    error = null;
 
     try {
       final content = fileContent ?? Uint8List.fromList(textContent?.codeUnits ?? []);
@@ -283,50 +338,53 @@ class BitDriveProvider extends ChangeNotifier {
         throw Exception('No content to store');
       }
 
-      // Create compact metadata
-      // Format: <1 byte encryption flag><4 bytes unix timestamp><4 bytes file extension>
+      // Create metadata (9 bytes: 1 byte flag + 4 bytes timestamp + 4 bytes filetype)
       final metadata = ByteData(9);
-
-      // Store flags and timestamp first
-      metadata.setUint8(0, shouldEncrypt ? 1 : 0);
-      metadata.setUint32(1, DateTime.now().millisecondsSinceEpoch ~/ 1000);
-
-      // Store file type last
+      final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final fileType = _detectFileType(content);
+
+      metadata.setUint8(0, shouldEncrypt ? 1 : 0);
+      metadata.setUint32(1, timestamp);
+
       final typeBytes = utf8.encode(fileType.padRight(4, ' '));
       for (var i = 0; i < 4; i++) {
         metadata.setUint8(5 + i, typeBytes[i]);
       }
 
-      // Convert metadata to base64
-      final metadataBytes = metadata.buffer.asUint8List();
-      final metadataStr = base64.encode(metadataBytes);
+      final metadataStr = base64.encode(metadata.buffer.asUint8List());
 
-      // Encrypt and encode content
-      final processedContent = shouldEncrypt ? await _encryptContent(content) : content;
-      final contentStr = base64.encode(processedContent);
+      // Process content
+      String contentStr;
+      if (!shouldEncrypt && fileType == 'txt' && textContent != null) {
+        // Store unencrypted text directly for human readability
+        contentStr = textContent!;
+      } else {
+        final processedContent = shouldEncrypt ? await _encryptContent(content, timestamp, fileType) : content;
 
-      // Combine with a single delimiter
+        if (processedContent.isEmpty) {
+          throw Exception('Processing error: empty result');
+        }
+
+        contentStr = base64.encode(processedContent);
+      }
+
+      // Combine and store
       final opReturnData = '$metadataStr|$contentStr';
-      log.d('BitDrive: OP_RETURN data size: ${opReturnData.length} bytes');
+      log.d('BitDrive: OP_RETURN size: ${opReturnData.length} bytes');
 
-      // Get a new address to send to
       final address = await api.wallet.getNewAddress();
-      log.d('BitDrive: Generated new address: $address');
-
-      // Send transaction with OP_RETURN
       final txid = await api.wallet.sendTransaction(
         address,
-        10000, // 0.0001 BTC in satoshis
+        10000, // 0.0001 BTC
         btcPerKvB: fee,
         opReturnMessage: opReturnData,
       );
-      log.d('BitDrive: Content stored in transaction: $txid');
 
-      error = null;
+      log.d('BitDrive: Stored in tx: $txid');
       notifyListeners();
     } catch (e) {
       error = e.toString();
+      log.e('BitDrive: Store error: $e');
       notifyListeners();
       rethrow;
     } finally {
@@ -336,28 +394,23 @@ class BitDriveProvider extends ChangeNotifier {
 
   Future<List<int>> retrieveContent(String txid) async {
     try {
-      log.d('BitDrive: Retrieving content from txid: $txid');
-
-      // Get all OP_RETURN messages
+      // Get transaction data
       final opReturns = await api.misc.listOPReturns();
-      // Find the one matching our txid
       final opReturn = opReturns.firstWhere(
         (op) => op.txid == txid,
-        orElse: () {
-          throw Exception('No OP_RETURN data found for transaction $txid');
-        },
+        orElse: () => throw Exception('No OP_RETURN data found'),
       );
 
-      // Parse the data
+      // Parse data
       final parts = opReturn.message.split('|');
       if (parts.length != 2) {
-        throw Exception('Invalid OP_RETURN data format');
+        throw Exception('Invalid data format');
       }
 
       // Parse metadata
       final metadataBytes = base64.decode(parts[0]);
       if (metadataBytes.length != 9) {
-        throw Exception('Invalid metadata length');
+        throw Exception('Invalid metadata');
       }
 
       final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
@@ -365,20 +418,33 @@ class BitDriveProvider extends ChangeNotifier {
       final timestamp = metadata.getUint32(1);
       final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
 
-      log.d('BitDrive: Retrieved content metadata - encrypted=$isEncrypted, timestamp=$timestamp, file_type=$fileType');
-
+      // Process content based on type
       if (!isEncrypted && fileType == 'txt') {
-        // For unencrypted text, return the content directly
         return utf8.encode(parts[1]);
       } else {
-        // For encrypted content or binary files, decode from base64
         final contentBytes = base64.decode(parts[1]);
+
         if (isEncrypted) {
-          return await _decryptContent(contentBytes);
+          final decryptedBytes = await _decryptContent(contentBytes, timestamp, fileType);
+
+          // Format text files properly
+          if (fileType == 'txt') {
+            try {
+              final textContent = utf8.decode(decryptedBytes);
+              return utf8.encode(textContent);
+            } catch (e) {
+              log.w('BitDrive: Text decode failed, returning raw bytes: $e');
+              return decryptedBytes;
+            }
+          }
+
+          return decryptedBytes;
         }
+
         return contentBytes;
       }
     } catch (e) {
+      log.e('BitDrive: Retrieval error: $e');
       error = e.toString();
       notifyListeners();
       rethrow;
@@ -397,7 +463,7 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   String _detectFileType(List<int> content) {
-    // Check file magic numbers
+    // Check file signatures
     if (content.length >= 2) {
       // JPEG
       if (content[0] == 0xFF && content[1] == 0xD8) {
@@ -425,9 +491,110 @@ class BitDriveProvider extends ChangeNotifier {
       }
     } catch (_) {}
 
-    // Default to binary
     return 'bin';
   }
+
+  Future<void> scanForFiles() async {
+    if (_isScanning || _bitdriveDir == null) return;
+
+    _isScanning = true;
+    _pendingDownloads.clear();
+    error = null;
+    notifyListeners();
+
+    try {
+      final walletTxs = await api.wallet.listTransactions();
+
+      for (final tx in walletTxs) {
+        try {
+          if (!await hasOpReturn(tx.txid)) continue;
+
+          final opReturns = await api.misc.listOPReturns();
+          final opReturn = opReturns.firstWhere(
+            (op) => op.txid == tx.txid,
+            orElse: () => throw Exception('No OP_RETURN found'),
+          );
+
+          if (!opReturn.message.contains('|')) continue;
+
+          final parts = opReturn.message.split('|');
+          if (parts.length != 2) continue;
+
+          final metadataBytes = base64.decode(parts[0]);
+          if (metadataBytes.length != 9) continue;
+
+          final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
+          final isEncrypted = metadata.getUint8(0) == 1;
+          final timestamp = metadata.getUint32(1);
+          final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
+
+          final fileName = '$timestamp.$fileType';
+          final file = File(path.join(_bitdriveDir!, fileName));
+
+          if (await file.exists()) continue;
+
+          _pendingDownloads.add(
+            PendingDownload(
+              txid: tx.txid,
+              isEncrypted: isEncrypted,
+              timestamp: timestamp,
+              fileType: fileType,
+            ),
+          );
+        } catch (e) {
+          log.e('BitDrive: Error scanning tx ${tx.txid}: $e');
+          continue;
+        }
+      }
+
+      log.i('BitDrive: Found ${_pendingDownloads.length} files to download');
+    } catch (e) {
+      log.e('BitDrive: Scan error: $e');
+      error = e.toString();
+    } finally {
+      _isScanning = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> downloadPendingFiles() async {
+    if (_isDownloading || _pendingDownloads.isEmpty || _bitdriveDir == null) return;
+
+    _isDownloading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      int downloadedCount = 0;
+      List<PendingDownload> downloaded = [];
+
+      for (final pendingFile in _pendingDownloads) {
+        try {
+          final content = await retrieveContent(pendingFile.txid);
+          final file = File(path.join(_bitdriveDir!, pendingFile.fileName));
+          await file.writeAsBytes(content);
+
+          downloadedCount++;
+          downloaded.add(pendingFile);
+        } catch (e) {
+          log.e('BitDrive: Error downloading ${pendingFile.fileName}: $e');
+          continue;
+        }
+      }
+
+      _pendingDownloads.removeWhere((pending) => downloaded.contains(pending));
+      log.i('BitDrive: Downloaded $downloadedCount files');
+    } catch (e) {
+      log.e('BitDrive: Download error: $e');
+      error = e.toString();
+    } finally {
+      _isDownloading = false;
+      notifyListeners();
+    }
+  }
+
+  // Helper function
+  int min(int a, int b) => a < b ? a : b;
 }
 
 class StoredContent {

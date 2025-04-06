@@ -35,6 +35,7 @@ import 'package:convert/convert.dart';
 import 'package:bs58/bs58.dart';
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
+import 'package:path/path.dart' as path;
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
@@ -2246,7 +2247,7 @@ class BitDriveTab extends StatelessWidget {
                   ),
                   // Bottom section with restore button
                   Container(
-                    padding: const EdgeInsets.all(SailStyleValues.padding16),
+                    padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
                       border: Border(
                         top: BorderSide(
@@ -2255,13 +2256,63 @@ class BitDriveTab extends StatelessWidget {
                         ),
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SailButton(
-                          label: 'Open BitDrive',
-                          onPressed: model._bitdriveDir != null ? () => model.openBitdriveDir() : null,
-                          variant: ButtonVariant.secondary,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SailButton(
+                              label: 'Open BitDrive',
+                              onPressed: model._bitdriveDir != null ? () => model.openBitdriveDir() : null,
+                              variant: ButtonVariant.secondary,
+                            ),
+                            Row(
+                              children: [
+                                SailButton(
+                                  label: 'Scan',
+                                  onPressed: model.isScanning ? null : () => model.scanFiles(),
+                                  variant: model.pendingDownloadsCount > 0 || model.isDownloading
+                                      ? ButtonVariant.secondary
+                                      : ButtonVariant.primary,
+                                  loading: model.isScanning,
+                                ),
+                                const SizedBox(width: 8),
+                                SailButton(
+                                  label: 'Download',
+                                  onPressed: (model.pendingDownloadsCount > 0 && !model.isDownloading)
+                                      ? () => model.downloadFiles()
+                                      : null,
+                                  variant: model.pendingDownloadsCount > 0 && !model.isDownloading
+                                      ? ButtonVariant.primary
+                                      : ButtonVariant.secondary,
+                                  loading: model.isDownloading,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        // Fixed height container for status messages
+                        Container(
+                          height: 32, // Fixed height to prevent layout shifts
+                          padding: const EdgeInsets.only(top: 8.0),
+                          alignment: Alignment.centerLeft,
+                          child: model.isScanning
+                              ? SailText.primary13(
+                                  'Scanning for BitDrive files...',
+                                  color: context.sailTheme.colors.text,
+                                )
+                              : model.pendingDownloadsCount > 0
+                                  ? SailText.primary13(
+                                      '${model.pendingDownloadsCount} new files available for download',
+                                      color: context.sailTheme.colors.text,
+                                    )
+                                  : model.isDownloading
+                                      ? SailText.primary13(
+                                          'Downloading files...',
+                                          color: context.sailTheme.colors.text,
+                                        )
+                                      : null, // No message, but space is still reserved
                         ),
                       ],
                     ),
@@ -2287,15 +2338,45 @@ class BitDriveViewModel extends BaseViewModel {
   bool get canStore => textController.text.isNotEmpty || selectedFileContent != null;
   String? _bitdriveDir;
 
+  // Add getters for the scan and download functionality
+  bool get isScanning => provider.isScanning;
+  bool get isDownloading => provider.isDownloading;
+  int get pendingDownloadsCount => provider.pendingDownloadsCount;
+
   BitDriveViewModel() {
-    provider.addListener(notifyListeners);
+    provider.addListener(_onProviderChanged);
     textController.addListener(() => onTextChanged(textController.text));
     _initBitdriveDir();
   }
 
+  void _onProviderChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    provider.removeListener(_onProviderChanged);
+    textController.dispose();
+    feeController.dispose();
+    super.dispose();
+  }
+
+  // Implement scan and download methods
+  Future<void> scanFiles() async {
+    notifyListeners();
+    await provider.scanForFiles();
+    notifyListeners();
+  }
+
+  Future<void> downloadFiles() async {
+    notifyListeners();
+    await provider.downloadPendingFiles();
+    notifyListeners();
+  }
+
   Future<void> _initBitdriveDir() async {
     final appDir = await Environment.datadir();
-    _bitdriveDir = '${appDir.path}/bitdrive';
+    _bitdriveDir = path.join(appDir.path, 'bitdrive');
     notifyListeners();
   }
 
@@ -2312,7 +2393,9 @@ class BitDriveViewModel extends BaseViewModel {
       } else if (Platform.isLinux) {
         await Process.run('xdg-open', [_bitdriveDir!]);
       } else if (Platform.isWindows) {
-        await Process.run('explorer', [_bitdriveDir!]);
+        // On Windows, we need to convert path to use backslashes and properly escape them
+        final windowsPath = _bitdriveDir!.replaceAll('/', '\\');
+        await Process.run('explorer', [windowsPath]);
       }
     } catch (e) {
       log.e('Error opening BitDrive directory: $e');
@@ -2430,14 +2513,6 @@ class BitDriveViewModel extends BaseViewModel {
     } finally {
       setBusy(false);
     }
-  }
-
-  @override
-  void dispose() {
-    textController.dispose();
-    feeController.dispose();
-    provider.removeListener(notifyListeners);
-    super.dispose();
   }
 }
 
