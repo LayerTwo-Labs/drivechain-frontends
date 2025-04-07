@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+// Additional imports for optimized key derivation
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
@@ -12,6 +14,9 @@ import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
+import 'package:bs58/bs58.dart';
+import 'package:convert/convert.dart';
+import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
@@ -19,6 +24,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
+import 'package:pointycastle/digests/ripemd160.dart';
+import 'package:pointycastle/digests/sha256.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
@@ -27,15 +35,6 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-
-// Additional imports for optimized key derivation
-import 'package:bip39_mnemonic/bip39_mnemonic.dart';
-import 'package:dart_bip32_bip44/dart_bip32_bip44.dart';
-import 'package:convert/convert.dart';
-import 'package:bs58/bs58.dart';
-import 'package:pointycastle/digests/ripemd160.dart';
-import 'package:pointycastle/digests/sha256.dart';
-import 'package:path/path.dart' as path;
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
@@ -52,14 +51,6 @@ class WalletPage extends StatelessWidget {
     _sendViewModel?.handleBitcoinURI(uri);
   }
 
-  // Static method to set the selected dropdown tab from outside
-  static void setSelectedDropdownTab(String tabName) {
-    _selectedDropdownTab = tabName;
-  }
-
-  // This variable will store the currently selected dropdown tab
-  static String _selectedDropdownTab = 'Deniability'; // Default to first tab
-
   @override
   Widget build(BuildContext context) {
     return QtPage(
@@ -74,96 +65,55 @@ class WalletPage extends StatelessWidget {
         builder: (context, model, child) {
           // Create the list of regular tabs
           final List<TabItem> allTabs = [
-            const TabItem(
+            const SingleTabItem(
               label: 'Send',
-              icon: SailSVGAsset.iconWallet,
               child: SendTab(),
             ),
-            const TabItem(
+            const SingleTabItem(
               label: 'Receive',
-              icon: SailSVGAsset.iconCoinnews,
               child: ReceiveTab(),
             ),
-            const TabItem(
+            const SingleTabItem(
               label: 'Wallet Transactions',
-              icon: SailSVGAsset.iconTransactions,
               child: TransactionsTab(),
             ),
-            TabItem(
-              label: 'Deniability',
-              icon: SailSVGAsset.iconTransactions,
-              child: DeniabilityTab(
-                newWindowIdentifier: model.applicationDir == null
-                    ? null
-                    : NewWindowIdentifier(
-                        windowType: 'deniability',
-                        applicationDir: model.applicationDir!,
-                        logFile: model.logFile!,
-                      ),
-              ),
-              onTap: () {
-                denialProvider.fetch();
-              },
-            ),
-            TabItem(
-              label: 'HD Wallet Explorer',
-              icon: SailSVGAsset.iconHDWallet,
-              child: HDWalletTab(),
-            ),
-            TabItem(
-              label: 'BitDrive',
-              icon: SailSVGAsset.iconBitdrive,
-              child: BitDriveTab(),
-            ),
-            TabItem(
-              label: 'Multisig Lounge',
-              icon: SailSVGAsset.iconMultisig,
-              child: MultisigLoungeTab(),
-            ),
-          ];
-
-          // The tabs that will be in the dropdown
-          final List<TabItem> dropdownTabs = allTabs.sublist(3);
-
-          // Create a map of menu item labels to their content widgets
-          final Map<String, Widget> dropdownContentMap = {
-            for (var tab in dropdownTabs) tab.label: tab.child,
-          };
-
-          // Create the visible tabs (first 3 + dropdown)
-          final List<TabItem> visibleTabs = [
-            ...allTabs.sublist(0, 3), // First 3 tabs remain directly visible
-            // Dropdown tab that switches between the remaining tabs
-            DropdownTabItem(
-              label: 'Tools',
-              icon: SailSVGAsset.iconTools,
-              child: dropdownContentMap[_selectedDropdownTab] ??
-                  dropdownTabs.first.child, // Use the currently selected tab
-              menuItems: dropdownTabs.map((tab) => tab.label).toList(),
-              contentMap: dropdownContentMap, // Map menu items to their content widgets
-              selectedItem: _selectedDropdownTab, // Use the currently selected tab instead of defaulting
-              useFixedLabel: false, // Show "Tools" when not selected, show tool name when selected
-              onItemSelected: (selectedLabel) {
-                // Save the selected tab for the next rebuild
-                _selectedDropdownTab = selectedLabel;
-
-                // Find the tab with the selected label
-                final selectedTab = dropdownTabs.firstWhere(
-                  (tab) => tab.label == selectedLabel,
-                  orElse: () => dropdownTabs.first,
-                );
-
-                // Execute the tab's onTap callback if it exists
-                if (selectedTab.onTap != null) {
-                  selectedTab.onTap!();
-                }
-              },
+            MultiSelectTabItem(
+              title: 'Tools',
+              items: [
+                TabItem(
+                  label: 'Deniability',
+                  child: DeniabilityTab(
+                    newWindowIdentifier: model.applicationDir == null
+                        ? null
+                        : NewWindowIdentifier(
+                            windowType: 'deniability',
+                            applicationDir: model.applicationDir!,
+                            logFile: model.logFile!,
+                          ),
+                  ),
+                  onTap: () {
+                    denialProvider.fetch();
+                  },
+                ),
+                TabItem(
+                  label: 'HD Wallet Explorer',
+                  child: HDWalletTab(),
+                ),
+                TabItem(
+                  label: 'BitDrive',
+                  child: BitDriveTab(),
+                ),
+                TabItem(
+                  label: 'Multisig Lounge',
+                  child: MultisigLoungeTab(),
+                ),
+              ],
             ),
           ];
 
           return InlineTabBar(
             key: tabKey,
-            tabs: visibleTabs,
+            tabs: allTabs,
             initialIndex: 0,
           );
         },
