@@ -37,7 +37,7 @@ dependencies:
   dotted_border: ^2.1.0
   window_manager: ^0.4.3
   synchronized: ^3.3.1
-  flutter_markdown: ^0.7.6
+  flutter_markdown: ^0.7.7
   path: ^1.9.0
   url_launcher: ^6.3.1
   pointycastle: ^3.9.1
