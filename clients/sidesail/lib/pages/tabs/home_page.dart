@@ -8,15 +8,19 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
+import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
+import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:sail_ui/widgets/platform_menu.dart';
 import 'package:sidesail/main.dart';
 import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/routing/router.dart';
-import 'package:sidesail/widgets/containers/tabs/home/top_nav.dart';
+import 'package:stacked/stacked.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down
 // in this file, when updating here. Route order should match exactly
@@ -168,12 +172,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   decoration: BoxDecoration(
                     color: theme.colors.background,
                   ),
-                  child: Builder(
-                    builder: (context) {
-                      final tabsRouter = AutoTabsRouter.of(context);
-                      return TopNav(tabsRouter: tabsRouter);
-                    },
-                  ),
+                  child: HomeTopNav(),
                 ),
               ),
               body: Column(
@@ -236,5 +235,118 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+}
+
+class HomeTopNav extends StatefulWidget {
+  const HomeTopNav({
+    super.key,
+  });
+
+  @override
+  State<HomeTopNav> createState() => _HomeTopNavState();
+}
+
+class _HomeTopNavState extends State<HomeTopNav> {
+  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
+
+  @override
+  Widget build(BuildContext context) {
+    final tabsRouter = AutoTabsRouter.of(context);
+
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => TopNavViewModel(),
+      fireOnViewModelReadyOnce: true,
+      builder: ((context, model, child) {
+        final sidechainNav = _navForSidechain(_sidechain.rpc.chain, model, tabsRouter);
+
+        return TopNav(
+          routes: [
+            TopNavRoute(
+              label: 'Parent Chain',
+              onTap: () {
+                tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+              },
+            ),
+            ...sidechainNav.map(
+              (tab) => TopNavRoute(
+                label: tab.label,
+                onTap: tab.onTap,
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  List<QtTab> _navForSidechain(
+    Sidechain chain,
+    TopNavViewModel viewModel,
+    auto_router.TabsRouter tabsRouter,
+  ) {
+    // Base navigation items that all sidechains have
+    var baseNav = [
+      QtTab(
+        label: 'Overview',
+        active: tabsRouter.activeIndex == Tabs.SidechainOverview.index,
+        onTap: () {
+          tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+        },
+      ),
+    ];
+
+    switch (chain) {
+      case TestSidechain():
+        return baseNav;
+      case ZCash():
+        return [
+          ...baseNav,
+          QtTab(
+            label: 'Shield/Deshield',
+            active: tabsRouter.activeIndex == Tabs.ZCashShieldDeshield.index,
+            onTap: () {
+              tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
+            },
+          ),
+          QtTab(
+            label: 'Melt/Cast',
+            active: tabsRouter.activeIndex == Tabs.ZCashMeltCast.index,
+            onTap: () {
+              tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
+            },
+          ),
+        ];
+
+      case ParentChain():
+        return baseNav;
+      case Thunder():
+        return baseNav;
+      case Bitnames():
+        return baseNav;
+      default:
+        throw Exception('could not handle unknown sidechain type ${chain.runtimeType}');
+    }
+  }
+}
+
+class TopNavViewModel extends BaseViewModel {
+  final log = Logger(level: Level.debug);
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
+
+  double get balance => _balanceProvider.balance;
+  double get pendingBalance => _balanceProvider.pendingBalance;
+
+  Binary get chain => _sideRPC.rpc.chain;
+
+  TopNavViewModel() {
+    _balanceProvider.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _balanceProvider.removeListener(notifyListeners);
   }
 }

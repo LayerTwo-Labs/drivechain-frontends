@@ -50,6 +50,9 @@ class SailColor {
 
   final Color linkButtonText;
 
+  final Color activeNavText;
+  final Color inactiveNavText;
+
   SailColor({
     required this.background,
     required this.backgroundSecondary,
@@ -89,6 +92,8 @@ class SailColor {
     required this.ghostButtonText,
     required this.ghostButtonHover,
     required this.linkButtonText,
+    required this.activeNavText,
+    required this.inactiveNavText,
   });
 
   factory SailColor.lightTheme(Color primary) {
@@ -98,7 +103,7 @@ class SailColor {
       backgroundActionModal: SailColorScheme.greyMiddle,
       formField: SailColorScheme.whiteDark,
       formFieldBorder: SailColorScheme.greyMiddle,
-      divider: SailColorScheme.greyLight,
+      divider: Color(0xffE4E4E7),
       shadow: SailColorScheme.black.withValues(alpha: 0.21),
       text: SailColorScheme.black,
       textSecondary: Color(0xffA1A1AA),
@@ -131,6 +136,8 @@ class SailColor {
       ghostButtonText: Color(0xff09090B),
       ghostButtonHover: Color(0xffF4F4F5),
       linkButtonText: Color(0xff18181B),
+      activeNavText: Color(0xff09090B),
+      inactiveNavText: Color(0xff71717A),
     );
   }
   factory SailColor.darkTheme(Color primary) {
@@ -173,6 +180,8 @@ class SailColor {
       ghostButtonText: Color(0xffFAFAFA),
       ghostButtonHover: Color(0xff27272A),
       linkButtonText: Color(0xffFAFAFA),
+      activeNavText: Color(0xffFAFAFA),
+      inactiveNavText: Color(0xffA1A1AA),
     );
   }
 }

@@ -6,7 +6,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/routing/router.dart';
-import 'package:launcher/widgets/wallet_button.dart';
 import 'package:launcher/widgets/welcome_modal.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -54,58 +53,23 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
       ],
       builder: (context, child, controller) {
         final theme = SailTheme.of(context);
-        final tabsRouter = AutoTabsRouter.of(context);
 
         return Scaffold(
           backgroundColor: theme.colors.background,
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(30),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.colors.background,
-                    theme.colors.backgroundSecondary,
-                  ],
-                ),
+          appBar: TopNav(
+            routes: [
+              TopNavRoute(
+                label: 'Overview',
               ),
-              child: SailRow(
-                leadingSpacing: true,
-                spacing: SailStyleValues.padding32,
-                children: [
-                  QtTab(
-                    label: 'Overview',
-                    active: tabsRouter.activeIndex == 0,
-                    onTap: () => tabsRouter.setActiveIndex(0),
-                  ),
-                  QtTab(
-                    label: 'Tools',
-                    active: tabsRouter.activeIndex == 1,
-                    onTap: () => tabsRouter.setActiveIndex(1),
-                  ),
-                  QtTab(
-                    label: 'Settings',
-                    active: tabsRouter.activeIndex == 2,
-                    onTap: () => tabsRouter.setActiveIndex(2),
-                  ),
-                  Expanded(child: Container()),
-                  const WalletButton(),
-                ],
+              TopNavRoute(
+                label: 'Tools',
               ),
-            ),
-          ),
-          body: Column(
-            children: [
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: theme.colors.divider,
+              TopNavRoute(
+                label: 'Settings',
               ),
-              Expanded(child: child),
             ],
           ),
+          body: Expanded(child: child),
         );
       },
     );

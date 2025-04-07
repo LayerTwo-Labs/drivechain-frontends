@@ -21,51 +21,17 @@ class RootPage extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: theme.colors.background,
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(30),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.colors.background,
-                    theme.colors.backgroundSecondary,
-                  ],
-                ),
+          appBar: TopNav(
+            routes: [
+              TopNavRoute(
+                label: 'Faucet',
               ),
-              child: Builder(
-                builder: (context) {
-                  final tabsRouter = AutoTabsRouter.of(context);
-                  return SailRow(
-                    spacing: SailStyleValues.padding32,
-                    children: [
-                      QtTab(
-                        label: 'Faucet',
-                        active: tabsRouter.activeIndex == 0,
-                        onTap: () => tabsRouter.setActiveIndex(0),
-                      ),
-                      QtTab(
-                        label: 'Explorer',
-                        active: tabsRouter.activeIndex == 1,
-                        onTap: () => tabsRouter.setActiveIndex(1),
-                      ),
-                    ],
-                  );
-                },
+              TopNavRoute(
+                label: 'Explorer',
               ),
-            ),
-          ),
-          body: Column(
-            children: [
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: theme.colors.divider,
-              ),
-              Expanded(child: child),
             ],
           ),
+          body: Expanded(child: child),
         );
       },
     );
