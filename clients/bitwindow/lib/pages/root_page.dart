@@ -416,51 +416,24 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
           return SelectionArea(
             child: Scaffold(
               backgroundColor: theme.colors.background,
-              appBar: PreferredSize(
-                preferredSize: const Size.fromHeight(40),
-                child: Builder(
-                  builder: (context) {
-                    final tabsRouter = AutoTabsRouter.of(context);
-                    return SailPadding(
-                      padding: EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
-                      child: SailRow(
-                        leadingSpacing: true,
-                        spacing: SailStyleValues.padding32,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          QtTab(
-                            label: 'Overview',
-                            active: tabsRouter.activeIndex == 0,
-                            onTap: () => tabsRouter.setActiveIndex(0),
-                          ),
-                          QtTab(
-                            label: 'Send / Receive',
-                            active: tabsRouter.activeIndex == 1,
-                            onTap: () => tabsRouter.setActiveIndex(1),
-                          ),
-                          QtTab(
-                            label: 'Sidechains',
-                            active: tabsRouter.activeIndex == 2,
-                            onTap: () => tabsRouter.setActiveIndex(2),
-                          ),
-                          QtTab(
-                            label: 'Learn',
-                            active: tabsRouter.activeIndex == 3,
-                            onTap: () => tabsRouter.setActiveIndex(3),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+              appBar: TopNav(
+                routes: [
+                  TopNavRoute(
+                    label: 'Overview',
+                  ),
+                  TopNavRoute(
+                    label: 'Send / Receive',
+                  ),
+                  TopNavRoute(
+                    label: 'Sidechains',
+                  ),
+                  TopNavRoute(
+                    label: 'Learn',
+                  ),
+                ],
               ),
               body: Column(
                 children: [
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: theme.colors.divider,
-                  ),
                   Expanded(child: child),
                   const StatusBar(),
                 ],
