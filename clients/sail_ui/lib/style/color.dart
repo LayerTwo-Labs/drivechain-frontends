@@ -142,8 +142,8 @@ class SailColor {
   }
   factory SailColor.darkTheme(Color primary) {
     return SailColor(
-      background: SailColorScheme.black,
-      backgroundSecondary: SailColorScheme.blackKindaLight,
+      background: Color(0xff09090B),
+      backgroundSecondary: Color(0xff27272A),
       backgroundActionModal: SailColorScheme.darkActionModalBackground,
       formField: SailColorScheme.blackLightest,
       formFieldBorder: SailColorScheme.greyDark,
