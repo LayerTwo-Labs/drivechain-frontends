@@ -1,0 +1,3 @@
+<svg id="gantt-chart" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14">
+  <path id="Vector" d="M3,0A1,1,0,0,0,3,2ZM13,2a1,1,0,0,0,0-2ZM1,6A1,1,0,0,0,1,8Zm9,2a1,1,0,0,0,0-2ZM6,12a1,1,0,0,0,0,2Zm7,2a1,1,0,0,0,0-2ZM3,2H13V0H3ZM1,8h9V6H1Zm5,6h7V12H6Z" fill="#09090b"/>
+</svg>

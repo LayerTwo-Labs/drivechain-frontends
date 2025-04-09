@@ -1,0 +1,3 @@
+<svg id="signal-medium" xmlns="http://www.w3.org/2000/svg" width="12" height="10" viewBox="0 0 12 10">
+  <path id="Vector" d="M1,8a1,1,0,0,0,0,2Zm.01,2a1,1,0,0,0,0-2ZM5,9A1,1,0,0,0,7,9ZM7,5A1,1,0,0,0,5,5Zm3,4a1,1,0,0,0,2,0Zm2-8a1,1,0,0,0-2,0ZM1,10h.01V8H1ZM7,9V5H5V9Zm5,0V1H10V9Z" fill="#09090b"/>
+</svg>

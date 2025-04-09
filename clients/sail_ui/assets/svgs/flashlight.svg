@@ -1,0 +1,6 @@
+<svg id="flashlight" xmlns="http://www.w3.org/2000/svg" width="12" height="20" viewBox="0 0 12 20">
+  <g id="Vector">
+    <path id="Vector_path_1_" data-name="Vector (path 1)" d="M12,4c0,2-2,2-2,4V18a2,2,0,0,1-2,2H4a2,2,0,0,1-2-2V8C2,6,0,6,0,4V0H12Z" fill="rgba(0,0,0,0)"/>
+    <path id="Vector_path_2_" data-name="Vector (path 2)" d="M2,1A1,1,0,1,1,1,0,1,1,0,0,1,2,1Z" transform="translate(5 9)" fill="#09090b"/>
+  </g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="21.992" height="22" viewBox="0 0 21.992 22">
+  <g id="palette" transform="translate(1 1)">
+    <g id="Vector">
+      <path id="Vector_path_1_" data-name="Vector (path 1)" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(11 4)"/>
+      <path id="Vector_path_2_" data-name="Vector (path 2)" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(15 8)"/>
+      <path id="Vector_path_3_" data-name="Vector (path 3)" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(6 5)"/>
+      <path id="Vector_path_4_" data-name="Vector (path 4)" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(4 10)"/>
+      <path id="Vector_path_5_" data-name="Vector (path 5)" d="M10,0a10,10,0,0,0,0,20,1.652,1.652,0,0,0,1.648-1.688,1.712,1.712,0,0,0-.437-1.125,1.5,1.5,0,0,1-.438-1.125,1.64,1.64,0,0,1,1.668-1.668h2A5.576,5.576,0,0,0,19.992,8.84C19.965,4.012,15.461,0,10,0Z" fill="rgba(0,0,0,0)"/>
+      <g id="Vector_stroke_" data-name="Vector (stroke)">
+        <path id="_2B9EB1AE-E370-4A8A-ACCF-AA798358FE37" data-name="2B9EB1AE-E370-4A8A-ACCF-AA798358FE37" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(11 4)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="_0B060E5B-4C6E-48D8-92EA-A7B4AFAFAF0E" data-name="0B060E5B-4C6E-48D8-92EA-A7B4AFAFAF0E" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(15 8)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="F613F9F0-3B35-40C5-9678-005AFA5A10BA" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(6 5)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="B39A7D25-900E-411C-B376-F2065B9931A2" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(4 10)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="A5424530-27FF-42C7-8220-E5486660107B" d="M10,0a10,10,0,0,0,0,20,1.652,1.652,0,0,0,1.648-1.688,1.712,1.712,0,0,0-.437-1.125,1.5,1.5,0,0,1-.438-1.125,1.64,1.64,0,0,1,1.668-1.668h2A5.576,5.576,0,0,0,19.992,8.84C19.965,4.012,15.461,0,10,0Z" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>
