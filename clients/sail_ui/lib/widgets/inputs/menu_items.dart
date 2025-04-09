@@ -92,7 +92,7 @@ class _SailMenuItemState extends State<SailMenuItem> {
     var menuWidth = menu?.width;
     if (menuWidth != null) menuWidth += menuPadding.horizontal * 2;
 
-    var highlightColor = context.isWindows ? context.sailTheme.colors.text : context.sailTheme.colors.primary;
+    var highlightColor = context.sailTheme.colors.backgroundSecondary;
     var textColor = enabled ? context.sailTheme.colors.text : context.sailTheme.colors.textTertiary;
 
     return MouseRegion(

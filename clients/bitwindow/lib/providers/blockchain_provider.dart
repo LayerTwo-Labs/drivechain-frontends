@@ -29,7 +29,7 @@ class BlockchainProvider extends ChangeNotifier {
 
   // computed field go here
   Timestamp? get lastBlockAt => infoProvider.lastBlockAt;
-  String get verificationProgress => infoProvider.verificationProgress;
+  double get verificationProgress => infoProvider.verificationProgress;
   BlockchainInfo get blockchainInfo => infoProvider.blockchainInfo;
   bool get isSynced => !blockchainInfo.initialBlockDownload && blockchainInfo.verificationProgress >= 0.9999;
 

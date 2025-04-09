@@ -30,7 +30,7 @@ class BlockInfoProvider extends ChangeNotifier {
   );
 
   // computed field go here
-  String get verificationProgress => ((blockchainInfo.blocks / blockchainInfo.headers) * 100).toStringAsFixed(2);
+  double get verificationProgress => blockchainInfo.blocks / blockchainInfo.headers;
   Timestamp? get lastBlockAt => blockchainInfo.time != 0 ? Timestamp(seconds: Int64(blockchainInfo.time)) : null;
 
   bool _isFetching = false;

@@ -86,18 +86,32 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
           _controller.open();
         }
       },
-      // TODO: Restyle this button......
-      child: SailRow(
-        spacing: SailStyleValues.padding08,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          currentDisplay,
-          SailSVG.fromAsset(
-            SailSVGAsset.iconDropdown,
-            color: theme.colors.textSecondary,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: context.sailTheme.colors.border,
+            width: 1,
           ),
-        ],
+          borderRadius: SailStyleValues.borderRadius,
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: 9,
+            horizontal: 12,
+          ),
+          child: SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              currentDisplay,
+              SailSVG.fromAsset(
+                SailSVGAsset.iconDropdown,
+                color: theme.colors.textSecondary,
+              ),
+            ],
+          ),
+        ),
       ),
     );
 

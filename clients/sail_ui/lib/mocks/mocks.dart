@@ -629,7 +629,7 @@ class MockBlockInfoProvider implements BlockInfoProvider {
   }
 
   @override
-  String get verificationProgress => '0';
+  double get verificationProgress => 0.0;
 
   @override
   RPCConnection get connection => throw UnimplementedError();
