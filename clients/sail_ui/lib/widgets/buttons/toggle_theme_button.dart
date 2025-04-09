@@ -40,11 +40,11 @@ class _ToggleThemeButtonState extends State<ToggleThemeButton> {
   SailSVGAsset themeIcon(SailThemeValues currentTheme) {
     SailSVGAsset icon;
     if (currentTheme == SailThemeValues.system) {
-      icon = SailSVGAsset.iconLightDarkMode;
+      icon = SailSVGAsset.lightDarkMode;
     } else if (currentTheme == SailThemeValues.light) {
-      icon = SailSVGAsset.iconLightMode;
+      icon = SailSVGAsset.lightMode;
     } else {
-      icon = SailSVGAsset.iconDarkMode;
+      icon = SailSVGAsset.darkMode;
     }
 
     return icon;

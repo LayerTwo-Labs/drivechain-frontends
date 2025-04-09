@@ -42,7 +42,7 @@ class ToolsPage extends StatelessWidget {
               ),
               TabItem(
                 label: 'Starters',
-                icon: SailSVGAsset.iconTabStarters,
+                icon: SailSVGAsset.tabStarters,
                 child: StartersTab(),
               ),
             ],
