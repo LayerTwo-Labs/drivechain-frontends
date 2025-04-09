@@ -8,16 +8,16 @@ service MultisigService {
   rpc AddMultisigAddress(AddMultisigAddressRequest) returns (AddMultisigAddressResponse);
   rpc ImportAddress(ImportAddressRequest) returns (ImportAddressResponse);
   rpc GetAddressInfo(GetAddressInfoRequest) returns (GetAddressInfoResponse);
-  
+
   // UTXO management
   rpc ListUnspent(ListUnspentRequest) returns (ListUnspentResponse);
   rpc ListAddressGroupings(ListAddressGroupingsRequest) returns (ListAddressGroupingsResponse);
-  
+
   // Transaction creation
   rpc CreateRawTransaction(CreateRawTransactionRequest) returns (CreateRawTransactionResponse);
   rpc CreatePsbt(CreatePsbtRequest) returns (CreatePsbtResponse);
   rpc WalletCreateFundedPsbt(WalletCreateFundedPsbtRequest) returns (WalletCreateFundedPsbtResponse);
-  
+
   // PSBT handling
   rpc DecodePsbt(DecodePsbtRequest) returns (DecodePsbtResponse);
   rpc AnalyzePsbt(AnalyzePsbtRequest) returns (AnalyzePsbtResponse);
@@ -26,10 +26,10 @@ service MultisigService {
   rpc FinalizePsbt(FinalizePsbtRequest) returns (FinalizePsbtResponse);
   rpc UtxoUpdatePsbt(UtxoUpdatePsbtRequest) returns (UtxoUpdatePsbtResponse);
   rpc JoinPsbts(JoinPsbtsRequest) returns (JoinPsbtsResponse);
-  
+
   // Transaction signing
   rpc SignRawTransactionWithWallet(SignRawTransactionWithWalletRequest) returns (SignRawTransactionWithWalletResponse);
-  
+
   // Transaction misc
   rpc SendRawTransaction(SendRawTransactionRequest) returns (SendRawTransactionResponse);
   rpc TestMempoolAccept(TestMempoolAcceptRequest) returns (TestMempoolAcceptResponse);
