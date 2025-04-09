@@ -59,7 +59,7 @@ class DaemonConnectionCard extends StatelessWidget {
                       );
                     },
                     loading: connection.initializingBinary,
-                    icon: SailSVGAsset.iconTabSettings,
+                    icon: SailSVGAsset.tabSettings,
                   ),
                   SailButton(
                     variant: ButtonVariant.icon,
