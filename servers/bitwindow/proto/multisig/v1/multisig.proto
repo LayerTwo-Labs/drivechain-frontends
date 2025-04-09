@@ -1,0 +1,356 @@
+syntax = "proto3";
+
+package multisig.v1;
+
+// Service definition for multisig operations
+service MultisigService {
+  // Address management
+  rpc AddMultisigAddress(AddMultisigAddressRequest) returns (AddMultisigAddressResponse);
+  rpc ImportAddress(ImportAddressRequest) returns (ImportAddressResponse);
+  rpc GetAddressInfo(GetAddressInfoRequest) returns (GetAddressInfoResponse);
+  
+  // UTXO management
+  rpc ListUnspent(ListUnspentRequest) returns (ListUnspentResponse);
+  rpc ListAddressGroupings(ListAddressGroupingsRequest) returns (ListAddressGroupingsResponse);
+  
+  // Transaction creation
+  rpc CreateRawTransaction(CreateRawTransactionRequest) returns (CreateRawTransactionResponse);
+  rpc CreatePsbt(CreatePsbtRequest) returns (CreatePsbtResponse);
+  rpc WalletCreateFundedPsbt(WalletCreateFundedPsbtRequest) returns (WalletCreateFundedPsbtResponse);
+  
+  // PSBT handling
+  rpc DecodePsbt(DecodePsbtRequest) returns (DecodePsbtResponse);
+  rpc AnalyzePsbt(AnalyzePsbtRequest) returns (AnalyzePsbtResponse);
+  rpc WalletProcessPsbt(WalletProcessPsbtRequest) returns (WalletProcessPsbtResponse);
+  rpc CombinePsbt(CombinePsbtRequest) returns (CombinePsbtResponse);
+  rpc FinalizePsbt(FinalizePsbtRequest) returns (FinalizePsbtResponse);
+  rpc UtxoUpdatePsbt(UtxoUpdatePsbtRequest) returns (UtxoUpdatePsbtResponse);
+  rpc JoinPsbts(JoinPsbtsRequest) returns (JoinPsbtsResponse);
+  
+  // Transaction signing
+  rpc SignRawTransactionWithWallet(SignRawTransactionWithWalletRequest) returns (SignRawTransactionWithWalletResponse);
+  
+  // Transaction misc
+  rpc SendRawTransaction(SendRawTransactionRequest) returns (SendRawTransactionResponse);
+  rpc TestMempoolAccept(TestMempoolAcceptRequest) returns (TestMempoolAcceptResponse);
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
+}
+
+// Address management messages
+message AddMultisigAddressRequest {
+  int32 n_required = 1;
+  repeated string keys = 2;
+  string label = 3;
+}
+
+message AddMultisigAddressResponse {
+  string address = 1;
+  string redeem_script = 2;
+  string descriptor = 3;
+}
+
+message ImportAddressRequest {
+  string address = 1;
+  string label = 2;
+  bool rescan = 3;
+}
+
+message ImportAddressResponse {}
+
+message GetAddressInfoRequest {
+  string address = 1;
+}
+
+message GetAddressInfoResponse {
+  string address = 1;
+  string script_pub_key = 2;
+  bool is_mine = 3;
+  bool is_watchonly = 4;
+  bool solvable = 5;
+  string desc = 6;
+  bool is_script = 7;
+  bool is_change = 8;
+  bool is_witness = 9;
+  int32 witness_version = 10;
+  string witness_program = 11;
+  string script = 12;
+  string hex = 13;
+  repeated string pubkeys = 14;
+  int32 sigs_required = 15;
+  string pubkey = 16;
+  bool is_compressed = 17;
+  string label = 18;
+  int64 timestamp = 19;
+  string hd_key_path = 20;
+  string hd_seed_id = 21;
+  string hd_fingerprint = 22;
+  repeated string labels = 23;
+}
+
+// UTXO management messages
+message ListUnspentRequest {
+  int32 min_conf = 1;
+  int32 max_conf = 2;
+  repeated string addresses = 3;
+}
+
+message ListUnspentResponse {
+  repeated Utxo utxos = 1;
+}
+
+message Utxo {
+  string txid = 1;
+  int32 vout = 2;
+  string address = 3;
+  string label = 4;
+  string script_pub_key = 5;
+  int64 amount = 6;
+  int32 confirmations = 7;
+  string redeem_script = 8;
+  string witness_script = 9;
+  bool spendable = 10;
+  bool solvable = 11;
+  bool reused = 12;
+  string desc = 13;
+  bool safe = 14;
+}
+
+message ListAddressGroupingsRequest {}
+
+message ListAddressGroupingsResponse {
+  repeated AddressGrouping groupings = 1;
+}
+
+message AddressGrouping {
+  repeated AddressInfo addresses = 1;
+}
+
+message AddressInfo {
+  string address = 1;
+  int64 amount = 2;
+  string label = 3;
+}
+
+// Transaction creation messages
+message CreateRawTransactionRequest {
+  repeated TxInput inputs = 1;
+  repeated TxOutput outputs = 2;
+  int32 locktime = 3;
+}
+
+message TxInput {
+  string txid = 1;
+  int32 vout = 2;
+  string sequence = 3;
+}
+
+message TxOutput {
+  string address = 1;
+  int64 amount = 2;
+}
+
+message CreateRawTransactionResponse {
+  string hex = 1;
+}
+
+message CreatePsbtRequest {
+  repeated TxInput inputs = 1;
+  repeated TxOutput outputs = 2;
+  int32 locktime = 3;
+}
+
+message CreatePsbtResponse {
+  string psbt = 1;
+}
+
+message WalletCreateFundedPsbtRequest {
+  repeated TxInput inputs = 1;
+  repeated TxOutput outputs = 2;
+  int32 locktime = 3;
+  PsbtOptions options = 4;
+}
+
+message PsbtOptions {
+  bool include_watching = 1;
+  bool change_position = 2;
+  int32 change_address = 3;
+  bool include_unsafe = 4;
+  int32 min_conf = 5;
+  int32 max_conf = 6;
+  bool subtract_fee_from_outputs = 7;
+  bool replaceable = 8;
+  int32 conf_target = 9;
+  string estimate_mode = 10;
+}
+
+message WalletCreateFundedPsbtResponse {
+  string psbt = 1;
+  int64 fee = 2;
+  int32 change_position = 3;
+}
+
+// PSBT handling messages
+message DecodePsbtRequest {
+  string psbt = 1;
+}
+
+message DecodePsbtResponse {
+  string tx = 1;
+  string unknown = 2;
+  repeated Input inputs = 3;
+  repeated Output outputs = 4;
+  int32 fee = 5;
+}
+
+message Input {
+  string non_witness_utxo = 1;
+  string witness_utxo = 2;
+  string partial_signatures = 3;
+  string sighash = 4;
+  string redeem_script = 5;
+  string witness_script = 6;
+  string bip32_derivs = 7;
+  string final_scriptsig = 8;
+  string final_scriptwitness = 9;
+  string unknown = 10;
+}
+
+message Output {
+  string redeem_script = 1;
+  string witness_script = 2;
+  string bip32_derivs = 3;
+  string unknown = 4;
+}
+
+message AnalyzePsbtRequest {
+  string psbt = 1;
+}
+
+message AnalyzePsbtResponse {
+  repeated string inputs = 1;
+  string next = 2;
+  string fee = 3;
+  string error = 4;
+}
+
+message WalletProcessPsbtRequest {
+  string psbt = 1;
+  bool sign = 2;
+  string sighash_type = 3;
+}
+
+message WalletProcessPsbtResponse {
+  string psbt = 1;
+  bool complete = 2;
+}
+
+message CombinePsbtRequest {
+  repeated string psbts = 1;
+}
+
+message CombinePsbtResponse {
+  string psbt = 1;
+}
+
+message FinalizePsbtRequest {
+  string psbt = 1;
+}
+
+message FinalizePsbtResponse {
+  string psbt = 1;
+  string hex = 2;
+  bool complete = 3;
+}
+
+message UtxoUpdatePsbtRequest {
+  string psbt = 1;
+}
+
+message UtxoUpdatePsbtResponse {
+  string psbt = 1;
+}
+
+message JoinPsbtsRequest {
+  repeated string psbts = 1;
+}
+
+message JoinPsbtsResponse {
+  string psbt = 1;
+}
+
+// Transaction signing messages
+message SignRawTransactionWithWalletRequest {
+  string hex_string = 1;
+  repeated PreviousTx prev_txs = 2;
+  string sighash_type = 3;
+}
+
+message PreviousTx {
+  string txid = 1;
+  int32 vout = 2;
+  string script_pub_key = 3;
+  string redeem_script = 4;
+  string witness_script = 5;
+  int64 amount = 6;
+}
+
+message SignRawTransactionWithWalletResponse {
+  string hex = 1;
+  bool complete = 2;
+  repeated Error errors = 3;
+}
+
+message Error {
+  string txid = 1;
+  int32 vout = 2;
+  string script_sig = 3;
+  string sequence = 4;
+  string error = 5;
+}
+
+// Transaction misc messages
+message SendRawTransactionRequest {
+  string hex_string = 1;
+  double max_fee_rate = 2;
+}
+
+message SendRawTransactionResponse {
+  string txid = 1;
+}
+
+message TestMempoolAcceptRequest {
+  repeated string hex_strings = 1;
+}
+
+message TestMempoolAcceptResponse {
+  string txid = 1;
+  bool allowed = 2;
+  string reject_reason = 3;
+}
+
+message GetTransactionRequest {
+  string txid = 1;
+  bool include_watchonly = 2;
+}
+
+message GetTransactionResponse {
+  string txid = 1;
+  int32 confirmations = 2;
+  int64 block_time = 3;
+  string block_hash = 4;
+  int32 block_height = 5;
+  int64 amount = 6;
+  int64 fee = 7;
+  string hex = 8;
+  repeated Detail details = 9;
+}
+
+message Detail {
+  string address = 1;
+  string category = 2;
+  int64 amount = 3;
+  string label = 4;
+  int32 vout = 5;
+  double fee = 6;
+  bool abandoned = 7;
+}
