@@ -1,0 +1,3 @@
+<svg id="gallery-horizontal" xmlns="http://www.w3.org/2000/svg" width="22" height="20" viewBox="0 0 22 20">
+  <path id="Vector" d="M2,1A1,1,0,0,0,0,1ZM0,19a1,1,0,0,0,2,0ZM22,1a1,1,0,0,0-2,0ZM20,19a1,1,0,0,0,2,0ZM0,1V19H2V1ZM7,2h8V0H7Zm8,0a1,1,0,0,1,1,1h2a3,3,0,0,0-3-3Zm1,1V17h2V3Zm0,14a1,1,0,0,1-1,1v2a3,3,0,0,0,3-3Zm-1,1H7v2h8ZM7,18a1,1,0,0,1-1-1H4a3,3,0,0,0,3,3ZM6,17V3H4V17ZM6,3A1,1,0,0,1,7,2V0A3,3,0,0,0,4,3ZM20,1V19h2V1Z" fill="#09090b"/>
+</svg>

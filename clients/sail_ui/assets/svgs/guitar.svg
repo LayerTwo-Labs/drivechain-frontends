@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="21.986" height="21.986" viewBox="0 0 21.986 21.986">
+  <g id="guitar" transform="translate(1 1)">
+    <g id="Vector" transform="translate(0 0)">
+      <path id="Vector_path_1_" data-name="Vector (path 1)" d="M0,4.514,4.514,0Z" transform="translate(9.9 5.572)" fill="rgba(0,0,0,0)"/>
+      <path id="Vector_path_2_" data-name="Vector (path 2)" d="M3.686.286a1,1,0,0,0-1.4,0L1.172,1.4A2,2,0,0,0,.586,2.814V4.158A2,2,0,0,1,0,5.572a2,2,0,0,1,1.414-.586H2.758A2,2,0,0,0,4.172,4.4L5.286,3.286a1,1,0,0,0,0-1.4Z" transform="translate(14.414)" fill="rgba(0,0,0,0)"/>
+      <path id="Vector_path_3_" data-name="Vector (path 3)" d="M0,0,2,2Z" transform="translate(4 13.986)" fill="rgba(0,0,0,0)"/>
+      <path id="Vector_path_4_" data-name="Vector (path 4)" d="M6.2,1.9A3.173,3.173,0,0,1,9,0a4.951,4.951,0,0,1,5,5,3.173,3.173,0,0,1-1.9,2.8l-.9.4A2,2,0,0,0,10,10a4,4,0,0,1-4,4A6.018,6.018,0,0,1,0,8,4,4,0,0,1,4,4,2,2,0,0,0,5.8,2.8Z" transform="translate(0 5.986)" fill="rgba(0,0,0,0)"/>
+      <path id="Vector_path_5_" data-name="Vector (path 5)" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(9 9.986)" fill="#09090b"/>
+      <g id="Vector_stroke_" data-name="Vector (stroke)">
+        <path id="_0D99B749-FF75-4583-A7CB-B26E7AD17F60" data-name="0D99B749-FF75-4583-A7CB-B26E7AD17F60" d="M0,4.514,4.514,0Z" transform="translate(9.9 5.572)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="_999FCE2B-5C69-4012-B47C-6ED38780B919" data-name="999FCE2B-5C69-4012-B47C-6ED38780B919" d="M3.686.286a1,1,0,0,0-1.4,0L1.172,1.4A2,2,0,0,0,.586,2.814V4.158A2,2,0,0,1,0,5.572a2,2,0,0,1,1.414-.586H2.758A2,2,0,0,0,4.172,4.4L5.286,3.286a1,1,0,0,0,0-1.4Z" transform="translate(14.414)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="_691093D9-8A52-40D3-9464-260017F52107" data-name="691093D9-8A52-40D3-9464-260017F52107" d="M0,0,2,2Z" transform="translate(4 13.986)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="F0176D07-49C9-4FC6-BAB6-53DA8451658C" d="M6.2,1.9A3.173,3.173,0,0,1,9,0a4.951,4.951,0,0,1,5,5,3.173,3.173,0,0,1-1.9,2.8l-.9.4A2,2,0,0,0,10,10a4,4,0,0,1-4,4A6.018,6.018,0,0,1,0,8,4,4,0,0,1,4,4,2,2,0,0,0,5.8,2.8Z" transform="translate(0 5.986)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="A5CE7A5D-FD72-4AE7-B2D9-C6CD568CD53B" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(9 9.986)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="21.995" height="21.995" viewBox="0 0 21.995 21.995">
+  <g id="tag" transform="translate(1 1)">
+    <g id="Vector" transform="translate(0)">
+      <path id="Vector_path_1_" data-name="Vector (path 1)" d="M10.586.586A2,2,0,0,0,9.172,0H2A2,2,0,0,0,0,2V9.172a2,2,0,0,0,.586,1.414l8.7,8.7a2.426,2.426,0,0,0,3.42,0l6.58-6.58a2.426,2.426,0,0,0,0-3.42Z" fill="rgba(0,0,0,0)"/>
+      <path id="Vector_path_2_" data-name="Vector (path 2)" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(5 5)" fill="#09090b"/>
+      <g id="Vector_stroke_" data-name="Vector (stroke)">
+        <path id="A5C2E721-09EB-43AE-B013-0DE3285144FA" d="M10.586.586A2,2,0,0,0,9.172,0H2A2,2,0,0,0,0,2V9.172a2,2,0,0,0,.586,1.414l8.7,8.7a2.426,2.426,0,0,0,3.42,0l6.58-6.58a2.426,2.426,0,0,0,0-3.42Z" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="_1928A635-AD91-4E06-BE36-2F5DA032777C" data-name="1928A635-AD91-4E06-BE36-2F5DA032777C" d="M.5,1A.5.5,0,1,0,0,.5.5.5,0,0,0,.5,1Z" transform="translate(5 5)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>

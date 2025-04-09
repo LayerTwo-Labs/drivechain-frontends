@@ -1,0 +1,3 @@
+<svg id="japanese-yen" xmlns="http://www.w3.org/2000/svg" width="14" height="20" viewBox="0 0 14 20">
+  <path id="Vector" d="M6,19a1,1,0,1,0,2,0ZM1.735.322A1,1,0,1,0,.265,1.678Zm12,1.357A1,1,0,1,0,12.265.322ZM1,12a1,1,0,0,0,0,2Zm12,2a1,1,0,0,0,0-2ZM1,8a1,1,0,1,0,0,2Zm12,2a1,1,0,1,0,0-2ZM6,7.5V19H8V7.5Zm1.735-.678-6-6.5L.265,1.678l6,6.5Zm0,1.357,6-6.5L12.265.322l-6,6.5ZM1,14H13V12H1Zm0-4H13V8H1Z" transform="translate(0 0)" fill="#09090b"/>
+</svg>
