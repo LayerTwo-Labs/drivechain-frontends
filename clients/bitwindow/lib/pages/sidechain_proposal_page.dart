@@ -165,7 +165,7 @@ class SidechainProposalView extends StatelessWidget {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return Center(
-          child: SailRawCard(
+          child: SailCard(
             child: Padding(
               padding: const EdgeInsets.all(SailStyleValues.padding16),
               child: Column(

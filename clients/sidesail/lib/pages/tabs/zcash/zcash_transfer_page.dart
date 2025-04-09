@@ -419,7 +419,7 @@ class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        return SailRawCard(
+        return SailCard(
           title: 'Transparent UTXOs',
           subtitle: 'List of unspent transaction outputs in your transparent address',
           bottomPadding: false,
@@ -508,7 +508,7 @@ class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'UTXO Details',
             subtitle: 'Details of the selected UTXO',
             child: SingleChildScrollView(
@@ -604,7 +604,7 @@ class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        return SailRawCard(
+        return SailCard(
           title: 'Private UTXOs',
           subtitle: 'List of unspent transaction outputs in your private address',
           bottomPadding: false,
@@ -685,7 +685,7 @@ class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'UTXO Details',
             subtitle: 'Details of the selected UTXO',
             child: SingleChildScrollView(

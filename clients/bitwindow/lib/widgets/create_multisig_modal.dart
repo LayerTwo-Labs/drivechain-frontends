@@ -20,7 +20,7 @@ class CreateMultisigModal extends StatelessWidget {
           backgroundColor: Colors.transparent,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: SailRawCard(
+            child: SailCard(
               title: 'Create ${model.n} of ${model.m} Multisig Lounge',
               subtitle: 'Create a new multisig wallet with multiple participants',
               error: model.modelError,

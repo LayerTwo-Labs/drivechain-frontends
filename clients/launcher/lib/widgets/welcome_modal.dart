@@ -401,7 +401,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       binaryStrings.add(chunk);
     }
 
-    return SailRawCard(
+    return SailCard(
       padding: true,
       secondary: true,
       child: Column(
@@ -474,7 +474,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
     final binaryString = _currentWalletData['bip39_binary'] ?? '';
     final checksumBinary = _currentWalletData['bip39_checksum'] ?? '';
 
-    return SailRawCard(
+    return SailCard(
       padding: true,
       secondary: true,
       child: SailColumn(
@@ -573,7 +573,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Combined Entropy Input Section
-              SailRawCard(
+              SailCard(
                 padding: true,
                 secondary: true,
                 child: SailColumn(
@@ -698,7 +698,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
       context: context,
       builder: (context) => Dialog(
         backgroundColor: SailTheme.of(context).colors.backgroundSecondary,
-        child: SailRawCard(
+        child: SailCard(
           padding: true,
           withCloseButton: true,
           child: SailColumn(
@@ -861,7 +861,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
     return ConstrainedBox(
       constraints: constraints,
-      child: SailRawCard(
+      child: SailCard(
         padding: true,
         child: IntrinsicHeight(
           child: SailColumn(

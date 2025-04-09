@@ -66,7 +66,7 @@ class _SailCheckboxState extends State<SailCheckbox> {
           borderRadius: BorderRadius.all(Radius.circular(widget.cornerRadius)),
           color: color,
           border: Border.all(
-            color: context.sailTheme.colors.formFieldBorder,
+            color: context.sailTheme.colors.border,
             width: 0.5,
           ),
           boxShadow: sailBoxShadow(context),

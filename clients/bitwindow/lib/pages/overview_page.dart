@@ -100,7 +100,7 @@ class TransactionsView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SailRawCard(
+                  SailCard(
                     bottomPadding: false,
                     title: 'Latest Transactions',
                     subtitle: 'View the latest transactions on the sidechain',
@@ -120,7 +120,7 @@ class TransactionsView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SailRawCard(
+                  SailCard(
                     title: 'Latest Blocks',
                     subtitle: 'View the latest blocks on the blockchain',
                     bottomPadding: false,
@@ -465,7 +465,7 @@ class CoinNewsView extends StatelessWidget {
     return ViewModelBuilder<CoinNewsViewModel>.reactive(
       viewModelBuilder: () => CoinNewsViewModel(),
       builder: (context, viewModel, child) {
-        return SailRawCard(
+        return SailCard(
           title: 'Coin News',
           subtitle: 'Stay up-to-date on the latest world developments',
           widgetHeaderEnd: Padding(

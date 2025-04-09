@@ -7,7 +7,7 @@ void main() async {
   testWidgets('can build page', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
-      SailRawCard(title: 'nice', subtitle: 'learn about teh niceties of nice', child: SailText.primary10('nice')),
+      SailCard(title: 'nice', subtitle: 'learn about teh niceties of nice', child: SailText.primary10('nice')),
     );
   });
 }

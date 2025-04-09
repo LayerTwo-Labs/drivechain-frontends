@@ -234,7 +234,7 @@ class DepositTab extends StatelessWidget {
               spacing: SailStyleValues.padding08,
               children: [
                 Expanded(
-                  child: SailRawCard(
+                  child: SailCard(
                     title: 'Deposit from Parent Chain',
                     subtitle: 'Deposit coins to the sidechain',
                     error: model.depositError,
@@ -271,7 +271,7 @@ class DepositTab extends StatelessWidget {
                 if (model.depositAddress != null && width > 500)
                   SizedBox(
                     width: 180,
-                    child: SailRawCard(
+                    child: SailCard(
                       padding: true,
                       child: QrImageView(
                         padding: EdgeInsets.zero,
@@ -299,7 +299,7 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
 
   @override
   Widget build(BuildContext context, DepositWithdrawTabViewModel viewModel) {
-    return SailRawCard(
+    return SailCard(
       title: 'Withdraw to Parent Chain',
       subtitle: 'Withdraw bitcoin from the sidechain to the parent chain',
       error: viewModel.withdrawError,

@@ -38,7 +38,7 @@ class _DaemonConnectionDetailsModalState extends State<DaemonConnectionDetailsMo
       backgroundColor: context.sailTheme.colors.backgroundSecondary,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500),
-        child: SailRawCard(
+        child: SailCard(
           padding: true,
           title: '${widget.connection.binary.name} Connection Details',
           subtitle: 'Connection information for this daemon',

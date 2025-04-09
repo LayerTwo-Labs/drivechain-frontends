@@ -59,7 +59,7 @@ class WithdrawalTab extends ViewModelWidget<ToolsPageViewModel> {
 
   @override
   Widget build(BuildContext context, ToolsPageViewModel viewModel) {
-    return SailRawCard(
+    return SailCard(
       padding: true,
       child: SingleChildScrollView(
         child: Column(
@@ -220,7 +220,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
 
   @override
   Widget build(BuildContext context, ToolsPageViewModel viewModel) {
-    return SailRawCard(
+    return SailCard(
       padding: true,
       child: Stack(
         children: [

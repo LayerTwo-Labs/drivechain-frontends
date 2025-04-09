@@ -66,7 +66,7 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: color,
-          border: Border.all(color: SailTheme.of(context).colors.formFieldBorder, width: 1.0),
+          border: Border.all(color: SailTheme.of(context).colors.border, width: 1.0),
           boxShadow: sailBoxShadow(context),
         ),
       );

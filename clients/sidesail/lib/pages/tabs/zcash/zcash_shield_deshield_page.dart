@@ -33,7 +33,7 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SailRawCard(
+                          SailCard(
                             bottomPadding: false,
                             title: 'Transparent UTXOs ${model.unshieldedUTXOs.length}',
                             subtitle: 'View and shield your transparent UTXOs',
@@ -58,7 +58,7 @@ class ZCashShieldDeshieldTabPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SailRawCard(
+                          SailCard(
                             title: 'Private UTXOs ${model.shieldedUTXOs.length}',
                             subtitle: 'View and deshield your private UTXOs',
                             bottomPadding: false,

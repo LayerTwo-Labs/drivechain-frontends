@@ -23,7 +23,7 @@ class SailBorder extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: border ?? Border.all(color: theme.colors.formFieldBorder, width: 1),
+        border: border ?? Border.all(color: theme.colors.border, width: 1),
         borderRadius: borderRadius ?? const BorderRadius.all(Radius.circular(4)),
       ),
       child: Container(

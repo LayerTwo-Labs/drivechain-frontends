@@ -74,7 +74,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
                 model.bmmAttempts.isEmpty
                     ? _buildEmptyState()
                     : Expanded(
-                        child: SailRawCard(
+                        child: SailCard(
                           title: 'Blind Merged Mining attempts',
                           subtitle: '${model.bmmAttempts.length} attempts',
                           child: Column(
@@ -186,7 +186,7 @@ class BlindMergedMiningTabPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'BMM Attempt Details',
             subtitle: attempt.result.txid,
             child: SingleChildScrollView(

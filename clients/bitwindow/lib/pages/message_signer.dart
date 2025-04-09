@@ -14,7 +14,7 @@ class MessageSigner extends StatelessWidget {
         child: SizedBox(
           width: 800,
           height: 600,
-          child: SailRawCard(
+          child: SailCard(
             withCloseButton: true,
             color: context.sailTheme.colors.background,
             padding: false,
@@ -83,7 +83,7 @@ class _SignMessageTabState extends State<SignMessageTab> {
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
 
-    return SailRawCard(
+    return SailCard(
       title: 'Sign Message',
       subtitle:
           'You can sign messages/agreements with your addresses to prove you can receive Drivechain coins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.',
@@ -180,7 +180,7 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
 
-    return SailRawCard(
+    return SailCard(
       title: 'Verify Message',
       subtitle:
           "Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any",

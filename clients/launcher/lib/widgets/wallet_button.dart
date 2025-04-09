@@ -164,7 +164,7 @@ class _WalletButtonState extends State<WalletButton> {
                           decoration: BoxDecoration(
                             border: Border(
                               bottom: BorderSide(
-                                color: SailTheme.of(context).colors.formFieldBorder,
+                                color: SailTheme.of(context).colors.border,
                                 width: 1,
                               ),
                             ),

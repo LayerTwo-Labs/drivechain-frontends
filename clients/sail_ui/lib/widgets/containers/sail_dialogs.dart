@@ -97,7 +97,7 @@ Future<T?> widgetDialog<T>({
         constraints: BoxConstraints(
           maxWidth: maxWidth,
         ),
-        child: SailRawCard(
+        child: SailCard(
           title: title,
           subtitle: subtitle ?? '',
           withCloseButton: true,
@@ -125,18 +125,18 @@ class CardHeader extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return SailColumn(
-      spacing: 0,
+      spacing: 12,
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.secondary15(
+        SailText.primary15(
           title,
           bold: true,
         ),
         if (error != null || subtitle != null)
           SailText.primary12(
             error ?? subtitle!,
-            color: error != null ? SailColorScheme.red : theme.colors.textTertiary,
+            color: error != null ? SailColorScheme.red : theme.colors.inactiveNavText,
             overflow: TextOverflow.visible,
           ),
       ],

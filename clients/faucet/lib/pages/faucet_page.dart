@@ -144,7 +144,7 @@ class _FaucetPageState extends State<FaucetPage> {
             spacing: SailStyleValues.padding16,
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
-              SailRawCard(
+              SailCard(
                 title: 'Dispense Drivechain Coins',
                 subtitle: 'Send Drivechain coins to your L1-address',
                 child: Column(
@@ -237,7 +237,7 @@ class _FaucetPageState extends State<FaucetPage> {
                 ),
               ),
               Flexible(
-                child: SailRawCard(
+                child: SailCard(
                   bottomPadding: false,
                   title: 'Latest Transactions',
                   subtitle: 'View the latest faucet dispensations',

@@ -19,7 +19,7 @@ class DashboardActionModal extends StatelessWidget {
 
     return Dialog(
       backgroundColor: theme.colors.actionHeader,
-      child: SailRawCard(
+      child: SailCard(
         child: SailColumn(
           spacing: SailStyleValues.padding64,
           mainAxisSize: MainAxisSize.min,

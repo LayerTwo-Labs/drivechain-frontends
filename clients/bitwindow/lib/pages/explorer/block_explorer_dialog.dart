@@ -26,7 +26,7 @@ class BlockExplorerDialog extends StatelessWidget {
       ),
       onViewModelReady: (model) => model.init(),
       builder: (context, model, child) {
-        return SailRawCard(
+        return SailCard(
           title: '# Blocks: ${model.blockchainProvider.infoProvider.blockchainInfo.blocks}',
           subtitle:
               'Last block time: ${DateTime.fromMillisecondsSinceEpoch(model.blockchainProvider.infoProvider.blockchainInfo.time * 1000).format()}',
@@ -191,7 +191,7 @@ class BlockExplorerDialog extends StatelessWidget {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'Block Details',
             subtitle: '',
             child: SingleChildScrollView(
@@ -536,7 +536,7 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
-        child: SailRawCard(
+        child: SailCard(
           title: 'Transaction Details',
           subtitle: '',
           error: error,

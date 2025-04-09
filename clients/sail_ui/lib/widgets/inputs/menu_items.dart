@@ -23,6 +23,7 @@ class SailMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(minWidth: 254),
       decoration: BoxDecoration(
         color: context.sailTheme.colors.popoverBackground,
         borderRadius: BorderRadius.all(Radius.circular(context.isWindows ? 3 : 4)),

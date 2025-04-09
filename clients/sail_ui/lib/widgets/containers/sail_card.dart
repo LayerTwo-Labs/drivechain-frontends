@@ -17,11 +17,10 @@ class NewWindowIdentifier {
   });
 }
 
-class SailRawCard extends StatelessWidget {
+class SailCard extends StatelessWidget {
   final String? title;
   final String? subtitle;
   final String? error;
-  final Widget? header;
   final VoidCallback? onPressed;
   final bool padding;
   final bool bottomPadding;
@@ -36,12 +35,11 @@ class SailRawCard extends StatelessWidget {
   final bool inSeparateWindow;
   final NewWindowIdentifier? newWindowIdentifier;
 
-  const SailRawCard({
+  const SailCard({
     super.key,
     this.title,
     this.subtitle,
     this.error,
-    this.header,
     this.onPressed,
     this.padding = true,
     this.bottomPadding = true,
@@ -50,12 +48,12 @@ class SailRawCard extends StatelessWidget {
     this.width = double.infinity,
     this.color,
     this.borderRadius,
-    this.shadowSize = ShadowSize.small,
+    this.shadowSize = ShadowSize.regular,
     this.secondary = false,
     this.withCloseButton = false,
     this.inSeparateWindow = false,
     this.newWindowIdentifier,
-  }) : assert(!(header != null && title != null), 'Cannot set both title and header');
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -65,32 +63,83 @@ class SailRawCard extends StatelessWidget {
       child: SailShadow(
         shadowSize: shadowSize,
         child: Material(
-          borderRadius: borderRadius ?? SailStyleValues.borderRadius,
-          color: color ?? (secondary ? theme.colors.background : theme.colors.backgroundSecondary),
+          color: theme.colors.background,
           clipBehavior: Clip.hardEdge,
-          child: SizedBox(
-            width: width,
-            child: Padding(
-              padding: padding
-                  ? EdgeInsets.only(
-                      top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
-                      left: SailStyleValues.padding16,
-                      right: SailStyleValues.padding16,
-                      bottom: bottomPadding ? SailStyleValues.padding16 : 0,
-                    )
-                  : EdgeInsets.zero,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (header != null)
-                    SailRow(
-                      spacing: 0,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Flexible(child: header!),
-                        SailRow(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: theme.colors.border,
+                width: 1.0,
+              ),
+              borderRadius: borderRadius ?? SailStyleValues.borderRadiusLarge,
+            ),
+            child: SizedBox(
+              width: width,
+              child: Padding(
+                padding: padding
+                    ? EdgeInsets.only(
+                        top: inSeparateWindow ? SailStyleValues.padding32 : SailStyleValues.padding16,
+                        left: SailStyleValues.padding16,
+                        right: SailStyleValues.padding16,
+                        bottom: bottomPadding ? SailStyleValues.padding16 : 0,
+                      )
+                    : EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (title != null)
+                      SizedBox(
+                        width: double.infinity,
+                        child: SailRow(
+                          spacing: 0,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Flexible(
+                              child: CardHeader(
+                                title: title!,
+                                subtitle: subtitle,
+                                error: error,
+                              ),
+                            ),
+                            SailRow(
+                              spacing: SailStyleValues.padding08,
+                              children: [
+                                if (widgetHeaderEnd != null) widgetHeaderEnd!,
+                                if (newWindowIdentifier != null)
+                                  SailButton(
+                                    variant: ButtonVariant.icon,
+                                    icon: SailSVGAsset.iconNewWindow,
+                                    onPressed: () async {
+                                      final window = await DesktopMultiWindow.createWindow(
+                                        jsonEncode({
+                                          'window_type': newWindowIdentifier!.windowType,
+                                          'application_dir': newWindowIdentifier!.applicationDir.path,
+                                          'log_file': newWindowIdentifier!.logFile.path,
+                                        }),
+                                      );
+                                      await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
+                                      await window.center();
+                                      await window.setTitle('UTXOs and Denials');
+                                      await window.show();
+                                    },
+                                  ),
+                                if (withCloseButton)
+                                  SailButton(
+                                    variant: ButtonVariant.icon,
+                                    icon: SailSVGAsset.iconClose,
+                                    onPressed: () async => Navigator.of(context).pop(),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (withCloseButton || newWindowIdentifier != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: SailRow(
                           spacing: SailStyleValues.padding08,
                           children: [
                             if (newWindowIdentifier != null)
@@ -107,7 +156,7 @@ class SailRawCard extends StatelessWidget {
                                   );
                                   await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
                                   await window.center();
-                                  await window.setTitle(title ?? '');
+                                  await window.setTitle('UTXOs and Denials');
                                   await window.show();
                                 },
                               ),
@@ -119,90 +168,78 @@ class SailRawCard extends StatelessWidget {
                               ),
                           ],
                         ),
-                      ],
-                    )
-                  else if (title != null)
-                    SizedBox(
-                      width: double.infinity,
-                      child: SailRow(
-                        spacing: 0,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Flexible(
-                            child: CardHeader(
-                              title: title!,
-                              subtitle: subtitle,
-                              error: error,
-                            ),
-                          ),
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            children: [
-                              if (widgetHeaderEnd != null) widgetHeaderEnd!,
-                              if (newWindowIdentifier != null)
-                                SailButton(
-                                  variant: ButtonVariant.icon,
-                                  icon: SailSVGAsset.iconNewWindow,
-                                  onPressed: () async {
-                                    final window = await DesktopMultiWindow.createWindow(
-                                      jsonEncode({
-                                        'window_type': newWindowIdentifier!.windowType,
-                                        'application_dir': newWindowIdentifier!.applicationDir.path,
-                                        'log_file': newWindowIdentifier!.logFile.path,
-                                      }),
-                                    );
-                                    await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
-                                    await window.center();
-                                    await window.setTitle('UTXOs and Denials');
-                                    await window.show();
-                                  },
-                                ),
-                              if (withCloseButton)
-                                SailButton(
-                                  variant: ButtonVariant.icon,
-                                  icon: SailSVGAsset.iconClose,
-                                  onPressed: () async => Navigator.of(context).pop(),
-                                ),
-                            ],
-                          ),
-                        ],
                       ),
-                    )
-                  else if (withCloseButton || newWindowIdentifier != null)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: SailRow(
-                        spacing: SailStyleValues.padding08,
-                        children: [
-                          if (newWindowIdentifier != null)
-                            SailButton(
-                              variant: ButtonVariant.icon,
-                              icon: SailSVGAsset.iconNewWindow,
-                              onPressed: () async {
-                                final window = await DesktopMultiWindow.createWindow(
-                                  jsonEncode({
-                                    'window_type': newWindowIdentifier!.windowType,
-                                    'application_dir': newWindowIdentifier!.applicationDir.path,
-                                    'log_file': newWindowIdentifier!.logFile.path,
-                                  }),
-                                );
-                                await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
-                                await window.center();
-                                await window.setTitle('UTXOs and Denials');
-                                await window.show();
-                              },
-                            ),
-                          if (withCloseButton)
-                            SailButton(
-                              variant: ButtonVariant.icon,
-                              icon: SailSVGAsset.iconClose,
-                              onPressed: () async => Navigator.of(context).pop(),
-                            ),
-                        ],
-                      ),
+                    if (title != null) const SailSpacing(SailStyleValues.padding32),
+                    Flexible(
+                      child: child,
                     ),
-                  if (title != null) const SailSpacing(SailStyleValues.padding16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SailCardSmall extends StatelessWidget {
+  final String? title;
+  final String? subtitle;
+  final String? error;
+  final Widget? headerEnd;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  const SailCardSmall({
+    super.key,
+    this.title,
+    this.subtitle,
+    this.error,
+    this.onPressed,
+    this.headerEnd,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SelectionArea(
+      child: SailShadow(
+        child: Material(
+          borderRadius: SailStyleValues.borderRadius,
+          color: Colors.transparent,
+          child: SizedBox(
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: SailStyleValues.padding16,
+                left: SailStyleValues.padding16,
+                right: SailStyleValues.padding16,
+                bottom: SailStyleValues.padding16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: SailRow(
+                      spacing: 0,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Flexible(
+                          child: CardHeader(
+                            title: title!,
+                            subtitle: subtitle,
+                            error: error,
+                          ),
+                        ),
+                        if (headerEnd != null) headerEnd!,
+                      ],
+                    ),
+                  ),
+                  const SailSpacing(32),
                   Flexible(
                     child: child,
                   ),

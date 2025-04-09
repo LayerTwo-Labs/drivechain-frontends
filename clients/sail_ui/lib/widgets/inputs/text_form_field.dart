@@ -86,11 +86,11 @@ class SailTextFormField extends StatelessWidget {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: const BorderRadius.all(Radius.circular(6)),
-              borderSide: BorderSide(color: theme.colors.formFieldBorder),
+              borderSide: BorderSide(color: theme.colors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: const BorderRadius.all(Radius.circular(6)),
-              borderSide: BorderSide(color: theme.colors.formFieldBorder),
+              borderSide: BorderSide(color: theme.colors.border),
             ),
             suffixStyle: TextStyle(
               color: SailTheme.of(context).colors.textTertiary,

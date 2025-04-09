@@ -47,16 +47,19 @@ class InlineTabBarState extends State<InlineTabBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(SailStyleValues.padding04),
-      decoration: BoxDecoration(
-        color: context.sailTheme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadius,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            vertical: 5,
+            horizontal: 4,
+          ),
+          decoration: BoxDecoration(
+            color: context.sailTheme.colors.backgroundSecondary,
+            borderRadius: SailStyleValues.borderRadius,
+          ),
+          child: SailRow(
             children: List.generate(widget.tabs.length, (index) {
               final tab = widget.tabs[index];
 
@@ -74,7 +77,7 @@ class InlineTabBarState extends State<InlineTabBar> {
                     shape: WidgetStatePropertyAll(
                       RoundedRectangleBorder(
                         borderRadius: SailStyleValues.borderRadius,
-                        side: BorderSide(color: context.sailTheme.colors.formFieldBorder),
+                        side: BorderSide(color: context.sailTheme.colors.border),
                       ),
                     ),
                   ),
@@ -137,15 +140,16 @@ class InlineTabBarState extends State<InlineTabBar> {
                     tab.onTap!();
                   }
                 },
+                withDropdown: false,
               );
             }),
           ),
-          const SizedBox(height: SailStyleValues.padding16),
-          Expanded(
-            child: _buildTabContent(),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: SailStyleValues.padding16),
+        Expanded(
+          child: _buildTabContent(),
+        ),
+      ],
     );
   }
 
@@ -205,13 +209,15 @@ class _TabItem extends StatelessWidget {
             if (icon != null) const SizedBox(width: SailStyleValues.padding04),
             SailText.primary13(
               label,
-              color: isSelected ? context.sailTheme.colors.activeNavText : context.sailTheme.colors.inactiveNavText,
-              bold: true,
+              color: isSelected ? context.sailTheme.colors.activeNavText : context.sailTheme.colors.inactiveSubNavText,
+              bold: false,
             ),
             if (withDropdown)
               Icon(
                 Icons.arrow_drop_down,
-                color: isSelected ? context.sailTheme.colors.activeNavText : context.sailTheme.colors.inactiveNavText,
+                color:
+                    isSelected ? context.sailTheme.colors.activeNavText : context.sailTheme.colors.inactiveSubNavText,
+                size: 18,
               ),
           ],
         ),
