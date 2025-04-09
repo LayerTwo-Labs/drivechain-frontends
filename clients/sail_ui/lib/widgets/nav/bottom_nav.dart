@@ -5,6 +5,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/widgets/loaders/progress.dart';
 import 'package:stacked/stacked.dart';
 
 class BottomNav extends StatelessWidget {
@@ -34,10 +35,10 @@ class BottomNav extends StatelessWidget {
         return SizedBox(
           height: 36,
           child: DecoratedBox(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(
-                  color: Colors.grey,
+                  color: SailTheme.of(context).colors.border,
                 ),
               ),
             ),
@@ -129,8 +130,20 @@ class BottomNav extends StatelessWidget {
                   Tooltip(
                     message:
                         'Current height: ${model.infoService.blockchainInfo.blocks}\nHeader height: ${model.infoService.blockchainInfo.headers}',
-                    child: SailText.primary12(
-                      'Downloading blocks (${model.infoService.verificationProgress}%)',
+                    child: SailRow(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        SailText.primary12(
+                          'Downloading blocks',
+                        ),
+                        SizedBox(
+                          width: 250,
+                          child: ProgressBar(
+                            progress: model.infoService.verificationProgress,
+                          ),
+                        ),
+                        const DividerDot(),
+                      ],
                     ),
                   ),
                 if (model.infoService.blockchainInfo.initialBlockDownload &&
