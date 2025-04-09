@@ -16,7 +16,7 @@ class BitwindowConsoleTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
+    return SailCard(
       title: 'Debug Console',
       subtitle: 'Execute commands and view responses',
       child: ConsoleView(

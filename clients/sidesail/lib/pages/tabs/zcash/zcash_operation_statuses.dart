@@ -38,7 +38,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
             child: SailColumn(
               spacing: SailStyleValues.padding32,
               children: [
-                SailRawCard(
+                SailCard(
                   title: 'Operation statuses',
                   subtitle: 'List of zero-knowledge operations and their status',
                   bottomPadding: false,
@@ -107,7 +107,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                             backgroundColor: Colors.transparent,
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 800),
-                              child: SailRawCard(
+                              child: SailCard(
                                 title: 'Operation Details',
                                 subtitle: 'Details of the selected operation',
                                 child: SingleChildScrollView(
@@ -138,7 +138,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: SailRawCard(
+                  child: SailCard(
                     title: 'Transparent transactions',
                     subtitle: '${model.transactions.length} transactions',
                     child: Column(
@@ -218,7 +218,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'Transaction Details',
             subtitle: tx.txid,
             child: SingleChildScrollView(

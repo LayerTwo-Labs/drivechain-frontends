@@ -63,7 +63,7 @@ class _DenialDialogState extends State<DenialDialog> {
       child: IntrinsicHeight(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
-          child: SailRawCard(
+          child: SailCard(
             padding: true,
             title: 'Start Automatic Denial',
             subtitle: '',

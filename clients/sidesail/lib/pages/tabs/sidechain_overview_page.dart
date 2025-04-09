@@ -40,7 +40,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                           children: [
                             // Balance card
                             Expanded(
-                              child: SailRawCard(
+                              child: SailCard(
                                 title: 'Balance',
                                 child: SailColumn(
                                   mainAxisSize: MainAxisSize.min,
@@ -68,7 +68,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                           ],
                         ),
                       ),
-                      SailRawCard(
+                      SailCard(
                         title: 'Send on Sidechain',
                         error: model.sendError,
                         child: SailColumn(
@@ -92,7 +92,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                           ],
                         ),
                       ),
-                      SailRawCard(
+                      SailCard(
                         title: 'Receive on Sidechain',
                         error: model.receiveError,
                         child: SailColumn(
@@ -477,7 +477,7 @@ class _TransactionTableState extends State<TransactionTable> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        return SailRawCard(
+        return SailCard(
           title: 'Wallet Transaction History',
           bottomPadding: false,
           child: Column(
@@ -567,7 +567,7 @@ class _TransactionTableState extends State<TransactionTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'Transaction Details',
             subtitle: 'Details of the selected transaction',
             child: SingleChildScrollView(

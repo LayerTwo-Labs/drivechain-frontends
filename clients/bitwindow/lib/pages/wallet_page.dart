@@ -127,7 +127,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
 
   @override
   Widget build(BuildContext context, SendPageViewModel viewModel) {
-    return SailRawCard(
+    return SailCard(
       title: 'Send Bitcoin',
       subtitle: 'Send bitcoin to bitcoin-addresses. No sidechains involved.',
       child: Column(
@@ -664,104 +664,102 @@ class ReceiveTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return QtPage(
-      child: ViewModelBuilder.reactive(
-        viewModelBuilder: () => ReceivePageViewModel(),
-        onViewModelReady: (model) => model.init(),
-        builder: (context, model, child) {
-          return Column(
-            children: [
-              SailRow(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: SailRawCard(
-                      title: 'Receive Bitcoin',
-                      subtitle: 'Receive bitcoin to your bitcoin-wallet. No sidechains involved.',
-                      error: model.modelError,
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding16,
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            children: [
-                              Expanded(
-                                child: SailTextField(
-                                  controller: TextEditingController(text: model.address),
-                                  hintText: 'A Drivechain address',
-                                  readOnly: true,
-                                ),
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => ReceivePageViewModel(),
+      onViewModelReady: (model) => model.init(),
+      builder: (context, model, child) {
+        return Column(
+          children: [
+            SailRow(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              spacing: SailStyleValues.padding08,
+              children: [
+                Expanded(
+                  child: SailCard(
+                    title: 'Receive Bitcoin',
+                    subtitle: 'Receive bitcoin to your bitcoin-wallet. No sidechains involved.',
+                    error: model.modelError,
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding16,
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            Expanded(
+                              child: SailTextField(
+                                controller: TextEditingController(text: model.address),
+                                hintText: 'A Drivechain address',
+                                readOnly: true,
                               ),
-                              CopyButton(
-                                text: model.address,
-                              ),
-                            ],
-                          ),
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: SailTextField(
-                                  label: 'Store label for address',
-                                  controller: model.labelController,
-                                  hintText: '(no label)',
-                                  size: TextFieldSize.small,
-                                ),
-                              ),
-                              SailButton(
-                                label: model.hasExistingLabel ? 'Update Label' : 'Save Label',
-                                onPressed: () async {
-                                  try {
-                                    if (model.hasExistingLabel) {
-                                      await model.updateLabel(model.matchingEntry.id);
-                                    } else {
-                                      await model.saveLabel(context);
-                                    }
-                                  } catch (e) {
-                                    // Error handled by model
-                                  }
-                                },
-                                disabled: model.isBusy || !model.hasLabelChanged,
-                              ),
-                            ],
-                          ),
-                          if (model.address.isEmpty)
-                            SailButton(
-                              label: 'Generate new address',
-                              onPressed: model.generateNewAddress,
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 180,
-                    child: SailRawCard(
-                      padding: true,
-                      child: QrImageView(
-                        padding: EdgeInsets.zero,
-                        eyeStyle: QrEyeStyle(
-                          color: theme.colors.text,
-                          eyeShape: QrEyeShape.square,
+                            CopyButton(
+                              text: model.address,
+                            ),
+                          ],
                         ),
-                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
-                        data: model.address,
-                        version: QrVersions.auto,
-                      ),
+                        SailRow(
+                          spacing: SailStyleValues.padding08,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: SailTextField(
+                                label: 'Store label for address',
+                                controller: model.labelController,
+                                hintText: '(no label)',
+                                size: TextFieldSize.small,
+                              ),
+                            ),
+                            SailButton(
+                              label: model.hasExistingLabel ? 'Update Label' : 'Save Label',
+                              onPressed: () async {
+                                try {
+                                  if (model.hasExistingLabel) {
+                                    await model.updateLabel(model.matchingEntry.id);
+                                  } else {
+                                    await model.saveLabel(context);
+                                  }
+                                } catch (e) {
+                                  // Error handled by model
+                                }
+                              },
+                              disabled: model.isBusy || !model.hasLabelChanged,
+                            ),
+                          ],
+                        ),
+                        if (model.address.isEmpty)
+                          SailButton(
+                            label: 'Generate new address',
+                            onPressed: model.generateNewAddress,
+                          ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
+                ),
+                SizedBox(
+                  width: 180,
+                  child: SailCard(
+                    padding: true,
+                    child: QrImageView(
+                      padding: EdgeInsets.zero,
+                      eyeStyle: QrEyeStyle(
+                        color: theme.colors.text,
+                        eyeShape: QrEyeShape.square,
+                      ),
+                      dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                      data: model.address,
+                      version: QrVersions.auto,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -974,7 +972,7 @@ class _TransactionTableState extends State<TransactionTable> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        return SailRawCard(
+        return SailCard(
           title: 'Wallet Transaction History',
           subtitle:
               'List of transactions for your bitcoin-wallet. Contains send, receive and sidechain-interaction transactions.',
@@ -1070,7 +1068,7 @@ class _TransactionTableState extends State<TransactionTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'Transaction Details',
             subtitle: 'Details of the selected transaction',
             child: SingleChildScrollView(
@@ -1235,7 +1233,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
+    return SailCard(
       title: 'UTXOs and Denials',
       subtitle: 'List of UTXOs with optional deniability info.',
       error: widget.error,
@@ -1393,7 +1391,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'UTXO Details',
             subtitle: 'UTXO and Deniability Information',
             child: SingleChildScrollView(
@@ -1854,7 +1852,7 @@ class _HDWalletTabState extends State<HDWalletTab> {
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
+    return SailCard(
       title: 'HD Wallet Explorer',
       subtitle: 'Explore BIP32/39/44 wallet derivation paths',
       error: _validationError ?? _hdWalletProvider.error,
@@ -2085,7 +2083,7 @@ class BitDriveTab extends StatelessWidget {
           builder: (context, model, child) {
             final error = model.error('bitdrive');
 
-            return SailRawCard(
+            return SailCard(
               title: 'BitDrive',
               subtitle: 'Store and retrieve content in the Bitcoin blockchain',
               error: error,
@@ -2201,7 +2199,7 @@ class BitDriveTab extends StatelessWidget {
                     decoration: BoxDecoration(
                       border: Border(
                         top: BorderSide(
-                          color: context.sailTheme.colors.formFieldBorder,
+                          color: context.sailTheme.colors.border,
                           width: 1.0,
                         ),
                       ),
@@ -2471,7 +2469,7 @@ class MultisigLoungeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
+    return SailCard(
       title: 'Multisig Lounge',
       subtitle: 'Create and manage multi-signature wallets',
       child: Center(

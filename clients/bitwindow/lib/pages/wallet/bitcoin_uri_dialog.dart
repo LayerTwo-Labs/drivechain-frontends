@@ -47,7 +47,7 @@ class _BitcoinURIDialogState extends State<BitcoinURIDialog> {
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
-        child: SailRawCard(
+        child: SailCard(
           title: 'Open Bitcoin URI',
           subtitle: 'Enter a Bitcoin URI to parse',
           error: _error,

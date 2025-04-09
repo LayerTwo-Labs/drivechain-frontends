@@ -47,7 +47,7 @@ class SidechainActivationManagementView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<SidechainActivationManagementViewModel>.reactive(
       viewModelBuilder: () => SidechainActivationManagementViewModel(),
-      builder: (context, model, child) => SailRawCard(
+      builder: (context, model, child) => SailCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

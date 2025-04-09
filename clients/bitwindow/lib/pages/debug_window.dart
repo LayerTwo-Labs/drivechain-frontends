@@ -26,7 +26,7 @@ class _DebugWindowState extends State<DebugWindow> {
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
+    return SailCard(
       color: context.sailTheme.colors.background,
       inSeparateWindow: widget.newWindowIdentifier == null,
       newWindowIdentifier: widget.newWindowIdentifier,
@@ -95,7 +95,7 @@ class _InformationTabState extends State<InformationTab> {
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
+    return SailCard(
       title: 'Debug Information',
       subtitle: 'General information about the node',
       child: SingleChildScrollView(
@@ -192,7 +192,7 @@ class NetworkTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SailRawCard(
+    return const SailCard(
       title: 'Network Traffic',
       subtitle: 'View network traffic and statistics',
       child: Center(child: Text('Network tab content coming soon')),
@@ -228,7 +228,7 @@ class _PeersTabState extends State<PeersTab> {
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
 
-    return SailRawCard(
+    return SailCard(
       title: 'Peer Information',
       subtitle: 'Connected peers and their details',
       child: SailTable(
@@ -279,7 +279,7 @@ class PeerDetailsDialog extends StatelessWidget {
       backgroundColor: theme.colors.background,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 700),
-        child: SailRawCard(
+        child: SailCard(
           title: 'Peer Details',
           subtitle: 'Full details about the peer',
           child: SingleChildScrollView(

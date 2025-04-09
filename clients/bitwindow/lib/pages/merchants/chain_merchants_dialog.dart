@@ -47,7 +47,7 @@ class ChainMerchantsDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
-        child: SailRawCard(
+        child: SailCard(
           title: 'Chain Merchants',
           subtitle: 'Merchants and services that accept Bitcoin payments',
           withCloseButton: true,

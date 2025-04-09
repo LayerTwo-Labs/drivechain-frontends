@@ -26,8 +26,8 @@ class ConnectionStatusChip extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border(
-          right: BorderSide(color: theme.colors.formFieldBorder, width: 0.5),
-          left: BorderSide(color: theme.colors.formFieldBorder, width: 0.5),
+          right: BorderSide(color: theme.colors.border, width: 0.5),
+          left: BorderSide(color: theme.colors.border, width: 0.5),
         ),
       ),
       child: InkWell(

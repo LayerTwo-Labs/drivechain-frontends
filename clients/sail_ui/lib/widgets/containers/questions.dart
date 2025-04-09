@@ -23,7 +23,7 @@ class QuestionContainer extends StatelessWidget {
             maxWidth: 540,
             maxHeight: 540,
           ),
-          child: SailRawCard(
+          child: SailCard(
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(SailStyleValues.padding16),

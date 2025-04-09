@@ -145,7 +145,7 @@ class _AddressBookTableState extends State<AddressBookTable> {
               right: SailStyleValues.padding16,
               bottom: SailStyleValues.padding64 * 2,
             ),
-            child: SailRawCard(
+            child: SailCard(
               withCloseButton: true,
               color: context.sailTheme.colors.background,
               child: InlineTabBar(
@@ -207,7 +207,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
+    return SailCard(
       title: widget.direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
       subtitle: widget.viewModel.error('create') ??
           widget.viewModel.error('edit') ??
@@ -329,7 +329,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
           child: ViewModelBuilder<AddressBookViewModel>.reactive(
             viewModelBuilder: () => dialogViewModel,
             disposeViewModel: true,
-            builder: (context, model, child) => SailRawCard(
+            builder: (context, model, child) => SailCard(
               title: 'Edit Label',
               subtitle: '',
               error: model.error('edit'),
@@ -380,7 +380,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
           child: ViewModelBuilder<AddressBookViewModel>.reactive(
             viewModelBuilder: () => dialogViewModel,
             disposeViewModel: true,
-            builder: (context, model, child) => SailRawCard(
+            builder: (context, model, child) => SailCard(
               title: widget.direction == Direction.DIRECTION_SEND ? 'New Sending Address' : 'New Receiving Address',
               subtitle: '',
               withCloseButton: true,
@@ -431,7 +431,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
           child: ViewModelBuilder<AddressBookViewModel>.reactive(
             viewModelBuilder: () => dialogViewModel,
             disposeViewModel: true,
-            builder: (context, model, child) => SailRawCard(
+            builder: (context, model, child) => SailCard(
               title: 'Delete Address',
               subtitle: '',
               error: model.error('delete'),

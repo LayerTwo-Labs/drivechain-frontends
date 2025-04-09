@@ -8,7 +8,7 @@ class SailColor {
   final Color popoverBackground;
 
   final Color formField;
-  final Color formFieldBorder;
+  final Color border;
   final Color divider;
   final Color shadow;
   final Color text;
@@ -52,6 +52,7 @@ class SailColor {
 
   final Color activeNavText;
   final Color inactiveNavText;
+  final Color inactiveSubNavText;
 
   SailColor({
     required this.background,
@@ -59,7 +60,7 @@ class SailColor {
     required this.backgroundActionModal,
     required this.popoverBackground,
     required this.formField,
-    required this.formFieldBorder,
+    required this.border,
     required this.divider,
     required this.shadow,
     required this.text,
@@ -94,18 +95,19 @@ class SailColor {
     required this.linkButtonText,
     required this.activeNavText,
     required this.inactiveNavText,
+    required this.inactiveSubNavText,
   });
 
   factory SailColor.lightTheme(Color primary) {
     return SailColor(
       background: SailColorScheme.whiteDark,
-      backgroundSecondary: SailColorScheme.white,
+      backgroundSecondary: Color(0xffF4F4F5),
       backgroundActionModal: SailColorScheme.greyMiddle,
       formField: SailColorScheme.whiteDark,
-      formFieldBorder: SailColorScheme.greyMiddle,
+      border: Color(0xffE4E4E7),
       divider: Color(0xffE4E4E7),
-      shadow: SailColorScheme.black.withValues(alpha: 0.21),
-      text: SailColorScheme.black,
+      shadow: SailColorScheme.black.withValues(alpha: 0.06),
+      text: Color(0xff09090B),
       textSecondary: Color(0xffA1A1AA),
       textTertiary: Color(0xff888890),
       textHint: SailColorScheme.greyMiddle,
@@ -138,6 +140,7 @@ class SailColor {
       linkButtonText: Color(0xff18181B),
       activeNavText: Color(0xff09090B),
       inactiveNavText: Color(0xff71717A),
+      inactiveSubNavText: Color(0xff71717A),
     );
   }
   factory SailColor.darkTheme(Color primary) {
@@ -146,10 +149,10 @@ class SailColor {
       backgroundSecondary: Color(0xff27272A),
       backgroundActionModal: SailColorScheme.darkActionModalBackground,
       formField: SailColorScheme.blackLightest,
-      formFieldBorder: SailColorScheme.greyDark,
+      border: Color(0xff27272A),
       divider: Color(0xff27272A),
-      shadow: SailColorScheme.black.withValues(alpha: 0.5),
-      text: SailColorScheme.white,
+      shadow: SailColorScheme.white.withValues(alpha: 0.06),
+      text: Color(0xffFAFAFA),
       textSecondary: SailColorScheme.greyMiddle,
       textTertiary: SailColorScheme.greyDark,
       textHint: SailColorScheme.darkTextHint,
@@ -182,6 +185,7 @@ class SailColor {
       linkButtonText: Color(0xffFAFAFA),
       activeNavText: Color(0xffFAFAFA),
       inactiveNavText: Color(0xffA1A1AA),
+      inactiveSubNavText: Color(0xff71717A),
     );
   }
 }

@@ -90,7 +90,7 @@ class _QuotesWidgetState extends State<QuotesWidget> {
           right: 32,
           child: SizedBox(
             width: 350,
-            child: SailRawCard(
+            child: SailCard(
               padding: false, // Remove default padding
               child: Stack(
                 children: [

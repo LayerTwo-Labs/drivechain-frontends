@@ -69,7 +69,8 @@ void main(List<String> args) async {
   if (args.contains('multi_window')) {
     final arguments = jsonDecode(args[2]) as Map<String, dynamic>;
 
-    Widget child = SailRawCard(
+    Widget child = SailCard(
+      title: 'no window type provided, the programmers messed up',
       child: SailText.primary15('no window type provided, the programmers messed up'),
     );
 

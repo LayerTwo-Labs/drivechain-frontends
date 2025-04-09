@@ -16,7 +16,7 @@ class ZCashRPCTabPage extends StatelessWidget {
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => ZCashRPCTabPageViewModel(),
       builder: ((context, model, child) {
-        return SailRawCard(
+        return SailCard(
           color: context.sailTheme.colors.background,
           child: Column(
             children: [

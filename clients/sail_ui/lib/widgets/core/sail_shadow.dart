@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-enum ShadowSize { regular, small, none }
+enum ShadowSize { regular, none }
 
 class SailShadow extends StatelessWidget {
   final Widget child;
@@ -10,7 +10,7 @@ class SailShadow extends StatelessWidget {
   const SailShadow({
     super.key,
     required this.child,
-    required this.shadowSize,
+    this.shadowSize = ShadowSize.regular,
   });
 
   @override
@@ -20,20 +20,19 @@ class SailShadow extends StatelessWidget {
     }
 
     final theme = SailTheme.of(context);
-    final blurRadius = shadowSize == ShadowSize.small ? 10.0 : 7.0;
-    final spreadRadius = shadowSize == ShadowSize.small ? 0.0 : 2.0;
 
     return Stack(
       children: [
         Positioned.fill(
           child: Container(
-            margin: EdgeInsets.all(spreadRadius),
+            margin: EdgeInsets.all(2),
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: theme.colors.shadow.withValues(alpha: 0.05), // Reduced opacity from 0.05 to 0.02
-                  blurRadius: blurRadius,
-                  spreadRadius: spreadRadius,
+                  color: theme.colors.shadow,
+                  offset: Offset(0, 1), // x=0, y=1
+                  blurRadius: 2,
+                  spreadRadius: 2,
                 ),
               ],
             ),

@@ -77,7 +77,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      child: SailRawCard(
+      child: SailCard(
         padding: true,
         withCloseButton: true,
         child: Container(

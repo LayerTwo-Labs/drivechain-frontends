@@ -265,7 +265,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
       child: IntrinsicHeight(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
-          child: SailRawCard(
+          child: SailCard(
             padding: true,
             withCloseButton: true,
             child: Padding(
@@ -289,7 +289,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                   ),
 
                   // Input controls
-                  SailRawCard(
+                  SailCard(
                     padding: true,
                     secondary: true,
                     child: SailColumn(
@@ -382,7 +382,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
                   // Result section
                   Expanded(
                     child: SingleChildScrollView(
-                      child: SailRawCard(
+                      child: SailCard(
                         padding: true,
                         secondary: true,
                         child: SailColumn(
@@ -701,7 +701,7 @@ class _HashCalculatorModalState extends State<HashCalculatorModal> {
       builder: (context) => Dialog(
         backgroundColor: theme.colors.backgroundSecondary,
         child: IntrinsicWidth(
-          child: SailRawCard(
+          child: SailCard(
             title: 'Hash Calculator Help',
             subtitle: '',
             padding: true,

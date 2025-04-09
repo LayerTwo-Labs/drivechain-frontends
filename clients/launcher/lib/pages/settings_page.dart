@@ -32,7 +32,7 @@ class SettingsPage extends StatelessWidget {
     final tabsRouter = AutoTabsRouter.of(context);
 
     return QtPage(
-      child: SailRawCard(
+      child: SailCard(
         padding: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

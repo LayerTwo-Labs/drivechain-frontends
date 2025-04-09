@@ -526,7 +526,7 @@ class _OverviewPageState extends State<OverviewPage> {
                                       children: l1Chains.map((chain) {
                                         final status = statusSnapshot.data?[chain.name];
                                         return Expanded(
-                                          child: SailRawCard(
+                                          child: SailCard(
                                             padding: true,
                                             child: _buildChainContent(chain, status),
                                           ),
@@ -559,7 +559,7 @@ class _OverviewPageState extends State<OverviewPage> {
                                       children: l2Chains.map((chain) {
                                         final status = statusSnapshot.data?[chain.name];
                                         return Expanded(
-                                          child: SailRawCard(
+                                          child: SailCard(
                                             padding: true,
                                             child: _buildChainContent(chain, status),
                                           ),

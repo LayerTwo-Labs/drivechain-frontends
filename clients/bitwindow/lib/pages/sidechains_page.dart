@@ -56,7 +56,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final error = viewModel.error('sidechain');
 
-    return SailRawCard(
+    return SailCard(
       title: 'Sidechains',
       subtitle: 'List of sidechains and their current status',
       error: error,
@@ -417,7 +417,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return SailRawCard(
+    return SailCard(
       bottomPadding: false,
       child: SailColumn(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,7 +497,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
           ),
           const SizedBox(height: SailStyleValues.padding16),
           const Expanded(
-            child: SailRawCard(
+            child: SailCard(
               title: 'Your Recent Deposits',
               subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
               shadowSize: ShadowSize.none,
@@ -516,7 +516,7 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    return const SailRawCard(
+    return const SailCard(
       bottomPadding: false,
       child: RecentWithdrawalsTable(),
     );

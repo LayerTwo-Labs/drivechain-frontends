@@ -126,7 +126,7 @@ class _ExplorerPageState extends State<ExplorerPage> {
                   children: [
                     // Mainchain block card
                     Expanded(
-                      child: SailRawCard(
+                      child: SailCard(
                         title: 'Latest Mainchain Block',
                         subtitle: 'Most recent block on the mainchain',
                         child: (model.latestMainchainBlock != null || !model.explorerProvider.initialized)
@@ -164,7 +164,7 @@ class _ExplorerPageState extends State<ExplorerPage> {
                     const SizedBox(width: SailStyleValues.padding16),
                     // Thunder block card
                     Expanded(
-                      child: SailRawCard(
+                      child: SailCard(
                         title: 'Latest Thunder Block',
                         subtitle: 'Most recent block on the Thunder sidechain (L2-S9)',
                         child: ((model.latestThunderBlock?.blockHeight ?? 0) > 0 || !model.explorerProvider.initialized)
@@ -202,7 +202,7 @@ class _ExplorerPageState extends State<ExplorerPage> {
                     const SizedBox(width: SailStyleValues.padding16),
                     // BitNames block card
                     Expanded(
-                      child: SailRawCard(
+                      child: SailCard(
                         title: 'Latest BitNames Block',
                         subtitle: 'Most recent block on the BitNames sidechain (L2-S2)',
                         child:

@@ -45,7 +45,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                               onPressed: () => model.melt(context),
                             ),
                             const SizedBox(height: SailStyleValues.padding16),
-                            SailRawCard(
+                            SailCard(
                               bottomPadding: false,
                               title: 'Pending melts',
                               subtitle: 'See list of ongoing melts and their status',
@@ -70,7 +70,7 @@ class ZCashMeltCastTabPage extends StatelessWidget {
                               onPressed: () async => model.cast(context),
                             ),
                             const SizedBox(height: SailStyleValues.padding16),
-                            SailRawCard(
+                            SailCard(
                               title: 'Pending casts',
                               subtitle: 'See list of ongoing casts and their status',
                               bottomPadding: false,
@@ -622,7 +622,7 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'Cast Bill Details',
             subtitle: 'Details of the selected cast bill',
             child: SingleChildScrollView(
@@ -971,7 +971,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'UTXO Details',
             subtitle: 'Details of the selected UTXO',
             child: SingleChildScrollView(
@@ -1084,7 +1084,7 @@ class _OperationsTableState extends State<OperationsTable> {
 
   @override
   Widget build(BuildContext context) {
-    return SailRawCard(
+    return SailCard(
       title: 'Operation statuses',
       subtitle: 'List of zero-knowledge operations and their status',
       bottomPadding: false,
@@ -1189,7 +1189,7 @@ class _OperationsTableState extends State<OperationsTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailRawCard(
+          child: SailCard(
             title: 'Operation Details',
             subtitle: 'Details of the selected operation',
             child: SingleChildScrollView(
@@ -1231,7 +1231,7 @@ class PendingMeltView extends StatelessWidget {
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
-        child: SailRawCard(
+        child: SailCard(
           title: 'Pending Melt Details',
           subtitle: 'Details of the selected pending melt',
           child: SingleChildScrollView(
