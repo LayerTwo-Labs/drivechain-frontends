@@ -11,32 +11,37 @@ class ProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 16.0,
-            decoration: BoxDecoration(
-              color: theme.colors.backgroundSecondary,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: progress,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: theme.colors.text,
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(999), bottomLeft: Radius.circular(999)),
+    return Flexible(
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 16.0,
+              decoration: BoxDecoration(
+                color: theme.colors.backgroundSecondary,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: progress,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colors.text,
+                    borderRadius: BorderRadius.horizontal(
+                      left: Radius.circular(999),
+                      right: Radius.circular(progress > 0.99 ? 999 : 0),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        SizedBox(width: 8.0),
-        SailText.primary12(
-          '${(progress * 100).toStringAsFixed(0)}%',
-        ),
-      ],
+          SizedBox(width: 8.0),
+          SailText.primary12(
+            '${(progress * 100).toStringAsFixed(0)}%',
+          ),
+        ],
+      ),
     );
   }
 }

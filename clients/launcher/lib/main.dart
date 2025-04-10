@@ -148,10 +148,11 @@ Future<void> initDependencies(Logger log) async {
     binaryProvider,
   );
 
-  // Register blockchain provider
-  GetIt.I.registerSingleton<BlockInfoProvider>(
-    BlockInfoProvider(connection: GetIt.I.get<MainchainRPC>()),
+  final blockInfoProvider = BlockInfoProvider();
+  GetIt.I.registerLazySingleton<BlockInfoProvider>(
+    () => blockInfoProvider,
   );
+  unawaited(blockInfoProvider.fetch());
 
   // Register quotes provider
   GetIt.I.registerSingleton<QuotesProvider>(

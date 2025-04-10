@@ -4,7 +4,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/cusf/mainchain/v1/validator.connect.client.dart';
-import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
@@ -575,26 +574,6 @@ class MockBlockInfoProvider implements BlockInfoProvider {
   MockBlockInfoProvider() : super();
 
   @override
-  BlockchainInfo blockchainInfo = BlockchainInfo(
-    chain: '',
-    blocks: 0,
-    headers: 0,
-    bestBlockHash: '',
-    difficulty: 0,
-    time: 0,
-    medianTime: 0,
-    verificationProgress: 0,
-    initialBlockDownload: false,
-    chainWork: '',
-    sizeOnDisk: 0,
-    pruned: false,
-    warnings: [],
-  );
-
-  @override
-  String? error;
-
-  @override
   void addListener(VoidCallback listener) {
     return;
   }
@@ -613,9 +592,6 @@ class MockBlockInfoProvider implements BlockInfoProvider {
   bool get hasListeners => false;
 
   @override
-  Timestamp? get lastBlockAt => null;
-
-  @override
   Logger get log => Logger();
 
   @override
@@ -629,10 +605,37 @@ class MockBlockInfoProvider implements BlockInfoProvider {
   }
 
   @override
-  double get verificationProgress => 0.0;
+  String? additionalError;
 
   @override
-  RPCConnection get connection => throw UnimplementedError();
+  SyncInfo? additionalSyncInfo;
+
+  @override
+  String? enforcerError;
+
+  @override
+  SyncInfo? enforcerSyncInfo;
+
+  @override
+  String? mainchainError;
+
+  @override
+  SyncInfo? mainchainSyncInfo;
+
+  @override
+  BlockSyncConnection? get additionalConnection => throw UnimplementedError();
+
+  @override
+  BlockSyncConnection get enforcer => throw UnimplementedError();
+
+  @override
+  EnforcerRPC get enforcerRPC => throw UnimplementedError();
+
+  @override
+  BlockSyncConnection get mainchain => throw UnimplementedError();
+
+  @override
+  MainchainRPC get mainchainRPC => throw UnimplementedError();
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

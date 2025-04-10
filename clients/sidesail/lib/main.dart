@@ -215,6 +215,17 @@ Future<void> initDependencies(
     ),
   );
 
+  final blockInfoProvider = BlockInfoProvider(
+    additionalConnection: BlockSyncConnection(
+      rpc: sidechain,
+      name: sidechain.binary.name,
+    ),
+  );
+  GetIt.I.registerLazySingleton<BlockInfoProvider>(
+    () => blockInfoProvider,
+  );
+  unawaited(blockInfoProvider.fetch());
+
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
   );

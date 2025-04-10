@@ -125,33 +125,8 @@ class BottomNav extends StatelessWidget {
                   ),
                 ),
                 const DividerDot(),
-                if (model.infoService.blockchainInfo.initialBlockDownload &&
-                    model.infoService.blockchainInfo.blocks != model.infoService.blockchainInfo.headers)
-                  Tooltip(
-                    message:
-                        'Current height: ${model.infoService.blockchainInfo.blocks}\nHeader height: ${model.infoService.blockchainInfo.headers}',
-                    child: SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        SailText.primary12(
-                          'Downloading blocks',
-                        ),
-                        SizedBox(
-                          width: 250,
-                          child: ProgressBar(
-                            progress: model.infoService.verificationProgress,
-                          ),
-                        ),
-                        const DividerDot(),
-                      ],
-                    ),
-                  ),
-                if (model.infoService.blockchainInfo.initialBlockDownload &&
-                    model.infoService.blockchainInfo.blocks != model.infoService.blockchainInfo.headers)
-                  const DividerDot(),
-                SailText.primary12(
-                  '${formatWithThousandSpacers(model.infoService.blockchainInfo.blocks)} blocks',
-                ),
+                ChainLoaders(),
+                const SailSpacing(SailStyleValues.padding04),
                 ...endWidgets,
                 const SailSpacing(SailStyleValues.padding04),
               ],
@@ -183,19 +158,20 @@ class BottomNav extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SailSpacing(SailStyleValues.padding08),
               SailColumn(
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DaemonConnectionCard(
                     connection: model.mainchain,
+                    syncInfo: model.blockInfoProvider.mainchainSyncInfo,
                     restartDaemon: () => model.mainchain.initBinary(),
                     infoMessage: null,
                     navigateToLogs: model.navigateToLogs,
                   ),
                   DaemonConnectionCard(
                     connection: model.enforcer,
+                    syncInfo: model.blockInfoProvider.enforcerSyncInfo,
                     infoMessage: model.mainchain.initializingBinary
                         ? 'Waiting for mainchain to finish init'
                         : model.mainchain.inHeaderSync
@@ -206,6 +182,7 @@ class BottomNav extends StatelessWidget {
                   ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,
+                    syncInfo: model.blockInfoProvider.additionalSyncInfo,
                     infoMessage: null,
                     restartDaemon: () => additionalConnection.rpc.initBinary(),
                     navigateToLogs: model.navigateToLogs,
@@ -283,7 +260,8 @@ class BottomNavViewModel extends BaseViewModel {
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  late BlockInfoProvider infoService;
+  BlockInfoProvider get blockInfoProvider => GetIt.I.get<BlockInfoProvider>();
+
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
   bool showUnconfirmed = false;
@@ -293,14 +271,13 @@ class BottomNavViewModel extends BaseViewModel {
     required this.mainchainInfo,
     required this.navigateToLogs,
   }) {
-    infoService = BlockInfoProvider(connection: mainchainInfo ? mainchain : additionalConnection.rpc);
     // Add listeners for required connections
     mainchain.addListener(notifyListeners);
     enforcer.addListener(notifyListeners);
 
     // Add listeners for additional connections
     additionalConnection.rpc.addListener(notifyListeners);
-    additionalConnection.rpc.addListener(infoService.fetch);
+    blockInfoProvider.addListener(notifyListeners);
   }
 
   // Balance getters
@@ -355,5 +332,72 @@ class BottomNavViewModel extends BaseViewModel {
     additionalConnection.rpc.removeListener(notifyListeners);
 
     super.dispose();
+  }
+}
+
+class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
+  const ChainLoaders({super.key});
+
+  @override
+  Widget build(BuildContext context, BottomNavViewModel viewModel) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 450),
+      child: SailRow(
+        spacing: 0,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (viewModel.blockInfoProvider.mainchainSyncInfo != null &&
+              !viewModel.blockInfoProvider.mainchainSyncInfo!.isSynced)
+            ChainLoader(
+              name: viewModel.blockInfoProvider.mainchain.name,
+              syncInfo: viewModel.blockInfoProvider.mainchainSyncInfo!,
+            ),
+          if (viewModel.blockInfoProvider.enforcerSyncInfo != null &&
+              !viewModel.blockInfoProvider.enforcerSyncInfo!.isSynced)
+            ChainLoader(
+              name: viewModel.blockInfoProvider.enforcer.name,
+              syncInfo: viewModel.blockInfoProvider.enforcerSyncInfo!,
+            ),
+          if (viewModel.blockInfoProvider.additionalSyncInfo != null &&
+              !viewModel.blockInfoProvider.additionalSyncInfo!.isSynced)
+            ChainLoader(
+              name: viewModel.blockInfoProvider.additionalConnection!.name,
+              syncInfo: viewModel.blockInfoProvider.additionalSyncInfo!,
+            ),
+          SailText.primary12(
+            '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo!.blocks)} blocks',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ChainLoader extends StatelessWidget {
+  final String name;
+  final SyncInfo syncInfo;
+
+  const ChainLoader({
+    super.key,
+    required this.name,
+    required this.syncInfo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Tooltip(
+        message: '$name\nCurrent height ${syncInfo.blocks}\nHeader height ${syncInfo.headers}',
+        child: SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            ProgressBar(
+              progress: syncInfo.verificationProgress,
+            ),
+            const DividerDot(),
+          ],
+        ),
+      ),
+    );
   }
 }

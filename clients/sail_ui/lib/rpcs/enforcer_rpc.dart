@@ -122,7 +122,23 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    throw Exception('getBlockchainInfo not implemented');
+    final res = await validator.getChainTip(GetChainTipRequest());
+    // TODO: Use something better than core blockchaininfo fields....
+    return BlockchainInfo(
+      chain: 'signet', // TODO: find correct net
+      blocks: res.blockHeaderInfo.height,
+      headers: res.blockHeaderInfo.height,
+      bestBlockHash: res.blockHeaderInfo.blockHash.hex.toString(),
+      difficulty: 0,
+      time: 0,
+      medianTime: 0,
+      verificationProgress: 0,
+      initialBlockDownload: false,
+      chainWork: '',
+      sizeOnDisk: 0,
+      pruned: false,
+      warnings: [],
+    );
   }
 
   @override

@@ -278,6 +278,11 @@ abstract class RPCConnection extends ChangeNotifier {
           return;
         }
 
+        if (connected) {
+          // we're connected! no need to restart then
+          return;
+        }
+
         final exit = processes.exited(binary);
         if (exit != null && exit.code != 0) {
           // Only attempt restart if the process has exited with non-zero code
