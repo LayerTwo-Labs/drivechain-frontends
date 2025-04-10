@@ -313,8 +313,8 @@ class _OverviewPageState extends State<OverviewPage> {
         error = _binaryProvider.mainchainError;
 
         if (connected && _binaryProvider.mainchainRPC.inIBD) {
-          final info = _blockchainProvider.blockchainInfo;
-          final progress = _blockchainProvider.verificationProgress;
+          final info = _blockchainProvider.mainchainSyncInfo;
+          final progress = info!.verificationProgress;
           description = 'Syncing...$progress %\n'
               'Blocks: ${info.blocks} / ${info.headers}';
         }
