@@ -495,12 +495,12 @@ class _StatusBarState extends State<StatusBar> {
   }
 
   String _getTimeSinceLastBlock() {
-    if (blockchainProvider.lastBlockAt == null) {
+    if (blockchainProvider.infoProvider.mainchainSyncInfo?.lastBlockAt == null) {
       return 'Unknown';
     }
 
     final now = DateTime.now();
-    final lastBlockTime = blockchainProvider.lastBlockAt!.toDateTime().toLocal();
+    final lastBlockTime = blockchainProvider.infoProvider.mainchainSyncInfo!.lastBlockAt!.toDateTime().toLocal();
     final difference = now.difference(lastBlockTime);
 
     if (difference.inDays > 0) {

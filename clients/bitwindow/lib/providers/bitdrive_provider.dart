@@ -1,16 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:bitwindow/env.dart';
+import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/hd_wallet_provider.dart';
+import 'package:convert/convert.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:bitwindow/env.dart';
-import 'package:crypto/crypto.dart';
-import 'package:convert/convert.dart';
-import 'package:bitwindow/providers/hd_wallet_provider.dart';
-import 'package:bitwindow/providers/blockchain_provider.dart';
 
 class BitDriveContent {
   final String fileName;
@@ -86,7 +87,7 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   void _onSyncStatusChanged() async {
-    if (!_hasRestoredFiles && blockchainProvider.isSynced) {
+    if (!_hasRestoredFiles && blockchainProvider.infoProvider.mainchainSyncInfo!.isSynced) {
       log.i('BitDrive: Starting file restoration on sync');
       await autoRestoreFiles();
       _hasRestoredFiles = true;
@@ -220,7 +221,7 @@ class BitDriveProvider extends ChangeNotifier {
         await dir.create(recursive: true);
       }
 
-      if (blockchainProvider.isSynced && !_hasRestoredFiles) {
+      if (blockchainProvider.infoProvider.mainchainSyncInfo!.isSynced && !_hasRestoredFiles) {
         await autoRestoreFiles();
         _hasRestoredFiles = true;
       }

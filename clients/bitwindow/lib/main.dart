@@ -220,6 +220,17 @@ Future<void> initDependencies(
   );
   unawaited(balanceProvider.fetch());
 
+  final blockInfoProvider = BlockInfoProvider(
+    additionalConnection: BlockSyncConnection(
+      rpc: bitwindow,
+      name: bitwindow.binary.name,
+    ),
+  );
+  GetIt.I.registerLazySingleton<BlockInfoProvider>(
+    () => blockInfoProvider,
+  );
+  unawaited(blockInfoProvider.fetch());
+
   final blockchainProvider = BlockchainProvider();
   GetIt.I.registerLazySingleton<BlockchainProvider>(
     () => blockchainProvider,

@@ -27,9 +27,9 @@ class BlockExplorerDialog extends StatelessWidget {
       onViewModelReady: (model) => model.init(),
       builder: (context, model, child) {
         return SailCard(
-          title: '# Blocks: ${model.blockchainProvider.infoProvider.blockchainInfo.blocks}',
+          title: '# Blocks: ${model.blockchainProvider.infoProvider.mainchainSyncInfo?.blocks}',
           subtitle:
-              'Last block time: ${DateTime.fromMillisecondsSinceEpoch(model.blockchainProvider.infoProvider.blockchainInfo.time * 1000).format()}',
+              'Last block time: ${model.blockchainProvider.infoProvider.mainchainSyncInfo?.lastBlockAt?.toDateTime().toLocal().format()}',
           bottomPadding: false,
           inSeparateWindow: newWindowIdentifier != null,
           newWindowIdentifier: newWindowIdentifier,

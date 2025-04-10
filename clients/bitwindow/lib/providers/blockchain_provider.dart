@@ -3,10 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
-import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/providers/blockinfo_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -15,7 +13,7 @@ class BlockchainProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
-  late BlockInfoProvider infoProvider;
+  BlockInfoProvider get infoProvider => GetIt.I.get<BlockInfoProvider>();
 
   // raw data go here
   List<Peer> peers = [];
@@ -27,18 +25,11 @@ class BlockchainProvider extends ChangeNotifier {
   bool isLoadingMoreBlocks = false;
   Set<int> loadedBlockHeights = {};
 
-  // computed field go here
-  Timestamp? get lastBlockAt => infoProvider.lastBlockAt;
-  double get verificationProgress => infoProvider.verificationProgress;
-  BlockchainInfo get blockchainInfo => infoProvider.blockchainInfo;
-  bool get isSynced => !blockchainInfo.initialBlockDownload && blockchainInfo.verificationProgress >= 0.9999;
-
   Duration _currentInterval = const Duration(seconds: 5);
   bool _isFetching = false;
   Timer? _fetchTimer;
 
   BlockchainProvider() {
-    infoProvider = BlockInfoProvider(connection: mainchain, startTimer: false);
     _startFetchTimer();
     mainchain.addListener(fetch);
     infoProvider.addListener(notifyListeners);
@@ -101,8 +92,6 @@ class BlockchainProvider extends ChangeNotifier {
     void tick() async {
       try {
         await fetch();
-        await infoProvider.fetch();
-
         // During IBD we should be pretty spammy to get up-to-date info all the time
         // After IBD however we can check less frequently, so as soon as IBD is done
         // we check every 5 seconds.
