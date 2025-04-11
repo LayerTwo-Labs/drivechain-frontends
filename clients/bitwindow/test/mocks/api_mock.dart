@@ -19,6 +19,8 @@ class MockAPI extends BitwindowRPC {
   final DrivechainAPI drivechain = MockDrivechainAPI();
   @override
   final MiscAPI misc = MockMiscAPI();
+  @override
+  final MultisigAPI multisig = MockMultisigAPI();
 
   MockAPI({
     required super.conf,
@@ -231,5 +233,158 @@ class MockMiscAPI implements MiscAPI {
   @override
   Future<List<Topic>> listTopics() async {
     return [];
+  }
+}
+
+class MockMultisigAPI implements MultisigAPI {
+  @override
+  Future<Map<String, String>> addMultisigAddress(int nRequired, List<String> keys, String label) async {
+    return {
+      'address': 'mock_multisig_address',
+      'redeemScript': 'mock_redeem_script',
+      'descriptor': 'mock_descriptor',
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzePsbt(String psbt) async {
+    return {
+      'inputs': [],
+      'next': 'signer',
+      'fee': 0.0001,
+      'error': '',
+    };
+  }
+
+  @override
+  Future<String> combinePsbt(List<String> psbts) async {
+    return 'mock_combined_psbt';
+  }
+
+  @override
+  Future<String> createPsbt(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime}) async {
+    return 'mock_psbt';
+  }
+
+  @override
+  Future<String> createRawTransaction(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime}) async {
+    return 'mock_raw_tx_hex';
+  }
+
+  @override
+  Future<Map<String, dynamic>> decodePsbt(String psbt) async {
+    return {
+      'tx': {},
+      'unknown': {},
+      'inputs': [],
+      'outputs': [],
+      'fee': 0.0001,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> finalizePsbt(String psbt) async {
+    return {
+      'psbt': 'mock_finalized_psbt',
+      'hex': 'mock_tx_hex',
+      'complete': true,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAddressInfo(String address) async {
+    return {
+      'address': address,
+      'scriptPubKey': 'mock_script_pubkey',
+      'isMine': true,
+      'isWatchonly': false,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> getTransaction(String txid, {bool includeWatchonly = false}) async {
+    return {
+      'txid': txid,
+      'confirmations': 1,
+      'amount': 1000000,
+    };
+  }
+
+  @override
+  Future<void> importAddress(String address, String label, bool rescan) async {
+    return;
+  }
+
+  @override
+  Future<String> joinPsbts(List<String> psbts) async {
+    return 'mock_joined_psbt';
+  }
+
+  @override
+  Future<List<List<Map<String, dynamic>>>> listAddressGroupings() async {
+    return [
+      [
+        {'address': 'mock_address1', 'amount': 1000000, 'label': 'mock_label1'}
+      ]
+    ];
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> listUnspent({int minConf = 1, int maxConf = 9999999, List<String>? addresses}) async {
+    return [
+      {
+        'txid': 'mock_txid',
+        'vout': 0,
+        'address': 'mock_address',
+        'amount': 1000000,
+        'confirmations': 10,
+        'spendable': true,
+      }
+    ];
+  }
+
+  @override
+  Future<String> sendRawTransaction(String hexString, {double? maxFeeRate}) async {
+    return 'mock_txid';
+  }
+
+  @override
+  Future<Map<String, dynamic>> signRawTransactionWithWallet(String hexString, {List<Map<String, dynamic>>? prevTxs, String? sighashType}) async {
+    return {
+      'hex': 'mock_signed_tx_hex',
+      'complete': true,
+      'errors': [],
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> testMempoolAccept(String hexString) async {
+    return {
+      'txid': 'mock_txid',
+      'allowed': true,
+      'rejectReason': '',
+    };
+  }
+
+  @override
+  Future<String> utxoUpdatePsbt(String psbt) async {
+    return 'mock_updated_psbt';
+  }
+
+  @override
+  Future<Map<String, dynamic>> walletCreateFundedPsbt(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime, Map<String, dynamic>? options}) async {
+    return {
+      'psbt': 'mock_funded_psbt',
+      'fee': 1000,
+      'changePosition': 1,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> walletProcessPsbt(String psbt, {bool sign = true, String? sighashType}) async {
+    return {
+      'psbt': 'mock_processed_psbt',
+      'complete': true,
+    };
   }
 }
