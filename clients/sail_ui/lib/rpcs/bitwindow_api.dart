@@ -21,6 +21,8 @@ import 'package:sail_ui/gen/misc/v1/misc.connect.client.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/gen/multisig/v1/multisig.connect.client.dart';
+import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart';
 
 /// API to the drivechain server.
 abstract class BitwindowRPC extends RPCConnection {
@@ -36,6 +38,7 @@ abstract class BitwindowRPC extends RPCConnection {
   BitcoindAPI get bitcoind;
   DrivechainAPI get drivechain;
   MiscAPI get misc;
+  MultisigAPI get multisig;
 
   Future<dynamic> callRAW(String url, [String body = '{}']);
   List<String> getMethods();
@@ -104,6 +107,46 @@ abstract class MiscAPI {
   Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content);
 }
 
+abstract class MultisigAPI {
+  // Address management
+  Future<Map<String, String>> addMultisigAddress(int nRequired, List<String> keys, String label);
+  Future<void> importAddress(String address, String label, bool rescan);
+  Future<Map<String, dynamic>> getAddressInfo(String address);
+  
+  // UTXO management
+  Future<List<Map<String, dynamic>>> listUnspent({int minConf = 1, int maxConf = 9999999, List<String>? addresses});
+  Future<List<List<Map<String, dynamic>>>> listAddressGroupings();
+  
+  // Transaction creation
+  Future<String> createRawTransaction(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime});
+  Future<String> createPsbt(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime});
+  Future<Map<String, dynamic>> walletCreateFundedPsbt(
+    List<Map<String, dynamic>> inputs, 
+    List<Map<String, dynamic>> outputs, 
+    {int? locktime, Map<String, dynamic>? options,}
+  );
+  
+  // PSBT handling
+  Future<Map<String, dynamic>> decodePsbt(String psbt);
+  Future<Map<String, dynamic>> analyzePsbt(String psbt);
+  Future<Map<String, dynamic>> walletProcessPsbt(String psbt, {bool sign = true, String? sighashType});
+  Future<String> combinePsbt(List<String> psbts);
+  Future<Map<String, dynamic>> finalizePsbt(String psbt);
+  Future<String> utxoUpdatePsbt(String psbt);
+  Future<String> joinPsbts(List<String> psbts);
+  
+  // Transaction signing
+  Future<Map<String, dynamic>> signRawTransactionWithWallet(
+    String hexString, 
+    {List<Map<String, dynamic>>? prevTxs, String? sighashType,}
+  );
+  
+  // Transaction misc
+  Future<String> sendRawTransaction(String hexString, {double? maxFeeRate});
+  Future<Map<String, dynamic>> testMempoolAccept(String hexString);
+  Future<Map<String, dynamic>> getTransaction(String txid, {bool includeWatchonly = false});
+}
+
 class BitwindowRPCLive extends BitwindowRPC {
   @override
   late final BitwindowAPI bitwindowd;
@@ -115,6 +158,8 @@ class BitwindowRPCLive extends BitwindowRPC {
   late final DrivechainAPI drivechain;
   @override
   late final MiscAPI misc;
+  @override
+  late final MultisigAPI multisig;
 
   // Private constructor
   BitwindowRPCLive._create({
@@ -158,6 +203,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));
     drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
     misc = _MiscAPILive(MiscServiceClient(transport));
+    multisig = MultisigAPILive(MultisigServiceClient(transport));
 
     startConnectionTimer();
   }
@@ -653,6 +699,480 @@ class _MiscAPILive implements MiscAPI {
       final error = 'could not list topics: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
+    }
+  }
+}
+
+class MultisigAPILive implements MultisigAPI {
+  final MultisigServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  MultisigAPILive(this._client);
+
+  @override
+  Future<Map<String, String>> addMultisigAddress(int nRequired, List<String> keys, String label) async {
+    try {
+      final request = AddMultisigAddressRequest(
+        nRequired: nRequired,
+        keys: keys,
+        label: label,
+      );
+      final response = await _client.addMultisigAddress(request);
+      return {
+        'address': response.address,
+        'redeemScript': response.redeemScript,
+        'descriptor': response.descriptor,
+      };
+    } catch (e) {
+      final error = 'could not add multisig address: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> importAddress(String address, String label, bool rescan) async {
+    try {
+      final request = ImportAddressRequest(
+        address: address,
+        label: label,
+        rescan: rescan,
+      );
+      await _client.importAddress(request);
+    } catch (e) {
+      final error = 'could not import address: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAddressInfo(String address) async {
+    try {
+      final request = GetAddressInfoRequest(address: address);
+      final response = await _client.getAddressInfo(request);
+      return {
+        'address': response.address,
+        'scriptPubKey': response.scriptPubKey,
+        'isMine': response.isMine,
+        'isWatchonly': response.isWatchonly,
+        'solvable': response.solvable,
+        'desc': response.desc,
+        'isScript': response.isScript,
+        'isChange': response.isChange,
+        'isWitness': response.isWitness,
+        'witnessVersion': response.witnessVersion,
+        'witnessProgram': response.witnessProgram,
+        'script': response.script,
+        'hex': response.hex,
+        'pubkeys': response.pubkeys,
+        'sigsRequired': response.sigsRequired,
+        'pubkey': response.pubkey,
+        'isCompressed': response.isCompressed,
+        'label': response.label,
+      };
+    } catch (e) {
+      final error = 'could not get address info: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> listUnspent({int minConf = 1, int maxConf = 9999999, List<String>? addresses}) async {
+    try {
+      final request = ListUnspentRequest(
+        minConf: minConf,
+        maxConf: maxConf,
+        addresses: addresses ?? [],
+      );
+      final response = await _client.listUnspent(request);
+      return response.utxos.map((utxo) => {
+        'txid': utxo.txid,
+        'vout': utxo.vout,
+        'address': utxo.address,
+        'label': utxo.label,
+        'scriptPubKey': utxo.scriptPubKey,
+        'amount': utxo.amount.toInt(),
+        'confirmations': utxo.confirmations,
+        'redeemScript': utxo.redeemScript,
+        'witnessScript': utxo.witnessScript,
+        'spendable': utxo.spendable,
+        'solvable': utxo.solvable,
+        'reused': utxo.reused,
+        'desc': utxo.desc,
+        'safe': utxo.safe,
+      },).toList();
+    } catch (e) {
+      final error = 'could not list unspent outputs: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<List<Map<String, dynamic>>>> listAddressGroupings() async {
+    try {
+      final request = ListAddressGroupingsRequest();
+      final response = await _client.listAddressGroupings(request);
+      return response.groupings.map((grouping) => 
+        grouping.addresses.map((addr) => {
+          'address': addr.address,
+          'amount': addr.amount.toInt(),
+          'label': addr.label,
+        },).toList(),
+      ).toList();
+    } catch (e) {
+      final error = 'could not list address groupings: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> createRawTransaction(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime}) async {
+    try {
+      final inputsList = inputs.map((input) => TxInput(
+        txid: input['txid'] as String,
+        vout: input['vout'] as int,
+        sequence: input['sequence'] as String?,
+      ),).toList();
+
+      final outputsList = outputs.map((output) => TxOutput(
+        address: output['address'] as String,
+        amount: Int64(output['amount'] as int),
+      ),).toList();
+
+      final request = CreateRawTransactionRequest(
+        inputs: inputsList,
+        outputs: outputsList,
+        locktime: locktime,
+      );
+      final response = await _client.createRawTransaction(request);
+      return response.hex;
+    } catch (e) {
+      final error = 'could not create raw transaction: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> createPsbt(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime}) async {
+    try {
+      final inputsList = inputs.map((input) => TxInput(
+        txid: input['txid'] as String,
+        vout: input['vout'] as int,
+        sequence: input['sequence'] as String?,
+      ),).toList();
+
+      final outputsList = outputs.map((output) => TxOutput(
+        address: output['address'] as String,
+        amount: Int64(output['amount'] as int),
+      ),).toList();
+
+      final request = CreatePsbtRequest(
+        inputs: inputsList,
+        outputs: outputsList,
+        locktime: locktime,
+      );
+      final response = await _client.createPsbt(request);
+      return response.psbt;
+    } catch (e) {
+      final error = 'could not create PSBT: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> walletCreateFundedPsbt(
+    List<Map<String, dynamic>> inputs, 
+    List<Map<String, dynamic>> outputs, 
+    {int? locktime, Map<String, dynamic>? options,}
+  ) async {
+    try {
+      final inputsList = inputs.map((input) => TxInput(
+        txid: input['txid'] as String,
+        vout: input['vout'] as int,
+        sequence: input['sequence'] as String?,
+      ),).toList();
+
+      final outputsList = outputs.map((output) => TxOutput(
+        address: output['address'] as String,
+        amount: Int64(output['amount'] as int),
+      ),).toList();
+
+      PsbtOptions? psbtOptions;
+      if (options != null) {
+        psbtOptions = PsbtOptions(
+          includeWatching: options['includeWatching'] as bool?,
+          changePosition: options['changePosition'] as bool?,
+          changeAddress: options['changeAddress'] as int?,
+          includeUnsafe: options['includeUnsafe'] as bool?,
+          minConf: options['minConf'] as int?,
+          maxConf: options['maxConf'] as int?,
+          subtractFeeFromOutputs: options['subtractFeeFromOutputs'] as bool?,
+          replaceable: options['replaceable'] as bool?,
+          confTarget: options['confTarget'] as int?,
+          estimateMode: options['estimateMode'] as String?,
+        );
+      }
+
+      final request = WalletCreateFundedPsbtRequest(
+        inputs: inputsList,
+        outputs: outputsList,
+        locktime: locktime,
+        options: psbtOptions,
+      );
+      final response = await _client.walletCreateFundedPsbt(request);
+      return {
+        'psbt': response.psbt,
+        'fee': response.fee.toInt(),
+        'changePosition': response.changePosition,
+      };
+    } catch (e) {
+      final error = 'could not create funded PSBT: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> decodePsbt(String psbt) async {
+    try {
+      final request = DecodePsbtRequest(psbt: psbt);
+      final response = await _client.decodePsbt(request);
+      return {
+        'tx': response.tx,
+        'unknown': response.unknown,
+        'inputs': response.inputs.map((input) => {
+          'nonWitnessUtxo': input.nonWitnessUtxo,
+          'witnessUtxo': input.witnessUtxo,
+          'partialSignatures': input.partialSignatures,
+          'sighash': input.sighash,
+          'redeemScript': input.redeemScript,
+          'witnessScript': input.witnessScript,
+          'bip32Derivs': input.bip32Derivs,
+          'finalScriptsig': input.finalScriptsig,
+          'finalScriptwitness': input.finalScriptwitness,
+          'unknown': input.unknown,
+        },).toList(),
+        'outputs': response.outputs.map((output) => {
+          'redeemScript': output.redeemScript,
+          'witnessScript': output.witnessScript,
+          'bip32Derivs': output.bip32Derivs,
+          'unknown': output.unknown,
+        },).toList(),
+        'fee': response.fee,
+      };
+    } catch (e) {
+      final error = 'could not decode PSBT: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzePsbt(String psbt) async {
+    try {
+      final request = AnalyzePsbtRequest(psbt: psbt);
+      final response = await _client.analyzePsbt(request);
+      return {
+        'inputs': response.inputs,
+        'next': response.next,
+        'fee': response.fee,
+        'error': response.error,
+      };
+    } catch (e) {
+      final error = 'could not analyze PSBT: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> walletProcessPsbt(String psbt, {bool sign = true, String? sighashType}) async {
+    try {
+      final request = WalletProcessPsbtRequest(
+        psbt: psbt,
+        sign: sign,
+        sighashType: sighashType,
+      );
+      final response = await _client.walletProcessPsbt(request);
+      return {
+        'psbt': response.psbt,
+        'complete': response.complete,
+      };
+    } catch (e) {
+      final error = 'could not process PSBT: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> combinePsbt(List<String> psbts) async {
+    try {
+      final request = CombinePsbtRequest(psbts: psbts);
+      final response = await _client.combinePsbt(request);
+      return response.psbt;
+    } catch (e) {
+      final error = 'could not combine PSBTs: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> finalizePsbt(String psbt) async {
+    try {
+      final request = FinalizePsbtRequest(psbt: psbt);
+      final response = await _client.finalizePsbt(request);
+      return {
+        'psbt': response.psbt,
+        'hex': response.hex,
+        'complete': response.complete,
+      };
+    } catch (e) {
+      final error = 'could not finalize PSBT: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> utxoUpdatePsbt(String psbt) async {
+    try {
+      final request = UtxoUpdatePsbtRequest(psbt: psbt);
+      final response = await _client.utxoUpdatePsbt(request);
+      return response.psbt;
+    } catch (e) {
+      final error = 'could not update PSBT with UTXOs: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> joinPsbts(List<String> psbts) async {
+    try {
+      final request = JoinPsbtsRequest(psbts: psbts);
+      final response = await _client.joinPsbts(request);
+      return response.psbt;
+    } catch (e) {
+      final error = 'could not join PSBTs: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> signRawTransactionWithWallet(
+    String hexString, 
+    {List<Map<String, dynamic>>? prevTxs, String? sighashType,}
+  ) async {
+    try {
+      List<PreviousTx>? previousTxs;
+      if (prevTxs != null) {
+        previousTxs = prevTxs.map((tx) => PreviousTx(
+          txid: tx['txid'] as String,
+          vout: tx['vout'] as int,
+          scriptPubKey: tx['scriptPubKey'] as String,
+          redeemScript: tx['redeemScript'] as String?,
+          witnessScript: tx['witnessScript'] as String?,
+          amount: tx['amount'] != null ? Int64(tx['amount'] as int) : null,
+        ),).toList();
+      }
+
+      final request = SignRawTransactionWithWalletRequest(
+        hexString: hexString,
+        prevTxs: previousTxs,
+        sighashType: sighashType,
+      );
+      final response = await _client.signRawTransactionWithWallet(request);
+      return {
+        'hex': response.hex,
+        'complete': response.complete,
+        'errors': response.errors.map((e) => {
+          'txid': e.txid,
+          'vout': e.vout,
+          'scriptSig': e.scriptSig,
+          'sequence': e.sequence,
+          'error': e.error,
+        },).toList(),
+      };
+    } catch (e) {
+      final error = 'could not sign raw transaction: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> sendRawTransaction(String hexString, {double? maxFeeRate}) async {
+    try {
+      final request = SendRawTransactionRequest(
+        hexString: hexString,
+        maxFeeRate: maxFeeRate,
+      );
+      final response = await _client.sendRawTransaction(request);
+      return response.txid;
+    } catch (e) {
+      final error = 'could not send raw transaction: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> testMempoolAccept(String hexString) async {
+    try {
+      final request = TestMempoolAcceptRequest(hexStrings: [hexString]);
+      final response = await _client.testMempoolAccept(request);
+      return {
+        'txid': response.txid,
+        'allowed': response.allowed,
+        'rejectReason': response.rejectReason,
+      };
+    } catch (e) {
+      final error = 'could not test mempool acceptance: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getTransaction(String txid, {bool includeWatchonly = false}) async {
+    try {
+      final request = GetTransactionRequest(
+        txid: txid,
+        includeWatchonly: includeWatchonly,
+      );
+      final response = await _client.getTransaction(request);
+      return {
+        'txid': response.txid,
+        'confirmations': response.confirmations,
+        'blockTime': response.blockTime.toInt(),
+        'blockHash': response.blockHash,
+        'blockHeight': response.blockHeight,
+        'amount': response.amount.toInt(),
+        'fee': response.fee.toInt(),
+        'hex': response.hex,
+        'details': response.details.map((detail) => {
+          'address': detail.address,
+          'category': detail.category,
+          'amount': detail.amount.toInt(),
+          'label': detail.label,
+          'vout': detail.vout,
+          'fee': detail.fee,
+          'abandoned': detail.abandoned,
+        },).toList(),
+      };
+    } catch (e) {
+      final error = 'could not get transaction: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
     }
   }
 }
