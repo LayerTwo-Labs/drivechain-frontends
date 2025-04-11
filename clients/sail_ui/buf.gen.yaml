@@ -7,7 +7,7 @@ plugins:
   - remote: buf.build/connectrpc/dart
     out: lib/gen
 
-  - remote: buf.build/protocolbuffers/dart
+  - remote: buf.build/protocolbuffers/dart:v21.1.2
     out: lib/gen
     include_wkt: true
     include_imports: true
