@@ -8,7 +8,8 @@ import "validator.pb.dart" as cusfmainchainv1validator;
 import "validator.connect.spec.dart" as specs;
 
 extension type ValidatorServiceClient (connect.Transport _transport) {
-  /// Fetches information about a specific mainchain block header.
+  /// Fetches information about a specific mainchain block header,
+  /// and optionally, it's ancestors
   Future<cusfmainchainv1validator.GetBlockHeaderInfoResponse> getBlockHeaderInfo(
     cusfmainchainv1validator.GetBlockHeaderInfoRequest input, {
     connect.Headers? headers,
@@ -45,6 +46,8 @@ extension type ValidatorServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Fetches BMM h* commitment for a specific mainchain block,
+  /// and optionally, it's ancestors
   Future<cusfmainchainv1validator.GetBmmHStarCommitmentResponse> getBmmHStarCommitment(
     cusfmainchainv1validator.GetBmmHStarCommitmentRequest input, {
     connect.Headers? headers,
@@ -190,6 +193,24 @@ extension type ValidatorServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).server(
       specs.ValidatorService.subscribeEvents,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Stream header sync progress updates
+  Stream<cusfmainchainv1validator.SubscribeHeaderSyncProgressResponse> subscribeHeaderSyncProgress(
+    cusfmainchainv1validator.SubscribeHeaderSyncProgressRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.ValidatorService.subscribeHeaderSyncProgress,
       input,
       signal: signal,
       headers: headers,
