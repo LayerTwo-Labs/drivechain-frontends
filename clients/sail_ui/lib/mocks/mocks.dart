@@ -289,6 +289,9 @@ class MockBitwindowRPC extends BitwindowRPC {
   MiscAPI get misc => throw UnimplementedError();
 
   @override
+  MultisigAPI get multisig => throw UnimplementedError();
+
+  @override
   Future<int> ping() {
     return Future.value(0);
   }
