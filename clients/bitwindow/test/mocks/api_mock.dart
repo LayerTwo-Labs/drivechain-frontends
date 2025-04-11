@@ -262,12 +262,14 @@ class MockMultisigAPI implements MultisigAPI {
   }
 
   @override
-  Future<String> createPsbt(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime}) async {
+  Future<String> createPsbt(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs,
+      {int? locktime,}) async {
     return 'mock_psbt';
   }
 
   @override
-  Future<String> createRawTransaction(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime}) async {
+  Future<String> createRawTransaction(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs,
+      {int? locktime,}) async {
     return 'mock_raw_tx_hex';
   }
 
@@ -324,13 +326,14 @@ class MockMultisigAPI implements MultisigAPI {
   Future<List<List<Map<String, dynamic>>>> listAddressGroupings() async {
     return [
       [
-        {'address': 'mock_address1', 'amount': 1000000, 'label': 'mock_label1'}
+        {'address': 'mock_address1', 'amount': 1000000, 'label': 'mock_label1'},
       ]
     ];
   }
 
   @override
-  Future<List<Map<String, dynamic>>> listUnspent({int minConf = 1, int maxConf = 9999999, List<String>? addresses}) async {
+  Future<List<Map<String, dynamic>>> listUnspent(
+      {int minConf = 1, int maxConf = 9999999, List<String>? addresses,}) async {
     return [
       {
         'txid': 'mock_txid',
@@ -349,7 +352,8 @@ class MockMultisigAPI implements MultisigAPI {
   }
 
   @override
-  Future<Map<String, dynamic>> signRawTransactionWithWallet(String hexString, {List<Map<String, dynamic>>? prevTxs, String? sighashType}) async {
+  Future<Map<String, dynamic>> signRawTransactionWithWallet(String hexString,
+      {List<Map<String, dynamic>>? prevTxs, String? sighashType,}) async {
     return {
       'hex': 'mock_signed_tx_hex',
       'complete': true,
@@ -372,7 +376,9 @@ class MockMultisigAPI implements MultisigAPI {
   }
 
   @override
-  Future<Map<String, dynamic>> walletCreateFundedPsbt(List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs, {int? locktime, Map<String, dynamic>? options}) async {
+  Future<Map<String, dynamic>> walletCreateFundedPsbt(
+      List<Map<String, dynamic>> inputs, List<Map<String, dynamic>> outputs,
+      {int? locktime, Map<String, dynamic>? options,}) async {
     return {
       'psbt': 'mock_funded_psbt',
       'fee': 1000,
