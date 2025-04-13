@@ -166,15 +166,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           builder: (context, children, tabsRouter) {
             return Scaffold(
               backgroundColor: theme.colors.background,
-              appBar: PreferredSize(
-                preferredSize: const Size.fromHeight(30),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: theme.colors.background,
-                  ),
-                  child: HomeTopNav(),
-                ),
-              ),
+              appBar: const HomeTopNav(),
               body: Column(
                 children: [
                   const Divider(
@@ -238,7 +230,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 }
 
-class HomeTopNav extends StatefulWidget {
+class HomeTopNav extends StatefulWidget implements PreferredSizeWidget {
+  @override
+  Size get preferredSize => const Size.fromHeight(65);
+
   const HomeTopNav({
     super.key,
   });

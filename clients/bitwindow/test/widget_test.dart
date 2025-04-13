@@ -22,7 +22,7 @@ void main() {
           maxHeight: 1200,
           maxWidth: 1000,
         ),
-        child: CoinNewsView(),
+        child: CoinNewsOldView(),
       ),
     );
   });

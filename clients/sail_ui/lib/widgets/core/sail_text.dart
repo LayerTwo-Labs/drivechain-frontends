@@ -240,6 +240,8 @@ class SailText {
     bool italic = false,
     Color? color,
     bool monospace = false,
+    TextOverflow? overflow,
+    int? maxLines,
   }) {
     return Builder(
       builder: (context) {
@@ -251,7 +253,9 @@ class SailText {
             fontWeight: bold ? SailStyleValues.boldWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
             fontFamily: monospace ? 'SourceCodePro' : 'Inter',
+            overflow: overflow,
           ),
+          maxLines: maxLines,
           textAlign: textAlign,
         );
       },

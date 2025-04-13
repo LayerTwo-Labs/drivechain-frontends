@@ -277,7 +277,7 @@ Future<void> initDependencies(
   GetIt.I.registerLazySingleton<BitDriveProvider>(
     () => bitdriveProvider,
   );
-  await bitdriveProvider.init();
+  unawaited(bitdriveProvider.init());
 }
 
 void ignoreOverflowErrors(

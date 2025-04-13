@@ -80,9 +80,9 @@ class CreateMultisigModal extends StatelessWidget {
                               value: model.n,
                               items: List.generate(model.m, (i) => i + 1)
                                   .map(
-                                    (n) => SailDropdownItem(
+                                    (n) => SailDropdownItem<int>(
                                       value: n,
-                                      child: SailText.primary13('$n'),
+                                      label: '$n',
                                     ),
                                   )
                                   .toList(),
@@ -101,9 +101,9 @@ class CreateMultisigModal extends StatelessWidget {
                               value: model.m,
                               items: List.generate(15, (i) => i + 2)
                                   .map(
-                                    (m) => SailDropdownItem(
+                                    (m) => SailDropdownItem<int>(
                                       value: m,
-                                      child: SailText.primary13('$m'),
+                                      label: '$m',
                                     ),
                                   )
                                   .toList(),

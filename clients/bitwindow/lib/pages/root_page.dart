@@ -17,7 +17,6 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -44,6 +43,7 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final _routerKey = GlobalKey<AutoTabsRouterState>();
+  final _clientSettings = GetIt.I<ClientSettings>();
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -66,6 +66,19 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                 PlatformMenuItem(
                   label: 'About bitwindow',
                   onSelected: null,
+                ),
+                PlatformMenuItem(
+                  label: 'Change Theme',
+                  onSelected: () async {
+                    final app = SailApp.of(context);
+
+                    final themeSetting = await _clientSettings.getValue(ThemeSetting());
+                    final currentTheme = themeSetting.value;
+
+                    final SailThemeValues nextTheme = currentTheme.toggleTheme();
+                    await _clientSettings.setValue(ThemeSetting().withValue(nextTheme));
+                    await app.loadTheme(nextTheme);
+                  },
                 ),
               ],
             ),
@@ -252,16 +265,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
               members: [
                 PlatformMenuItem(
                   label: 'Broadcast CoinNews',
-                  onSelected: () => displayBroadcastNewsDialog(
-                    context,
-                    initialTopic: topics.isNotEmpty
-                        ? topics[0]
-                        : Topic(
-                            id: Int64(1),
-                            topic: 'US',
-                            name: 'US Weekly',
-                          ),
-                  ),
+                  onSelected: () => displayBroadcastNewsDialog(context),
                 ),
               ],
             ),
@@ -414,29 +418,36 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
           final theme = SailTheme.of(context);
 
           return SelectionArea(
-            child: Scaffold(
-              backgroundColor: theme.colors.background,
-              appBar: TopNav(
-                routes: [
-                  TopNavRoute(
-                    label: 'Overview',
-                  ),
-                  TopNavRoute(
-                    label: 'Send / Receive',
-                  ),
-                  TopNavRoute(
-                    label: 'Sidechains',
-                  ),
-                  TopNavRoute(
-                    label: 'Learn',
-                  ),
-                ],
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                textSelectionTheme: TextSelectionThemeData(
+                  selectionColor: theme.colors.primary.withValues(alpha: 0.2),
+                ),
               ),
-              body: Column(
-                children: [
-                  Expanded(child: child),
-                  const StatusBar(),
-                ],
+              child: Scaffold(
+                backgroundColor: theme.colors.background,
+                appBar: TopNav(
+                  routes: [
+                    TopNavRoute(
+                      label: 'Overview',
+                    ),
+                    TopNavRoute(
+                      label: 'Send / Receive',
+                    ),
+                    TopNavRoute(
+                      label: 'Sidechains',
+                    ),
+                    TopNavRoute(
+                      label: 'Learn',
+                    ),
+                  ],
+                ),
+                body: Column(
+                  children: [
+                    Expanded(child: child),
+                    const StatusBar(),
+                  ],
+                ),
               ),
             ),
           );

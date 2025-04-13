@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
+import 'package:bitwindow/widgets/coinnews.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -455,8 +456,8 @@ class CoinNewsViewModel extends BaseViewModel {
   }
 }
 
-class CoinNewsView extends StatelessWidget {
-  const CoinNewsView({
+class CoinNewsOldView extends StatelessWidget {
+  const CoinNewsOldView({
     super.key,
   });
 
@@ -506,7 +507,7 @@ class CoinNewsView extends StatelessWidget {
                             ...viewModel.topics.map(
                               (topic) => SailDropdownItem(
                                 value: topic,
-                                child: SailText.primary12(topic.name),
+                                label: topic.name,
                               ),
                             ),
                           ],
@@ -515,7 +516,7 @@ class CoinNewsView extends StatelessWidget {
                         ),
                         SailButton(
                           label: 'Broadcast to ${viewModel.leftTopic.name}',
-                          onPressed: () => displayBroadcastNewsDialog(context, initialTopic: viewModel.leftTopic),
+                          onPressed: () => displayBroadcastNewsDialog(context),
                         ),
                       ],
                     ),
@@ -546,7 +547,7 @@ class CoinNewsView extends StatelessWidget {
                             ...viewModel.topics.map(
                               (topic) => SailDropdownItem(
                                 value: topic,
-                                child: SailText.primary12(topic.name),
+                                label: topic.name,
                               ),
                             ),
                           ],
@@ -555,7 +556,7 @@ class CoinNewsView extends StatelessWidget {
                         ),
                         SailButton(
                           label: 'Broadcast to ${viewModel.rightTopic.name}',
-                          onPressed: () => displayBroadcastNewsDialog(context, initialTopic: viewModel.rightTopic),
+                          onPressed: () => displayBroadcastNewsDialog(context),
                         ),
                       ],
                     ),
@@ -579,12 +580,12 @@ class CoinNewsView extends StatelessWidget {
   }
 }
 
-Future<void> displayBroadcastNewsDialog(BuildContext context, {required Topic initialTopic}) async {
+Future<void> displayBroadcastNewsDialog(BuildContext context) async {
   await widgetDialog(
     context: context,
     title: 'Broadcast News',
     subtitle: 'Broadcast News to the whole world, in the list you prefer.',
-    child: BroadcastNewsView(initialTopic: initialTopic),
+    child: BroadcastNewsView(),
   );
 }
 
@@ -617,17 +618,14 @@ Future<void> displayGraffittiExplorerDialog(BuildContext context) async {
 }
 
 class BroadcastNewsView extends StatelessWidget {
-  final Topic initialTopic;
-
   const BroadcastNewsView({
     super.key,
-    required this.initialTopic,
   });
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<BroadcastNewsViewModel>.reactive(
-      viewModelBuilder: () => BroadcastNewsViewModel(initialTopic: initialTopic),
+      viewModelBuilder: () => BroadcastNewsViewModel(),
       builder: (context, viewModel, child) {
         return SingleChildScrollView(
           child: SailColumn(
@@ -641,7 +639,7 @@ class BroadcastNewsView extends StatelessWidget {
                   ...viewModel.topics.map(
                     (topic) => SailDropdownItem(
                       value: topic,
-                      child: SailText.primary12(topic.name),
+                      label: topic.name,
                     ),
                   ),
                 ],
@@ -676,29 +674,74 @@ class BroadcastNewsView extends StatelessWidget {
   }
 }
 
+class LastUsedTopicSetting extends SettingValue<String> {
+  @override
+  String get key => 'last_used_broadcast_topic';
+
+  LastUsedTopicSetting({super.newValue});
+
+  @override
+  String defaultValue() => '';
+
+  @override
+  String? fromJson(String jsonString) {
+    return jsonString;
+  }
+
+  @override
+  String toJson() {
+    return value;
+  }
+
+  @override
+  SettingValue<String> withValue([String? value]) {
+    return LastUsedTopicSetting(newValue: value);
+  }
+}
+
 class BroadcastNewsViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
+  final ClientSettings _settings = GetIt.I.get<ClientSettings>();
 
   final TextEditingController headlineController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
 
-  late Topic topic;
+  Topic? _topic;
+  Topic get topic => _topic ?? topics.first;
 
   List<Topic> get topics => _newsProvider.topics;
 
-  BroadcastNewsViewModel({required Topic initialTopic}) {
-    topic = initialTopic;
+  BroadcastNewsViewModel() {
+    _loadLastUsedTopic();
     headlineController.addListener(notifyListeners);
     contentController.addListener(notifyListeners);
   }
 
-  void setTopic(Topic? newTopic) {
+  Future<void> _loadLastUsedTopic() async {
+    final setting = LastUsedTopicSetting();
+    final lastUsedTopicId = (await _settings.getValue(setting)).value;
+
+    if (lastUsedTopicId.isNotEmpty) {
+      // Try to find the last used topic in the available topics
+      _topic = topics.firstWhere(
+        (t) => t.topic == lastUsedTopicId,
+        orElse: () => topics.first,
+      );
+    } else {
+      _topic = topics.first;
+    }
+    notifyListeners();
+  }
+
+  void setTopic(Topic? newTopic) async {
     if (newTopic == null) {
       return;
     }
 
-    topic = newTopic;
+    _topic = newTopic;
+    // Persist the selected topic
+    await _settings.setValue(LastUsedTopicSetting(newValue: newTopic.topic));
     notifyListeners();
   }
 

@@ -2,7 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-class TopNav extends StatelessWidget implements PreferredSizeWidget {
+class TopNav extends StatefulWidget implements PreferredSizeWidget {
   final List<TopNavRoute> routes;
 
   const TopNav({
@@ -13,6 +13,11 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(65);
 
+  @override
+  State<TopNav> createState() => _TopNavState();
+}
+
+class _TopNavState extends State<TopNav> {
   @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
@@ -26,28 +31,38 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: SailRow(
-                  leadingSpacing: true,
-                  spacing: 30,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    ...routes.asMap().entries.map(
-                          (entry) => QtTab(
-                            label: entry.value.label,
-                            active: tabsRouter.activeIndex == entry.key,
-                            onTap: () {
-                              if (entry.value.onTap != null) {
-                                entry.value.onTap!();
-                              } else {
-                                tabsRouter.setActiveIndex(entry.key);
-                              }
-                            },
+              SailRow(
+                leadingSpacing: true,
+                spacing: 30,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  ...widget.routes.asMap().entries.map(
+                        (entry) => DecoratedBox(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: tabsRouter.activeIndex == entry.key ? Colors.orange : Colors.transparent,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: QtTab(
+                              label: entry.value.label,
+                              active: tabsRouter.activeIndex == entry.key,
+                              onTap: () {
+                                if (entry.value.onTap != null) {
+                                  entry.value.onTap!();
+                                } else {
+                                  tabsRouter.setActiveIndex(entry.key);
+                                }
+                              },
+                            ),
                           ),
                         ),
-                  ],
-                ),
+                      ),
+                ],
               ),
               Divider(
                 height: 1,
@@ -72,7 +87,7 @@ class TopNavRoute {
   });
 }
 
-class QtTab extends StatelessWidget {
+class QtTab extends StatefulWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -85,17 +100,26 @@ class QtTab extends StatelessWidget {
   });
 
   @override
+  State<QtTab> createState() => _QtTabState();
+}
+
+class _QtTabState extends State<QtTab> {
+  bool isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = context.sailTheme;
 
     return SelectionContainer.disabled(
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => isHovered = true),
+        onExit: (_) => setState(() => isHovered = false),
         child: GestureDetector(
-          onTap: onTap,
+          onTap: widget.onTap,
           child: SailText.primary13(
-            label,
-            color: active ? theme.colors.activeNavText : theme.colors.inactiveNavText,
+            widget.label,
+            color: widget.active || isHovered ? theme.colors.activeNavText : theme.colors.inactiveNavText,
             bold: true,
           ),
         ),
