@@ -142,6 +142,11 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                   controller: viewModel.addressController,
                   hintText: 'Enter a L1 bitcoin-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
                   size: TextFieldSize.small,
+                  suffixWidget: PasteButton(
+                    onPaste: (text) {
+                      viewModel.addressController.text = text;
+                    },
+                  ),
                 ),
               ),
               SailDropdownButton<AddressBookEntry>(
@@ -150,26 +155,10 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                 items: viewModel.addressBookEntries.map((entry) {
                   return SailDropdownItem<AddressBookEntry>(
                     value: entry,
-                    child: SailText.primary13(entry.label),
+                    label: entry.label,
                   );
                 }).toList(),
                 onChanged: viewModel.onAddressSelected,
-              ),
-              SailButton(
-                label: 'Paste from clipboard',
-                variant: ButtonVariant.outline,
-                onPressed: () async {
-                  try {
-                    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-                    if (clipboardData?.text != null) {
-                      viewModel.addressController.text = clipboardData!.text!;
-                    }
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    showSnackBar(context, 'Error accessing clipboard');
-                  }
-                },
-                icon: SailSVGAsset.iconCopy, // TODO: add icon for iconPaste
               ),
               const SizedBox(width: 4.0),
             ],
@@ -192,6 +181,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                               label: 'MAX',
                               variant: ButtonVariant.link,
                               onPressed: viewModel.onUseAvailableBalance,
+                              padding: EdgeInsets.zero,
                             ),
                           ),
                         ),
@@ -218,6 +208,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                       controller: viewModel.labelController,
                       hintText: 'Enter a label',
                       size: TextFieldSize.small,
+                      helperText: 'If set, this address will be saved to your address book',
                     ),
                   ],
                 ),
@@ -309,9 +300,7 @@ class TransactionFeeForm extends ViewModelWidget<SendPageViewModel> {
                           items: viewModel.confirmationTargets.map((target) {
                             return SailDropdownItem(
                               value: target,
-                              child: SailText.primary12(
-                                viewModel.getConfirmationTargetLabel(target),
-                              ),
+                              label: viewModel.getConfirmationTargetLabel(target),
                             );
                           }).toList(),
                           onChanged: (value) => viewModel.setConfirmationTarget(value),
@@ -694,10 +683,10 @@ class ReceiveTab extends StatelessWidget {
                                 controller: TextEditingController(text: model.address),
                                 hintText: 'A Drivechain address',
                                 readOnly: true,
+                                suffixWidget: CopyButton(
+                                  text: model.address,
+                                ),
                               ),
-                            ),
-                            CopyButton(
-                              text: model.address,
                             ),
                           ],
                         ),
@@ -707,14 +696,15 @@ class ReceiveTab extends StatelessWidget {
                           children: [
                             Expanded(
                               child: SailTextField(
-                                label: 'Store label for address',
+                                label: 'Label (optional)',
                                 controller: model.labelController,
-                                hintText: '(no label)',
+                                hintText: '',
                                 size: TextFieldSize.small,
+                                helperText: 'Save this address to your address book with a label of your choosing',
                               ),
                             ),
                             SailButton(
-                              label: model.hasExistingLabel ? 'Update Label' : 'Save Label',
+                              label: model.hasExistingLabel ? 'Update Label' : 'Set Label',
                               onPressed: () async {
                                 try {
                                   if (model.hasExistingLabel) {

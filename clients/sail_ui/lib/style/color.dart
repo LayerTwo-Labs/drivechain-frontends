@@ -54,6 +54,8 @@ class SailColor {
   final Color inactiveNavText;
   final Color inactiveSubNavText;
 
+  final Color avatarBackground;
+
   SailColor({
     required this.background,
     required this.backgroundSecondary,
@@ -96,11 +98,12 @@ class SailColor {
     required this.activeNavText,
     required this.inactiveNavText,
     required this.inactiveSubNavText,
+    required this.avatarBackground,
   });
 
   factory SailColor.lightTheme(Color primary) {
     return SailColor(
-      background: SailColorScheme.whiteDark,
+      background: Color(0xffFFFFFF),
       backgroundSecondary: Color(0xffF4F4F5),
       backgroundActionModal: SailColorScheme.greyMiddle,
       formField: SailColorScheme.whiteDark,
@@ -141,6 +144,7 @@ class SailColor {
       activeNavText: Color(0xff09090B),
       inactiveNavText: Color(0xff71717A),
       inactiveSubNavText: Color(0xff71717A),
+      avatarBackground: Color(0xffEBEBEB),
     );
   }
   factory SailColor.darkTheme(Color primary) {
@@ -186,6 +190,7 @@ class SailColor {
       activeNavText: Color(0xffFAFAFA),
       inactiveNavText: Color(0xffA1A1AA),
       inactiveSubNavText: Color(0xff71717A),
+      avatarBackground: Color(0xffEBEBEB),
     );
   }
 }

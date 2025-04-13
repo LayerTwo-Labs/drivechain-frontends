@@ -3,14 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-const _menuItemHeight = 24.0;
+const _menuItemHeight = 33.0;
 const _menuDividerHeight = 10.0;
 const _menuPadding = EdgeInsets.all(4);
 const _menuPaddingWindows = EdgeInsets.symmetric(vertical: 4);
 
 class SailMenu extends StatelessWidget {
+  final String? title;
+
   const SailMenu({
     required this.items,
+    this.title,
     this.width,
     super.key,
   });
@@ -25,27 +28,35 @@ class SailMenu extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minWidth: 254),
       decoration: BoxDecoration(
-        color: context.sailTheme.colors.popoverBackground,
-        borderRadius: BorderRadius.all(Radius.circular(context.isWindows ? 3 : 4)),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
-        ],
+        color: context.sailTheme.colors.background,
+        borderRadius: SailStyleValues.borderRadius,
         border: Border.all(
-          color: Colors.grey,
-          width: 0.5,
+          color: context.sailTheme.colors.border,
+          width: 1,
         ),
       ),
-      padding: context.isWindows ? _menuPaddingWindows : _menuPadding,
-      child: IntrinsicWidth(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: items,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (title != null)
+            Padding(
+              padding: EdgeInsets.only(
+                top: 10,
+                bottom: 10,
+                left: 12,
+              ),
+              child: SailText.primary13(
+                title!,
+                bold: true,
+              ),
+            ),
+          if (title != null)
+            Divider(
+              height: 1,
+            ),
+          ...items,
+        ],
       ),
     );
   }
@@ -58,15 +69,17 @@ abstract class SailMenuEntity extends Widget {
 }
 
 class SailMenuItem extends StatefulWidget implements SailMenuEntity {
+  final Widget child;
+  final VoidCallback? onSelected;
+  final bool closeOnSelect;
+
   const SailMenuItem({
     required this.child,
     this.onSelected,
+    this.closeOnSelect = true,
     this.height = _menuItemHeight,
     super.key,
   });
-
-  final Widget child;
-  final VoidCallback? onSelected;
 
   @override
   final double height;
@@ -77,11 +90,9 @@ class SailMenuItem extends StatefulWidget implements SailMenuEntity {
 
 class _SailMenuItemState extends State<SailMenuItem> {
   bool _hover = false;
-  bool _selected = false;
-  bool _flashing = false;
+  final bool _selected = false;
 
   Timer? _closeTimer;
-  Timer? _toggleFlashTimer;
 
   @override
   Widget build(BuildContext context) {
@@ -116,12 +127,12 @@ class _SailMenuItemState extends State<SailMenuItem> {
           }
         },
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: context.isWindows ? 12 : 16),
+          padding: EdgeInsets.symmetric(horizontal: 16),
           width: menuWidth,
           height: widget.height,
           decoration: BoxDecoration(
             borderRadius: context.isWindows ? null : const BorderRadius.all(Radius.circular(4.0)),
-            color: _hover || (_selected && _flashing) ? highlightColor : null,
+            color: _hover || _selected ? highlightColor : null,
           ),
           child: DefaultTextStyle(
             maxLines: 1,
@@ -144,41 +155,21 @@ class _SailMenuItemState extends State<SailMenuItem> {
   }
 
   void _handleSelection(bool isWindows) {
-    _selected = true;
-
-    // Start flashing the item.
-    if (!isWindows) {
-      _toggleFlash();
+    if (widget.onSelected != null) {
+      widget.onSelected!();
     }
 
-    // Close menu after a short delay.
-    var closeDelay = isWindows ? 50 : 240;
-    _closeTimer = Timer(Duration(milliseconds: closeDelay), () {
+    if (widget.closeOnSelect) {
       final menuAnchor = context.findAncestorWidgetOfExactType<MenuAnchor>();
       if (menuAnchor != null) {
         menuAnchor.controller?.close();
       }
-
-      if (widget.onSelected != null) {
-        widget.onSelected!();
-      }
-    });
-  }
-
-  void _toggleFlash() {
-    setState(() {
-      _hover = false;
-      _flashing = !_flashing;
-    });
-
-    _toggleFlashTimer?.cancel();
-    _toggleFlashTimer = Timer(const Duration(milliseconds: 80), _toggleFlash);
+    }
   }
 
   @override
   void dispose() {
     _closeTimer?.cancel();
-    _toggleFlashTimer?.cancel();
     super.dispose();
   }
 }

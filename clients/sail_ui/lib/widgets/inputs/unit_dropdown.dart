@@ -26,11 +26,11 @@ class UnitDropdown extends StatelessWidget {
       items: [
         SailDropdownItem(
           value: Unit.BTC,
-          child: SailText.primary12('BTC'),
+          label: 'BTC',
         ),
         SailDropdownItem(
           value: Unit.sats,
-          child: SailText.primary12('SAT'),
+          label: 'SAT',
         ),
       ],
       onChanged: (value) {

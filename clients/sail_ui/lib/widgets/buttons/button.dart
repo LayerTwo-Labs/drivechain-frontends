@@ -199,15 +199,41 @@ class CopyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailButton(
-      label: 'Copy',
-      variant: ButtonVariant.secondary,
+      variant: ButtonVariant.icon,
       icon: SailSVGAsset.iconCopy,
+      padding: EdgeInsets.all(10.5),
       onPressed: () async {
         await Clipboard.setData(ClipboardData(text: text)).then((_) {
           if (context.mounted) showSnackBar(context, 'Copied $text');
         }).catchError((error) {
           if (context.mounted) showSnackBar(context, 'Could not copy $text: $error');
         });
+      },
+    );
+  }
+}
+
+class PasteButton extends StatelessWidget {
+  final void Function(String text) onPaste;
+
+  const PasteButton({super.key, required this.onPaste});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailButton(
+      variant: ButtonVariant.icon,
+      icon: SailSVGAsset.clipboardPaste,
+      padding: EdgeInsets.all(10.5),
+      onPressed: () async {
+        try {
+          final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+          if (clipboardData?.text != null) {
+            onPaste(clipboardData!.text!);
+          }
+        } catch (e) {
+          if (!context.mounted) return;
+          showSnackBar(context, 'Error accessing clipboard');
+        }
       },
     );
   }
