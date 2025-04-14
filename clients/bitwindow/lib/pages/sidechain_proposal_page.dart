@@ -332,7 +332,7 @@ Future<void> showSidechainProposalModal(BuildContext context) {
         ),
         child: Material(
           clipBehavior: Clip.antiAlias,
-          borderRadius: BorderRadius.circular(4.0),
+          borderRadius: SailStyleValues.borderRadius,
           child: const SidechainProposalPage(),
         ),
       );

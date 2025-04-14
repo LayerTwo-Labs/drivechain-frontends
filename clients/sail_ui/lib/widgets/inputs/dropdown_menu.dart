@@ -490,7 +490,7 @@ class _ExtraActionsDropdownState extends State<ExtraActionsDropdown> {
                       spacing: SailStyleValues.padding12,
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        SailSVG.fromAsset(item.icon, height: 13),
+                        SailSVG.fromAsset(item.icon, height: 13, color: theme.colors.text),
                         SailText.primary13(item.label),
                         if (item.shortcut != null) ...[
                           const Spacer(),

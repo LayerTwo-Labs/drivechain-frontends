@@ -97,7 +97,7 @@ class BlockExplorerDialog extends StatelessWidget {
         padding: const EdgeInsets.all(SailStyleValues.padding16),
         decoration: BoxDecoration(
           color: context.sailTheme.colors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: SailStyleValues.borderRadius,
           border: Border.all(
             color: context.sailTheme.colors.divider,
             width: 1,
@@ -213,7 +213,7 @@ class BlockExplorerDialog extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: context.sailTheme.colors.backgroundSecondary,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: SailStyleValues.borderRadius,
                       border: Border.all(
                         color: context.sailTheme.colors.divider,
                         width: 1,
@@ -461,7 +461,7 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
           color: context.sailTheme.colors.info,
           width: 1,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: SailStyleValues.borderRadius,
       ),
       child: SailTable(
         backgroundColor: context.sailTheme.colors.background,
@@ -619,7 +619,7 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
             color: context.sailTheme.colors.divider,
             width: 1,
           ),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: SailStyleValues.borderRadius,
         ),
         child: SailTable(
           backgroundColor: context.sailTheme.colors.background,
@@ -667,7 +667,7 @@ class BorderedSection extends StatelessWidget {
               color: context.sailTheme.colors.divider,
               width: 1,
             ),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: SailStyleValues.borderRadius,
           ),
           child: Padding(
             padding: const EdgeInsets.all(SailStyleValues.padding16),

@@ -86,7 +86,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: theme.colors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: SailStyleValues.borderRadius,
           ),
           child: SingleChildScrollView(
             child: Column(

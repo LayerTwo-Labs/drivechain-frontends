@@ -107,10 +107,10 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
   }) {
     return Material(
       color: Colors.black,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: SailStyleValues.borderRadius,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: SailStyleValues.borderRadius,
         child: Container(
           width: 32,
           height: 32,
@@ -139,7 +139,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
       padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding40),
       decoration: BoxDecoration(
         color: theme.colors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SailStyleValues.borderRadiusLarge,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,7 +175,7 @@ class _ArticleGroupCardState extends State<ArticleGroupCard> {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: theme.colors.background,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: SailStyleValues.borderRadiusLarge,
                         ),
                         child: ArticleCard(
                           groupTitle: widget.group.title,
@@ -293,11 +293,11 @@ class _StoryCardState extends State<StoryCard> {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: SailStyleValues.borderRadiusLarge,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: widget.onPressed,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SailStyleValues.borderRadiusLarge,
         child: _StoryCardContent(
           title: widget.title,
           subtitle: widget.subtitle,

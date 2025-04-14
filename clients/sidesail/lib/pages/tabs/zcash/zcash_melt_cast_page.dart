@@ -681,7 +681,7 @@ class MeltButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6.0),
+          borderRadius: SailStyleValues.borderRadius,
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
@@ -738,7 +738,7 @@ class CastButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6.0),
+          borderRadius: SailStyleValues.borderRadius,
           color: theme.colors.backgroundSecondary,
           border: Border.all(
             color: theme.colors.orange,

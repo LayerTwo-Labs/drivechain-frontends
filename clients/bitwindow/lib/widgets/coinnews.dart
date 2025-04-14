@@ -229,7 +229,7 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isHovered ? context.sailTheme.colors.backgroundSecondary : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: SailStyleValues.borderRadius,
           ),
           child: SailRow(
             crossAxisAlignment: CrossAxisAlignment.start,

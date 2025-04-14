@@ -24,7 +24,7 @@ class _TokenListItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         color: theme.colors.background,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: SailStyleValues.borderRadius,
       ),
       child: Row(
         children: [
@@ -33,7 +33,7 @@ class _TokenListItem extends StatelessWidget {
             height: 32,
             decoration: BoxDecoration(
               color: theme.colors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: SailStyleValues.borderRadiusLarge,
             ),
             child: Center(
               child: SailSVG.icon(
@@ -98,7 +98,7 @@ class _WalletButtonState extends State<WalletButton> {
             offset: const Offset(0, 8),
             child: Material(
               elevation: 8,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: SailStyleValues.borderRadius,
               color: SailTheme.of(context).colors.backgroundSecondary,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -239,7 +239,7 @@ class _WalletButtonState extends State<WalletButton> {
                       margin: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: SailTheme.of(context).colors.background,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: SailStyleValues.borderRadius,
                       ),
                       child: Row(
                         children: [
