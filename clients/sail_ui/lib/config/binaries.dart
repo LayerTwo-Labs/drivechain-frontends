@@ -573,23 +573,28 @@ abstract class Binary {
     return _fileFromAssetsBundle(possiblePaths);
   }
 
-  Future<File?> _fileFromAssetsBundle(List<String> possiblePaths) async {
+  Future<File> _fileFromAssetsBundle(List<String> possiblePaths) async {
+    log.d('Loading binary from assets bundle: $binary');
     // If not found in datadir/assets, try loading from bundled assets
     ByteData? binResource;
     String? foundPath;
 
     for (final assetPath in possiblePaths) {
       try {
+        log.d('Attempting to load from assets/bin/$assetPath');
         binResource = await rootBundle.load('assets/bin/$assetPath');
         foundPath = assetPath;
+        log.d('Successfully loaded binary from assets: $assetPath');
         break;
       } catch (e) {
+        log.d('Failed to load from $assetPath: $e');
         continue;
       }
     }
 
     if (binResource == null || foundPath == null) {
-      return null;
+      log.e('Could not find binary $binary in any location');
+      throw Exception('Could not find binary $binary in any location');
     }
 
     // Create temp file
@@ -598,14 +603,17 @@ abstract class Binary {
     final randDir = Directory(
       filePath([temp.path, ts.millisecondsSinceEpoch.toString()]),
     );
+    log.d('Creating temporary directory at: ${randDir.path}');
     await randDir.create();
 
     final file = File(filePath([randDir.path, foundPath]));
+    log.d('Writing binary to temporary file: ${file.path}');
 
     final buffer = binResource.buffer;
     await file.writeAsBytes(
       buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
     );
+    log.d('Successfully wrote binary to temporary file');
 
     return file;
   }
