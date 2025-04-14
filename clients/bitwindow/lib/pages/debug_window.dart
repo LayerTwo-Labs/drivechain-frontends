@@ -1,11 +1,9 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/pages/bitwindow_console_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-@RoutePage()
 class DebugWindow extends StatefulWidget {
   final NewWindowIdentifier? newWindowIdentifier;
 

@@ -27,6 +27,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main(List<String> args) async {
@@ -126,7 +127,40 @@ void main(List<String> args) async {
     }),
   );
 
-  runApp(BitwindowApp(log: log));
+  // Get client settings to check debug mode
+  final clientSettings = GetIt.I<ClientSettings>();
+  var debugMode = false;
+  try {
+    final debugModeSetting = await clientSettings.getValue(DebugModeSetting());
+    debugMode = debugModeSetting.value;
+    log.i('Debug mode setting loaded: $debugMode');
+  } catch (error) {
+    log.w('Failed to load debug mode setting, defaulting to false', error: error);
+    // do absolutely nothing, probably no debug mode setting
+  }
+
+  if (debugMode) {
+    log.i('Initializing Sentry in debug mode');
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = 'https://fb54f18383071d144bd00f6159827dc5@o1053156.ingest.us.sentry.io/4509152512180224';
+        options.tracesSampleRate = 0.0;
+        options.profilesSampleRate = 0.0;
+        options.recordHttpBreadcrumbs = false;
+        options.sampleRate = 1.0;
+        options.attachStacktrace = true;
+        options.enablePrintBreadcrumbs = false;
+        options.debug = false;
+      },
+      appRunner: () {
+        log.i('Starting app with Sentry monitoring');
+        return runApp(SentryWidget(child: BitwindowApp(log: log)));
+      },
+    );
+  } else {
+    log.i('Starting app without Sentry monitoring');
+    runApp(BitwindowApp(log: log));
+  }
 }
 
 Future<void> initDependencies(

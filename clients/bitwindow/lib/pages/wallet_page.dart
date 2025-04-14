@@ -700,7 +700,8 @@ class ReceiveTab extends StatelessWidget {
                                 controller: model.labelController,
                                 hintText: '',
                                 size: TextFieldSize.small,
-                                helperText: 'Save this address to your address book with a label of your choosing',
+                                helperText:
+                                    'Save this receive address to your address book with the label you type here',
                               ),
                             ),
                             SailButton(

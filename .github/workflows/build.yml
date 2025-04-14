@@ -161,7 +161,7 @@ jobs:
 
         # https://docs.flutter.dev/get-started/install/linux/desktop
       # prettier-ignore
-      - run:  sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install -y curl git unzip xz-utils zip libglu1-mesa && sudo apt-get install clang cmake git ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - run:  sudo apt-get update -y && sudo apt-get upgrade -y && sudo apt-get install -y curl git unzip xz-utils zip libglu1-mesa && sudo apt-get install clang cmake git ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libcurl4-openssl-dev
         if: runner.os == 'Linux'
 
       - name: Setup macOS app signing

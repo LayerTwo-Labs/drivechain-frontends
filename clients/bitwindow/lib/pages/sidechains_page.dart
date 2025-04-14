@@ -501,7 +501,6 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
               title: 'Your Recent Deposits',
               subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
               shadowSize: ShadowSize.none,
-              padding: false,
               child: RecentDepositsTable(),
             ),
           ),
