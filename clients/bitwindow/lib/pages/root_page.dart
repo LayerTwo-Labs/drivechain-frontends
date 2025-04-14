@@ -413,6 +413,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
           WalletRoute(),
           SidechainsRoute(),
           LearnRoute(),
+          SettingsRoute(),
         ],
         builder: (context, child, controller) {
           final theme = SailTheme.of(context);
@@ -439,6 +440,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
                     ),
                     TopNavRoute(
                       label: 'Learn',
+                    ),
+                    TopNavRoute(
+                      icon: SailSVGAsset.settings,
                     ),
                   ],
                 ),

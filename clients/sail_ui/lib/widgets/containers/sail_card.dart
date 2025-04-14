@@ -252,3 +252,46 @@ class SailCardSmall extends StatelessWidget {
     );
   }
 }
+
+class SailAlertCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Future<void> Function() onConfirm;
+
+  const SailAlertCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        width: 512,
+        child: SailCard(
+          title: title,
+          subtitle: subtitle,
+          child: SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SailButton(
+                label: 'Cancel',
+                variant: ButtonVariant.ghost,
+                onPressed: () async => Navigator.of(context).pop(),
+              ),
+              SailButton(
+                label: 'Confirm',
+                variant: ButtonVariant.secondary,
+                onPressed: onConfirm,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

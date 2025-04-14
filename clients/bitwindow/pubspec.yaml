@@ -9,6 +9,7 @@ environment:
   sdk: ">=3.4.1 <4.0.0"
 
 dependencies:
+  sentry_flutter: ^8.14.1
   flutter:
     sdk: flutter
   file_picker: ^10.1.2
@@ -50,6 +51,7 @@ dependencies:
   bs58: ^1.0.2
 
 dev_dependencies:
+  sentry_dart_plugin: ^2.4.1
   flutter_test:
     sdk: flutter
 
@@ -135,3 +137,8 @@ msix_config:
   store_certificate: false # Use a test certificate instead of store certificate
   install_certificate: false # Don't install certificate during CI builds
   store: false # Not publishing to Microsoft Store
+
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: flutter-9v

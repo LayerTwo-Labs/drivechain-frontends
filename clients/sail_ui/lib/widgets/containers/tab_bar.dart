@@ -203,7 +203,8 @@ class _TabItem extends StatelessWidget {
             if (icon != null)
               SailSVG.fromAsset(
                 icon!,
-                color: isSelected ? context.sailTheme.colors.background : Colors.transparent,
+                color:
+                    isSelected ? context.sailTheme.colors.activeNavText : context.sailTheme.colors.inactiveSubNavText,
                 height: 18,
               ),
             if (icon != null) const SizedBox(width: SailStyleValues.padding04),

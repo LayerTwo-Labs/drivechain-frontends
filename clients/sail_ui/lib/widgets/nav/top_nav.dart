@@ -50,6 +50,7 @@ class _TopNavState extends State<TopNav> {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             child: QtTab(
                               label: entry.value.label,
+                              icon: entry.value.icon,
                               active: tabsRouter.activeIndex == entry.key,
                               onTap: () {
                                 if (entry.value.onTap != null) {
@@ -78,26 +79,30 @@ class _TopNavState extends State<TopNav> {
 }
 
 class TopNavRoute {
-  final String label;
+  final String? label;
   final VoidCallback? onTap;
+  final SailSVGAsset? icon;
 
   const TopNavRoute({
-    required this.label,
+    this.label,
     this.onTap,
-  });
+    this.icon,
+  }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
 }
 
 class QtTab extends StatefulWidget {
-  final String label;
+  final String? label;
+  final SailSVGAsset? icon;
   final bool active;
   final VoidCallback onTap;
 
   const QtTab({
     super.key,
-    required this.label,
+    this.label,
+    this.icon,
     required this.active,
     required this.onTap,
-  });
+  }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
 
   @override
   State<QtTab> createState() => _QtTabState();
@@ -117,11 +122,17 @@ class _QtTabState extends State<QtTab> {
         onExit: (_) => setState(() => isHovered = false),
         child: GestureDetector(
           onTap: widget.onTap,
-          child: SailText.primary13(
-            widget.label,
-            color: widget.active || isHovered ? theme.colors.activeNavText : theme.colors.inactiveNavText,
-            bold: true,
-          ),
+          child: widget.label != null
+              ? SailText.primary13(
+                  widget.label!,
+                  color: widget.active || isHovered ? theme.colors.activeNavText : theme.colors.inactiveNavText,
+                  bold: true,
+                )
+              : SailSVG.fromAsset(
+                  widget.icon!,
+                  color: widget.active || isHovered ? theme.colors.activeNavText : theme.colors.inactiveNavText,
+                  width: 18,
+                ),
         ),
       ),
     );
