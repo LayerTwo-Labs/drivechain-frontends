@@ -350,7 +350,7 @@ class _ConsoleViewState extends State<ConsoleView> {
                           ),
                           prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: SailStyleValues.borderRadius,
                           ),
                           fillColor: theme.colors.background,
                           filled: true,

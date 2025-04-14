@@ -17,7 +17,7 @@ class ErrorComponent extends StatelessWidget {
       padding: const EdgeInsets.all(SailStyleValues.padding12),
       decoration: BoxDecoration(
         color: SailColorScheme.red.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: SailStyleValues.borderRadius,
         border: Border.all(
           color: SailColorScheme.red.withValues(alpha: 0.3),
         ),

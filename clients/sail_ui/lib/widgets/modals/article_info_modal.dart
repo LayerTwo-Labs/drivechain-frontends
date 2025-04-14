@@ -93,11 +93,11 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                               h3Padding: const EdgeInsets.only(top: SailStyleValues.padding16, bottom: 0),
                               blockquoteDecoration: BoxDecoration(
                                 color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: SailStyleValues.borderRadius,
                               ),
                               codeblockDecoration: BoxDecoration(
                                 color: SailColorScheme.blackLighter,
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: SailStyleValues.borderRadius,
                               ),
                               code: SailStyleValues.thirteen.copyWith(
                                 color: SailColorScheme.white,

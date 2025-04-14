@@ -304,7 +304,7 @@ class StartersTab extends ViewModelWidget<ToolsPageViewModel> {
                           color: SailTheme.of(context).colors.divider,
                           width: 1,
                         ),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: SailStyleValues.borderRadius,
                       ),
                       child: Table(
                         columnWidths: const {

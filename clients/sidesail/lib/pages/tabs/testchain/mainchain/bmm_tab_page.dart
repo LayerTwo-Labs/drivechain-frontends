@@ -356,7 +356,7 @@ class BorderedSection extends StatelessWidget {
             border: Border.all(
               color: SailTheme.of(context).colors.divider,
             ),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: SailStyleValues.borderRadius,
           ),
           child: child,
         ),

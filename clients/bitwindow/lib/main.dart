@@ -271,7 +271,7 @@ Future<void> initDependencies(
   GetIt.I.registerLazySingleton<HDWalletProvider>(
     () => hdWalletProvider,
   );
-  await hdWalletProvider.init();
+  unawaited(hdWalletProvider.init());
 
   final bitdriveProvider = BitDriveProvider();
   GetIt.I.registerLazySingleton<BitDriveProvider>(
