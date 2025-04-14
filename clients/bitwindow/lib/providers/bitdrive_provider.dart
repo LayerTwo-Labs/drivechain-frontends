@@ -87,6 +87,10 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   void _onSyncStatusChanged() async {
+    if (blockchainProvider.infoProvider.mainchainSyncInfo == null) {
+      return;
+    }
+
     if (!_hasRestoredFiles && blockchainProvider.infoProvider.mainchainSyncInfo!.isSynced) {
       log.i('BitDrive: Starting file restoration on sync');
       await autoRestoreFiles();
