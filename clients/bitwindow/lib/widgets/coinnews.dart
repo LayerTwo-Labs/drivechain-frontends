@@ -48,10 +48,16 @@ class CoinNewsView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SailRow(
-                      spacing: 0,
+                      spacing: SailStyleValues.padding16,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       mainAxisSize: MainAxisSize.max,
                       children: [
+                        Expanded(
+                          child: SailTextField(
+                            hintText: 'Search coinnews...',
+                            controller: viewModel.searchController,
+                          ),
+                        ),
                         SailMultiSelectDropdown(
                           selectedCountText: '${viewModel.selectedTopicIds.length} topics',
                           items: viewModel.topics
@@ -88,9 +94,18 @@ class CoinNewsView extends StatelessWidget {
 class CoinNewsViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
+  final TextEditingController searchController = TextEditingController();
 
   // Get news entries for all selected topics
-  List<CoinNews> get entries => _newsProvider.news.where((news) => _selectedTopicIds.contains(news.topic)).toList();
+  List<CoinNews> get entries => _newsProvider.news
+      .where(
+        (news) =>
+            _selectedTopicIds.contains(news.topic) &&
+            (searchController.text.isEmpty ||
+                news.headline.toLowerCase().contains(searchController.text.toLowerCase()) ||
+                news.content.toLowerCase().contains(searchController.text.toLowerCase())),
+      )
+      .toList();
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -101,6 +116,7 @@ class CoinNewsViewModel extends BaseViewModel {
   CoinNewsViewModel() {
     _newsProvider.addListener(notifyListeners);
     _loadSelectedTopics();
+    searchController.addListener(notifyListeners);
   }
 
   Future<void> _loadSelectedTopics() async {
@@ -134,6 +150,13 @@ class CoinNewsViewModel extends BaseViewModel {
       newSelection.add(topicId);
     }
     await setSelectedTopics(newSelection);
+  }
+
+  @override
+  void dispose() {
+    searchController.removeListener(notifyListeners);
+    searchController.dispose();
+    super.dispose();
   }
 }
 
