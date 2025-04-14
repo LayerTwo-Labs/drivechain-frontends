@@ -486,17 +486,25 @@ class BinaryProvider extends ChangeNotifier {
   }
 
   Future<void> _downloadUninstalledBinaries(Binary binaryToBoot) async {
+    final log = GetIt.I.get<Logger>();
+    log.i('Starting download of uninstalled binaries');
+
     var uninstalledBinaries = binaries.where((b) => b.chainLayer == 1 && !b.isDownloaded).toList();
+    log.i('Found ${uninstalledBinaries.length} uninstalled L1 binaries');
+
     if (!binaryToBoot.isDownloaded) {
+      log.i('Adding ${binaryToBoot.name} to download queue');
       uninstalledBinaries.add(binaryToBoot);
     }
 
     // Start downloads concurrently for uninstalled/failed binaries
+    log.i('Starting concurrent downloads for ${uninstalledBinaries.length} binaries');
     await Future.wait(
       uninstalledBinaries.map(
         (binary) => downloadBinary(binary),
       ),
     );
+    log.i('Completed all binary downloads');
   }
 
   Future<void> downloadThenBootBinary(

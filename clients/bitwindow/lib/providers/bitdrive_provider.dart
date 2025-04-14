@@ -221,6 +221,10 @@ class BitDriveProvider extends ChangeNotifier {
         await dir.create(recursive: true);
       }
 
+      if (blockchainProvider.infoProvider.mainchainSyncInfo == null) {
+        return;
+      }
+
       if (blockchainProvider.infoProvider.mainchainSyncInfo!.isSynced && !_hasRestoredFiles) {
         await autoRestoreFiles();
         _hasRestoredFiles = true;
