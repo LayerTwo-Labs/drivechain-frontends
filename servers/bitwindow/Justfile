@@ -1,6 +1,9 @@
 build-go:
     go build -v -o ./bin/bitwindowd .
 
+build-go-x86:
+    CGO_ENABLED=1 GOARCH=amd64 go build -v -o ./bin/bitwindowd .
+
 build: build-enforcer build-go
 
 clean:
