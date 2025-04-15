@@ -1,14 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 
 class ProcessProvider extends ChangeNotifier {
@@ -33,11 +29,11 @@ class ProcessProvider extends ChangeNotifier {
   bool running(Binary binary) => runningProcesses.containsKey(binary.binary);
 
   Future<int> start(
-    String binary,
+    Binary binary,
     List<String> args,
     Future<void> Function() cleanup,
   ) async {
-    final file = await _resolveBinaryPath(binary);
+    final file = await binary.resolveBinaryPath(appDir);
 
     // Windows doesn't do executable permissions
     if (!Platform.isWindows) {
@@ -52,12 +48,12 @@ class ProcessProvider extends ChangeNotifier {
       args,
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
     );
-    runningProcesses[binary] = SailProcess(
+    runningProcesses[binary.name] = SailProcess(
       binary: binary,
       pid: process.pid,
       cleanup: cleanup,
     );
-    _exitTuples.remove(binary);
+    _exitTuples.remove(binary.name);
 
     // Let output streaming chug in the background
 
@@ -79,8 +75,8 @@ class ProcessProvider extends ChangeNotifier {
     });
 
     // Store the streams for later access
-    _stdoutStreams[binary] = stdoutController.stream;
-    _stderrStreams[binary] = stderrController.stream;
+    _stdoutStreams[binary.name] = stdoutController.stream;
+    _stderrStreams[binary.name] = stderrController.stream;
 
     // By default, this doesn't resolve to anything
     var processExited = Completer<bool>();
@@ -95,7 +91,7 @@ class ProcessProvider extends ChangeNotifier {
           var message = '';
           if (code != 0) {
             // exit code bad, it crashed!
-            final errLogs = await (_stderrStreams[binary] ?? const Stream<String>.empty()).take(1).toList();
+            final errLogs = await (_stderrStreams[binary.name] ?? const Stream<String>.empty()).take(1).toList();
             if (errLogs.isNotEmpty) {
               message = errLogs.last;
             }
@@ -107,11 +103,11 @@ class ProcessProvider extends ChangeNotifier {
           processExited.complete(true);
 
           // Forward to listeners that the process finished.
-          _exitTuples[binary] = ExitTuple(
+          _exitTuples[binary.name] = ExitTuple(
             code: code,
             message: message,
           );
-          runningProcesses.remove(binary);
+          runningProcesses.remove(binary.name);
           // Close the stream controllers
           await stdoutController.close();
           await stderrController.close();
@@ -130,7 +126,7 @@ class ProcessProvider extends ChangeNotifier {
     ]);
 
     if (exited) {
-      final tuple = _exitTuples[binary];
+      final tuple = _exitTuples[binary.name];
       throw '"${file.path}" exited with code ${tuple?.code}: ${tuple?.message}';
     }
 
@@ -143,7 +139,7 @@ class ProcessProvider extends ChangeNotifier {
   Future<void> kill(Binary binary) async {
     final process = runningProcesses.values.firstWhere(
       (p) {
-        final matched = Binary.fromBinary(p.binary);
+        final matched = Binary.fromBinary(p.binary.binary);
         return matched?.runtimeType == binary.runtimeType;
       },
       orElse: () => throw Exception('Process not found for binary ${binary.binary}'),
@@ -159,7 +155,7 @@ class ProcessProvider extends ChangeNotifier {
 
   bool isRunning(Binary binary) {
     return runningProcesses.values.any((p) {
-      final matched = Binary.fromBinary(p.binary);
+      final matched = Binary.fromBinary(p.binary.binary);
       return matched?.runtimeType == binary.runtimeType;
     });
   }
@@ -184,112 +180,9 @@ class ProcessProvider extends ChangeNotifier {
       log.e('nice shutdown failed, killing with SIGTERM pid=${process.pid}: $error');
       Process.killPid(process.pid, ProcessSignal.sigterm);
     } finally {
-      runningProcesses.remove(process.binary);
+      runningProcesses.remove(process.binary.name);
       notifyListeners();
     }
-  }
-
-  Future<File> _resolveBinaryPath(String binary) async {
-    log.d('Resolving binary path for: $binary');
-
-    // First find all possible paths the binary might be in,
-    // such as .exe, .app, /assets/bin, $datadir/assets etc.
-    final possiblePaths = _getPossibleBinaryPaths(binary);
-    log.d('Generated possible binary paths: $possiblePaths');
-
-    // Check if binary exists in any of the possible paths
-    for (final binaryPath in possiblePaths) {
-      log.d('Checking path: $binaryPath');
-      if (Directory(binaryPath).existsSync() || File(binaryPath).existsSync()) {
-        log.d('Found existing binary at: $binaryPath');
-        var resolvedPath = binaryPath;
-        // Handle .app bundles on macOS
-        if (Platform.isMacOS && (binary.endsWith('.app') || binaryPath.endsWith('.app'))) {
-          log.d('Resolving macOS .app bundle path');
-          resolvedPath = path.join(
-            binaryPath,
-            'Contents',
-            'MacOS',
-            path.basenameWithoutExtension(binaryPath),
-          );
-          log.d('Resolved macOS bundle path to: $resolvedPath');
-        }
-        return File(resolvedPath);
-      }
-    }
-
-    log.d('Binary not found in filesystem, attempting to load from assets bundle');
-    return _fileFromAssetsBundle(binary, possiblePaths);
-  }
-
-  Future<File> _fileFromAssetsBundle(String binary, List<String> possiblePaths) async {
-    log.d('Loading binary from assets bundle: $binary');
-    // If not found in datadir/assets, try loading from bundled assets
-    ByteData? binResource;
-    String? foundPath;
-
-    for (final assetPath in possiblePaths) {
-      try {
-        log.d('Attempting to load from assets/bin/$assetPath');
-        binResource = await rootBundle.load('assets/bin/$assetPath');
-        foundPath = assetPath;
-        log.d('Successfully loaded binary from assets: $assetPath');
-        break;
-      } catch (e) {
-        log.d('Failed to load from $assetPath: $e');
-        continue;
-      }
-    }
-
-    if (binResource == null || foundPath == null) {
-      log.e('Could not find binary $binary in any location');
-      throw Exception('Could not find binary $binary in any location');
-    }
-
-    // Create temp file
-    final temp = await getTemporaryDirectory();
-    final ts = DateTime.now();
-    final randDir = Directory(
-      filePath([temp.path, ts.millisecondsSinceEpoch.toString()]),
-    );
-    log.d('Creating temporary directory at: ${randDir.path}');
-    await randDir.create();
-
-    final file = File(filePath([randDir.path, foundPath]));
-    log.d('Writing binary to temporary file: ${file.path}');
-
-    final buffer = binResource.buffer;
-    await file.writeAsBytes(
-      buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
-    );
-    log.d('Successfully wrote binary to temporary file');
-
-    return file;
-  }
-
-  List<String> _getPossibleBinaryPaths(String baseBinary) {
-    log.d('Generating possible paths for binary: $baseBinary');
-    final paths = <String>[baseBinary];
-    // Add platform-specific extensions
-    if (Platform.isWindows) {
-      log.d('Adding Windows-specific .exe extension');
-      paths.add('$baseBinary.exe');
-    }
-
-    if (appDir != null) {
-      final assetPath = path.join(appDir!.path, 'assets');
-      log.d('Adding asset directory paths from: $assetPath');
-      // Add asset directory variants
-      paths.addAll([
-        path.join(assetPath, baseBinary),
-        if (Platform.isWindows) path.join(assetPath, '$baseBinary.exe'),
-      ]);
-    } else {
-      log.d('appDir is null, not adding asset paths');
-    }
-
-    log.d('Generated paths: $paths');
-    return paths;
   }
 }
 
@@ -311,7 +204,7 @@ bool isSpam(String data) {
 }
 
 class SailProcess {
-  final String binary;
+  final Binary binary;
   final int pid;
   Future<void> Function() cleanup;
 

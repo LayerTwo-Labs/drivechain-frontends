@@ -497,6 +497,11 @@ class BinaryProvider extends ChangeNotifier {
       uninstalledBinaries.add(binaryToBoot);
     }
 
+    if (uninstalledBinaries.isEmpty) {
+      log.i('No binaries to download');
+      return;
+    }
+
     // Start downloads concurrently for uninstalled/failed binaries
     log.i('Starting concurrent downloads for ${uninstalledBinaries.length} binaries');
     await Future.wait(

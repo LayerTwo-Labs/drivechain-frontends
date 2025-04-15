@@ -39,8 +39,8 @@ abstract class Sidechain extends Binary {
   }
 
   static Sidechain fromBinary(Binary binary) {
-    switch (binary.runtimeType) {
-      case TestSidechain _:
+    switch (binary.name) {
+      case 'Test Sidechain':
         return TestSidechain(
           name: binary.name,
           version: binary.version,
@@ -52,7 +52,7 @@ abstract class Sidechain extends Binary {
           network: binary.network,
           chainLayer: binary.chainLayer,
         );
-      case ZCash _:
+      case 'zSide':
         return ZCash(
           name: binary.name,
           version: binary.version,
@@ -64,7 +64,7 @@ abstract class Sidechain extends Binary {
           network: binary.network,
           chainLayer: binary.chainLayer,
         );
-      case Thunder _:
+      case 'Thunder':
         return Thunder(
           name: binary.name,
           version: binary.version,
@@ -76,7 +76,7 @@ abstract class Sidechain extends Binary {
           network: binary.network,
           chainLayer: binary.chainLayer,
         );
-      case Bitnames _:
+      case 'Bitnames':
         return Bitnames(
           name: binary.name,
           version: binary.version,

@@ -548,7 +548,7 @@ abstract class Binary {
     }
   }
 
-  Future<File?> resolveBinaryPath(Directory? appDir) async {
+  Future<File> resolveBinaryPath(Directory? appDir) async {
     // First find all possible paths the binary might be in,
     // such as .exe, .app, /assets/bin, $datadir/assets etc.
     final possiblePaths = _getPossibleBinaryPaths(binary, appDir);
@@ -570,50 +570,57 @@ abstract class Binary {
       }
     }
 
-    return _fileFromAssetsBundle(possiblePaths);
+    return _fileFromAssetsBundle(possiblePaths, appDir);
   }
 
-  Future<File> _fileFromAssetsBundle(List<String> possiblePaths) async {
-    log.d('Loading binary from assets bundle: $binary');
+  Future<File> _fileFromAssetsBundle(List<String> possiblePaths, Directory? appDir) async {
+    log.d('loading binary from assets bundle: $binary');
     // If not found in datadir/assets, try loading from bundled assets
     ByteData? binResource;
     String? foundPath;
 
     for (final assetPath in possiblePaths) {
       try {
-        log.d('Attempting to load from assets/bin/$assetPath');
+        log.d('attempting to load from assets/bin/$assetPath');
         binResource = await rootBundle.load('assets/bin/$assetPath');
         foundPath = assetPath;
-        log.d('Successfully loaded binary from assets: $assetPath');
+        log.d('successfully loaded binary from assets: $assetPath');
         break;
       } catch (e) {
-        log.d('Failed to load from $assetPath: $e');
+        log.d('failed to load from $assetPath: $e');
         continue;
       }
     }
 
     if (binResource == null || foundPath == null) {
-      log.e('Could not find binary $binary in any location');
-      throw Exception('Could not find binary $binary in any location');
+      log.e('could not find binary $binary in any location');
+      throw Exception('Process: could not find binary $binary in any location');
     }
 
-    // Create temp file
-    final temp = await getTemporaryDirectory();
-    final ts = DateTime.now();
-    final randDir = Directory(
-      filePath([temp.path, ts.millisecondsSinceEpoch.toString()]),
-    );
-    log.d('Creating temporary directory at: ${randDir.path}');
-    await randDir.create();
+    File file;
+    if (appDir != null) {
+      final fileDir = path.join(appDir.path, 'assets');
+      file = File(filePath([fileDir, foundPath]));
+      log.d('Writing binary to assets: ${file.path}');
+    } else {
+      // Create temp file
+      final temp = await getTemporaryDirectory();
+      final ts = DateTime.now();
+      final randDir = Directory(
+        filePath([temp.path, ts.millisecondsSinceEpoch.toString()]),
+      );
+      log.d('Creating temporary directory at: ${randDir.path}');
+      await randDir.create();
 
-    final file = File(filePath([randDir.path, foundPath]));
-    log.d('Writing binary to temporary file: ${file.path}');
+      file = File(filePath([randDir.path, foundPath]));
+      log.d('Writing binary to temporary file: ${file.path}');
+    }
 
     final buffer = binResource.buffer;
     await file.writeAsBytes(
       buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
     );
-    log.d('Successfully wrote binary to temporary file');
+    log.d('Process: successfully wrote binary to assets');
 
     return file;
   }
