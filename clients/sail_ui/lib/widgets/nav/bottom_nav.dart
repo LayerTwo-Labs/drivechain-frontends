@@ -365,7 +365,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
               syncInfo: viewModel.blockInfoProvider.additionalSyncInfo!,
             ),
           SailText.primary12(
-            '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo!.blocks)} blocks',
+            '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.blocks ?? 'Loading')} blocks',
           ),
         ],
       ),
