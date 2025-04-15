@@ -42,6 +42,7 @@ class ProcessProvider extends ChangeNotifier {
     // Windows doesn't do executable permissions
     if (!Platform.isWindows) {
       await Process.run('chmod', ['+x', file.path]);
+      log.d('chmoded ${file.path}');
     }
 
     log.d('starting ${file.path} with args $args');
