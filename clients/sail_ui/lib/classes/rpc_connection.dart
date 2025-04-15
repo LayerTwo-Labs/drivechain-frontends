@@ -177,7 +177,7 @@ abstract class RPCConnection extends ChangeNotifier {
       int pid;
       try {
         pid = await processes.start(
-          binary.binary,
+          binary,
           args,
           stopRPC,
         );
