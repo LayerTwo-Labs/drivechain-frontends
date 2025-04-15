@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"time"
 
 	database "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dial"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/engines"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -53,23 +51,25 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return err
 	}
 
-	datadir, err := dir.GetDataDir()
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("get data dir")
-		return err
-	}
-	if conf.LogPath == "" {
-		conf.LogPath = filepath.Join(datadir, "debug.log")
-	}
+	/*
+		datadir, err := dir.GetDataDir()
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("get data dir")
+			return err
+		}
+		if conf.LogPath == "" {
+			conf.LogPath = filepath.Join(datadir, "debug.log")
+		}
 
-	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return fmt.Errorf("open log file: %w", err)
-	}
+		logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			return fmt.Errorf("open log file: %w", err)
+		}
 
-	if err := initLogger(logFile); err != nil {
-		return fmt.Errorf("initialize logger")
-	}
+		if err := initLogger(logFile); err != nil {
+			return fmt.Errorf("initialize logger")
+		}
+	*/
 
 	// Now that the logger is initialized, we can use zerolog.Ctx(ctx) safely
 	log := zerolog.Ctx(ctx)
