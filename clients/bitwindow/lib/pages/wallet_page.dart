@@ -83,7 +83,7 @@ class WalletPage extends StatelessWidget {
                 TabItem(
                   label: 'Deniability',
                   child: DeniabilityTab(
-                    newWindowIdentifier: model.applicationDir == null
+                    newWindowIdentifier: model.applicationDir == null || model.logFile == null
                         ? null
                         : NewWindowIdentifier(
                             windowType: 'deniability',
@@ -149,16 +149,18 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
                   ),
                 ),
               ),
-              SailDropdownButton<AddressBookEntry>(
-                value: null,
-                hint: SailText.primary13(viewModel.selectedEntry?.label ?? 'Address Book'),
-                items: viewModel.addressBookEntries.map((entry) {
-                  return SailDropdownItem<AddressBookEntry>(
-                    value: entry,
-                    label: entry.label,
-                  );
-                }).toList(),
-                onChanged: viewModel.onAddressSelected,
+              Flexible(
+                child: SailDropdownButton<AddressBookEntry>(
+                  value: null,
+                  hint: SailText.primary13(viewModel.selectedEntry?.label ?? 'Address Book'),
+                  items: viewModel.addressBookEntries.map((entry) {
+                    return SailDropdownItem<AddressBookEntry>(
+                      value: entry,
+                      label: entry.label,
+                    );
+                  }).toList(),
+                  onChanged: viewModel.onAddressSelected,
+                ),
               ),
               const SizedBox(width: 4.0),
             ],
@@ -219,24 +221,19 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SailButton(
-                    label: 'Send',
-                    onPressed: () => viewModel.sendTransaction(context),
-                  ),
-                  const SizedBox(width: SailStyleValues.padding08),
-                  SailButton(
-                    variant: ButtonVariant.secondary,
-                    label: 'Clear All',
-                    onPressed: viewModel.clearAll,
-                  ),
-                ],
+              SailButton(
+                label: 'Send',
+                onPressed: () => viewModel.sendTransaction(context),
               ),
-              // Balance
+              const SizedBox(width: SailStyleValues.padding08),
+              SailButton(
+                variant: ButtonVariant.secondary,
+                label: 'Clear All',
+                onPressed: viewModel.clearAll,
+              ),
             ],
           ),
+          // Balance
         ],
       ),
     );

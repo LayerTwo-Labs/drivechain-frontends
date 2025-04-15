@@ -80,43 +80,39 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       currentDisplay = widget.hint ?? const SizedBox();
     }
 
-    final button = Expanded(
-      child: InkWell(
-        onTap: () async {
-          if (_controller.isOpen) {
-            _controller.close();
-          } else {
-            _controller.open();
-          }
-        },
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: context.sailTheme.colors.border,
-              width: 1,
-            ),
-            borderRadius: SailStyleValues.borderRadius,
+    final button = InkWell(
+      onTap: () async {
+        if (_controller.isOpen) {
+          _controller.close();
+        } else {
+          _controller.open();
+        }
+      },
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: context.sailTheme.colors.border,
+            width: 1,
           ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: 9,
-              horizontal: 12,
-            ),
-            child: SailRow(
-              spacing: SailStyleValues.padding08,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Expanded(
-                  child: currentDisplay,
-                ),
-                SailSVG.fromAsset(
-                  _controller.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
-                  color: theme.colors.text,
-                  width: 13,
-                ),
-              ],
-            ),
+          borderRadius: SailStyleValues.borderRadius,
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: 9,
+            horizontal: 12,
+          ),
+          child: SailRow(
+            spacing: SailStyleValues.padding08,
+            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              currentDisplay,
+              SailSVG.fromAsset(
+                _controller.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                color: theme.colors.text,
+                width: 13,
+              ),
+            ],
           ),
         ),
       ),
