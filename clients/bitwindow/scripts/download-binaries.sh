@@ -16,7 +16,12 @@ assets_dir=$old_cwd/assets/bin
 cd ../../servers/bitwindow
 # Build bitwindowd
 echo "Building bitwindowd"
-just build-go
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # for macOS, we must work on intel and m1, therefore force x86_64
+    just build-go-x86
+else
+    just build-go
+fi
 
 # Move the necessary binaries to the assets directory
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
