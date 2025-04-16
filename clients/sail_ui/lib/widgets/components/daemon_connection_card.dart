@@ -134,10 +134,12 @@ class BlockStatus extends StatelessWidget {
                 if (!syncInfo.isSynced)
                   ProgressBar(
                     progress: syncInfo.verificationProgress,
+                    current: syncInfo.blocks,
+                    goal: syncInfo.headers,
                   )
                 else
                   SailText.secondary12(
-                    '${formatWithThousandSpacers(syncInfo.blocks)} blocks',
+                    '${formatWithThousandSpacers(syncInfo.blocks)} sync height',
                   ),
               ],
             ),

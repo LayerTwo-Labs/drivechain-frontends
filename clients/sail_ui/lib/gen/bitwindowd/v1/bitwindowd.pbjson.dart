@@ -227,6 +227,28 @@ const DeleteAddressBookEntryRequest$json = {
 final $typed_data.Uint8List deleteAddressBookEntryRequestDescriptor = $convert.base64Decode(
     'Ch1EZWxldGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBIOCgJpZBgBIAEoA1ICaWQ=');
 
+@$core.Deprecated('Use getSyncInfoResponseDescriptor instead')
+const GetSyncInfoResponse$json = {
+  '1': 'GetSyncInfoResponse',
+  '2': [
+    {'1': 'tip_block_height', '3': 1, '4': 1, '5': 3, '10': 'tipBlockHeight'},
+    {'1': 'tip_block_time', '3': 2, '4': 1, '5': 3, '10': 'tipBlockTime'},
+    {'1': 'tip_block_hash', '3': 3, '4': 1, '5': 9, '10': 'tipBlockHash'},
+    {'1': 'tip_block_processed_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'tipBlockProcessedAt'},
+    {'1': 'header_height', '3': 5, '4': 1, '5': 3, '10': 'headerHeight'},
+    {'1': 'sync_progress', '3': 6, '4': 1, '5': 1, '10': 'syncProgress'},
+  ],
+};
+
+/// Descriptor for `GetSyncInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSyncInfoResponseDescriptor = $convert.base64Decode(
+    'ChNHZXRTeW5jSW5mb1Jlc3BvbnNlEigKEHRpcF9ibG9ja19oZWlnaHQYASABKANSDnRpcEJsb2'
+    'NrSGVpZ2h0EiQKDnRpcF9ibG9ja190aW1lGAIgASgDUgx0aXBCbG9ja1RpbWUSJAoOdGlwX2Js'
+    'b2NrX2hhc2gYAyABKAlSDHRpcEJsb2NrSGFzaBJPChZ0aXBfYmxvY2tfcHJvY2Vzc2VkX2F0GA'
+    'QgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFITdGlwQmxvY2tQcm9jZXNzZWRBdBIj'
+    'Cg1oZWFkZXJfaGVpZ2h0GAUgASgDUgxoZWFkZXJIZWlnaHQSIwoNc3luY19wcm9ncmVzcxgGIA'
+    'EoAVIMc3luY1Byb2dyZXNz');
+
 const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
   '1': 'BitwindowdService',
   '2': [
@@ -238,6 +260,7 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'ListAddressBook', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.ListAddressBookResponse'},
     {'1': 'UpdateAddressBookEntry', '2': '.bitwindowd.v1.UpdateAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
     {'1': 'DeleteAddressBookEntry', '2': '.bitwindowd.v1.DeleteAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
+    {'1': 'GetSyncInfo', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetSyncInfoResponse'},
   ],
 };
 
@@ -256,6 +279,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.AddressBookEntry': AddressBookEntry$json,
   '.bitwindowd.v1.UpdateAddressBookEntryRequest': UpdateAddressBookEntryRequest$json,
   '.bitwindowd.v1.DeleteAddressBookEntryRequest': DeleteAddressBookEntryRequest$json,
+  '.bitwindowd.v1.GetSyncInfoResponse': GetSyncInfoResponse$json,
 };
 
 /// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -272,5 +296,6 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     '9va0VudHJ5EiwuYml0d2luZG93ZC52MS5VcGRhdGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBoW'
     'Lmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJeChZEZWxldGVBZGRyZXNzQm9va0VudHJ5EiwuYml0d2'
     'luZG93ZC52MS5EZWxldGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1'
-    'Zi5FbXB0eQ==');
+    'Zi5FbXB0eRJJCgtHZXRTeW5jSW5mbxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRoiLmJpdHdpbm'
+    'Rvd2QudjEuR2V0U3luY0luZm9SZXNwb25zZQ==');
 

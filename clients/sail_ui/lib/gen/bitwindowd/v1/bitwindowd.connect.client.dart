@@ -146,4 +146,21 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  Future<bitwindowdv1bitwindowd.GetSyncInfoResponse> getSyncInfo(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitwindowdService.getSyncInfo,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

@@ -52,6 +52,7 @@ abstract class BitwindowAPI {
     required int delaySeconds,
   });
   Future<void> cancelDenial(Int64 id);
+  Future<GetSyncInfoResponse> getSyncInfo();
   Future<List<UnspentOutput>> listDenials();
 
   // Address book methods here
@@ -229,7 +230,23 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
-    throw Exception('getBlockchainInfo not implemented');
+    final syncInfo = await bitwindowd.getSyncInfo();
+    // TODO: create info that makes sense. a lot of unused fields here
+    return BlockchainInfo(
+      chain: 'signet',
+      bestBlockHash: syncInfo.tipBlockHash,
+      difficulty: 0,
+      time: syncInfo.tipBlockTime.toInt(),
+      medianTime: 0,
+      initialBlockDownload: false,
+      chainWork: '0',
+      blocks: syncInfo.tipBlockHeight.toInt(),
+      headers: syncInfo.headerHeight.toInt(),
+      verificationProgress: syncInfo.syncProgress,
+      sizeOnDisk: 0,
+      pruned: false,
+      warnings: [],
+    );
   }
 
   @override
@@ -263,6 +280,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       'bitcoind.v1.BitcoindService/ListBlocks',
       'bitcoind.v1.BitcoindService/ListPeers',
       'bitcoind.v1.BitcoindService/ListRecentTransactions',
+      'bitwindowd.v1.BitwindowdService/GetSyncInfo',
       'bitwindowd.v1.BitwindowdService/CancelDenial',
       'bitwindowd.v1.BitwindowdService/CreateAddressBookEntry',
       'bitwindowd.v1.BitwindowdService/CreateDenial',
@@ -321,6 +339,12 @@ class _BitwindowAPILive implements BitwindowAPI {
   @override
   Future<void> cancelDenial(Int64 id) async {
     await _client.cancelDenial(CancelDenialRequest()..id = id);
+  }
+
+  @override
+  Future<GetSyncInfoResponse> getSyncInfo() async {
+    final response = await _client.getSyncInfo(Empty());
+    return response;
   }
 
   @override

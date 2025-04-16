@@ -393,6 +393,8 @@ class ChainLoader extends StatelessWidget {
           children: [
             ProgressBar(
               progress: syncInfo.verificationProgress,
+              current: syncInfo.blocks,
+              goal: syncInfo.headers,
             ),
             const DividerDot(),
           ],

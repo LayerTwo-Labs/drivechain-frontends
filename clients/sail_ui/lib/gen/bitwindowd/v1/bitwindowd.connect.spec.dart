@@ -68,4 +68,11 @@ abstract final class BitwindowdService {
     bitwindowdv1bitwindowd.DeleteAddressBookEntryRequest.new,
     googleprotobufempty.Empty.new,
   );
+
+  static const getSyncInfo = connect.Spec(
+    '/$name/GetSyncInfo',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.GetSyncInfoResponse.new,
+  );
 }

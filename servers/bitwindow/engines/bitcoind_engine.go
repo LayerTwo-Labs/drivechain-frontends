@@ -93,9 +93,16 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 	}
 
 	// Get latest processed height
-	lastProcessedHeight, lastProcessedHash, err := blocks.LatestProcessedHeight(ctx, p.db)
+	lastProcessedBlock, err := blocks.GetProcessedTip(ctx, p.db)
 	if err != nil {
 		return fmt.Errorf("get latest processed height: %w", err)
+	}
+
+	var lastProcessedHeight int32 = -1
+	var lastProcessedHash string
+	if lastProcessedBlock != nil {
+		lastProcessedHeight = lastProcessedBlock.Height
+		lastProcessedHash = lastProcessedBlock.Hash
 	}
 
 	// Get current blockchain height

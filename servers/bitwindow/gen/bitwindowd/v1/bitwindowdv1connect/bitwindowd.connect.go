@@ -57,6 +57,9 @@ const (
 	// BitwindowdServiceDeleteAddressBookEntryProcedure is the fully-qualified name of the
 	// BitwindowdService's DeleteAddressBookEntry RPC.
 	BitwindowdServiceDeleteAddressBookEntryProcedure = "/bitwindowd.v1.BitwindowdService/DeleteAddressBookEntry"
+	// BitwindowdServiceGetSyncInfoProcedure is the fully-qualified name of the BitwindowdService's
+	// GetSyncInfo RPC.
+	BitwindowdServiceGetSyncInfoProcedure = "/bitwindowd.v1.BitwindowdService/GetSyncInfo"
 )
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
@@ -71,6 +74,7 @@ type BitwindowdServiceClient interface {
 	ListAddressBook(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error)
 	UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
+	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
 }
 
 // NewBitwindowdServiceClient constructs a client for the bitwindowd.v1.BitwindowdService service.
@@ -132,6 +136,12 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("DeleteAddressBookEntry")),
 			connect.WithClientOptions(opts...),
 		),
+		getSyncInfo: connect.NewClient[emptypb.Empty, v1.GetSyncInfoResponse](
+			httpClient,
+			baseURL+BitwindowdServiceGetSyncInfoProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("GetSyncInfo")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -145,6 +155,7 @@ type bitwindowdServiceClient struct {
 	listAddressBook        *connect.Client[emptypb.Empty, v1.ListAddressBookResponse]
 	updateAddressBookEntry *connect.Client[v1.UpdateAddressBookEntryRequest, emptypb.Empty]
 	deleteAddressBookEntry *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
+	getSyncInfo            *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
@@ -187,6 +198,11 @@ func (c *bitwindowdServiceClient) DeleteAddressBookEntry(ctx context.Context, re
 	return c.deleteAddressBookEntry.CallUnary(ctx, req)
 }
 
+// GetSyncInfo calls bitwindowd.v1.BitwindowdService.GetSyncInfo.
+func (c *bitwindowdServiceClient) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error) {
+	return c.getSyncInfo.CallUnary(ctx, req)
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
@@ -199,6 +215,7 @@ type BitwindowdServiceHandler interface {
 	ListAddressBook(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListAddressBookResponse], error)
 	UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
+	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
 }
 
 // NewBitwindowdServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -256,6 +273,12 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("DeleteAddressBookEntry")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceGetSyncInfoHandler := connect.NewUnaryHandler(
+		BitwindowdServiceGetSyncInfoProcedure,
+		svc.GetSyncInfo,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("GetSyncInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitwindowd.v1.BitwindowdService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitwindowdServiceStopProcedure:
@@ -274,6 +297,8 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceUpdateAddressBookEntryHandler.ServeHTTP(w, r)
 		case BitwindowdServiceDeleteAddressBookEntryProcedure:
 			bitwindowdServiceDeleteAddressBookEntryHandler.ServeHTTP(w, r)
+		case BitwindowdServiceGetSyncInfoProcedure:
+			bitwindowdServiceGetSyncInfoHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -313,4 +338,8 @@ func (UnimplementedBitwindowdServiceHandler) UpdateAddressBookEntry(context.Cont
 
 func (UnimplementedBitwindowdServiceHandler) DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetSyncInfo is not implemented"))
 }
