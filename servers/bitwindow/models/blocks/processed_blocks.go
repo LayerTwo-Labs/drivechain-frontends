@@ -8,22 +8,22 @@ import (
 	"time"
 )
 
-func LatestProcessedHeight(ctx context.Context, db *sql.DB) (int32, string, error) {
-	var height int32
-	var blockHash string
+func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
+	var pb ProcessedBlock
 	err := db.QueryRowContext(ctx, `
-		SELECT height, block_hash 
-		FROM processed_blocks 
-		ORDER BY height DESC 
-		LIMIT 1
-	`).Scan(&height, &blockHash)
+	SELECT height, block_hash, processed_at
+	FROM processed_blocks 
+	ORDER BY height DESC 
+	LIMIT 1
+	`).Scan(&pb.Height, &pb.Hash, &pb.ProcessedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return -1, "", nil
+		return nil, nil
 	} else if err != nil {
-		return 0, "", fmt.Errorf("latest processed height: %w", err)
+		return nil, fmt.Errorf("latest processed height: %w", err)
 	}
 
-	return height, blockHash, nil
+	return &pb, nil
+
 }
 
 func MarkBlockProcessed(ctx context.Context, db *sql.DB, height int32, hash string) error {

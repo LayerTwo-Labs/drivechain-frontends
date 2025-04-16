@@ -12,8 +12,11 @@ import (
 	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -26,11 +29,13 @@ func New(
 	onShutdown func(),
 	db *sql.DB,
 	wallet *service.Service[validatorrpc.WalletServiceClient],
+	bitcoind *service.Service[*coreproxy.Bitcoind],
 ) *Server {
 	s := &Server{
 		onShutdown: onShutdown,
 		db:         db,
 		wallet:     wallet,
+		bitcoind:   bitcoind,
 	}
 	return s
 }
@@ -39,6 +44,7 @@ type Server struct {
 	onShutdown func()
 	db         *sql.DB
 	wallet     *service.Service[validatorrpc.WalletServiceClient]
+	bitcoind   *service.Service[*coreproxy.Bitcoind]
 }
 
 // EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
@@ -305,4 +311,42 @@ func (s *Server) DeleteAddressBookEntry(ctx context.Context, req *connect.Reques
 	}
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+// GetSyncInfo implements bitwindowdv1connect.BitwindowdServiceHandler.
+func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetSyncInfoResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	tip, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	processedTip, err := blocks.GetProcessedTip(ctx, s.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	if processedTip == nil {
+		return connect.NewResponse(&pb.GetSyncInfoResponse{
+			TipBlockHeight:      0,
+			TipBlockTime:        0,
+			TipBlockHash:        "",
+			TipBlockProcessedAt: &timestamppb.Timestamp{},
+			HeaderHeight:        int64(tip.Msg.Headers),
+			SyncProgress:        0,
+		}), nil
+	}
+
+	return connect.NewResponse(&pb.GetSyncInfoResponse{
+		TipBlockHeight:      int64(processedTip.Height),
+		TipBlockTime:        processedTip.ProcessedAt.Unix(),
+		TipBlockHash:        processedTip.Hash,
+		TipBlockProcessedAt: timestamppb.New(processedTip.ProcessedAt),
+		SyncProgress:        float64(processedTip.Height) / float64(tip.Msg.Blocks),
+		HeaderHeight:        int64(tip.Msg.Headers),
+	}), nil
 }

@@ -113,6 +113,19 @@ class MockBitwindowdAPI implements BitwindowAPI {
   Future<void> deleteAddressBookEntry(Int64 id) {
     return Future.value();
   }
+
+  @override
+  Future<GetSyncInfoResponse> getSyncInfo() {
+    return Future.value(
+      GetSyncInfoResponse(
+        tipBlockHeight: Int64(100),
+        tipBlockTime: Int64(100),
+        tipBlockHash: 'mock_hash',
+        headerHeight: Int64(100),
+        syncProgress: 0.5,
+      ),
+    );
+  }
 }
 
 class MockWalletAPI implements WalletAPI {

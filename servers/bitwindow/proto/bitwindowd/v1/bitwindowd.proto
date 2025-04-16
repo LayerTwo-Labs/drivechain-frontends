@@ -18,6 +18,8 @@ service BitwindowdService {
   rpc ListAddressBook(google.protobuf.Empty) returns (ListAddressBookResponse);
   rpc UpdateAddressBookEntry(UpdateAddressBookEntryRequest) returns (google.protobuf.Empty);
   rpc DeleteAddressBookEntry(DeleteAddressBookEntryRequest) returns (google.protobuf.Empty);
+
+  rpc GetSyncInfo(google.protobuf.Empty) returns (GetSyncInfoResponse);
 }
 
 message CreateDenialRequest {
@@ -98,4 +100,14 @@ message UpdateAddressBookEntryRequest {
 
 message DeleteAddressBookEntryRequest {
   int64 id = 1;
+}
+
+message GetSyncInfoResponse {
+  int64 tip_block_height = 1;
+  int64 tip_block_time = 2;
+  string tip_block_hash = 3;
+  google.protobuf.Timestamp tip_block_processed_at = 4;
+  int64 header_height = 5;
+  // sync progress between 0 and 1
+  double sync_progress = 6;
 }

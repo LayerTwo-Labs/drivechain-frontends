@@ -67,7 +67,7 @@ func NewServer(
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
-		onShutdown, database, walletSvc,
+		onShutdown, database, walletSvc, bitcoindSvc,
 	)))
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
 		bitcoindSvc,

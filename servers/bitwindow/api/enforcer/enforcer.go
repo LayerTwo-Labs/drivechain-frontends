@@ -36,6 +36,11 @@ type Server struct {
 	crypto    *service.Service[cryptorpc.CryptoServiceClient]
 }
 
+// SubscribeHeaderSyncProgress implements mainchainv1connect.ValidatorServiceHandler.
+func (s *Server) SubscribeHeaderSyncProgress(context.Context, *connect.Request[mainchainv1.SubscribeHeaderSyncProgressRequest], *connect.ServerStream[mainchainv1.SubscribeHeaderSyncProgressResponse]) error {
+	panic("unimplemented")
+}
+
 // BroadcastWithdrawalBundle implements mainchainv1connect.WalletServiceHandler.
 func (s *Server) BroadcastWithdrawalBundle(ctx context.Context, c *connect.Request[mainchainv1.BroadcastWithdrawalBundleRequest]) (*connect.Response[mainchainv1.BroadcastWithdrawalBundleResponse], error) {
 	wallet, err := s.wallet.Get(ctx)

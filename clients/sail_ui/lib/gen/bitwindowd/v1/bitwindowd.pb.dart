@@ -985,6 +985,129 @@ class DeleteAddressBookEntryRequest extends $pb.GeneratedMessage {
   void clearId() => clearField(1);
 }
 
+class GetSyncInfoResponse extends $pb.GeneratedMessage {
+  factory GetSyncInfoResponse({
+    $fixnum.Int64? tipBlockHeight,
+    $fixnum.Int64? tipBlockTime,
+    $core.String? tipBlockHash,
+    $0.Timestamp? tipBlockProcessedAt,
+    $fixnum.Int64? headerHeight,
+    $core.double? syncProgress,
+  }) {
+    final $result = create();
+    if (tipBlockHeight != null) {
+      $result.tipBlockHeight = tipBlockHeight;
+    }
+    if (tipBlockTime != null) {
+      $result.tipBlockTime = tipBlockTime;
+    }
+    if (tipBlockHash != null) {
+      $result.tipBlockHash = tipBlockHash;
+    }
+    if (tipBlockProcessedAt != null) {
+      $result.tipBlockProcessedAt = tipBlockProcessedAt;
+    }
+    if (headerHeight != null) {
+      $result.headerHeight = headerHeight;
+    }
+    if (syncProgress != null) {
+      $result.syncProgress = syncProgress;
+    }
+    return $result;
+  }
+  GetSyncInfoResponse._() : super();
+  factory GetSyncInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSyncInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSyncInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'tipBlockHeight')
+    ..aInt64(2, _omitFieldNames ? '' : 'tipBlockTime')
+    ..aOS(3, _omitFieldNames ? '' : 'tipBlockHash')
+    ..aOM<$0.Timestamp>(4, _omitFieldNames ? '' : 'tipBlockProcessedAt', subBuilder: $0.Timestamp.create)
+    ..aInt64(5, _omitFieldNames ? '' : 'headerHeight')
+    ..a<$core.double>(6, _omitFieldNames ? '' : 'syncProgress', $pb.PbFieldType.OD)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSyncInfoResponse clone() => GetSyncInfoResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSyncInfoResponse copyWith(void Function(GetSyncInfoResponse) updates) => super.copyWith((message) => updates(message as GetSyncInfoResponse)) as GetSyncInfoResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSyncInfoResponse create() => GetSyncInfoResponse._();
+  GetSyncInfoResponse createEmptyInstance() => create();
+  static $pb.PbList<GetSyncInfoResponse> createRepeated() => $pb.PbList<GetSyncInfoResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetSyncInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSyncInfoResponse>(create);
+  static GetSyncInfoResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get tipBlockHeight => $_getI64(0);
+  @$pb.TagNumber(1)
+  set tipBlockHeight($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTipBlockHeight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTipBlockHeight() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get tipBlockTime => $_getI64(1);
+  @$pb.TagNumber(2)
+  set tipBlockTime($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTipBlockTime() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTipBlockTime() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get tipBlockHash => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set tipBlockHash($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTipBlockHash() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTipBlockHash() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $0.Timestamp get tipBlockProcessedAt => $_getN(3);
+  @$pb.TagNumber(4)
+  set tipBlockProcessedAt($0.Timestamp v) { setField(4, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasTipBlockProcessedAt() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTipBlockProcessedAt() => clearField(4);
+  @$pb.TagNumber(4)
+  $0.Timestamp ensureTipBlockProcessedAt() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get headerHeight => $_getI64(4);
+  @$pb.TagNumber(5)
+  set headerHeight($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasHeaderHeight() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearHeaderHeight() => clearField(5);
+
+  /// sync progress between 0 and 1
+  @$pb.TagNumber(6)
+  $core.double get syncProgress => $_getN(5);
+  @$pb.TagNumber(6)
+  set syncProgress($core.double v) { $_setDouble(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasSyncProgress() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSyncProgress() => clearField(6);
+}
+
 class BitwindowdServiceApi {
   $pb.RpcClient _client;
   BitwindowdServiceApi(this._client);
@@ -1012,6 +1135,9 @@ class BitwindowdServiceApi {
   ;
   $async.Future<$1.Empty> deleteAddressBookEntry($pb.ClientContext? ctx, DeleteAddressBookEntryRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'DeleteAddressBookEntry', request, $1.Empty())
+  ;
+  $async.Future<GetSyncInfoResponse> getSyncInfo($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetSyncInfoResponse>(ctx, 'BitwindowdService', 'GetSyncInfo', request, GetSyncInfoResponse())
   ;
 }
 

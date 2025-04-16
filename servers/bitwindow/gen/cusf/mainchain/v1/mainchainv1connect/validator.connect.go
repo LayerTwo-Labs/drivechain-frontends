@@ -68,6 +68,9 @@ const (
 	// ValidatorServiceSubscribeEventsProcedure is the fully-qualified name of the ValidatorService's
 	// SubscribeEvents RPC.
 	ValidatorServiceSubscribeEventsProcedure = "/cusf.mainchain.v1.ValidatorService/SubscribeEvents"
+	// ValidatorServiceSubscribeHeaderSyncProgressProcedure is the fully-qualified name of the
+	// ValidatorService's SubscribeHeaderSyncProgress RPC.
+	ValidatorServiceSubscribeHeaderSyncProgressProcedure = "/cusf.mainchain.v1.ValidatorService/SubscribeHeaderSyncProgress"
 )
 
 // ValidatorServiceClient is a client for the cusf.mainchain.v1.ValidatorService service.
@@ -89,6 +92,8 @@ type ValidatorServiceClient interface {
 	GetSidechains(context.Context, *connect.Request[v1.GetSidechainsRequest]) (*connect.Response[v1.GetSidechainsResponse], error)
 	GetTwoWayPegData(context.Context, *connect.Request[v1.GetTwoWayPegDataRequest]) (*connect.Response[v1.GetTwoWayPegDataResponse], error)
 	SubscribeEvents(context.Context, *connect.Request[v1.SubscribeEventsRequest]) (*connect.ServerStreamForClient[v1.SubscribeEventsResponse], error)
+	// Stream header sync progress updates
+	SubscribeHeaderSyncProgress(context.Context, *connect.Request[v1.SubscribeHeaderSyncProgressRequest]) (*connect.ServerStreamForClient[v1.SubscribeHeaderSyncProgressResponse], error)
 }
 
 // NewValidatorServiceClient constructs a client for the cusf.mainchain.v1.ValidatorService service.
@@ -168,22 +173,29 @@ func NewValidatorServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(validatorServiceMethods.ByName("SubscribeEvents")),
 			connect.WithClientOptions(opts...),
 		),
+		subscribeHeaderSyncProgress: connect.NewClient[v1.SubscribeHeaderSyncProgressRequest, v1.SubscribeHeaderSyncProgressResponse](
+			httpClient,
+			baseURL+ValidatorServiceSubscribeHeaderSyncProgressProcedure,
+			connect.WithSchema(validatorServiceMethods.ByName("SubscribeHeaderSyncProgress")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // validatorServiceClient implements ValidatorServiceClient.
 type validatorServiceClient struct {
-	getBlockHeaderInfo    *connect.Client[v1.GetBlockHeaderInfoRequest, v1.GetBlockHeaderInfoResponse]
-	getBlockInfo          *connect.Client[v1.GetBlockInfoRequest, v1.GetBlockInfoResponse]
-	getBmmHStarCommitment *connect.Client[v1.GetBmmHStarCommitmentRequest, v1.GetBmmHStarCommitmentResponse]
-	getChainInfo          *connect.Client[v1.GetChainInfoRequest, v1.GetChainInfoResponse]
-	getChainTip           *connect.Client[v1.GetChainTipRequest, v1.GetChainTipResponse]
-	getCoinbasePSBT       *connect.Client[v1.GetCoinbasePSBTRequest, v1.GetCoinbasePSBTResponse]
-	getCtip               *connect.Client[v1.GetCtipRequest, v1.GetCtipResponse]
-	getSidechainProposals *connect.Client[v1.GetSidechainProposalsRequest, v1.GetSidechainProposalsResponse]
-	getSidechains         *connect.Client[v1.GetSidechainsRequest, v1.GetSidechainsResponse]
-	getTwoWayPegData      *connect.Client[v1.GetTwoWayPegDataRequest, v1.GetTwoWayPegDataResponse]
-	subscribeEvents       *connect.Client[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse]
+	getBlockHeaderInfo          *connect.Client[v1.GetBlockHeaderInfoRequest, v1.GetBlockHeaderInfoResponse]
+	getBlockInfo                *connect.Client[v1.GetBlockInfoRequest, v1.GetBlockInfoResponse]
+	getBmmHStarCommitment       *connect.Client[v1.GetBmmHStarCommitmentRequest, v1.GetBmmHStarCommitmentResponse]
+	getChainInfo                *connect.Client[v1.GetChainInfoRequest, v1.GetChainInfoResponse]
+	getChainTip                 *connect.Client[v1.GetChainTipRequest, v1.GetChainTipResponse]
+	getCoinbasePSBT             *connect.Client[v1.GetCoinbasePSBTRequest, v1.GetCoinbasePSBTResponse]
+	getCtip                     *connect.Client[v1.GetCtipRequest, v1.GetCtipResponse]
+	getSidechainProposals       *connect.Client[v1.GetSidechainProposalsRequest, v1.GetSidechainProposalsResponse]
+	getSidechains               *connect.Client[v1.GetSidechainsRequest, v1.GetSidechainsResponse]
+	getTwoWayPegData            *connect.Client[v1.GetTwoWayPegDataRequest, v1.GetTwoWayPegDataResponse]
+	subscribeEvents             *connect.Client[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse]
+	subscribeHeaderSyncProgress *connect.Client[v1.SubscribeHeaderSyncProgressRequest, v1.SubscribeHeaderSyncProgressResponse]
 }
 
 // GetBlockHeaderInfo calls cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo.
@@ -241,6 +253,11 @@ func (c *validatorServiceClient) SubscribeEvents(ctx context.Context, req *conne
 	return c.subscribeEvents.CallServerStream(ctx, req)
 }
 
+// SubscribeHeaderSyncProgress calls cusf.mainchain.v1.ValidatorService.SubscribeHeaderSyncProgress.
+func (c *validatorServiceClient) SubscribeHeaderSyncProgress(ctx context.Context, req *connect.Request[v1.SubscribeHeaderSyncProgressRequest]) (*connect.ServerStreamForClient[v1.SubscribeHeaderSyncProgressResponse], error) {
+	return c.subscribeHeaderSyncProgress.CallServerStream(ctx, req)
+}
+
 // ValidatorServiceHandler is an implementation of the cusf.mainchain.v1.ValidatorService service.
 type ValidatorServiceHandler interface {
 	// Fetches information about a specific mainchain block header,
@@ -260,6 +277,8 @@ type ValidatorServiceHandler interface {
 	GetSidechains(context.Context, *connect.Request[v1.GetSidechainsRequest]) (*connect.Response[v1.GetSidechainsResponse], error)
 	GetTwoWayPegData(context.Context, *connect.Request[v1.GetTwoWayPegDataRequest]) (*connect.Response[v1.GetTwoWayPegDataResponse], error)
 	SubscribeEvents(context.Context, *connect.Request[v1.SubscribeEventsRequest], *connect.ServerStream[v1.SubscribeEventsResponse]) error
+	// Stream header sync progress updates
+	SubscribeHeaderSyncProgress(context.Context, *connect.Request[v1.SubscribeHeaderSyncProgressRequest], *connect.ServerStream[v1.SubscribeHeaderSyncProgressResponse]) error
 }
 
 // NewValidatorServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -335,6 +354,12 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 		connect.WithSchema(validatorServiceMethods.ByName("SubscribeEvents")),
 		connect.WithHandlerOptions(opts...),
 	)
+	validatorServiceSubscribeHeaderSyncProgressHandler := connect.NewServerStreamHandler(
+		ValidatorServiceSubscribeHeaderSyncProgressProcedure,
+		svc.SubscribeHeaderSyncProgress,
+		connect.WithSchema(validatorServiceMethods.ByName("SubscribeHeaderSyncProgress")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/cusf.mainchain.v1.ValidatorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ValidatorServiceGetBlockHeaderInfoProcedure:
@@ -359,6 +384,8 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 			validatorServiceGetTwoWayPegDataHandler.ServeHTTP(w, r)
 		case ValidatorServiceSubscribeEventsProcedure:
 			validatorServiceSubscribeEventsHandler.ServeHTTP(w, r)
+		case ValidatorServiceSubscribeHeaderSyncProgressProcedure:
+			validatorServiceSubscribeHeaderSyncProgressHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -410,4 +437,8 @@ func (UnimplementedValidatorServiceHandler) GetTwoWayPegData(context.Context, *c
 
 func (UnimplementedValidatorServiceHandler) SubscribeEvents(context.Context, *connect.Request[v1.SubscribeEventsRequest], *connect.ServerStream[v1.SubscribeEventsResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.ValidatorService.SubscribeEvents is not implemented"))
+}
+
+func (UnimplementedValidatorServiceHandler) SubscribeHeaderSyncProgress(context.Context, *connect.Request[v1.SubscribeHeaderSyncProgressRequest], *connect.ServerStream[v1.SubscribeHeaderSyncProgressResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.ValidatorService.SubscribeHeaderSyncProgress is not implemented"))
 }
