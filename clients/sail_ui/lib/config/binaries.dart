@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -639,15 +640,24 @@ abstract class Binary {
   }
 
   List<String> _getPossibleBinaryPaths(String baseBinary, Directory? appDir) {
-    final paths = <String>[baseBinary];
-    // Add platform-specific extensions
-    if (Platform.isWindows) {
-      paths.add('$baseBinary.exe');
+    final paths = <String>[];
+
+    if (kDebugMode) {
+      // In debug mode, check pwd/assets/bin first
+      paths.addAll([
+        path.join(Directory.current.path, 'assets', 'bin', baseBinary),
+        if (Platform.isWindows) path.join(Directory.current.path, 'assets', 'bin', '$baseBinary.exe'),
+      ]);
     }
+
+    // Add standard paths
+    paths.addAll([
+      baseBinary,
+      if (Platform.isWindows) '$baseBinary.exe',
+    ]);
 
     if (appDir != null) {
       final assetPath = path.join(appDir.path, 'assets');
-      // Add asset directory variants
       paths.addAll([
         path.join(assetPath, baseBinary),
         if (Platform.isWindows) path.join(assetPath, '$baseBinary.exe'),
