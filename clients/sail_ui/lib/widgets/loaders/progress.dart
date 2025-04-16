@@ -38,7 +38,7 @@ class ProgressBar extends StatelessWidget {
           ),
           SizedBox(width: 8.0),
           SailText.primary12(
-            '${(progress * 100).toStringAsFixed(0)}%',
+            '${(progress * 100).toStringAsFixed(2)}%',
           ),
         ],
       ),

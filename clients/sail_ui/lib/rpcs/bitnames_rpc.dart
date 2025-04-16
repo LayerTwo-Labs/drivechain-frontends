@@ -108,6 +108,11 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   Future<(double confirmed, double unconfirmed)> balance() async {
     final response = await getBalance();
     final confirmed = satoshiToBTC(response.availableSats);

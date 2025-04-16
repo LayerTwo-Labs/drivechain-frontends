@@ -138,10 +138,7 @@ class ProcessProvider extends ChangeNotifier {
 
   Future<void> kill(Binary binary) async {
     final process = runningProcesses.values.firstWhere(
-      (p) {
-        final matched = Binary.fromBinaryName(p.binary.name);
-        return matched != null;
-      },
+      (p) => p.binary.name == binary.name,
       orElse: () => throw Exception('Process not found for binary ${binary.name}'),
     );
 
@@ -154,14 +151,11 @@ class ProcessProvider extends ChangeNotifier {
   }
 
   bool isRunning(Binary binary) {
-    return runningProcesses.values.any((p) {
-      final matched = Binary.fromBinaryName(p.binary.name);
-      return matched != null;
-    });
+    return runningProcesses.containsKey(binary.name);
   }
 
   Future<void> shutdown() async {
-    log.d('dispose process provider: killing processes $runningProcesses');
+    log.d('dispose process provider: killing all processes $runningProcesses');
     await Future.wait(runningProcesses.values.map((process) => _shutdownSingle(process)));
   }
 
@@ -174,7 +168,7 @@ class ProcessProvider extends ChangeNotifier {
         process.cleanup(),
         Future.delayed(const Duration(seconds: 2)).then((_) => throw TimeoutException('Nice shutdown timed out')),
       ]);
-      log.d('nice shutdown successful for pid=${process.pid}');
+      log.d('nice shutdown successful for pid=${process.pid} binary=${process.binary.name}');
     } catch (error) {
       // If nice shutdown fails or times out, force kill with SIGTERM
       log.e('nice shutdown failed, killing with SIGTERM pid=${process.pid}: $error');

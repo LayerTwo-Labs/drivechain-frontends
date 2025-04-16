@@ -44,6 +44,11 @@ abstract class RPCConnection extends ChangeNotifier {
   // for bitcoin core based binaries, returns the block height
   Future<int> ping();
 
+  // returns a list of error messages from the binary that
+  // indicates it is successfully started, but not yet ready to
+  // accept connections
+  List<String> startupErrors();
+
   /// Returns confirmed and unconfirmed balance.
   Future<(double, double)> balance();
 
@@ -56,6 +61,14 @@ abstract class RPCConnection extends ChangeNotifier {
   bool _shouldNotify = false;
 
   bool _completedStartup = false;
+
+  // values for tracking connection state, and error (if any)
+  String? connectionError;
+  // if set, startupError contains messages from the binary that indicates
+  // it is started, but in a bootup-phase and not ready to accept connections
+  String? startupError;
+  bool connected = false;
+  int blockCount = 0;
 
   Future<(bool, String?)> testConnection() async {
     try {
@@ -73,6 +86,7 @@ abstract class RPCConnection extends ChangeNotifier {
       }
       connected = true;
       connectionError = null;
+      startupError = null;
       _completedStartup = true;
       _restartCount = 0;
 
@@ -121,7 +135,7 @@ abstract class RPCConnection extends ChangeNotifier {
       }
 
       // Notify if we were connected or have a new error
-      if (connected || connectionError != newError) {
+      if (connected || (connectionError != newError && startupError != newError)) {
         // we were previously connected, and should notify listeners
         // or we have a new error on our hands that must be shown
         initializingBinary = false;
@@ -129,8 +143,15 @@ abstract class RPCConnection extends ChangeNotifier {
         // we have a new error on our hands!
         log.e('could not test connection ${binary.connectionString}: ${newError ?? ''}!');
       }
+
       connected = false;
-      connectionError = newError;
+
+      // finally set the error variable based on what type of error it is
+      if (newError != null && startupErrors().any((error) => newError!.contains(error))) {
+        startupError = newError;
+      } else {
+        connectionError = newError;
+      }
     } finally {
       _testing = false;
       if (_shouldNotify) {
@@ -142,11 +163,6 @@ abstract class RPCConnection extends ChangeNotifier {
 
     return (connected, connectionError);
   }
-
-  // values for tracking connection state, and error (if any)
-  String? connectionError;
-  bool connected = false;
-  int blockCount = 0;
 
   Future<void> initBinary({
     List<String>? arg,
@@ -187,6 +203,7 @@ abstract class RPCConnection extends ChangeNotifier {
         _connectionTimer?.cancel();
         initializingBinary = false;
         connectionError = 'could not start ${binary.connectionString}: $err';
+        startupError = null;
         connected = false;
         notifyListeners();
         return;
@@ -220,10 +237,11 @@ abstract class RPCConnection extends ChangeNotifier {
           // in the daemon status chip
           waitForBoolToBeTrue(() async {
             final res = processes.exited(binary);
-            if (res != null) {
+            if (res != null && res.message != '') {
               log.i('process exited with message: ${res.message}');
               initializingBinary = false;
               connectionError = res.message;
+              startupError = null;
             }
             return res != null;
           }),
@@ -271,6 +289,11 @@ abstract class RPCConnection extends ChangeNotifier {
 
         if (stoppingBinary) {
           // we're currently stopping manually. Don't retry if the user wants to shut it off
+          return;
+        }
+
+        if (startupError != null) {
+          // we're not connected yet, but in a startup phase! Don't retry then
           return;
         }
 
@@ -395,6 +418,7 @@ abstract class RPCConnection extends ChangeNotifier {
     } catch (e) {
       log.e('could not stop rpc: $e');
       connectionError = 'could not stop nor kill rpc, process might still be running: $e';
+      startupError = null;
     } finally {
       connected = false;
       stoppingBinary = false;
@@ -403,6 +427,7 @@ abstract class RPCConnection extends ChangeNotifier {
       } else {
         log.i('stopped rpc successfully');
         connectionError = null;
+        startupError = null;
       }
 
       notifyListeners();

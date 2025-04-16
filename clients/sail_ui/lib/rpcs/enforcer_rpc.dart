@@ -111,6 +111,13 @@ class EnforcerLive extends EnforcerRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [
+      'Validator is not synced',
+    ];
+  }
+
+  @override
   Future<(double, double)> balance() async {
     return (0.0, 0.0);
   }

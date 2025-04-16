@@ -184,6 +184,13 @@ class TestchainRPCLive extends TestchainRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [
+      'Loading block index...',
+    ];
+  }
+
+  @override
   Future<WithdrawalBundle> lookupWithdrawalBundle(String hash, BundleStatus status) async {
     final info = await _client().call(
       'getwithdrawalbundleinfo',

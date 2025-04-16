@@ -38,6 +38,11 @@ class MockAPI extends BitwindowRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   Future<(double, double)> balance() async {
     return (1.0, 2.0);
   }

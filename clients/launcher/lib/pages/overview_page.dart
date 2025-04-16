@@ -308,6 +308,7 @@ class _OverviewPageState extends State<OverviewPage> {
     bool stopping = false;
     String description = binary.description;
     String? error;
+    String? startupError;
 
     switch (binary) {
       case ParentChain():
@@ -315,36 +316,46 @@ class _OverviewPageState extends State<OverviewPage> {
         initializing = _binaryProvider.mainchainInitializing;
         stopping = _binaryProvider.mainchainStopping;
         error = _binaryProvider.mainchainError;
+        startupError = _binaryProvider.mainchainStartupError;
 
-        if (connected && _binaryProvider.mainchainRPC.inIBD) {
+        if (connected && _binaryProvider.mainchainRPC.inIBD && _blockchainProvider.mainchainSyncInfo != null) {
           final info = _blockchainProvider.mainchainSyncInfo;
           final progress = info!.verificationProgress;
-          description = 'Syncing...$progress %\n'
+          description = 'Syncing... ${(progress * 100).toStringAsFixed(2)} %\n'
               'Blocks: ${info.blocks} / ${info.headers}';
         }
+
       case Enforcer():
         connected = _binaryProvider.enforcerConnected;
         initializing = _binaryProvider.enforcerInitializing;
         stopping = _binaryProvider.enforcerStopping;
         error = _binaryProvider.enforcerError;
+        startupError = _binaryProvider.enforcerStartupError;
+
         if (_binaryProvider.mainchainRPC.connected && _binaryProvider.mainchainRPC.inHeaderSync) {
           description = 'Bitcoin Core syncing headers, waiting...';
         }
+
       case BitWindow():
         connected = _binaryProvider.bitwindowConnected;
         initializing = _binaryProvider.bitwindowInitializing;
         stopping = _binaryProvider.bitwindowStopping;
         error = _binaryProvider.bitwindowError;
+        startupError = _binaryProvider.bitwindowStartupError;
+
       case Thunder():
         connected = _binaryProvider.thunderConnected;
         initializing = _binaryProvider.thunderInitializing;
         stopping = _binaryProvider.thunderStopping;
         error = _binaryProvider.thunderError;
+        startupError = _binaryProvider.thunderStartupError;
+
       case Bitnames():
         connected = _binaryProvider.bitnamesConnected;
         initializing = _binaryProvider.bitnamesInitializing;
         stopping = _binaryProvider.bitnamesStopping;
         error = _binaryProvider.bitnamesError;
+        startupError = _binaryProvider.bitnamesStartupError;
     }
 
     return Builder(
@@ -382,7 +393,7 @@ class _OverviewPageState extends State<OverviewPage> {
                     },
                   ),
                   const SizedBox(width: 8),
-                  _buildStatusIndicator(connected, initializing, stopping, error),
+                  _buildStatusIndicator(connected, initializing, stopping, error, startupError),
                 ],
               ),
               const SizedBox(height: 12),
@@ -394,7 +405,16 @@ class _OverviewPageState extends State<OverviewPage> {
               ),
               const SizedBox(height: 12),
               _buildProgressIndicator(binary, status),
-              ErrorComponent(error: status?.error ?? error ?? ''),
+              if (status?.error != null || error != null)
+                SailInfoBox(
+                  text: status?.error ?? error ?? '',
+                  type: InfoType.error,
+                ),
+              if (startupError != null && startupError.isNotEmpty)
+                SailInfoBox(
+                  text: startupError,
+                  type: InfoType.warn,
+                ),
             ],
           ),
           SailSpacing(SailStyleValues.padding08),
@@ -419,12 +439,13 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Widget _buildStatusIndicator(bool connected, bool initializing, bool stopping, String? error) {
-    final color = switch ((connected, initializing, stopping, error != null)) {
-      (true, _, _, _) => Colors.green,
-      (_, true, _, _) => Colors.orange,
-      (_, _, true, _) => Colors.orange,
-      (_, _, _, true) => SailColorScheme.red,
+  Widget _buildStatusIndicator(bool connected, bool initializing, bool stopping, String? error, String? startupError) {
+    final color = switch ((connected, initializing, stopping, error != null, startupError != null)) {
+      (true, _, _, _, _) => Colors.green,
+      (_, true, _, _, _) => Colors.orange,
+      (_, _, true, _, _) => Colors.orange,
+      (_, _, _, true, _) => SailColorScheme.red,
+      (_, _, _, _, true) => SailColorScheme.orange,
       _ => Colors.grey,
     };
 

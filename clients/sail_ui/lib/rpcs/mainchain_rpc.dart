@@ -200,6 +200,13 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [
+      'Loading block index',
+    ];
+  }
+
+  @override
   Future<(double, double)> balance() async {
     final confirmedFut = _client().call('getbalance');
     final unconfirmedFut = _client().call('getunconfirmedbalance');

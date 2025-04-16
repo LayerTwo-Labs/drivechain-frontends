@@ -103,6 +103,11 @@ class MockMainchainRPC extends MainchainRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   Future<void> waitForHeaderSync() async {
     return;
   }
@@ -210,6 +215,11 @@ class MockEnforcerRPC extends EnforcerRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   ValidatorServiceClient get validator => throw UnimplementedError();
 
   @override
@@ -294,6 +304,11 @@ class MockBitwindowRPC extends BitwindowRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   WalletAPI get wallet => throw UnimplementedError();
   @override
   BitwindowAPI get bitwindowd => throw UnimplementedError();
@@ -374,6 +389,11 @@ class MockThunderRPC extends ThunderRPC {
   @override
   Future<int> ping() {
     return Future.value(0);
+  }
+
+  @override
+  List<String> startupErrors() {
+    return [];
   }
 
   @override
@@ -482,6 +502,11 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<int> ping() {
     return Future.value(0);
+  }
+
+  @override
+  List<String> startupErrors() {
+    return [];
   }
 
   @override

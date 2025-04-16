@@ -314,6 +314,11 @@ class ZcashRPCLive extends ZCashRPC {
     return newBlockHeight;
   }
 
+  @override
+  List<String> startupErrors() {
+    return [];
+  }
+
   Future<void> clearBanned() async {
     await _client().call('clearbanned');
   }
