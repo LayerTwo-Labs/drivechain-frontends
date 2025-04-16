@@ -150,7 +150,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Future<void> initBinary({
     List<String>? arg,
-    bool withBootConnectionRetry = false,
+    bool testConnectedWithBackoff = false,
   }) async {
     final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
@@ -163,7 +163,7 @@ abstract class RPCConnection extends ChangeNotifier {
     log.i('init binaries: checking connection ${binary.connectionString}');
 
     try {
-      await startConnectionTimer(withBootConnectionRetry: withBootConnectionRetry);
+      await startConnectionTimer(testConnectedWithBackoff: testConnectedWithBackoff);
       // If we managed to connect to an already running daemon, we're finished here!
       if (connected) {
         log.i('init binaries: $binary is already running, not doing anything');
@@ -268,12 +268,13 @@ abstract class RPCConnection extends ChangeNotifier {
           // we're still going from the last loop, don't retry multiple times in parallell!
           return;
         }
+
         if (stoppingBinary) {
-          // we're currently stopping manuelly. Be defensive and don't retry then
+          // we're currently stopping manually. Don't retry if the user wants to shut it off
           return;
         }
 
-        if (_restartCount > 5) {
+        if (_restartCount > 10) {
           // we've restarted too many times without successfully starting. stop trying, rip
           return;
         }
@@ -288,7 +289,11 @@ abstract class RPCConnection extends ChangeNotifier {
           // Only attempt restart if the process has exited with non-zero code
           log.w('Process exited unexpectedly with code ${exit.code}, restarting...');
           _restartCount++;
-          await initBinary();
+          await initBinary(testConnectedWithBackoff: true);
+          if (connected) {
+            // we managed to restart! reset the restart count
+            _restartCount = 0;
+          }
         }
       }
     });
@@ -297,15 +302,14 @@ abstract class RPCConnection extends ChangeNotifier {
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the connection drops/begins
   Timer? _connectionTimer;
-  Future<void> startConnectionTimer({bool withBootConnectionRetry = false}) async {
+  Future<void> startConnectionTimer({bool testConnectedWithBackoff = false}) async {
     // Cancel any existing timer before starting a new one
     _connectionTimer?.cancel();
 
     log.i('checking connection ${binary.connectionString}');
 
-    // the enforcer is kinda brittle when testing connection on launch
-    // we want to give it a few tries before we give up and try to start it ourselves
-    if (withBootConnectionRetry) {
+    // some binaries are kinda brittle. be nice on them
+    if (testConnectedWithBackoff) {
       // Try up to 5 times with a small delay between attempts
       for (int i = 0; i < 5; i++) {
         await testConnection();
@@ -313,8 +317,8 @@ abstract class RPCConnection extends ChangeNotifier {
           log.i('${binary.connectionString} connected on attempt ${i + 1}');
           break;
         }
-        log.i('${binary.connectionString} connection attempt ${i + 1} failed, retrying...');
-        await Future.delayed(const Duration(seconds: 1));
+        log.i('${binary.connectionString} connection attempt ${i + 1} failed, retrying in ${i + 1} seconds...');
+        await Future.delayed(Duration(seconds: i + 1));
       }
     } else {
       await testConnection();

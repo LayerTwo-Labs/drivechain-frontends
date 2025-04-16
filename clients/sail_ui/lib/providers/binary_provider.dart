@@ -237,7 +237,7 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> startBinary(
     Binary binary, {
     bool useStarter = false,
-    bool withBootConnectionRetry = false,
+    bool testConnectedWithBackoff = false,
   }) async {
     if (useStarter && (binary is Thunder || binary is Bitnames)) {
       try {
@@ -249,20 +249,20 @@ class BinaryProvider extends ChangeNotifier {
 
     switch (binary) {
       case ParentChain():
-        await mainchainRPC.initBinary(withBootConnectionRetry: withBootConnectionRetry);
+        await mainchainRPC.initBinary(testConnectedWithBackoff: testConnectedWithBackoff);
 
       case Enforcer():
-        await enforcerRPC.initBinary(withBootConnectionRetry: withBootConnectionRetry);
+        await enforcerRPC.initBinary(testConnectedWithBackoff: testConnectedWithBackoff);
 
       case BitWindow():
-        await bitwindowRPC?.initBinary(withBootConnectionRetry: withBootConnectionRetry);
+        await bitwindowRPC?.initBinary(testConnectedWithBackoff: testConnectedWithBackoff);
 
       case Thunder():
         await thunderRPC?.initBinary(
           arg: binary.mnemonicSeedPhrasePath != null
               ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
               : null,
-          withBootConnectionRetry: withBootConnectionRetry,
+          testConnectedWithBackoff: testConnectedWithBackoff,
         );
 
       case Bitnames():
@@ -270,11 +270,11 @@ class BinaryProvider extends ChangeNotifier {
           arg: binary.mnemonicSeedPhrasePath != null
               ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
               : null,
-          withBootConnectionRetry: withBootConnectionRetry,
+          testConnectedWithBackoff: testConnectedWithBackoff,
         );
 
       case ZCash():
-        await zcashRPC?.initBinary(withBootConnectionRetry: withBootConnectionRetry);
+        await zcashRPC?.initBinary(testConnectedWithBackoff: testConnectedWithBackoff);
 
       default:
         log.i('is $binary');
@@ -515,7 +515,6 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> downloadThenBootBinary(
     Binary binaryToBoot, {
     bool bootAllNoMatterWhat = false,
-    bool withEnforcerRetry = false,
   }) async {
     final log = GetIt.I.get<Logger>();
     log.i('Booting L1 binaries + ${binaryToBoot.name}');
@@ -532,6 +531,7 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     // 1. Start parent chain and wait for IBD
+    // parent chain does not need to be restarted on crash, it's very stable
     await startBinary(parentChain, useStarter: false);
 
     log.i('Waiting for mainchain to connect...');
@@ -541,11 +541,17 @@ class BinaryProvider extends ChangeNotifier {
     // 2. Start rest after mainchain is ready
     if (bootAllNoMatterWhat) {
       // 2.1. If we're told to boot no matter what, do enforcer and bitwindow in parallell
-      unawaited(startBinary(binaryToBoot, useStarter: false));
+      unawaited(
+        startBinary(
+          binaryToBoot,
+          useStarter: false,
+          testConnectedWithBackoff: true,
+        ),
+      );
       await startBinary(
         enforcer,
         useStarter: false,
-        withBootConnectionRetry: withEnforcerRetry,
+        testConnectedWithBackoff: true,
       );
       log.i('Started enforcer and ${binaryToBoot.name}');
     } else {
@@ -553,12 +559,16 @@ class BinaryProvider extends ChangeNotifier {
       await startBinary(
         enforcer,
         useStarter: false,
-        withBootConnectionRetry: withEnforcerRetry,
+        testConnectedWithBackoff: true,
       );
       log.i('Started enforcer');
 
       // 3. Start whatever binary we were told to boot after enforcer
-      await startBinary(binaryToBoot, useStarter: false);
+      await startBinary(
+        binaryToBoot,
+        useStarter: false,
+        testConnectedWithBackoff: true,
+      );
       log.i('Started ${binaryToBoot.name}');
     }
 
