@@ -627,6 +627,11 @@ class MockZCashRPCLive extends ZCashRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   Future<void> stopRPC() async {
     super.dispose();
   }

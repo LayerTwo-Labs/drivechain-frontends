@@ -92,6 +92,14 @@ class BinaryProvider extends ChangeNotifier {
   String? get bitnamesError => bitnamesRPC?.connectionError;
   String? get zcashError => zcashRPC?.connectionError;
 
+  // Only show errors for explicitly launched binaries
+  String? get mainchainStartupError => mainchainRPC.startupError;
+  String? get enforcerStartupError => enforcerRPC.startupError;
+  String? get bitwindowStartupError => bitwindowRPC?.startupError;
+  String? get thunderStartupError => thunderRPC?.startupError;
+  String? get bitnamesStartupError => bitnamesRPC?.startupError;
+  String? get zcashStartupError => zcashRPC?.startupError;
+
   bool get inIBD => mainchainRPC.inIBD;
 
   BinaryProvider({

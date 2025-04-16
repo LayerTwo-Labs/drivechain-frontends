@@ -330,7 +330,7 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
                     showSnackBar(context, 'Error accessing clipboard');
                   }
                 },
-                icon: SailSVGAsset.iconCopy, // TODO: add paste icon
+                icon: SailSVGAsset.clipboardPaste,
               ),
               const SizedBox(width: 4.0),
             ],

@@ -212,6 +212,11 @@ class BitwindowRPCLive extends BitwindowRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   Future<(double, double)> balance() async {
     final balanceSat = await wallet.getBalance();
     return (satoshiToBTC(balanceSat.confirmedSatoshi.toInt()), satoshiToBTC(balanceSat.pendingSatoshi.toInt()));

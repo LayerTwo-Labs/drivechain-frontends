@@ -177,7 +177,7 @@ class _FaucetPageState extends State<FaucetPage> {
                               showSnackBar(context, 'Clipboard not available');
                             }
                           },
-                          icon: SailSVGAsset.iconCopy, // TODO: add icon for iconPaste
+                          icon: SailSVGAsset.clipboardPaste,
                         ),
                       ],
                     ),
@@ -232,7 +232,11 @@ class _FaucetPageState extends State<FaucetPage> {
                       ],
                     ),
                     if (model.dispenseErr != null) const SizedBox(height: SailStyleValues.padding16),
-                    ErrorComponent(error: model.dispenseErr ?? ''),
+                    if (model.dispenseErr != null && model.dispenseErr!.isNotEmpty)
+                      SailInfoBox(
+                        text: model.dispenseErr!,
+                        type: InfoType.error,
+                      ),
                   ],
                 ),
               ),

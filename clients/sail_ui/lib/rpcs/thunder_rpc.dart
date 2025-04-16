@@ -88,6 +88,11 @@ class ThunderLive extends ThunderRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   Future<(double, double)> balance() async {
     final response = await _client().call('balance') as Map<String, dynamic>;
     final totalSats = response['total_sats'] as int;

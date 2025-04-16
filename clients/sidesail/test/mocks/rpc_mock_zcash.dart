@@ -288,6 +288,11 @@ class MockZCashRPC extends ZCashRPC {
   }
 
   @override
+  List<String> startupErrors() {
+    return [];
+  }
+
+  @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async {
     return 'txiddeadbeef';
   }

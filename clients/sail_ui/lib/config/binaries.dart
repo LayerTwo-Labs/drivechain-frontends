@@ -91,6 +91,7 @@ abstract class Binary {
     if (ZCash().name.toLowerCase() == name) {
       return ZCash();
     }
+
     return null;
   }
 
@@ -122,7 +123,7 @@ abstract class Binary {
         description: json['description'] as String? ?? '',
         repoUrl: json['repo_url'] as String? ?? '',
         directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
-        metadata: MetadataConfig.fromJson(json['metadata'] as Map<String, dynamic>? ?? {}),
+        metadata: MetadataConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
         binary: '',
         network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
         chainLayer: json['chain_layer'] as int? ?? 0,
@@ -796,7 +797,7 @@ class BitWindow extends Binary {
 
 class Enforcer extends Binary {
   Enforcer({
-    super.name = 'Enforcer',
+    super.name = 'BIP300301 Enforcer',
     super.version = '0.1.0',
     super.description = 'BIP300/301 Enforcer',
     super.repoUrl = 'https://github.com/drivechain-project/enforcer',
