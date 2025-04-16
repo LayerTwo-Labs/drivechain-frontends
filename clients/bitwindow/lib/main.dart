@@ -380,6 +380,8 @@ void bootBinaries(Logger log) async {
 
   await binaryProvider.downloadThenBootBinary(
     bitwindow,
+    // bitwindow can start without the enforcer
+    bootAllNoMatterWhat: true,
   );
 }
 
