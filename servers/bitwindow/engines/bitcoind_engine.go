@@ -472,7 +472,12 @@ func shouldSkip(pkScript []byte) bool {
 func (p *Parser) detectChainDeletion(ctx context.Context) error {
 	// Get block at height 1 to check for chain switch
 	block1, err := p.getBlock(ctx, 1)
-	if err != nil {
+	if err != nil && strings.Contains(err.Error(), "Block not found on disk") {
+		// someone wiped the chain, and bitcoind can't find the block we're requesting
+		zerolog.Ctx(ctx).Warn().
+			Err(err).
+			Msgf("bitcoind_engine/parser: complete reorg detected, wiping processed blocks")
+	} else if err != nil {
 		zerolog.Ctx(ctx).Error().
 			Err(err).
 			Msgf("bitcoind_engine/parser: could not get block at height 1")
@@ -489,7 +494,7 @@ func (p *Parser) detectChainDeletion(ctx context.Context) error {
 		return fmt.Errorf("detect chain deletion: %w", err)
 	}
 
-	if savedBlock1.Hash != "" && savedBlock1.Hash != block1.Hash {
+	if block1 == nil || (savedBlock1.Hash != "" && savedBlock1.Hash != block1.Hash) {
 		zerolog.Ctx(ctx).Info().
 			Msgf("bitcoind_engine/parser: detected chain switch, reprocessing all blocks")
 		return blocks.WipeProcessedBlocks(ctx, p.db)
