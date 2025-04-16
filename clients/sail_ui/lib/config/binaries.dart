@@ -56,35 +56,39 @@ abstract class Binary {
   @override
   int get hashCode => Object.hash(name, version);
 
-  static Binary? fromBinary(String binary) {
+  static Binary? fromBinaryName(String binary) {
     final name = binary.toLowerCase();
-    switch (name) {
-      case 'bitcoind':
-      case 'bitcoind.exe':
-        return ParentChain();
-      case 'bip300301-enforcer':
-      case 'bip300301-enforcer.exe':
-        return Enforcer();
-      case 'bitwindow':
-      case 'bitwindow.exe':
-      case 'bitwindow.app':
-        return BitWindow();
-      case 'thunder':
-      case 'thunder.exe':
-      case 'l2-s9-thunder':
-        return Thunder();
-      case 'bitnames':
-      case 'bitnames.exe':
-        return Bitnames();
-      case 'sidegeth':
-      case 'sidegeth.exe':
-        return EthereumSidechain();
-      case 'testchaind':
-      case 'testchaind.exe':
-        return TestSidechain();
-      case 'zsided':
-      case 'zsided.exe':
-        return ZCash();
+
+    if (ParentChain().name.toLowerCase() == name) {
+      return ParentChain();
+    }
+
+    if (Enforcer().name.toLowerCase() == name) {
+      return Enforcer();
+    }
+
+    if (BitWindow().name.toLowerCase() == name) {
+      return BitWindow();
+    }
+
+    if (Thunder().name.toLowerCase() == name) {
+      return Thunder();
+    }
+
+    if (Bitnames().name.toLowerCase() == name) {
+      return Bitnames();
+    }
+
+    if (EthereumSidechain().name.toLowerCase() == name) {
+      return EthereumSidechain();
+    }
+
+    if (TestSidechain().name.toLowerCase() == name) {
+      return TestSidechain();
+    }
+
+    if (ZCash().name.toLowerCase() == name) {
+      return ZCash();
     }
     return null;
   }
@@ -93,27 +97,36 @@ abstract class Binary {
     // First create the correct type based on name
     final name = json['name'] as String? ?? '';
 
-    Binary base = switch (name) {
-      'Bitcoin Core (Patched)' => ParentChain(),
-      'BitWindow' => BitWindow(),
-      'BIP300301 Enforcer' => Enforcer(),
-      'Test Sidechain' => TestSidechain(),
-      'zSide' => ZCash(),
-      'EthSide' => EthereumSidechain(),
-      'Thunder' => Thunder(),
-      'Bitnames' => Bitnames(),
-      _ => _BinaryImpl(
-          name: name,
-          version: json['version'] as String? ?? '',
-          description: json['description'] as String? ?? '',
-          repoUrl: json['repo_url'] as String? ?? '',
-          directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
-          metadata: MetadataConfig.fromJson(json['metadata'] as Map<String, dynamic>? ?? {}),
-          binary: '',
-          network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
-          chainLayer: json['chain_layer'] as int? ?? 0,
-        ),
-    };
+    Binary base;
+    if (name == ParentChain().name) {
+      base = ParentChain();
+    } else if (name == BitWindow().name) {
+      base = BitWindow();
+    } else if (name == Enforcer().name) {
+      base = Enforcer();
+    } else if (name == TestSidechain().name) {
+      base = TestSidechain();
+    } else if (name == ZCash().name) {
+      base = ZCash();
+    } else if (name == EthereumSidechain().name) {
+      base = EthereumSidechain();
+    } else if (name == Thunder().name) {
+      base = Thunder();
+    } else if (name == Bitnames().name) {
+      base = Bitnames();
+    } else {
+      base = _BinaryImpl(
+        name: name,
+        version: json['version'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        repoUrl: json['repo_url'] as String? ?? '',
+        directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
+        metadata: MetadataConfig.fromJson(json['metadata'] as Map<String, dynamic>? ?? {}),
+        binary: '',
+        network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
+        chainLayer: json['chain_layer'] as int? ?? 0,
+      );
+    }
 
     // Handle the binary field which is a map of platform-specific paths
     final binaryMap = json['binary'] as Map<String, dynamic>? ?? {};
@@ -869,7 +882,7 @@ extension BinaryPaths on Binary {
 
     switch (OS.current) {
       case OS.linux:
-        if (name == 'Bitcoin Core (Patched)') {
+        if (name == ParentChain().name) {
           // in good style, this is different than all the others
           return filePath([home, subdir]);
         }

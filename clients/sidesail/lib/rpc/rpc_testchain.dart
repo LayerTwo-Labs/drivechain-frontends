@@ -275,11 +275,11 @@ class TestchainRPCLive extends TestchainRPC {
   @override
   Future<void> initBinary({
     List<String>? arg,
-    bool withBootConnectionRetry = false,
+    bool testConnectedWithBackoff = false,
   }) async {
     await super.initBinary(
       arg: arg,
-      withBootConnectionRetry: withBootConnectionRetry,
+      testConnectedWithBackoff: testConnectedWithBackoff,
     );
   }
 

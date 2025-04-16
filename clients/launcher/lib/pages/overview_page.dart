@@ -211,7 +211,11 @@ class _OverviewPageState extends State<OverviewPage> {
         message: canStart ?? 'Launch ${binary.name}',
         child: SailButton(
           label: 'Launch',
-          onPressed: () => _binaryProvider.startBinary(binary, useStarter: _useStarter[binary.name] ?? false),
+          onPressed: () => _binaryProvider.startBinary(
+            binary,
+            useStarter: _useStarter[binary.name] ?? false,
+            testConnectedWithBackoff: binary is Enforcer, // enforcer is finicky
+          ),
           variant: ButtonVariant.primary,
           disabled: canStart != null,
         ),

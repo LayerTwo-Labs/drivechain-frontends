@@ -17,16 +17,16 @@ class ProcessProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
   final Map<String, ExitTuple> _exitTuples = {};
-  ExitTuple? exited(Binary binary) => _exitTuples[binary.binary];
+  ExitTuple? exited(Binary binary) => _exitTuples[binary.name];
 
   final Map<String, SailProcess> runningProcesses = {};
 
   final Map<String, Stream<String>> _stdoutStreams = {};
   final Map<String, Stream<String>> _stderrStreams = {};
 
-  Stream<String> stdout(Binary binary) => _stdoutStreams[binary.binary] ?? const Stream.empty();
-  Stream<String> stderr(Binary binary) => _stderrStreams[binary.binary] ?? const Stream.empty();
-  bool running(Binary binary) => runningProcesses.containsKey(binary.binary);
+  Stream<String> stdout(Binary binary) => _stdoutStreams[binary.name] ?? const Stream.empty();
+  Stream<String> stderr(Binary binary) => _stderrStreams[binary.name] ?? const Stream.empty();
+  bool running(Binary binary) => runningProcesses.containsKey(binary.name);
 
   Future<int> start(
     Binary binary,
@@ -139,24 +139,24 @@ class ProcessProvider extends ChangeNotifier {
   Future<void> kill(Binary binary) async {
     final process = runningProcesses.values.firstWhere(
       (p) {
-        final matched = Binary.fromBinary(p.binary.binary);
-        return matched?.runtimeType == binary.runtimeType;
+        final matched = Binary.fromBinaryName(p.binary.name);
+        return matched != null;
       },
-      orElse: () => throw Exception('Process not found for binary ${binary.binary}'),
+      orElse: () => throw Exception('Process not found for binary ${binary.name}'),
     );
 
     await _shutdownSingle(process);
 
     // Wait for process to exit
-    while (runningProcesses.containsKey(binary.binary)) {
+    while (runningProcesses.containsKey(binary.name)) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
   }
 
   bool isRunning(Binary binary) {
     return runningProcesses.values.any((p) {
-      final matched = Binary.fromBinary(p.binary.binary);
-      return matched?.runtimeType == binary.runtimeType;
+      final matched = Binary.fromBinaryName(p.binary.name);
+      return matched != null;
     });
   }
 

@@ -199,9 +199,9 @@ class EthereumRPCLive extends EthereumRPC {
   @override
   Future<void> initBinary({
     List<String>? arg,
-    bool withBootConnectionRetry = false,
+    bool testConnectedWithBackoff = false,
   }) async {
-    await super.initBinary(arg: arg, withBootConnectionRetry: withBootConnectionRetry);
+    await super.initBinary(arg: arg, testConnectedWithBackoff: testConnectedWithBackoff);
   }
 
   @override
