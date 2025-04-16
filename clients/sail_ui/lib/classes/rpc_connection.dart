@@ -192,6 +192,8 @@ abstract class RPCConnection extends ChangeNotifier {
         return;
       }
 
+      _startRestartTimer();
+
       log.i('init binaries: waiting for ${binary.connectionString} connection');
 
       var timeout = const Duration(seconds: 60);
@@ -231,8 +233,6 @@ abstract class RPCConnection extends ChangeNotifier {
           ),
           // Timeout case!
         ]);
-
-        _startRestartTimer();
 
         log.i('init binaries: $binary connected');
       } catch (err) {
