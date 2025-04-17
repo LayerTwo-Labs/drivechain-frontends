@@ -84,7 +84,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   @override
   Future<AppExitResponse> didRequestAppExit() async {
     await onShutdown(context);
-
     return AppExitResponse.exit;
   }
 

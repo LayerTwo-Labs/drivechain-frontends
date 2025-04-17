@@ -26,6 +26,7 @@ import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbenum.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/balance_provider.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
@@ -475,10 +476,20 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   Future<bool> onShutdown(BuildContext context) async {
     final router = GetIt.I.get<AppRouter>();
     unawaited(router.push(const sailroutes.ShuttingDownRoute()));
-    final bitwindow = GetIt.I.get<BitwindowRPC>();
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
     final processProvider = GetIt.I.get<ProcessProvider>();
 
-    await bitwindow.stop();
+    final futures = <Future>[];
+    // Only stop binaries that are started by bitwindow!
+    // For example if the user starts bitcoind manually, we shouldn't kill it
+    for (final process in processProvider.runningProcesses.values) {
+      futures.add(binaryProvider.stop(process.binary));
+    }
+
+    // Wait for all stop operations to complete
+    await Future.wait(futures);
+
+    // after all binaries are killed, make sure to kill any lingering processes started
     await processProvider.shutdown();
 
     return true;
