@@ -25,4 +25,4 @@ sed -i "s/bitwindow/$lower_app_name/" windows/runner/Runner.rc
 # msix_config stanza
 sed -i "s/display_name: BitWindow/display_name: $app_name/" pubspec.yaml
 sed -i "s/output_name: BitWindow/output_name: $app_name/" pubspec.yaml
-sed -i "s/com.layertwolabs.bitwindow/com.layertwolabs.$lower_app_name/" pubspec.yaml
+sed -i "s/bitwindow/$lower_app_name/" pubspec.yaml

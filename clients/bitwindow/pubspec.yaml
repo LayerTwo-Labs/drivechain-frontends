@@ -129,7 +129,7 @@ msix_config:
   languages: en-us
   windows_build_args: --dart-define-from-file=build-vars.env
   publisher_display_name: LayerTwo Labs
-  identity_name: com.layertwolabs.bitwindow
+  identity_name: bitwindow
   msix_version: 1.0.0.0
   logo_path: windows/runner/resources/app_icon.ico
   capabilities: internetClient,internetClientServer
