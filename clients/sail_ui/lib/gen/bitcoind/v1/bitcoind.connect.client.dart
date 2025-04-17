@@ -134,6 +134,23 @@ extension type BitcoindServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<bitcoindv1bitcoind.CreateRawTransactionResponse> createRawTransaction(
+    bitcoindv1bitcoind.CreateRawTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.createRawTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Wallet management
   Future<bitcoindv1bitcoind.CreateWalletResponse> createWallet(
     bitcoindv1bitcoind.CreateWalletRequest input, {
@@ -402,6 +419,127 @@ extension type BitcoindServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.BitcoindService.createMultisig,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// PSBT handling
+  Future<bitcoindv1bitcoind.CreatePsbtResponse> createPsbt(
+    bitcoindv1bitcoind.CreatePsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.createPsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoindv1bitcoind.DecodePsbtResponse> decodePsbt(
+    bitcoindv1bitcoind.DecodePsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.decodePsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoindv1bitcoind.AnalyzePsbtResponse> analyzePsbt(
+    bitcoindv1bitcoind.AnalyzePsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.analyzePsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoindv1bitcoind.CombinePsbtResponse> combinePsbt(
+    bitcoindv1bitcoind.CombinePsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.combinePsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoindv1bitcoind.UtxoUpdatePsbtResponse> utxoUpdatePsbt(
+    bitcoindv1bitcoind.UtxoUpdatePsbtRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.utxoUpdatePsbt,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<bitcoindv1bitcoind.JoinPsbtsResponse> joinPsbts(
+    bitcoindv1bitcoind.JoinPsbtsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.joinPsbts,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Transaction misc
+  Future<bitcoindv1bitcoind.TestMempoolAcceptResponse> testMempoolAccept(
+    bitcoindv1bitcoind.TestMempoolAcceptRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoindService.testMempoolAccept,
       input,
       signal: signal,
       headers: headers,

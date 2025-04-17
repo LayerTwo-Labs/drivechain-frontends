@@ -784,4 +784,39 @@ class MockBitcoindAPI implements BitcoindAPI {
   Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet) {
     return Future.value(UnloadWalletResponse());
   }
+
+  @override
+  Future<AnalyzePsbtResponse> analyzePsbt(AnalyzePsbtRequest request) {
+    return Future.value(AnalyzePsbtResponse());
+  }
+
+  @override
+  Future<CombinePsbtResponse> combinePsbt(CombinePsbtRequest request) {
+    return Future.value(CombinePsbtResponse());
+  }
+
+  @override
+  Future<CreatePsbtResponse> createPsbt(CreatePsbtRequest request) {
+    return Future.value(CreatePsbtResponse());
+  }
+
+  @override
+  Future<DecodePsbtResponse> decodePsbt(DecodePsbtRequest request) {
+    return Future.value(DecodePsbtResponse());
+  }
+
+  @override
+  Future<JoinPsbtsResponse> joinPsbts(JoinPsbtsRequest request) {
+    return Future.value(JoinPsbtsResponse());
+  }
+
+  @override
+  Future<TestMempoolAcceptResponse> testMempoolAccept(TestMempoolAcceptRequest request) {
+    return Future.value(TestMempoolAcceptResponse());
+  }
+
+  @override
+  Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request) {
+    return Future.value(UtxoUpdatePsbtResponse());
+  }
 }
