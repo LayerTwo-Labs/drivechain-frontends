@@ -8,7 +8,7 @@
 PRODUCT_NAME = BitWindow
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.layertwolabs.bitwindow
+PRODUCT_BUNDLE_IDENTIFIER = bitwindow
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 LayerTwo Labs Inc. All rights reserved.

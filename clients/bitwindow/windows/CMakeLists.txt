@@ -6,7 +6,7 @@ project(bitwindow LANGUAGES CXX)
 # the on-disk name of your application.
 set(BINARY_NAME "bitwindow")
 # Near the top, after project() declaration
-set(APPLICATION_ID "com.layertwolabs.bitwindow")
+set(APPLICATION_ID "bitwindow")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

@@ -750,9 +750,9 @@ class BitWindow extends Binary {
           directories: directories ??
               DirectoryConfig(
                 base: {
-                  OS.linux: 'com.layertwolabs.bitwindow',
-                  OS.macos: 'com.layertwolabs.bitwindow',
-                  OS.windows: 'com.layertwolabs.bitwindow',
+                  OS.linux: 'bitwindow',
+                  OS.macos: 'bitwindow',
+                  OS.windows: 'bitwindow',
                 },
               ),
           metadata: metadata ??
