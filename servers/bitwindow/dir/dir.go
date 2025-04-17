@@ -9,7 +9,7 @@ import (
 
 func GetDataDir() (string, error) {
 	var dir string
-	const appName = "com.layertwolabs.bitwindow"
+	const appName = "bitwindow"
 
 	switch runtime.GOOS {
 	case "linux":
