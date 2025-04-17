@@ -126,7 +126,7 @@ echo "Building bitwindowd in $server_cwd"
 
 # Build bitwindowd
 echo "Building bitwindowd"
-just build-go
+just build-go-x86
 
 # Move the necessary binaries to the assets directory
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
