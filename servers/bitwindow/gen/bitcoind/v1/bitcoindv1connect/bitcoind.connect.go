@@ -55,6 +55,9 @@ const (
 	// BitcoindServiceGetRawTransactionProcedure is the fully-qualified name of the BitcoindService's
 	// GetRawTransaction RPC.
 	BitcoindServiceGetRawTransactionProcedure = "/bitcoind.v1.BitcoindService/GetRawTransaction"
+	// BitcoindServiceCreateRawTransactionProcedure is the fully-qualified name of the BitcoindService's
+	// CreateRawTransaction RPC.
+	BitcoindServiceCreateRawTransactionProcedure = "/bitcoind.v1.BitcoindService/CreateRawTransaction"
 	// BitcoindServiceCreateWalletProcedure is the fully-qualified name of the BitcoindService's
 	// CreateWallet RPC.
 	BitcoindServiceCreateWalletProcedure = "/bitcoind.v1.BitcoindService/CreateWallet"
@@ -103,6 +106,27 @@ const (
 	// BitcoindServiceCreateMultisigProcedure is the fully-qualified name of the BitcoindService's
 	// CreateMultisig RPC.
 	BitcoindServiceCreateMultisigProcedure = "/bitcoind.v1.BitcoindService/CreateMultisig"
+	// BitcoindServiceCreatePsbtProcedure is the fully-qualified name of the BitcoindService's
+	// CreatePsbt RPC.
+	BitcoindServiceCreatePsbtProcedure = "/bitcoind.v1.BitcoindService/CreatePsbt"
+	// BitcoindServiceDecodePsbtProcedure is the fully-qualified name of the BitcoindService's
+	// DecodePsbt RPC.
+	BitcoindServiceDecodePsbtProcedure = "/bitcoind.v1.BitcoindService/DecodePsbt"
+	// BitcoindServiceAnalyzePsbtProcedure is the fully-qualified name of the BitcoindService's
+	// AnalyzePsbt RPC.
+	BitcoindServiceAnalyzePsbtProcedure = "/bitcoind.v1.BitcoindService/AnalyzePsbt"
+	// BitcoindServiceCombinePsbtProcedure is the fully-qualified name of the BitcoindService's
+	// CombinePsbt RPC.
+	BitcoindServiceCombinePsbtProcedure = "/bitcoind.v1.BitcoindService/CombinePsbt"
+	// BitcoindServiceUtxoUpdatePsbtProcedure is the fully-qualified name of the BitcoindService's
+	// UtxoUpdatePsbt RPC.
+	BitcoindServiceUtxoUpdatePsbtProcedure = "/bitcoind.v1.BitcoindService/UtxoUpdatePsbt"
+	// BitcoindServiceJoinPsbtsProcedure is the fully-qualified name of the BitcoindService's JoinPsbts
+	// RPC.
+	BitcoindServiceJoinPsbtsProcedure = "/bitcoind.v1.BitcoindService/JoinPsbts"
+	// BitcoindServiceTestMempoolAcceptProcedure is the fully-qualified name of the BitcoindService's
+	// TestMempoolAccept RPC.
+	BitcoindServiceTestMempoolAcceptProcedure = "/bitcoind.v1.BitcoindService/TestMempoolAccept"
 )
 
 // BitcoindServiceClient is a client for the bitcoind.v1.BitcoindService service.
@@ -120,6 +144,7 @@ type BitcoindServiceClient interface {
 	// Lists very basic info about all peers
 	EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error)
 	GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error)
+	CreateRawTransaction(context.Context, *connect.Request[v1.CreateRawTransactionRequest]) (*connect.Response[v1.CreateRawTransactionResponse], error)
 	// Wallet management
 	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
 	BackupWallet(context.Context, *connect.Request[v1.BackupWalletRequest]) (*connect.Response[v1.BackupWalletResponse], error)
@@ -140,6 +165,15 @@ type BitcoindServiceClient interface {
 	// Multi-sig operations
 	AddMultisigAddress(context.Context, *connect.Request[v1.AddMultisigAddressRequest]) (*connect.Response[v1.AddMultisigAddressResponse], error)
 	CreateMultisig(context.Context, *connect.Request[v1.CreateMultisigRequest]) (*connect.Response[v1.CreateMultisigResponse], error)
+	// PSBT handling
+	CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error)
+	DecodePsbt(context.Context, *connect.Request[v1.DecodePsbtRequest]) (*connect.Response[v1.DecodePsbtResponse], error)
+	AnalyzePsbt(context.Context, *connect.Request[v1.AnalyzePsbtRequest]) (*connect.Response[v1.AnalyzePsbtResponse], error)
+	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
+	UtxoUpdatePsbt(context.Context, *connect.Request[v1.UtxoUpdatePsbtRequest]) (*connect.Response[v1.UtxoUpdatePsbtResponse], error)
+	JoinPsbts(context.Context, *connect.Request[v1.JoinPsbtsRequest]) (*connect.Response[v1.JoinPsbtsResponse], error)
+	// Transaction misc
+	TestMempoolAccept(context.Context, *connect.Request[v1.TestMempoolAcceptRequest]) (*connect.Response[v1.TestMempoolAcceptResponse], error)
 }
 
 // NewBitcoindServiceClient constructs a client for the bitcoind.v1.BitcoindService service. By
@@ -193,6 +227,12 @@ func NewBitcoindServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			httpClient,
 			baseURL+BitcoindServiceGetRawTransactionProcedure,
 			connect.WithSchema(bitcoindServiceMethods.ByName("GetRawTransaction")),
+			connect.WithClientOptions(opts...),
+		),
+		createRawTransaction: connect.NewClient[v1.CreateRawTransactionRequest, v1.CreateRawTransactionResponse](
+			httpClient,
+			baseURL+BitcoindServiceCreateRawTransactionProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("CreateRawTransaction")),
 			connect.WithClientOptions(opts...),
 		),
 		createWallet: connect.NewClient[v1.CreateWalletRequest, v1.CreateWalletResponse](
@@ -291,6 +331,48 @@ func NewBitcoindServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(bitcoindServiceMethods.ByName("CreateMultisig")),
 			connect.WithClientOptions(opts...),
 		),
+		createPsbt: connect.NewClient[v1.CreatePsbtRequest, v1.CreatePsbtResponse](
+			httpClient,
+			baseURL+BitcoindServiceCreatePsbtProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("CreatePsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		decodePsbt: connect.NewClient[v1.DecodePsbtRequest, v1.DecodePsbtResponse](
+			httpClient,
+			baseURL+BitcoindServiceDecodePsbtProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("DecodePsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		analyzePsbt: connect.NewClient[v1.AnalyzePsbtRequest, v1.AnalyzePsbtResponse](
+			httpClient,
+			baseURL+BitcoindServiceAnalyzePsbtProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("AnalyzePsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		combinePsbt: connect.NewClient[v1.CombinePsbtRequest, v1.CombinePsbtResponse](
+			httpClient,
+			baseURL+BitcoindServiceCombinePsbtProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("CombinePsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		utxoUpdatePsbt: connect.NewClient[v1.UtxoUpdatePsbtRequest, v1.UtxoUpdatePsbtResponse](
+			httpClient,
+			baseURL+BitcoindServiceUtxoUpdatePsbtProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("UtxoUpdatePsbt")),
+			connect.WithClientOptions(opts...),
+		),
+		joinPsbts: connect.NewClient[v1.JoinPsbtsRequest, v1.JoinPsbtsResponse](
+			httpClient,
+			baseURL+BitcoindServiceJoinPsbtsProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("JoinPsbts")),
+			connect.WithClientOptions(opts...),
+		),
+		testMempoolAccept: connect.NewClient[v1.TestMempoolAcceptRequest, v1.TestMempoolAcceptResponse](
+			httpClient,
+			baseURL+BitcoindServiceTestMempoolAcceptProcedure,
+			connect.WithSchema(bitcoindServiceMethods.ByName("TestMempoolAccept")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -303,6 +385,7 @@ type bitcoindServiceClient struct {
 	listPeers              *connect.Client[emptypb.Empty, v1.ListPeersResponse]
 	estimateSmartFee       *connect.Client[v1.EstimateSmartFeeRequest, v1.EstimateSmartFeeResponse]
 	getRawTransaction      *connect.Client[v1.GetRawTransactionRequest, v1.GetRawTransactionResponse]
+	createRawTransaction   *connect.Client[v1.CreateRawTransactionRequest, v1.CreateRawTransactionResponse]
 	createWallet           *connect.Client[v1.CreateWalletRequest, v1.CreateWalletResponse]
 	backupWallet           *connect.Client[v1.BackupWalletRequest, v1.BackupWalletResponse]
 	dumpWallet             *connect.Client[v1.DumpWalletRequest, v1.DumpWalletResponse]
@@ -319,6 +402,13 @@ type bitcoindServiceClient struct {
 	listAccounts           *connect.Client[v1.ListAccountsRequest, v1.ListAccountsResponse]
 	addMultisigAddress     *connect.Client[v1.AddMultisigAddressRequest, v1.AddMultisigAddressResponse]
 	createMultisig         *connect.Client[v1.CreateMultisigRequest, v1.CreateMultisigResponse]
+	createPsbt             *connect.Client[v1.CreatePsbtRequest, v1.CreatePsbtResponse]
+	decodePsbt             *connect.Client[v1.DecodePsbtRequest, v1.DecodePsbtResponse]
+	analyzePsbt            *connect.Client[v1.AnalyzePsbtRequest, v1.AnalyzePsbtResponse]
+	combinePsbt            *connect.Client[v1.CombinePsbtRequest, v1.CombinePsbtResponse]
+	utxoUpdatePsbt         *connect.Client[v1.UtxoUpdatePsbtRequest, v1.UtxoUpdatePsbtResponse]
+	joinPsbts              *connect.Client[v1.JoinPsbtsRequest, v1.JoinPsbtsResponse]
+	testMempoolAccept      *connect.Client[v1.TestMempoolAcceptRequest, v1.TestMempoolAcceptResponse]
 }
 
 // ListRecentTransactions calls bitcoind.v1.BitcoindService.ListRecentTransactions.
@@ -354,6 +444,11 @@ func (c *bitcoindServiceClient) EstimateSmartFee(ctx context.Context, req *conne
 // GetRawTransaction calls bitcoind.v1.BitcoindService.GetRawTransaction.
 func (c *bitcoindServiceClient) GetRawTransaction(ctx context.Context, req *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error) {
 	return c.getRawTransaction.CallUnary(ctx, req)
+}
+
+// CreateRawTransaction calls bitcoind.v1.BitcoindService.CreateRawTransaction.
+func (c *bitcoindServiceClient) CreateRawTransaction(ctx context.Context, req *connect.Request[v1.CreateRawTransactionRequest]) (*connect.Response[v1.CreateRawTransactionResponse], error) {
+	return c.createRawTransaction.CallUnary(ctx, req)
 }
 
 // CreateWallet calls bitcoind.v1.BitcoindService.CreateWallet.
@@ -436,6 +531,41 @@ func (c *bitcoindServiceClient) CreateMultisig(ctx context.Context, req *connect
 	return c.createMultisig.CallUnary(ctx, req)
 }
 
+// CreatePsbt calls bitcoind.v1.BitcoindService.CreatePsbt.
+func (c *bitcoindServiceClient) CreatePsbt(ctx context.Context, req *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error) {
+	return c.createPsbt.CallUnary(ctx, req)
+}
+
+// DecodePsbt calls bitcoind.v1.BitcoindService.DecodePsbt.
+func (c *bitcoindServiceClient) DecodePsbt(ctx context.Context, req *connect.Request[v1.DecodePsbtRequest]) (*connect.Response[v1.DecodePsbtResponse], error) {
+	return c.decodePsbt.CallUnary(ctx, req)
+}
+
+// AnalyzePsbt calls bitcoind.v1.BitcoindService.AnalyzePsbt.
+func (c *bitcoindServiceClient) AnalyzePsbt(ctx context.Context, req *connect.Request[v1.AnalyzePsbtRequest]) (*connect.Response[v1.AnalyzePsbtResponse], error) {
+	return c.analyzePsbt.CallUnary(ctx, req)
+}
+
+// CombinePsbt calls bitcoind.v1.BitcoindService.CombinePsbt.
+func (c *bitcoindServiceClient) CombinePsbt(ctx context.Context, req *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error) {
+	return c.combinePsbt.CallUnary(ctx, req)
+}
+
+// UtxoUpdatePsbt calls bitcoind.v1.BitcoindService.UtxoUpdatePsbt.
+func (c *bitcoindServiceClient) UtxoUpdatePsbt(ctx context.Context, req *connect.Request[v1.UtxoUpdatePsbtRequest]) (*connect.Response[v1.UtxoUpdatePsbtResponse], error) {
+	return c.utxoUpdatePsbt.CallUnary(ctx, req)
+}
+
+// JoinPsbts calls bitcoind.v1.BitcoindService.JoinPsbts.
+func (c *bitcoindServiceClient) JoinPsbts(ctx context.Context, req *connect.Request[v1.JoinPsbtsRequest]) (*connect.Response[v1.JoinPsbtsResponse], error) {
+	return c.joinPsbts.CallUnary(ctx, req)
+}
+
+// TestMempoolAccept calls bitcoind.v1.BitcoindService.TestMempoolAccept.
+func (c *bitcoindServiceClient) TestMempoolAccept(ctx context.Context, req *connect.Request[v1.TestMempoolAcceptRequest]) (*connect.Response[v1.TestMempoolAcceptResponse], error) {
+	return c.testMempoolAccept.CallUnary(ctx, req)
+}
+
 // BitcoindServiceHandler is an implementation of the bitcoind.v1.BitcoindService service.
 type BitcoindServiceHandler interface {
 	// Lists the ten most recent transactions, both confirmed and unconfirmed.
@@ -451,6 +581,7 @@ type BitcoindServiceHandler interface {
 	// Lists very basic info about all peers
 	EstimateSmartFee(context.Context, *connect.Request[v1.EstimateSmartFeeRequest]) (*connect.Response[v1.EstimateSmartFeeResponse], error)
 	GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error)
+	CreateRawTransaction(context.Context, *connect.Request[v1.CreateRawTransactionRequest]) (*connect.Response[v1.CreateRawTransactionResponse], error)
 	// Wallet management
 	CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error)
 	BackupWallet(context.Context, *connect.Request[v1.BackupWalletRequest]) (*connect.Response[v1.BackupWalletResponse], error)
@@ -471,6 +602,15 @@ type BitcoindServiceHandler interface {
 	// Multi-sig operations
 	AddMultisigAddress(context.Context, *connect.Request[v1.AddMultisigAddressRequest]) (*connect.Response[v1.AddMultisigAddressResponse], error)
 	CreateMultisig(context.Context, *connect.Request[v1.CreateMultisigRequest]) (*connect.Response[v1.CreateMultisigResponse], error)
+	// PSBT handling
+	CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error)
+	DecodePsbt(context.Context, *connect.Request[v1.DecodePsbtRequest]) (*connect.Response[v1.DecodePsbtResponse], error)
+	AnalyzePsbt(context.Context, *connect.Request[v1.AnalyzePsbtRequest]) (*connect.Response[v1.AnalyzePsbtResponse], error)
+	CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error)
+	UtxoUpdatePsbt(context.Context, *connect.Request[v1.UtxoUpdatePsbtRequest]) (*connect.Response[v1.UtxoUpdatePsbtResponse], error)
+	JoinPsbts(context.Context, *connect.Request[v1.JoinPsbtsRequest]) (*connect.Response[v1.JoinPsbtsResponse], error)
+	// Transaction misc
+	TestMempoolAccept(context.Context, *connect.Request[v1.TestMempoolAcceptRequest]) (*connect.Response[v1.TestMempoolAcceptResponse], error)
 }
 
 // NewBitcoindServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -520,6 +660,12 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 		BitcoindServiceGetRawTransactionProcedure,
 		svc.GetRawTransaction,
 		connect.WithSchema(bitcoindServiceMethods.ByName("GetRawTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoindServiceCreateRawTransactionHandler := connect.NewUnaryHandler(
+		BitcoindServiceCreateRawTransactionProcedure,
+		svc.CreateRawTransaction,
+		connect.WithSchema(bitcoindServiceMethods.ByName("CreateRawTransaction")),
 		connect.WithHandlerOptions(opts...),
 	)
 	bitcoindServiceCreateWalletHandler := connect.NewUnaryHandler(
@@ -618,6 +764,48 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 		connect.WithSchema(bitcoindServiceMethods.ByName("CreateMultisig")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitcoindServiceCreatePsbtHandler := connect.NewUnaryHandler(
+		BitcoindServiceCreatePsbtProcedure,
+		svc.CreatePsbt,
+		connect.WithSchema(bitcoindServiceMethods.ByName("CreatePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoindServiceDecodePsbtHandler := connect.NewUnaryHandler(
+		BitcoindServiceDecodePsbtProcedure,
+		svc.DecodePsbt,
+		connect.WithSchema(bitcoindServiceMethods.ByName("DecodePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoindServiceAnalyzePsbtHandler := connect.NewUnaryHandler(
+		BitcoindServiceAnalyzePsbtProcedure,
+		svc.AnalyzePsbt,
+		connect.WithSchema(bitcoindServiceMethods.ByName("AnalyzePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoindServiceCombinePsbtHandler := connect.NewUnaryHandler(
+		BitcoindServiceCombinePsbtProcedure,
+		svc.CombinePsbt,
+		connect.WithSchema(bitcoindServiceMethods.ByName("CombinePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoindServiceUtxoUpdatePsbtHandler := connect.NewUnaryHandler(
+		BitcoindServiceUtxoUpdatePsbtProcedure,
+		svc.UtxoUpdatePsbt,
+		connect.WithSchema(bitcoindServiceMethods.ByName("UtxoUpdatePsbt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoindServiceJoinPsbtsHandler := connect.NewUnaryHandler(
+		BitcoindServiceJoinPsbtsProcedure,
+		svc.JoinPsbts,
+		connect.WithSchema(bitcoindServiceMethods.ByName("JoinPsbts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitcoindServiceTestMempoolAcceptHandler := connect.NewUnaryHandler(
+		BitcoindServiceTestMempoolAcceptProcedure,
+		svc.TestMempoolAccept,
+		connect.WithSchema(bitcoindServiceMethods.ByName("TestMempoolAccept")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitcoind.v1.BitcoindService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitcoindServiceListRecentTransactionsProcedure:
@@ -634,6 +822,8 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 			bitcoindServiceEstimateSmartFeeHandler.ServeHTTP(w, r)
 		case BitcoindServiceGetRawTransactionProcedure:
 			bitcoindServiceGetRawTransactionHandler.ServeHTTP(w, r)
+		case BitcoindServiceCreateRawTransactionProcedure:
+			bitcoindServiceCreateRawTransactionHandler.ServeHTTP(w, r)
 		case BitcoindServiceCreateWalletProcedure:
 			bitcoindServiceCreateWalletHandler.ServeHTTP(w, r)
 		case BitcoindServiceBackupWalletProcedure:
@@ -666,6 +856,20 @@ func NewBitcoindServiceHandler(svc BitcoindServiceHandler, opts ...connect.Handl
 			bitcoindServiceAddMultisigAddressHandler.ServeHTTP(w, r)
 		case BitcoindServiceCreateMultisigProcedure:
 			bitcoindServiceCreateMultisigHandler.ServeHTTP(w, r)
+		case BitcoindServiceCreatePsbtProcedure:
+			bitcoindServiceCreatePsbtHandler.ServeHTTP(w, r)
+		case BitcoindServiceDecodePsbtProcedure:
+			bitcoindServiceDecodePsbtHandler.ServeHTTP(w, r)
+		case BitcoindServiceAnalyzePsbtProcedure:
+			bitcoindServiceAnalyzePsbtHandler.ServeHTTP(w, r)
+		case BitcoindServiceCombinePsbtProcedure:
+			bitcoindServiceCombinePsbtHandler.ServeHTTP(w, r)
+		case BitcoindServiceUtxoUpdatePsbtProcedure:
+			bitcoindServiceUtxoUpdatePsbtHandler.ServeHTTP(w, r)
+		case BitcoindServiceJoinPsbtsProcedure:
+			bitcoindServiceJoinPsbtsHandler.ServeHTTP(w, r)
+		case BitcoindServiceTestMempoolAcceptProcedure:
+			bitcoindServiceTestMempoolAcceptHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -701,6 +905,10 @@ func (UnimplementedBitcoindServiceHandler) EstimateSmartFee(context.Context, *co
 
 func (UnimplementedBitcoindServiceHandler) GetRawTransaction(context.Context, *connect.Request[v1.GetRawTransactionRequest]) (*connect.Response[v1.GetRawTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.GetRawTransaction is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) CreateRawTransaction(context.Context, *connect.Request[v1.CreateRawTransactionRequest]) (*connect.Response[v1.CreateRawTransactionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.CreateRawTransaction is not implemented"))
 }
 
 func (UnimplementedBitcoindServiceHandler) CreateWallet(context.Context, *connect.Request[v1.CreateWalletRequest]) (*connect.Response[v1.CreateWalletResponse], error) {
@@ -765,4 +973,32 @@ func (UnimplementedBitcoindServiceHandler) AddMultisigAddress(context.Context, *
 
 func (UnimplementedBitcoindServiceHandler) CreateMultisig(context.Context, *connect.Request[v1.CreateMultisigRequest]) (*connect.Response[v1.CreateMultisigResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.CreateMultisig is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) CreatePsbt(context.Context, *connect.Request[v1.CreatePsbtRequest]) (*connect.Response[v1.CreatePsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.CreatePsbt is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) DecodePsbt(context.Context, *connect.Request[v1.DecodePsbtRequest]) (*connect.Response[v1.DecodePsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.DecodePsbt is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) AnalyzePsbt(context.Context, *connect.Request[v1.AnalyzePsbtRequest]) (*connect.Response[v1.AnalyzePsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.AnalyzePsbt is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) CombinePsbt(context.Context, *connect.Request[v1.CombinePsbtRequest]) (*connect.Response[v1.CombinePsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.CombinePsbt is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) UtxoUpdatePsbt(context.Context, *connect.Request[v1.UtxoUpdatePsbtRequest]) (*connect.Response[v1.UtxoUpdatePsbtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.UtxoUpdatePsbt is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) JoinPsbts(context.Context, *connect.Request[v1.JoinPsbtsRequest]) (*connect.Response[v1.JoinPsbtsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.JoinPsbts is not implemented"))
+}
+
+func (UnimplementedBitcoindServiceHandler) TestMempoolAccept(context.Context, *connect.Request[v1.TestMempoolAcceptRequest]) (*connect.Response[v1.TestMempoolAcceptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitcoind.v1.BitcoindService.TestMempoolAccept is not implemented"))
 }
