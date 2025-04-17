@@ -29,6 +29,7 @@ abstract class BitcoindServiceBase extends $pb.GeneratedService {
   $async.Future<$2.ListPeersResponse> listPeers($pb.ServerContext ctx, $1.Empty request);
   $async.Future<$2.EstimateSmartFeeResponse> estimateSmartFee($pb.ServerContext ctx, $2.EstimateSmartFeeRequest request);
   $async.Future<$2.GetRawTransactionResponse> getRawTransaction($pb.ServerContext ctx, $2.GetRawTransactionRequest request);
+  $async.Future<$2.CreateRawTransactionResponse> createRawTransaction($pb.ServerContext ctx, $2.CreateRawTransactionRequest request);
   $async.Future<$2.CreateWalletResponse> createWallet($pb.ServerContext ctx, $2.CreateWalletRequest request);
   $async.Future<$2.BackupWalletResponse> backupWallet($pb.ServerContext ctx, $2.BackupWalletRequest request);
   $async.Future<$2.DumpWalletResponse> dumpWallet($pb.ServerContext ctx, $2.DumpWalletRequest request);
@@ -45,6 +46,13 @@ abstract class BitcoindServiceBase extends $pb.GeneratedService {
   $async.Future<$2.ListAccountsResponse> listAccounts($pb.ServerContext ctx, $2.ListAccountsRequest request);
   $async.Future<$2.AddMultisigAddressResponse> addMultisigAddress($pb.ServerContext ctx, $2.AddMultisigAddressRequest request);
   $async.Future<$2.CreateMultisigResponse> createMultisig($pb.ServerContext ctx, $2.CreateMultisigRequest request);
+  $async.Future<$2.CreatePsbtResponse> createPsbt($pb.ServerContext ctx, $2.CreatePsbtRequest request);
+  $async.Future<$2.DecodePsbtResponse> decodePsbt($pb.ServerContext ctx, $2.DecodePsbtRequest request);
+  $async.Future<$2.AnalyzePsbtResponse> analyzePsbt($pb.ServerContext ctx, $2.AnalyzePsbtRequest request);
+  $async.Future<$2.CombinePsbtResponse> combinePsbt($pb.ServerContext ctx, $2.CombinePsbtRequest request);
+  $async.Future<$2.UtxoUpdatePsbtResponse> utxoUpdatePsbt($pb.ServerContext ctx, $2.UtxoUpdatePsbtRequest request);
+  $async.Future<$2.JoinPsbtsResponse> joinPsbts($pb.ServerContext ctx, $2.JoinPsbtsRequest request);
+  $async.Future<$2.TestMempoolAcceptResponse> testMempoolAccept($pb.ServerContext ctx, $2.TestMempoolAcceptRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -55,6 +63,7 @@ abstract class BitcoindServiceBase extends $pb.GeneratedService {
       case 'ListPeers': return $1.Empty();
       case 'EstimateSmartFee': return $2.EstimateSmartFeeRequest();
       case 'GetRawTransaction': return $2.GetRawTransactionRequest();
+      case 'CreateRawTransaction': return $2.CreateRawTransactionRequest();
       case 'CreateWallet': return $2.CreateWalletRequest();
       case 'BackupWallet': return $2.BackupWalletRequest();
       case 'DumpWallet': return $2.DumpWalletRequest();
@@ -71,6 +80,13 @@ abstract class BitcoindServiceBase extends $pb.GeneratedService {
       case 'ListAccounts': return $2.ListAccountsRequest();
       case 'AddMultisigAddress': return $2.AddMultisigAddressRequest();
       case 'CreateMultisig': return $2.CreateMultisigRequest();
+      case 'CreatePsbt': return $2.CreatePsbtRequest();
+      case 'DecodePsbt': return $2.DecodePsbtRequest();
+      case 'AnalyzePsbt': return $2.AnalyzePsbtRequest();
+      case 'CombinePsbt': return $2.CombinePsbtRequest();
+      case 'UtxoUpdatePsbt': return $2.UtxoUpdatePsbtRequest();
+      case 'JoinPsbts': return $2.JoinPsbtsRequest();
+      case 'TestMempoolAccept': return $2.TestMempoolAcceptRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -84,6 +100,7 @@ abstract class BitcoindServiceBase extends $pb.GeneratedService {
       case 'ListPeers': return this.listPeers(ctx, request as $1.Empty);
       case 'EstimateSmartFee': return this.estimateSmartFee(ctx, request as $2.EstimateSmartFeeRequest);
       case 'GetRawTransaction': return this.getRawTransaction(ctx, request as $2.GetRawTransactionRequest);
+      case 'CreateRawTransaction': return this.createRawTransaction(ctx, request as $2.CreateRawTransactionRequest);
       case 'CreateWallet': return this.createWallet(ctx, request as $2.CreateWalletRequest);
       case 'BackupWallet': return this.backupWallet(ctx, request as $2.BackupWalletRequest);
       case 'DumpWallet': return this.dumpWallet(ctx, request as $2.DumpWalletRequest);
@@ -100,6 +117,13 @@ abstract class BitcoindServiceBase extends $pb.GeneratedService {
       case 'ListAccounts': return this.listAccounts(ctx, request as $2.ListAccountsRequest);
       case 'AddMultisigAddress': return this.addMultisigAddress(ctx, request as $2.AddMultisigAddressRequest);
       case 'CreateMultisig': return this.createMultisig(ctx, request as $2.CreateMultisigRequest);
+      case 'CreatePsbt': return this.createPsbt(ctx, request as $2.CreatePsbtRequest);
+      case 'DecodePsbt': return this.decodePsbt(ctx, request as $2.DecodePsbtRequest);
+      case 'AnalyzePsbt': return this.analyzePsbt(ctx, request as $2.AnalyzePsbtRequest);
+      case 'CombinePsbt': return this.combinePsbt(ctx, request as $2.CombinePsbtRequest);
+      case 'UtxoUpdatePsbt': return this.utxoUpdatePsbt(ctx, request as $2.UtxoUpdatePsbtRequest);
+      case 'JoinPsbts': return this.joinPsbts(ctx, request as $2.JoinPsbtsRequest);
+      case 'TestMempoolAccept': return this.testMempoolAccept(ctx, request as $2.TestMempoolAcceptRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

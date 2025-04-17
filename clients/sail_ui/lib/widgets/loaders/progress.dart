@@ -62,7 +62,7 @@ class ProgressBar extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 10,
-                            color: theme.colors.inactiveNavText,
+                            color: progress > 0.99 ? theme.colors.background : theme.colors.inactiveNavText,
                           ),
                         ),
                       ),

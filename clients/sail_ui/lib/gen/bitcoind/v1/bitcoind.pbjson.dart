@@ -227,6 +227,60 @@ const RawTransaction$json = {
 final $typed_data.Uint8List rawTransactionDescriptor = $convert.base64Decode(
     'Cg5SYXdUcmFuc2FjdGlvbhISCgRkYXRhGAEgASgMUgRkYXRhEhAKA2hleBgCIAEoCVIDaGV4');
 
+@$core.Deprecated('Use createRawTransactionRequestDescriptor instead')
+const CreateRawTransactionRequest$json = {
+  '1': 'CreateRawTransactionRequest',
+  '2': [
+    {'1': 'inputs', '3': 1, '4': 3, '5': 11, '6': '.bitcoind.v1.CreateRawTransactionRequest.Input', '10': 'inputs'},
+    {'1': 'outputs', '3': 2, '4': 3, '5': 11, '6': '.bitcoind.v1.CreateRawTransactionRequest.OutputsEntry', '10': 'outputs'},
+    {'1': 'locktime', '3': 3, '4': 1, '5': 13, '10': 'locktime'},
+  ],
+  '3': [CreateRawTransactionRequest_Input$json, CreateRawTransactionRequest_OutputsEntry$json],
+};
+
+@$core.Deprecated('Use createRawTransactionRequestDescriptor instead')
+const CreateRawTransactionRequest_Input$json = {
+  '1': 'Input',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
+    {'1': 'sequence', '3': 3, '4': 1, '5': 13, '10': 'sequence'},
+  ],
+};
+
+@$core.Deprecated('Use createRawTransactionRequestDescriptor instead')
+const CreateRawTransactionRequest_OutputsEntry$json = {
+  '1': 'OutputsEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 1, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+/// Descriptor for `CreateRawTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createRawTransactionRequestDescriptor = $convert.base64Decode(
+    'ChtDcmVhdGVSYXdUcmFuc2FjdGlvblJlcXVlc3QSRgoGaW5wdXRzGAEgAygLMi4uYml0Y29pbm'
+    'QudjEuQ3JlYXRlUmF3VHJhbnNhY3Rpb25SZXF1ZXN0LklucHV0UgZpbnB1dHMSTwoHb3V0cHV0'
+    'cxgCIAMoCzI1LmJpdGNvaW5kLnYxLkNyZWF0ZVJhd1RyYW5zYWN0aW9uUmVxdWVzdC5PdXRwdX'
+    'RzRW50cnlSB291dHB1dHMSGgoIbG9ja3RpbWUYAyABKA1SCGxvY2t0aW1lGksKBUlucHV0EhIK'
+    'BHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoDVIEdm91dBIaCghzZXF1ZW5jZRgDIAEoDV'
+    'IIc2VxdWVuY2UaOgoMT3V0cHV0c0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBXZhbHVlGAIg'
+    'ASgBUgV2YWx1ZToCOAE=');
+
+@$core.Deprecated('Use createRawTransactionResponseDescriptor instead')
+const CreateRawTransactionResponse$json = {
+  '1': 'CreateRawTransactionResponse',
+  '2': [
+    {'1': 'tx', '3': 1, '4': 1, '5': 11, '6': '.bitcoind.v1.RawTransaction', '10': 'tx'},
+  ],
+};
+
+/// Descriptor for `CreateRawTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createRawTransactionResponseDescriptor = $convert.base64Decode(
+    'ChxDcmVhdGVSYXdUcmFuc2FjdGlvblJlc3BvbnNlEisKAnR4GAEgASgLMhsuYml0Y29pbmQudj'
+    'EuUmF3VHJhbnNhY3Rpb25SAnR4');
+
 @$core.Deprecated('Use scriptSigDescriptor instead')
 const ScriptSig$json = {
   '1': 'ScriptSig',
@@ -780,6 +834,488 @@ final $typed_data.Uint8List createMultisigResponseDescriptor = $convert.base64De
     'ChZDcmVhdGVNdWx0aXNpZ1Jlc3BvbnNlEhgKB2FkZHJlc3MYASABKAlSB2FkZHJlc3MSIwoNcm'
     'VkZWVtX3NjcmlwdBgCIAEoCVIMcmVkZWVtU2NyaXB0');
 
+@$core.Deprecated('Use createPsbtRequestDescriptor instead')
+const CreatePsbtRequest$json = {
+  '1': 'CreatePsbtRequest',
+  '2': [
+    {'1': 'inputs', '3': 1, '4': 3, '5': 11, '6': '.bitcoind.v1.CreatePsbtRequest.Input', '10': 'inputs'},
+    {'1': 'outputs', '3': 2, '4': 3, '5': 11, '6': '.bitcoind.v1.CreatePsbtRequest.OutputsEntry', '10': 'outputs'},
+    {'1': 'locktime', '3': 3, '4': 1, '5': 13, '10': 'locktime'},
+    {'1': 'replaceable', '3': 4, '4': 1, '5': 8, '10': 'replaceable'},
+  ],
+  '3': [CreatePsbtRequest_Input$json, CreatePsbtRequest_OutputsEntry$json],
+};
+
+@$core.Deprecated('Use createPsbtRequestDescriptor instead')
+const CreatePsbtRequest_Input$json = {
+  '1': 'Input',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
+    {'1': 'sequence', '3': 3, '4': 1, '5': 13, '10': 'sequence'},
+  ],
+};
+
+@$core.Deprecated('Use createPsbtRequestDescriptor instead')
+const CreatePsbtRequest_OutputsEntry$json = {
+  '1': 'OutputsEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 1, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+/// Descriptor for `CreatePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPsbtRequestDescriptor = $convert.base64Decode(
+    'ChFDcmVhdGVQc2J0UmVxdWVzdBI8CgZpbnB1dHMYASADKAsyJC5iaXRjb2luZC52MS5DcmVhdG'
+    'VQc2J0UmVxdWVzdC5JbnB1dFIGaW5wdXRzEkUKB291dHB1dHMYAiADKAsyKy5iaXRjb2luZC52'
+    'MS5DcmVhdGVQc2J0UmVxdWVzdC5PdXRwdXRzRW50cnlSB291dHB1dHMSGgoIbG9ja3RpbWUYAy'
+    'ABKA1SCGxvY2t0aW1lEiAKC3JlcGxhY2VhYmxlGAQgASgIUgtyZXBsYWNlYWJsZRpLCgVJbnB1'
+    'dBISCgR0eGlkGAEgASgJUgR0eGlkEhIKBHZvdXQYAiABKA1SBHZvdXQSGgoIc2VxdWVuY2UYAy'
+    'ABKA1SCHNlcXVlbmNlGjoKDE91dHB1dHNFbnRyeRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1'
+    'ZRgCIAEoAVIFdmFsdWU6AjgB');
+
+@$core.Deprecated('Use createPsbtResponseDescriptor instead')
+const CreatePsbtResponse$json = {
+  '1': 'CreatePsbtResponse',
+  '2': [
+    {'1': 'psbt', '3': 1, '4': 1, '5': 9, '10': 'psbt'},
+  ],
+};
+
+/// Descriptor for `CreatePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createPsbtResponseDescriptor = $convert.base64Decode(
+    'ChJDcmVhdGVQc2J0UmVzcG9uc2USEgoEcHNidBgBIAEoCVIEcHNidA==');
+
+@$core.Deprecated('Use decodePsbtRequestDescriptor instead')
+const DecodePsbtRequest$json = {
+  '1': 'DecodePsbtRequest',
+  '2': [
+    {'1': 'psbt', '3': 1, '4': 1, '5': 9, '10': 'psbt'},
+  ],
+};
+
+/// Descriptor for `DecodePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List decodePsbtRequestDescriptor = $convert.base64Decode(
+    'ChFEZWNvZGVQc2J0UmVxdWVzdBISCgRwc2J0GAEgASgJUgRwc2J0');
+
+@$core.Deprecated('Use decodeRawTransactionResponseDescriptor instead')
+const DecodeRawTransactionResponse$json = {
+  '1': 'DecodeRawTransactionResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'hash', '3': 2, '4': 1, '5': 9, '10': 'hash'},
+    {'1': 'size', '3': 3, '4': 1, '5': 13, '10': 'size'},
+    {'1': 'virtual_size', '3': 4, '4': 1, '5': 13, '10': 'virtualSize'},
+    {'1': 'weight', '3': 5, '4': 1, '5': 13, '10': 'weight'},
+    {'1': 'version', '3': 6, '4': 1, '5': 13, '10': 'version'},
+    {'1': 'locktime', '3': 7, '4': 1, '5': 13, '10': 'locktime'},
+    {'1': 'inputs', '3': 8, '4': 3, '5': 11, '6': '.bitcoind.v1.Input', '10': 'inputs'},
+    {'1': 'outputs', '3': 9, '4': 3, '5': 11, '6': '.bitcoind.v1.Output', '10': 'outputs'},
+  ],
+};
+
+/// Descriptor for `DecodeRawTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List decodeRawTransactionResponseDescriptor = $convert.base64Decode(
+    'ChxEZWNvZGVSYXdUcmFuc2FjdGlvblJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQSEgoEaG'
+    'FzaBgCIAEoCVIEaGFzaBISCgRzaXplGAMgASgNUgRzaXplEiEKDHZpcnR1YWxfc2l6ZRgEIAEo'
+    'DVILdmlydHVhbFNpemUSFgoGd2VpZ2h0GAUgASgNUgZ3ZWlnaHQSGAoHdmVyc2lvbhgGIAEoDV'
+    'IHdmVyc2lvbhIaCghsb2NrdGltZRgHIAEoDVIIbG9ja3RpbWUSKgoGaW5wdXRzGAggAygLMhIu'
+    'Yml0Y29pbmQudjEuSW5wdXRSBmlucHV0cxItCgdvdXRwdXRzGAkgAygLMhMuYml0Y29pbmQudj'
+    'EuT3V0cHV0UgdvdXRwdXRz');
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse$json = {
+  '1': 'DecodePsbtResponse',
+  '2': [
+    {'1': 'tx', '3': 1, '4': 1, '5': 11, '6': '.bitcoind.v1.DecodeRawTransactionResponse', '10': 'tx'},
+    {'1': 'unknown', '3': 2, '4': 3, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.UnknownEntry', '10': 'unknown'},
+    {'1': 'inputs', '3': 3, '4': 3, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.Input', '10': 'inputs'},
+    {'1': 'outputs', '3': 4, '4': 3, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.Output', '10': 'outputs'},
+    {'1': 'fee', '3': 5, '4': 1, '5': 1, '10': 'fee'},
+  ],
+  '3': [DecodePsbtResponse_WitnessUtxo$json, DecodePsbtResponse_RedeemScript$json, DecodePsbtResponse_Bip32Deriv$json, DecodePsbtResponse_Input$json, DecodePsbtResponse_Output$json, DecodePsbtResponse_UnknownEntry$json],
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_WitnessUtxo$json = {
+  '1': 'WitnessUtxo',
+  '2': [
+    {'1': 'amount', '3': 1, '4': 1, '5': 1, '10': 'amount'},
+    {'1': 'script_pub_key', '3': 2, '4': 1, '5': 11, '6': '.bitcoind.v1.ScriptPubKey', '10': 'scriptPubKey'},
+  ],
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_RedeemScript$json = {
+  '1': 'RedeemScript',
+  '2': [
+    {'1': 'asm', '3': 1, '4': 1, '5': 9, '10': 'asm'},
+    {'1': 'hex', '3': 2, '4': 1, '5': 9, '10': 'hex'},
+    {'1': 'type', '3': 3, '4': 1, '5': 9, '10': 'type'},
+  ],
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_Bip32Deriv$json = {
+  '1': 'Bip32Deriv',
+  '2': [
+    {'1': 'pubkey', '3': 1, '4': 1, '5': 9, '10': 'pubkey'},
+    {'1': 'master_fingerprint', '3': 2, '4': 1, '5': 9, '10': 'masterFingerprint'},
+    {'1': 'path', '3': 3, '4': 1, '5': 9, '10': 'path'},
+  ],
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_Input$json = {
+  '1': 'Input',
+  '2': [
+    {'1': 'non_witness_utxo', '3': 1, '4': 1, '5': 11, '6': '.bitcoind.v1.DecodeRawTransactionResponse', '10': 'nonWitnessUtxo'},
+    {'1': 'witness_utxo', '3': 2, '4': 1, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.WitnessUtxo', '10': 'witnessUtxo'},
+    {'1': 'partial_signatures', '3': 3, '4': 3, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.Input.PartialSignaturesEntry', '10': 'partialSignatures'},
+    {'1': 'sighash', '3': 4, '4': 1, '5': 9, '10': 'sighash'},
+    {'1': 'redeem_script', '3': 5, '4': 1, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.RedeemScript', '10': 'redeemScript'},
+    {'1': 'witness_script', '3': 6, '4': 1, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.RedeemScript', '10': 'witnessScript'},
+    {'1': 'bip32_derivs', '3': 7, '4': 3, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.Bip32Deriv', '10': 'bip32Derivs'},
+    {'1': 'final_scriptsig', '3': 8, '4': 1, '5': 11, '6': '.bitcoind.v1.ScriptSig', '10': 'finalScriptsig'},
+    {'1': 'final_scriptwitness', '3': 9, '4': 3, '5': 9, '10': 'finalScriptwitness'},
+    {'1': 'unknown', '3': 10, '4': 3, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.Input.UnknownEntry', '10': 'unknown'},
+  ],
+  '3': [DecodePsbtResponse_Input_PartialSignaturesEntry$json, DecodePsbtResponse_Input_UnknownEntry$json],
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_Input_PartialSignaturesEntry$json = {
+  '1': 'PartialSignaturesEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 9, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_Input_UnknownEntry$json = {
+  '1': 'UnknownEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 9, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_Output$json = {
+  '1': 'Output',
+  '2': [
+    {'1': 'redeem_script', '3': 1, '4': 1, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.RedeemScript', '10': 'redeemScript'},
+    {'1': 'witness_script', '3': 2, '4': 1, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.RedeemScript', '10': 'witnessScript'},
+    {'1': 'bip32_derivs', '3': 3, '4': 3, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.Bip32Deriv', '10': 'bip32Derivs'},
+    {'1': 'unknown', '3': 4, '4': 3, '5': 11, '6': '.bitcoind.v1.DecodePsbtResponse.Output.UnknownEntry', '10': 'unknown'},
+  ],
+  '3': [DecodePsbtResponse_Output_UnknownEntry$json],
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_Output_UnknownEntry$json = {
+  '1': 'UnknownEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 9, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+@$core.Deprecated('Use decodePsbtResponseDescriptor instead')
+const DecodePsbtResponse_UnknownEntry$json = {
+  '1': 'UnknownEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 9, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+/// Descriptor for `DecodePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List decodePsbtResponseDescriptor = $convert.base64Decode(
+    'ChJEZWNvZGVQc2J0UmVzcG9uc2USOQoCdHgYASABKAsyKS5iaXRjb2luZC52MS5EZWNvZGVSYX'
+    'dUcmFuc2FjdGlvblJlc3BvbnNlUgJ0eBJGCgd1bmtub3duGAIgAygLMiwuYml0Y29pbmQudjEu'
+    'RGVjb2RlUHNidFJlc3BvbnNlLlVua25vd25FbnRyeVIHdW5rbm93bhI9CgZpbnB1dHMYAyADKA'
+    'syJS5iaXRjb2luZC52MS5EZWNvZGVQc2J0UmVzcG9uc2UuSW5wdXRSBmlucHV0cxJACgdvdXRw'
+    'dXRzGAQgAygLMiYuYml0Y29pbmQudjEuRGVjb2RlUHNidFJlc3BvbnNlLk91dHB1dFIHb3V0cH'
+    'V0cxIQCgNmZWUYBSABKAFSA2ZlZRpmCgtXaXRuZXNzVXR4bxIWCgZhbW91bnQYASABKAFSBmFt'
+    'b3VudBI/Cg5zY3JpcHRfcHViX2tleRgCIAEoCzIZLmJpdGNvaW5kLnYxLlNjcmlwdFB1YktleV'
+    'IMc2NyaXB0UHViS2V5GkYKDFJlZGVlbVNjcmlwdBIQCgNhc20YASABKAlSA2FzbRIQCgNoZXgY'
+    'AiABKAlSA2hleBISCgR0eXBlGAMgASgJUgR0eXBlGmcKCkJpcDMyRGVyaXYSFgoGcHVia2V5GA'
+    'EgASgJUgZwdWJrZXkSLQoSbWFzdGVyX2ZpbmdlcnByaW50GAIgASgJUhFtYXN0ZXJGaW5nZXJw'
+    'cmludBISCgRwYXRoGAMgASgJUgRwYXRoGuwGCgVJbnB1dBJTChBub25fd2l0bmVzc191dHhvGA'
+    'EgASgLMikuYml0Y29pbmQudjEuRGVjb2RlUmF3VHJhbnNhY3Rpb25SZXNwb25zZVIObm9uV2l0'
+    'bmVzc1V0eG8STgoMd2l0bmVzc191dHhvGAIgASgLMisuYml0Y29pbmQudjEuRGVjb2RlUHNidF'
+    'Jlc3BvbnNlLldpdG5lc3NVdHhvUgt3aXRuZXNzVXR4bxJrChJwYXJ0aWFsX3NpZ25hdHVyZXMY'
+    'AyADKAsyPC5iaXRjb2luZC52MS5EZWNvZGVQc2J0UmVzcG9uc2UuSW5wdXQuUGFydGlhbFNpZ2'
+    '5hdHVyZXNFbnRyeVIRcGFydGlhbFNpZ25hdHVyZXMSGAoHc2lnaGFzaBgEIAEoCVIHc2lnaGFz'
+    'aBJRCg1yZWRlZW1fc2NyaXB0GAUgASgLMiwuYml0Y29pbmQudjEuRGVjb2RlUHNidFJlc3Bvbn'
+    'NlLlJlZGVlbVNjcmlwdFIMcmVkZWVtU2NyaXB0ElMKDndpdG5lc3Nfc2NyaXB0GAYgASgLMiwu'
+    'Yml0Y29pbmQudjEuRGVjb2RlUHNidFJlc3BvbnNlLlJlZGVlbVNjcmlwdFINd2l0bmVzc1Njcm'
+    'lwdBJNCgxiaXAzMl9kZXJpdnMYByADKAsyKi5iaXRjb2luZC52MS5EZWNvZGVQc2J0UmVzcG9u'
+    'c2UuQmlwMzJEZXJpdlILYmlwMzJEZXJpdnMSPwoPZmluYWxfc2NyaXB0c2lnGAggASgLMhYuYm'
+    'l0Y29pbmQudjEuU2NyaXB0U2lnUg5maW5hbFNjcmlwdHNpZxIvChNmaW5hbF9zY3JpcHR3aXRu'
+    'ZXNzGAkgAygJUhJmaW5hbFNjcmlwdHdpdG5lc3MSTAoHdW5rbm93bhgKIAMoCzIyLmJpdGNvaW'
+    '5kLnYxLkRlY29kZVBzYnRSZXNwb25zZS5JbnB1dC5Vbmtub3duRW50cnlSB3Vua25vd24aRAoW'
+    'UGFydGlhbFNpZ25hdHVyZXNFbnRyeRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoCV'
+    'IFdmFsdWU6AjgBGjoKDFVua25vd25FbnRyeRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgC'
+    'IAEoCVIFdmFsdWU6AjgBGooDCgZPdXRwdXQSUQoNcmVkZWVtX3NjcmlwdBgBIAEoCzIsLmJpdG'
+    'NvaW5kLnYxLkRlY29kZVBzYnRSZXNwb25zZS5SZWRlZW1TY3JpcHRSDHJlZGVlbVNjcmlwdBJT'
+    'Cg53aXRuZXNzX3NjcmlwdBgCIAEoCzIsLmJpdGNvaW5kLnYxLkRlY29kZVBzYnRSZXNwb25zZS'
+    '5SZWRlZW1TY3JpcHRSDXdpdG5lc3NTY3JpcHQSTQoMYmlwMzJfZGVyaXZzGAMgAygLMiouYml0'
+    'Y29pbmQudjEuRGVjb2RlUHNidFJlc3BvbnNlLkJpcDMyRGVyaXZSC2JpcDMyRGVyaXZzEk0KB3'
+    'Vua25vd24YBCADKAsyMy5iaXRjb2luZC52MS5EZWNvZGVQc2J0UmVzcG9uc2UuT3V0cHV0LlVu'
+    'a25vd25FbnRyeVIHdW5rbm93bho6CgxVbmtub3duRW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFA'
+    'oFdmFsdWUYAiABKAlSBXZhbHVlOgI4ARo6CgxVbmtub3duRW50cnkSEAoDa2V5GAEgASgJUgNr'
+    'ZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVlOgI4AQ==');
+
+@$core.Deprecated('Use analyzePsbtRequestDescriptor instead')
+const AnalyzePsbtRequest$json = {
+  '1': 'AnalyzePsbtRequest',
+  '2': [
+    {'1': 'psbt', '3': 1, '4': 1, '5': 9, '10': 'psbt'},
+  ],
+};
+
+/// Descriptor for `AnalyzePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List analyzePsbtRequestDescriptor = $convert.base64Decode(
+    'ChJBbmFseXplUHNidFJlcXVlc3QSEgoEcHNidBgBIAEoCVIEcHNidA==');
+
+@$core.Deprecated('Use analyzePsbtResponseDescriptor instead')
+const AnalyzePsbtResponse$json = {
+  '1': 'AnalyzePsbtResponse',
+  '2': [
+    {'1': 'inputs', '3': 1, '4': 3, '5': 11, '6': '.bitcoind.v1.AnalyzePsbtResponse.Input', '10': 'inputs'},
+    {'1': 'estimated_vsize', '3': 2, '4': 1, '5': 1, '10': 'estimatedVsize'},
+    {'1': 'estimated_feerate', '3': 3, '4': 1, '5': 1, '10': 'estimatedFeerate'},
+    {'1': 'fee', '3': 4, '4': 1, '5': 1, '10': 'fee'},
+    {'1': 'next', '3': 5, '4': 1, '5': 9, '10': 'next'},
+    {'1': 'error', '3': 6, '4': 1, '5': 9, '10': 'error'},
+  ],
+  '3': [AnalyzePsbtResponse_Input$json],
+};
+
+@$core.Deprecated('Use analyzePsbtResponseDescriptor instead')
+const AnalyzePsbtResponse_Input$json = {
+  '1': 'Input',
+  '2': [
+    {'1': 'has_utxo', '3': 1, '4': 1, '5': 8, '10': 'hasUtxo'},
+    {'1': 'is_final', '3': 2, '4': 1, '5': 8, '10': 'isFinal'},
+    {'1': 'missing', '3': 3, '4': 1, '5': 11, '6': '.bitcoind.v1.AnalyzePsbtResponse.Input.Missing', '10': 'missing'},
+    {'1': 'next', '3': 4, '4': 1, '5': 9, '10': 'next'},
+  ],
+  '3': [AnalyzePsbtResponse_Input_Missing$json],
+};
+
+@$core.Deprecated('Use analyzePsbtResponseDescriptor instead')
+const AnalyzePsbtResponse_Input_Missing$json = {
+  '1': 'Missing',
+  '2': [
+    {'1': 'pubkeys', '3': 1, '4': 3, '5': 9, '10': 'pubkeys'},
+    {'1': 'signatures', '3': 2, '4': 3, '5': 9, '10': 'signatures'},
+    {'1': 'redeem_script', '3': 3, '4': 1, '5': 9, '10': 'redeemScript'},
+    {'1': 'witness_script', '3': 4, '4': 1, '5': 9, '10': 'witnessScript'},
+  ],
+};
+
+/// Descriptor for `AnalyzePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List analyzePsbtResponseDescriptor = $convert.base64Decode(
+    'ChNBbmFseXplUHNidFJlc3BvbnNlEj4KBmlucHV0cxgBIAMoCzImLmJpdGNvaW5kLnYxLkFuYW'
+    'x5emVQc2J0UmVzcG9uc2UuSW5wdXRSBmlucHV0cxInCg9lc3RpbWF0ZWRfdnNpemUYAiABKAFS'
+    'DmVzdGltYXRlZFZzaXplEisKEWVzdGltYXRlZF9mZWVyYXRlGAMgASgBUhBlc3RpbWF0ZWRGZW'
+    'VyYXRlEhAKA2ZlZRgEIAEoAVIDZmVlEhIKBG5leHQYBSABKAlSBG5leHQSFAoFZXJyb3IYBiAB'
+    'KAlSBWVycm9yGq0CCgVJbnB1dBIZCghoYXNfdXR4bxgBIAEoCFIHaGFzVXR4bxIZCghpc19maW'
+    '5hbBgCIAEoCFIHaXNGaW5hbBJICgdtaXNzaW5nGAMgASgLMi4uYml0Y29pbmQudjEuQW5hbHl6'
+    'ZVBzYnRSZXNwb25zZS5JbnB1dC5NaXNzaW5nUgdtaXNzaW5nEhIKBG5leHQYBCABKAlSBG5leH'
+    'QajwEKB01pc3NpbmcSGAoHcHVia2V5cxgBIAMoCVIHcHVia2V5cxIeCgpzaWduYXR1cmVzGAIg'
+    'AygJUgpzaWduYXR1cmVzEiMKDXJlZGVlbV9zY3JpcHQYAyABKAlSDHJlZGVlbVNjcmlwdBIlCg'
+    '53aXRuZXNzX3NjcmlwdBgEIAEoCVINd2l0bmVzc1NjcmlwdA==');
+
+@$core.Deprecated('Use combinePsbtRequestDescriptor instead')
+const CombinePsbtRequest$json = {
+  '1': 'CombinePsbtRequest',
+  '2': [
+    {'1': 'psbts', '3': 1, '4': 3, '5': 9, '10': 'psbts'},
+  ],
+};
+
+/// Descriptor for `CombinePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List combinePsbtRequestDescriptor = $convert.base64Decode(
+    'ChJDb21iaW5lUHNidFJlcXVlc3QSFAoFcHNidHMYASADKAlSBXBzYnRz');
+
+@$core.Deprecated('Use combinePsbtResponseDescriptor instead')
+const CombinePsbtResponse$json = {
+  '1': 'CombinePsbtResponse',
+  '2': [
+    {'1': 'psbt', '3': 1, '4': 1, '5': 9, '10': 'psbt'},
+  ],
+};
+
+/// Descriptor for `CombinePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List combinePsbtResponseDescriptor = $convert.base64Decode(
+    'ChNDb21iaW5lUHNidFJlc3BvbnNlEhIKBHBzYnQYASABKAlSBHBzYnQ=');
+
+@$core.Deprecated('Use utxoUpdatePsbtRequestDescriptor instead')
+const UtxoUpdatePsbtRequest$json = {
+  '1': 'UtxoUpdatePsbtRequest',
+  '2': [
+    {'1': 'psbt', '3': 1, '4': 1, '5': 9, '10': 'psbt'},
+    {'1': 'descriptors', '3': 2, '4': 3, '5': 11, '6': '.bitcoind.v1.Descriptor', '10': 'descriptors'},
+  ],
+};
+
+/// Descriptor for `UtxoUpdatePsbtRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List utxoUpdatePsbtRequestDescriptor = $convert.base64Decode(
+    'ChVVdHhvVXBkYXRlUHNidFJlcXVlc3QSEgoEcHNidBgBIAEoCVIEcHNidBI5CgtkZXNjcmlwdG'
+    '9ycxgCIAMoCzIXLmJpdGNvaW5kLnYxLkRlc2NyaXB0b3JSC2Rlc2NyaXB0b3Jz');
+
+@$core.Deprecated('Use utxoUpdatePsbtResponseDescriptor instead')
+const UtxoUpdatePsbtResponse$json = {
+  '1': 'UtxoUpdatePsbtResponse',
+  '2': [
+    {'1': 'psbt', '3': 1, '4': 1, '5': 9, '10': 'psbt'},
+  ],
+};
+
+/// Descriptor for `UtxoUpdatePsbtResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List utxoUpdatePsbtResponseDescriptor = $convert.base64Decode(
+    'ChZVdHhvVXBkYXRlUHNidFJlc3BvbnNlEhIKBHBzYnQYASABKAlSBHBzYnQ=');
+
+@$core.Deprecated('Use joinPsbtsRequestDescriptor instead')
+const JoinPsbtsRequest$json = {
+  '1': 'JoinPsbtsRequest',
+  '2': [
+    {'1': 'psbts', '3': 1, '4': 3, '5': 9, '10': 'psbts'},
+  ],
+};
+
+/// Descriptor for `JoinPsbtsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinPsbtsRequestDescriptor = $convert.base64Decode(
+    'ChBKb2luUHNidHNSZXF1ZXN0EhQKBXBzYnRzGAEgAygJUgVwc2J0cw==');
+
+@$core.Deprecated('Use joinPsbtsResponseDescriptor instead')
+const JoinPsbtsResponse$json = {
+  '1': 'JoinPsbtsResponse',
+  '2': [
+    {'1': 'psbt', '3': 1, '4': 1, '5': 9, '10': 'psbt'},
+  ],
+};
+
+/// Descriptor for `JoinPsbtsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinPsbtsResponseDescriptor = $convert.base64Decode(
+    'ChFKb2luUHNidHNSZXNwb25zZRISCgRwc2J0GAEgASgJUgRwc2J0');
+
+@$core.Deprecated('Use testMempoolAcceptRequestDescriptor instead')
+const TestMempoolAcceptRequest$json = {
+  '1': 'TestMempoolAcceptRequest',
+  '2': [
+    {'1': 'rawtxs', '3': 1, '4': 3, '5': 9, '10': 'rawtxs'},
+    {'1': 'max_fee_rate', '3': 2, '4': 1, '5': 1, '10': 'maxFeeRate'},
+  ],
+};
+
+/// Descriptor for `TestMempoolAcceptRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List testMempoolAcceptRequestDescriptor = $convert.base64Decode(
+    'ChhUZXN0TWVtcG9vbEFjY2VwdFJlcXVlc3QSFgoGcmF3dHhzGAEgAygJUgZyYXd0eHMSIAoMbW'
+    'F4X2ZlZV9yYXRlGAIgASgBUgptYXhGZWVSYXRl');
+
+@$core.Deprecated('Use testMempoolAcceptResponseDescriptor instead')
+const TestMempoolAcceptResponse$json = {
+  '1': 'TestMempoolAcceptResponse',
+  '2': [
+    {'1': 'results', '3': 1, '4': 3, '5': 11, '6': '.bitcoind.v1.TestMempoolAcceptResponse.Result', '10': 'results'},
+  ],
+  '3': [TestMempoolAcceptResponse_Result$json],
+};
+
+@$core.Deprecated('Use testMempoolAcceptResponseDescriptor instead')
+const TestMempoolAcceptResponse_Result$json = {
+  '1': 'Result',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'allowed', '3': 2, '4': 1, '5': 8, '10': 'allowed'},
+    {'1': 'reject_reason', '3': 3, '4': 1, '5': 9, '10': 'rejectReason'},
+    {'1': 'vsize', '3': 4, '4': 1, '5': 13, '10': 'vsize'},
+    {'1': 'fees', '3': 5, '4': 1, '5': 1, '10': 'fees'},
+  ],
+};
+
+/// Descriptor for `TestMempoolAcceptResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List testMempoolAcceptResponseDescriptor = $convert.base64Decode(
+    'ChlUZXN0TWVtcG9vbEFjY2VwdFJlc3BvbnNlEkcKB3Jlc3VsdHMYASADKAsyLS5iaXRjb2luZC'
+    '52MS5UZXN0TWVtcG9vbEFjY2VwdFJlc3BvbnNlLlJlc3VsdFIHcmVzdWx0cxqFAQoGUmVzdWx0'
+    'EhIKBHR4aWQYASABKAlSBHR4aWQSGAoHYWxsb3dlZBgCIAEoCFIHYWxsb3dlZBIjCg1yZWplY3'
+    'RfcmVhc29uGAMgASgJUgxyZWplY3RSZWFzb24SFAoFdnNpemUYBCABKA1SBXZzaXplEhIKBGZl'
+    'ZXMYBSABKAFSBGZlZXM=');
+
+@$core.Deprecated('Use descriptorRangeDescriptor instead')
+const DescriptorRange$json = {
+  '1': 'DescriptorRange',
+  '2': [
+    {'1': 'end', '3': 1, '4': 1, '5': 5, '9': 0, '10': 'end'},
+    {'1': 'range', '3': 2, '4': 1, '5': 11, '6': '.bitcoind.v1.Range', '9': 0, '10': 'range'},
+  ],
+  '8': [
+    {'1': 'range_type'},
+  ],
+};
+
+/// Descriptor for `DescriptorRange`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List descriptorRangeDescriptor = $convert.base64Decode(
+    'Cg9EZXNjcmlwdG9yUmFuZ2USEgoDZW5kGAEgASgFSABSA2VuZBIqCgVyYW5nZRgCIAEoCzISLm'
+    'JpdGNvaW5kLnYxLlJhbmdlSABSBXJhbmdlQgwKCnJhbmdlX3R5cGU=');
+
+@$core.Deprecated('Use rangeDescriptor instead')
+const Range$json = {
+  '1': 'Range',
+  '2': [
+    {'1': 'begin', '3': 1, '4': 1, '5': 5, '10': 'begin'},
+    {'1': 'end', '3': 2, '4': 1, '5': 5, '10': 'end'},
+  ],
+};
+
+/// Descriptor for `Range`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List rangeDescriptor = $convert.base64Decode(
+    'CgVSYW5nZRIUCgViZWdpbhgBIAEoBVIFYmVnaW4SEAoDZW5kGAIgASgFUgNlbmQ=');
+
+@$core.Deprecated('Use descriptorDescriptor instead')
+const Descriptor$json = {
+  '1': 'Descriptor',
+  '2': [
+    {'1': 'string_descriptor', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'stringDescriptor'},
+    {'1': 'object_descriptor', '3': 2, '4': 1, '5': 11, '6': '.bitcoind.v1.DescriptorObject', '9': 0, '10': 'objectDescriptor'},
+  ],
+  '8': [
+    {'1': 'descriptor'},
+  ],
+};
+
+/// Descriptor for `Descriptor`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List descriptorDescriptor = $convert.base64Decode(
+    'CgpEZXNjcmlwdG9yEi0KEXN0cmluZ19kZXNjcmlwdG9yGAEgASgJSABSEHN0cmluZ0Rlc2NyaX'
+    'B0b3ISTAoRb2JqZWN0X2Rlc2NyaXB0b3IYAiABKAsyHS5iaXRjb2luZC52MS5EZXNjcmlwdG9y'
+    'T2JqZWN0SABSEG9iamVjdERlc2NyaXB0b3JCDAoKZGVzY3JpcHRvcg==');
+
+@$core.Deprecated('Use descriptorObjectDescriptor instead')
+const DescriptorObject$json = {
+  '1': 'DescriptorObject',
+  '2': [
+    {'1': 'desc', '3': 1, '4': 1, '5': 9, '10': 'desc'},
+    {'1': 'range', '3': 2, '4': 1, '5': 11, '6': '.bitcoind.v1.DescriptorRange', '10': 'range'},
+  ],
+};
+
+/// Descriptor for `DescriptorObject`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List descriptorObjectDescriptor = $convert.base64Decode(
+    'ChBEZXNjcmlwdG9yT2JqZWN0EhIKBGRlc2MYASABKAlSBGRlc2MSMgoFcmFuZ2UYAiABKAsyHC'
+    '5iaXRjb2luZC52MS5EZXNjcmlwdG9yUmFuZ2VSBXJhbmdl');
+
 const $core.Map<$core.String, $core.dynamic> BitcoindServiceBase$json = {
   '1': 'BitcoindService',
   '2': [
@@ -790,6 +1326,7 @@ const $core.Map<$core.String, $core.dynamic> BitcoindServiceBase$json = {
     {'1': 'ListPeers', '2': '.google.protobuf.Empty', '3': '.bitcoind.v1.ListPeersResponse'},
     {'1': 'EstimateSmartFee', '2': '.bitcoind.v1.EstimateSmartFeeRequest', '3': '.bitcoind.v1.EstimateSmartFeeResponse'},
     {'1': 'GetRawTransaction', '2': '.bitcoind.v1.GetRawTransactionRequest', '3': '.bitcoind.v1.GetRawTransactionResponse'},
+    {'1': 'CreateRawTransaction', '2': '.bitcoind.v1.CreateRawTransactionRequest', '3': '.bitcoind.v1.CreateRawTransactionResponse'},
     {'1': 'CreateWallet', '2': '.bitcoind.v1.CreateWalletRequest', '3': '.bitcoind.v1.CreateWalletResponse'},
     {'1': 'BackupWallet', '2': '.bitcoind.v1.BackupWalletRequest', '3': '.bitcoind.v1.BackupWalletResponse'},
     {'1': 'DumpWallet', '2': '.bitcoind.v1.DumpWalletRequest', '3': '.bitcoind.v1.DumpWalletResponse'},
@@ -806,6 +1343,13 @@ const $core.Map<$core.String, $core.dynamic> BitcoindServiceBase$json = {
     {'1': 'ListAccounts', '2': '.bitcoind.v1.ListAccountsRequest', '3': '.bitcoind.v1.ListAccountsResponse'},
     {'1': 'AddMultisigAddress', '2': '.bitcoind.v1.AddMultisigAddressRequest', '3': '.bitcoind.v1.AddMultisigAddressResponse'},
     {'1': 'CreateMultisig', '2': '.bitcoind.v1.CreateMultisigRequest', '3': '.bitcoind.v1.CreateMultisigResponse'},
+    {'1': 'CreatePsbt', '2': '.bitcoind.v1.CreatePsbtRequest', '3': '.bitcoind.v1.CreatePsbtResponse'},
+    {'1': 'DecodePsbt', '2': '.bitcoind.v1.DecodePsbtRequest', '3': '.bitcoind.v1.DecodePsbtResponse'},
+    {'1': 'AnalyzePsbt', '2': '.bitcoind.v1.AnalyzePsbtRequest', '3': '.bitcoind.v1.AnalyzePsbtResponse'},
+    {'1': 'CombinePsbt', '2': '.bitcoind.v1.CombinePsbtRequest', '3': '.bitcoind.v1.CombinePsbtResponse'},
+    {'1': 'UtxoUpdatePsbt', '2': '.bitcoind.v1.UtxoUpdatePsbtRequest', '3': '.bitcoind.v1.UtxoUpdatePsbtResponse'},
+    {'1': 'JoinPsbts', '2': '.bitcoind.v1.JoinPsbtsRequest', '3': '.bitcoind.v1.JoinPsbtsResponse'},
+    {'1': 'TestMempoolAccept', '2': '.bitcoind.v1.TestMempoolAcceptRequest', '3': '.bitcoind.v1.TestMempoolAcceptResponse'},
   ],
 };
 
@@ -833,6 +1377,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoindSe
   '.bitcoind.v1.ScriptSig': ScriptSig$json,
   '.bitcoind.v1.Output': Output$json,
   '.bitcoind.v1.ScriptPubKey': ScriptPubKey$json,
+  '.bitcoind.v1.CreateRawTransactionRequest': CreateRawTransactionRequest$json,
+  '.bitcoind.v1.CreateRawTransactionRequest.Input': CreateRawTransactionRequest_Input$json,
+  '.bitcoind.v1.CreateRawTransactionRequest.OutputsEntry': CreateRawTransactionRequest_OutputsEntry$json,
+  '.bitcoind.v1.CreateRawTransactionResponse': CreateRawTransactionResponse$json,
   '.bitcoind.v1.CreateWalletRequest': CreateWalletRequest$json,
   '.bitcoind.v1.CreateWalletResponse': CreateWalletResponse$json,
   '.bitcoind.v1.BackupWalletRequest': BackupWalletRequest$json,
@@ -866,6 +1414,39 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoindSe
   '.bitcoind.v1.AddMultisigAddressResponse': AddMultisigAddressResponse$json,
   '.bitcoind.v1.CreateMultisigRequest': CreateMultisigRequest$json,
   '.bitcoind.v1.CreateMultisigResponse': CreateMultisigResponse$json,
+  '.bitcoind.v1.CreatePsbtRequest': CreatePsbtRequest$json,
+  '.bitcoind.v1.CreatePsbtRequest.Input': CreatePsbtRequest_Input$json,
+  '.bitcoind.v1.CreatePsbtRequest.OutputsEntry': CreatePsbtRequest_OutputsEntry$json,
+  '.bitcoind.v1.CreatePsbtResponse': CreatePsbtResponse$json,
+  '.bitcoind.v1.DecodePsbtRequest': DecodePsbtRequest$json,
+  '.bitcoind.v1.DecodePsbtResponse': DecodePsbtResponse$json,
+  '.bitcoind.v1.DecodeRawTransactionResponse': DecodeRawTransactionResponse$json,
+  '.bitcoind.v1.DecodePsbtResponse.UnknownEntry': DecodePsbtResponse_UnknownEntry$json,
+  '.bitcoind.v1.DecodePsbtResponse.Input': DecodePsbtResponse_Input$json,
+  '.bitcoind.v1.DecodePsbtResponse.WitnessUtxo': DecodePsbtResponse_WitnessUtxo$json,
+  '.bitcoind.v1.DecodePsbtResponse.Input.PartialSignaturesEntry': DecodePsbtResponse_Input_PartialSignaturesEntry$json,
+  '.bitcoind.v1.DecodePsbtResponse.RedeemScript': DecodePsbtResponse_RedeemScript$json,
+  '.bitcoind.v1.DecodePsbtResponse.Bip32Deriv': DecodePsbtResponse_Bip32Deriv$json,
+  '.bitcoind.v1.DecodePsbtResponse.Input.UnknownEntry': DecodePsbtResponse_Input_UnknownEntry$json,
+  '.bitcoind.v1.DecodePsbtResponse.Output': DecodePsbtResponse_Output$json,
+  '.bitcoind.v1.DecodePsbtResponse.Output.UnknownEntry': DecodePsbtResponse_Output_UnknownEntry$json,
+  '.bitcoind.v1.AnalyzePsbtRequest': AnalyzePsbtRequest$json,
+  '.bitcoind.v1.AnalyzePsbtResponse': AnalyzePsbtResponse$json,
+  '.bitcoind.v1.AnalyzePsbtResponse.Input': AnalyzePsbtResponse_Input$json,
+  '.bitcoind.v1.AnalyzePsbtResponse.Input.Missing': AnalyzePsbtResponse_Input_Missing$json,
+  '.bitcoind.v1.CombinePsbtRequest': CombinePsbtRequest$json,
+  '.bitcoind.v1.CombinePsbtResponse': CombinePsbtResponse$json,
+  '.bitcoind.v1.UtxoUpdatePsbtRequest': UtxoUpdatePsbtRequest$json,
+  '.bitcoind.v1.Descriptor': Descriptor$json,
+  '.bitcoind.v1.DescriptorObject': DescriptorObject$json,
+  '.bitcoind.v1.DescriptorRange': DescriptorRange$json,
+  '.bitcoind.v1.Range': Range$json,
+  '.bitcoind.v1.UtxoUpdatePsbtResponse': UtxoUpdatePsbtResponse$json,
+  '.bitcoind.v1.JoinPsbtsRequest': JoinPsbtsRequest$json,
+  '.bitcoind.v1.JoinPsbtsResponse': JoinPsbtsResponse$json,
+  '.bitcoind.v1.TestMempoolAcceptRequest': TestMempoolAcceptRequest$json,
+  '.bitcoind.v1.TestMempoolAcceptResponse': TestMempoolAcceptResponse$json,
+  '.bitcoind.v1.TestMempoolAcceptResponse.Result': TestMempoolAcceptResponse_Result$json,
 };
 
 /// Descriptor for `BitcoindService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -881,30 +1462,43 @@ final $typed_data.Uint8List bitcoindServiceDescriptor = $convert.base64Decode(
     'dGltYXRlU21hcnRGZWUSJC5iaXRjb2luZC52MS5Fc3RpbWF0ZVNtYXJ0RmVlUmVxdWVzdBolLm'
     'JpdGNvaW5kLnYxLkVzdGltYXRlU21hcnRGZWVSZXNwb25zZRJiChFHZXRSYXdUcmFuc2FjdGlv'
     'bhIlLmJpdGNvaW5kLnYxLkdldFJhd1RyYW5zYWN0aW9uUmVxdWVzdBomLmJpdGNvaW5kLnYxLk'
-    'dldFJhd1RyYW5zYWN0aW9uUmVzcG9uc2USUwoMQ3JlYXRlV2FsbGV0EiAuYml0Y29pbmQudjEu'
-    'Q3JlYXRlV2FsbGV0UmVxdWVzdBohLmJpdGNvaW5kLnYxLkNyZWF0ZVdhbGxldFJlc3BvbnNlEl'
-    'MKDEJhY2t1cFdhbGxldBIgLmJpdGNvaW5kLnYxLkJhY2t1cFdhbGxldFJlcXVlc3QaIS5iaXRj'
-    'b2luZC52MS5CYWNrdXBXYWxsZXRSZXNwb25zZRJNCgpEdW1wV2FsbGV0Eh4uYml0Y29pbmQudj'
-    'EuRHVtcFdhbGxldFJlcXVlc3QaHy5iaXRjb2luZC52MS5EdW1wV2FsbGV0UmVzcG9uc2USUwoM'
-    'SW1wb3J0V2FsbGV0EiAuYml0Y29pbmQudjEuSW1wb3J0V2FsbGV0UmVxdWVzdBohLmJpdGNvaW'
-    '5kLnYxLkltcG9ydFdhbGxldFJlc3BvbnNlElMKDFVubG9hZFdhbGxldBIgLmJpdGNvaW5kLnYx'
-    'LlVubG9hZFdhbGxldFJlcXVlc3QaIS5iaXRjb2luZC52MS5VbmxvYWRXYWxsZXRSZXNwb25zZR'
-    'JQCgtEdW1wUHJpdktleRIfLmJpdGNvaW5kLnYxLkR1bXBQcml2S2V5UmVxdWVzdBogLmJpdGNv'
-    'aW5kLnYxLkR1bXBQcml2S2V5UmVzcG9uc2USVgoNSW1wb3J0UHJpdktleRIhLmJpdGNvaW5kLn'
-    'YxLkltcG9ydFByaXZLZXlSZXF1ZXN0GiIuYml0Y29pbmQudjEuSW1wb3J0UHJpdktleVJlc3Bv'
-    'bnNlElYKDUltcG9ydEFkZHJlc3MSIS5iaXRjb2luZC52MS5JbXBvcnRBZGRyZXNzUmVxdWVzdB'
-    'oiLmJpdGNvaW5kLnYxLkltcG9ydEFkZHJlc3NSZXNwb25zZRJTCgxJbXBvcnRQdWJLZXkSIC5i'
-    'aXRjb2luZC52MS5JbXBvcnRQdWJLZXlSZXF1ZXN0GiEuYml0Y29pbmQudjEuSW1wb3J0UHViS2'
-    'V5UmVzcG9uc2USVgoNS2V5UG9vbFJlZmlsbBIhLmJpdGNvaW5kLnYxLktleVBvb2xSZWZpbGxS'
-    'ZXF1ZXN0GiIuYml0Y29pbmQudjEuS2V5UG9vbFJlZmlsbFJlc3BvbnNlEk0KCkdldEFjY291bn'
-    'QSHi5iaXRjb2luZC52MS5HZXRBY2NvdW50UmVxdWVzdBofLmJpdGNvaW5kLnYxLkdldEFjY291'
-    'bnRSZXNwb25zZRJNCgpTZXRBY2NvdW50Eh4uYml0Y29pbmQudjEuU2V0QWNjb3VudFJlcXVlc3'
-    'QaHy5iaXRjb2luZC52MS5TZXRBY2NvdW50UmVzcG9uc2USbgoVR2V0QWRkcmVzc2VzQnlBY2Nv'
-    'dW50EikuYml0Y29pbmQudjEuR2V0QWRkcmVzc2VzQnlBY2NvdW50UmVxdWVzdBoqLmJpdGNvaW'
-    '5kLnYxLkdldEFkZHJlc3Nlc0J5QWNjb3VudFJlc3BvbnNlElMKDExpc3RBY2NvdW50cxIgLmJp'
-    'dGNvaW5kLnYxLkxpc3RBY2NvdW50c1JlcXVlc3QaIS5iaXRjb2luZC52MS5MaXN0QWNjb3VudH'
-    'NSZXNwb25zZRJlChJBZGRNdWx0aXNpZ0FkZHJlc3MSJi5iaXRjb2luZC52MS5BZGRNdWx0aXNp'
-    'Z0FkZHJlc3NSZXF1ZXN0GicuYml0Y29pbmQudjEuQWRkTXVsdGlzaWdBZGRyZXNzUmVzcG9uc2'
-    'USWQoOQ3JlYXRlTXVsdGlzaWcSIi5iaXRjb2luZC52MS5DcmVhdGVNdWx0aXNpZ1JlcXVlc3Qa'
-    'Iy5iaXRjb2luZC52MS5DcmVhdGVNdWx0aXNpZ1Jlc3BvbnNl');
+    'dldFJhd1RyYW5zYWN0aW9uUmVzcG9uc2USawoUQ3JlYXRlUmF3VHJhbnNhY3Rpb24SKC5iaXRj'
+    'b2luZC52MS5DcmVhdGVSYXdUcmFuc2FjdGlvblJlcXVlc3QaKS5iaXRjb2luZC52MS5DcmVhdG'
+    'VSYXdUcmFuc2FjdGlvblJlc3BvbnNlElMKDENyZWF0ZVdhbGxldBIgLmJpdGNvaW5kLnYxLkNy'
+    'ZWF0ZVdhbGxldFJlcXVlc3QaIS5iaXRjb2luZC52MS5DcmVhdGVXYWxsZXRSZXNwb25zZRJTCg'
+    'xCYWNrdXBXYWxsZXQSIC5iaXRjb2luZC52MS5CYWNrdXBXYWxsZXRSZXF1ZXN0GiEuYml0Y29p'
+    'bmQudjEuQmFja3VwV2FsbGV0UmVzcG9uc2USTQoKRHVtcFdhbGxldBIeLmJpdGNvaW5kLnYxLk'
+    'R1bXBXYWxsZXRSZXF1ZXN0Gh8uYml0Y29pbmQudjEuRHVtcFdhbGxldFJlc3BvbnNlElMKDElt'
+    'cG9ydFdhbGxldBIgLmJpdGNvaW5kLnYxLkltcG9ydFdhbGxldFJlcXVlc3QaIS5iaXRjb2luZC'
+    '52MS5JbXBvcnRXYWxsZXRSZXNwb25zZRJTCgxVbmxvYWRXYWxsZXQSIC5iaXRjb2luZC52MS5V'
+    'bmxvYWRXYWxsZXRSZXF1ZXN0GiEuYml0Y29pbmQudjEuVW5sb2FkV2FsbGV0UmVzcG9uc2USUA'
+    'oLRHVtcFByaXZLZXkSHy5iaXRjb2luZC52MS5EdW1wUHJpdktleVJlcXVlc3QaIC5iaXRjb2lu'
+    'ZC52MS5EdW1wUHJpdktleVJlc3BvbnNlElYKDUltcG9ydFByaXZLZXkSIS5iaXRjb2luZC52MS'
+    '5JbXBvcnRQcml2S2V5UmVxdWVzdBoiLmJpdGNvaW5kLnYxLkltcG9ydFByaXZLZXlSZXNwb25z'
+    'ZRJWCg1JbXBvcnRBZGRyZXNzEiEuYml0Y29pbmQudjEuSW1wb3J0QWRkcmVzc1JlcXVlc3QaIi'
+    '5iaXRjb2luZC52MS5JbXBvcnRBZGRyZXNzUmVzcG9uc2USUwoMSW1wb3J0UHViS2V5EiAuYml0'
+    'Y29pbmQudjEuSW1wb3J0UHViS2V5UmVxdWVzdBohLmJpdGNvaW5kLnYxLkltcG9ydFB1YktleV'
+    'Jlc3BvbnNlElYKDUtleVBvb2xSZWZpbGwSIS5iaXRjb2luZC52MS5LZXlQb29sUmVmaWxsUmVx'
+    'dWVzdBoiLmJpdGNvaW5kLnYxLktleVBvb2xSZWZpbGxSZXNwb25zZRJNCgpHZXRBY2NvdW50Eh'
+    '4uYml0Y29pbmQudjEuR2V0QWNjb3VudFJlcXVlc3QaHy5iaXRjb2luZC52MS5HZXRBY2NvdW50'
+    'UmVzcG9uc2USTQoKU2V0QWNjb3VudBIeLmJpdGNvaW5kLnYxLlNldEFjY291bnRSZXF1ZXN0Gh'
+    '8uYml0Y29pbmQudjEuU2V0QWNjb3VudFJlc3BvbnNlEm4KFUdldEFkZHJlc3Nlc0J5QWNjb3Vu'
+    'dBIpLmJpdGNvaW5kLnYxLkdldEFkZHJlc3Nlc0J5QWNjb3VudFJlcXVlc3QaKi5iaXRjb2luZC'
+    '52MS5HZXRBZGRyZXNzZXNCeUFjY291bnRSZXNwb25zZRJTCgxMaXN0QWNjb3VudHMSIC5iaXRj'
+    'b2luZC52MS5MaXN0QWNjb3VudHNSZXF1ZXN0GiEuYml0Y29pbmQudjEuTGlzdEFjY291bnRzUm'
+    'VzcG9uc2USZQoSQWRkTXVsdGlzaWdBZGRyZXNzEiYuYml0Y29pbmQudjEuQWRkTXVsdGlzaWdB'
+    'ZGRyZXNzUmVxdWVzdBonLmJpdGNvaW5kLnYxLkFkZE11bHRpc2lnQWRkcmVzc1Jlc3BvbnNlEl'
+    'kKDkNyZWF0ZU11bHRpc2lnEiIuYml0Y29pbmQudjEuQ3JlYXRlTXVsdGlzaWdSZXF1ZXN0GiMu'
+    'Yml0Y29pbmQudjEuQ3JlYXRlTXVsdGlzaWdSZXNwb25zZRJNCgpDcmVhdGVQc2J0Eh4uYml0Y2'
+    '9pbmQudjEuQ3JlYXRlUHNidFJlcXVlc3QaHy5iaXRjb2luZC52MS5DcmVhdGVQc2J0UmVzcG9u'
+    'c2USTQoKRGVjb2RlUHNidBIeLmJpdGNvaW5kLnYxLkRlY29kZVBzYnRSZXF1ZXN0Gh8uYml0Y2'
+    '9pbmQudjEuRGVjb2RlUHNidFJlc3BvbnNlElAKC0FuYWx5emVQc2J0Eh8uYml0Y29pbmQudjEu'
+    'QW5hbHl6ZVBzYnRSZXF1ZXN0GiAuYml0Y29pbmQudjEuQW5hbHl6ZVBzYnRSZXNwb25zZRJQCg'
+    'tDb21iaW5lUHNidBIfLmJpdGNvaW5kLnYxLkNvbWJpbmVQc2J0UmVxdWVzdBogLmJpdGNvaW5k'
+    'LnYxLkNvbWJpbmVQc2J0UmVzcG9uc2USWQoOVXR4b1VwZGF0ZVBzYnQSIi5iaXRjb2luZC52MS'
+    '5VdHhvVXBkYXRlUHNidFJlcXVlc3QaIy5iaXRjb2luZC52MS5VdHhvVXBkYXRlUHNidFJlc3Bv'
+    'bnNlEkoKCUpvaW5Qc2J0cxIdLmJpdGNvaW5kLnYxLkpvaW5Qc2J0c1JlcXVlc3QaHi5iaXRjb2'
+    'luZC52MS5Kb2luUHNidHNSZXNwb25zZRJiChFUZXN0TWVtcG9vbEFjY2VwdBIlLmJpdGNvaW5k'
+    'LnYxLlRlc3RNZW1wb29sQWNjZXB0UmVxdWVzdBomLmJpdGNvaW5kLnYxLlRlc3RNZW1wb29sQW'
+    'NjZXB0UmVzcG9uc2U=');
 

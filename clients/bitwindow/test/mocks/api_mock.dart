@@ -302,6 +302,41 @@ class MockBitcoindAPI implements BitcoindAPI {
   Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet) async {
     return UnloadWalletResponse();
   }
+
+  @override
+  Future<AnalyzePsbtResponse> analyzePsbt(AnalyzePsbtRequest request) async {
+    return AnalyzePsbtResponse();
+  }
+
+  @override
+  Future<CombinePsbtResponse> combinePsbt(CombinePsbtRequest request) async {
+    return CombinePsbtResponse();
+  }
+
+  @override
+  Future<CreatePsbtResponse> createPsbt(CreatePsbtRequest request) async {
+    return CreatePsbtResponse();
+  }
+
+  @override
+  Future<DecodePsbtResponse> decodePsbt(DecodePsbtRequest request) async {
+    return DecodePsbtResponse();
+  }
+
+  @override
+  Future<JoinPsbtsResponse> joinPsbts(JoinPsbtsRequest request) async {
+    return JoinPsbtsResponse();
+  }
+
+  @override
+  Future<TestMempoolAcceptResponse> testMempoolAccept(TestMempoolAcceptRequest request) async {
+    return TestMempoolAcceptResponse();
+  }
+
+  @override
+  Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request) async {
+    return UtxoUpdatePsbtResponse();
+  }
 }
 
 class MockDrivechainAPI implements DrivechainAPI {
