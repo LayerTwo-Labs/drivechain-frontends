@@ -126,9 +126,9 @@ class BottomNav extends StatelessWidget {
                 ),
                 const DividerDot(),
                 ChainLoaders(),
-                const SailSpacing(SailStyleValues.padding04),
+                const DividerDot(),
                 ...endWidgets,
-                const SailSpacing(SailStyleValues.padding04),
+                const SailSpacing(SailStyleValues.padding08),
               ],
             ),
           ),
@@ -203,8 +203,8 @@ class DividerDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: SailText.primary10('|', color: SailTheme.of(context).colors.textTertiary.withValues(alpha: 0.5)),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: SailText.primary10('|', color: SailTheme.of(context).colors.divider),
     );
   }
 }
@@ -341,29 +341,36 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
   @override
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 450),
+      constraints: const BoxConstraints(maxWidth: 700),
       child: SailRow(
         spacing: 0,
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (viewModel.blockInfoProvider.mainchainSyncInfo != null &&
-              !viewModel.blockInfoProvider.mainchainSyncInfo!.isSynced)
+              !viewModel.blockInfoProvider.mainchainSyncInfo!.isSynced) ...[
             ChainLoader(
               name: viewModel.blockInfoProvider.mainchain.name,
               syncInfo: viewModel.blockInfoProvider.mainchainSyncInfo!,
             ),
+            DividerDot(),
+          ],
           if (viewModel.blockInfoProvider.enforcerSyncInfo != null &&
-              !viewModel.blockInfoProvider.enforcerSyncInfo!.isSynced)
+              !viewModel.blockInfoProvider.enforcerSyncInfo!.isSynced) ...[
             ChainLoader(
               name: viewModel.blockInfoProvider.enforcer.name,
               syncInfo: viewModel.blockInfoProvider.enforcerSyncInfo!,
             ),
+            DividerDot(),
+          ],
           if (viewModel.blockInfoProvider.additionalSyncInfo != null &&
-              !viewModel.blockInfoProvider.additionalSyncInfo!.isSynced)
+              !viewModel.blockInfoProvider.additionalSyncInfo!.isSynced) ...[
             ChainLoader(
               name: viewModel.blockInfoProvider.additionalConnection!.name,
               syncInfo: viewModel.blockInfoProvider.additionalSyncInfo!,
             ),
+            DividerDot(),
+          ],
           SailText.primary12(
             '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.blocks ?? 'Loading')} blocks',
           ),
@@ -388,16 +395,10 @@ class ChainLoader extends StatelessWidget {
     return Expanded(
       child: Tooltip(
         message: '$name\nCurrent height ${syncInfo.blocks}\nHeader height ${syncInfo.headers}',
-        child: SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            ProgressBar(
-              progress: syncInfo.verificationProgress,
-              current: syncInfo.blocks,
-              goal: syncInfo.headers,
-            ),
-            const DividerDot(),
-          ],
+        child: ProgressBar(
+          progress: syncInfo.verificationProgress,
+          current: syncInfo.blocks,
+          goal: syncInfo.headers,
         ),
       ),
     );
