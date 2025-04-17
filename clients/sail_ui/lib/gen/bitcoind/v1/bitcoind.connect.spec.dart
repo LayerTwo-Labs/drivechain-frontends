@@ -66,6 +66,13 @@ abstract final class BitcoindService {
     bitcoindv1bitcoind.GetRawTransactionResponse.new,
   );
 
+  static const createRawTransaction = connect.Spec(
+    '/$name/CreateRawTransaction',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.CreateRawTransactionRequest.new,
+    bitcoindv1bitcoind.CreateRawTransactionResponse.new,
+  );
+
   /// Wallet management
   static const createWallet = connect.Spec(
     '/$name/CreateWallet',
@@ -180,5 +187,56 @@ abstract final class BitcoindService {
     connect.StreamType.unary,
     bitcoindv1bitcoind.CreateMultisigRequest.new,
     bitcoindv1bitcoind.CreateMultisigResponse.new,
+  );
+
+  /// PSBT handling
+  static const createPsbt = connect.Spec(
+    '/$name/CreatePsbt',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.CreatePsbtRequest.new,
+    bitcoindv1bitcoind.CreatePsbtResponse.new,
+  );
+
+  static const decodePsbt = connect.Spec(
+    '/$name/DecodePsbt',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.DecodePsbtRequest.new,
+    bitcoindv1bitcoind.DecodePsbtResponse.new,
+  );
+
+  static const analyzePsbt = connect.Spec(
+    '/$name/AnalyzePsbt',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.AnalyzePsbtRequest.new,
+    bitcoindv1bitcoind.AnalyzePsbtResponse.new,
+  );
+
+  static const combinePsbt = connect.Spec(
+    '/$name/CombinePsbt',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.CombinePsbtRequest.new,
+    bitcoindv1bitcoind.CombinePsbtResponse.new,
+  );
+
+  static const utxoUpdatePsbt = connect.Spec(
+    '/$name/UtxoUpdatePsbt',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.UtxoUpdatePsbtRequest.new,
+    bitcoindv1bitcoind.UtxoUpdatePsbtResponse.new,
+  );
+
+  static const joinPsbts = connect.Spec(
+    '/$name/JoinPsbts',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.JoinPsbtsRequest.new,
+    bitcoindv1bitcoind.JoinPsbtsResponse.new,
+  );
+
+  /// Transaction misc
+  static const testMempoolAccept = connect.Spec(
+    '/$name/TestMempoolAccept',
+    connect.StreamType.unary,
+    bitcoindv1bitcoind.TestMempoolAcceptRequest.new,
+    bitcoindv1bitcoind.TestMempoolAcceptResponse.new,
   );
 }
