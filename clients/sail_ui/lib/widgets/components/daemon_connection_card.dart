@@ -131,11 +131,13 @@ class BlockStatus extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!syncInfo.isSynced)
-                  ProgressBar(
-                    progress: syncInfo.verificationProgress,
-                    current: syncInfo.blocks,
-                    goal: syncInfo.headers,
+                if (syncInfo.isSynced)
+                  Expanded(
+                    child: ProgressBar(
+                      progress: syncInfo.verificationProgress,
+                      current: syncInfo.blocks,
+                      goal: syncInfo.headers,
+                    ),
                   )
                 else
                   SailText.secondary12(
