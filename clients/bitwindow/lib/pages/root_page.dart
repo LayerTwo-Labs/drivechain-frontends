@@ -489,7 +489,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
     // Wait for all stop operations to complete
     await Future.wait(futures);
 
-    // after all binaries are killed, make sure to kill any lingering processes started
+    // after all binaries are asked nicely to stop, kill any lingering processes
     await processProvider.shutdown();
 
     return true;
