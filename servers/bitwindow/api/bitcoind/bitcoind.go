@@ -36,6 +36,374 @@ type Server struct {
 	bitcoind *service.Service[*coreproxy.Bitcoind]
 }
 
+// AnalyzePsbt implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) AnalyzePsbt(ctx context.Context, req *connect.Request[pb.AnalyzePsbtRequest]) (*connect.Response[pb.AnalyzePsbtResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.AnalyzePsbt(ctx, connect.NewRequest(&corepb.AnalyzePsbtRequest{
+		Psbt: req.Msg.Psbt,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not analyze PSBT: %w", err)
+	}
+
+	// Convert the core response to our API response
+	inputs := make([]*pb.AnalyzePsbtResponse_Input, len(res.Msg.Inputs))
+	for i, input := range res.Msg.Inputs {
+		inputs[i] = &pb.AnalyzePsbtResponse_Input{
+			HasUtxo: input.HasUtxo,
+			IsFinal: input.IsFinal,
+			Next:    input.Next,
+		}
+
+		// Convert missing data if present
+		if input.Missing != nil {
+			inputs[i].Missing = &pb.AnalyzePsbtResponse_Input_Missing{
+
+				Pubkeys:       input.Missing.Pubkeys,
+				Signatures:    input.Missing.Signatures,
+				RedeemScript:  input.Missing.RedeemScript,
+				WitnessScript: input.Missing.WitnessScript,
+			}
+		}
+	}
+
+	return connect.NewResponse(&pb.AnalyzePsbtResponse{
+		Inputs:           inputs,
+		EstimatedVsize:   res.Msg.EstimatedVsize,
+		EstimatedFeerate: res.Msg.EstimatedFeerate,
+		Fee:              res.Msg.Fee,
+		Next:             res.Msg.Next,
+		Error:            res.Msg.Error,
+	}), nil
+}
+
+// CombinePsbt implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) CombinePsbt(ctx context.Context, req *connect.Request[pb.CombinePsbtRequest]) (*connect.Response[pb.CombinePsbtResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.CombinePsbt(ctx, connect.NewRequest(&corepb.CombinePsbtRequest{
+		Psbts: req.Msg.Psbts,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not combine PSBT: %w", err)
+	}
+
+	return connect.NewResponse(&pb.CombinePsbtResponse{
+		Psbt: res.Msg.Psbt,
+	}), nil
+}
+
+// CreatePsbt implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) CreatePsbt(ctx context.Context, req *connect.Request[pb.CreatePsbtRequest]) (*connect.Response[pb.CreatePsbtResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert inputs to core format
+	inputs := make([]*corepb.CreatePsbtRequest_Input, len(req.Msg.Inputs))
+	for i, input := range req.Msg.Inputs {
+		inputs[i] = &corepb.CreatePsbtRequest_Input{
+			Txid:     input.Txid,
+			Vout:     input.Vout,
+			Sequence: input.Sequence,
+		}
+	}
+
+	res, err := bitcoind.CreatePsbt(ctx, connect.NewRequest(&corepb.CreatePsbtRequest{
+		Inputs:   inputs,
+		Outputs:  req.Msg.Outputs,
+		Locktime: req.Msg.Locktime,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not create PSBT: %w", err)
+	}
+
+	return connect.NewResponse(&pb.CreatePsbtResponse{
+		Psbt: res.Msg.Psbt,
+	}), nil
+}
+
+// CreateRawTransaction implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) CreateRawTransaction(ctx context.Context, req *connect.Request[pb.CreateRawTransactionRequest]) (*connect.Response[pb.CreateRawTransactionResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert inputs to core format
+	inputs := make([]*corepb.CreateRawTransactionRequest_Input, len(req.Msg.Inputs))
+	for i, input := range req.Msg.Inputs {
+		inputs[i] = &corepb.CreateRawTransactionRequest_Input{
+			Txid:     input.Txid,
+			Vout:     input.Vout,
+			Sequence: input.Sequence,
+		}
+	}
+
+	// Call the core bitcoind createrawtransaction RPC
+	res, err := bitcoind.CreateRawTransaction(ctx, connect.NewRequest(&corepb.CreateRawTransactionRequest{
+		Inputs:   inputs,
+		Outputs:  req.Msg.Outputs,
+		Locktime: req.Msg.Locktime,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not create raw transaction: %w", err)
+	}
+
+	return connect.NewResponse(&pb.CreateRawTransactionResponse{
+		Tx: &pb.RawTransaction{
+			Data: res.Msg.Tx.Data,
+			Hex:  hex.EncodeToString(res.Msg.Tx.Data),
+		},
+	}), nil
+}
+
+// DecodePsbt implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) DecodePsbt(ctx context.Context, req *connect.Request[pb.DecodePsbtRequest]) (*connect.Response[pb.DecodePsbtResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := bitcoind.DecodePsbt(ctx, connect.NewRequest(&corepb.DecodePsbtRequest{
+		Psbt: req.Msg.Psbt,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not decode PSBT: %w", err)
+	}
+
+	// Convert inputs
+	inputs := make([]*pb.DecodePsbtResponse_Input, len(res.Msg.Inputs))
+	for i, input := range res.Msg.Inputs {
+		inputs[i] = &pb.DecodePsbtResponse_Input{
+			NonWitnessUtxo:    convertRawTransaction(input.NonWitnessUtxo),
+			PartialSignatures: input.PartialSignatures,
+			Sighash:           input.Sighash,
+			FinalScriptsig: &pb.ScriptSig{
+				Asm: input.FinalScriptsig.Asm,
+				Hex: input.FinalScriptsig.Hex,
+			},
+			FinalScriptwitness: input.FinalScriptwitness,
+			Unknown:            input.Unknown,
+			WitnessUtxo: &pb.DecodePsbtResponse_WitnessUtxo{
+				Amount: input.WitnessUtxo.Amount,
+				ScriptPubKey: &pb.ScriptPubKey{
+					Type:    input.WitnessUtxo.ScriptPubKey.Type,
+					Address: input.WitnessUtxo.ScriptPubKey.Address,
+				},
+			},
+			RedeemScript: &pb.DecodePsbtResponse_RedeemScript{
+				Asm:  input.RedeemScript.Asm,
+				Hex:  input.RedeemScript.Hex,
+				Type: input.RedeemScript.Type,
+			},
+			WitnessScript: &pb.DecodePsbtResponse_RedeemScript{
+				Asm:  input.WitnessScript.Asm,
+				Hex:  input.WitnessScript.Hex,
+				Type: input.WitnessScript.Type,
+			},
+			Bip32Derivs: convertBip32Derivs(input.Bip32Derivs),
+		}
+	}
+
+	// Convert outputs
+	outputs := make([]*pb.DecodePsbtResponse_Output, len(res.Msg.Outputs))
+	for i, output := range res.Msg.Outputs {
+		outputs[i] = &pb.DecodePsbtResponse_Output{
+			Unknown: output.Unknown,
+		}
+
+		// Convert redeem script if present
+		if output.RedeemScript != nil {
+			outputs[i].RedeemScript = &pb.DecodePsbtResponse_RedeemScript{
+				Asm:  output.RedeemScript.Asm,
+				Hex:  output.RedeemScript.Hex,
+				Type: output.RedeemScript.Type,
+			}
+		}
+
+		// Convert witness script if present
+		if output.WitnessScript != nil {
+			outputs[i].WitnessScript = &pb.DecodePsbtResponse_RedeemScript{
+				Asm:  output.WitnessScript.Asm,
+				Hex:  output.WitnessScript.Hex,
+				Type: output.WitnessScript.Type,
+			}
+		}
+
+		// Convert BIP32 derivation paths
+		if len(output.Bip32Derivs) > 0 {
+			outputs[i].Bip32Derivs = make([]*pb.DecodePsbtResponse_Bip32Deriv, len(output.Bip32Derivs))
+			for j, deriv := range output.Bip32Derivs {
+				outputs[i].Bip32Derivs[j] = &pb.DecodePsbtResponse_Bip32Deriv{
+					Pubkey:            deriv.Pubkey,
+					MasterFingerprint: deriv.MasterFingerprint,
+					Path:              deriv.Path,
+				}
+			}
+		}
+	}
+
+	// Convert the transaction data
+	txInputs := make([]*pb.Input, len(res.Msg.Tx.Inputs))
+	for i, input := range res.Msg.Tx.Inputs {
+		txInputs[i] = &pb.Input{
+			Txid:     input.Txid,
+			Vout:     uint32(input.Vout),
+			Coinbase: input.Coinbase,
+			Sequence: input.Sequence,
+			Witness:  input.Witness,
+		}
+		if input.ScriptSig != nil {
+			txInputs[i].ScriptSig.Asm = input.ScriptSig.Asm
+			txInputs[i].ScriptSig.Hex = input.ScriptSig.Hex
+		}
+	}
+
+	txOutputs := make([]*pb.Output, len(res.Msg.Tx.Outputs))
+	for i, output := range res.Msg.Tx.Outputs {
+		txOutputs[i] = &pb.Output{
+			Amount: output.Amount,
+			Vout:   uint32(output.Vout),
+			ScriptPubKey: &pb.ScriptPubKey{
+				Type:    output.ScriptPubKey.Type,
+				Address: output.ScriptPubKey.Address,
+			},
+		}
+	}
+
+	tx := &pb.DecodeRawTransactionResponse{
+		Txid:        res.Msg.Tx.Txid,
+		Hash:        res.Msg.Tx.Hash,
+		Size:        res.Msg.Tx.Size,
+		VirtualSize: res.Msg.Tx.VirtualSize,
+		Weight:      res.Msg.Tx.Weight,
+		Version:     res.Msg.Tx.Version,
+		Locktime:    res.Msg.Tx.Locktime,
+		Inputs:      txInputs,
+		Outputs:     txOutputs,
+	}
+
+	return connect.NewResponse(&pb.DecodePsbtResponse{
+		Tx:      tx,
+		Unknown: res.Msg.Unknown,
+		Inputs:  inputs,
+		Outputs: outputs,
+		Fee:     res.Msg.Fee,
+	}), nil
+}
+
+func convertRawTransaction(tx *corepb.DecodeRawTransactionResponse) *pb.DecodeRawTransactionResponse {
+	if tx == nil {
+		return nil
+	}
+	return &pb.DecodeRawTransactionResponse{
+		Txid:        tx.Txid,
+		Hash:        tx.Hash,
+		Size:        tx.Size,
+		VirtualSize: tx.VirtualSize,
+		Weight:      tx.Weight,
+		Version:     tx.Version,
+		Locktime:    tx.Locktime,
+	}
+}
+
+func convertBip32Derivs(derivs []*corepb.DecodePsbtResponse_Bip32Deriv) []*pb.DecodePsbtResponse_Bip32Deriv {
+	if derivs == nil {
+		return nil
+	}
+	result := make([]*pb.DecodePsbtResponse_Bip32Deriv, len(derivs))
+	for i, deriv := range derivs {
+		result[i] = &pb.DecodePsbtResponse_Bip32Deriv{
+			Pubkey:            deriv.Pubkey,
+			MasterFingerprint: deriv.MasterFingerprint,
+			Path:              deriv.Path,
+		}
+	}
+	return result
+}
+
+// JoinPsbts implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) JoinPsbts(ctx context.Context, req *connect.Request[pb.JoinPsbtsRequest]) (*connect.Response[pb.JoinPsbtsResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Call the core bitcoind createrawtransaction RPC
+	res, err := bitcoind.JoinPsbts(ctx, connect.NewRequest(&corepb.JoinPsbtsRequest{
+		Psbts: req.Msg.Psbts,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not join PSBTs: %w", err)
+	}
+
+	return connect.NewResponse(&pb.JoinPsbtsResponse{
+		Psbt: res.Msg.Psbt,
+	}), nil
+}
+
+// TestMempoolAccept implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) TestMempoolAccept(ctx context.Context, req *connect.Request[pb.TestMempoolAcceptRequest]) (*connect.Response[pb.TestMempoolAcceptResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Call the core bitcoind createrawtransaction RPC
+	res, err := bitcoind.TestMempoolAccept(ctx, connect.NewRequest(&corepb.TestMempoolAcceptRequest{
+		Rawtxs:     req.Msg.Rawtxs,
+		MaxFeeRate: req.Msg.MaxFeeRate,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not test mempool accept: %w", err)
+	}
+
+	results := make([]*pb.TestMempoolAcceptResponse_Result, len(res.Msg.Results))
+	for i, result := range res.Msg.Results {
+		results[i] = &pb.TestMempoolAcceptResponse_Result{
+			Txid:         result.Txid,
+			Allowed:      result.Allowed,
+			RejectReason: result.RejectReason,
+			Vsize:        result.Vsize,
+			Fees:         result.Fees,
+		}
+	}
+
+	return connect.NewResponse(&pb.TestMempoolAcceptResponse{
+		Results: results,
+	}), nil
+}
+
+// UtxoUpdatePsbt implements bitcoindv1connect.BitcoindServiceHandler.
+func (s *Server) UtxoUpdatePsbt(ctx context.Context, req *connect.Request[pb.UtxoUpdatePsbtRequest]) (*connect.Response[pb.UtxoUpdatePsbtResponse], error) {
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Call the core bitcoind createrawtransaction RPC
+	res, err := bitcoind.UtxoUpdatePsbt(ctx, connect.NewRequest(&corepb.UtxoUpdatePsbtRequest{
+		Psbt:        req.Msg.Psbt,
+		Descriptors: []*corepb.Descriptor{},
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: could not test mempool accept: %w", err)
+	}
+
+	return connect.NewResponse(&pb.UtxoUpdatePsbtResponse{
+		Psbt: res.Msg.Psbt,
+	}), nil
+}
+
 // EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) EstimateSmartFee(ctx context.Context, req *connect.Request[pb.EstimateSmartFeeRequest]) (*connect.Response[pb.EstimateSmartFeeResponse], error) {
 	bitcoind, err := s.bitcoind.Get(ctx)

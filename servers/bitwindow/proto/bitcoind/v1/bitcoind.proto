@@ -25,6 +25,7 @@ service BitcoindService {
   rpc EstimateSmartFee(EstimateSmartFeeRequest) returns (EstimateSmartFeeResponse);
 
   rpc GetRawTransaction(GetRawTransactionRequest) returns (GetRawTransactionResponse);
+  rpc CreateRawTransaction(CreateRawTransactionRequest) returns (CreateRawTransactionResponse);
 
   // Wallet management
   rpc CreateWallet(CreateWalletRequest) returns (CreateWalletResponse);
@@ -49,6 +50,17 @@ service BitcoindService {
   // Multi-sig operations
   rpc AddMultisigAddress(AddMultisigAddressRequest) returns (AddMultisigAddressResponse);
   rpc CreateMultisig(CreateMultisigRequest) returns (CreateMultisigResponse);
+
+  // PSBT handling
+  rpc CreatePsbt(CreatePsbtRequest) returns (CreatePsbtResponse);
+  rpc DecodePsbt(DecodePsbtRequest) returns (DecodePsbtResponse);
+  rpc AnalyzePsbt(AnalyzePsbtRequest) returns (AnalyzePsbtResponse);
+  rpc CombinePsbt(CombinePsbtRequest) returns (CombinePsbtResponse);
+  rpc UtxoUpdatePsbt(UtxoUpdatePsbtRequest) returns (UtxoUpdatePsbtResponse);
+  rpc JoinPsbts(JoinPsbtsRequest) returns (JoinPsbtsResponse);
+
+  // Transaction misc
+  rpc TestMempoolAccept(TestMempoolAcceptRequest) returns (TestMempoolAcceptResponse);
 }
 
 message ListBlocksRequest {
@@ -133,6 +145,22 @@ message RawTransaction {
 
   // Hex-encoded raw transaction data
   string hex = 2;
+}
+
+// Transaction creation messages
+message CreateRawTransactionRequest {
+  message Input {
+    string txid = 1;
+    uint32 vout = 2;
+    uint32 sequence = 3;
+  }
+  repeated Input inputs = 1;
+  map<string, double> outputs = 2; // address -> amount
+  uint32 locktime = 3;
+}
+
+message CreateRawTransactionResponse {
+  RawTransaction tx = 1;
 }
 
 message ScriptSig {
@@ -331,4 +359,186 @@ message CreateMultisigRequest {
 message CreateMultisigResponse {
   string address = 1;
   string redeem_script = 2;
+}
+
+message CreatePsbtRequest {
+  message Input {
+    string txid = 1;
+    uint32 vout = 2;
+    uint32 sequence = 3;
+  }
+  repeated Input inputs = 1;
+  map<string, double> outputs = 2; // address -> amount
+  uint32 locktime = 3;
+  bool replaceable = 4;
+}
+
+message CreatePsbtResponse {
+  string psbt = 1; // Base64 encoded PSBT
+}
+
+message DecodePsbtRequest {
+  string psbt = 1; // Base64 encoded PSBT
+}
+
+message DecodeRawTransactionResponse {
+  string txid = 1;
+  string hash = 2;
+
+  // The serialized transaction size
+  uint32 size = 3;
+
+  // The virtual transaction size (differs from
+  // 'size' for witness transactions).
+  uint32 virtual_size = 4;
+
+  // The transaction's weight
+  uint32 weight = 5;
+
+  uint32 version = 6;
+
+  uint32 locktime = 7;
+
+  repeated Input inputs = 8;
+
+  repeated Output outputs = 9;
+}
+
+message DecodePsbtResponse {
+  message WitnessUtxo {
+    double amount = 1;
+    ScriptPubKey script_pub_key = 2;
+  }
+
+  message RedeemScript {
+    string asm = 1;
+    string hex = 2;
+    string type = 3;
+  }
+
+  message Bip32Deriv {
+    string pubkey = 1;
+    string master_fingerprint = 2;
+    string path = 3;
+  }
+
+  message Input {
+    DecodeRawTransactionResponse non_witness_utxo = 1;
+    WitnessUtxo witness_utxo = 2;
+    map<string, string> partial_signatures = 3;
+    string sighash = 4;
+    RedeemScript redeem_script = 5;
+    RedeemScript witness_script = 6;
+    repeated Bip32Deriv bip32_derivs = 7;
+    ScriptSig final_scriptsig = 8;
+    repeated string final_scriptwitness = 9;
+    map<string, string> unknown = 10;
+  }
+
+  message Output {
+    RedeemScript redeem_script = 1;
+    RedeemScript witness_script = 2;
+    repeated Bip32Deriv bip32_derivs = 3;
+    map<string, string> unknown = 4;
+  }
+
+  DecodeRawTransactionResponse tx = 1;
+  map<string, string> unknown = 2;
+  repeated Input inputs = 3;
+  repeated Output outputs = 4;
+  double fee = 5;
+}
+
+message AnalyzePsbtRequest {
+  string psbt = 1; // Base64 encoded PSBT
+}
+
+message AnalyzePsbtResponse {
+  message Input {
+    bool has_utxo = 1;
+    bool is_final = 2;
+    message Missing {
+      repeated string pubkeys = 1;
+      repeated string signatures = 2;
+      string redeem_script = 3;
+      string witness_script = 4;
+    }
+    Missing missing = 3;
+    string next = 4;
+  }
+  repeated Input inputs = 1;
+  double estimated_vsize = 2;
+  double estimated_feerate = 3;
+  double fee = 4;
+  string next = 5;
+  string error = 6;
+}
+
+message CombinePsbtRequest {
+  repeated string psbts = 1; // Array of base64 encoded PSBTs
+}
+
+message CombinePsbtResponse {
+  string psbt = 1; // Combined base64 encoded PSBT
+}
+
+message UtxoUpdatePsbtRequest {
+  string psbt = 1; // Base64 encoded PSBT
+  repeated Descriptor descriptors = 2; // Array of descriptors
+}
+
+message UtxoUpdatePsbtResponse {
+  string psbt = 1; // Updated base64 encoded PSBT
+}
+
+message JoinPsbtsRequest {
+  repeated string psbts = 1; // Array of base64 encoded PSBTs
+}
+
+message JoinPsbtsResponse {
+  string psbt = 1; // Joined base64 encoded PSBT
+}
+
+message TestMempoolAcceptRequest {
+  repeated string rawtxs = 1;
+  double max_fee_rate = 2;
+}
+
+message TestMempoolAcceptResponse {
+  message Result {
+    string txid = 1;
+    bool allowed = 2;
+    string reject_reason = 3;
+    uint32 vsize = 4;
+    double fees = 5;
+  }
+  repeated Result results = 1;
+}
+
+// Add a new message for descriptor range
+message DescriptorRange {
+  oneof range_type {
+    int32 end = 1; // Single number for end (begin defaults to 0)
+    Range range = 2; // Begin and end range
+  }
+}
+
+// Add a new message for begin/end range
+message Range {
+  int32 begin = 1;
+  int32 end = 2;
+}
+
+// Add a new message for descriptor
+message Descriptor {
+  oneof descriptor {
+    string string_descriptor = 1; // Plain string descriptor
+    DescriptorObject object_descriptor = 2; // Descriptor object with range
+  }
+}
+
+// Add a new message for descriptor objects
+message DescriptorObject {
+  string desc = 1; // The output descriptor
+  DescriptorRange range = 2; // Optional range, defaults to 1000 if not specified
 }
