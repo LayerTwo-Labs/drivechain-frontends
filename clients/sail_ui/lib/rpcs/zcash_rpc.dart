@@ -91,7 +91,6 @@ abstract class ZCashRPC extends SidechainRPC {
   @override
   Future<void> initBinary({
     List<String>? arg,
-    bool testConnectedWithBackoff = false,
   }) async {
     final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
@@ -122,7 +121,6 @@ abstract class ZCashRPC extends SidechainRPC {
     // after all assets are loaded properly, THEN init the zcash-binary
     await super.initBinary(
       arg: args,
-      testConnectedWithBackoff: testConnectedWithBackoff,
     );
   }
 

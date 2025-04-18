@@ -220,7 +220,8 @@ class BitwindowRPCLive extends BitwindowRPC {
 
   @override
   Future<int> ping() async {
-    return await bitcoind.getBlockchainInfo().then((value) => value.blocks);
+    final syncInfo = await bitwindowd.getSyncInfo();
+    return syncInfo.tipBlockHeight.toInt();
   }
 
   @override

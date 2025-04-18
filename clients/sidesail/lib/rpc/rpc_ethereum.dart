@@ -206,7 +206,7 @@ class EthereumRPCLive extends EthereumRPC {
     List<String>? arg,
     bool testConnectedWithBackoff = false,
   }) async {
-    await super.initBinary(arg: arg, testConnectedWithBackoff: testConnectedWithBackoff);
+    await super.initBinary(arg: arg);
   }
 
   @override

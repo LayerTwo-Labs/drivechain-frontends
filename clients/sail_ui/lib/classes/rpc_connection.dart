@@ -166,7 +166,6 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Future<void> initBinary({
     List<String>? arg,
-    bool testConnectedWithBackoff = false,
   }) async {
     final args = await binaryArgs(conf);
     args.addAll(arg ?? []);
@@ -175,11 +174,12 @@ abstract class RPCConnection extends ChangeNotifier {
 
     initializingBinary = true;
     notifyListeners();
+    startRestartTimer();
 
     log.i('init binaries: checking connection ${binary.connectionString}');
 
     try {
-      await startConnectionTimer(testConnectedWithBackoff: testConnectedWithBackoff);
+      await startConnectionTimer();
       // If we managed to connect to an already running daemon, we're finished here!
       if (connected) {
         log.i('init binaries: $binary is already running, not doing anything');
@@ -200,7 +200,7 @@ abstract class RPCConnection extends ChangeNotifier {
         log.i('init binaries: started ${binary.connectionString} with PID $pid');
       } catch (err) {
         log.e('init binaries: could not start ${binary.connectionString}', error: err);
-        _connectionTimer?.cancel();
+        connectionTimer?.cancel();
         initializingBinary = false;
         connectionError = 'could not start ${binary.connectionString}: $err';
         startupError = null;
@@ -208,8 +208,6 @@ abstract class RPCConnection extends ChangeNotifier {
         notifyListeners();
         return;
       }
-
-      _startRestartTimer();
 
       log.i('init binaries: waiting for ${binary.connectionString} connection');
 
@@ -276,11 +274,11 @@ abstract class RPCConnection extends ChangeNotifier {
     }
   }
 
-  Timer? _restartTimer;
+  Timer? restartTimer;
   int _restartCount = 0;
-  void _startRestartTimer() {
-    _restartTimer?.cancel();
-    _restartTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+  void startRestartTimer() {
+    restartTimer?.cancel();
+    restartTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       if (restartOnFailure && _completedStartup) {
         if (initializingBinary) {
           // we're still going from the last loop, don't retry multiple times in parallell!
@@ -312,7 +310,7 @@ abstract class RPCConnection extends ChangeNotifier {
           // Only attempt restart if the process has exited with non-zero code
           log.w('Process exited unexpectedly with code ${exit.code}, restarting...');
           _restartCount++;
-          await initBinary(testConnectedWithBackoff: true);
+          await initBinary();
           if (connected) {
             // we managed to restart! reset the restart count
             _restartCount = 0;
@@ -324,29 +322,14 @@ abstract class RPCConnection extends ChangeNotifier {
 
   // responsible for pinging the node every x seconds,
   // so we can update the UI immediately when the connection drops/begins
-  Timer? _connectionTimer;
-  Future<void> startConnectionTimer({bool testConnectedWithBackoff = false}) async {
+  Timer? connectionTimer;
+  Future<void> startConnectionTimer() async {
     // Cancel any existing timer before starting a new one
-    _connectionTimer?.cancel();
+    connectionTimer?.cancel();
 
     log.i('checking connection ${binary.connectionString}');
 
-    // some binaries are kinda brittle. be nice on them
-    if (testConnectedWithBackoff) {
-      // Try up to 5 times with a small delay between attempts
-      for (int i = 0; i < 5; i++) {
-        await testConnection();
-        if (connected) {
-          log.i('${binary.connectionString} connected on attempt ${i + 1}');
-          break;
-        }
-        log.i('${binary.connectionString} connection attempt ${i + 1} failed, retrying in ${i + 1} seconds...');
-        await Future.delayed(Duration(seconds: i + 1));
-      }
-    } else {
-      await testConnection();
-    }
-
+    await testConnection();
     if (connected) {
       log.i('${binary.connectionString} already running');
     } else {
@@ -354,7 +337,7 @@ abstract class RPCConnection extends ChangeNotifier {
     }
 
     log.i('starting connection timer for ${binary.connectionString}');
-    _connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+    connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       await testConnection();
     });
   }
@@ -401,19 +384,19 @@ abstract class RPCConnection extends ChangeNotifier {
       // Try graceful shutdown first
       try {
         await stopRPC();
-        _connectionTimer?.cancel();
+        connectionTimer?.cancel();
       } catch (e) {
         await Future.delayed(const Duration(milliseconds: 250));
         final processes = GetIt.I.get<ProcessProvider>();
         if (processes.exited(binary) != null) {
           // Process exited, don't bother killing it
-          _connectionTimer?.cancel();
+          connectionTimer?.cancel();
           return;
         }
 
         log.w('Killing process, graceful shutdown failed: $e');
         await processes.kill(binary);
-        _connectionTimer?.cancel();
+        connectionTimer?.cancel();
       }
     } catch (e) {
       log.e('could not stop rpc: $e');
@@ -423,7 +406,7 @@ abstract class RPCConnection extends ChangeNotifier {
       connected = false;
       stoppingBinary = false;
       if (connectionError != null && connectionError!.contains('not found for binary')) {
-        _connectionTimer?.cancel();
+        connectionTimer?.cancel();
       } else {
         log.i('stopped rpc successfully');
         connectionError = null;
@@ -437,8 +420,8 @@ abstract class RPCConnection extends ChangeNotifier {
   @override
   void dispose() {
     super.dispose();
-    _connectionTimer?.cancel();
-    _restartTimer?.cancel();
+    connectionTimer?.cancel();
+    restartTimer?.cancel();
   }
 }
 
