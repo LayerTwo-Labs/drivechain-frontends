@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/logpool"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
@@ -84,6 +85,12 @@ func (p *Parser) Run(ctx context.Context) error {
 	}
 }
 
+// BlockResult represents the result of processing a single block
+type BlockResult struct {
+	Height int32
+	Error  error
+}
+
 func (p *Parser) handleBlockTick(ctx context.Context) error {
 	if err := p.detectChainDeletion(ctx); err != nil {
 		zerolog.Ctx(ctx).Error().
@@ -120,15 +127,129 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		lastProcessedHeight -= 20
 	}
 
-	// Process all new blocks
-	for height := lastProcessedHeight + 1; height <= currentHeight; height++ {
-		if err := p.processBlock(ctx, height); err != nil {
-			zerolog.Ctx(ctx).Error().
-				Err(err).
-				Msgf("bitcoind_engine/parser: could not process block %d", height)
-			continue
+	// Create a channel for processed blocks
+	processedBlocksChan := make(chan processedBlockWithData, 200)
+	doneChan := make(chan struct{})
+
+	// Start a single goroutine that both processes blocks and handles database insertion
+	go p.processBlocks(ctx, processedBlocksChan, doneChan)
+
+	// Process blocks in batches of 100
+	batchSize := int32(100)
+	for startHeight := lastProcessedHeight + 1; startHeight <= currentHeight; startHeight += batchSize {
+		endHeight := startHeight + batchSize - 1
+		if endHeight > currentHeight {
+			endHeight = currentHeight
+		}
+
+		// Fetch blocks in parallel
+		newBlocks, err := p.getBlocksFromCore(ctx, startHeight, endHeight)
+		if err != nil {
+			return fmt.Errorf("get blocks: %w", err)
+		}
+
+		// Process fetched blocks
+		for _, block := range newBlocks {
+			processedBlock := processedBlockWithData{
+				ProcessedBlock: blocks.ProcessedBlock{
+					Height: int32(block.Height),
+					Hash:   block.Hash,
+				},
+				Block: block,
+			}
+			processedBlocksChan <- processedBlock
 		}
 	}
+
+	// Signal completion and wait for inserter to finish
+	close(processedBlocksChan)
+	<-doneChan
+
+	return nil
+}
+
+// processedBlockWithData is a local type that includes the full block data
+type processedBlockWithData struct {
+	blocks.ProcessedBlock
+	Block *corepb.GetBlockResponse
+}
+
+// processBlocks checks if a block contains any OP_RETURN transcations, inserts any found into the database,
+// and marks the block as processed.
+func (p *Parser) processBlocks(ctx context.Context, processedBlocksChan <-chan processedBlockWithData, doneChan chan<- struct{}) {
+	// batch insert any processed blocks every time this ticker ticks
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	var blocksToInsert []blocks.ProcessedBlock
+	for {
+		select {
+		case <-ctx.Done():
+			// context cancelled, abort
+			return
+
+		case block, ok := <-processedBlocksChan:
+			if !ok {
+				if err := insertBlocks(ctx, p.db, blocksToInsert); err != nil {
+					zerolog.Ctx(ctx).Error().
+						Err(err).
+						Msgf("bitcoind_engine/parser: could not insert blocks after channel closed")
+				}
+
+				// release the done channel to unblock the main loop
+				close(doneChan)
+				return
+			}
+
+			// add the block to the list of blocks to insert,
+			// for the ticker to batch insert
+			blocksToInsert = append(blocksToInsert, block.ProcessedBlock)
+
+			// if the block only has one transaction it's uninteresting,
+			// because it only has a coinbase transaction, e.g: an empty block
+			if len(block.Block.Txids) != 1 {
+				zerolog.Ctx(ctx).Trace().
+					Int32("height", block.Height).
+					Msgf("bitcoind_engine/parser: block has more than one transaction, inspecting transactions for OP returns")
+
+				for _, txid := range block.Block.Txids {
+					if err := p.opReturnForTXID(ctx, txid, &block.Height, block.Block.Time.AsTime()); err != nil {
+						zerolog.Ctx(ctx).Error().
+							Err(err).
+							Msgf("bitcoind_engine/parser: could not process transaction %s", txid)
+						continue
+					}
+				}
+			}
+
+		case <-ticker.C:
+			if len(blocksToInsert) > 0 {
+				if err := insertBlocks(ctx, p.db, blocksToInsert); err != nil {
+					zerolog.Ctx(ctx).Error().
+						Err(err).
+						Msgf("bitcoind_engine/parser: could not insert blocks")
+				}
+
+				// reset the list of blocks to insert
+				blocksToInsert = blocksToInsert[:0]
+			}
+		}
+	}
+}
+
+func insertBlocks(ctx context.Context, db *sql.DB, blocksToInsert []blocks.ProcessedBlock) error {
+	if len(blocksToInsert) == 0 {
+		return nil
+	}
+
+	// batch insert all processed blocks
+	if err := blocks.MarkBlocksProcessed(ctx, db, blocksToInsert); err != nil {
+		return fmt.Errorf("mark blocks processed: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Trace().
+		Int("block_count", len(blocksToInsert)).
+		Msgf("bitcoind_engine/parser: processed batch of blocks")
 
 	return nil
 }
@@ -212,31 +333,29 @@ func (p *Parser) handleCreateTopics(ctx context.Context, opReturns []opreturns.O
 	return nil
 }
 
-func (p *Parser) processBlock(ctx context.Context, height int32) error {
-	zerolog.Ctx(ctx).Info().
-		Int32("height", height).
-		Msgf("bitcoind_engine/parser: processing block")
+func (p *Parser) processBlock(ctx context.Context, height int32) (blocks.ProcessedBlock, error) {
 
 	block, err := p.getBlock(ctx, height)
 	if err != nil {
-		return fmt.Errorf("get block: %w", err)
+		return blocks.ProcessedBlock{}, fmt.Errorf("get block: %w", err)
 	}
 
-	for _, txid := range block.Txids {
-		if err := p.opReturnForTXID(ctx, txid, &height, block.Time.AsTime()); err != nil {
-			return fmt.Errorf("process block: %w", err)
+	if len(block.Txids) != 1 {
+		zerolog.Ctx(ctx).Trace().
+			Int32("height", height).
+			Msgf("bitcoind_engine/parser: block has more than one transaction, inspecting transactions for OP returns")
+
+		for _, txid := range block.Txids {
+			if err := p.opReturnForTXID(ctx, txid, &height, block.Time.AsTime()); err != nil {
+				return blocks.ProcessedBlock{}, fmt.Errorf("process block: %w", err)
+			}
 		}
 	}
 
-	if err := blocks.MarkBlockProcessed(ctx, p.db, height, block.Hash); err != nil {
-		return fmt.Errorf("mark block processed: %w", err)
-	}
-
-	zerolog.Ctx(ctx).Trace().
-		Int32("height", height).
-		Msgf("bitcoind_engine/parser: processed block")
-
-	return nil
+	return blocks.ProcessedBlock{
+		Height: height,
+		Hash:   block.Hash,
+	}, nil
 }
 
 func (p *Parser) currentHeight(ctx context.Context) (int32, string, error) {
@@ -508,4 +627,32 @@ func (p *Parser) detectChainDeletion(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// getBlocksFromCore fetches multiple blocks in parallel
+func (p *Parser) getBlocksFromCore(ctx context.Context, startHeight, endHeight int32) ([]*corepb.GetBlockResponse, error) {
+	// Calculate number of blocks to fetch
+	numBlocks := endHeight - startHeight + 1
+	if numBlocks <= 0 {
+		return nil, nil
+	}
+
+	// Create a pool for parallel fetching
+	pool := logpool.NewWithResults[*corepb.GetBlockResponse](ctx, "bitcoind_engine/getBlocks")
+
+	// Fetch blocks in parallel
+	for height := startHeight; height <= endHeight; height++ {
+		height := height // Create new variable for goroutine
+		pool.Go(fmt.Sprintf("block-%d", height), func(ctx context.Context) (*corepb.GetBlockResponse, error) {
+			return p.getBlock(ctx, height)
+		})
+	}
+
+	// Wait for all blocks to be fetched
+	blocks, err := pool.Wait(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("wait for blocks: %w", err)
+	}
+
+	return blocks, nil
 }
