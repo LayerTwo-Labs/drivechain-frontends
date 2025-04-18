@@ -245,7 +245,6 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> startBinary(
     Binary binary, {
     bool useStarter = false,
-    bool testConnectedWithBackoff = false,
   }) async {
     if (useStarter && (binary is Thunder || binary is Bitnames)) {
       try {
@@ -257,20 +256,19 @@ class BinaryProvider extends ChangeNotifier {
 
     switch (binary) {
       case ParentChain():
-        await mainchainRPC.initBinary(testConnectedWithBackoff: testConnectedWithBackoff);
+        await mainchainRPC.initBinary();
 
       case Enforcer():
-        await enforcerRPC.initBinary(testConnectedWithBackoff: testConnectedWithBackoff);
+        await enforcerRPC.initBinary();
 
       case BitWindow():
-        await bitwindowRPC?.initBinary(testConnectedWithBackoff: testConnectedWithBackoff);
+        await bitwindowRPC?.initBinary();
 
       case Thunder():
         await thunderRPC?.initBinary(
           arg: binary.mnemonicSeedPhrasePath != null
               ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
               : null,
-          testConnectedWithBackoff: testConnectedWithBackoff,
         );
 
       case Bitnames():
@@ -278,11 +276,10 @@ class BinaryProvider extends ChangeNotifier {
           arg: binary.mnemonicSeedPhrasePath != null
               ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
               : null,
-          testConnectedWithBackoff: testConnectedWithBackoff,
         );
 
       case ZCash():
-        await zcashRPC?.initBinary(testConnectedWithBackoff: testConnectedWithBackoff);
+        await zcashRPC?.initBinary();
 
       default:
         log.i('is $binary');
@@ -525,10 +522,15 @@ class BinaryProvider extends ChangeNotifier {
     bool bootAllNoMatterWhat = false,
   }) async {
     final log = GetIt.I.get<Logger>();
-    log.i('Booting L1 binaries + ${binaryToBoot.name}');
+    final startTime = DateTime.now();
+    int getElapsed() => DateTime.now().difference(startTime).inMilliseconds;
+
+    log.i('[T+0ms] STARTUP: Booting L1 binaries + ${binaryToBoot.name}');
 
     // First ensure all binaries are downloaded
     await _downloadUninstalledBinaries(binaryToBoot);
+
+    log.i('[T+${getElapsed()}ms] STARTUP: Ensuring all binaries are downloaded');
 
     // Ensure we have all required binaries
     final parentChain = binaries.whereType<ParentChain>().firstOrNull;
@@ -538,49 +540,42 @@ class BinaryProvider extends ChangeNotifier {
       throw Exception('could not find all required L1 binaries');
     }
 
-    // 1. Start parent chain and wait for IBD
-    // parent chain does not need to be restarted on crash, it's very stable
-    await startBinary(parentChain, useStarter: false);
-
-    log.i('Waiting for mainchain to connect...');
-    await mainchainRPC.waitForHeaderSync();
-    log.i('Mainchain headers synced, starting enforcer');
-
-    // 2. Start rest after mainchain is ready
     if (bootAllNoMatterWhat) {
       // 2.1. If we're told to boot no matter what, do enforcer and bitwindow in parallell
+      log.i('[T+${getElapsed()}ms] STARTUP: Starting ${binaryToBoot.name}');
       unawaited(
         startBinary(
           binaryToBoot,
           useStarter: false,
-          testConnectedWithBackoff: true,
         ),
       );
-      await startBinary(
-        enforcer,
-        useStarter: false,
-        testConnectedWithBackoff: true,
-      );
-      log.i('Started enforcer and ${binaryToBoot.name}');
-    } else {
-      // 2.2. We're told to NOT be fast. Ensure enforcer is started first
-      await startBinary(
-        enforcer,
-        useStarter: false,
-        testConnectedWithBackoff: true,
-      );
-      log.i('Started enforcer');
+    }
 
+    // 1. Start parent chain and wait for IBD
+    // parent chain does not need to be restarted on crash, it's very stable
+    await startBinary(parentChain, useStarter: false);
+
+    log.i('[T+${getElapsed()}ms] STARTUP: Waiting for mainchain to connect...');
+    await mainchainRPC.waitForHeaderSync();
+    log.i('[T+${getElapsed()}ms] STARTUP: Mainchain headers synced, starting enforcer');
+
+    // 2. Start rest after mainchain is ready
+    await startBinary(
+      enforcer,
+      useStarter: false,
+    );
+    log.i('[T+${getElapsed()}ms] STARTUP: Started enforcer');
+
+    if (!bootAllNoMatterWhat) {
       // 3. Start whatever binary we were told to boot after enforcer
       await startBinary(
         binaryToBoot,
         useStarter: false,
-        testConnectedWithBackoff: true,
       );
-      log.i('Started ${binaryToBoot.name}');
+      log.i('[T+${getElapsed()}ms] STARTUP: Started ${binaryToBoot.name}');
     }
 
-    log.i('All binaries started successfully');
+    log.i('[T+${getElapsed()}ms] STARTUP: All binaries started successfully');
   }
 
   @override

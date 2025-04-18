@@ -243,6 +243,7 @@ Future<void> initDependencies(
     binaryProvider,
   );
 
+  // Register all the providers
   final balanceProvider = BalanceProvider(
     connections: [bitwindow],
   );
@@ -372,6 +373,8 @@ class BitwindowApp extends StatelessWidget {
 }
 
 void bootBinaries(Logger log) async {
+  log.i('STARTUP: Booting binaries');
+
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
   final bitwindow = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
 
