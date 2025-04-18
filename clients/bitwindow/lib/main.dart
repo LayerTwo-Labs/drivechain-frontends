@@ -171,9 +171,6 @@ Future<void> initDependencies(
   // Create platform-appropriate storage
   final storage = await KeyValueStore.create(dir: applicationDir);
 
-  var serverLogFile = [logFile.parent.path, 'debug.log'].join(Platform.pathSeparator);
-  log.i('logging server logs to: $serverLogFile');
-
   // Register the logger
   GetIt.I.registerLazySingleton<Logger>(() => log);
 
