@@ -6,5 +6,6 @@
   "dart.lineLength": 120,
   "[dart]": {
     "editor.rulers": [120]
-  }
+  },
+  "cmake.sourceDirectory": "/Users/bo/code/drivechain-frontends/clients/bitwindow/linux"
 }
