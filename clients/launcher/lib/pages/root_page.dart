@@ -23,10 +23,16 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
+  late final AppLifecycleListener _lifecycleListener;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _handleExitRequest,
+    );
 
     // Show welcome modal after widget is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -77,12 +83,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  @override
-  Future<AppExitResponse> didRequestAppExit() async {
+  Future<AppExitResponse> _handleExitRequest() async {
     await onShutdown(context);
     return AppExitResponse.exit;
   }
