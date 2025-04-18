@@ -475,7 +475,7 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['validator']);
 
       case BitWindow():
-        await _deleteFilesInDir(dir, ['bitwindow.db']);
+        await _deleteFilesInDir(dir, ['bitwindow.db', 'server.log', 'debug.log']);
 
       case Bitnames():
         await _deleteFilesInDir(dir, [
@@ -874,7 +874,7 @@ extension BinaryPaths on Binary {
       var b when b is Thunder => filePath([datadir(), 'logs', 'TODO.log']),
       var b when b is Bitnames => filePath([datadir(), 'logs', 'TODO.log']),
       var b when b is ParentChain => filePath([datadir(), 'debug.log']),
-      var b when b is BitWindow => filePath([datadir(), 'debug.log']),
+      var b when b is BitWindow => filePath([datadir(), 'server.log']),
       var b when b is Enforcer => filePath([datadir(), 'bip300301_enforcer.log']),
       _ => throw 'unsupported binary type: $runtimeType',
     };

@@ -59,7 +59,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return err
 	}
 	if conf.LogPath == "" {
-		conf.LogPath = filepath.Join(datadir, "debug.log")
+		conf.LogPath = filepath.Join(datadir, "server.log")
 	}
 
 	logFile, err := os.OpenFile(conf.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
