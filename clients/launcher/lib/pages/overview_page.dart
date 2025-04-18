@@ -214,7 +214,6 @@ class _OverviewPageState extends State<OverviewPage> {
           onPressed: () => _binaryProvider.startBinary(
             binary,
             useStarter: _useStarter[binary.name] ?? false,
-            testConnectedWithBackoff: binary is Enforcer, // enforcer is finicky
           ),
           variant: ButtonVariant.primary,
           disabled: canStart != null,

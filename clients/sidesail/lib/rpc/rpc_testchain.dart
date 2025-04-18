@@ -286,7 +286,6 @@ class TestchainRPCLive extends TestchainRPC {
   }) async {
     await super.initBinary(
       arg: arg,
-      testConnectedWithBackoff: testConnectedWithBackoff,
     );
   }
 
