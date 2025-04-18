@@ -596,8 +596,8 @@ abstract class Binary {
 
     for (final assetPath in possiblePaths) {
       try {
-        log.d('attempting to load from assets/bin/$assetPath');
-        binResource = await rootBundle.load('assets/bin/$assetPath');
+        log.d('attempting to load from $assetPath');
+        binResource = await rootBundle.load(assetPath);
         foundPath = assetPath;
         log.d('successfully loaded binary from assets: $assetPath');
         break;
@@ -655,6 +655,8 @@ abstract class Binary {
     paths.addAll([
       baseBinary,
       if (Platform.isWindows) '$baseBinary.exe',
+      path.join('assets', 'bin', baseBinary),
+      if (Platform.isWindows) path.join('assets', 'bin', '$baseBinary.exe'),
     ]);
 
     if (appDir != null) {
