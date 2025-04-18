@@ -333,31 +333,6 @@ func (p *Parser) handleCreateTopics(ctx context.Context, opReturns []opreturns.O
 	return nil
 }
 
-func (p *Parser) processBlock(ctx context.Context, height int32) (blocks.ProcessedBlock, error) {
-
-	block, err := p.getBlock(ctx, height)
-	if err != nil {
-		return blocks.ProcessedBlock{}, fmt.Errorf("get block: %w", err)
-	}
-
-	if len(block.Txids) != 1 {
-		zerolog.Ctx(ctx).Trace().
-			Int32("height", height).
-			Msgf("bitcoind_engine/parser: block has more than one transaction, inspecting transactions for OP returns")
-
-		for _, txid := range block.Txids {
-			if err := p.opReturnForTXID(ctx, txid, &height, block.Time.AsTime()); err != nil {
-				return blocks.ProcessedBlock{}, fmt.Errorf("process block: %w", err)
-			}
-		}
-	}
-
-	return blocks.ProcessedBlock{
-		Height: height,
-		Hash:   block.Hash,
-	}, nil
-}
-
 func (p *Parser) currentHeight(ctx context.Context) (int32, string, error) {
 	bitcoind, err := p.bitcoind.Get(ctx)
 	if err != nil {
@@ -582,10 +557,6 @@ func shouldSkip(pkScript []byte) bool {
 		return true
 	case opreturns.OPReturnToReadable(data) == "d5e0c4af0900077468756e6465727468756e646572206465736372697074696f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":
 		return true
-	case opreturns.OPReturnToReadable(data) == "d5e0c4af0900077468756e6465727468756e646572206465736372697074696f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":
-		return true
-	case opreturns.OPReturnToReadable(data) == "d5e0c4af0900077468756e6465727468756e646572206465736372697074696f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":
-		return true
 	case opreturns.OPReturnToReadable(data) == "d45aa943091303c6de5739c2fb3a021a8bd2b8c9fa8bcd8f8c18954bec00aa8f9b2cf13602":
 		return true
 	}
@@ -642,7 +613,6 @@ func (p *Parser) getBlocksFromCore(ctx context.Context, startHeight, endHeight i
 
 	// Fetch blocks in parallel
 	for height := startHeight; height <= endHeight; height++ {
-		height := height // Create new variable for goroutine
 		pool.Go(fmt.Sprintf("block-%d", height), func(ctx context.Context) (*corepb.GetBlockResponse, error) {
 			return p.getBlock(ctx, height)
 		})

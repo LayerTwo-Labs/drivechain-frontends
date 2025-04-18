@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1"
 )
 
@@ -36,7 +37,7 @@ func List(ctx context.Context, db *sql.DB) ([]AddressBookEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer database.SafeDefer(ctx, rows.Close)
 
 	var entries []AddressBookEntry
 	for rows.Next() {
@@ -69,6 +70,8 @@ func DirectionFromProto(d pb.Direction) (Direction, error) {
 		return DirectionSend, nil
 	case pb.Direction_DIRECTION_RECEIVE:
 		return DirectionReceive, nil
+	case pb.Direction_DIRECTION_UNSPECIFIED:
+		fallthrough
 	default:
 		return "", fmt.Errorf("invalid direction: %s", d)
 	}
