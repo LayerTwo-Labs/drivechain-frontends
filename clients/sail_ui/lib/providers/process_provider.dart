@@ -171,8 +171,8 @@ class ProcessProvider extends ChangeNotifier {
       log.d('nice shutdown successful for pid=${process.pid} binary=${process.binary.name}');
     } catch (error) {
       // If nice shutdown fails or times out, force kill with SIGTERM
-      log.e('nice shutdown failed, killing with SIGTERM pid=${process.pid}: $error');
-      Process.killPid(process.pid, ProcessSignal.sigterm);
+      log.e('nice shutdown failed, killing with SIGINT pid=${process.pid}: $error');
+      Process.killPid(process.pid, ProcessSignal.sigint);
     } finally {
       runningProcesses.remove(process.binary.name);
       notifyListeners();
