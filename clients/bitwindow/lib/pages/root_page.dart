@@ -42,6 +42,8 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
+  late final AppLifecycleListener _lifecycleListener;
+
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final _routerKey = GlobalKey<AutoTabsRouterState>();
   final _clientSettings = GetIt.I<ClientSettings>();
@@ -52,6 +54,10 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _handleExitRequest,
+    );
   }
 
   @override
@@ -463,14 +469,19 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  @override
-  Future<AppExitResponse> didRequestAppExit() async {
+  Future<AppExitResponse> _handleExitRequest() async {
     await onShutdown(context);
     return AppExitResponse.exit;
+  }
+
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    return await _handleExitRequest();
   }
 
   Future<bool> onShutdown(BuildContext context) async {
