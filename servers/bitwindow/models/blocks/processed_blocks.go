@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
 )
 
 func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
@@ -36,7 +38,7 @@ func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBloc
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer database.SafeDefer(ctx, tx.Rollback)
 
 	stmt, err := tx.PrepareContext(ctx, `
 		REPLACE INTO processed_blocks (height, block_hash) 
@@ -45,7 +47,7 @@ func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBloc
 	if err != nil {
 		return fmt.Errorf("prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer database.SafeDefer(ctx, stmt.Close)
 
 	for _, block := range blocks {
 		_, err = stmt.ExecContext(ctx, block.Height, block.Hash)
