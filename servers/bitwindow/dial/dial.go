@@ -7,13 +7,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 
 	"connectrpc.com/connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
 )
 
@@ -21,8 +19,6 @@ import (
 func Enforcer(ctx context.Context, url string) (
 	rpc.ValidatorServiceClient, rpc.WalletServiceClient, cryptorpc.CryptoServiceClient, error,
 ) {
-	start := time.Now()
-
 	if url == "" {
 		return nil, nil, nil, errors.New("empty validator url")
 	}
@@ -33,16 +29,10 @@ func Enforcer(ctx context.Context, url string) (
 		fmt.Sprintf("http://%s", url),
 		connect.WithGRPC(),
 	)
-	tip, err := client.GetChainInfo(ctx, connect.NewRequest(&pb.GetChainInfoRequest{}))
+	_, err := client.GetChainInfo(ctx, connect.NewRequest(&pb.GetChainInfoRequest{}))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("get chain info: %w", err)
 	}
-
-	zerolog.Ctx(ctx).Info().
-		Stringer("duration", time.Since(start)).
-		Str("url", url).
-		Str("network", tip.Msg.Network.String()).
-		Msg("connected to enforcer")
 
 	walletClient := rpc.NewWalletServiceClient(
 		newInsecureClient(),
