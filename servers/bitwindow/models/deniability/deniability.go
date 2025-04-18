@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
 )
 
 // Denial represents a deniability plan
@@ -84,7 +86,7 @@ func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not query deniabilities: %w", err)
 	}
-	defer rows.Close()
+	defer database.SafeDefer(ctx, rows.Close)
 
 	var deniabilities []Denial
 	for rows.Next() {
@@ -106,6 +108,11 @@ func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
 		deniability.DelayDuration = time.Duration(delaySeconds * float64(time.Second))
 		deniabilities = append(deniabilities, deniability)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("could not iterate over deniabilities: %w", err)
+	}
+
 	return deniabilities, nil
 }
 
@@ -120,7 +127,7 @@ func ListExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 	if err != nil {
 		return nil, fmt.Errorf("could not query executed denials: %w", err)
 	}
-	defer rows.Close()
+	defer database.SafeDefer(ctx, rows.Close)
 
 	var executions []ExecutedDenial
 	for rows.Next() {
@@ -139,6 +146,11 @@ func ListExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 		}
 		executions = append(executions, execution)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("could not iterate over executed denials: %w", err)
+	}
+
 	return executions, nil
 }
 

@@ -23,7 +23,6 @@ import (
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
 
 	logger := zerolog.
 		New(zerolog.NewConsoleWriter()).
@@ -35,11 +34,14 @@ func main() {
 
 		// Error has been printed to the console!
 		if _, ok := lo.ErrorsAs[*flags.Error](err); ok {
+			cancel()
 			os.Exit(1)
 		}
 		// the zerolog logger won't work here, because the file logger is closed.
 		// what we do instead is a simple printf
+		// nolint:forbidigo
 		fmt.Printf("main: got error: %T - %v\n", err, err)
+		cancel()
 		os.Exit(1)
 	}
 }
@@ -66,10 +68,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	if err != nil {
 		return fmt.Errorf("open log file: %w", err)
 	}
-
-	if err := initLogger(logFile); err != nil {
-		return fmt.Errorf("initialize logger")
-	}
+	initLogger(logFile)
 
 	// Now that the logger is initialized, we can use zerolog.Ctx(ctx) safely
 	log := zerolog.Ctx(ctx)
@@ -83,7 +82,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		log.Error().Err(err).Msg("init database")
 		return fmt.Errorf("init database: %w", err)
 	}
-	defer db.Close()
+	defer database.SafeDefer(ctx, db.Close)
 
 	bitcoindConnector := func(ctx context.Context) (*coreproxy.Bitcoind, error) {
 		return startCoreProxy(ctx, conf)
@@ -149,7 +148,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	return <-errs
 }
 
-func initLogger(logFile *os.File) error {
+func initLogger(logFile *os.File) {
 	// We want pretty printing to the file as well. This is not meant for
 	// centralized log ingestion, where JSON is crucial.
 	logWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
@@ -167,8 +166,6 @@ func initLogger(logFile *os.File) error {
 		Logger().
 		Level(zerolog.InfoLevel)
 	zerolog.DefaultContextLogger = &logger
-
-	return nil
 }
 
 func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, error) {

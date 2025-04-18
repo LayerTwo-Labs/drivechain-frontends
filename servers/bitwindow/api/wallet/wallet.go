@@ -83,7 +83,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	log := zerolog.Ctx(ctx)
 
 	destinations := make(map[string]uint64)
-	destinations[c.Msg.Destination] = uint64(c.Msg.Amount)
+	destinations[c.Msg.Destination] = c.Msg.Amount
 
 	var feeRate *validatorpb.SendTransactionRequest_FeeRate
 	if c.Msg.FeeRate != 0 {
@@ -207,7 +207,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 				}
 
 				confirmation = &pb.Confirmation{
-					Height:    uint32(tx.ConfirmationInfo.Height),
+					Height:    tx.ConfirmationInfo.Height,
 					Timestamp: timestamp,
 				}
 			}

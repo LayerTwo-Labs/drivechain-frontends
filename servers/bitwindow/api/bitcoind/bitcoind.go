@@ -257,7 +257,7 @@ func (s *Server) DecodePsbt(ctx context.Context, req *connect.Request[pb.DecodeP
 	for i, input := range res.Msg.Tx.Inputs {
 		txInputs[i] = &pb.Input{
 			Txid:     input.Txid,
-			Vout:     uint32(input.Vout),
+			Vout:     input.Vout,
 			Coinbase: input.Coinbase,
 			Sequence: input.Sequence,
 			Witness:  input.Witness,
@@ -272,7 +272,7 @@ func (s *Server) DecodePsbt(ctx context.Context, req *connect.Request[pb.DecodeP
 	for i, output := range res.Msg.Tx.Outputs {
 		txOutputs[i] = &pb.Output{
 			Amount: output.Amount,
-			Vout:   uint32(output.Vout),
+			Vout:   output.Vout,
 			ScriptPubKey: &pb.ScriptPubKey{
 				Type:    output.ScriptPubKey.Type,
 				Address: output.ScriptPubKey.Address,
@@ -752,7 +752,7 @@ func (s *Server) GetRawTransaction(ctx context.Context, req *connect.Request[pb.
 	for _, txIn := range txRes.Msg.Inputs {
 		input := &pb.Input{
 			Txid:      txIn.Txid,
-			Vout:      uint32(txIn.Vout),
+			Vout:      txIn.Vout,
 			Coinbase:  txIn.Coinbase,
 			ScriptSig: &pb.ScriptSig{}, // Always include empty ScriptSig
 			Sequence:  txIn.Sequence,
@@ -770,7 +770,7 @@ func (s *Server) GetRawTransaction(ctx context.Context, req *connect.Request[pb.
 	for _, txOut := range txRes.Msg.Outputs {
 		output := &pb.Output{
 			Amount:       txOut.Amount,
-			Vout:         uint32(txOut.Vout),
+			Vout:         txOut.Vout,
 			ScriptPubKey: &pb.ScriptPubKey{Type: txOut.ScriptPubKey.Type, Address: txOut.ScriptPubKey.Address},
 			ScriptSig:    &pb.ScriptSig{}, // Always include empty ScriptSig
 		}
@@ -785,10 +785,10 @@ func (s *Server) GetRawTransaction(ctx context.Context, req *connect.Request[pb.
 		Tx:            &pb.RawTransaction{Data: txRes.Msg.Tx.Data, Hex: hex.EncodeToString(txRes.Msg.Tx.Data)},
 		Txid:          txRes.Msg.Txid,
 		Hash:          txRes.Msg.Hash,
-		Size:          int32(txRes.Msg.Size),
-		Vsize:         int32(txRes.Msg.Vsize),
-		Weight:        int32(txRes.Msg.Weight),
-		Version:       uint32(txRes.Msg.Version),
+		Size:          txRes.Msg.Size,
+		Vsize:         txRes.Msg.Vsize,
+		Weight:        txRes.Msg.Weight,
+		Version:       txRes.Msg.Version,
 		Locktime:      txRes.Msg.Locktime,
 		Inputs:        inputs,
 		Outputs:       outputs,

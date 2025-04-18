@@ -103,7 +103,7 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 			DescriptionHex:   sidechain.Description.Hex.Value,
 			BalanceSatoshi:   int64(ctipResponse.Msg.Ctip.Value),
 			ChaintipTxid:     txidHash.String(),
-			ChaintipVout:     uint32(ctipResponse.Msg.Ctip.Vout),
+			ChaintipVout:     ctipResponse.Msg.Ctip.Vout,
 		})
 	}
 
