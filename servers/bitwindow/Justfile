@@ -6,6 +6,9 @@ build-go-x86:
 
 build: build-enforcer build-go
 
+run:
+    ./bin/bitwindowd
+
 clean:
     rm -rf ./bin
     rm -rf bip300301_enforcer.mdb
