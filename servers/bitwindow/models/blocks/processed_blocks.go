@@ -26,14 +26,38 @@ func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
 
 }
 
-func MarkBlockProcessed(ctx context.Context, db *sql.DB, height int32, hash string) error {
-	_, err := db.ExecContext(ctx, `
+// MarkBlocksProcessed marks multiple blocks as processed in a single transaction
+func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBlock) error {
+	if len(blocks) == 0 {
+		return nil
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `
 		REPLACE INTO processed_blocks (height, block_hash) 
 		VALUES (?, ?)
-	`, height, hash)
+	`)
 	if err != nil {
-		return fmt.Errorf("mark block processed: %w", err)
+		return fmt.Errorf("prepare statement: %w", err)
 	}
+	defer stmt.Close()
+
+	for _, block := range blocks {
+		_, err = stmt.ExecContext(ctx, block.Height, block.Hash)
+		if err != nil {
+			return fmt.Errorf("mark block processed: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
 	return nil
 }
 
