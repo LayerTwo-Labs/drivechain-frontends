@@ -570,52 +570,46 @@ abstract class Binary {
 
     // Check if binary exists in any of the possible paths
     for (final binaryPath in possiblePaths) {
-      if (Directory(binaryPath).existsSync() || File(binaryPath).existsSync()) {
-        var resolvedPath = binaryPath;
-        // Handle .app bundles on macOS
-        if (Platform.isMacOS && (binary.endsWith('.app') || binaryPath.endsWith('.app'))) {
-          resolvedPath = path.join(
-            binaryPath,
-            'Contents',
-            'MacOS',
-            path.basenameWithoutExtension(binaryPath),
-          );
-        }
-        return File(resolvedPath);
-      }
-    }
-
-    return _fileFromAssetsBundle(possiblePaths, appDir);
-  }
-
-  Future<File> _fileFromAssetsBundle(List<String> possiblePaths, Directory? appDir) async {
-    log.d('loading binary from assets bundle: $binary');
-    // If not found in datadir/assets, try loading from bundled assets
-    ByteData? binResource;
-    String? foundPath;
-
-    for (final assetPath in possiblePaths) {
       try {
-        log.d('attempting to load from $assetPath');
-        binResource = await rootBundle.load(assetPath);
-        foundPath = assetPath;
-        log.d('successfully loaded binary from assets: $assetPath');
-        break;
+        if (Directory(binaryPath).existsSync() || File(binaryPath).existsSync()) {
+          var resolvedPath = binaryPath;
+          // Handle .app bundles on macOS
+          if (Platform.isMacOS && (binary.endsWith('.app'))) {
+            resolvedPath = path.join(
+              binaryPath,
+              'Contents',
+              'MacOS',
+              path.basenameWithoutExtension(binaryPath),
+            );
+          }
+          return File(resolvedPath);
+        }
       } catch (e) {
-        log.d('failed to load from $assetPath: $e');
+        // Parent directory doesn't exist, continue to next path
         continue;
       }
     }
 
-    if (binResource == null || foundPath == null) {
+    return _fileFromAssetsBundle(appDir);
+  }
+
+  Future<File> _fileFromAssetsBundle(Directory? appDir) async {
+    log.d('loading binary from assets bundle: $binary');
+    ByteData? binResource;
+
+    log.d('attempting to load from $assetPath');
+    try {
+      binResource = await rootBundle.load(path.join('assets', 'bin', binary));
+    } catch (e) {
       log.e('could not find binary $binary in any location');
       throw Exception('Process: could not find binary $binary in any location');
     }
+    log.d('successfully loaded binary from assets: $assetPath');
 
     File file;
     if (appDir != null) {
       final fileDir = path.join(appDir.path, 'assets');
-      file = File(filePath([fileDir, foundPath]));
+      file = File(filePath([fileDir, binary]));
       log.d('Writing binary to assets: ${file.path}');
     } else {
       // Create temp file
@@ -627,7 +621,7 @@ abstract class Binary {
       log.d('Creating temporary directory at: ${randDir.path}');
       await randDir.create();
 
-      file = File(filePath([randDir.path, foundPath]));
+      file = File(filePath([randDir.path, binary]));
       log.d('Writing binary to temporary file: ${file.path}');
     }
 
@@ -647,25 +641,17 @@ abstract class Binary {
       // In debug mode, check pwd/assets/bin first
       paths.addAll([
         path.join(Directory.current.path, 'assets', 'bin', baseBinary),
-        if (Platform.isWindows) path.join(Directory.current.path, 'assets', 'bin', '$baseBinary.exe'),
       ]);
     }
-
-    // Add standard paths
-    paths.addAll([
-      baseBinary,
-      if (Platform.isWindows) '$baseBinary.exe',
-      path.join('assets', 'bin', baseBinary),
-      if (Platform.isWindows) path.join('assets', 'bin', '$baseBinary.exe'),
-    ]);
 
     if (appDir != null) {
-      final assetPath = path.join(appDir.path, 'assets');
+      // In release mode, check the folder where binaries are downloaded to
       paths.addAll([
-        path.join(assetPath, baseBinary),
-        if (Platform.isWindows) path.join(assetPath, '$baseBinary.exe'),
+        path.join(appDir.path, 'assets', baseBinary),
       ]);
     }
+
+    log.i('found possible paths $paths');
 
     return paths;
   }
