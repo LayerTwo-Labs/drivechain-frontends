@@ -14,6 +14,9 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+g_set_application_name("BitWindow");
+g_application_set_application_id(app, "bitwindow");
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -40,11 +43,11 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "bitwindow");
+    gtk_header_bar_set_title(header_bar, "BitWindow");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "bitwindow");
+    gtk_window_set_title(window, "BitWindow");
   }
 
   gtk_window_set_default_size(window, 1280, 720);
@@ -118,7 +121,7 @@ static void my_application_init(MyApplication* self) {}
 
 MyApplication* my_application_new() {
   return MY_APPLICATION(g_object_new(my_application_get_type(),
-                                     "application-id", APPLICATION_ID,
+                                     "application-id", "bitwindow",
                                      "flags", G_APPLICATION_NON_UNIQUE,
                                      nullptr));
 }
