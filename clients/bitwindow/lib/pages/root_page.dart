@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
@@ -32,6 +31,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:sail_ui/widgets/platform_menu.dart';
+import 'package:window_manager/window_manager.dart';
 
 @RoutePage()
 class RootPage extends StatefulWidget {
@@ -41,9 +41,7 @@ class RootPage extends StatefulWidget {
   State<RootPage> createState() => _RootPageState();
 }
 
-class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
-  late final AppLifecycleListener _lifecycleListener;
-
+class _RootPageState extends State<RootPage> with WidgetsBindingObserver, WindowListener {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final _routerKey = GlobalKey<AutoTabsRouterState>();
   final _clientSettings = GetIt.I<ClientSettings>();
@@ -54,10 +52,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initializeWindowManager();
+  }
 
-    _lifecycleListener = AppLifecycleListener(
-      onExitRequested: _handleExitRequest,
-    );
+  Future<void> _initializeWindowManager() async {
+    windowManager.addListener(this);
+    await windowManager.setPreventClose(true);
   }
 
   @override
@@ -469,41 +469,44 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _lifecycleListener.dispose();
+    windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<AppExitResponse> _handleExitRequest() async {
-    await onShutdown(context);
-    return AppExitResponse.exit;
+  Future<bool> onShutdown() async {
+    try {
+      final router = GetIt.I.get<AppRouter>();
+      unawaited(router.push(const sailroutes.ShuttingDownRoute()));
+      final binaryProvider = GetIt.I.get<BinaryProvider>();
+      final processProvider = GetIt.I.get<ProcessProvider>();
+
+      final futures = <Future>[];
+      // Only stop binaries that are started by bitwindow!
+      // For example if the user starts bitcoind manually, we shouldn't kill it
+      for (final process in processProvider.runningProcesses.values) {
+        futures.add(binaryProvider.stop(process.binary));
+      }
+
+      // Wait for all stop operations to complete
+      await Future.wait(futures);
+
+      // after all binaries are asked nicely to stop, kill any lingering processes
+      await processProvider.shutdown();
+    } catch (error) {
+      // do nothing, we just always need to return true
+    }
+
+    return true;
   }
 
   @override
-  Future<AppExitResponse> didRequestAppExit() async {
-    return await _handleExitRequest();
-  }
-
-  Future<bool> onShutdown(BuildContext context) async {
-    final router = GetIt.I.get<AppRouter>();
-    unawaited(router.push(const sailroutes.ShuttingDownRoute()));
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final processProvider = GetIt.I.get<ProcessProvider>();
-
-    final futures = <Future>[];
-    // Only stop binaries that are started by bitwindow!
-    // For example if the user starts bitcoind manually, we shouldn't kill it
-    for (final process in processProvider.runningProcesses.values) {
-      futures.add(binaryProvider.stop(process.binary));
+  void onWindowClose() async {
+    bool isPreventClose = await windowManager.isPreventClose();
+    if (isPreventClose) {
+      await onShutdown();
+      await windowManager.destroy();
     }
-
-    // Wait for all stop operations to complete
-    await Future.wait(futures);
-
-    // after all binaries are asked nicely to stop, kill any lingering processes
-    await processProvider.shutdown();
-
-    return true;
   }
 }
 
