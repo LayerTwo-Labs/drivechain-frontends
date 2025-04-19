@@ -64,7 +64,7 @@
       "directories": {
         "linux": "bitwindow",
         "darwin": "bitwindow",
-        "win32": "bitwindow"
+        "win32": "bitwindow.exe"
       },
       "download": {
         "base_url": "https://releases.drivechain.info/",
