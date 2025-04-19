@@ -2460,11 +2460,125 @@ class MultisigLoungeTab extends StatelessWidget {
     return SailCard(
       title: 'Multisig Lounge',
       subtitle: 'Create and manage multi-signature wallets',
-      child: Center(
-        child: SailText.primary15(
-          'Multisig functionality coming soon...',
-          color: context.sailTheme.colors.textTertiary,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: SailText.primary13('Lounges'),
+          ),
+          SailSpacing(SailStyleValues.padding08),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SailTable(
+                    getRowId: (index) => 'empty$index',
+                    headerBuilder: (context) => [
+                      const SailTableHeaderCell(name: 'Name'),
+                      const SailTableHeaderCell(name: 'ID'),
+                      const SailTableHeaderCell(name: 'Total Keys'),
+                      const SailTableHeaderCell(name: 'Keys Required'),
+                      const SailTableHeaderCell(name: 'Participants'),
+                    ],
+                    rowBuilder: (context, row, selected) {
+                      return [
+                        const SailTableCell(value: 'Multisig functionality coming soon...'),
+                        const SailTableCell(value: ''),
+                        const SailTableCell(value: ''),
+                        const SailTableCell(value: ''),
+                        const SailTableCell(value: ''),
+                      ];
+                    },
+                    rowCount: 1,
+                    columnWidths: const [-1, -1, -1, -1, -1],
+                    drawGrid: true,
+                  ),
+                ),
+                const SizedBox(width: SailStyleValues.padding16),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SailButton(
+                        label: 'Create New Lounge',
+                        onPressed: null,
+                        variant: ButtonVariant.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SailSpacing(SailStyleValues.padding32),
+          Center(
+            child: SailText.primary13('Transaction History'),
+          ),
+          SailSpacing(SailStyleValues.padding08),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SailTable(
+                    getRowId: (index) => 'tx_empty$index',
+                    headerBuilder: (context) => [
+                      const SailTableHeaderCell(name: 'Lounge'),
+                      const SailTableHeaderCell(name: 'MuTxid'),
+                      const SailTableHeaderCell(name: 'Status'),
+                      const SailTableHeaderCell(name: 'Action'),
+                      const SailTableHeaderCell(name: 'Bitcoin Txid'),
+                    ],
+                    rowBuilder: (context, row, selected) {
+                      return [
+                        const SailTableCell(value: 'Multisig functionality coming soon...'),
+                        const SailTableCell(value: ''),
+                        const SailTableCell(value: ''),
+                        const SailTableCell(value: ''),
+                        const SailTableCell(value: ''),
+                      ];
+                    },
+                    rowCount: 1,
+                    columnWidths: const [-1, -1, -1, -1, -1],
+                    drawGrid: true,
+                  ),
+                ),
+                const SizedBox(width: SailStyleValues.padding16),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Center(
+                        child: SailText.primary13('Transaction Tools'),
+                      ),
+                      SailSpacing(SailStyleValues.padding08),
+                      SailButton(
+                        label: 'Create Transaction',
+                        onPressed: null,
+                        variant: ButtonVariant.secondary,
+                      ),
+                      SailSpacing(SailStyleValues.padding08),
+                      SailButton(
+                        label: 'Sign and Send',
+                        onPressed: null,
+                        variant: ButtonVariant.secondary,
+                      ),
+                      SailSpacing(SailStyleValues.padding08),
+                      SailButton(
+                        label: 'Finalize and Broadcast',
+                        onPressed: null,
+                        variant: ButtonVariant.secondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
