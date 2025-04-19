@@ -597,9 +597,10 @@ abstract class Binary {
     log.d('loading binary from assets bundle: $binary');
     ByteData? binResource;
 
-    log.d('attempting to load from $assetPath');
     try {
-      binResource = await rootBundle.load(path.join('assets', 'bin', binary));
+      // Flutter's asset loading system always expects forward slashes ('/') regardless of platform.
+      // Do not use path.join() here, hardcode the separators!
+      binResource = await rootBundle.load('assets/bin/$binary');
     } catch (e) {
       log.e('could not find binary $binary in any location');
       throw Exception('Process: could not find binary $binary in any location');
