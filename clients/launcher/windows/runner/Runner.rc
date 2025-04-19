@@ -89,7 +89,7 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.layertwolabs.launcher" "\0"
+            VALUE "CompanyName", "LayerTwo Labs" "\0"
             VALUE "FileDescription", "launcher" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "launcher" "\0"
