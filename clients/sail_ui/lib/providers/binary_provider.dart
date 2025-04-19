@@ -541,7 +541,7 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     if (bootAllNoMatterWhat) {
-      // 2.1. If we're told to boot no matter what, do enforcer and bitwindow in parallell
+      // 2.1. If we're told to boot no matter what, any extra connection should go instantly
       log.i('[T+${getElapsed()}ms] STARTUP: Starting ${binaryToBoot.name}');
       unawaited(
         startBinary(
