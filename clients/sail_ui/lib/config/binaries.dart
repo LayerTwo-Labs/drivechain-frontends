@@ -590,7 +590,10 @@ abstract class Binary {
       }
     }
 
-    return _fileFromAssetsBundle(appDir);
+    final file = await _fileFromAssetsBundle(appDir);
+    log.i('Found binary in assets bundle: ${file.path}');
+
+    return file;
   }
 
   Future<File> _fileFromAssetsBundle(Directory? appDir) async {
@@ -614,6 +617,7 @@ abstract class Binary {
     File file;
     if (appDir != null) {
       final fileDir = path.join(appDir.path, 'assets');
+      await Directory(fileDir).create(recursive: true);
       file = File(filePath([fileDir, binaryName]));
       log.d('Writing binary to assets: ${file.path}');
     } else {
@@ -629,6 +633,8 @@ abstract class Binary {
       file = File(filePath([randDir.path, binaryName]));
       log.d('Writing binary to temporary file: ${file.path}');
     }
+
+    log.d('Process: writing binary to ${file.path}');
 
     final buffer = binResource.buffer;
     await file.writeAsBytes(
@@ -1014,6 +1020,7 @@ extension BinaryDownload on Binary {
 
       return (DownloadMetadata.fromJson(json), binaryFile);
     } catch (e) {
+      log.e('Failed to load metadata for $binary', error: e);
       return (null, null);
     }
   }
