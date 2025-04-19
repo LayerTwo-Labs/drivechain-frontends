@@ -503,8 +503,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   @override
   void onWindowClose() async {
     bool isPreventClose = await windowManager.isPreventClose();
+    await onShutdown();
     if (isPreventClose) {
-      await onShutdown();
       await windowManager.destroy();
     }
   }
