@@ -597,20 +597,24 @@ abstract class Binary {
     log.d('loading binary from assets bundle: $binary');
     ByteData? binResource;
 
+    final binaryName = binary + (Platform.isWindows && !binary.endsWith('.exe') ? '.exe' : '');
+
     try {
-      // Flutter's asset loading system always expects forward slashes ('/') regardless of platform.
-      // Do not use path.join() here, hardcode the separators!
-      binResource = await rootBundle.load('assets/bin/$binary');
+      // add .exe if on windows and the binary doesn't already end with .exe
+      final assetPath = 'assets/bin/$binaryName';
+      log.d('Attempting to load binary from asset path: $assetPath');
+
+      binResource = await rootBundle.load(assetPath);
     } catch (e) {
-      log.e('could not find binary $binary in any location');
-      throw Exception('Process: could not find binary $binary in any location');
+      log.e('Failed to load binary $binaryName from assets bundle');
+      throw Exception('Process: could not find binary $binaryName in any location. Error: $e');
     }
     log.d('successfully loaded binary from assets: $assetPath');
 
     File file;
     if (appDir != null) {
       final fileDir = path.join(appDir.path, 'assets');
-      file = File(filePath([fileDir, binary]));
+      file = File(filePath([fileDir, binaryName]));
       log.d('Writing binary to assets: ${file.path}');
     } else {
       // Create temp file
@@ -622,7 +626,7 @@ abstract class Binary {
       log.d('Creating temporary directory at: ${randDir.path}');
       await randDir.create();
 
-      file = File(filePath([randDir.path, binary]));
+      file = File(filePath([randDir.path, binaryName]));
       log.d('Writing binary to temporary file: ${file.path}');
     }
 
