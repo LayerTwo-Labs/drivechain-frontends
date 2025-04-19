@@ -42,9 +42,6 @@ func New(ctx context.Context) (*sql.DB, error) {
 // SafeDefer calls the given function (typically a close/rollback) and logs if it returns an error.
 // Designed to be used in defer statements.
 func SafeDefer(ctx context.Context, fn func() error) {
-	if err := fn(); err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msg("deferred cleanup failed")
-	}
+	// we just dont care about the error here
+	_ = fn()
 }
