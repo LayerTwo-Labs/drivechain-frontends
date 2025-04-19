@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
+import 'package:window_manager/window_manager.dart';
 
 @RoutePage()
 class RootPage extends StatefulWidget {
@@ -22,17 +22,12 @@ class RootPage extends StatefulWidget {
   State<RootPage> createState() => _RootPageState();
 }
 
-class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
-  late final AppLifecycleListener _lifecycleListener;
-
+class _RootPageState extends State<RootPage> with WidgetsBindingObserver, WindowListener {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-    _lifecycleListener = AppLifecycleListener(
-      onExitRequested: _handleExitRequest,
-    );
+    _initializeWindowManager();
 
     // Show welcome modal after widget is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -46,6 +41,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
         }
       }
     });
+  }
+
+  Future<void> _initializeWindowManager() async {
+    windowManager.addListener(this);
+    await windowManager.setPreventClose(true);
   }
 
   @override
@@ -83,44 +83,42 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _lifecycleListener.dispose();
+    windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  @override
-  Future<AppExitResponse> didRequestAppExit() async {
-    return await _handleExitRequest();
-  }
+  Future<bool> onShutdown() async {
+    try {
+      final router = GetIt.I.get<AppRouter>();
+      unawaited(router.push(const sailroutes.ShuttingDownRoute()));
+      final binaryProvider = GetIt.I.get<BinaryProvider>();
+      final processProvider = GetIt.I.get<ProcessProvider>();
 
-  Future<AppExitResponse> _handleExitRequest() async {
-    await onShutdown(context);
-    return AppExitResponse.exit;
-  }
+      final futures = <Future>[];
+      // Try to stop all binaries regardless of state
+      for (final binary in binaryProvider.binaries) {
+        futures.add(binaryProvider.stop(binary));
+      }
 
-  Future<bool> onShutdown(BuildContext context) async {
-    final router = GetIt.I.get<AppRouter>();
-    unawaited(router.push(const sailroutes.ShuttingDownRoute()));
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final proccessProvider = GetIt.I.get<ProcessProvider>();
+      // Wait for all stop operations to complete
+      await Future.wait(futures);
 
-    final futures = <Future>[];
-    // Try to stop all binaries regardless of state
-    for (final binary in binaryProvider.binaries) {
-      futures.add(binaryProvider.stop(binary));
+      // after all binaries are killed, make sure to kill any lingering processes started
+      await processProvider.shutdown();
+    } catch (error) {
+      // do nothing, we just always need to return true
     }
-
-    // If no processes are running, return immediately
-    if (futures.isEmpty) {
-      return true;
-    }
-
-    // Wait for all stop operations to complete
-    await Future.wait(futures);
-
-    // after all binaries are killed, make sure to kill any lingering processes started
-    await proccessProvider.shutdown();
 
     return true;
+  }
+
+  @override
+  void onWindowClose() async {
+    bool isPreventClose = await windowManager.isPreventClose();
+    await onShutdown();
+    if (isPreventClose) {
+      await windowManager.destroy();
+    }
   }
 }

@@ -22,6 +22,7 @@ import 'package:sidesail/main.dart';
 import 'package:sidesail/providers/notification_provider.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:stacked/stacked.dart';
+import 'package:window_manager/window_manager.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down
 // in this file, when updating here. Route order should match exactly
@@ -49,7 +50,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
   SidechainContainer get sidechain => GetIt.I.get<SidechainContainer>();
 
@@ -59,8 +60,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
     _notificationProvider.addListener(rebuildNotifications);
+    _initializeWindowManager();
+  }
+
+  Future<void> _initializeWindowManager() async {
+    windowManager.addListener(this);
+    await windowManager.setPreventClose(true);
   }
 
   void rebuildNotifications() {
@@ -208,34 +214,48 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   Future<AppExitResponse> didRequestAppExit() async {
-    await onShutdown(context);
+    await onShutdown();
     return AppExitResponse.exit;
   }
 
-  Future<bool> onShutdown(BuildContext context) async {
-    final router = GetIt.I.get<AppRouter>();
-    unawaited(router.push(const sailroutes.ShuttingDownRoute()));
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final processProvider = GetIt.I.get<ProcessProvider>();
+  Future<bool> onShutdown() async {
+    try {
+      final router = GetIt.I.get<AppRouter>();
+      unawaited(router.push(const sailroutes.ShuttingDownRoute()));
+      final binaryProvider = GetIt.I.get<BinaryProvider>();
+      final processProvider = GetIt.I.get<ProcessProvider>();
 
-    final futures = <Future>[];
-    // Only stop binaries that are started by sidesail!
-    // For example if the user starts bitcoind manually, we shouldn't kill it
-    for (final process in processProvider.runningProcesses.values) {
-      futures.add(binaryProvider.stop(process.binary));
+      final futures = <Future>[];
+      // Only stop binaries that are started by sidesail!
+      // For example if the user starts bitcoind manually, we shouldn't kill it
+      for (final process in processProvider.runningProcesses.values) {
+        futures.add(binaryProvider.stop(process.binary));
+      }
+
+      // Wait for all stop operations to complete
+      await Future.wait(futures);
+
+      // after all binaries are asked nicely to stop, kill any lingering processes
+      await processProvider.shutdown();
+    } catch (error) {
+      // do nothing, we just always need to return true
     }
-
-    // Wait for all stop operations to complete
-    await Future.wait(futures);
-
-    // after all binaries are asked nicely to stop, kill any lingering processes
-    await processProvider.shutdown();
 
     return true;
   }
 
   @override
+  void onWindowClose() async {
+    bool isPreventClose = await windowManager.isPreventClose();
+    if (isPreventClose) {
+      await onShutdown();
+      await windowManager.destroy();
+    }
+  }
+
+  @override
   void dispose() {
+    windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

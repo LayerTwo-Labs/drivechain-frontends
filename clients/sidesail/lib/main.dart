@@ -29,6 +29,7 @@ import 'package:sidesail/rpc/rpc_testchain.dart';
 import 'package:sidesail/storage/sail_settings/font_settings.dart';
 import 'package:sidesail/storage/sail_settings/network_settings.dart';
 import 'package:sidesail/widgets/containers/dropdownactions/console.dart';
+import 'package:window_manager/window_manager.dart';
 
 Future<void> start(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +52,21 @@ Future<void> start(List<String> args) async {
       throw ArgumentError('Missing required arguments for multi-window mode: application_dir, log_file');
     }
   }
+
+  await windowManager.ensureInitialized();
+
+  const windowOptions = WindowOptions(
+    minimumSize: Size(600, 700),
+    titleBarStyle: TitleBarStyle.normal,
+    title: 'Bitcoin Core + CUSF BIP 300/301 Activator',
+  );
+
+  unawaited(
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    }),
+  );
 
   // Fall back to filesystem if not provided in args
   applicationDir ??= await getApplicationSupportDirectory();
