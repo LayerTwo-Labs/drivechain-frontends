@@ -11,8 +11,8 @@ fi
 lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
 # Name of executable + app
-sed -i "s/bitwindow/$lower_app_name/" linux/CMakeLists.txt    
+sed -i "s/bitwindow/$lower_app_name/" linux/runner/CMakeLists.txt    
 
 # Name of main window
-sed -i "s/BitWindow/$app_name/" linux/my_application.cc
-sed -i "s/BitWindow/$lower_app_name/" linux/my_application.cc    
+sed -i "s/BitWindow/$app_name/" linux/runner/my_application.cc
+sed -i "s/BitWindow/$lower_app_name/" linux/runner/my_application.cc    
