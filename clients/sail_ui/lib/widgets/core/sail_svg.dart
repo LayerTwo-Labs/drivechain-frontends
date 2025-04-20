@@ -18,6 +18,8 @@ enum SailSVGAsset {
   tabTools,
   tabStarters,
 
+  layerTwoLabsLogo,
+
   iconCalendar,
   iconQuestion,
   iconSearch,
@@ -4620,6 +4622,9 @@ extension AsAssetPath on SailSVGAsset {
         return 'assets/svgs/icon_tab_tools.svg';
       case SailSVGAsset.tabStarters:
         return 'assets/svgs/icon_tab_starters.svg';
+
+      case SailSVGAsset.layerTwoLabsLogo:
+        return 'assets/svgs/layertwolabs.svg';
 
       case SailSVGAsset.iconCalendar:
         return 'assets/svgs/icon_calendar.svg';

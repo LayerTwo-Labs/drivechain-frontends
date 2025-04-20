@@ -6,12 +6,14 @@ class ProgressBar extends StatelessWidget {
   final double progress;
   final int? current;
   final int? goal;
+  final bool small;
 
   const ProgressBar({
     super.key,
     required this.progress,
     this.current,
     this.goal,
+    this.small = false,
   });
 
   @override
@@ -20,7 +22,7 @@ class ProgressBar extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return SizedBox(
-      height: 16,
+      height: small ? 10 : 16,
       child: Row(
         children: [
           Expanded(
@@ -71,14 +73,15 @@ class ProgressBar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8.0),
-          ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 50, maxWidth: 50),
-            child: SailText.primary12(
-              '${(progress * 100).toStringAsFixed(2)}%',
-              textAlign: TextAlign.left,
+          if (!small) const SizedBox(width: 8.0),
+          if (!small)
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 50, maxWidth: 50),
+              child: SailText.primary12(
+                '${(progress * 100).toStringAsFixed(2)}%',
+                textAlign: TextAlign.left,
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -19,11 +19,11 @@ import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbenum.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
-import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
@@ -62,6 +62,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   Widget build(BuildContext context) {
+    final app = SailApp.of(context);
+
     return CrossPlatformMenuBar(
       menus: [
         // First menu will be Apple menu (system provided)
@@ -77,14 +79,19 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Change Theme',
                   onSelected: () async {
-                    final app = SailApp.of(context);
+                    final log = GetIt.I.get<Logger>();
+                    log.d('Changing theme...');
 
                     final themeSetting = await _clientSettings.getValue(ThemeSetting());
                     final currentTheme = themeSetting.value;
+                    log.d('Current theme: $currentTheme');
 
                     final SailThemeValues nextTheme = currentTheme.toggleTheme();
+                    log.d('Switching to theme: $nextTheme');
+
                     await _clientSettings.setValue(ThemeSetting().withValue(nextTheme));
                     await app.loadTheme(nextTheme);
+                    log.d('Theme change complete');
                   },
                 ),
               ],
@@ -474,16 +481,26 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     super.dispose();
   }
 
-  Future<bool> onShutdown() async {
+  Future<bool> onShutdown({required VoidCallback onComplete}) async {
     try {
-      final router = GetIt.I.get<AppRouter>();
-      unawaited(router.push(const sailroutes.ShuttingDownRoute()));
       final binaryProvider = GetIt.I.get<BinaryProvider>();
       final processProvider = GetIt.I.get<ProcessProvider>();
 
+      // Get list of running binaries
+      final runningBinaries = processProvider.runningProcesses.values.map((process) => process.binary).toList();
+
+      // Show shutdown page with running binaries
+      unawaited(
+        GetIt.I.get<AppRouter>().push(
+              ShuttingDownRoute(
+                binaries: runningBinaries,
+                onComplete: onComplete,
+              ),
+            ),
+      );
+
       final futures = <Future>[];
-      // Only stop binaries that are started by bitwindow!
-      // For example if the user starts bitcoind manually, we shouldn't kill it
+      // Only stop binaries that are started by bitwindow
       for (final process in processProvider.runningProcesses.values) {
         futures.add(binaryProvider.stop(process.binary));
       }
@@ -491,7 +508,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
       // Wait for all stop operations to complete
       await Future.wait(futures);
 
-      // after all binaries are asked nicely to stop, kill any lingering processes
+      // After all binaries are asked nicely to stop, kill any lingering processes
       await processProvider.shutdown();
     } catch (error) {
       // do nothing, we just always need to return true
@@ -503,10 +520,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   @override
   void onWindowClose() async {
     bool isPreventClose = await windowManager.isPreventClose();
-    await onShutdown();
-    if (isPreventClose) {
-      await windowManager.destroy();
-    }
+    await onShutdown(
+      onComplete: () async {
+        if (isPreventClose) {
+          await windowManager.destroy();
+        }
+      },
+    );
   }
 }
 
