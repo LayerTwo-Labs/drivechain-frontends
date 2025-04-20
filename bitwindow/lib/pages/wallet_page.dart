@@ -35,6 +35,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:bitwindow/widgets/create_multisig_modal.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
@@ -2503,7 +2504,12 @@ class MultisigLoungeTab extends StatelessWidget {
                     children: [
                       SailButton(
                         label: 'Create New Lounge',
-                        onPressed: null,
+                        onPressed: () async {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const CreateMultisigModal(),
+                          );
+                        },
                         variant: ButtonVariant.primary,
                       ),
                     ],
