@@ -11,7 +11,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/pages/router.gr.dart' as sailroutes;
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -214,22 +213,34 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
   @override
   Future<AppExitResponse> didRequestAppExit() async {
-    await onShutdown();
+    await onShutdown(onComplete: () {});
     return AppExitResponse.exit;
   }
 
-  Future<bool> onShutdown() async {
+  Future<bool> onShutdown({required VoidCallback onComplete}) async {
     try {
-      final router = GetIt.I.get<AppRouter>();
-      unawaited(router.push(const sailroutes.ShuttingDownRoute()));
       final binaryProvider = GetIt.I.get<BinaryProvider>();
       final processProvider = GetIt.I.get<ProcessProvider>();
 
+      // Get list of running binaries
+      final runningBinaries = processProvider.runningProcesses.values.map((process) => process.binary).toList();
+
+      // Show shutdown page with running binaries
+      unawaited(
+        GetIt.I.get<AppRouter>().push(
+              ShuttingDownRoute(
+                binaries: runningBinaries,
+                onComplete: onComplete,
+              ),
+            ),
+      );
+
       final futures = <Future>[];
+
       // Only stop binaries that are started by sidesail!
       // For example if the user starts bitcoind manually, we shouldn't kill it
-      for (final process in processProvider.runningProcesses.values) {
-        futures.add(binaryProvider.stop(process.binary));
+      for (final binary in runningBinaries) {
+        futures.add(binaryProvider.stop(binary));
       }
 
       // Wait for all stop operations to complete
@@ -248,8 +259,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   void onWindowClose() async {
     bool isPreventClose = await windowManager.isPreventClose();
     if (isPreventClose) {
-      await onShutdown();
-      await windowManager.destroy();
+      await onShutdown(
+        onComplete: () async {
+          if (isPreventClose) {
+            await windowManager.destroy();
+          }
+        },
+      );
     }
   }
 

@@ -11,6 +11,7 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:auto_route/auto_route.dart' as _i3;
 import 'package:flutter/material.dart' as _i4;
+import 'package:sail_ui/config/binaries.dart' as _i5;
 import 'package:sail_ui/pages/log_page.dart' as _i1;
 import 'package:sail_ui/pages/shutdown_page.dart' as _i2;
 
@@ -60,16 +61,52 @@ class LogRouteArgs {
 
 /// generated route for
 /// [_i2.ShuttingDownPage]
-class ShuttingDownRoute extends _i3.PageRouteInfo<void> {
-  const ShuttingDownRoute({List<_i3.PageRouteInfo>? children})
-      : super(ShuttingDownRoute.name, initialChildren: children);
+class ShuttingDownRoute extends _i3.PageRouteInfo<ShuttingDownRouteArgs> {
+  ShuttingDownRoute({
+    _i4.Key? key,
+    required List<_i5.Binary> binaries,
+    required _i4.VoidCallback onComplete,
+    List<_i3.PageRouteInfo>? children,
+  }) : super(
+          ShuttingDownRoute.name,
+          args: ShuttingDownRouteArgs(
+            key: key,
+            binaries: binaries,
+            onComplete: onComplete,
+          ),
+          initialChildren: children,
+        );
 
   static const String name = 'ShuttingDownRoute';
 
   static _i3.PageInfo page = _i3.PageInfo(
     name,
     builder: (data) {
-      return const _i2.ShuttingDownPage();
+      final args = data.argsAs<ShuttingDownRouteArgs>();
+      return _i2.ShuttingDownPage(
+        key: args.key,
+        binaries: args.binaries,
+        onComplete: args.onComplete,
+      );
     },
   );
+}
+
+class ShuttingDownRouteArgs {
+  const ShuttingDownRouteArgs({
+    this.key,
+    required this.binaries,
+    required this.onComplete,
+  });
+
+  final _i4.Key? key;
+
+  final List<_i5.Binary> binaries;
+
+  final _i4.VoidCallback onComplete;
+
+  @override
+  String toString() {
+    return 'ShuttingDownRouteArgs{key: $key, binaries: $binaries, onComplete: $onComplete}';
+  }
 }
