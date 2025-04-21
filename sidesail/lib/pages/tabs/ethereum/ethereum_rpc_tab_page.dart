@@ -5,7 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/routing/router.dart';
 import 'package:sidesail/rpc/rpc_ethereum.dart';
 import 'package:stacked/stacked.dart';
-import 'package:web3dart/web3dart.dart';
+import 'package:wallet/wallet.dart';
 
 @RoutePage()
 class EthereumRPCTabPage extends StatelessWidget {
