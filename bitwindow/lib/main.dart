@@ -126,6 +126,7 @@ void main(List<String> args) async {
       await windowManager.focus();
     }),
   );
+  await setupSignalHandlers(log);
 
   // Get client settings to check debug mode
   final clientSettings = GetIt.I<ClientSettings>();
@@ -394,4 +395,56 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
   ];
 
   return await loadBinaryMetadata(binaries, appDir);
+}
+
+Future<bool> onShutdown({VoidCallback? onComplete}) async {
+  try {
+    final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final processProvider = GetIt.I.get<ProcessProvider>();
+
+    // Get list of running binaries
+    final runningBinaries = processProvider.runningProcesses.values.map((process) => process.binary).toList();
+
+    if (onComplete != null) {
+      // Show shutdown page with running binaries
+      unawaited(
+        GetIt.I.get<AppRouter>().push(
+              ShuttingDownRoute(
+                binaries: runningBinaries,
+                onComplete: onComplete,
+              ),
+            ),
+      );
+    }
+
+    final futures = <Future>[];
+    // Only stop binaries that are started by bitwindow
+    for (final process in processProvider.runningProcesses.values) {
+      futures.add(binaryProvider.stop(process.binary));
+    }
+
+    // Wait for all stop operations to complete
+    await Future.wait(futures);
+
+    // After all binaries are asked nicely to stop, kill any lingering processes
+    await processProvider.shutdown();
+  } catch (error) {
+    // do nothing, we just always need to return true
+  }
+
+  return true;
+}
+
+Future<void> setupSignalHandlers(Logger log) async {
+  ProcessSignal.sigint.watch().listen((signal) async {
+    log.i('Received SIGINT, shutting down...');
+    await onShutdown();
+    exit(0);
+  });
+
+  ProcessSignal.sigterm.watch().listen((signal) async {
+    log.i('Received SIGTERM, shutting down...');
+    await onShutdown();
+    exit(0);
+  });
 }

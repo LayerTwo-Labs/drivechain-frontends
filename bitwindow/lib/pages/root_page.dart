@@ -25,7 +25,6 @@ import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbenum.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
@@ -479,42 +478,6 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  Future<bool> onShutdown({required VoidCallback onComplete}) async {
-    try {
-      final binaryProvider = GetIt.I.get<BinaryProvider>();
-      final processProvider = GetIt.I.get<ProcessProvider>();
-
-      // Get list of running binaries
-      final runningBinaries = processProvider.runningProcesses.values.map((process) => process.binary).toList();
-
-      // Show shutdown page with running binaries
-      unawaited(
-        GetIt.I.get<AppRouter>().push(
-              ShuttingDownRoute(
-                binaries: runningBinaries,
-                onComplete: onComplete,
-              ),
-            ),
-      );
-
-      final futures = <Future>[];
-      // Only stop binaries that are started by bitwindow
-      for (final process in processProvider.runningProcesses.values) {
-        futures.add(binaryProvider.stop(process.binary));
-      }
-
-      // Wait for all stop operations to complete
-      await Future.wait(futures);
-
-      // After all binaries are asked nicely to stop, kill any lingering processes
-      await processProvider.shutdown();
-    } catch (error) {
-      // do nothing, we just always need to return true
-    }
-
-    return true;
   }
 
   @override
