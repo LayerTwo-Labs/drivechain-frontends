@@ -9,7 +9,6 @@ on:
       - "bitwindow/**"
       - "sidesail/**"
       - "launcher/**"
-      - "faucet/**"
       - ".github/workflows/**"
   pull_request:
     branches: [master]
@@ -19,7 +18,6 @@ on:
       - "bitwindow/**"
       - "sidesail/**"
       - "launcher/**"
-      - "faucet/**"
       - ".github/workflows/**"
 
 jobs:
@@ -29,7 +27,6 @@ jobs:
       sidesail: ${{ steps.filter.outputs.sidesail }}
       bitwindow: ${{ steps.filter.outputs.bitwindow }}
       launcher: ${{ steps.filter.outputs.launcher }}
-      faucet: ${{ steps.filter.outputs.faucet }}
       build_all: ${{ steps.filter.outputs.build_all }}
     steps:
       - uses: actions/checkout@v4
@@ -47,8 +44,6 @@ jobs:
               - 'bitwindow/**'
             launcher:
               - 'launcher/**'
-            faucet:
-              - 'faucet/**'
 
   matrix-prep:
     needs: check-changes
@@ -95,7 +90,6 @@ jobs:
           add_client_configs "sidesail" "testchain ethereum zcash" "${{ needs.check-changes.outputs.sidesail }}"
           add_client_configs "bitwindow" "" "${{ needs.check-changes.outputs.bitwindow }}"
           add_client_configs "launcher" "" "${{ needs.check-changes.outputs.launcher }}"
-          add_client_configs "faucet" "" "${{ needs.check-changes.outputs.faucet }}"
           
           # Join configurations with commas
           matrix=$(IFS=,; echo "{\"include\":[${configurations[*]}]}")
