@@ -131,6 +131,9 @@ jobs:
 
       - name: Create assets/bin directory
         run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/master" ]; then
+            rm -rf ${{ matrix.client }}/assets/bin
+          fi
           mkdir -p ${{ matrix.client }}/assets/bin
 
       # This workflow uses the latest stable version of the Dart SDK.
