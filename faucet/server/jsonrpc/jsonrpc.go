@@ -125,6 +125,7 @@ func (c *Client) Call(ctx context.Context, method string, opts ...CallOption) (j
 	if err != nil {
 		return nil, fmt.Errorf("do request: %w", err)
 	}
+	// nolint:errcheck
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
