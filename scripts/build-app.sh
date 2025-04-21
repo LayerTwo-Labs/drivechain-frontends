@@ -32,9 +32,9 @@ fi
 old_cwd=$(pwd)
 cleanup() {
     rm -f "$client_dir/build-vars.env"
-    git checkout -f "$client_dir/macos"
-    git checkout -f "$client_dir/linux"
-    git checkout -f "$client_dir/windows"
+    git checkout -f "$client_dir/macos" 2>/dev/null || true
+    git checkout -f "$client_dir/linux" 2>/dev/null || true
+    git checkout -f "$client_dir/windows" 2>/dev/null || true
     echo "Cleaned up all files"
     cd $old_cwd
     echo "Back to $old_cwd"

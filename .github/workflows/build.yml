@@ -129,18 +129,22 @@ jobs:
         with:
           go-version: "1.23"
 
-      - name: Create assets/bin directory
+      - name: Setup build directory
         run: |
-          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/master" ]; then
-            rm -rf ${{ matrix.client }}/assets/bin
-          fi
-          mkdir -p ${{ matrix.client }}/assets/bin
+          # Create unique build directory
+          BUILD_DIR="${{ matrix.client }}-build-${{ runner.os }}-${{ matrix.chain }}"
+          mkdir -p "$BUILD_DIR"
+          # Copy source files to build directory
+          cp -r ${{ matrix.client }} "$BUILD_DIR/"
+          cp -r scripts "$BUILD_DIR/"
+          cp -r sail_ui "$BUILD_DIR/"
+          # Create assets/bin directory
+          mkdir -p "$BUILD_DIR/${{ matrix.client }}/assets/bin"
+          echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
 
-      # This workflow uses the latest stable version of the Dart SDK.
-      - uses: dart-lang/setup-dart@v1
       - name: Install dependencies
         run: |
-          cd ${{ matrix.client }}
+          cd ${{ env.BUILD_DIR }}/${{ matrix.client }}
           flutter pub get
 
         # standard macOS sed has subtle differences from gnu
@@ -190,11 +194,13 @@ jobs:
           echo "Determined code sign identity"
           echo "CODESIGN_IDENTITY=$cn_value" >> $GITHUB_ENV
 
-          echo "Creating notarization API key file"
-          echo ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY }} | base64 --decode > notarization_api_key.p8
+          # Create notarization API key file in the build directory
+          echo "Creating notarization API key file in ${{ env.BUILD_DIR }}"
+          echo ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY }} | base64 --decode > "${{ env.BUILD_DIR }}/notarization_api_key.p8"
 
       - name: Build app
         run: |
+          cd ${{ env.BUILD_DIR }}
           chain_param="${{ matrix.chain }}"
           if [ -z "$chain_param" ]; then
             chain_param="none"
@@ -202,17 +208,15 @@ jobs:
 
           # Everything after the first line is only relevant for macOS
           ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} "$chain_param" \
-            "$CODESIGN_IDENTITY" $PWD/notarization_api_key.p8 \
+            "$CODESIGN_IDENTITY" "$PWD/notarization_api_key.p8" \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name:
-            ${{ matrix.client }}-binaries-${{ runner.os }}${{ matrix.chain != ''
-            && format('-{0}', matrix.chain) || '' }}
+          name: ${{ matrix.client }}-binaries-${{ runner.os }}${{ matrix.chain != '' && format('-{0}', matrix.chain) || '' }}
           if-no-files-found: error
-          path: ${{ matrix.client }}/release/*
+          path: ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/*
 
   upload-artifacts-to-releases-drivechain-info:
     name: Upload artifacts to releases.drivechain.info
@@ -247,12 +251,10 @@ jobs:
           # BitWindow
           mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
           mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
-          mv bitwindow-binaries-Windows/bitwindow-win64.msix BitWindow-latest-x86_64-pc-windows-msvc.msix || true
           mv bitwindow-binaries-Windows/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip || true
           # Launcher
           mv launcher-binaries-macOS/launcher-osx64.zip Launcher-latest-x86_64-apple-darwin.zip || true
           mv launcher-binaries-Linux/launcher-x86_64-linux-gnu.zip Launcher-latest-x86_64-unknown-linux-gnu.zip || true
-          mv launcher-binaries-Windows/launcher-win64.msix Launcher-latest-x86_64-pc-windows-msvc.msix || true
           mv launcher-binaries-Windows/launcher-win64.zip Launcher-latest-x86_64-pc-windows-msvc.zip || true
 
       - name: Upload artifacts to releases.drivechain.info
@@ -266,4 +268,3 @@ jobs:
           scp: |
             'L2-S*.zip' => '/var/www/html/'
             'BitWindow-*.zip' => '/var/www/html/'
-            'BitWindow-*.msix' => '/var/www/html/'
