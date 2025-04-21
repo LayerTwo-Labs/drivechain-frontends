@@ -1,0 +1,21 @@
+version: v2
+
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen
+
+plugins:
+  # Base types for Go. Generates message and enum types.
+  - remote: buf.build/protocolbuffers/go
+    out: gen
+    opt:
+      - paths=source_relative
+
+  # Generates client and server stubs for connectrpc.com/connect.
+  # Compatible with the gRPC, gRPC-Web, and Connect RPC protocols.
+  - remote: buf.build/connectrpc/go
+    out: gen
+    opt:
+      - paths=source_relative

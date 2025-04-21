@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package wallet.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service WalletService {
+  rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
+  rpc GetBalance(google.protobuf.Empty) returns (GetBalanceResponse);
+  // Problem: deriving nilly willy here is potentially problematic. There's no way of listing
+  // out unused addresses, so we risk crossing the sync gap.
+  rpc GetNewAddress(google.protobuf.Empty) returns (GetNewAddressResponse);
+  rpc ListTransactions(google.protobuf.Empty) returns (ListTransactionsResponse);
+
+  rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
+  rpc CreateSidechainDeposit(CreateSidechainDepositRequest) returns (CreateSidechainDepositResponse);
+
+  rpc SignMessage(SignMessageRequest) returns (SignMessageResponse);
+  rpc VerifyMessage(VerifyMessageRequest) returns (VerifyMessageResponse);
+}
+
+message GetNewAddressResponse {
+  string address = 1;
+  uint32 index = 2;
+}
+
+message SendTransactionRequest {
+  // The destination address to send to.
+  string destination = 1;
+
+  // The amount in satoshi to send.
+  uint64 amount = 2;
+
+  // Fee rate, measured in BTC/kvB. If set to zero, a reasonable
+  // rate is used by asking Core for an estimate.
+  double fee_rate = 3;
+
+  // Message to include as an OP_RETURN output
+  string op_return_message = 4;
+
+  // If set, will save the address with this label in the address book
+  string label = 5;
+}
+
+message SendTransactionResponse {
+  string txid = 1;
+}
+
+message GetBalanceResponse {
+  uint64 confirmed_satoshi = 1;
+
+  uint64 pending_satoshi = 2;
+}
+
+message ListTransactionsResponse {
+  repeated WalletTransaction transactions = 1;
+}
+
+message Confirmation {
+  uint32 height = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+message WalletTransaction {
+  string txid = 1;
+
+  uint64 fee_sats = 2;
+  uint64 received_satoshi = 3;
+  uint64 sent_satoshi = 4;
+
+  Confirmation confirmation_time = 5;
+}
+
+message ListSidechainDepositsRequest {
+  int32 slot = 1;
+}
+
+message ListSidechainDepositsResponse {
+  message SidechainDeposit {
+    string txid = 1;
+    string address = 2;
+    double amount = 3;
+    double fee = 4;
+    int32 confirmations = 5;
+  }
+
+  repeated SidechainDeposit deposits = 1;
+}
+
+message CreateSidechainDepositRequest {
+  // The sidechain deposit address to send to.
+  int64 slot = 1;
+  // The sidechain deposit address to send to.
+  string destination = 2;
+  // The amount in BTC to send. eg 0.1
+  double amount = 3;
+  // The fee in BTC
+  double fee = 4;
+}
+
+message CreateSidechainDepositResponse {
+  string txid = 1;
+}
+
+message SignMessageRequest {
+  string message = 1;
+}
+message SignMessageResponse {
+  string signature = 1;
+}
+
+message VerifyMessageRequest {
+  string message = 1;
+  string signature = 2;
+  string public_key = 3;
+}
+message VerifyMessageResponse {
+  bool valid = 1;
+}

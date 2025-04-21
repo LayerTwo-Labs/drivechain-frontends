@@ -1,0 +1,30 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+    # https://dart-lang.github.io/linter/lints/index.html.
+    # https://dart.dev/guides/language/analysis-options
+    rules:
+        # Common bugs
+        close_sinks: true
+        await_only_futures: true
+        unawaited_futures: true
+        always_declare_return_types: true
+        constant_identifier_names: false
+        avoid_relative_lib_imports: true
+        always_use_package_imports: true
+
+        # Performance
+        use_decorated_box: true
+
+        # Readability
+        comment_references: true
+        avoid_escaping_inner_quotes: true
+        prefer_if_null_operators: true
+        unnecessary_new: true
+        require_trailing_commas: true
+        prefer_single_quotes: true
+
+analyzer:
+    exclude:
+        - "lib/gen**"
+        - 'build/**'

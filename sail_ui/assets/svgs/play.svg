@@ -1,0 +1,3 @@
+<svg id="play" xmlns="http://www.w3.org/2000/svg" width="16" height="20" viewBox="0 0 16 20">
+  <path id="Vector" d="M1,1,1.541.159A1,1,0,0,0,0,1Zm14,9,.541.841a1,1,0,0,0,0-1.682ZM1,19H0a1,1,0,0,0,1.541.841ZM.459,1.841l14,9,1.082-1.682-14-9Zm14,7.318-14,9,1.082,1.682,14-9ZM2,19V1H0V19Z" transform="translate(0 0)" fill="#09090b"/>
+</svg>

@@ -4,17 +4,17 @@ on:
   push:
     branches: [master]
     paths:
-      - 'servers/faucet/**'
+      - 'faucet/server/**'
       - '.github/workflows/**'
   pull_request:
     branches: [master]
     paths:
-      - 'servers/faucet/**'
+      - 'faucet/server/**'
       - '.github/workflows/**'
 
 defaults:
   run:
-    working-directory: servers/faucet
+    working-directory: faucet/server
 
 jobs:
   go-lint:
@@ -30,7 +30,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          working-directory: servers/faucet
+          working-directory: faucet/server
           version: latest
 
   go-build:
@@ -93,7 +93,7 @@ jobs:
       - name: Build (and maybe push) Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./servers/faucet
+          context: ./faucet/server
           # Only push if this is not a PR from a fork
           # prettier-ignore
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}

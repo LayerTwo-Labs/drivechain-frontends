@@ -1,3 +1,0 @@
-<svg id="arrow-left" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <path id="Vector" d="M7.293,15.707a1,1,0,1,0,1.414-1.414ZM1,8,.293,7.293a1,1,0,0,0,0,1.414ZM8.707,1.707A1,1,0,0,0,7.293.293ZM15,9a1,1,0,0,0,0-2ZM8.707,14.293l-7-7L.293,8.707l7,7Zm-7-5.586,7-7L7.293.293l-7,7ZM15,7H1V9H15Z" transform="translate(0 0)" fill="#09090b"/>
-</svg>

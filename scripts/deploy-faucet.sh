@@ -2,7 +2,7 @@
 
 set -e
 
-cd ./clients/faucet
+cd ./faucet
 flutter clean
 flutter pub get
 flutter build web --dart-define=FAUCET_BASE_URL=/api --output=./build/web

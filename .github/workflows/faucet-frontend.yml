@@ -4,12 +4,12 @@ on:
   push:
     branches: [master]
     paths:
-      - 'clients/faucet/**'
+      - 'faucet/**'
       - '.github/workflows/**'
   pull_request:
     branches: [master]
     paths:
-      - 'clients/faucet/**'
+      - 'faucet/**'
       - '.github/workflows/**'
 
 jobs:
@@ -60,7 +60,7 @@ jobs:
       - name: Build (and maybe push) Docker image
         uses: docker/build-push-action@v6
         with:
-          file: clients/faucet/Dockerfile
+          file: faucet/Dockerfile
           # Only push if this is not a PR from a fork
           # prettier-ignore
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}

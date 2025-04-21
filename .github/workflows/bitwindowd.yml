@@ -4,12 +4,12 @@ on:
   pull_request:
     branches: [master]
     paths:
-      - 'servers/bitwindow/**'
+      - 'bitwindow/server/**'
       - '.github/workflows/**'
 
 defaults:
   run:
-    working-directory: servers/bitwindow
+    working-directory: bitwindow/server
 
 jobs:
   lint:
@@ -19,7 +19,7 @@ jobs:
       - uses: bufbuild/buf-setup-action@v1.36.0
       - uses: bufbuild/buf-lint-action@v1.1.1
         with:
-          input: servers/bitwindow
+          input: bitwindow/server
 
       - name: verify Proto files are formatted correctly
         run: buf format --exit-code proto
@@ -37,7 +37,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          working-directory: servers/bitwindow
+          working-directory: bitwindow/server
           version: latest
 
   go-build:
@@ -48,7 +48,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: servers/bitwindow
+        working-directory: bitwindow/server
     steps:
       - uses: extractions/setup-just@v1
       - uses: actions/checkout@v4
@@ -68,5 +68,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: bitwindowd-${{ runner.os }}
-          path: servers/bitwindow/bin
+          path: bitwindow/server/bin
           if-no-files-found: error

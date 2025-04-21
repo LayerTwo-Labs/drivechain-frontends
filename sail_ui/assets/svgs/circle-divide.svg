@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+  <g id="circle-divide" transform="translate(1 1)">
+    <g id="Vector">
+      <path id="Vector_path_1_" data-name="Vector (path 1)" d="M2,1A1,1,0,1,1,1,0,1,1,0,0,1,2,1Z" transform="translate(9 13)"/>
+      <path id="Vector_path_2_" data-name="Vector (path 2)" d="M2,1A1,1,0,1,1,1,0,1,1,0,0,1,2,1Z" transform="translate(9 5)"/>
+      <path id="Vector_path_3_" data-name="Vector (path 3)" d="M10,20A10,10,0,1,0,0,10,10,10,0,0,0,10,20Z" fill="rgba(0,0,0,0)"/>
+      <g id="Vector_stroke_" data-name="Vector (stroke)">
+        <path id="_6086C68C-4F2E-45A8-93B7-5C497ACAB85F" data-name="6086C68C-4F2E-45A8-93B7-5C497ACAB85F" d="M2,1A1,1,0,1,1,1,0,1,1,0,0,1,2,1Z" transform="translate(9 13)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="_57B927EE-34C6-4EFB-8083-732EC7DF47CF" data-name="57B927EE-34C6-4EFB-8083-732EC7DF47CF" d="M2,1A1,1,0,1,1,1,0,1,1,0,0,1,2,1Z" transform="translate(9 5)" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+        <path id="_07812721-5FE5-4636-9FD7-581B89AF40C4" data-name="07812721-5FE5-4636-9FD7-581B89AF40C4" d="M10,20A10,10,0,1,0,0,10,10,10,0,0,0,10,20Z" fill="rgba(0,0,0,0)" stroke="#09090b" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>

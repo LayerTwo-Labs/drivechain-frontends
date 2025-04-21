@@ -4,26 +4,22 @@ on:
   push:
     branches: [master]
     paths:
-      - "clients/scripts/**"
-      - "clients/sail_ui/**"
-      - "clients/bitwindow/**"
-      - "servers/bitwindow/**"
-      - "clients/sidesail/**"
-      - "clients/launcher/**"
-      - "clients/faucet/**"
-      - "servers/faucet/**"
+      - "scripts/**"
+      - "sail_ui/**"
+      - "bitwindow/**"
+      - "sidesail/**"
+      - "launcher/**"
+      - "faucet/**"
       - ".github/workflows/**"
   pull_request:
     branches: [master]
     paths:
-      - "clients/scripts/**"
-      - "clients/sail_ui/**"
-      - "clients/bitwindow/**"
-      - "servers/bitwindow/**"
-      - "clients/sidesail/**"
-      - "clients/launcher/**"
-      - "clients/faucet/**"
-      - "servers/faucet/**"
+      - "scripts/**"
+      - "sail_ui/**"
+      - "bitwindow/**"
+      - "sidesail/**"
+      - "launcher/**"
+      - "faucet/**"
       - ".github/workflows/**"
 
 jobs:
@@ -42,19 +38,17 @@ jobs:
         with:
           filters: |
             build_all:
-              - 'clients/scripts/**'
-              - 'clients/sail_ui/**'
+              - 'scripts/**'
+              - 'sail_ui/**'
               - '.github/workflows/**'
             sidesail:
-              - 'clients/sidesail/**'
+              - 'sidesail/**'
             bitwindow:
-              - 'clients/bitwindow/**'
-              - 'servers/bitwindow/**'
+              - 'bitwindow/**'
             launcher:
-              - 'clients/launcher/**'
+              - 'launcher/**'
             faucet:
-              - 'clients/faucet/**'
-              - 'servers/faucet/**'
+              - 'faucet/**'
 
   build:
     needs: check-changes
@@ -130,7 +124,6 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: clients
 
     steps:
       - uses: actions/checkout@v4
@@ -221,15 +214,12 @@ jobs:
             ${{ matrix.client }}-binaries-${{ runner.os }}${{ matrix.chain != ''
             && format('-{0}', matrix.chain) || '' }}
           if-no-files-found: error
-          path: clients/${{ matrix.client }}/release/*
+          path: ${{ matrix.client }}/release/*
 
   upload-artifacts-to-releases-drivechain-info:
     name: Upload artifacts to releases.drivechain.info
     runs-on: ubuntu-latest
     needs: build
-    defaults:
-      run:
-        working-directory: clients
     # Modified if condition to run even with partial failures
     if: |
       always() && 

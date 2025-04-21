@@ -1,3 +1,0 @@
-<svg id="send-horizontal" xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20">
-  <path id="Vector" d="M1,1,1.428.1A1,1,0,0,0,.051,1.316ZM1,19l-.949-.316A1,1,0,0,0,1.428,19.9Zm19-9,.428.9a1,1,0,0,0,0-1.807ZM.051,1.316l3,9,1.9-.632-3-9Zm3,8.368-3,9,1.9.632,3-9ZM1.428,19.9l19-9L19.572,9.1l-19,9Zm19-10.807-19-9L.572,1.9l19,9ZM4,11H20V9H4Z" transform="translate(0 0)" fill="#09090b"/>
-</svg>

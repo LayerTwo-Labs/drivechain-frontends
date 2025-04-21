@@ -1,0 +1,3 @@
+<svg id="bar-chart-big" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+  <path id="Vector" d="M2,1A1,1,0,0,0,0,1ZM1,19H0a1,1,0,0,0,1,1Zm18,1a1,1,0,0,0,0-2ZM0,1V19H2V1ZM1,20H19V18H1ZM6,9H8V7H6ZM8,9h2A2,2,0,0,0,8,7ZM8,9v5h2V9Zm0,5v2a2,2,0,0,0,2-2Zm0,0H6v2H8ZM6,14H4a2,2,0,0,0,2,2Zm0,0V9H4v5ZM6,9V7A2,2,0,0,0,4,9Zm8-5h2V2H14Zm2,0h2a2,2,0,0,0-2-2Zm0,0V14h2V4Zm0,10v2a2,2,0,0,0,2-2Zm0,0H14v2h2Zm-2,0H12a2,2,0,0,0,2,2Zm0,0V4H12V14ZM14,4V2a2,2,0,0,0-2,2Z" fill="#09090b"/>
+</svg>

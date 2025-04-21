@@ -1,3 +1,0 @@
-<svg id="step-forward" xmlns="http://www.w3.org/2000/svg" width="16" height="18" viewBox="0 0 16 18">
-  <path id="Vector" d="M2,1A1,1,0,0,0,0,1ZM0,17a1,1,0,0,0,2,0ZM5,1,5.625.219A1,1,0,0,0,4,1ZM15,9l.625.781a1,1,0,0,0,0-1.562ZM5,17H4a1,1,0,0,0,1.625.781ZM0,1V17H2V1Zm4.375.781,10,8,1.249-1.562-10-8Zm10,6.438-10,8,1.249,1.562,10-8ZM6,17V1H4V17Z" transform="translate(0 0)" fill="#09090b"/>
-</svg>
