@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -60,14 +59,14 @@ class ProcessProvider extends ChangeNotifier {
     // Capture stdout and stderr
     final stdoutController = StreamController<String>();
     final stderrController = StreamController<String>();
-    process.stdout.transform(utf8.decoder).listen((data) {
+    process.stdout.transform(systemEncoding.decoder).listen((data) {
       stdoutController.add(data);
       if (!isSpam(data)) {
         log.d('${file.path}: $data');
       }
     });
 
-    process.stderr.transform(utf8.decoder).listen((data) {
+    process.stderr.transform(systemEncoding.decoder).listen((data) {
       stderrController.add(data);
       if (!isSpam(data)) {
         log.e('${file.path}: $data');
@@ -85,15 +84,20 @@ class ProcessProvider extends ChangeNotifier {
     unawaited(
       process.exitCode.then((code) async {
         try {
-          log.i('process exit handler for binary=$binary pid=${process.pid} triggered');
+          log.i('process exit handler for code=$code binary=$binary pid=${process.pid} triggered');
 
           var level = Level.info;
           var message = '';
           if (code != 0) {
             // exit code bad, it crashed!
             final errLogs = await (_stderrStreams[binary.name] ?? const Stream<String>.empty()).take(1).toList();
+            final outLogs = await (_stdoutStreams[binary.name] ?? const Stream<String>.empty()).take(1).toList();
             if (errLogs.isNotEmpty) {
+              log.i('errlogs present, using last message from stderr: ${errLogs.last}');
               message = errLogs.last;
+            } else {
+              log.i('no errlogs present, using last message from stdout: ${outLogs.last}');
+              message = outLogs.last;
             }
           }
 
