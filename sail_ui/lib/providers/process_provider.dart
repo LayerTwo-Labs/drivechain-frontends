@@ -59,19 +59,44 @@ class ProcessProvider extends ChangeNotifier {
     // Capture stdout and stderr
     final stdoutController = StreamController<String>();
     final stderrController = StreamController<String>();
-    process.stdout.transform(systemEncoding.decoder).listen((data) {
-      stdoutController.add(data);
-      if (!isSpam(data)) {
-        log.d('${file.path}: $data');
-      }
-    });
 
-    process.stderr.transform(systemEncoding.decoder).listen((data) {
-      stderrController.add(data);
-      if (!isSpam(data)) {
-        log.e('${file.path}: $data');
-      }
-    });
+    log.d('Setting up stdout listener for ${file.path}');
+    process.stdout.transform(systemEncoding.decoder).listen(
+      (data) {
+        log.d('Raw stdout received from ${file.path}: ${data.length} chars');
+        log.d('Stdout content: $data');
+        try {
+          stdoutController.add(data);
+          if (!isSpam(data)) {
+            log.d('${file.path}: $data');
+          }
+        } catch (e, stack) {
+          log.e('Error processing stdout: $e\n$stack');
+        }
+      },
+      onError: (error, stack) {
+        log.e('Stdout stream error: $error\n$stack');
+      },
+    );
+
+    log.d('Setting up stderr listener for ${file.path}');
+    process.stderr.transform(systemEncoding.decoder).listen(
+      (data) {
+        log.d('Raw stderr received from ${file.path}: ${data.length} chars');
+        log.d('Stderr content: $data');
+        try {
+          stderrController.add(data);
+          if (!isSpam(data)) {
+            log.e('${file.path}: $data');
+          }
+        } catch (e, stack) {
+          log.e('Error processing stderr: $e\n$stack');
+        }
+      },
+      onError: (error, stack) {
+        log.e('Stderr stream error: $error\n$stack');
+      },
+    );
 
     // Store the streams for later access
     _stdoutStreams[binary.name] = stdoutController.stream;
