@@ -7,7 +7,7 @@ require (
 	github.com/barebitcoin/btc-buf v0.0.0-20250417094042-61bc6102c5e6
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.49.1
 	github.com/sourcegraph/conc v0.3.0
 	golang.org/x/net v0.39.0
