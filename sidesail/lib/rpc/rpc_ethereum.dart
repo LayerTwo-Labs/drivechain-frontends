@@ -1,5 +1,6 @@
 import 'package:http/http.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:wallet/wallet.dart';
 import 'package:web3dart/json_rpc.dart' as jsonrpc;
 import 'package:web3dart/web3dart.dart';
 
@@ -94,7 +95,7 @@ class EthereumRPCLive extends EthereumRPC {
   Future<bool> deposit(double amount, double fee) async {
     final depositAmount = sgweiPerSat * btcToSatoshi(amount);
     final depositFee = sgweiPerSat * btcToSatoshi(fee);
-    final deposit = await callRAW('eth_deposit', [account!.hex, _toHex(depositAmount), _toHex(depositFee)]);
+    final deposit = await callRAW('eth_deposit', [account!.with0x, _toHex(depositAmount), _toHex(depositFee)]);
     return deposit as bool;
   }
 
@@ -132,7 +133,7 @@ class EthereumRPCLive extends EthereumRPC {
     if (account == null) {
       return '';
     }
-    return formatDepositAddress(account!.hex, chain.slot);
+    return formatDepositAddress(account!.with0x, chain.slot);
   }
 
   @override
@@ -142,7 +143,7 @@ class EthereumRPCLive extends EthereumRPC {
     final withdraw = await callRAW(
       'eth_withdraw',
       [
-        account!.hex,
+        account!.with0x,
         _toHex(withdrawAmount.toInt()),
         _toHex(fee),
       ],

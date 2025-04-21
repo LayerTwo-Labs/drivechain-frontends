@@ -23,6 +23,7 @@ dependencies:
   flutter_highlighter: ^0.1.1
   logger: ^2.5.0
   dio: 5.7.0
+  wallet: ^0.0.17
   auto_route: ^9.3.0+1
   get_it: ^7.7.0
   qr_flutter: ^4.1.0
