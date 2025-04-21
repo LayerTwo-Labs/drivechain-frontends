@@ -45,62 +45,81 @@ jobs:
             launcher:
               - 'launcher/**'
 
-  matrix-prep:
-    needs: check-changes
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - id: set-matrix
-        run: |
-          # Start with empty array
-          configurations=()
-          
-          # Helper function to add configurations
-          add_client_configs() {
-            local client=$1
-            local chains=$2
-            local build_flag=$3
-            
-            if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
-              for os in "ubuntu-latest" "macos-latest" "windows-latest"; do
-                # Skip macOS and Windows for PRs
-                if [[ "${{ github.event_name }}" == "pull_request" && "$os" != "ubuntu-latest" ]]; then
-                  continue
-                fi
-                
-                if [ -n "$chains" ]; then
-                  # Has chains - iterate through them
-                  for chain in $chains; do
-                    # Skip zcash on windows
-                    if [[ "$chain" == "zcash" && "$os" == "windows-latest" ]]; then
-                      continue
-                    fi
-                    configurations+=("{\"os\":\"$os\",\"client\":\"$client\",\"chain\":\"$chain\"}")
-                  done
-                else
-                  # No chains - just add the basic config
-                  configurations+=("{\"os\":\"$os\",\"client\":\"$client\",\"chain\":\"\"}")
-                fi
-              done
-            fi
-          }
-          
-          # Add configurations for each client that needs building
-          add_client_configs "sidesail" "testchain ethereum zcash" "${{ needs.check-changes.outputs.sidesail }}"
-          add_client_configs "bitwindow" "" "${{ needs.check-changes.outputs.bitwindow }}"
-          add_client_configs "launcher" "" "${{ needs.check-changes.outputs.launcher }}"
-          
-          # Join configurations with commas
-          matrix=$(IFS=,; echo "{\"include\":[${configurations[*]}]}")
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
-
   build:
-    needs: matrix-prep
-    runs-on: ${{ matrix.os }}
+    needs: check-changes
+    continue-on-error: true
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
+      matrix:
+        include:
+          # Sidesail testchain builds for all os'es
+          - os: ubuntu-latest
+            client: sidesail
+            chain: testchain
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: macos-latest
+            client: sidesail
+            chain: testchain
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: windows-latest
+            client: sidesail
+            chain: testchain
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          # Sidesail ethereum builds for all os'es
+          - os: ubuntu-latest
+            client: sidesail
+            chain: ethereum
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: macos-latest
+            client: sidesail
+            chain: ethereum
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: windows-latest
+            client: sidesail
+            chain: ethereum
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          # Sidesail zcash does not build for windows
+          - os: ubuntu-latest
+            client: sidesail
+            chain: zcash
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: macos-latest
+            client: sidesail
+            chain: zcash
+            should_run: ${{ needs.check-changes.outputs.sidesail == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          # BitWindow builds for all os'es
+          - os: ubuntu-latest
+            client: bitwindow
+            chain: ""
+            should_run: ${{ needs.check-changes.outputs.bitwindow == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: macos-latest
+            client: bitwindow
+            chain: ""
+            should_run: ${{ needs.check-changes.outputs.bitwindow == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: windows-latest
+            client: bitwindow
+            chain: ""
+            should_run: ${{ needs.check-changes.outputs.bitwindow == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          # Launcher builds for all os'es
+          - os: ubuntu-latest
+            client: launcher
+            chain: ""
+            should_run: ${{ needs.check-changes.outputs.launcher == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: macos-latest
+            client: launcher
+            chain: ""
+            should_run: ${{ needs.check-changes.outputs.launcher == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+          - os: windows-latest
+            client: launcher
+            chain: ""
+            should_run: ${{ needs.check-changes.outputs.launcher == 'true' || needs.check-changes.outputs.build_all == 'true' }}
+
+    name: Build ${{ matrix.client }} ${{ matrix.chain }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
