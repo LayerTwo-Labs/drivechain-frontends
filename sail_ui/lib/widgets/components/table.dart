@@ -242,7 +242,6 @@ class _SailTableState extends State<SailTable> {
             border: Border(
               bottom: BorderSide(color: theme.colors.divider),
             ),
-            color: theme.colors.backgroundSecondary,
           ),
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -373,7 +372,7 @@ class _SailTableState extends State<SailTable> {
   }
 }
 
-class _TableRow extends StatelessWidget {
+class _TableRow extends StatefulWidget {
   const _TableRow({
     required this.cells,
     required this.onPressed,
@@ -400,6 +399,13 @@ class _TableRow extends StatelessWidget {
   final List<SailMenuItem> Function(String rowId)? contextMenuItems;
   final String rowId;
 
+  @override
+  State<_TableRow> createState() => _TableRowState();
+}
+
+class _TableRowState extends State<_TableRow> {
+  bool isHovered = false;
+
   void _showContextMenu(BuildContext context, Offset position, String value, String rowId) {
     showSailMenu(
       context: context,
@@ -413,8 +419,8 @@ class _TableRow extends StatelessWidget {
             },
             child: SailText.primary12('Copy value'),
           ),
-          if (contextMenuItems != null)
-            ...contextMenuItems!(rowId).map(
+          if (widget.contextMenuItems != null)
+            ...widget.contextMenuItems!(rowId).map(
               (item) => SailMenuItem(
                 onSelected: () {
                   item.onSelected?.call();
@@ -435,22 +441,22 @@ class _TableRow extends StatelessWidget {
 
     var cellWidgets = <Widget>[];
     int i = 0;
-    for (var cell in cells) {
+    for (var cell in widget.cells) {
       final String? cellValue = cell is SailTableCell ? cell.value : null;
 
       cellWidgets.add(
         SizedBox(
-          width: widths[i],
-          height: height,
+          width: widget.widths[i],
+          height: widget.height,
           child: MouseRegion(
             cursor: cellValue != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onSecondaryTapDown: cellValue != null
-                  ? (details) => _showContextMenu(context, details.globalPosition, cellValue, rowId)
+                  ? (details) => _showContextMenu(context, details.globalPosition, cellValue, widget.rowId)
                   : null,
               child: Container(
-                decoration: grid
+                decoration: widget.grid
                     ? BoxDecoration(
                         border: Border(
                           right: BorderSide(
@@ -462,14 +468,7 @@ class _TableRow extends StatelessWidget {
                     : null,
                 width: double.infinity,
                 height: double.infinity,
-                child: DefaultTextStyle(
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: selected ? Colors.white : null,
-                  ),
-                  child: cell,
-                ),
+                child: cell,
               ),
             ),
           ),
@@ -480,11 +479,11 @@ class _TableRow extends StatelessWidget {
 
     Widget contents;
 
-    if (isWindows || grid) {
+    if (isWindows || widget.grid) {
       contents = DecoratedBox(
         decoration: BoxDecoration(
-          color: selected ? theme.colors.primary : backgroundColor,
-          border: drawBorder
+          color: widget.selected || isHovered ? theme.colors.backgroundSecondary : widget.backgroundColor,
+          border: widget.drawBorder
               ? Border(
                   bottom: BorderSide(
                     color: theme.colors.divider,
@@ -501,7 +500,7 @@ class _TableRow extends StatelessWidget {
       contents = DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
-          color: selected ? theme.colors.primary : backgroundColor,
+          color: widget.selected || isHovered ? theme.colors.primary : widget.backgroundColor,
         ),
         child: Row(
           children: cellWidgets,
@@ -509,17 +508,21 @@ class _TableRow extends StatelessWidget {
       );
     }
 
-    return GestureDetector(
-      onLongPressDown: (_) {
-        onPressed();
-      },
-      onDoubleTapDown: onDoubleTap == null
-          ? null
-          : (_) {
-              onDoubleTap!();
-            },
-      behavior: HitTestBehavior.translucent,
-      child: contents,
+    return MouseRegion(
+      onEnter: (_) => setState(() => isHovered = true),
+      onExit: (_) => setState(() => isHovered = false),
+      child: GestureDetector(
+        onLongPressDown: (_) {
+          widget.onPressed();
+        },
+        onDoubleTapDown: widget.onDoubleTap == null
+            ? null
+            : (_) {
+                widget.onDoubleTap!();
+              },
+        behavior: HitTestBehavior.translucent,
+        child: contents,
+      ),
     );
   }
 }
@@ -542,8 +545,8 @@ class SailTableCell extends StatelessWidget {
   final Widget? child;
   final Alignment alignment;
   final EdgeInsets padding;
-  final IconThemeData? plainIconTheme;
-  final IconThemeData? selectedIconTheme;
+  final SailSVGAsset? plainIconTheme;
+  final SailSVGAsset? selectedIconTheme;
   final Color? textColor;
   final bool monospace;
   final bool italic;
@@ -555,33 +558,16 @@ class SailTableCell extends StatelessWidget {
       'Table cell needs to be a child of SailTable',
     );
 
-    final theme = SailTheme.of(context);
-    IconThemeData iconTheme;
-    if (tableRow!.selected) {
-      iconTheme = selectedIconTheme ??
-          IconThemeData(
-            color: theme.colors.iconHighlighted,
-          );
-    } else {
-      iconTheme = plainIconTheme ??
-          IconThemeData(
-            color: theme.colors.icon,
-          );
-    }
-
     return Container(
       alignment: alignment,
       padding: padding,
-      child: IconTheme(
-        data: iconTheme,
-        child: child ??
-            SailText.secondary12(
-              value,
-              color: textColor,
-              monospace: monospace,
-              italic: italic,
-            ),
-      ),
+      child: child ??
+          SailText.primary12(
+            value,
+            color: textColor,
+            monospace: monospace,
+            italic: italic,
+          ),
     );
   }
 }
@@ -620,20 +606,19 @@ class SailTableHeaderCell extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Flexible(
-              child: SailText.primary15(
+              child: SailText.primary13(
                 name,
                 bold: true,
-                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                color: theme.colors.textSecondary.withValues(alpha: 0.7),
+                color: theme.colors.inactiveNavText,
               ),
             ),
             if (isSorted) ...[
               const SizedBox(width: 4),
-              Icon(
-                isAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 13,
-                color: theme.colors.icon,
+              SailSVG.fromAsset(
+                isAscending ? SailSVGAsset.arrowUp : SailSVGAsset.arrowDown,
+                height: 10,
+                color: theme.colors.inactiveNavText,
               ),
             ],
           ],
