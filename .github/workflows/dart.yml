@@ -3,11 +3,11 @@ name: Dart
 on:
   pull_request:
     paths:
-      - "clients/sail_ui/**"
-      - "clients/sidesail/**"
-      - "clients/bitwindow/**"
-      - "clients/faucet/**"
-      - "clients/launcher/**"
+      - "sail_ui/**"
+      - "sidesail/**"
+      - "bitwindow/**"
+      - "faucet/**"
+      - "launcher/**"
       - ".github/workflows/**"
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: clients/${{ matrix.package }}
+        working-directory: ${{ matrix.package }}
 
     steps:
       - uses: actions/checkout@v4

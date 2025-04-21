@@ -1,0 +1,58 @@
+version: "2"
+run:
+  tests: true
+linters:
+  enable:
+    - copyloopvar
+    - dupl
+    - exhaustive
+    - forbidigo
+    - gocritic
+    - goprintffuncname
+    - nakedret
+    - rowserrcheck
+    - unconvert
+    - unparam
+    - zerologlint
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+
+        # Omit embedded fields from selector expression.
+        - -QF1008
+
+        # De Morgan
+        - -QF1001
+
+        # these are disabled by default
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - bodyclose
+          - dupl
+        path: _test.go
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - openapi
+      - third_party$
+      - builtin$
+      - examples$

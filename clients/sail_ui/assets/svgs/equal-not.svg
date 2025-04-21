@@ -1,3 +1,0 @@
-<svg id="equal-not" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <path id="Vector" d="M1,4A1,1,0,0,0,1,6ZM15,6a1,1,0,0,0,0-2ZM1,10a1,1,0,0,0,0,2Zm14,2a1,1,0,0,0,0-2Zm.707-10.293A1,1,0,0,0,14.293.293ZM.293,14.293a1,1,0,0,0,1.414,1.414ZM1,6H15V4H1Zm0,6H15V10H1ZM14.293.293l-14,14,1.414,1.414,14-14Z" transform="translate(0 0)" fill="#09090b"/>
-</svg>

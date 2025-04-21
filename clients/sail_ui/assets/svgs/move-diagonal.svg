@@ -1,3 +1,0 @@
-<svg id="move-diagonal" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <path id="Vector" d="M9,0A1,1,0,0,0,9,2Zm6,1h1a1,1,0,0,0-1-1ZM14,7a1,1,0,0,0,2,0ZM7,16a1,1,0,0,0,0-2ZM1,15H0a1,1,0,0,0,1,1ZM2,9A1,1,0,0,0,0,9ZM9,2h6V0H9Zm5-1V7h2V1ZM7,14H1v2H7ZM2,15V9H0v6ZM14.293.293l-14,14,1.414,1.414,14-14Z" fill="#09090b"/>
-</svg>

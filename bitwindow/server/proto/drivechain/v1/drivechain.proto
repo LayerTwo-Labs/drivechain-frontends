@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package drivechain.v1;
+
+service DrivechainService {
+  rpc ListSidechains(ListSidechainsRequest) returns (ListSidechainsResponse);
+  rpc ListSidechainProposals(ListSidechainProposalsRequest) returns (ListSidechainProposalsResponse);
+}
+
+message ListSidechainsRequest {}
+
+message ListSidechainsResponse {
+  message Sidechain {
+    string title = 1;
+    string description = 2;
+    uint32 nversion = 3;
+    string hashid1 = 4;
+    string hashid2 = 5;
+    uint32 slot = 6;
+    uint32 vote_count = 7;
+    uint32 proposal_height = 8;
+    uint32 activation_height = 9;
+    string description_hex = 10;
+
+    int64 balance_satoshi = 11;
+    string chaintip_txid = 12;
+    uint32 chaintip_vout = 13;
+  }
+
+  repeated Sidechain sidechains = 1;
+}
+
+message ListSidechainProposalsRequest {}
+
+message SidechainProposal {
+  uint32 slot = 1;
+  bytes data = 2;
+  string data_hash = 3;
+  uint32 vote_count = 4;
+  uint32 proposal_height = 5;
+  uint32 proposal_age = 6;
+}
+
+message ListSidechainProposalsResponse {
+  repeated SidechainProposal proposals = 1;
+}

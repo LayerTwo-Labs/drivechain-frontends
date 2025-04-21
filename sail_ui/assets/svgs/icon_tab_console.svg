@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <g id="Group_32265" data-name="Group 32265" transform="translate(-1123 -298)">
+    <g id="Group_32264" data-name="Group 32264" transform="translate(-155 327)">
+      <g id="Group_32262" data-name="Group 32262" transform="translate(1278 -29.33)">
+        <rect id="Menu_Buttons_Frame_Background_" data-name="Menu Buttons [Frame Background]" width="16" height="16" rx="4" transform="translate(0 0.33)" fill="none"/>
+      </g>
+      <g id="code" transform="translate(1278.005 -25.735)">
+        <path id="Vector" d="M7.825,8.942a.656.656,0,1,1-1.287-.257L8.17.528A.656.656,0,0,1,9.457.785ZM4.444,1.894a.656.656,0,0,1-.131.919L1.75,4.735,4.313,6.657a.656.656,0,0,1-.787,1.05L.263,5.26a.656.656,0,0,1,0-1.05L3.526,1.762A.656.656,0,0,1,4.444,1.894Zm7.106,0a.656.656,0,0,1,.919-.131L15.733,4.21a.656.656,0,0,1,0,1.05L12.47,7.707a.656.656,0,0,1-.787-1.05l2.563-1.922L11.682,2.813A.656.656,0,0,1,11.551,1.894Z" transform="translate(0 0)" fill="#858699" fill-rule="evenodd"/>
+      </g>
+    </g>
+  </g>
+</svg>

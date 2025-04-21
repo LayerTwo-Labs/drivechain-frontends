@@ -1,3 +1,0 @@
-<svg id="bar-chart-horizontal" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
-  <path id="Vector" d="M2,1A1,1,0,0,0,0,1ZM1,19H0a1,1,0,0,0,1,1Zm18,1a1,1,0,0,0,0-2ZM5,13a1,1,0,0,0,0,2Zm8,2a1,1,0,0,0,0-2ZM5,8a1,1,0,0,0,0,2Zm12,2a1,1,0,0,0,0-2ZM5,3A1,1,0,0,0,5,5ZM8,5A1,1,0,0,0,8,3ZM0,1V19H2V1ZM1,20H19V18H1Zm4-5h8V13H5Zm0-5H17V8H5ZM5,5H8V3H5Z" fill="#09090b"/>
-</svg>

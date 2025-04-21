@@ -1,3 +1,0 @@
-<svg id="arrow-big-left-dash" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <path id="Vector" d="M14,11a1,1,0,0,0,2,0Zm2-6a1,1,0,0,0-2,0Zm-5,6v1a1,1,0,0,0,1-1ZM8,11V10a1,1,0,0,0-1,1Zm0,4-.707.707A1,1,0,0,0,9,15ZM1,8,.293,7.293a1,1,0,0,0,0,1.414ZM8,1H9A1,1,0,0,0,7.293.293ZM8,5H7A1,1,0,0,0,8,6Zm3,0h1a1,1,0,0,0-1-1Zm5,6V5H14v6Zm-5-1H8v2h3ZM7,11v4H9V11Zm1.707,3.293-7-7L.293,8.707l7,7Zm-7-5.586,7-7L7.293.293l-7,7ZM7,1V5H9V1ZM8,6h3V4H8Zm2-1v6h2V5Z" transform="translate(0 0)" fill="#09090b"/>
-</svg>

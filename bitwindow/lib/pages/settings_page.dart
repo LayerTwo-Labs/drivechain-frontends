@@ -1,0 +1,175 @@
+import 'package:auto_route/auto_route.dart';
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:sail_ui/sail_ui.dart';
+
+@RoutePage()
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return QtPage(
+      child: SingleChildScrollView(
+        child: SailColumn(
+          spacing: SailStyleValues.padding10,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            SailText.primary24(
+              'Settings',
+              bold: true,
+            ),
+            SailText.secondary13('Manage your account settings and set e-mail preferences.'),
+            const SailSpacing(SailStyleValues.padding10),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: theme.colors.divider,
+            ),
+            const SailSpacing(SailStyleValues.padding10),
+
+            // Navigation and Content side by side
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left navigation
+                SideNav(
+                  items: const [
+                    SideNavItem(label: 'General'),
+                  ],
+                  selectedIndex: _selectedIndex,
+                  onItemSelected: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
+                ),
+                const SailSpacing(SailStyleValues.padding40),
+                // Right content area
+                Expanded(
+                  child: _buildContent(),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    switch (_selectedIndex) {
+      case 0:
+        return _GeneralSettingsContent();
+      // Add other cases for different sections when needed
+      default:
+        return _GeneralSettingsContent();
+    }
+  }
+}
+
+class _GeneralSettingsContent extends StatefulWidget {
+  @override
+  State<_GeneralSettingsContent> createState() => _GeneralSettingsContentState();
+}
+
+class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
+  final _clientSettings = GetIt.I<ClientSettings>();
+  bool _debugMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDebugMode();
+  }
+
+  Future<void> _loadDebugMode() async {
+    final setting = DebugModeSetting();
+    final loadedSetting = await _clientSettings.getValue(setting);
+    setState(() {
+      _debugMode = loadedSetting.value;
+    });
+  }
+
+  Future<void> _showDebugModeWarning() async {
+    await showDialog(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Enable Debug Mode?',
+        subtitle:
+            'Enabling debug mode will send detailed error reports Sentry.\r\n\r\nEvery time a component crashes or an error is thrown, '
+            'Sentry will collect technical information about your device, app usage patterns, and error details.'
+            '\r\n\r\nIt is very helpful to the devs, but it also includes information such as your IP address, device type, and location. '
+            'If you dont trust Sentry with this information, enable a VPN, or press Cancel.',
+        onConfirm: () async {
+          await _clientSettings.setValue(DebugModeSetting(newValue: true));
+          setState(() => _debugMode = true);
+          if (context.mounted) Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding20,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Profile section header
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary20('General'),
+            SailText.secondary13('Enable or disable debug mode'),
+          ],
+        ),
+
+        // Debug Mode Dropdown
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary13('Debug Mode'),
+            const SailSpacing(SailStyleValues.padding08),
+            SailDropdownButton<bool>(
+              value: _debugMode,
+              items: [
+                SailDropdownItem<bool>(
+                  value: false,
+                  label: 'Disabled',
+                ),
+                SailDropdownItem<bool>(
+                  value: true,
+                  label: 'Enabled',
+                ),
+              ],
+              onChanged: (bool? newValue) async {
+                if (newValue == true) {
+                  await _showDebugModeWarning();
+                } else {
+                  await _clientSettings.setValue(DebugModeSetting(newValue: false));
+                  setState(() => _debugMode = false);
+                }
+              },
+            ),
+            const SailSpacing(4),
+            SailText.secondary12(
+              'When enabled, detailed error reporting will be collected to fix bugs hastily.',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

@@ -1,0 +1,3 @@
+<svg id="align-horizontal-space-around" xmlns="http://www.w3.org/2000/svg" width="18" height="22" viewBox="0 0 18 22">
+  <path id="Vector" d="M0,21a1,1,0,0,0,2,0ZM2,1A1,1,0,0,0,0,1ZM16,21a1,1,0,0,0,2,0ZM18,1a1,1,0,0,0-2,0ZM8,7h2V5H8Zm2,0a1,1,0,0,1,1,1h2a3,3,0,0,0-3-3Zm1,1v6h2V8Zm0,6a1,1,0,0,1-1,1v2a3,3,0,0,0,3-3Zm-1,1H8v2h2ZM8,15a1,1,0,0,1-1-1H5a3,3,0,0,0,3,3ZM7,14V8H5v6ZM7,8A1,1,0,0,1,8,7V5A3,3,0,0,0,5,8ZM2,21V1H0V21Zm16,0V1H16V21Z" fill="#09090b"/>
+</svg>

@@ -3,26 +3,26 @@
 version: 2
 updates:
   - package-ecosystem: pub
-    directory: "/clients/sidesail"
+    directory: "/sidesail"
     schedule:
       interval: weekly
 
   - package-ecosystem: pub
-    directory: "/clients/sail_ui"
+    directory: "/sail_ui"
     schedule:
       interval: weekly
 
   - package-ecosystem: pub
-    directory: "/clients/faucet_client"
+    directory: "/faucet_client"
     schedule:
       interval: weekly
 
   - package-ecosystem: pub
-    directory: "/clients/bitwindow"
+    directory: "/bitwindow"
     schedule:
       interval: weekly
 
   - package-ecosystem: pub
-    directory: "/clients/launcher"
+    directory: "/launcher"
     schedule:
       interval: weekly

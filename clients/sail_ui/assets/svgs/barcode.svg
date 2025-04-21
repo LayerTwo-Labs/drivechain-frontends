@@ -1,3 +1,0 @@
-<svg id="barcode" xmlns="http://www.w3.org/2000/svg" width="20" height="16" viewBox="0 0 20 16">
-  <path id="Vector" d="M2,1A1,1,0,0,0,0,1ZM0,15a1,1,0,0,0,2,0ZM7,1A1,1,0,0,0,5,1ZM5,15a1,1,0,0,0,2,0ZM11,1A1,1,0,0,0,9,1ZM9,15a1,1,0,0,0,2,0ZM16,1a1,1,0,0,0-2,0ZM14,15a1,1,0,0,0,2,0ZM20,1a1,1,0,0,0-2,0ZM18,15a1,1,0,0,0,2,0ZM0,1V15H2V1ZM5,1V15H7V1ZM9,1V15h2V1Zm5,0V15h2V1Zm4,0V15h2V1Z" fill="#09090b"/>
-</svg>
