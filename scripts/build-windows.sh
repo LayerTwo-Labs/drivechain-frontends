@@ -22,14 +22,11 @@ cd $client_dir
 # before building.
 clean_cmd="flutter clean"
 build_cmd="flutter build windows --dart-define-from-file=build-vars.env"
-# Create MSIX with specific options for CI
-msix_cmd="dart run msix:create --build-windows false --install-certificate false"
 
 # Build and create an MSIX
-powershell.exe -Command "& {$clean_cmd; $build_cmd; $msix_cmd; exit}"
+powershell.exe -Command "& {$clean_cmd; $build_cmd; exit}"
 
 # Prepare the release directory with correct names
-msix_name=$lower_app_name.msix
 zip_name=$lower_app_name-win64.zip
 mkdir -p release
 
