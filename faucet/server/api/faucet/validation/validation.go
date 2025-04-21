@@ -14,10 +14,10 @@ import (
 var (
 	validatorOnce sync.Once
 	validatorErr  error
-	validator     *protovalidate.Validator
+	validator     protovalidate.Validator
 )
 
-func Validator() (*protovalidate.Validator, error) {
+func Validator() (protovalidate.Validator, error) {
 	validatorOnce.Do(func() {
 		validator, validatorErr = protovalidate.New()
 	})
@@ -25,7 +25,6 @@ func Validator() (*protovalidate.Validator, error) {
 		return nil, fmt.Errorf("setup protovalidate: %w", validatorErr)
 	}
 	return validator, nil
-
 }
 
 // Interceptor returns a Connect server interceptor that validates incoming requests,
