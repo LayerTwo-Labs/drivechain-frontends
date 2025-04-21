@@ -6,14 +6,28 @@ updates:
     directory: "/sidesail"
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: pub
     directory: "/sail_ui"
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: pub
-    directory: "/faucet_client"
+    directory: "/faucet"
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: gomod
+    directory: "/faucet/server"
     schedule:
       interval: weekly
 
@@ -21,8 +35,19 @@ updates:
     directory: "/bitwindow"
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: gomod
+    directory: "/bitwindow/server"
+    schedule:
+      interval: weekly
 
   - package-ecosystem: pub
     directory: "/launcher"
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
