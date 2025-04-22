@@ -131,8 +131,8 @@ jobs:
 
       - name: Setup build directory
         run: |
-          # Create unique build directory
-          BUILD_DIR="${{ matrix.client }}-build-${{ runner.os }}-${{ matrix.chain }}"
+          # Create shorter build directory name
+          BUILD_DIR="build-${{ matrix.os }}"
           mkdir -p "$BUILD_DIR"
           # Copy source files to build directory
           cp -r ${{ matrix.client }} "$BUILD_DIR/"
