@@ -13,6 +13,7 @@ lower_app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
 
 cd $client_dir
 
+
 # Dirty hack: we're running the big build script
 # from within bash in WSL, and we need to go back
 # to Windows land when doing the Flutter build.
@@ -20,6 +21,7 @@ cd $client_dir
 # Screwing around with app names and such doesn't play
 # nice with the Flutter caches. Do a proper clean
 # before building.
+git config --system core.longpaths true
 clean_cmd="flutter clean"
 build_cmd="flutter build windows --dart-define-from-file=build-vars.env"
 
