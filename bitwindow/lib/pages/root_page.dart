@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/env.dart';
@@ -118,7 +119,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Quit bitwindow',
                   shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
-                  onSelected: () => didRequestAppExit(),
+                  onSelected: () => onShutdown(
+                    onComplete: () => exit(0),
+                  ),
                 ),
               ],
             ),
@@ -482,12 +485,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void onWindowClose() async {
-    bool isPreventClose = await windowManager.isPreventClose();
     await onShutdown(
       onComplete: () async {
-        if (isPreventClose) {
-          await windowManager.destroy();
-        }
+        await windowManager.destroy();
       },
     );
   }
