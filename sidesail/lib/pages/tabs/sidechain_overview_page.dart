@@ -34,7 +34,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                     children: [
                       // Top row with balance and receive
                       SizedBox(
-                        height: 173, // Fixed height for top section
+                        height: 181, // Fixed height for top section
                         child: SailRow(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -117,18 +117,9 @@ class SidechainOverviewTabPage extends StatelessWidget {
                                             controller: TextEditingController(text: model.receiveAddress),
                                             hintText: 'Generating deposit address...',
                                             readOnly: true,
-                                            maxLines: 2,
-                                          ),
-                                          SailSpacing(80),
-                                          SailRow(
-                                            mainAxisAlignment: MainAxisAlignment.end,
-                                            spacing: SailStyleValues.padding08,
-                                            children: [
-                                              if (model.receiveAddress != null)
-                                                CopyButton(
-                                                  text: model.receiveAddress!,
-                                                ),
-                                            ],
+                                            suffixWidget: CopyButton(
+                                              text: model.receiveAddress ?? '',
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -214,8 +205,8 @@ class OverviewTabViewModel extends BaseViewModel {
   OverviewTabViewModel() {
     _initControllers();
     _initFees();
-    _transactionsProvider.addListener(notifyListeners);
-    _balanceProvider.addListener(notifyListeners);
+    _transactionsProvider.addListener(ensureAddress);
+    _balanceProvider.addListener(ensureAddress);
     generateReceiveAddress();
   }
 
@@ -226,6 +217,13 @@ class OverviewTabViewModel extends BaseViewModel {
 
   Future<void> _initFees() async {
     await Future.wait([estimateSidechainFee()]);
+  }
+
+  void ensureAddress() {
+    if (receiveAddress == null) {
+      generateReceiveAddress();
+    }
+    notifyListeners();
   }
 
   void _capAmount() {
@@ -345,8 +343,8 @@ class OverviewTabViewModel extends BaseViewModel {
     bitcoinAddressController.dispose();
     bitcoinAmountController.dispose();
     labelController.dispose();
-    _transactionsProvider.removeListener(notifyListeners);
-    _balanceProvider.removeListener(notifyListeners);
+    _transactionsProvider.removeListener(ensureAddress);
+    _balanceProvider.removeListener(ensureAddress);
     super.dispose();
   }
 }
