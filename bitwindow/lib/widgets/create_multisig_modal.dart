@@ -467,17 +467,17 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       // Derive the public key from the multisig path
       final keyInfo = await hdWalletProvider.deriveKeyInfo(
         hdWalletProvider.mnemonic!, 
-        derivationPath
+        derivationPath,
       );
       
       // Get the derived public key
       final pubKey = keyInfo['publicKey'];
       if (pubKey == null || pubKey.isEmpty) {
-        throw Exception("Failed to derive public key");
+        throw Exception('Failed to derive public key');
       }
       
       // Set the derived key info (validation will happen on lock)
-      keyNameController.text = "MyKey";
+      keyNameController.text = 'MyKey';
       publicKeyController.text = pubKey;
       
       // Clear any previous error
@@ -505,7 +505,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
     keys.add(MultisigKey(
       name: keyNameController.text,
       publicKey: publicKeyController.text,
-    ));
+    ),);
     
     // Clear input fields
     keyNameController.clear();
