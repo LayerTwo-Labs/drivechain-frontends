@@ -170,45 +170,108 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
           homeIndex: Tabs.ParentChainPeg.index,
           routes: routes,
           builder: (context, children, tabsRouter) {
-            return Scaffold(
-              backgroundColor: theme.colors.background,
-              appBar: const HomeTopNav(),
-              body: Column(
-                children: [
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: Colors.grey,
+            return ViewModelBuilder.reactive(
+              viewModelBuilder: () => HomePageViewModel(),
+              fireOnViewModelReadyOnce: true,
+              builder: (context, model, child) {
+                final sidechainNav = _navForSidechain(sidechain.rpc.chain, model, tabsRouter);
+
+                return Scaffold(
+                  backgroundColor: theme.colors.background,
+                  appBar: TopNav(
+                    routes: [
+                      TopNavRoute(
+                        label: 'Parent Chain',
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+                        },
+                      ),
+                      ...sidechainNav,
+                    ],
                   ),
-                  Expanded(child: children[tabsRouter.activeIndex]),
-                  BottomNav(
-                    mainchainInfo: false,
-                    additionalConnection: ConnectionMonitor(
-                      rpc: sidechain.rpc,
-                      name: sidechain.rpc.chain.name,
-                    ),
-                    navigateToLogs: (title, logPath) {
-                      GetIt.I.get<AppRouter>().push(
-                            LogRoute(
-                              title: title,
-                              logPath: logPath,
-                            ),
-                          );
-                    },
-                    endWidgets: [
-                      IconButton(
-                        icon: const Icon(Icons.settings),
-                        onPressed: () => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
+                  body: Column(
+                    children: [
+                      Expanded(child: children[tabsRouter.activeIndex]),
+                      BottomNav(
+                        mainchainInfo: false,
+                        additionalConnection: ConnectionMonitor(
+                          rpc: sidechain.rpc,
+                          name: sidechain.rpc.chain.name,
+                        ),
+                        navigateToLogs: (title, logPath) {
+                          GetIt.I.get<AppRouter>().push(
+                                LogRoute(
+                                  title: title,
+                                  logPath: logPath,
+                                ),
+                              );
+                        },
+                        endWidgets: [
+                          SailButton(
+                            icon: SailSVGAsset.settings,
+                            variant: ButtonVariant.icon,
+                            onPressed: () async => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         ),
       ),
     );
+  }
+
+  List<TopNavRoute> _navForSidechain(
+    Sidechain chain,
+    HomePageViewModel viewModel,
+    auto_router.TabsRouter tabsRouter,
+  ) {
+    // Base navigation items that all sidechains have
+    var baseNav = [
+      TopNavRoute(
+        label: 'Overview',
+        optionalKey: Tabs.SidechainOverview.index,
+        onTap: () {
+          tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+        },
+      ),
+    ];
+
+    switch (chain) {
+      case TestSidechain():
+        return baseNav;
+      case ZCash():
+        return [
+          ...baseNav,
+          TopNavRoute(
+            label: 'Shield/Deshield',
+            optionalKey: Tabs.ZCashShieldDeshield.index,
+            onTap: () {
+              tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
+            },
+          ),
+          TopNavRoute(
+            label: 'Melt/Cast',
+            optionalKey: Tabs.ZCashMeltCast.index,
+            onTap: () {
+              tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
+            },
+          ),
+        ];
+
+      case ParentChain():
+        return baseNav;
+      case Thunder():
+        return baseNav;
+      case Bitnames():
+        return baseNav;
+      default:
+        throw Exception('could not handle unknown sidechain type ${chain.runtimeType}');
+    }
   }
 
   @override
@@ -277,102 +340,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   }
 }
 
-class HomeTopNav extends StatefulWidget implements PreferredSizeWidget {
-  @override
-  Size get preferredSize => const Size.fromHeight(65);
-
-  const HomeTopNav({
-    super.key,
-  });
-
-  @override
-  State<HomeTopNav> createState() => _HomeTopNavState();
-}
-
-class _HomeTopNavState extends State<HomeTopNav> {
-  SidechainContainer get _sidechain => GetIt.I.get<SidechainContainer>();
-
-  @override
-  Widget build(BuildContext context) {
-    final tabsRouter = AutoTabsRouter.of(context);
-
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => TopNavViewModel(),
-      fireOnViewModelReadyOnce: true,
-      builder: ((context, model, child) {
-        final sidechainNav = _navForSidechain(_sidechain.rpc.chain, model, tabsRouter);
-
-        return TopNav(
-          routes: [
-            TopNavRoute(
-              label: 'Parent Chain',
-              onTap: () {
-                tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
-              },
-            ),
-            ...sidechainNav.map(
-              (tab) => TopNavRoute(
-                label: tab.label,
-                onTap: tab.onTap,
-              ),
-            ),
-          ],
-        );
-      }),
-    );
-  }
-
-  List<QtTab> _navForSidechain(
-    Sidechain chain,
-    TopNavViewModel viewModel,
-    auto_router.TabsRouter tabsRouter,
-  ) {
-    // Base navigation items that all sidechains have
-    var baseNav = [
-      QtTab(
-        label: 'Overview',
-        active: tabsRouter.activeIndex == Tabs.SidechainOverview.index,
-        onTap: () {
-          tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
-        },
-      ),
-    ];
-
-    switch (chain) {
-      case TestSidechain():
-        return baseNav;
-      case ZCash():
-        return [
-          ...baseNav,
-          QtTab(
-            label: 'Shield/Deshield',
-            active: tabsRouter.activeIndex == Tabs.ZCashShieldDeshield.index,
-            onTap: () {
-              tabsRouter.setActiveIndex(Tabs.ZCashShieldDeshield.index);
-            },
-          ),
-          QtTab(
-            label: 'Melt/Cast',
-            active: tabsRouter.activeIndex == Tabs.ZCashMeltCast.index,
-            onTap: () {
-              tabsRouter.setActiveIndex(Tabs.ZCashMeltCast.index);
-            },
-          ),
-        ];
-
-      case ParentChain():
-        return baseNav;
-      case Thunder():
-        return baseNav;
-      case Bitnames():
-        return baseNav;
-      default:
-        throw Exception('could not handle unknown sidechain type ${chain.runtimeType}');
-    }
-  }
-}
-
-class TopNavViewModel extends BaseViewModel {
+class HomePageViewModel extends BaseViewModel {
   final log = Logger(level: Level.debug);
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   SidechainContainer get _sideRPC => GetIt.I.get<SidechainContainer>();
@@ -382,7 +350,7 @@ class TopNavViewModel extends BaseViewModel {
 
   Binary get chain => _sideRPC.rpc.chain;
 
-  TopNavViewModel() {
+  HomePageViewModel() {
     _balanceProvider.addListener(notifyListeners);
   }
 

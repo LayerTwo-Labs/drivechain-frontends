@@ -41,7 +41,9 @@ class _TopNavState extends State<TopNav> {
                           decoration: BoxDecoration(
                             border: Border(
                               bottom: BorderSide(
-                                color: tabsRouter.activeIndex == entry.key ? Colors.orange : Colors.transparent,
+                                color: tabsRouter.activeIndex == (entry.value.optionalKey ?? entry.key)
+                                    ? Colors.orange
+                                    : Colors.transparent,
                                 width: 1,
                               ),
                             ),
@@ -82,11 +84,13 @@ class TopNavRoute {
   final String? label;
   final VoidCallback? onTap;
   final SailSVGAsset? icon;
+  final int? optionalKey;
 
   const TopNavRoute({
     this.label,
     this.onTap,
     this.icon,
+    this.optionalKey,
   }) : assert((label != null) != (icon != null), 'Either label or icon must be set');
 }
 
