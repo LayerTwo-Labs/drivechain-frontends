@@ -340,6 +340,14 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
 
   @override
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
+    final mainchainConnected = viewModel.blockInfoProvider.mainchainSyncInfo != null;
+    final enforcerConnected = viewModel.blockInfoProvider.enforcerSyncInfo != null;
+    final additionalConnected = viewModel.blockInfoProvider.additionalSyncInfo != null;
+
+    final mainchainSynced = mainchainConnected && viewModel.blockInfoProvider.mainchainSyncInfo!.isSynced;
+    final enforcerSynced = enforcerConnected && viewModel.blockInfoProvider.enforcerSyncInfo!.isSynced;
+    final additionalSynced = additionalConnected && viewModel.blockInfoProvider.additionalSyncInfo!.isSynced;
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 700),
       child: SailRow(
@@ -347,33 +355,31 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (viewModel.blockInfoProvider.mainchainSyncInfo != null &&
-              !viewModel.blockInfoProvider.mainchainSyncInfo!.isSynced) ...[
+          if (mainchainConnected && !mainchainSynced) ...[
             ChainLoader(
               name: viewModel.blockInfoProvider.mainchain.name,
               syncInfo: viewModel.blockInfoProvider.mainchainSyncInfo!,
             ),
             DividerDot(),
           ],
-          if (viewModel.blockInfoProvider.enforcerSyncInfo != null &&
-              !viewModel.blockInfoProvider.enforcerSyncInfo!.isSynced) ...[
+          if (enforcerConnected && !enforcerSynced) ...[
             ChainLoader(
               name: viewModel.blockInfoProvider.enforcer.name,
               syncInfo: viewModel.blockInfoProvider.enforcerSyncInfo!,
             ),
             DividerDot(),
           ],
-          if (viewModel.blockInfoProvider.additionalSyncInfo != null &&
-              !viewModel.blockInfoProvider.additionalSyncInfo!.isSynced) ...[
+          if (additionalConnected && !additionalSynced) ...[
             ChainLoader(
               name: viewModel.blockInfoProvider.additionalConnection!.name,
               syncInfo: viewModel.blockInfoProvider.additionalSyncInfo!,
             ),
             DividerDot(),
           ],
-          SailText.primary12(
-            '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.blocks ?? 'Loading')} blocks',
-          ),
+          if (mainchainSynced && enforcerSynced && additionalSynced)
+            SailText.primary12(
+              '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.blocks ?? 'Loading')} blocks',
+            ),
         ],
       ),
     );
