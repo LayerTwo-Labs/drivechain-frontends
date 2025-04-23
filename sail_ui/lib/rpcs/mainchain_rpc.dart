@@ -61,7 +61,7 @@ class MainchainRPCLive extends MainchainRPC {
     Binary binary,
   ) async {
     final mainchainLogDir = [ParentChain().datadir(), 'signet', 'debug.log'].join(Platform.pathSeparator);
-    final conf = await getMainchainConf();
+    final conf = await readConf();
 
     final container = MainchainRPCLive._create(
       conf: conf,

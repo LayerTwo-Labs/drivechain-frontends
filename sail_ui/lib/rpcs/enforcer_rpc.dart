@@ -49,7 +49,7 @@ class EnforcerLive extends EnforcerRPC {
     required Directory launcherAppDir,
   }) async {
     final httpClient = createHttpClient();
-    final conf = await getMainchainConf();
+    final conf = await readConf();
 
     final baseUrl = 'http://$host:$port';
     final transport = grpc.Transport(

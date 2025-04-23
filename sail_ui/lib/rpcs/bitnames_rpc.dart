@@ -72,7 +72,7 @@ class BitnamesLive extends BitnamesRPC {
     required String logPath,
     required Sidechain chain,
   }) async {
-    final conf = await getMainchainConf();
+    final conf = await readConf();
 
     final instance = BitnamesLive._create(
       conf: conf,
