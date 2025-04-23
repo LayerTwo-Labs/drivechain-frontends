@@ -98,6 +98,9 @@ jobs:
   build:
     needs: matrix-prep
     runs-on: ${{ matrix.os }}
+    defaults:
+        run:
+          shell: bash
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
