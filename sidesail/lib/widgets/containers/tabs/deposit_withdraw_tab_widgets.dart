@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -247,21 +246,13 @@ class DepositTab extends StatelessWidget {
                         if (model.isBusy)
                           const Center(child: LoadingIndicator())
                         else ...[
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            children: [
-                              Expanded(
-                                child: SailTextField(
-                                  controller: TextEditingController(text: model.depositAddress),
-                                  hintText: 'Generating deposit address...',
-                                  readOnly: true,
-                                ),
-                              ),
-                              if (model.depositAddress != null)
-                                CopyButton(
-                                  text: model.depositAddress!,
-                                ),
-                            ],
+                          SailTextField(
+                            controller: TextEditingController(text: model.depositAddress),
+                            hintText: 'Generating deposit address...',
+                            readOnly: true,
+                            suffixWidget: CopyButton(
+                              text: model.depositAddress ?? '',
+                            ),
                           ),
                         ],
                       ],
@@ -305,35 +296,16 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
       error: viewModel.withdrawError,
       child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            spacing: SailStyleValues.padding08,
-            children: [
-              Expanded(
-                child: SailTextField(
-                  label: 'Pay To',
-                  controller: viewModel.bitcoinAddressController,
-                  hintText: 'Enter a L1 bitcoin-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
-                  size: TextFieldSize.small,
-                ),
-              ),
-              SailButton(
-                variant: ButtonVariant.icon,
-                onPressed: () async {
-                  try {
-                    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-                    if (clipboardData?.text != null) {
-                      viewModel.bitcoinAddressController.text = clipboardData!.text!;
-                    }
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    showSnackBar(context, 'Error accessing clipboard');
-                  }
-                },
-                icon: SailSVGAsset.clipboardPaste,
-              ),
-              const SizedBox(width: 4.0),
-            ],
+          SailTextField(
+            label: 'Pay To',
+            controller: viewModel.bitcoinAddressController,
+            hintText: 'Enter a L1 bitcoin-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+            size: TextFieldSize.small,
+            suffixWidget: PasteButton(
+              onPaste: (text) {
+                viewModel.bitcoinAddressController.text = text;
+              },
+            ),
           ),
           const SizedBox(height: SailStyleValues.padding16),
           Row(
@@ -349,20 +321,14 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
                           child: NumericField(
                             label: 'Amount',
                             controller: viewModel.bitcoinAmountController,
-                            suffixWidget: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  if (viewModel.maxAmount != null) {
-                                    viewModel.bitcoinAmountController.text = viewModel.maxAmount.toString();
-                                  }
-                                },
-                                child: SailText.primary15(
-                                  'MAX',
-                                  color: context.sailTheme.colors.orange,
-                                  underline: true,
-                                ),
-                              ),
+                            suffixWidget: SailButton(
+                              label: 'MAX',
+                              variant: ButtonVariant.link,
+                              onPressed: () async {
+                                if (viewModel.maxAmount != null) {
+                                  viewModel.bitcoinAmountController.text = viewModel.maxAmount.toString();
+                                }
+                              },
                             ),
                           ),
                         ),
