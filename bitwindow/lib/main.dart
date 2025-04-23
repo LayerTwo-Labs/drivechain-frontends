@@ -442,9 +442,12 @@ Future<void> setupSignalHandlers(Logger log) async {
     exit(0);
   });
 
-  ProcessSignal.sigterm.watch().listen((signal) async {
-    log.i('Received SIGTERM, shutting down...');
-    await onShutdown();
-    exit(0);
-  });
+  // Only register SIGTERM handler on non-Windows platforms
+  if (!Platform.isWindows) {
+    ProcessSignal.sigterm.watch().listen((signal) async {
+      log.i('Received SIGTERM, shutting down...');
+      await onShutdown();
+      exit(0);
+    });
+  }
 }
