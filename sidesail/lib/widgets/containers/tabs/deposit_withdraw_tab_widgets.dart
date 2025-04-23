@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
@@ -218,67 +217,33 @@ class DepositTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-    final width = MediaQuery.of(context).size.width;
-
     return ViewModelBuilder.reactive(
       viewModelBuilder: () => DepositWithdrawTabViewModel(),
       builder: (context, model, child) {
-        return Column(
-          children: [
-            SailRow(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              spacing: SailStyleValues.padding08,
-              children: [
-                Expanded(
-                  child: SailCard(
-                    title: 'Deposit from Parent Chain',
-                    subtitle: 'Deposit coins to the sidechain',
-                    error: model.depositError,
-                    widgetHeaderEnd: HelpButton(onPressed: () async => model.castHelp(context)),
-                    child: SailColumn(
-                      spacing: SailStyleValues.padding16,
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (model.isBusy)
-                          const Center(child: LoadingIndicator())
-                        else ...[
-                          SailTextField(
-                            controller: TextEditingController(text: model.depositAddress),
-                            hintText: 'Generating deposit address...',
-                            readOnly: true,
-                            suffixWidget: CopyButton(
-                              text: model.depositAddress ?? '',
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+        return SailCard(
+          title: 'Deposit from Parent Chain',
+          subtitle: 'Deposit coins to the sidechain',
+          error: model.depositError,
+          widgetHeaderEnd: HelpButton(onPressed: () async => model.castHelp(context)),
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (model.isBusy)
+                const Center(child: LoadingIndicator())
+              else ...[
+                SailTextField(
+                  controller: TextEditingController(text: model.depositAddress),
+                  hintText: 'Generating deposit address...',
+                  readOnly: true,
+                  suffixWidget: CopyButton(
+                    text: model.depositAddress ?? '',
                   ),
                 ),
-                if (model.depositAddress != null && width > 500)
-                  SizedBox(
-                    width: 180,
-                    child: SailCard(
-                      padding: true,
-                      child: QrImageView(
-                        padding: EdgeInsets.zero,
-                        eyeStyle: QrEyeStyle(
-                          color: theme.colors.textSecondary,
-                          eyeShape: QrEyeShape.square,
-                        ),
-                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.textSecondary),
-                        data: model.depositAddress!,
-                        version: QrVersions.auto,
-                      ),
-                    ),
-                  ),
               ],
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

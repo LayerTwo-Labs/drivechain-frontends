@@ -16,7 +16,6 @@ import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:bitwindow/windows_signal_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -437,13 +436,6 @@ Future<bool> onShutdown({VoidCallback? onComplete}) async {
 }
 
 Future<void> setupSignalHandlers(Logger log) async {
-  if (Platform.isWindows) {
-    setupWindowsSignalHandler(() async {
-      log.i('Received shutdown signal! Cleaning up...');
-      await onShutdown();
-    });
-  }
-
   ProcessSignal.sigint.watch().listen((signal) async {
     log.i('Received SIGINT, shutting down...');
     await onShutdown();

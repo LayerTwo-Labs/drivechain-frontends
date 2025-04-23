@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidesail/providers/transactions_provider.dart';
@@ -68,6 +67,35 @@ class SidechainOverviewTabPage extends StatelessWidget {
                           ],
                         ),
                       ),
+
+                      SailCard(
+                        title: 'Receive on Sidechain',
+                        error: model.receiveError,
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding04,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (model.isGeneratingAddress)
+                              const Center(child: LoadingIndicator())
+                            else ...[
+                              SailColumn(
+                                mainAxisSize: MainAxisSize.max,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SailTextField(
+                                    controller: TextEditingController(text: model.receiveAddress),
+                                    hintText: 'Generating deposit address...',
+                                    readOnly: true,
+                                    suffixWidget: CopyButton(
+                                      text: model.receiveAddress ?? '',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                       SailCard(
                         title: 'Send on Sidechain',
                         error: model.sendError,
@@ -89,63 +117,6 @@ class SidechainOverviewTabPage extends StatelessWidget {
                               onPressed: () => model.executeSendOnSidechain(context),
                               loading: model.isSending,
                             ),
-                          ],
-                        ),
-                      ),
-                      SailCard(
-                        title: 'Receive on Sidechain',
-                        error: model.receiveError,
-                        child: SailColumn(
-                          spacing: SailStyleValues.padding04,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (model.isGeneratingAddress)
-                              const Center(child: LoadingIndicator())
-                            else ...[
-                              SailRow(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // Left side with address field
-                                  Expanded(
-                                    child: IntrinsicHeight(
-                                      child: SailColumn(
-                                        mainAxisSize: MainAxisSize.max,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          SailTextField(
-                                            controller: TextEditingController(text: model.receiveAddress),
-                                            hintText: 'Generating deposit address...',
-                                            readOnly: true,
-                                            suffixWidget: CopyButton(
-                                              text: model.receiveAddress ?? '',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  // Right side with QR code
-                                  SizedBox(
-                                    width: 170, // Further reduced size
-                                    height: 170, // Further reduced size
-                                    child: QrImageView(
-                                      padding: EdgeInsets.zero,
-                                      data: model.receiveAddress ?? '',
-                                      version: QrVersions.auto,
-                                      eyeStyle: QrEyeStyle(
-                                        color: context.sailTheme.colors.textSecondary,
-                                        eyeShape: QrEyeShape.square,
-                                      ),
-                                      dataModuleStyle: QrDataModuleStyle(
-                                        color: context.sailTheme.colors.textSecondary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
                           ],
                         ),
                       ),
