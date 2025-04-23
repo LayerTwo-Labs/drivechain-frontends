@@ -52,7 +52,7 @@ class ThunderLive extends ThunderRPC {
     required String logPath,
     required Sidechain chain,
   }) async {
-    final conf = await getMainchainConf();
+    final conf = await readConf();
 
     final instance = ThunderLive._create(
       conf: conf,

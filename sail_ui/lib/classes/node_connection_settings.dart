@@ -194,7 +194,11 @@ class NodeConnectionSettings extends ChangeNotifier {
   List<String> getConfigArgs() {
     final args = <String>[];
     configValues.forEach((key, value) {
-      args.add('-$key=$value');
+      if (value == '1') {
+        args.add('-$key');
+      } else {
+        args.add('-$key=$value');
+      }
     });
     return args;
   }
@@ -254,7 +258,7 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
   return conf;
 }
 
-Future<NodeConnectionSettings> getMainchainConf() async {
+Future<NodeConnectionSettings> readConf() async {
   final log = GetIt.I.get<Logger>();
 
   NodeConnectionSettings conf = NodeConnectionSettings.empty();

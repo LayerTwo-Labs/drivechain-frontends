@@ -185,7 +185,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       httpClient: httpClient,
     );
 
-    final conf = await getMainchainConf();
+    final conf = await readConf();
     final logPath = binary.logPath();
 
     final instance = BitwindowRPCLive._create(
