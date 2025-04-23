@@ -23,6 +23,7 @@ class NodeConnectionSettings extends ChangeNotifier {
   String get username => usernameController.text;
   String get password => passwordController.text;
   final ssl = false;
+  bool hasConfFile = false;
 
   String? readError;
 
@@ -156,6 +157,7 @@ class NodeConnectionSettings extends ChangeNotifier {
   void readConfigFromFile(List<String> lines) {
     configValues.clear();
     configFromFile.clear(); // Reset the tracking set
+    hasConfFile = true;
 
     for (final line in lines) {
       if (line.startsWith('#') || !line.contains('=')) continue;

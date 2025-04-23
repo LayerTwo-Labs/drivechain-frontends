@@ -139,26 +139,13 @@ class MainchainRPCLive extends MainchainRPC {
   Future<List<String>> binaryArgs(
     NodeConnectionSettings mainchainConf,
   ) async {
-    log.i('Getting binary args for mainchain');
-    var baseArgs = bitcoinCoreBinaryArgs(
-      conf,
-    );
-    log.d('Base bitcoin core args: $baseArgs');
-
-    if (conf.confPath.isNotEmpty) {
-      log.d('Config path is not empty: ${conf.confPath}');
-      var parts = conf.splitPath(conf.confPath);
-      final dataDir = parts.$1;
-      log.d('Data directory path: $dataDir');
-
-      // Ensure the directory exists
-      Directory(dataDir).createSync(recursive: true);
-      log.i('Created data directory at: $dataDir');
-
-      baseArgs.add('-datadir=$dataDir');
-      log.d('Added datadir arg: -datadir=$dataDir');
+    if (mainchainConf.hasConfFile) {
+      // the conf file exists, and should take total precedence
+      log.i('Mainchain conf file is present, not adding sidechain args');
+      return [];
     }
 
+    // only add sidechain args if the conf file is not present
     final sidechainArgs = [
       '-signet',
       '-server',
@@ -173,9 +160,10 @@ class MainchainRPCLive extends MainchainRPC {
       '-fallbackfee=0.00021',
       '-zmqpubsequence=tcp://0.0.0.0:29000',
     ];
-    log.d('Sidechain specific args: $sidechainArgs');
+    log.i('${ParentChain().confFile()} not found, adding sidechain args: $sidechainArgs');
 
-    final finalArgs = cleanArgs(conf, sidechainArgs);
+    final finalArgs = cleanArgs(mainchainConf, sidechainArgs);
+
     log.i('Final binary args: $finalArgs');
     return finalArgs;
   }
