@@ -451,20 +451,22 @@ Future<void> setupSignalHandlers(Logger log) async {
     });
   }
 
-  // Handle shutdown via stdin (for Windows)
-  stdin.transform(utf8.decoder).listen(
-    (line) async {
-      if (line.trim() == 'shutdown') {
-        log.i('Received shutdown command via stdin');
+  if (Platform.isWindows) {
+    // Handle shutdown via stdin (for Windows)
+    stdin.transform(utf8.decoder).listen(
+      (line) async {
+        if (line.trim() == 'shutdown') {
+          log.i('Received shutdown command via stdin');
+          await onShutdown();
+          exit(0);
+        }
+      },
+      onDone: () async {
+        // Triggered if stdin is closed
+        log.i('STDIN closed, shutting down...');
         await onShutdown();
         exit(0);
-      }
-    },
-    onDone: () async {
-      // Triggered if stdin is closed
-      log.i('STDIN closed, shutting down...');
-      await onShutdown();
-      exit(0);
-    },
-  );
+      },
+    );
+  }
 }
