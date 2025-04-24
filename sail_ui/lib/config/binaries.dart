@@ -647,12 +647,93 @@ abstract class Binary {
 
   List<String> _getPossibleBinaryPaths(String baseBinary, Directory? appDir) {
     final paths = <String>[];
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
 
     if (kDebugMode) {
       // In debug mode, check pwd/assets/bin first
       paths.addAll([
         path.join(Directory.current.path, 'assets', 'bin', baseBinary),
       ]);
+    }
+
+    // Add launcher download paths based on binary type and platform
+    if (home != null) {
+      if (ParentChain().name == name) {
+        switch (Platform.operatingSystem) {
+          case 'linux':
+            paths.add(
+              path.join(
+                home,
+                'Downloads',
+                'Drivechain-Launcher-Downloads',
+                'bitcoin',
+                'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu',
+                'bitcoind',
+              ),
+            );
+          case 'macos':
+            paths.add(
+              path.join(
+                home,
+                'Downloads',
+                'Drivechain-Launcher-Downloads',
+                'bitcoin',
+                'L1-bitcoin-patched-latest-x86_64-apple-darwin',
+                'bitcoind',
+              ),
+            );
+          case 'windows':
+            paths.add(
+              path.join(
+                home,
+                'Downloads',
+                'Drivechain-Launcher-Downloads',
+                'bitcoin',
+                'L1-bitcoin-patched-latest-x86_64-w64-msvc',
+                'bitcoind.exe',
+              ),
+            );
+        }
+      } else if (Enforcer().name == name) {
+        switch (Platform.operatingSystem) {
+          case 'linux':
+            final binaryName = 'bip300301-enforcer-latest-x86_64-unknown-linux-gnu';
+            paths.add(
+              path.join(
+                home,
+                'Downloads',
+                'Drivechain-Launcher-Downloads',
+                'enforcer',
+                binaryName,
+                binaryName,
+              ),
+            );
+          case 'macos':
+            final binaryName = 'bip300301-enforcer-latest-x86_64-apple-darwin';
+            paths.add(
+              path.join(
+                home,
+                'Downloads',
+                'Drivechain-Launcher-Downloads',
+                'enforcer',
+                binaryName,
+                binaryName,
+              ),
+            );
+          case 'windows':
+            final binaryName = 'bip300301-enforcer-latest-x86_64-pc-windows-gnu';
+            paths.add(
+              path.join(
+                home,
+                'Downloads',
+                'Drivechain-Launcher-Downloads',
+                'enforcer',
+                binaryName,
+                '$binaryName.exe',
+              ),
+            );
+        }
+      }
     }
 
     if (appDir != null) {
