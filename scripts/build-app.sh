@@ -11,11 +11,10 @@ set -e
 
 os=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 client="$2"
-chain=$(echo "$3" | tr '[:upper:]' '[:lower:]')
-identity="$4"
-notarization_key_path="$5"
-notarization_key_id="$6"
-notarization_issuer_id="$7"
+identity="$3"
+notarization_key_path="$4"
+notarization_key_id="$5"
+notarization_issuer_id="$6"
 
 # Convert github actions os names names to a format we expect
 case "$os" in
@@ -25,7 +24,7 @@ case "$os" in
 esac
 
 if test -z "$os" -o -z "$client"; then
-    echo "Usage: $0 <linux/macos/windows> <sidesail/launcher/bitwindow> [chain] [code_sign_identity] [notarization_key_path] [notarization_key_id] [notarization_issuer_id]"
+    echo "Usage: $0 <linux/macos/windows> <thunder/launcher/bitwindow> [code_sign_identity] [notarization_key_path] [notarization_key_id] [notarization_issuer_id]"
     exit 1
 fi
 
@@ -48,7 +47,7 @@ if [ ! -d "$client_dir" ]; then
 fi
 cd "$client_dir"
 
-source ./scripts/set-app-name.sh "$chain"
+source ./scripts/set-app-name.sh
 if [ -z "$app_name" ]; then
     echo "Error: set-app-name.sh did not set a valid app name"
     exit 1
@@ -56,7 +55,7 @@ fi
 echo "App name set to: $app_name"
 
 echo "Downloading $client_dir binaries for $os"
-bash ./scripts/download-binaries.sh "$os" "$chain"
+bash ./scripts/download-binaries.sh "$os"
 
 echo "Flavorizing $client_dir for $os"
 bash ./scripts/flavorize-"$os".sh "$app_name"

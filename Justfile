@@ -2,7 +2,7 @@
 format:
     #!/usr/bin/env bash
     set -euo pipefail
-    for dir in bitwindow faucet launcher sail_ui sidesail; do
+    for dir in bitwindow faucet launcher sail_ui thunder; do
         if [ -d "$dir" ]; then
             (cd "$dir" && find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120)
         fi
@@ -11,7 +11,7 @@ format:
 fix:
     #!/usr/bin/env bash
     set -euo pipefail
-    for dir in bitwindow faucet launcher sail_ui sidesail; do
+    for dir in bitwindow faucet launcher sail_ui thunder; do
         if [ -d "$dir" ]; then
             (cd "$dir" && dart fix --apply)
         fi
@@ -20,7 +20,7 @@ fix:
 analyze:
     #!/usr/bin/env bash
     set -euo pipefail
-    for dir in bitwindow faucet launcher sail_ui sidesail; do
+    for dir in bitwindow faucet launcher sail_ui thunder; do
         if [ -d "$dir" ]; then
             (cd "$dir" && dart analyze)
         fi
@@ -31,7 +31,7 @@ lint: format fix analyze
 gen-router:
     #!/usr/bin/env bash
     set -euo pipefail
-    for dir in sail_ui bitwindow faucet launcher sidesail; do
+    for dir in sail_ui bitwindow faucet launcher thunder; do
         if [ -d "$dir" ]; then
             (cd "$dir" && dart run build_runner build --delete-conflicting-outputs)
         fi
