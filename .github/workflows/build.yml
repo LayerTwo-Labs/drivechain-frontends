@@ -7,7 +7,8 @@ on:
       - "scripts/**"
       - "sail_ui/**"
       - "bitwindow/**"
-      - "sidesail/**"
+      - "thunder/**"
+      - "zside/**"
       - "launcher/**"
       - ".github/workflows/**"
   pull_request:
@@ -16,7 +17,8 @@ on:
       - "scripts/**"
       - "sail_ui/**"
       - "bitwindow/**"
-      - "sidesail/**"
+      - "thunder/**"
+      - "zside/**"
       - "launcher/**"
       - ".github/workflows/**"
 
@@ -24,7 +26,8 @@ jobs:
   check-changes:
     runs-on: ubuntu-latest
     outputs:
-      sidesail: ${{ steps.filter.outputs.sidesail }}
+      thunder: ${{ steps.filter.outputs.thunder }}
+      zside: ${{ steps.filter.outputs.zside }}
       bitwindow: ${{ steps.filter.outputs.bitwindow }}
       launcher: ${{ steps.filter.outputs.launcher }}
       build_all: ${{ steps.filter.outputs.build_all }}
@@ -34,16 +37,22 @@ jobs:
         id: filter
         with:
           filters: |
-            build_all:
-              - 'scripts/**'
+            thunder:
+              - 'thunder/**'
               - 'sail_ui/**'
               - '.github/workflows/**'
-            sidesail:
-              - 'sidesail/**'
+            zside:
+              - 'zside/**'
+              - 'sail_ui/**'
+              - '.github/workflows/**'
             bitwindow:
               - 'bitwindow/**'
+              - 'sail_ui/**'
+              - '.github/workflows/**'
             launcher:
               - 'launcher/**'
+              - 'sail_ui/**'
+              - '.github/workflows/**'
 
   matrix-prep:
     needs: check-changes
@@ -59,8 +68,7 @@ jobs:
           # Helper function to add configurations
           add_client_configs() {
             local client=$1
-            local chains=$2
-            local build_flag=$3
+            local build_flag=$2
             
             if [[ "${{ needs.check-changes.outputs.build_all }}" == "true" || "$build_flag" == "true" ]]; then
               for os in "ubuntu-latest" "macos-latest" "windows-latest"; do
@@ -69,27 +77,17 @@ jobs:
                   continue
                 fi
                 
-                if [ -n "$chains" ]; then
-                  # Has chains - iterate through them
-                  for chain in $chains; do
-                    # Skip zcash on windows
-                    if [[ "$chain" == "zcash" && "$os" == "windows-latest" ]]; then
-                      continue
-                    fi
-                    configurations+=("{\"os\":\"$os\",\"client\":\"$client\",\"chain\":\"$chain\"}")
-                  done
-                else
-                  # No chains - just add the basic config
-                  configurations+=("{\"os\":\"$os\",\"client\":\"$client\",\"chain\":\"\"}")
-                fi
+                # No chains - just add the basic config
+                configurations+=("{\"os\":\"$os\",\"client\":\"$client\"}")
               done
             fi
           }
           
           # Add configurations for each client that needs building
-          add_client_configs "sidesail" "testchain ethereum zcash" "${{ needs.check-changes.outputs.sidesail }}"
-          add_client_configs "bitwindow" "" "${{ needs.check-changes.outputs.bitwindow }}"
-          add_client_configs "launcher" "" "${{ needs.check-changes.outputs.launcher }}"
+          add_client_configs "thunder" "${{ needs.check-changes.outputs.thunder }}"
+          add_client_configs "zside" "${{ needs.check-changes.outputs.zside }}"
+          add_client_configs "bitwindow" "${{ needs.check-changes.outputs.bitwindow }}"
+          add_client_configs "launcher" "${{ needs.check-changes.outputs.launcher }}"
           
           # Join configurations with commas
           matrix=$(IFS=,; echo "{\"include\":[${configurations[*]}]}")
@@ -186,13 +184,9 @@ jobs:
       - name: Build app
         run: |
           cd ${{ env.BUILD_DIR }}
-          chain_param="${{ matrix.chain }}"
-          if [ -z "$chain_param" ]; then
-            chain_param="none"
-          fi
 
           # Everything after the first line is only relevant for macOS
-          ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} "$chain_param" \
+          ./scripts/build-app.sh ${{ runner.os }} ${{ matrix.client }} \
             "$CODESIGN_IDENTITY" "$PWD/notarization_api_key.p8" \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_KEY_ID }} \
             ${{ secrets.GODOT_MACOS_NOTARIZATION_API_UUID }}
@@ -223,16 +217,12 @@ jobs:
         continue-on-error: true
         run: |
           # Testchain
-          mv sidesail-binaries-macOS-testchain/testsail-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip || true
-          mv sidesail-binaries-Linux-testchain/testsail-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip || true
-          mv sidesail-binaries-Windows-testchain/testsail-win64.zip L2-S0-TestSail-latest-x86_64-pc-windows-msvc.zip || true
+          mv thunder-binaries-macOS-testchain/thunder-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip || true
+          mv thunder-binaries-Linux-testchain/thunder-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip || true
+          mv thunder-binaries-Windows-testchain/thunder-win64.zip L2-S0-TestSail-latest-x86_64-pc-windows-msvc.zip || true
           # ZCash
-          mv sidesail-binaries-macOS-zcash/zsail-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip || true
-          mv sidesail-binaries-Linux-zcash/zsail-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip || true
-          # Ethereum
-          mv sidesail-binaries-macOS-ethereum/ethsail-osx64.zip L2-S6-EthSail-latest-x86_64-apple-darwin.zip || true
-          mv sidesail-binaries-Linux-ethereum/ethsail-x86_64-linux-gnu.zip L2-S6-EthSail-latest-x86_64-unknown-linux-gnu.zip || true
-          mv sidesail-binaries-Windows-ethereum/ethsail-win64.zip L2-S6-EthSail-latest-x86_64-pc-windows-msvc.zip || true
+          mv zside-binaries-macOS-zcash/zside-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip || true
+          mv zside-binaries-Linux-zcash/zside-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip || true
           # BitWindow
           mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
           mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
