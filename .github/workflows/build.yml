@@ -216,13 +216,13 @@ jobs:
         working-directory: .
         continue-on-error: true
         run: |
-          # Testchain
-          mv thunder-binaries-macOS-testchain/thunder-osx64.zip L2-S0-TestSail-latest-x86_64-apple-darwin.zip || true
-          mv thunder-binaries-Linux-testchain/thunder-x86_64-linux-gnu.zip L2-S0-TestSail-latest-x86_64-unknown-linux-gnu.zip || true
-          mv thunder-binaries-Windows-testchain/thunder-win64.zip L2-S0-TestSail-latest-x86_64-pc-windows-msvc.zip || true
-          # ZCash
-          mv zside-binaries-macOS-zcash/zside-osx64.zip L2-S5-ZSail-latest-x86_64-apple-darwin.zip || true
-          mv zside-binaries-Linux-zcash/zside-x86_64-linux-gnu.zip L2-S5-ZSail-latest-x86_64-unknown-linux-gnu.zip || true
+          # Thunder
+          mv thunder-binaries-macOS-testchain/thunder-osx64.zip L2-S9-Thunder-latest-x86_64-apple-darwin.zip || true
+          mv thunder-binaries-Linux-testchain/thunder-x86_64-linux-gnu.zip L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip || true
+          mv thunder-binaries-Windows-testchain/thunder-win64.zip L2-S9-Thunder-latest-x86_64-pc-windows-msvc.zip || true
+          # ZSide
+          mv zside-binaries-macOS-zcash/zside-osx64.zip L2-S5-ZSide-latest-x86_64-apple-darwin.zip || true
+          mv zside-binaries-Linux-zcash/zside-x86_64-linux-gnu.zip L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.zip || true
           # BitWindow
           mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
           mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
@@ -241,5 +241,4 @@ jobs:
           pass: ${{ secrets.RELEASES_SERVER_PW }}
           port: 22
           scp: |
-            'L2-S*.zip' => '/var/www/html/'
             'BitWindow-*.zip' => '/var/www/html/'
