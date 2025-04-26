@@ -120,15 +120,15 @@ flutter:
 # as an installer on a website somewhere).
 # https://pub.dev/packages/msix
 msix_config:
-  display_name: SideSail
+  display_name: Thunder
   languages: en-us
   windows_build_args: --dart-define-from-file=build-vars.env
   publisher_display_name: LayerTwo Labs
-  identity_name: com.layertwolabs.sidesail
+  identity_name: com.layertwolabs.thunder
   msix_version: 1.0.0.0
   logo_path: logo.png
   capabilities: internetClientServer
-  output_name: SideSail
+  output_name: Thunder
   store_certificate: false  # Use a test certificate instead of store certificate
   install_certificate: false # Don't install certificate during CI builds
   os_min_version: 10.0.17763.0
