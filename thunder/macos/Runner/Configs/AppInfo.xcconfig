@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = SideSail
+PRODUCT_NAME = Thunder
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.layertwolabs.sidesail
+PRODUCT_BUNDLE_IDENTIFIER = com.layertwolabs.thunder
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 LayerTwo Labs Inc. All rights reserved.
