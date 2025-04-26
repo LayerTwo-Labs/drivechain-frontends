@@ -5,7 +5,6 @@
 # All clients that want to use this script need these scripts:
 # 1. set-app-name.sh - must set the app name and create build-vars.env (if any)
 # 2. download-binaries.sh - responsible for populating the assets/bin directory.
-# 3. flavorize-<linux/macos/windows>.sh - responsible for setting name, icon etc. for the os.
 
 set -e
 
@@ -56,9 +55,6 @@ echo "App name set to: $app_name"
 
 echo "Downloading $client_dir binaries for $os"
 bash ./scripts/download-binaries.sh "$os"
-
-echo "Flavorizing $client_dir for $os"
-bash ./scripts/flavorize-"$os".sh "$app_name"
 
 # Return to the parent directory to run the os-specific build script
 cd ../
