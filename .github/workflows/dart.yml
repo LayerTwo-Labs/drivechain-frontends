@@ -4,7 +4,8 @@ on:
   pull_request:
     paths:
       - "sail_ui/**"
-      - "sidesail/**"
+      - "thunder/**"
+      - "zside/**"
       - "bitwindow/**"
       - "faucet/**"
       - "launcher/**"
@@ -15,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [sail_ui, sidesail, bitwindow, faucet, launcher]
+        package: [sail_ui, thunder, zside, bitwindow, faucet, launcher]
 
     defaults:
       run:
@@ -31,7 +32,6 @@ jobs:
         run: flutter pub get
 
       - name: Create necessary directories
-        if: matrix.package == 'sidesail'
         run: |
           mkdir -p bins
           mkdir -p assets/bin
