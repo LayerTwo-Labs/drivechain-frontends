@@ -75,6 +75,13 @@ class BitDriveProvider extends ChangeNotifier {
   static const String AUTH_KEY_PATH = "m/44'/0'/0'/$BITDRIVE_DERIVATION_INDEX/1";
   static const int AUTH_TAG_SIZE = 8; // 8 bytes auth tag
 
+  // File type flags (encoded in first byte of metadata)
+  static const int FLAG_STANDARD = 0; // 0000 0000
+  static const int FLAG_ENCRYPTED = 1; // 0000 0001
+  static const int FLAG_MULTISIG = 2; // 0000 0010
+  // Combined flags
+  static const int FLAG_ENCRYPTED_MULTISIG = 3; // 0000 0011 (ENCRYPTED | MULTISIG)
+
   BitDriveProvider() {
     // Listen for blockchain sync status changes
     blockchainProvider.addListener(_onSyncStatusChanged);
@@ -270,7 +277,9 @@ class BitDriveProvider extends ChangeNotifier {
           if (metadataBytes.length != 9) continue;
 
           final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
-          final isEncrypted = metadata.getUint8(0) == 1;
+          final flagByte = metadata.getUint8(0);
+          final isEncrypted = (flagByte & FLAG_ENCRYPTED) != 0;
+          final isMultisig = (flagByte & FLAG_MULTISIG) != 0;
           final timestamp = metadata.getUint32(1);
           final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
 
@@ -283,6 +292,107 @@ class BitDriveProvider extends ChangeNotifier {
           final content = isEncrypted ? await _decryptContent(contentBytes, timestamp, fileType) : contentBytes;
 
           await file.writeAsBytes(content);
+
+          // Process multisig configuration files using the dedicated flag
+          if (isMultisig && fileType == 'txt' || fileType == 'jsn' || fileType == 'jso') {
+            try {
+              final contentStr = utf8.decode(content);
+              final json = jsonDecode(contentStr);
+
+              // Check if this is a valid multisig configuration
+              if (json is Map && json.containsKey('p') && json.containsKey('name') && json.containsKey('keys')) {
+                log.i('BitDrive: Found multisig configuration (flagged)');
+
+                // Ensure multisig directory exists
+                final multisigDir = path.join(_bitdriveDir!, 'multisig');
+                final dir = Directory(multisigDir);
+                if (!await dir.exists()) {
+                  await dir.create(recursive: true);
+                }
+
+                // Write multisig configuration to multisig directory
+                final p = json['p'];
+                final name = json['name'];
+
+                // Add entry to config file
+                final configFile = File(path.join(multisigDir, 'multisig.conf'));
+                if (!await configFile.exists()) {
+                  await configFile.writeAsString('');
+                }
+
+                // Append the configuration if it doesn't already exist
+                final configContent = await configFile.readAsString();
+                if (!configContent.contains('P$p=')) {
+                  await configFile.writeAsString(
+                    'P$p="$name"\n',
+                    mode: FileMode.append,
+                  );
+
+                  // Store keys
+                  if (json['keys'] is List) {
+                    final keysFile = File(path.join(multisigDir, 'P$p.keys'));
+                    final keysList = (json['keys'] as List).cast<Map<String, dynamic>>();
+                    final keysContent = keysList.map((k) => '${k['name']}=${k['publicKey']}').join('\n');
+                    await keysFile.writeAsString(keysContent);
+                  }
+
+                  log.i('BitDrive: Restored multisig configuration P$p');
+                }
+              }
+            } catch (e) {
+              log.w('BitDrive: Error processing multisig file: $e');
+              // Continue if there's an error parsing
+            }
+          }
+          // For backward compatibility, also check unflagged txt files for JSON structure
+          else if (!isMultisig && fileType == 'txt') {
+            try {
+              final contentStr = utf8.decode(content);
+              if (contentStr.trim().startsWith('{') && contentStr.trim().endsWith('}')) {
+                final json = jsonDecode(contentStr);
+
+                // Check if this is a valid multisig configuration
+                if (json is Map && json.containsKey('p') && json.containsKey('name') && json.containsKey('keys')) {
+                  log.i('BitDrive: Found multisig configuration (unflagged)');
+
+                  // Process multisig config (same code as above)
+                  final multisigDir = path.join(_bitdriveDir!, 'multisig');
+                  final dir = Directory(multisigDir);
+                  if (!await dir.exists()) {
+                    await dir.create(recursive: true);
+                  }
+
+                  final p = json['p'];
+                  final name = json['name'];
+
+                  final configFile = File(path.join(multisigDir, 'multisig.conf'));
+                  if (!await configFile.exists()) {
+                    await configFile.writeAsString('');
+                  }
+
+                  final configContent = await configFile.readAsString();
+                  if (!configContent.contains('P$p=')) {
+                    await configFile.writeAsString(
+                      'P$p="$name"\n',
+                      mode: FileMode.append,
+                    );
+
+                    if (json['keys'] is List) {
+                      final keysFile = File(path.join(multisigDir, 'P$p.keys'));
+                      final keysList = (json['keys'] as List).cast<Map<String, dynamic>>();
+                      final keysContent = keysList.map((k) => '${k['name']}=${k['publicKey']}').join('\n');
+                      await keysFile.writeAsString(keysContent);
+                    }
+
+                    log.i('BitDrive: Restored multisig configuration P$p');
+                  }
+                }
+              }
+            } catch (e) {
+              // Not a JSON file or not a multisig configuration - ignore
+            }
+          }
+
           restoredCount++;
         } catch (e) {
           log.e('BitDrive: Error processing tx ${tx.txid}: $e');
@@ -312,7 +422,7 @@ class BitDriveProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setTextContent(String content) async {
+  Future<void> setTextContent(String content, {bool isMultisig = false}) async {
     if (content.length > 1024 * 1024) {
       error = 'Text size must be less than 1MB';
       notifyListeners();
@@ -320,7 +430,7 @@ class BitDriveProvider extends ChangeNotifier {
     }
     textContent = content;
     fileContent = null;
-    fileName = 'text.txt';
+    fileName = isMultisig ? 'multisig.json' : 'text.txt';
     mimeType = 'text/plain';
     error = null;
     notifyListeners();
@@ -336,7 +446,7 @@ class BitDriveProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> store() async {
+  Future<void> store({bool isMultisig = false}) async {
     if (_isFetching) return;
     _isFetching = true;
     error = null;
@@ -352,7 +462,12 @@ class BitDriveProvider extends ChangeNotifier {
       final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final fileType = _detectFileType(content);
 
-      metadata.setUint8(0, shouldEncrypt ? 1 : 0);
+      // Set flag byte - encode both encryption and multisig flags
+      int flagByte = FLAG_STANDARD;
+      if (shouldEncrypt) flagByte |= FLAG_ENCRYPTED;
+      if (isMultisig) flagByte |= FLAG_MULTISIG;
+
+      metadata.setUint8(0, flagByte);
       metadata.setUint32(1, timestamp);
 
       final typeBytes = utf8.encode(fileType.padRight(4, ' '));
@@ -423,7 +538,9 @@ class BitDriveProvider extends ChangeNotifier {
       }
 
       final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
-      final isEncrypted = metadata.getUint8(0) == 1;
+      final flagByte = metadata.getUint8(0);
+      final isEncrypted = (flagByte & FLAG_ENCRYPTED) != 0;
+      final isMultisig = (flagByte & FLAG_MULTISIG) != 0;
       final timestamp = metadata.getUint32(1);
       final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
 
@@ -533,7 +650,9 @@ class BitDriveProvider extends ChangeNotifier {
           if (metadataBytes.length != 9) continue;
 
           final metadata = ByteData.view(Uint8List.fromList(metadataBytes).buffer);
-          final isEncrypted = metadata.getUint8(0) == 1;
+          final flagByte = metadata.getUint8(0);
+          final isEncrypted = (flagByte & FLAG_ENCRYPTED) != 0;
+          final isMultisig = (flagByte & FLAG_MULTISIG) != 0;
           final timestamp = metadata.getUint32(1);
           final fileType = utf8.decode(metadataBytes.sublist(5, 9)).trim();
 
