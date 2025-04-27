@@ -1,12 +1,13 @@
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
-class TransactionsTab extends StatelessWidget {
-  const TransactionsTab({super.key});
+class UTXOsTab extends StatelessWidget {
+  const UTXOsTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -103,16 +104,23 @@ class _UTXOTableState extends State<UTXOTable> {
                 SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
                 SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
                 SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
-                SailTableHeaderCell(name: 'Value', onSort: () => onSort('value')),
+                SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
               ],
               rowBuilder: (context, row, selected) {
                 final utxo = entries[row];
+                final formattedDate = DateFormat('yyyy MMM dd').format(utxo.receivedAt.toDateTime().toLocal());
+                final formattedAmount = formatBitcoin(
+                  satoshiToBTC(utxo.value.toInt()),
+                  symbol: '',
+                );
                 return [
-                  SailTableCell(value: utxo.receivedAt.toDateTime().toLocal().toString()),
+                  SailTableCell(
+                    value: formattedDate,
+                  ),
                   SailTableCell(value: utxo.output, monospace: true),
                   SailTableCell(value: utxo.address, monospace: true),
                   SailTableCell(value: utxo.label, monospace: true),
-                  SailTableCell(value: utxo.value, monospace: true),
+                  SailTableCell(value: formattedAmount, monospace: true),
                 ];
               },
               rowCount: entries.length,

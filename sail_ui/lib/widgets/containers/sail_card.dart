@@ -295,3 +295,82 @@ class SailAlertCard extends StatelessWidget {
     );
   }
 }
+
+class SailCardStats extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String value;
+  final SailSVGAsset icon;
+  final bool bitcoinAmount;
+
+  const SailCardStats({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.icon,
+    this.bitcoinAmount = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return SelectionArea(
+      child: SailShadow(
+        shadowSize: ShadowSize.regular,
+        child: Material(
+          color: theme.colors.background,
+          clipBehavior: Clip.hardEdge,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: theme.colors.border,
+                width: 1.0,
+              ),
+              borderRadius: SailStyleValues.borderRadiusLarge,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: SailRow(
+                        spacing: 0,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SailText.primary13(title, bold: true),
+                          SailSVG.fromAsset(icon, color: theme.colors.inactiveNavText, width: 10),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SailRow(
+                        spacing: 8,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (bitcoinAmount) SailSVG.fromAsset(SailSVGAsset.bitcoin, color: theme.colors.text),
+                          SailText.primary24(value, bold: true),
+                        ],
+                      ),
+                    ),
+                    const SailSpacing(SailStyleValues.padding10),
+                    SailText.secondary12(subtitle, color: theme.colors.inactiveNavText),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

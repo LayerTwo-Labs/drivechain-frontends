@@ -81,6 +81,7 @@ abstract class WalletAPI {
   Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee);
   Future<String> signMessage(String message);
   Future<bool> verifyMessage(String message, String signature, String publicKey);
+  Future<GetStatsResponse> getStats();
 }
 
 abstract class BitcoindAPI {
@@ -533,6 +534,18 @@ class _WalletAPILive implements WalletAPI {
     } catch (e) {
       final error = extractConnectException(e);
       log.e('could not verify message: $error');
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<GetStatsResponse> getStats() async {
+    try {
+      final response = await _client.getStats(Empty());
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      log.e('could not get stats: $error');
       throw WalletException(error);
     }
   }

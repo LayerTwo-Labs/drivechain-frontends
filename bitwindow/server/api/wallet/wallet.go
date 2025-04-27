@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
@@ -26,7 +27,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/rs/zerolog"
-	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -195,33 +195,113 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 	if err != nil {
 		return nil, err
 	}
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not get bitcoind: %w", err)
+	}
 	txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
 	}
 
-	res := &pb.ListTransactionsResponse{
-		Transactions: lo.Map(txs.Msg.Transactions, func(tx *validatorpb.WalletTransaction, idx int) *pb.WalletTransaction {
+	// Fetch address book entries for label lookup
+	addressBookEntries, err := addressbook.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
+	}
+	getLabel := func(addr string) string {
+		for _, entry := range addressBookEntries {
+			if entry.Address == addr {
+				return entry.Label
+			}
+		}
+		return ""
+	}
+
+	// Use logpool to fetch all transaction info in parallel
+	pool := logpool.NewWithResults[*pb.WalletTransaction](ctx, "wallet/ListTransactions")
+	for _, tx := range txs.Msg.Transactions {
+		txid := tx.Txid.Hex.Value
+		// For sent transactions, try to extract the destination address from the outputs
+		pool.Go(txid, func(ctx context.Context) (*pb.WalletTransaction, error) {
+			rawTxResp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
+				Msg: &corepb.GetRawTransactionRequest{
+					Txid: txid,
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("enforcer/wallet: could not get raw transaction: %w", err)
+			}
+			rawBytes, err := hex.DecodeString(rawTxResp.Msg.Tx.Hex)
+			if err != nil {
+				return nil, fmt.Errorf("could not decode raw tx hex: %w", err)
+			}
+			decodedTx, err := btcutil.NewTxFromBytes(rawBytes)
+			if err != nil {
+				return nil, fmt.Errorf("could not decode raw transaction: %w", err)
+			}
+
+			// Heuristic: for sent tx, use the first output that is not a change address (not in addressbook as receive)
+			// for received tx, use the first output that is in the addressbook as receive
+			var address string
+			for _, txOut := range decodedTx.MsgTx().TxOut {
+				_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.SigNetParams)
+				if err == nil && len(addrs) > 0 {
+					addr := addrs[0].EncodeAddress()
+					// Try to find a matching addressbook entry
+					label := getLabel(addr)
+					// If this is a receive, prefer addressbook entries with receive direction or empty label
+					if tx.ReceivedSats > 0 && label != "" {
+						address = addr
+						break
+					}
+					// If this is a send, prefer addresses not in the addressbook (likely external)
+					if tx.SentSats > 0 && label == "" {
+						address = addr
+						break
+					}
+				}
+			}
+			// Fallback: just use the first output address if nothing else
+			if address == "" && len(decodedTx.MsgTx().TxOut) > 0 {
+				_, addrs, _, err := txscript.ExtractPkScriptAddrs(decodedTx.MsgTx().TxOut[0].PkScript, &chaincfg.SigNetParams)
+				if err == nil && len(addrs) > 0 {
+					address = addrs[0].EncodeAddress()
+				}
+			}
+			label := getLabel(address)
+
 			var confirmation *pb.Confirmation
 			if tx.ConfirmationInfo != nil {
 				var timestamp *timestamppb.Timestamp
 				if tx.ConfirmationInfo.Timestamp != nil {
 					timestamp = &timestamppb.Timestamp{Seconds: tx.ConfirmationInfo.Timestamp.Seconds}
 				}
-
 				confirmation = &pb.Confirmation{
 					Height:    tx.ConfirmationInfo.Height,
 					Timestamp: timestamp,
 				}
 			}
+
 			return &pb.WalletTransaction{
 				Txid:             tx.Txid.Hex.Value,
 				FeeSats:          tx.FeeSats,
 				ReceivedSatoshi:  tx.ReceivedSats,
 				SentSatoshi:      tx.SentSats,
+				Address:          address,
+				Label:            label,
 				ConfirmationTime: confirmation,
-			}
-		}),
+			}, nil
+		})
+	}
+
+	transactionsWithInfo, err := pool.Wait(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: failed to fetch transaction info: %w", err)
+	}
+
+	res := &pb.ListTransactionsResponse{
+		Transactions: transactionsWithInfo,
 	}
 
 	return connect.NewResponse(res), nil
@@ -407,11 +487,10 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 				return nil, fmt.Errorf("enforcer/wallet: vout %d out of range for tx %s", vout, utxo.Txid)
 			}
 			txOut := decodedTx.MsgTx().TxOut[vout]
-			value := fmt.Sprintf("%d", txOut.Value)
 
 			// Extract address from scriptPubKey
 			var address string
-			_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.MainNetParams)
+			_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.SigNetParams)
 			if err == nil && len(addrs) > 0 {
 				address = addrs[0].EncodeAddress()
 			}
@@ -427,7 +506,7 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 				Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
 				Address:    address,
 				Label:      label,
-				Value:      value,
+				Value:      uint64(txOut.Value),
 				ReceivedAt: receivedAt,
 			}, nil
 		})
@@ -440,5 +519,79 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 
 	return connect.NewResponse(&pb.ListUnspentResponse{
 		Utxos: utxosWithInfo,
+	}), nil
+}
+
+// GetStats implements walletv1connect.WalletServiceHandler.
+func (s *Server) GetStats(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetStatsResponse], error) {
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 1. Get all UTXOs and count them
+	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&emptypb.Empty{}))
+	if err != nil {
+		return nil, err
+	}
+	utxoCount := uint64(len(utxos.Msg.Utxos))
+
+	// Count unique addresses among UTXOs
+	addressSet := make(map[string]struct{})
+	for _, utxo := range utxos.Msg.Utxos {
+		addressSet[utxo.Address] = struct{}{}
+	}
+	uniqueAddressCount := uint64(len(addressSet))
+
+	// 2. Get all wallet transactions and count them
+	txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
+	if err != nil {
+		return nil, err
+	}
+	transactionCount := int64(len(txs.Msg.Transactions))
+
+	// Count transactions since the start of the current month
+	now := time.Now()
+	currentYear, currentMonth, _ := now.Date()
+	currentMonthStart := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, now.Location())
+	transactionCountSinceMonth := int64(0)
+	for _, tx := range txs.Msg.Transactions {
+		if tx.ConfirmationInfo.Timestamp != nil {
+			t := tx.ConfirmationInfo.Timestamp.AsTime()
+			if t.After(currentMonthStart) || t.Equal(currentMonthStart) {
+				transactionCountSinceMonth++
+			}
+		}
+	}
+
+	// 3. Get all sidechain deposit transactions and sum their amounts
+	sidechainDeposits, err := wallet.ListSidechainDepositTransactions(ctx, connect.NewRequest(&validatorpb.ListSidechainDepositTransactionsRequest{}))
+	if err != nil {
+		return nil, err
+	}
+	var depositSum int64
+	var depositSumLast30Days int64
+	// Calculate 30 days ago from now
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
+	for _, dep := range sidechainDeposits.Msg.Transactions {
+		if dep.Tx != nil {
+			amt := int64(dep.Tx.ReceivedSats)
+			depositSum += amt
+			if dep.Tx.ConfirmationInfo.Timestamp != nil {
+				t := dep.Tx.ConfirmationInfo.Timestamp.AsTime()
+				if t.After(thirtyDaysAgo) {
+					depositSumLast30Days += amt
+				}
+			}
+		}
+	}
+
+	return connect.NewResponse(&pb.GetStatsResponse{
+		UtxosCurrent:                      utxoCount,
+		UtxosUniqueAddresses:              uniqueAddressCount,
+		SidechainDepositVolume:            depositSum,
+		SidechainDepositVolumeLast_30Days: depositSumLast30Days,
+		TransactionCountTotal:             transactionCount,
+		TransactionCountSinceMonth:        transactionCountSinceMonth,
 	}), nil
 }

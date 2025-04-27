@@ -179,6 +179,11 @@ class MockWalletAPI implements WalletAPI {
   Future<bool> verifyMessage(String message, String signature, String publicKey) async {
     return true;
   }
+
+  @override
+  Future<GetStatsResponse> getStats() async {
+    return GetStatsResponse();
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

@@ -357,7 +357,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.String? output,
     $core.String? address,
     $core.String? label,
-    $core.String? value,
+    $fixnum.Int64? value,
     $0.Timestamp? receivedAt,
   }) {
     final $result = create();
@@ -386,7 +386,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'output')
     ..aOS(2, _omitFieldNames ? '' : 'address')
     ..aOS(3, _omitFieldNames ? '' : 'label')
-    ..aOS(4, _omitFieldNames ? '' : 'value')
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
@@ -444,9 +444,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
 
   /// The value of the output, in satoshis.
   @$pb.TagNumber(4)
-  $core.String get value => $_getSZ(3);
+  $fixnum.Int64 get value => $_getI64(3);
   @$pb.TagNumber(4)
-  set value($core.String v) { $_setString(3, v); }
+  set value($fixnum.Int64 v) { $_setInt64(3, v); }
   @$pb.TagNumber(4)
   $core.bool hasValue() => $_has(3);
   @$pb.TagNumber(4)
@@ -581,6 +581,8 @@ class WalletTransaction extends $pb.GeneratedMessage {
     $fixnum.Int64? feeSats,
     $fixnum.Int64? receivedSatoshi,
     $fixnum.Int64? sentSatoshi,
+    $core.String? address,
+    $core.String? label,
     Confirmation? confirmationTime,
   }) {
     final $result = create();
@@ -596,6 +598,12 @@ class WalletTransaction extends $pb.GeneratedMessage {
     if (sentSatoshi != null) {
       $result.sentSatoshi = sentSatoshi;
     }
+    if (address != null) {
+      $result.address = address;
+    }
+    if (label != null) {
+      $result.label = label;
+    }
     if (confirmationTime != null) {
       $result.confirmationTime = confirmationTime;
     }
@@ -610,7 +618,9 @@ class WalletTransaction extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'feeSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'receivedSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'sentSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOM<Confirmation>(5, _omitFieldNames ? '' : 'confirmationTime', subBuilder: Confirmation.create)
+    ..aOS(5, _omitFieldNames ? '' : 'address')
+    ..aOS(6, _omitFieldNames ? '' : 'label')
+    ..aOM<Confirmation>(7, _omitFieldNames ? '' : 'confirmationTime', subBuilder: Confirmation.create)
     ..hasRequiredFields = false
   ;
 
@@ -672,15 +682,33 @@ class WalletTransaction extends $pb.GeneratedMessage {
   void clearSentSatoshi() => clearField(4);
 
   @$pb.TagNumber(5)
-  Confirmation get confirmationTime => $_getN(4);
+  $core.String get address => $_getSZ(4);
   @$pb.TagNumber(5)
-  set confirmationTime(Confirmation v) { setField(5, v); }
+  set address($core.String v) { $_setString(4, v); }
   @$pb.TagNumber(5)
-  $core.bool hasConfirmationTime() => $_has(4);
+  $core.bool hasAddress() => $_has(4);
   @$pb.TagNumber(5)
-  void clearConfirmationTime() => clearField(5);
-  @$pb.TagNumber(5)
-  Confirmation ensureConfirmationTime() => $_ensure(4);
+  void clearAddress() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get label => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set label($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasLabel() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearLabel() => clearField(6);
+
+  @$pb.TagNumber(7)
+  Confirmation get confirmationTime => $_getN(6);
+  @$pb.TagNumber(7)
+  set confirmationTime(Confirmation v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasConfirmationTime() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearConfirmationTime() => clearField(7);
+  @$pb.TagNumber(7)
+  Confirmation ensureConfirmationTime() => $_ensure(6);
 }
 
 class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
@@ -1243,6 +1271,126 @@ class VerifyMessageResponse extends $pb.GeneratedMessage {
   void clearValid() => clearField(1);
 }
 
+class GetStatsResponse extends $pb.GeneratedMessage {
+  factory GetStatsResponse({
+    $fixnum.Int64? utxosCurrent,
+    $fixnum.Int64? utxosUniqueAddresses,
+    $fixnum.Int64? sidechainDepositVolume,
+    $fixnum.Int64? sidechainDepositVolumeLast30Days,
+    $fixnum.Int64? transactionCountTotal,
+    $fixnum.Int64? transactionCountSinceMonth,
+  }) {
+    final $result = create();
+    if (utxosCurrent != null) {
+      $result.utxosCurrent = utxosCurrent;
+    }
+    if (utxosUniqueAddresses != null) {
+      $result.utxosUniqueAddresses = utxosUniqueAddresses;
+    }
+    if (sidechainDepositVolume != null) {
+      $result.sidechainDepositVolume = sidechainDepositVolume;
+    }
+    if (sidechainDepositVolumeLast30Days != null) {
+      $result.sidechainDepositVolumeLast30Days = sidechainDepositVolumeLast30Days;
+    }
+    if (transactionCountTotal != null) {
+      $result.transactionCountTotal = transactionCountTotal;
+    }
+    if (transactionCountSinceMonth != null) {
+      $result.transactionCountSinceMonth = transactionCountSinceMonth;
+    }
+    return $result;
+  }
+  GetStatsResponse._() : super();
+  factory GetStatsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetStatsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetStatsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'utxosCurrent', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'utxosUniqueAddresses', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aInt64(3, _omitFieldNames ? '' : 'sidechainDepositVolume')
+    ..aInt64(4, _omitFieldNames ? '' : 'sidechainDepositVolumeLast30Days', protoName: 'sidechain_deposit_volume_last_30_days')
+    ..aInt64(5, _omitFieldNames ? '' : 'transactionCountTotal')
+    ..aInt64(6, _omitFieldNames ? '' : 'transactionCountSinceMonth')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetStatsResponse clone() => GetStatsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetStatsResponse copyWith(void Function(GetStatsResponse) updates) => super.copyWith((message) => updates(message as GetStatsResponse)) as GetStatsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetStatsResponse create() => GetStatsResponse._();
+  GetStatsResponse createEmptyInstance() => create();
+  static $pb.PbList<GetStatsResponse> createRepeated() => $pb.PbList<GetStatsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetStatsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetStatsResponse>(create);
+  static GetStatsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get utxosCurrent => $_getI64(0);
+  @$pb.TagNumber(1)
+  set utxosCurrent($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasUtxosCurrent() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUtxosCurrent() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get utxosUniqueAddresses => $_getI64(1);
+  @$pb.TagNumber(2)
+  set utxosUniqueAddresses($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasUtxosUniqueAddresses() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUtxosUniqueAddresses() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get sidechainDepositVolume => $_getI64(2);
+  @$pb.TagNumber(3)
+  set sidechainDepositVolume($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSidechainDepositVolume() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSidechainDepositVolume() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get sidechainDepositVolumeLast30Days => $_getI64(3);
+  @$pb.TagNumber(4)
+  set sidechainDepositVolumeLast30Days($fixnum.Int64 v) { $_setInt64(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSidechainDepositVolumeLast30Days() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSidechainDepositVolumeLast30Days() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get transactionCountTotal => $_getI64(4);
+  @$pb.TagNumber(5)
+  set transactionCountTotal($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasTransactionCountTotal() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTransactionCountTotal() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get transactionCountSinceMonth => $_getI64(5);
+  @$pb.TagNumber(6)
+  set transactionCountSinceMonth($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasTransactionCountSinceMonth() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTransactionCountSinceMonth() => clearField(6);
+}
+
 class WalletServiceApi {
   $pb.RpcClient _client;
   WalletServiceApi(this._client);
@@ -1273,6 +1421,9 @@ class WalletServiceApi {
   ;
   $async.Future<VerifyMessageResponse> verifyMessage($pb.ClientContext? ctx, VerifyMessageRequest request) =>
     _client.invoke<VerifyMessageResponse>(ctx, 'WalletService', 'VerifyMessage', request, VerifyMessageResponse())
+  ;
+  $async.Future<GetStatsResponse> getStats($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<GetStatsResponse>(ctx, 'WalletService', 'GetStats', request, GetStatsResponse())
   ;
 }
 

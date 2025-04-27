@@ -31,6 +31,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
   $async.Future<$6.CreateSidechainDepositResponse> createSidechainDeposit($pb.ServerContext ctx, $6.CreateSidechainDepositRequest request);
   $async.Future<$6.SignMessageResponse> signMessage($pb.ServerContext ctx, $6.SignMessageRequest request);
   $async.Future<$6.VerifyMessageResponse> verifyMessage($pb.ServerContext ctx, $6.VerifyMessageRequest request);
+  $async.Future<$6.GetStatsResponse> getStats($pb.ServerContext ctx, $1.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -43,6 +44,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'CreateSidechainDeposit': return $6.CreateSidechainDepositRequest();
       case 'SignMessage': return $6.SignMessageRequest();
       case 'VerifyMessage': return $6.VerifyMessageRequest();
+      case 'GetStats': return $1.Empty();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -58,6 +60,7 @@ abstract class WalletServiceBase extends $pb.GeneratedService {
       case 'CreateSidechainDeposit': return this.createSidechainDeposit(ctx, request as $6.CreateSidechainDepositRequest);
       case 'SignMessage': return this.signMessage(ctx, request as $6.SignMessageRequest);
       case 'VerifyMessage': return this.verifyMessage(ctx, request as $6.VerifyMessageRequest);
+      case 'GetStats': return this.getStats(ctx, request as $1.Empty);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

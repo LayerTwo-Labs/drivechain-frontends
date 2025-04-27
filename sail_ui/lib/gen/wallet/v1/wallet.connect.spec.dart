@@ -75,4 +75,11 @@ abstract final class WalletService {
     walletv1wallet.VerifyMessageRequest.new,
     walletv1wallet.VerifyMessageResponse.new,
   );
+
+  static const getStats = connect.Spec(
+    '/$name/GetStats',
+    connect.StreamType.unary,
+    googleprotobufempty.Empty.new,
+    walletv1wallet.GetStatsResponse.new,
+  );
 }
