@@ -9,7 +9,7 @@
 package mainchainv1
 
 import (
-	v1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/common/v1"
+	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -2130,8 +2130,8 @@ const file_cusf_mainchain_v1_wallet_proto_rawDesc = "" +
 	"\aGetInfo\x12!.cusf.mainchain.v1.GetInfoRequest\x1a\".cusf.mainchain.v1.GetInfoResponse\x12h\n" +
 	"\x0fSendTransaction\x12).cusf.mainchain.v1.SendTransactionRequest\x1a*.cusf.mainchain.v1.SendTransactionResponse\x12_\n" +
 	"\fUnlockWallet\x12&.cusf.mainchain.v1.UnlockWalletRequest\x1a'.cusf.mainchain.v1.UnlockWalletResponse\x12g\n" +
-	"\x0eGenerateBlocks\x12(.cusf.mainchain.v1.GenerateBlocksRequest\x1a).cusf.mainchain.v1.GenerateBlocksResponse0\x01B\xe1\x01\n" +
-	"\x15com.cusf.mainchain.v1B\vWalletProtoP\x01ZUgithub.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
+	"\x0eGenerateBlocks\x12(.cusf.mainchain.v1.GenerateBlocksRequest\x1a).cusf.mainchain.v1.GenerateBlocksResponse0\x01B\xe0\x01\n" +
+	"\x15com.cusf.mainchain.v1B\vWalletProtoP\x01ZTgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
 
 var (
 	file_cusf_mainchain_v1_wallet_proto_rawDescOnce sync.Once

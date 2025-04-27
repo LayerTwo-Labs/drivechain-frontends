@@ -841,8 +841,8 @@ const file_cusf_sidechain_v1_sidechain_proto_rawDesc = "" +
 	"\rGetMempoolTxs\x12'.cusf.sidechain.v1.GetMempoolTxsRequest\x1a(.cusf.sidechain.v1.GetMempoolTxsResponse\x12S\n" +
 	"\bGetUtxos\x12\".cusf.sidechain.v1.GetUtxosRequest\x1a#.cusf.sidechain.v1.GetUtxosResponse\x12n\n" +
 	"\x11SubmitTransaction\x12+.cusf.sidechain.v1.SubmitTransactionRequest\x1a,.cusf.sidechain.v1.SubmitTransactionResponse\x12j\n" +
-	"\x0fSubscribeEvents\x12).cusf.sidechain.v1.SubscribeEventsRequest\x1a*.cusf.sidechain.v1.SubscribeEventsResponse0\x01B\xe4\x01\n" +
-	"\x15com.cusf.sidechain.v1B\x0eSidechainProtoP\x01ZUgithub.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/sidechain/v1;sidechainv1\xa2\x02\x03CSX\xaa\x02\x11Cusf.Sidechain.V1\xca\x02\x11Cusf\\Sidechain\\V1\xe2\x02\x1dCusf\\Sidechain\\V1\\GPBMetadata\xea\x02\x13Cusf::Sidechain::V1b\x06proto3"
+	"\x0fSubscribeEvents\x12).cusf.sidechain.v1.SubscribeEventsRequest\x1a*.cusf.sidechain.v1.SubscribeEventsResponse0\x01B\xe3\x01\n" +
+	"\x15com.cusf.sidechain.v1B\x0eSidechainProtoP\x01ZTgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/sidechain/v1;sidechainv1\xa2\x02\x03CSX\xaa\x02\x11Cusf.Sidechain.V1\xca\x02\x11Cusf\\Sidechain\\V1\xe2\x02\x1dCusf\\Sidechain\\V1\\GPBMetadata\xea\x02\x13Cusf::Sidechain::V1b\x06proto3"
 
 var (
 	file_cusf_sidechain_v1_sidechain_proto_rawDescOnce sync.Once

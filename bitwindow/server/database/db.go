@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/dir"
+	dir "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dir"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog"
 )

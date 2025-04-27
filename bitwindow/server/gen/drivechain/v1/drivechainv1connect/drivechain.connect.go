@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1"
+	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 	http "net/http"
 	strings "strings"
 )

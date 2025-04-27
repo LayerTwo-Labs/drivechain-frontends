@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
+	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {

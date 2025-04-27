@@ -12,6 +12,7 @@ service WalletService {
   // out unused addresses, so we risk crossing the sync gap.
   rpc GetNewAddress(google.protobuf.Empty) returns (GetNewAddressResponse);
   rpc ListTransactions(google.protobuf.Empty) returns (ListTransactionsResponse);
+  rpc ListUnspent(google.protobuf.Empty) returns (ListUnspentResponse);
 
   rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
   rpc CreateSidechainDeposit(CreateSidechainDepositRequest) returns (CreateSidechainDepositResponse);
@@ -55,6 +56,23 @@ message GetBalanceResponse {
 
 message ListTransactionsResponse {
   repeated WalletTransaction transactions = 1;
+}
+
+message UnspentOutput {
+  // The vout:index of the utxo
+  string output = 1;
+  // What address the utxo was received to.
+  string address = 2;
+  // What label (if any) the address received to is labeled with.
+  string label = 3;
+  // The value of the output, in satoshis.
+  string value = 4;
+  // Timestamp of the utxo.
+  google.protobuf.Timestamp received_at = 5;
+}
+
+message ListUnspentResponse {
+  repeated UnspentOutput utxos = 1;
 }
 
 message Confirmation {

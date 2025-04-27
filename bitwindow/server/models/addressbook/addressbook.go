@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
-	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1"
+	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 )
 
 type AddressBookEntry struct {

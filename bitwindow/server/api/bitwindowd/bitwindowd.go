@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1/bitwindowdv1connect"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/blocks"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/deniability"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
+	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
@@ -151,9 +151,9 @@ func (s *Server) ListDenials(
 	}
 
 	// Build response with UTXOs and matched deniability info
-	var pbUtxos []*pb.UnspentOutput
+	var pbUtxos []*pb.DeniabilityUTXO
 	for _, utxo := range utxos.Msg.Outputs {
-		pbUtxo := &pb.UnspentOutput{
+		pbUtxo := &pb.DeniabilityUTXO{
 			Txid:       utxo.Txid.Hex.Value,
 			Vout:       utxo.Vout,
 			ValueSats:  utxo.ValueSats,

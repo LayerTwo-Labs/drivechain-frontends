@@ -142,7 +142,7 @@ func (x *CreateDenialRequest) GetNumHops() int32 {
 
 type ListDenialsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Utxos         []*UnspentOutput       `protobuf:"bytes,1,rep,name=utxos,proto3" json:"utxos,omitempty"`
+	Utxos         []*DeniabilityUTXO     `protobuf:"bytes,1,rep,name=utxos,proto3" json:"utxos,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -177,14 +177,14 @@ func (*ListDenialsResponse) Descriptor() ([]byte, []int) {
 	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListDenialsResponse) GetUtxos() []*UnspentOutput {
+func (x *ListDenialsResponse) GetUtxos() []*DeniabilityUTXO {
 	if x != nil {
 		return x.Utxos
 	}
 	return nil
 }
 
-type UnspentOutput struct {
+type DeniabilityUTXO struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
 	Vout          uint32                 `protobuf:"varint,2,opt,name=vout,proto3" json:"vout,omitempty"`
@@ -195,20 +195,20 @@ type UnspentOutput struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UnspentOutput) Reset() {
-	*x = UnspentOutput{}
+func (x *DeniabilityUTXO) Reset() {
+	*x = DeniabilityUTXO{}
 	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UnspentOutput) String() string {
+func (x *DeniabilityUTXO) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UnspentOutput) ProtoMessage() {}
+func (*DeniabilityUTXO) ProtoMessage() {}
 
-func (x *UnspentOutput) ProtoReflect() protoreflect.Message {
+func (x *DeniabilityUTXO) ProtoReflect() protoreflect.Message {
 	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -220,40 +220,40 @@ func (x *UnspentOutput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UnspentOutput.ProtoReflect.Descriptor instead.
-func (*UnspentOutput) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeniabilityUTXO.ProtoReflect.Descriptor instead.
+func (*DeniabilityUTXO) Descriptor() ([]byte, []int) {
 	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *UnspentOutput) GetTxid() string {
+func (x *DeniabilityUTXO) GetTxid() string {
 	if x != nil {
 		return x.Txid
 	}
 	return ""
 }
 
-func (x *UnspentOutput) GetVout() uint32 {
+func (x *DeniabilityUTXO) GetVout() uint32 {
 	if x != nil {
 		return x.Vout
 	}
 	return 0
 }
 
-func (x *UnspentOutput) GetValueSats() uint64 {
+func (x *DeniabilityUTXO) GetValueSats() uint64 {
 	if x != nil {
 		return x.ValueSats
 	}
 	return 0
 }
 
-func (x *UnspentOutput) GetIsInternal() bool {
+func (x *DeniabilityUTXO) GetIsInternal() bool {
 	if x != nil {
 		return x.IsInternal
 	}
 	return false
 }
 
-func (x *UnspentOutput) GetDeniability() *DeniabilityInfo {
+func (x *DeniabilityUTXO) GetDeniability() *DeniabilityInfo {
 	if x != nil {
 		return x.Deniability
 	}
@@ -890,10 +890,10 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
 	"\x04vout\x18\x02 \x01(\rR\x04vout\x12#\n" +
 	"\rdelay_seconds\x18\x03 \x01(\x05R\fdelaySeconds\x12\x19\n" +
-	"\bnum_hops\x18\x04 \x01(\x05R\anumHops\"I\n" +
-	"\x13ListDenialsResponse\x122\n" +
-	"\x05utxos\x18\x01 \x03(\v2\x1c.bitwindowd.v1.UnspentOutputR\x05utxos\"\xce\x01\n" +
-	"\rUnspentOutput\x12\x12\n" +
+	"\bnum_hops\x18\x04 \x01(\x05R\anumHops\"K\n" +
+	"\x13ListDenialsResponse\x124\n" +
+	"\x05utxos\x18\x01 \x03(\v2\x1e.bitwindowd.v1.DeniabilityUTXOR\x05utxos\"\xd0\x01\n" +
+	"\x0fDeniabilityUTXO\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
 	"\x04vout\x18\x02 \x01(\rR\x04vout\x12\x1d\n" +
 	"\n" +
@@ -971,8 +971,8 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x0fListAddressBook\x12\x16.google.protobuf.Empty\x1a&.bitwindowd.v1.ListAddressBookResponse\x12^\n" +
 	"\x16UpdateAddressBookEntry\x12,.bitwindowd.v1.UpdateAddressBookEntryRequest\x1a\x16.google.protobuf.Empty\x12^\n" +
 	"\x16DeleteAddressBookEntry\x12,.bitwindowd.v1.DeleteAddressBookEntryRequest\x1a\x16.google.protobuf.Empty\x12I\n" +
-	"\vGetSyncInfo\x12\x16.google.protobuf.Empty\x1a\".bitwindowd.v1.GetSyncInfoResponseB\xcd\x01\n" +
-	"\x11com.bitwindowd.v1B\x0fBitwindowdProtoP\x01ZRgithub.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1;bitwindowdv1\xa2\x02\x03BXX\xaa\x02\rBitwindowd.V1\xca\x02\rBitwindowd\\V1\xe2\x02\x19Bitwindowd\\V1\\GPBMetadata\xea\x02\x0eBitwindowd::V1b\x06proto3"
+	"\vGetSyncInfo\x12\x16.google.protobuf.Empty\x1a\".bitwindowd.v1.GetSyncInfoResponseB\xcc\x01\n" +
+	"\x11com.bitwindowd.v1B\x0fBitwindowdProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1;bitwindowdv1\xa2\x02\x03BXX\xaa\x02\rBitwindowd.V1\xca\x02\rBitwindowd\\V1\xe2\x02\x19Bitwindowd\\V1\\GPBMetadata\xea\x02\x0eBitwindowd::V1b\x06proto3"
 
 var (
 	file_bitwindowd_v1_bitwindowd_proto_rawDescOnce sync.Once
@@ -992,7 +992,7 @@ var file_bitwindowd_v1_bitwindowd_proto_goTypes = []any{
 	(Direction)(0),                        // 0: bitwindowd.v1.Direction
 	(*CreateDenialRequest)(nil),           // 1: bitwindowd.v1.CreateDenialRequest
 	(*ListDenialsResponse)(nil),           // 2: bitwindowd.v1.ListDenialsResponse
-	(*UnspentOutput)(nil),                 // 3: bitwindowd.v1.UnspentOutput
+	(*DeniabilityUTXO)(nil),               // 3: bitwindowd.v1.DeniabilityUTXO
 	(*DeniabilityInfo)(nil),               // 4: bitwindowd.v1.DeniabilityInfo
 	(*ExecutedDenial)(nil),                // 5: bitwindowd.v1.ExecutedDenial
 	(*CancelDenialRequest)(nil),           // 6: bitwindowd.v1.CancelDenialRequest
@@ -1006,8 +1006,8 @@ var file_bitwindowd_v1_bitwindowd_proto_goTypes = []any{
 	(*emptypb.Empty)(nil),                 // 14: google.protobuf.Empty
 }
 var file_bitwindowd_v1_bitwindowd_proto_depIdxs = []int32{
-	3,  // 0: bitwindowd.v1.ListDenialsResponse.utxos:type_name -> bitwindowd.v1.UnspentOutput
-	4,  // 1: bitwindowd.v1.UnspentOutput.deniability:type_name -> bitwindowd.v1.DeniabilityInfo
+	3,  // 0: bitwindowd.v1.ListDenialsResponse.utxos:type_name -> bitwindowd.v1.DeniabilityUTXO
+	4,  // 1: bitwindowd.v1.DeniabilityUTXO.deniability:type_name -> bitwindowd.v1.DeniabilityInfo
 	13, // 2: bitwindowd.v1.DeniabilityInfo.create_time:type_name -> google.protobuf.Timestamp
 	13, // 3: bitwindowd.v1.DeniabilityInfo.cancel_time:type_name -> google.protobuf.Timestamp
 	13, // 4: bitwindowd.v1.DeniabilityInfo.next_execution:type_name -> google.protobuf.Timestamp

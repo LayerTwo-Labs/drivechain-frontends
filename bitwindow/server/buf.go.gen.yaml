@@ -2,9 +2,16 @@ version: v2
 
 managed:
   enabled: true
+  disable:
+    - file_option: go_package
+      module: buf.build/bufbuild/protovalidate
+
   override:
     - file_option: go_package_prefix
-      value: github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen
+      value: github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen
+    - file_option: go_package_prefix
+      module: buf.build/bitcoin/bitcoind
+      value: "github.com/barebitcoin/btc-buf/gen"
 
 plugins:
   # Base types for Go. Generates message and enum types.
