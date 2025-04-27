@@ -1,22 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-cd sidesail
-flutter pub get
-cd ../
+for dir in thunder zside faucet sail_ui launcher bitwindow; do
+  (
+    cd "$dir"
+    flutter pub get
+  ) &
+done
 
-cd faucet
-flutter pub get
-cd ../
-
-cd sail_ui
-flutter pub get
-cd ../
-
-cd launcher
-flutter pub get
-cd ../
-
-cd bitwindow
-flutter pub get
-cd ../
+wait
