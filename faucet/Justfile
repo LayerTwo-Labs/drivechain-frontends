@@ -2,17 +2,29 @@ format:
     find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
 
 gen:
-    buf generate ../../servers/faucet 
+    buf generate --template ../buf.dart.gen.yaml ./server
+    cd server && buf generate --template buf.go.gen.yaml .
 
-build:
+build-client:
     flutter build web
 
-run: 
+run-client: 
     # specify port 3000 for CORS to work properly against the remote server
     # specify base URL for local development
     flutter run -d chrome --web-port 3000 --dart-define=FAUCET_BASE_URL=http://localhost:8082
 
-run-prod: 
+run-client-prod: 
     # specify port 3000 for CORS to work properly against the remote server
     # specify base URL for local development
     flutter run -d chrome --web-port 3000 --dart-define=FAUCET_BASE_URL=https://node.drivechain.info/api
+
+run-server: build-server
+    ./server/faucetd
+
+build-server:
+    go build -o ./server/faucetd ./server
+
+lint: 
+    golangci-lint run ./server/...
+
+run: run-server run-client

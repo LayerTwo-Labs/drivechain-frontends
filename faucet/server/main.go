@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/servers/faucet/api/explorer"
-	"github.com/LayerTwo-Labs/sidesail/servers/faucet/jsonrpc"
-	"github.com/LayerTwo-Labs/sidesail/servers/faucet/server"
+	"github.com/LayerTwo-Labs/sidesail/faucet/server/api/explorer"
+	"github.com/LayerTwo-Labs/sidesail/faucet/server/jsonrpc"
+	"github.com/LayerTwo-Labs/sidesail/faucet/server/server"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"

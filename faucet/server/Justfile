@@ -1,11 +1,8 @@
+run: build
+    ./faucetd
+
 build:
-    go build -o faucetd .
+    go build -o ./faucetd .
 
 lint: 
     golangci-lint run ./...
-
-gen:
-    buf generate
-
-run:
-    go run . 
