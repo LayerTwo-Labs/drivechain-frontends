@@ -3,6 +3,7 @@ import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
 import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_hd.dart';
 import 'package:bitwindow/pages/wallet/wallet_multisig_lounge.dart';
+import 'package:bitwindow/pages/wallet/wallet_overview.dart';
 import 'package:bitwindow/pages/wallet/wallet_receive.dart';
 import 'package:bitwindow/pages/wallet/wallet_send.dart';
 import 'package:bitwindow/pages/wallet/wallet_utxos.dart';
@@ -44,6 +45,10 @@ class WalletPage extends StatelessWidget {
           // Create the list of regular tabs
           final List<TabItem> allTabs = [
             const SingleTabItem(
+              label: 'Overview',
+              child: OverviewTab(),
+            ),
+            const SingleTabItem(
               label: 'Send',
               child: SendTab(),
             ),
@@ -52,8 +57,8 @@ class WalletPage extends StatelessWidget {
               child: ReceiveTab(),
             ),
             const SingleTabItem(
-              label: 'Wallet Transactions',
-              child: TransactionsTab(),
+              label: 'UTXOs',
+              child: UTXOsTab(),
             ),
             MultiSelectTabItem(
               title: 'Tools',

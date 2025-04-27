@@ -61,6 +61,8 @@ const (
 	// WalletServiceVerifyMessageProcedure is the fully-qualified name of the WalletService's
 	// VerifyMessage RPC.
 	WalletServiceVerifyMessageProcedure = "/wallet.v1.WalletService/VerifyMessage"
+	// WalletServiceGetStatsProcedure is the fully-qualified name of the WalletService's GetStats RPC.
+	WalletServiceGetStatsProcedure = "/wallet.v1.WalletService/GetStats"
 )
 
 // WalletServiceClient is a client for the wallet.v1.WalletService service.
@@ -76,6 +78,7 @@ type WalletServiceClient interface {
 	CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error)
 	SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error)
 	VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error)
+	GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error)
 }
 
 // NewWalletServiceClient constructs a client for the wallet.v1.WalletService service. By default,
@@ -143,6 +146,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("VerifyMessage")),
 			connect.WithClientOptions(opts...),
 		),
+		getStats: connect.NewClient[emptypb.Empty, v1.GetStatsResponse](
+			httpClient,
+			baseURL+WalletServiceGetStatsProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("GetStats")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -157,6 +166,7 @@ type walletServiceClient struct {
 	createSidechainDeposit *connect.Client[v1.CreateSidechainDepositRequest, v1.CreateSidechainDepositResponse]
 	signMessage            *connect.Client[v1.SignMessageRequest, v1.SignMessageResponse]
 	verifyMessage          *connect.Client[v1.VerifyMessageRequest, v1.VerifyMessageResponse]
+	getStats               *connect.Client[emptypb.Empty, v1.GetStatsResponse]
 }
 
 // SendTransaction calls wallet.v1.WalletService.SendTransaction.
@@ -204,6 +214,11 @@ func (c *walletServiceClient) VerifyMessage(ctx context.Context, req *connect.Re
 	return c.verifyMessage.CallUnary(ctx, req)
 }
 
+// GetStats calls wallet.v1.WalletService.GetStats.
+func (c *walletServiceClient) GetStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error) {
+	return c.getStats.CallUnary(ctx, req)
+}
+
 // WalletServiceHandler is an implementation of the wallet.v1.WalletService service.
 type WalletServiceHandler interface {
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
@@ -217,6 +232,7 @@ type WalletServiceHandler interface {
 	CreateSidechainDeposit(context.Context, *connect.Request[v1.CreateSidechainDepositRequest]) (*connect.Response[v1.CreateSidechainDepositResponse], error)
 	SignMessage(context.Context, *connect.Request[v1.SignMessageRequest]) (*connect.Response[v1.SignMessageResponse], error)
 	VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error)
+	GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error)
 }
 
 // NewWalletServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -280,6 +296,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("VerifyMessage")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServiceGetStatsHandler := connect.NewUnaryHandler(
+		WalletServiceGetStatsProcedure,
+		svc.GetStats,
+		connect.WithSchema(walletServiceMethods.ByName("GetStats")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wallet.v1.WalletService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WalletServiceSendTransactionProcedure:
@@ -300,6 +322,8 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceSignMessageHandler.ServeHTTP(w, r)
 		case WalletServiceVerifyMessageProcedure:
 			walletServiceVerifyMessageHandler.ServeHTTP(w, r)
+		case WalletServiceGetStatsProcedure:
+			walletServiceGetStatsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -343,4 +367,8 @@ func (UnimplementedWalletServiceHandler) SignMessage(context.Context, *connect.R
 
 func (UnimplementedWalletServiceHandler) VerifyMessage(context.Context, *connect.Request[v1.VerifyMessageRequest]) (*connect.Response[v1.VerifyMessageResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.VerifyMessage is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) GetStats(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.GetStats is not implemented"))
 }

@@ -14,7 +14,7 @@ int btcToSatoshi(double btc) {
 
 String formatBitcoin(num? number, {String symbol = 'BTC'}) {
   if (number == null || number.isNaN || number.isInfinite) {
-    return '0.0000,0000 $symbol';
+    return '0.0000,0000${symbol.isEmpty ? '' : ' $symbol'}';
   }
 
   // Ensure positive number and handle negatives
@@ -37,7 +37,7 @@ String formatBitcoin(num? number, {String symbol = 'BTC'}) {
     formattedDecimal = '${decimalPart.substring(0, 4)},${decimalPart.substring(4)}';
   }
 
-  return '${isNegative ? '-' : ''}$integerPart.$formattedDecimal $symbol';
+  return '${isNegative ? '-' : ''}$integerPart.$formattedDecimal${symbol.isEmpty ? '' : ' $symbol'}';
 }
 
 String formatDepositAddress(String address, int sidechainNum) {

@@ -450,7 +450,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Overview',
                     ),
                     TopNavRoute(
-                      label: 'Send / Receive',
+                      label: 'Wallet',
                     ),
                     TopNavRoute(
                       label: 'Sidechains',

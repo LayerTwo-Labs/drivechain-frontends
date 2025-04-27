@@ -19,6 +19,8 @@ service WalletService {
 
   rpc SignMessage(SignMessageRequest) returns (SignMessageResponse);
   rpc VerifyMessage(VerifyMessageRequest) returns (VerifyMessageResponse);
+
+  rpc GetStats(google.protobuf.Empty) returns (GetStatsResponse);
 }
 
 message GetNewAddressResponse {
@@ -66,7 +68,7 @@ message UnspentOutput {
   // What label (if any) the address received to is labeled with.
   string label = 3;
   // The value of the output, in satoshis.
-  string value = 4;
+  uint64 value = 4;
   // Timestamp of the utxo.
   google.protobuf.Timestamp received_at = 5;
 }
@@ -86,8 +88,10 @@ message WalletTransaction {
   uint64 fee_sats = 2;
   uint64 received_satoshi = 3;
   uint64 sent_satoshi = 4;
+  string address = 5;
+  string label = 6;
 
-  Confirmation confirmation_time = 5;
+  Confirmation confirmation_time = 7;
 }
 
 message ListSidechainDepositsRequest {
@@ -134,4 +138,13 @@ message VerifyMessageRequest {
 }
 message VerifyMessageResponse {
   bool valid = 1;
+}
+
+message GetStatsResponse {
+  uint64 utxos_current = 1;
+  uint64 utxos_unique_addresses = 2;
+  int64 sidechain_deposit_volume = 3;
+  int64 sidechain_deposit_volume_last_30_days = 4;
+  int64 transaction_count_total = 5;
+  int64 transaction_count_since_month = 6;
 }

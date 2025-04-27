@@ -3,25 +3,78 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
-class TransactionsTab extends StatelessWidget {
-  const TransactionsTab({super.key});
+class OverviewTab extends StatelessWidget {
+  const OverviewTab({super.key});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        return ViewModelBuilder<LatestWalletTransactionsViewModel>.reactive(
-          viewModelBuilder: () => LatestWalletTransactionsViewModel(),
+        return ViewModelBuilder<OverviewViewModel>.reactive(
+          viewModelBuilder: () => OverviewViewModel(),
           builder: (context, model, child) {
-            return TransactionTable(
-              entries: model.entries,
-              searchWidget: SailTextField(
-                controller: model.searchController,
-                hintText: 'Enter address or transaction id to search',
+            return SingleChildScrollView(
+              child: SailColumn(
+                spacing: SailStyleValues.padding16,
+                children: [
+                  SailRow(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    spacing: 16,
+                    children: [
+                      Expanded(
+                        child: SailCardStats(
+                          title: 'Balance',
+                          subtitle: '${formatBitcoin(model.pendingBalance)} pending',
+                          value: formatBitcoin(model.balance, symbol: ''),
+                          bitcoinAmount: true,
+                          icon: SailSVGAsset.bitcoin,
+                        ),
+                      ),
+                      Expanded(
+                        child: SailCardStats(
+                          title: 'Number of UTXOs',
+                          value: model.stats?.utxosCurrent.toString() ?? '0',
+                          subtitle:
+                              '${model.stats?.utxosUniqueAddresses.toString() ?? '0'} unique address${model.stats?.utxosUniqueAddresses.toInt() == 1 ? '' : 'es'}',
+                          icon: SailSVGAsset.bitcoin,
+                        ),
+                      ),
+                      Expanded(
+                        child: SailCardStats(
+                          title: 'Sidechain Deposit Volume',
+                          value: formatBitcoin(model.stats?.sidechainDepositVolume.toInt() ?? 0, symbol: ''),
+                          subtitle:
+                              '${formatBitcoin(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0, symbol: '')} last 30 days',
+                          bitcoinAmount: true,
+                          icon: SailSVGAsset.wallet,
+                        ),
+                      ),
+                      Expanded(
+                        child: SailCardStats(
+                          title: 'Transaction Count',
+                          value: model.stats?.transactionCountTotal.toString() ?? '0',
+                          subtitle: '${model.stats?.transactionCountSinceMonth.toString() ?? '0'} since last month',
+                          icon: SailSVGAsset.activity,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TransactionTable(
+                    entries: model.entries,
+                    searchWidget: SailTextField(
+                      controller: model.searchController,
+                      hintText: 'Enter address or transaction id to search',
+                    ),
+                  ),
+                ],
               ),
             );
           },
@@ -122,21 +175,26 @@ class _TransactionTableState extends State<TransactionTable> {
                 ),
                 child: widget.searchWidget,
               ),
-              Expanded(
+              SizedBox(
+                height: 300,
                 child: SailTable(
                   getRowId: (index) => widget.entries[index].txid,
                   headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'Conf Height',
-                      onSort: () => onSort('height'),
-                    ),
                     SailTableHeaderCell(
                       name: 'Date',
                       onSort: () => onSort('date'),
                     ),
                     SailTableHeaderCell(
-                      name: 'TxID',
-                      onSort: () => onSort('txid'),
+                      name: 'Output',
+                      // No sort implemented for output, but you can add if needed
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Address',
+                      // No sort implemented for address, but you can add if needed
+                    ),
+                    SailTableHeaderCell(
+                      name: 'Label',
+                      // No sort implemented for label, but you can add if needed
                     ),
                     SailTableHeaderCell(
                       name: 'Amount',
@@ -145,19 +203,20 @@ class _TransactionTableState extends State<TransactionTable> {
                   ],
                   rowBuilder: (context, row, selected) {
                     final entry = widget.entries[row];
-                    final amount = entry.receivedSatoshi != 0
-                        ? formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt()))
-                        : formatBitcoin(satoshiToBTC(entry.sentSatoshi.toInt()));
-
+                    // Format date as "2024 Aug 08"
+                    final formattedDate =
+                        DateFormat('yyyy MMM dd').format(entry.confirmationTime.timestamp.toDateTime().toLocal());
+                    // Format amount without BTC symbol
+                    final formattedAmount = formatBitcoin(
+                      satoshiToBTC(
+                        entry.receivedSatoshi != 0 ? entry.receivedSatoshi.toInt() : entry.sentSatoshi.toInt(),
+                      ),
+                      symbol: '',
+                    );
+                    // Assuming output, address, label fields exist on WalletTransaction
                     return [
                       SailTableCell(
-                        value: entry.confirmationTime.height == 0
-                            ? 'Unconfirmed'
-                            : entry.confirmationTime.height.toString(),
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: entry.confirmationTime.timestamp.toDateTime().toLocal().format(),
+                        value: formattedDate,
                         monospace: true,
                       ),
                       SailTableCell(
@@ -165,23 +224,30 @@ class _TransactionTableState extends State<TransactionTable> {
                         monospace: true,
                       ),
                       SailTableCell(
-                        value: amount,
+                        value: entry.address,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: entry.label,
+                        monospace: true,
+                      ),
+                      SailTableCell(
+                        value: formattedAmount,
                         monospace: true,
                       ),
                     ];
                   },
                   rowCount: widget.entries.length,
-                  columnWidths: const [100, 150, 200, 150],
+                  columnWidths: const [120, 120, 320, 120, 120],
                   drawGrid: true,
                   sortColumnIndex: [
-                    'height',
                     'date',
-                    'txid',
+                    // Add indices for output, address, label if you implement sorting
                     'amount',
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
+                    onSort(['date', 'output', 'address', 'label', 'amount'][columnIndex]);
                   },
                   onDoubleTap: (rowId) {
                     final utxo = widget.entries.firstWhere(
@@ -227,28 +293,44 @@ class _TransactionTableState extends State<TransactionTable> {
   }
 }
 
-class LatestWalletTransactionsViewModel extends BaseViewModel {
+class OverviewViewModel extends BaseViewModel {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
+  final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
+  final BalanceProvider _balanceProvider = GetIt.I<BalanceProvider>();
+
   List<WalletTransaction> get entries => _txProvider.walletTransactions
       .where(
         (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
       )
       .toList();
 
+  double get balance => _balanceProvider.balance;
+  double get pendingBalance => _balanceProvider.pendingBalance;
+
   String sortColumn = 'date';
   bool sortAscending = true;
+  GetStatsResponse? stats;
 
   final TextEditingController searchController = TextEditingController();
 
-  LatestWalletTransactionsViewModel() {
+  OverviewViewModel() {
     searchController.addListener(notifyListeners);
     _txProvider.addListener(notifyListeners);
+    _txProvider.addListener(getStats);
+    _balanceProvider.addListener(getStats);
+    getStats();
+  }
+
+  Future<void> getStats() async {
+    stats = await _bitwindowRPC.wallet.getStats();
+    notifyListeners();
   }
 
   @override
   void dispose() {
     searchController.removeListener(notifyListeners);
     _txProvider.removeListener(notifyListeners);
+    _txProvider.removeListener(getStats);
     super.dispose();
   }
 }

@@ -208,6 +208,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
   @override
   Widget build(BuildContext context) {
     return SailCard(
+      key: Key('address-book-${widget.direction}'),
       title: widget.direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
       subtitle: widget.viewModel.error('create') ??
           widget.viewModel.error('edit') ??
