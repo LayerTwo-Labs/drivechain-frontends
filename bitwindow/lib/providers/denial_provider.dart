@@ -12,7 +12,7 @@ class DenialProvider extends ChangeNotifier {
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
   TransactionProvider get transactionProvider => GetIt.I.get<TransactionProvider>();
 
-  List<UnspentOutput> utxos = [];
+  List<DeniabilityUTXO> utxos = [];
   bool initialized = false;
   String? error;
 
@@ -48,7 +48,7 @@ class DenialProvider extends ChangeNotifier {
   }
 
   bool _dataHasChanged(
-    List<UnspentOutput> newUTXOs,
+    List<DeniabilityUTXO> newUTXOs,
   ) {
     if (newUTXOs.length != utxos.length) {
       return true;
@@ -70,8 +70,8 @@ class DenialProvider extends ChangeNotifier {
   }
 }
 
-extension UnspentOutputExtensions on UnspentOutput {
-  bool isEqual(UnspentOutput other) {
+extension UnspentOutputExtensions on DeniabilityUTXO {
+  bool isEqual(DeniabilityUTXO other) {
     return toDebugString() == other.toDebugString();
   }
 }

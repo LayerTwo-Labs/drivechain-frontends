@@ -19,8 +19,9 @@ abstract final class ValidatorService {
     cusfmainchainv1validator.GetBlockHeaderInfoResponse.new,
   );
 
-  /// Fetches information about a specific mainchain block, and how it pertains
-  /// to events happening on a specific sidechain.
+  /// Fetches information about a specific mainchain block (and optionally,
+  /// it's ancestors), regarding how it pertains to events happening on a
+  /// specific sidechain.
   static const getBlockInfo = connect.Spec(
     '/$name/GetBlockInfo',
     connect.StreamType.unary,

@@ -352,6 +352,163 @@ class ListTransactionsResponse extends $pb.GeneratedMessage {
   $core.List<WalletTransaction> get transactions => $_getList(0);
 }
 
+class UnspentOutput extends $pb.GeneratedMessage {
+  factory UnspentOutput({
+    $core.String? output,
+    $core.String? address,
+    $core.String? label,
+    $core.String? value,
+    $0.Timestamp? receivedAt,
+  }) {
+    final $result = create();
+    if (output != null) {
+      $result.output = output;
+    }
+    if (address != null) {
+      $result.address = address;
+    }
+    if (label != null) {
+      $result.label = label;
+    }
+    if (value != null) {
+      $result.value = value;
+    }
+    if (receivedAt != null) {
+      $result.receivedAt = receivedAt;
+    }
+    return $result;
+  }
+  UnspentOutput._() : super();
+  factory UnspentOutput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UnspentOutput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnspentOutput', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'output')
+    ..aOS(2, _omitFieldNames ? '' : 'address')
+    ..aOS(3, _omitFieldNames ? '' : 'label')
+    ..aOS(4, _omitFieldNames ? '' : 'value')
+    ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UnspentOutput clone() => UnspentOutput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UnspentOutput copyWith(void Function(UnspentOutput) updates) => super.copyWith((message) => updates(message as UnspentOutput)) as UnspentOutput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UnspentOutput create() => UnspentOutput._();
+  UnspentOutput createEmptyInstance() => create();
+  static $pb.PbList<UnspentOutput> createRepeated() => $pb.PbList<UnspentOutput>();
+  @$core.pragma('dart2js:noInline')
+  static UnspentOutput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnspentOutput>(create);
+  static UnspentOutput? _defaultInstance;
+
+  /// The vout:index of the utxo
+  @$pb.TagNumber(1)
+  $core.String get output => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set output($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasOutput() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOutput() => clearField(1);
+
+  /// What address the utxo was received to.
+  @$pb.TagNumber(2)
+  $core.String get address => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set address($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAddress() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddress() => clearField(2);
+
+  /// What label (if any) the address received to is labeled with.
+  @$pb.TagNumber(3)
+  $core.String get label => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set label($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasLabel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLabel() => clearField(3);
+
+  /// The value of the output, in satoshis.
+  @$pb.TagNumber(4)
+  $core.String get value => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set value($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasValue() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearValue() => clearField(4);
+
+  /// Timestamp of the utxo.
+  @$pb.TagNumber(5)
+  $0.Timestamp get receivedAt => $_getN(4);
+  @$pb.TagNumber(5)
+  set receivedAt($0.Timestamp v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasReceivedAt() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearReceivedAt() => clearField(5);
+  @$pb.TagNumber(5)
+  $0.Timestamp ensureReceivedAt() => $_ensure(4);
+}
+
+class ListUnspentResponse extends $pb.GeneratedMessage {
+  factory ListUnspentResponse({
+    $core.Iterable<UnspentOutput>? utxos,
+  }) {
+    final $result = create();
+    if (utxos != null) {
+      $result.utxos.addAll(utxos);
+    }
+    return $result;
+  }
+  ListUnspentResponse._() : super();
+  factory ListUnspentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListUnspentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListUnspentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..pc<UnspentOutput>(1, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListUnspentResponse clone() => ListUnspentResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListUnspentResponse copyWith(void Function(ListUnspentResponse) updates) => super.copyWith((message) => updates(message as ListUnspentResponse)) as ListUnspentResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentResponse create() => ListUnspentResponse._();
+  ListUnspentResponse createEmptyInstance() => create();
+  static $pb.PbList<ListUnspentResponse> createRepeated() => $pb.PbList<ListUnspentResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListUnspentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListUnspentResponse>(create);
+  static ListUnspentResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<UnspentOutput> get utxos => $_getList(0);
+}
+
 class Confirmation extends $pb.GeneratedMessage {
   factory Confirmation({
     $core.int? height,
@@ -1115,6 +1272,9 @@ class WalletServiceApi {
   ;
   $async.Future<ListTransactionsResponse> listTransactions($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<ListTransactionsResponse>(ctx, 'WalletService', 'ListTransactions', request, ListTransactionsResponse())
+  ;
+  $async.Future<ListUnspentResponse> listUnspent($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<ListUnspentResponse>(ctx, 'WalletService', 'ListUnspent', request, ListUnspentResponse())
   ;
   $async.Future<ListSidechainDepositsResponse> listSidechainDeposits($pb.ClientContext? ctx, ListSidechainDepositsRequest request) =>
     _client.invoke<ListSidechainDepositsResponse>(ctx, 'WalletService', 'ListSidechainDeposits', request, ListSidechainDepositsResponse())

@@ -214,6 +214,10 @@ const GetBlockInfoRequest$json = {
   '2': [
     {'1': 'block_hash', '3': 1, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'blockHash'},
     {'1': 'sidechain_id', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.UInt32Value', '10': 'sidechainId'},
+    {'1': 'max_ancestors', '3': 3, '4': 1, '5': 13, '9': 0, '10': 'maxAncestors', '17': true},
+  ],
+  '8': [
+    {'1': '_max_ancestors'},
   ],
 };
 
@@ -221,11 +225,22 @@ const GetBlockInfoRequest$json = {
 final $typed_data.Uint8List getBlockInfoRequestDescriptor = $convert.base64Decode(
     'ChNHZXRCbG9ja0luZm9SZXF1ZXN0EjkKCmJsb2NrX2hhc2gYASABKAsyGi5jdXNmLmNvbW1vbi'
     '52MS5SZXZlcnNlSGV4UglibG9ja0hhc2gSPwoMc2lkZWNoYWluX2lkGAIgASgLMhwuZ29vZ2xl'
-    'LnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZA==');
+    'LnByb3RvYnVmLlVJbnQzMlZhbHVlUgtzaWRlY2hhaW5JZBIoCg1tYXhfYW5jZXN0b3JzGAMgAS'
+    'gNSABSDG1heEFuY2VzdG9yc4gBAUIQCg5fbWF4X2FuY2VzdG9ycw==');
 
 @$core.Deprecated('Use getBlockInfoResponseDescriptor instead')
 const GetBlockInfoResponse$json = {
   '1': 'GetBlockInfoResponse',
+  '2': [
+    {'1': 'info', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.GetBlockInfoResponse.Info', '10': 'info'},
+    {'1': 'ancestor_infos', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.GetBlockInfoResponse.Info', '10': 'ancestorInfos'},
+  ],
+  '3': [GetBlockInfoResponse_Info$json],
+};
+
+@$core.Deprecated('Use getBlockInfoResponseDescriptor instead')
+const GetBlockInfoResponse_Info$json = {
+  '1': 'Info',
   '2': [
     {'1': 'header_info', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.BlockHeaderInfo', '10': 'headerInfo'},
     {'1': 'block_info', '3': 2, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.BlockInfo', '10': 'blockInfo'},
@@ -234,9 +249,12 @@ const GetBlockInfoResponse$json = {
 
 /// Descriptor for `GetBlockInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockInfoResponseDescriptor = $convert.base64Decode(
-    'ChRHZXRCbG9ja0luZm9SZXNwb25zZRJDCgtoZWFkZXJfaW5mbxgBIAEoCzIiLmN1c2YubWFpbm'
-    'NoYWluLnYxLkJsb2NrSGVhZGVySW5mb1IKaGVhZGVySW5mbxI7CgpibG9ja19pbmZvGAIgASgL'
-    'MhwuY3VzZi5tYWluY2hhaW4udjEuQmxvY2tJbmZvUglibG9ja0luZm8=');
+    'ChRHZXRCbG9ja0luZm9SZXNwb25zZRJACgRpbmZvGAEgASgLMiwuY3VzZi5tYWluY2hhaW4udj'
+    'EuR2V0QmxvY2tJbmZvUmVzcG9uc2UuSW5mb1IEaW5mbxJTCg5hbmNlc3Rvcl9pbmZvcxgCIAMo'
+    'CzIsLmN1c2YubWFpbmNoYWluLnYxLkdldEJsb2NrSW5mb1Jlc3BvbnNlLkluZm9SDWFuY2VzdG'
+    '9ySW5mb3MaiAEKBEluZm8SQwoLaGVhZGVyX2luZm8YASABKAsyIi5jdXNmLm1haW5jaGFpbi52'
+    'MS5CbG9ja0hlYWRlckluZm9SCmhlYWRlckluZm8SOwoKYmxvY2tfaW5mbxgCIAEoCzIcLmN1c2'
+    'YubWFpbmNoYWluLnYxLkJsb2NrSW5mb1IJYmxvY2tJbmZv');
 
 @$core.Deprecated('Use getBmmHStarCommitmentRequestDescriptor instead')
 const GetBmmHStarCommitmentRequest$json = {
@@ -781,6 +799,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ValidatorS
   '.cusf.mainchain.v1.GetBlockInfoRequest': GetBlockInfoRequest$json,
   '.google.protobuf.UInt32Value': $0.UInt32Value$json,
   '.cusf.mainchain.v1.GetBlockInfoResponse': GetBlockInfoResponse$json,
+  '.cusf.mainchain.v1.GetBlockInfoResponse.Info': GetBlockInfoResponse_Info$json,
   '.cusf.mainchain.v1.BlockInfo': BlockInfo$json,
   '.cusf.mainchain.v1.BlockInfo.Event': BlockInfo_Event$json,
   '.cusf.mainchain.v1.Deposit': Deposit$json,

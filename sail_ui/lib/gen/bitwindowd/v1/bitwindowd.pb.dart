@@ -115,7 +115,7 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
 
 class ListDenialsResponse extends $pb.GeneratedMessage {
   factory ListDenialsResponse({
-    $core.Iterable<UnspentOutput>? utxos,
+    $core.Iterable<DeniabilityUTXO>? utxos,
   }) {
     final $result = create();
     if (utxos != null) {
@@ -128,7 +128,7 @@ class ListDenialsResponse extends $pb.GeneratedMessage {
   factory ListDenialsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDenialsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..pc<UnspentOutput>(1, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
+    ..pc<DeniabilityUTXO>(1, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: DeniabilityUTXO.create)
     ..hasRequiredFields = false
   ;
 
@@ -154,11 +154,11 @@ class ListDenialsResponse extends $pb.GeneratedMessage {
   static ListDenialsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.List<UnspentOutput> get utxos => $_getList(0);
+  $core.List<DeniabilityUTXO> get utxos => $_getList(0);
 }
 
-class UnspentOutput extends $pb.GeneratedMessage {
-  factory UnspentOutput({
+class DeniabilityUTXO extends $pb.GeneratedMessage {
+  factory DeniabilityUTXO({
     $core.String? txid,
     $core.int? vout,
     $fixnum.Int64? valueSats,
@@ -183,11 +183,11 @@ class UnspentOutput extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  UnspentOutput._() : super();
-  factory UnspentOutput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UnspentOutput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  DeniabilityUTXO._() : super();
+  factory DeniabilityUTXO.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DeniabilityUTXO.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UnspentOutput', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeniabilityUTXO', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
@@ -200,22 +200,22 @@ class UnspentOutput extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  UnspentOutput clone() => UnspentOutput()..mergeFromMessage(this);
+  DeniabilityUTXO clone() => DeniabilityUTXO()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  UnspentOutput copyWith(void Function(UnspentOutput) updates) => super.copyWith((message) => updates(message as UnspentOutput)) as UnspentOutput;
+  DeniabilityUTXO copyWith(void Function(DeniabilityUTXO) updates) => super.copyWith((message) => updates(message as DeniabilityUTXO)) as DeniabilityUTXO;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static UnspentOutput create() => UnspentOutput._();
-  UnspentOutput createEmptyInstance() => create();
-  static $pb.PbList<UnspentOutput> createRepeated() => $pb.PbList<UnspentOutput>();
+  static DeniabilityUTXO create() => DeniabilityUTXO._();
+  DeniabilityUTXO createEmptyInstance() => create();
+  static $pb.PbList<DeniabilityUTXO> createRepeated() => $pb.PbList<DeniabilityUTXO>();
   @$core.pragma('dart2js:noInline')
-  static UnspentOutput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UnspentOutput>(create);
-  static UnspentOutput? _defaultInstance;
+  static DeniabilityUTXO getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeniabilityUTXO>(create);
+  static DeniabilityUTXO? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);

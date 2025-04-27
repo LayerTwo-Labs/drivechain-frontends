@@ -27,8 +27,9 @@ extension type ValidatorServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Fetches information about a specific mainchain block, and how it pertains
-  /// to events happening on a specific sidechain.
+  /// Fetches information about a specific mainchain block (and optionally,
+  /// it's ancestors), regarding how it pertains to events happening on a
+  /// specific sidechain.
   Future<cusfmainchainv1validator.GetBlockInfoResponse> getBlockInfo(
     cusfmainchainv1validator.GetBlockInfoRequest input, {
     connect.Headers? headers,

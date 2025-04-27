@@ -44,7 +44,7 @@ class DeniabilityTab extends StatelessWidget {
 class DeniabilityTable extends StatefulWidget {
   final NewWindowIdentifier? newWindowIdentifier;
   final String? error;
-  final List<UnspentOutput> utxos;
+  final List<DeniabilityUTXO> utxos;
   final void Function(String txid, int vout) onDeny;
   final void Function(Int64) onCancel;
 
@@ -277,7 +277,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     );
   }
 
-  void _showUtxoDetails(BuildContext context, UnspentOutput utxo) {
+  void _showUtxoDetails(BuildContext context, DeniabilityUTXO utxo) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -354,7 +354,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     );
   }
 
-  String _getDeniabilityStatus(UnspentOutput utxo) {
+  String _getDeniabilityStatus(DeniabilityUTXO utxo) {
     if (!utxo.hasDeniability()) return 'No deniability';
     if (utxo.deniability.hasCancelTime()) return 'Cancelled';
 
@@ -370,7 +370,7 @@ class DeniabilityViewModel extends BaseViewModel {
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
   final DenialProvider denialProvider = GetIt.I.get<DenialProvider>();
 
-  List<UnspentOutput> get utxos => denialProvider.utxos;
+  List<DeniabilityUTXO> get utxos => denialProvider.utxos;
 
   DeniabilityViewModel() {
     denialProvider.addListener(notifyListeners);

@@ -52,18 +52,18 @@ final $typed_data.Uint8List createDenialRequestDescriptor = $convert.base64Decod
 const ListDenialsResponse$json = {
   '1': 'ListDenialsResponse',
   '2': [
-    {'1': 'utxos', '3': 1, '4': 3, '5': 11, '6': '.bitwindowd.v1.UnspentOutput', '10': 'utxos'},
+    {'1': 'utxos', '3': 1, '4': 3, '5': 11, '6': '.bitwindowd.v1.DeniabilityUTXO', '10': 'utxos'},
   ],
 };
 
 /// Descriptor for `ListDenialsResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listDenialsResponseDescriptor = $convert.base64Decode(
-    'ChNMaXN0RGVuaWFsc1Jlc3BvbnNlEjIKBXV0eG9zGAEgAygLMhwuYml0d2luZG93ZC52MS5Vbn'
-    'NwZW50T3V0cHV0UgV1dHhvcw==');
+    'ChNMaXN0RGVuaWFsc1Jlc3BvbnNlEjQKBXV0eG9zGAEgAygLMh4uYml0d2luZG93ZC52MS5EZW'
+    '5pYWJpbGl0eVVUWE9SBXV0eG9z');
 
-@$core.Deprecated('Use unspentOutputDescriptor instead')
-const UnspentOutput$json = {
-  '1': 'UnspentOutput',
+@$core.Deprecated('Use deniabilityUTXODescriptor instead')
+const DeniabilityUTXO$json = {
+  '1': 'DeniabilityUTXO',
   '2': [
     {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
     {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
@@ -76,12 +76,12 @@ const UnspentOutput$json = {
   ],
 };
 
-/// Descriptor for `UnspentOutput`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
-    'Cg1VbnNwZW50T3V0cHV0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoDVIEdm91dB'
-    'IdCgp2YWx1ZV9zYXRzGAMgASgEUgl2YWx1ZVNhdHMSHwoLaXNfaW50ZXJuYWwYBCABKAhSCmlz'
-    'SW50ZXJuYWwSRQoLZGVuaWFiaWxpdHkYBSABKAsyHi5iaXR3aW5kb3dkLnYxLkRlbmlhYmlsaX'
-    'R5SW5mb0gAUgtkZW5pYWJpbGl0eYgBAUIOCgxfZGVuaWFiaWxpdHk=');
+/// Descriptor for `DeniabilityUTXO`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deniabilityUTXODescriptor = $convert.base64Decode(
+    'Cg9EZW5pYWJpbGl0eVVUWE8SEgoEdHhpZBgBIAEoCVIEdHhpZBISCgR2b3V0GAIgASgNUgR2b3'
+    'V0Eh0KCnZhbHVlX3NhdHMYAyABKARSCXZhbHVlU2F0cxIfCgtpc19pbnRlcm5hbBgEIAEoCFIK'
+    'aXNJbnRlcm5hbBJFCgtkZW5pYWJpbGl0eRgFIAEoCzIeLmJpdHdpbmRvd2QudjEuRGVuaWFiaW'
+    'xpdHlJbmZvSABSC2RlbmlhYmlsaXR5iAEBQg4KDF9kZW5pYWJpbGl0eQ==');
 
 @$core.Deprecated('Use deniabilityInfoDescriptor instead')
 const DeniabilityInfo$json = {
@@ -269,7 +269,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.google.protobuf.Empty': $1.Empty$json,
   '.bitwindowd.v1.CreateDenialRequest': CreateDenialRequest$json,
   '.bitwindowd.v1.ListDenialsResponse': ListDenialsResponse$json,
-  '.bitwindowd.v1.UnspentOutput': UnspentOutput$json,
+  '.bitwindowd.v1.DeniabilityUTXO': DeniabilityUTXO$json,
   '.bitwindowd.v1.DeniabilityInfo': DeniabilityInfo$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
   '.bitwindowd.v1.ExecutedDenial': ExecutedDenial$json,

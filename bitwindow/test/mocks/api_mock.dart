@@ -90,7 +90,7 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
-  Future<List<UnspentOutput>> listDenials() {
+  Future<List<DeniabilityUTXO>> listDenials() {
     return Future.value([]);
   }
 
@@ -152,6 +152,11 @@ class MockWalletAPI implements WalletAPI {
 
   @override
   Future<List<WalletTransaction>> listTransactions() async {
+    return [];
+  }
+
+  @override
+  Future<List<UnspentOutput>> listUnspent() async {
     return [];
   }
 
