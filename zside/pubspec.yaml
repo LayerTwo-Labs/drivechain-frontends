@@ -23,7 +23,6 @@ dependencies:
   flutter_highlighter: ^0.1.1
   logger: ^2.5.0
   dio: 5.7.0
-  wallet: ^0.0.17
   auto_route: ^9.3.0+1
   get_it: ^7.7.0
   qr_flutter: ^4.1.0
@@ -33,11 +32,6 @@ dependencies:
   desktop_multi_window: ^0.2.1
   synchronized: ^3.3.1
   intl: ^0.20.2
-  web3dart:
-    git:
-      url: https://github.com/xclud/web3dart.git
-      ref: main
-    version: 3.0.0
   http: ^1.3.0
   path_provider: ^2.1.5
   crypto: ^3.0.5

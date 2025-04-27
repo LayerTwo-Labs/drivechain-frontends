@@ -80,10 +80,6 @@ abstract class Binary {
       return Bitnames();
     }
 
-    if (EthereumSidechain().name.toLowerCase() == name) {
-      return EthereumSidechain();
-    }
-
     if (TestSidechain().name.toLowerCase() == name) {
       return TestSidechain();
     }
@@ -110,8 +106,6 @@ abstract class Binary {
       base = TestSidechain();
     } else if (name == ZCash().name) {
       base = ZCash();
-    } else if (name == EthereumSidechain().name) {
-      base = EthereumSidechain();
     } else if (name == Thunder().name) {
       base = Thunder();
     } else if (name == Bitnames().name) {
@@ -939,7 +933,6 @@ extension BinaryPaths on Binary {
   String confFile() {
     return switch (this) {
       var b when b is TestSidechain => 'testchain.conf',
-      var b when b is EthereumSidechain => 'config.toml',
       var b when b is ZCash => 'zcash.conf',
       var b when b is ParentChain => 'bitcoin.conf',
       _ => throw 'unsupported binary type: $runtimeType',
@@ -949,7 +942,6 @@ extension BinaryPaths on Binary {
   String logPath() {
     return switch (this) {
       var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
-      var b when b is EthereumSidechain => filePath([datadir(), 'ethereum.log']),
       var b when b is ZCash => filePath([datadir(), 'regtest', 'debug.log']),
       var b when b is Thunder => filePath([datadir(), 'logs', 'TODO.log']),
       var b when b is Bitnames => filePath([datadir(), 'logs', 'TODO.log']),
