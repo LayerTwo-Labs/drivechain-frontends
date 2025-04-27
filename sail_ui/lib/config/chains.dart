@@ -20,9 +20,6 @@ abstract class Sidechain extends Binary {
 
   static Sidechain? fromString(String input) {
     switch (input.toLowerCase()) {
-      case 'ethereum':
-        return EthereumSidechain();
-
       case 'testchain':
         return TestSidechain();
 
@@ -206,69 +203,6 @@ class ZCash extends Sidechain {
     int? chainLayer,
   }) {
     return ZCash(
-      name: name,
-      version: version ?? this.version,
-      description: description ?? this.description,
-      repoUrl: repoUrl ?? this.repoUrl,
-      directories: directories ?? this.directories,
-      metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
-      network: network ?? this.network,
-      chainLayer: chainLayer ?? this.chainLayer,
-    );
-  }
-}
-
-class EthereumSidechain extends Sidechain {
-  EthereumSidechain({
-    super.name = 'EthSide',
-    super.version = '0.1.0',
-    super.description = 'Ethereum Sidechain',
-    super.repoUrl = 'https://github.com/drivechain-project/ethside',
-    DirectoryConfig? directories,
-    MetadataConfig? metadata,
-    super.binary = 'sidegeth',
-    NetworkConfig? network,
-    super.chainLayer = 2,
-  }) : super(
-          directories: directories ??
-              DirectoryConfig(
-                base: {
-                  OS.linux: '.ethside',
-                  OS.macos: 'EthSide',
-                  OS.windows: 'EthSide',
-                },
-              ),
-          metadata: metadata ??
-              MetadataConfig(
-                baseUrl: 'https://releases.drivechain.info/old-pre-cusf/',
-                files: {
-                  OS.linux: 'L2-S6-EthSide-latest-x86_64-unknown-linux-gnu.zip',
-                  OS.macos: 'L2-S6-EthSide-latest-x86_64-apple-darwin.zip',
-                  OS.windows: 'L2-S6-EthSide-latest-x86_64-w64-mingw32.zip',
-                },
-              ),
-          network: network ?? NetworkConfig(port: 8545),
-        );
-
-  @override
-  int slot = 6;
-
-  @override
-  Color color = SailColorScheme.purple;
-
-  @override
-  EthereumSidechain copyWith({
-    String? version,
-    String? description,
-    String? repoUrl,
-    DirectoryConfig? directories,
-    MetadataConfig? metadata,
-    String? binary,
-    NetworkConfig? network,
-    int? chainLayer,
-  }) {
-    return EthereumSidechain(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,

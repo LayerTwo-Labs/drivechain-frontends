@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:thunder/pages/tabs/ethereum/ethereum_rpc_tab_page.dart';
 import 'package:thunder/pages/tabs/home_page.dart';
 import 'package:thunder/pages/tabs/settings/settings_tab.dart';
 import 'package:thunder/pages/tabs/sidechain_overview_page.dart';
@@ -48,9 +47,6 @@ class AppRouter extends RootStackRouter {
             ),
             AutoRoute(
               page: TestchainRPCTabRoute.page,
-            ),
-            AutoRoute(
-              page: EthereumRPCTabRoute.page,
             ),
             AutoRoute(
               page: SettingsTabRoute.page,

@@ -48,25 +48,6 @@ class DepositWithdrawTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [EthereumRPCTabPage]
-class EthereumRPCTabRoute extends PageRouteInfo<void> {
-  const EthereumRPCTabRoute({List<PageRouteInfo>? children})
-      : super(
-          EthereumRPCTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'EthereumRPCTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const EthereumRPCTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
   const HomeRoute({List<PageRouteInfo>? children})

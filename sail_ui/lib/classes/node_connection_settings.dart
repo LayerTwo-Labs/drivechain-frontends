@@ -226,18 +226,6 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
         // do nothing, just don't exit
       }
       break;
-    case EthereumSidechain():
-      try {
-        conf = await readRPCConfig(
-          EthereumSidechain().datadir(),
-          EthereumSidechain().confFile(),
-          EthereumSidechain(),
-          network,
-        );
-      } catch (error) {
-        // do nothing, just don't exit
-      }
-      break;
     case ZCash():
       try {
         conf = await readRPCConfig(

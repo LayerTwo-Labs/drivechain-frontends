@@ -14,7 +14,7 @@ part of 'router.dart';
 /// [BlindMergedMiningTabPage]
 class BlindMergedMiningTabRoute extends PageRouteInfo<void> {
   const BlindMergedMiningTabRoute({List<PageRouteInfo>? children})
-    : super(BlindMergedMiningTabRoute.name, initialChildren: children);
+      : super(BlindMergedMiningTabRoute.name, initialChildren: children);
 
   static const String name = 'BlindMergedMiningTabRoute';
 
@@ -30,7 +30,7 @@ class BlindMergedMiningTabRoute extends PageRouteInfo<void> {
 /// [DepositWithdrawTabPage]
 class DepositWithdrawTabRoute extends PageRouteInfo<void> {
   const DepositWithdrawTabRoute({List<PageRouteInfo>? children})
-    : super(DepositWithdrawTabRoute.name, initialChildren: children);
+      : super(DepositWithdrawTabRoute.name, initialChildren: children);
 
   static const String name = 'DepositWithdrawTabRoute';
 
@@ -43,26 +43,9 @@ class DepositWithdrawTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [EthereumRPCTabPage]
-class EthereumRPCTabRoute extends PageRouteInfo<void> {
-  const EthereumRPCTabRoute({List<PageRouteInfo>? children})
-    : super(EthereumRPCTabRoute.name, initialChildren: children);
-
-  static const String name = 'EthereumRPCTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const EthereumRPCTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children})
-    : super(HomeRoute.name, initialChildren: children);
+  const HomeRoute({List<PageRouteInfo>? children}) : super(HomeRoute.name, initialChildren: children);
 
   static const String name = 'HomeRoute';
 
@@ -82,10 +65,10 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
     required Widget child,
     List<PageRouteInfo>? children,
   }) : super(
-         SailTestRoute.name,
-         args: SailTestRouteArgs(key: key, child: child),
-         initialChildren: children,
-       );
+          SailTestRoute.name,
+          args: SailTestRouteArgs(key: key, child: child),
+          initialChildren: children,
+        );
 
   static const String name = 'SailTestRoute';
 
@@ -114,8 +97,7 @@ class SailTestRouteArgs {
 /// generated route for
 /// [SettingsTabPage]
 class SettingsTabRoute extends PageRouteInfo<void> {
-  const SettingsTabRoute({List<PageRouteInfo>? children})
-    : super(SettingsTabRoute.name, initialChildren: children);
+  const SettingsTabRoute({List<PageRouteInfo>? children}) : super(SettingsTabRoute.name, initialChildren: children);
 
   static const String name = 'SettingsTabRoute';
 
@@ -131,7 +113,7 @@ class SettingsTabRoute extends PageRouteInfo<void> {
 /// [SidechainOverviewTabPage]
 class SidechainOverviewTabRoute extends PageRouteInfo<void> {
   const SidechainOverviewTabRoute({List<PageRouteInfo>? children})
-    : super(SidechainOverviewTabRoute.name, initialChildren: children);
+      : super(SidechainOverviewTabRoute.name, initialChildren: children);
 
   static const String name = 'SidechainOverviewTabRoute';
 
@@ -147,7 +129,7 @@ class SidechainOverviewTabRoute extends PageRouteInfo<void> {
 /// [TestchainRPCTabPage]
 class TestchainRPCTabRoute extends PageRouteInfo<void> {
   const TestchainRPCTabRoute({List<PageRouteInfo>? children})
-    : super(TestchainRPCTabRoute.name, initialChildren: children);
+      : super(TestchainRPCTabRoute.name, initialChildren: children);
 
   static const String name = 'TestchainRPCTabRoute';
 
