@@ -7,10 +7,13 @@ format:
 lint: format fix
 
 gen-enforcer:
-    buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
+    cd server && buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 
-gen: gen-enforcer
-    buf generate ../../servers/bitwindow
+gen: gen-enforcer gen-bitwindow-client
+    cd server && buf generate --template buf.go.gen.yaml .
+
+gen-bitwindow-client:
+    cd ../sail_ui && just gen
 
 clean:
     rm assets/bin/*

@@ -17,6 +17,7 @@ class TransactionProvider extends ChangeNotifier {
 
   String address = '';
   List<WalletTransaction> walletTransactions = [];
+  List<UnspentOutput> utxos = [];
   bool initialized = false;
   String? error;
 
@@ -52,10 +53,12 @@ class TransactionProvider extends ChangeNotifier {
     try {
       final newTXs = await api.wallet.listTransactions();
       final newAddress = await api.wallet.getNewAddress();
+      final newUTXOs = await api.wallet.listUnspent();
 
-      if (_dataHasChanged(newTXs, newAddress)) {
+      if (_dataHasChanged(newTXs, newAddress, newUTXOs)) {
         walletTransactions = newTXs;
         address = newAddress;
+        utxos = newUTXOs;
         initialized = true;
         error = null;
         notifyListeners();
@@ -71,13 +74,24 @@ class TransactionProvider extends ChangeNotifier {
   bool _dataHasChanged(
     List<WalletTransaction> newTXs,
     String newAddress,
+    List<UnspentOutput> newUTXOs,
   ) {
     if (newTXs.length != walletTransactions.length) {
       return true;
     }
 
+    if (newUTXOs.length != utxos.length) {
+      return true;
+    }
+
     for (int i = 0; i < newTXs.length; i++) {
       if (!walletTransactions[i].isEqual(newTXs[i])) {
+        return true;
+      }
+    }
+
+    for (int i = 0; i < newUTXOs.length; i++) {
+      if (!utxos[i].isEqual(newUTXOs[i])) {
         return true;
       }
     }
@@ -96,6 +110,12 @@ class TransactionProvider extends ChangeNotifier {
 
 extension WalletTransactionExtensions on WalletTransaction {
   bool isEqual(WalletTransaction other) {
+    return toDebugString() == other.toDebugString();
+  }
+}
+
+extension UnspentOutputExtensions on UnspentOutput {
+  bool isEqual(UnspentOutput other) {
     return toDebugString() == other.toDebugString();
   }
 }

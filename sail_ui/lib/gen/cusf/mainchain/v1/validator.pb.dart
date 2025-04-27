@@ -853,6 +853,7 @@ class GetBlockInfoRequest extends $pb.GeneratedMessage {
   factory GetBlockInfoRequest({
     $1.ReverseHex? blockHash,
     $0.UInt32Value? sidechainId,
+    $core.int? maxAncestors,
   }) {
     final $result = create();
     if (blockHash != null) {
@@ -860,6 +861,9 @@ class GetBlockInfoRequest extends $pb.GeneratedMessage {
     }
     if (sidechainId != null) {
       $result.sidechainId = sidechainId;
+    }
+    if (maxAncestors != null) {
+      $result.maxAncestors = maxAncestors;
     }
     return $result;
   }
@@ -870,6 +874,7 @@ class GetBlockInfoRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockInfoRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..aOM<$1.ReverseHex>(1, _omitFieldNames ? '' : 'blockHash', subBuilder: $1.ReverseHex.create)
     ..aOM<$0.UInt32Value>(2, _omitFieldNames ? '' : 'sidechainId', subBuilder: $0.UInt32Value.create)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'maxAncestors', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false
   ;
 
@@ -917,10 +922,21 @@ class GetBlockInfoRequest extends $pb.GeneratedMessage {
   void clearSidechainId() => clearField(2);
   @$pb.TagNumber(2)
   $0.UInt32Value ensureSidechainId() => $_ensure(1);
+
+  /// Request block info for up to `max_ancestors` ancestors.
+  /// Fewer ancestors MAY be returned.
+  @$pb.TagNumber(3)
+  $core.int get maxAncestors => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set maxAncestors($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMaxAncestors() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMaxAncestors() => clearField(3);
 }
 
-class GetBlockInfoResponse extends $pb.GeneratedMessage {
-  factory GetBlockInfoResponse({
+class GetBlockInfoResponse_Info extends $pb.GeneratedMessage {
+  factory GetBlockInfoResponse_Info({
     BlockHeaderInfo? headerInfo,
     BlockInfo? blockInfo,
   }) {
@@ -933,13 +949,84 @@ class GetBlockInfoResponse extends $pb.GeneratedMessage {
     }
     return $result;
   }
+  GetBlockInfoResponse_Info._() : super();
+  factory GetBlockInfoResponse_Info.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBlockInfoResponse_Info.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockInfoResponse.Info', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..aOM<BlockHeaderInfo>(1, _omitFieldNames ? '' : 'headerInfo', subBuilder: BlockHeaderInfo.create)
+    ..aOM<BlockInfo>(2, _omitFieldNames ? '' : 'blockInfo', subBuilder: BlockInfo.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBlockInfoResponse_Info clone() => GetBlockInfoResponse_Info()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBlockInfoResponse_Info copyWith(void Function(GetBlockInfoResponse_Info) updates) => super.copyWith((message) => updates(message as GetBlockInfoResponse_Info)) as GetBlockInfoResponse_Info;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBlockInfoResponse_Info create() => GetBlockInfoResponse_Info._();
+  GetBlockInfoResponse_Info createEmptyInstance() => create();
+  static $pb.PbList<GetBlockInfoResponse_Info> createRepeated() => $pb.PbList<GetBlockInfoResponse_Info>();
+  @$core.pragma('dart2js:noInline')
+  static GetBlockInfoResponse_Info getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBlockInfoResponse_Info>(create);
+  static GetBlockInfoResponse_Info? _defaultInstance;
+
+  /// Information about the block itself.
+  @$pb.TagNumber(1)
+  BlockHeaderInfo get headerInfo => $_getN(0);
+  @$pb.TagNumber(1)
+  set headerInfo(BlockHeaderInfo v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasHeaderInfo() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHeaderInfo() => clearField(1);
+  @$pb.TagNumber(1)
+  BlockHeaderInfo ensureHeaderInfo() => $_ensure(0);
+
+  /// Information about the block, filtered for events relating to a specific
+  /// sidechain.
+  @$pb.TagNumber(2)
+  BlockInfo get blockInfo => $_getN(1);
+  @$pb.TagNumber(2)
+  set blockInfo(BlockInfo v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBlockInfo() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBlockInfo() => clearField(2);
+  @$pb.TagNumber(2)
+  BlockInfo ensureBlockInfo() => $_ensure(1);
+}
+
+class GetBlockInfoResponse extends $pb.GeneratedMessage {
+  factory GetBlockInfoResponse({
+    GetBlockInfoResponse_Info? info,
+    $core.Iterable<GetBlockInfoResponse_Info>? ancestorInfos,
+  }) {
+    final $result = create();
+    if (info != null) {
+      $result.info = info;
+    }
+    if (ancestorInfos != null) {
+      $result.ancestorInfos.addAll(ancestorInfos);
+    }
+    return $result;
+  }
   GetBlockInfoResponse._() : super();
   factory GetBlockInfoResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GetBlockInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<BlockHeaderInfo>(1, _omitFieldNames ? '' : 'headerInfo', subBuilder: BlockHeaderInfo.create)
-    ..aOM<BlockInfo>(2, _omitFieldNames ? '' : 'blockInfo', subBuilder: BlockInfo.create)
+    ..aOM<GetBlockInfoResponse_Info>(1, _omitFieldNames ? '' : 'info', subBuilder: GetBlockInfoResponse_Info.create)
+    ..pc<GetBlockInfoResponse_Info>(2, _omitFieldNames ? '' : 'ancestorInfos', $pb.PbFieldType.PM, subBuilder: GetBlockInfoResponse_Info.create)
     ..hasRequiredFields = false
   ;
 
@@ -964,30 +1051,20 @@ class GetBlockInfoResponse extends $pb.GeneratedMessage {
   static GetBlockInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBlockInfoResponse>(create);
   static GetBlockInfoResponse? _defaultInstance;
 
-  /// Information about the block itself.
   @$pb.TagNumber(1)
-  BlockHeaderInfo get headerInfo => $_getN(0);
+  GetBlockInfoResponse_Info get info => $_getN(0);
   @$pb.TagNumber(1)
-  set headerInfo(BlockHeaderInfo v) { setField(1, v); }
+  set info(GetBlockInfoResponse_Info v) { setField(1, v); }
   @$pb.TagNumber(1)
-  $core.bool hasHeaderInfo() => $_has(0);
+  $core.bool hasInfo() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHeaderInfo() => clearField(1);
+  void clearInfo() => clearField(1);
   @$pb.TagNumber(1)
-  BlockHeaderInfo ensureHeaderInfo() => $_ensure(0);
+  GetBlockInfoResponse_Info ensureInfo() => $_ensure(0);
 
-  /// Information about the block, filtered for events relating to
-  /// a specific sidechain.
+  /// Ancestors MUST be sorted newest-first
   @$pb.TagNumber(2)
-  BlockInfo get blockInfo => $_getN(1);
-  @$pb.TagNumber(2)
-  set blockInfo(BlockInfo v) { setField(2, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasBlockInfo() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearBlockInfo() => clearField(2);
-  @$pb.TagNumber(2)
-  BlockInfo ensureBlockInfo() => $_ensure(1);
+  $core.List<GetBlockInfoResponse_Info> get ancestorInfos => $_getList(1);
 }
 
 class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {

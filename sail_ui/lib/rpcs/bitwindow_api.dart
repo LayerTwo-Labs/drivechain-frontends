@@ -53,7 +53,7 @@ abstract class BitwindowAPI {
   });
   Future<void> cancelDenial(Int64 id);
   Future<GetSyncInfoResponse> getSyncInfo();
-  Future<List<UnspentOutput>> listDenials();
+  Future<List<DeniabilityUTXO>> listDenials();
 
   // Address book methods here
   Future<List<AddressBookEntry>> listAddressBook();
@@ -74,6 +74,7 @@ abstract class WalletAPI {
   Future<GetBalanceResponse> getBalance();
   Future<String> getNewAddress();
   Future<List<WalletTransaction>> listTransactions();
+  Future<List<UnspentOutput>> listUnspent();
 
   // drivechain wallet stuff here
   Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
@@ -360,7 +361,7 @@ class _BitwindowAPILive implements BitwindowAPI {
   }
 
   @override
-  Future<List<UnspentOutput>> listDenials() async {
+  Future<List<DeniabilityUTXO>> listDenials() async {
     final response = await _client.listDenials(Empty());
     return response.utxos;
   }
@@ -460,6 +461,18 @@ class _WalletAPILive implements WalletAPI {
       return response.transactions;
     } catch (e) {
       final error = 'could not list transactions: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<UnspentOutput>> listUnspent() async {
+    try {
+      final response = await _client.listUnspent(Empty());
+      return response.utxos;
+    } catch (e) {
+      final error = 'could not list utxos: ${extractConnectException(e)}';
       log.e(error);
       throw WalletException(error);
     }
