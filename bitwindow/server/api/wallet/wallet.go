@@ -17,11 +17,14 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -370,6 +373,96 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 }
 
 // ListUnspent implements walletv1connect.WalletServiceHandler.
-func (s *Server) ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListUnspentResponse], error) {
-	panic("unimplemented")
+func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListUnspentResponse], error) {
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not get bitcoind: %w", err)
+	}
+
+	// First get all UTXOs from the wallet
+	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
+	}
+
+	// Fetch the addressbook entries once for label lookup
+	addressBookEntries, err := addressbook.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
+	}
+	// Helper to find label for an address
+	getLabel := func(addr string) string {
+		for _, entry := range addressBookEntries {
+			if entry.Address == addr {
+				return entry.Label
+			}
+		}
+		return ""
+	}
+
+	// Use logpool to fetch all UTXO info in parallel
+	pool := logpool.NewWithResults[*pb.UnspentOutput](ctx, "wallet/ListUnspent")
+	for _, utxo := range utxos.Msg.Outputs {
+		pool.Go(fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout), func(ctx context.Context) (*pb.UnspentOutput, error) {
+			rawTxResp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
+				Msg: &corepb.GetRawTransactionRequest{
+					Txid: utxo.Txid.Hex.Value,
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("enforcer/wallet: could not get raw transaction: %w", err)
+			}
+
+			rawBytes, err := hex.DecodeString(rawTxResp.Msg.Tx.Hex)
+			if err != nil {
+				return nil, fmt.Errorf("could not decode raw tx hex: %w", err)
+			}
+			decodedTx, err := btcutil.NewTxFromBytes(rawBytes)
+			if err != nil {
+				return nil, fmt.Errorf("could not decode raw transaction: %w", err)
+			}
+			vout := int(utxo.Vout)
+			if vout < 0 || vout >= len(decodedTx.MsgTx().TxOut) {
+				return nil, fmt.Errorf("enforcer/wallet: vout %d out of range for tx %s", vout, utxo.Txid)
+			}
+			txOut := decodedTx.MsgTx().TxOut[vout]
+			value := fmt.Sprintf("%d", txOut.Value)
+
+			// Extract address from scriptPubKey
+			var address string
+			_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.MainNetParams)
+			if err == nil && len(addrs) > 0 {
+				address = addrs[0].EncodeAddress()
+			}
+			label := getLabel(address)
+
+			// Try to get the timestamp from the transaction (if available)
+			var receivedAt *timestamppb.Timestamp
+			if rawTxResp.Msg.Blocktime != 0 {
+				receivedAt = &timestamppb.Timestamp{Seconds: rawTxResp.Msg.Blocktime}
+			}
+
+			return &pb.UnspentOutput{
+				Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
+				Address:    address,
+				Label:      label,
+				Value:      value,
+				ReceivedAt: receivedAt,
+			}, nil
+		})
+	}
+
+	utxosWithInfo, err := pool.Wait(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: failed to fetch UTXO info: %w", err)
+	}
+
+	return connect.NewResponse(&pb.ListUnspentResponse{
+		Utxos: utxosWithInfo,
+	}), nil
 }
