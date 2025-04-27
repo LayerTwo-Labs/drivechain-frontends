@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/debug_window.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
-import 'package:bitwindow/pages/wallet_page.dart';
+import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';

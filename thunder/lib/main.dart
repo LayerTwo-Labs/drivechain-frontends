@@ -16,7 +16,6 @@ import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:thunder/config/runtime_args.dart';
-import 'package:thunder/providers/bmm_provider.dart';
 import 'package:thunder/providers/notification_provider.dart';
 import 'package:thunder/providers/transactions_provider.dart';
 import 'package:thunder/routing/router.dart';
@@ -236,10 +235,6 @@ Future<void> initDependencies(
 
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
-  );
-
-  GetIt.I.registerLazySingleton<BMMProvider>(
-    () => BMMProvider(),
   );
 }
 

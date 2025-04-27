@@ -10,25 +10,6 @@
 part of 'router.dart';
 
 /// generated route for
-/// [BlindMergedMiningTabPage]
-class BlindMergedMiningTabRoute extends PageRouteInfo<void> {
-  const BlindMergedMiningTabRoute({List<PageRouteInfo>? children})
-      : super(
-          BlindMergedMiningTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'BlindMergedMiningTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const BlindMergedMiningTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [DepositWithdrawTabPage]
 class DepositWithdrawTabRoute extends PageRouteInfo<void> {
   const DepositWithdrawTabRoute({List<PageRouteInfo>? children})
@@ -146,25 +127,6 @@ class SidechainOverviewTabRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const SidechainOverviewTabPage();
-    },
-  );
-}
-
-/// generated route for
-/// [TestchainRPCTabPage]
-class TestchainRPCTabRoute extends PageRouteInfo<void> {
-  const TestchainRPCTabRoute({List<PageRouteInfo>? children})
-      : super(
-          TestchainRPCTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'TestchainRPCTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const TestchainRPCTabPage();
     },
   );
 }

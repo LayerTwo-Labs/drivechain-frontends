@@ -16,7 +16,6 @@ import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:zside/config/runtime_args.dart';
-import 'package:zside/providers/bmm_provider.dart';
 import 'package:zside/providers/cast_provider.dart';
 import 'package:zside/providers/notification_provider.dart';
 import 'package:zside/providers/transactions_provider.dart';
@@ -234,10 +233,6 @@ Future<void> initDependencies(
 
   GetIt.I.registerLazySingleton<TransactionsProvider>(
     () => TransactionsProvider(),
-  );
-
-  GetIt.I.registerLazySingleton<BMMProvider>(
-    () => BMMProvider(),
   );
 
   GetIt.I.registerLazySingleton<ZCashProvider>(
