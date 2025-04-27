@@ -172,8 +172,8 @@ const file_cusf_common_v1_common_proto_rawDesc = "" +
 	"\x03hex\x18\x01 \x01(\v2\x1c.google.protobuf.StringValueR\x03hex\"<\n" +
 	"\n" +
 	"ReverseHex\x12.\n" +
-	"\x03hex\x18\x01 \x01(\v2\x1c.google.protobuf.StringValueR\x03hexB\xcc\x01\n" +
-	"\x12com.cusf.common.v1B\vCommonProtoP\x01ZOgithub.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/common/v1;commonv1\xa2\x02\x03CCX\xaa\x02\x0eCusf.Common.V1\xca\x02\x0eCusf\\Common\\V1\xe2\x02\x1aCusf\\Common\\V1\\GPBMetadata\xea\x02\x10Cusf::Common::V1b\x06proto3"
+	"\x03hex\x18\x01 \x01(\v2\x1c.google.protobuf.StringValueR\x03hexB\xcb\x01\n" +
+	"\x12com.cusf.common.v1B\vCommonProtoP\x01ZNgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1;commonv1\xa2\x02\x03CCX\xaa\x02\x0eCusf.Common.V1\xca\x02\x0eCusf\\Common\\V1\xe2\x02\x1aCusf\\Common\\V1\\GPBMetadata\xea\x02\x10Cusf::Common::V1b\x06proto3"
 
 var (
 	file_cusf_common_v1_common_proto_rawDescOnce sync.Once

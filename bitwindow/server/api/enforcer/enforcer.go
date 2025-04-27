@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
-	cryptov1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1"
-	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
-	mainchainv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	cryptov1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
+	mainchainv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 )
 
 var _ cryptorpc.CryptoServiceHandler = new(Server)

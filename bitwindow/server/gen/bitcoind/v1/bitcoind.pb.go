@@ -5231,8 +5231,8 @@ const file_bitcoind_v1_bitcoind_proto_rawDesc = "" +
 	"\vCombinePsbt\x12\x1f.bitcoind.v1.CombinePsbtRequest\x1a .bitcoind.v1.CombinePsbtResponse\x12Y\n" +
 	"\x0eUtxoUpdatePsbt\x12\".bitcoind.v1.UtxoUpdatePsbtRequest\x1a#.bitcoind.v1.UtxoUpdatePsbtResponse\x12J\n" +
 	"\tJoinPsbts\x12\x1d.bitcoind.v1.JoinPsbtsRequest\x1a\x1e.bitcoind.v1.JoinPsbtsResponse\x12b\n" +
-	"\x11TestMempoolAccept\x12%.bitcoind.v1.TestMempoolAcceptRequest\x1a&.bitcoind.v1.TestMempoolAcceptResponseB\xbd\x01\n" +
-	"\x0fcom.bitcoind.v1B\rBitcoindProtoP\x01ZNgithub.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1;bitcoindv1\xa2\x02\x03BXX\xaa\x02\vBitcoind.V1\xca\x02\vBitcoind\\V1\xe2\x02\x17Bitcoind\\V1\\GPBMetadata\xea\x02\fBitcoind::V1b\x06proto3"
+	"\x11TestMempoolAccept\x12%.bitcoind.v1.TestMempoolAcceptRequest\x1a&.bitcoind.v1.TestMempoolAcceptResponseB\xbc\x01\n" +
+	"\x0fcom.bitcoind.v1B\rBitcoindProtoP\x01ZMgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoind/v1;bitcoindv1\xa2\x02\x03BXX\xaa\x02\vBitcoind.V1\xca\x02\vBitcoind\\V1\xe2\x02\x17Bitcoind\\V1\\GPBMetadata\xea\x02\fBitcoind::V1b\x06proto3"
 
 var (
 	file_bitcoind_v1_bitcoind_proto_rawDescOnce sync.Once

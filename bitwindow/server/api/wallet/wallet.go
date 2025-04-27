@@ -8,17 +8,17 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/drivechain"
-	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitwindowd/v1"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/common/v1"
-	cryptov1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1"
-	cryptorpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1/cryptov1connect"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
-	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/wallet/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/wallet/v1/walletv1connect"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/addressbook"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
+	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
+	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
+	cryptov1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1"
+	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
+	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
@@ -367,4 +367,9 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 	return connect.NewResponse(&pb.VerifyMessageResponse{
 		Valid: res.Msg.Valid,
 	}), nil
+}
+
+// ListUnspent implements walletv1connect.WalletServiceHandler.
+func (s *Server) ListUnspent(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListUnspentResponse], error) {
+	panic("unimplemented")
 }

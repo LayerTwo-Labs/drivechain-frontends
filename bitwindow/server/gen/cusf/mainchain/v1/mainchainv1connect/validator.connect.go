@@ -10,7 +10,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
+	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	http "net/http"
 	strings "strings"
 )
@@ -78,8 +78,9 @@ type ValidatorServiceClient interface {
 	// Fetches information about a specific mainchain block header,
 	// and optionally, it's ancestors
 	GetBlockHeaderInfo(context.Context, *connect.Request[v1.GetBlockHeaderInfoRequest]) (*connect.Response[v1.GetBlockHeaderInfoResponse], error)
-	// Fetches information about a specific mainchain block, and how it pertains
-	// to events happening on a specific sidechain.
+	// Fetches information about a specific mainchain block (and optionally,
+	// it's ancestors), regarding how it pertains to events happening on a
+	// specific sidechain.
 	GetBlockInfo(context.Context, *connect.Request[v1.GetBlockInfoRequest]) (*connect.Response[v1.GetBlockInfoResponse], error)
 	// Fetches BMM h* commitment for a specific mainchain block,
 	// and optionally, it's ancestors
@@ -263,8 +264,9 @@ type ValidatorServiceHandler interface {
 	// Fetches information about a specific mainchain block header,
 	// and optionally, it's ancestors
 	GetBlockHeaderInfo(context.Context, *connect.Request[v1.GetBlockHeaderInfoRequest]) (*connect.Response[v1.GetBlockHeaderInfoResponse], error)
-	// Fetches information about a specific mainchain block, and how it pertains
-	// to events happening on a specific sidechain.
+	// Fetches information about a specific mainchain block (and optionally,
+	// it's ancestors), regarding how it pertains to events happening on a
+	// specific sidechain.
 	GetBlockInfo(context.Context, *connect.Request[v1.GetBlockInfoRequest]) (*connect.Response[v1.GetBlockInfoResponse], error)
 	// Fetches BMM h* commitment for a specific mainchain block,
 	// and optionally, it's ancestors

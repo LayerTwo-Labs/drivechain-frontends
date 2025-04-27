@@ -9,7 +9,7 @@
 package cryptov1
 
 import (
-	v1 "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/common/v1"
+	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -535,8 +535,8 @@ const file_cusf_crypto_v1_crypto_proto_rawDesc = "" +
 	"\tRipemd160\x12 .cusf.crypto.v1.Ripemd160Request\x1a!.cusf.crypto.v1.Ripemd160Response\x12\x8c\x01\n" +
 	"\x1dSecp256k1SecretKeyToPublicKey\x124.cusf.crypto.v1.Secp256k1SecretKeyToPublicKeyRequest\x1a5.cusf.crypto.v1.Secp256k1SecretKeyToPublicKeyResponse\x12\\\n" +
 	"\rSecp256k1Sign\x12$.cusf.crypto.v1.Secp256k1SignRequest\x1a%.cusf.crypto.v1.Secp256k1SignResponse\x12b\n" +
-	"\x0fSecp256k1Verify\x12&.cusf.crypto.v1.Secp256k1VerifyRequest\x1a'.cusf.crypto.v1.Secp256k1VerifyResponseB\xcc\x01\n" +
-	"\x12com.cusf.crypto.v1B\vCryptoProtoP\x01ZOgithub.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/crypto/v1;cryptov1\xa2\x02\x03CCX\xaa\x02\x0eCusf.Crypto.V1\xca\x02\x0eCusf\\Crypto\\V1\xe2\x02\x1aCusf\\Crypto\\V1\\GPBMetadata\xea\x02\x10Cusf::Crypto::V1b\x06proto3"
+	"\x0fSecp256k1Verify\x12&.cusf.crypto.v1.Secp256k1VerifyRequest\x1a'.cusf.crypto.v1.Secp256k1VerifyResponseB\xcb\x01\n" +
+	"\x12com.cusf.crypto.v1B\vCryptoProtoP\x01ZNgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1;cryptov1\xa2\x02\x03CCX\xaa\x02\x0eCusf.Crypto.V1\xca\x02\x0eCusf\\Crypto\\V1\xe2\x02\x1aCusf\\Crypto\\V1\\GPBMetadata\xea\x02\x10Cusf::Crypto::V1b\x06proto3"
 
 var (
 	file_cusf_crypto_v1_crypto_proto_rawDescOnce sync.Once

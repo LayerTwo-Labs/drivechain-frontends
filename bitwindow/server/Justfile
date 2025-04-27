@@ -21,10 +21,10 @@ lint:
 gen: gen-server gen-enforcer
 
 gen-server:
-    buf generate
+    buf generate --template buf.go.gen.yaml .
 
 gen-enforcer:
-    buf generate --template buf.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
+    buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 
 build-enforcer:
     #!/usr/bin/env bash

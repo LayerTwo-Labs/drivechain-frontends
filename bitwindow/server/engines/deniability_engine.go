@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/cusf/mainchain/v1/mainchainv1connect"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/models/deniability"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
 )

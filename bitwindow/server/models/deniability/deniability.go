@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/database"
+	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 // Denial represents a deniability plan

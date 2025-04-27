@@ -30,10 +30,10 @@ message CreateDenialRequest {
 }
 
 message ListDenialsResponse {
-  repeated UnspentOutput utxos = 1;
+  repeated DeniabilityUTXO utxos = 1;
 }
 
-message UnspentOutput {
+message DeniabilityUTXO {
   string txid = 1;
   uint32 vout = 2;
   uint64 value_sats = 3;

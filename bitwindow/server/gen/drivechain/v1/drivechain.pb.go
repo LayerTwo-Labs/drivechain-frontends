@@ -444,8 +444,8 @@ const file_drivechain_v1_drivechain_proto_rawDesc = "" +
 	"\tproposals\x18\x01 \x03(\v2 .drivechain.v1.SidechainProposalR\tproposals2\xe9\x01\n" +
 	"\x11DrivechainService\x12]\n" +
 	"\x0eListSidechains\x12$.drivechain.v1.ListSidechainsRequest\x1a%.drivechain.v1.ListSidechainsResponse\x12u\n" +
-	"\x16ListSidechainProposals\x12,.drivechain.v1.ListSidechainProposalsRequest\x1a-.drivechain.v1.ListSidechainProposalsResponseB\xcd\x01\n" +
-	"\x11com.drivechain.v1B\x0fDrivechainProtoP\x01ZRgithub.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/drivechain/v1;drivechainv1\xa2\x02\x03DXX\xaa\x02\rDrivechain.V1\xca\x02\rDrivechain\\V1\xe2\x02\x19Drivechain\\V1\\GPBMetadata\xea\x02\x0eDrivechain::V1b\x06proto3"
+	"\x16ListSidechainProposals\x12,.drivechain.v1.ListSidechainProposalsRequest\x1a-.drivechain.v1.ListSidechainProposalsResponseB\xcc\x01\n" +
+	"\x11com.drivechain.v1B\x0fDrivechainProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1;drivechainv1\xa2\x02\x03DXX\xaa\x02\rDrivechain.V1\xca\x02\rDrivechain\\V1\xe2\x02\x19Drivechain\\V1\\GPBMetadata\xea\x02\x0eDrivechain::V1b\x06proto3"
 
 var (
 	file_drivechain_v1_drivechain_proto_rawDescOnce sync.Once

@@ -9,9 +9,9 @@ import (
 	"encoding/hex"
 
 	"connectrpc.com/connect"
-	pb "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1"
-	rpc "github.com/LayerTwo-Labs/sidesail/servers/bitwindow/gen/bitcoind/v1/bitcoindv1connect"
-	"github.com/LayerTwo-Labs/sidesail/servers/bitwindow/service"
+	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoind/v1"
+	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoind/v1/bitcoindv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
