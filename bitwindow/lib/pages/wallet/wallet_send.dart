@@ -24,7 +24,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
   Widget build(BuildContext context, SendPageViewModel viewModel) {
     return SailCard(
       title: 'Send Bitcoin',
-      subtitle: 'Send bitcoin to bitcoin-addresses. No sidechains involved.',
+      subtitle: 'Send bitcoin on L1. No sidechains involved.',
       child: Column(
         children: [
           Row(
