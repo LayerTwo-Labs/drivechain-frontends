@@ -6,7 +6,7 @@ import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
-import 'package:bitwindow/pages/wallet_page.dart';
+import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 
 part 'router.gr.dart';

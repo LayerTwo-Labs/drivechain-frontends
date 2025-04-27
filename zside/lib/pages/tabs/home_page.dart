@@ -28,7 +28,6 @@ import 'package:zside/routing/router.dart';
 enum Tabs {
   // parent chain routes
   ParentChainPeg,
-  ParentChainBMM,
 
   // sidechain balance/transfer route
   SidechainOverview,
@@ -79,21 +78,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    const routes = [
-      // parent chain routes
-      DepositWithdrawTabRoute(),
-      BlindMergedMiningTabRoute(),
-
-      // sidechain balance/transfer route
-      SidechainOverviewTabRoute(),
-
-      // zcash routes
-      ZCashShieldDeshieldTabRoute(),
-      ZCashMeltCastTabRoute(),
-
-      // trailing common routes
-      SettingsTabRoute(),
-    ];
 
     return CrossPlatformMenuBar(
       menus: [
@@ -163,7 +147,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
         backgroundColor: theme.colors.background,
         body: auto_router.AutoTabsRouter.builder(
           homeIndex: Tabs.ParentChainPeg.index,
-          routes: routes,
+          routes: [
+            // parent chain routes
+            DepositWithdrawTabRoute(),
+
+            // sidechain balance/transfer route
+            SidechainOverviewTabRoute(),
+
+            // zcash routes
+            ZCashShieldDeshieldTabRoute(),
+            ZCashMeltCastTabRoute(),
+
+            // trailing common routes
+            SettingsTabRoute(),
+          ],
           builder: (context, children, tabsRouter) {
             return ViewModelBuilder.reactive(
               viewModelBuilder: () => HomePageViewModel(),
