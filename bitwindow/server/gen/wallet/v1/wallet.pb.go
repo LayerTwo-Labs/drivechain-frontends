@@ -949,10 +949,9 @@ func (x *VerifyMessageResponse) GetValid() bool {
 type ListSidechainDepositsResponse_SidechainDeposit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
-	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	Amount        float64                `protobuf:"fixed64,3,opt,name=amount,proto3" json:"amount,omitempty"`
-	Fee           float64                `protobuf:"fixed64,4,opt,name=fee,proto3" json:"fee,omitempty"`
-	Confirmations int32                  `protobuf:"varint,5,opt,name=confirmations,proto3" json:"confirmations,omitempty"`
+	Amount        int64                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	Fee           int64                  `protobuf:"varint,3,opt,name=fee,proto3" json:"fee,omitempty"`
+	Confirmations int32                  `protobuf:"varint,4,opt,name=confirmations,proto3" json:"confirmations,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -994,21 +993,14 @@ func (x *ListSidechainDepositsResponse_SidechainDeposit) GetTxid() string {
 	return ""
 }
 
-func (x *ListSidechainDepositsResponse_SidechainDeposit) GetAddress() string {
-	if x != nil {
-		return x.Address
-	}
-	return ""
-}
-
-func (x *ListSidechainDepositsResponse_SidechainDeposit) GetAmount() float64 {
+func (x *ListSidechainDepositsResponse_SidechainDeposit) GetAmount() int64 {
 	if x != nil {
 		return x.Amount
 	}
 	return 0
 }
 
-func (x *ListSidechainDepositsResponse_SidechainDeposit) GetFee() float64 {
+func (x *ListSidechainDepositsResponse_SidechainDeposit) GetFee() int64 {
 	if x != nil {
 		return x.Fee
 	}
@@ -1062,15 +1054,14 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\fsent_satoshi\x18\x04 \x01(\x04R\vsentSatoshi\x12D\n" +
 	"\x11confirmation_time\x18\x05 \x01(\v2\x17.wallet.v1.ConfirmationR\x10confirmationTime\"2\n" +
 	"\x1cListSidechainDepositsRequest\x12\x12\n" +
-	"\x04slot\x18\x01 \x01(\x05R\x04slot\"\x89\x02\n" +
+	"\x04slot\x18\x01 \x01(\x05R\x04slot\"\xee\x01\n" +
 	"\x1dListSidechainDepositsResponse\x12U\n" +
-	"\bdeposits\x18\x01 \x03(\v29.wallet.v1.ListSidechainDepositsResponse.SidechainDepositR\bdeposits\x1a\x90\x01\n" +
+	"\bdeposits\x18\x01 \x03(\v29.wallet.v1.ListSidechainDepositsResponse.SidechainDepositR\bdeposits\x1av\n" +
 	"\x10SidechainDeposit\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x16\n" +
-	"\x06amount\x18\x03 \x01(\x01R\x06amount\x12\x10\n" +
-	"\x03fee\x18\x04 \x01(\x01R\x03fee\x12$\n" +
-	"\rconfirmations\x18\x05 \x01(\x05R\rconfirmations\"\x7f\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x16\n" +
+	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x10\n" +
+	"\x03fee\x18\x03 \x01(\x03R\x03fee\x12$\n" +
+	"\rconfirmations\x18\x04 \x01(\x05R\rconfirmations\"\x7f\n" +
 	"\x1dCreateSidechainDepositRequest\x12\x12\n" +
 	"\x04slot\x18\x01 \x01(\x03R\x04slot\x12 \n" +
 	"\vdestination\x18\x02 \x01(\tR\vdestination\x12\x16\n" +

@@ -319,10 +319,6 @@ class SidechainsViewModel extends BaseViewModel {
           aValue = a.txid;
           bValue = b.txid;
           break;
-        case 'address':
-          aValue = a.address;
-          bValue = b.address;
-          break;
         case 'confirmations':
           aValue = a.confirmations;
           bValue = b.confirmations;
@@ -557,7 +553,6 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
           SailTableCell(value: viewModel.selectedIndex.toString()),
           SailTableCell(value: deposit.amount.toString()),
           SailTableCell(value: deposit.txid),
-          SailTableCell(value: deposit.address),
           SailTableCell(value: deposit.confirmations >= 2 ? 'Yes' : 'No'),
         ];
       },
@@ -610,7 +605,6 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
           SailTableCell(value: viewModel.selectedIndex.toString()),
           SailTableCell(value: withdrawal.amount.toString()),
           SailTableCell(value: withdrawal.txid),
-          SailTableCell(value: withdrawal.address),
           SailTableCell(value: withdrawal.confirmations >= 2 ? 'Yes' : 'No'),
           SailTableCell(value: withdrawal.confirmations >= 2 ? 'Yes' : 'No'),
         ];

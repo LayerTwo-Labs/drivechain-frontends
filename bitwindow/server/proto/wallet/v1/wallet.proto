@@ -97,10 +97,9 @@ message ListSidechainDepositsRequest {
 message ListSidechainDepositsResponse {
   message SidechainDeposit {
     string txid = 1;
-    string address = 2;
-    double amount = 3;
-    double fee = 4;
-    int32 confirmations = 5;
+    int64 amount = 2;
+    int64 fee = 3;
+    int32 confirmations = 4;
   }
 
   repeated SidechainDeposit deposits = 1;

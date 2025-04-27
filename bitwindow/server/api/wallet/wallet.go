@@ -229,49 +229,25 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
-	if s.wallet == nil {
-		return nil, errors.New("wallet not connected")
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	// TODO: Call ListSidechainDeposits with the CUSF-wallet here
-	type Deposit struct {
-		Txhex   string
-		Strdest string
+	deposits, err := wallet.ListSidechainDepositTransactions(ctx, connect.NewRequest(&validatorpb.ListSidechainDepositTransactionsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list sidechain deposits: %w", err)
 	}
-	deposits := []Deposit{}
 
-	var transactions corepb.ListTransactionsResponse
 	var response pb.ListSidechainDepositsResponse
-	for _, tx := range transactions.Transactions {
-		if tx.Amount != 0 {
-			continue
-		}
+	for _, tx := range deposits.Msg.Transactions {
 
-		bitcoind, err := s.bitcoind.Get(ctx)
-		if err != nil {
-			return nil, err
-		}
-		rawTxResponse, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
-			Msg: &corepb.GetRawTransactionRequest{
-				Txid: tx.Txid,
-			},
+		response.Deposits = append(response.Deposits, &pb.ListSidechainDepositsResponse_SidechainDeposit{
+			Txid:          tx.Tx.Txid.Hex.Value,
+			Amount:        int64(tx.Tx.ReceivedSats),
+			Fee:           int64(tx.Tx.FeeSats),
+			Confirmations: int32(tx.Tx.ConfirmationInfo.Height),
 		})
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("bitcoind: failed to get raw transaction: %w", err))
-		}
-
-		for _, deposit := range deposits {
-			if deposit.Txhex == rawTxResponse.Msg.Tx.Hex {
-				response.Deposits = append(response.Deposits, &pb.ListSidechainDepositsResponse_SidechainDeposit{
-					Txid:          tx.Txid,
-					Address:       deposit.Strdest,
-					Amount:        tx.Amount,
-					Fee:           tx.Fee,
-					Confirmations: tx.Confirmations,
-				})
-				break
-			}
-		}
 	}
 
 	return connect.NewResponse(&response), nil

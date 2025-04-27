@@ -179,10 +179,9 @@ const ListSidechainDepositsResponse_SidechainDeposit$json = {
   '1': 'SidechainDeposit',
   '2': [
     {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
-    {'1': 'address', '3': 2, '4': 1, '5': 9, '10': 'address'},
-    {'1': 'amount', '3': 3, '4': 1, '5': 1, '10': 'amount'},
-    {'1': 'fee', '3': 4, '4': 1, '5': 1, '10': 'fee'},
-    {'1': 'confirmations', '3': 5, '4': 1, '5': 5, '10': 'confirmations'},
+    {'1': 'amount', '3': 2, '4': 1, '5': 3, '10': 'amount'},
+    {'1': 'fee', '3': 3, '4': 1, '5': 3, '10': 'fee'},
+    {'1': 'confirmations', '3': 4, '4': 1, '5': 5, '10': 'confirmations'},
   ],
 };
 
@@ -190,9 +189,9 @@ const ListSidechainDepositsResponse_SidechainDeposit$json = {
 final $typed_data.Uint8List listSidechainDepositsResponseDescriptor = $convert.base64Decode(
     'Ch1MaXN0U2lkZWNoYWluRGVwb3NpdHNSZXNwb25zZRJVCghkZXBvc2l0cxgBIAMoCzI5LndhbG'
     'xldC52MS5MaXN0U2lkZWNoYWluRGVwb3NpdHNSZXNwb25zZS5TaWRlY2hhaW5EZXBvc2l0Ughk'
-    'ZXBvc2l0cxqQAQoQU2lkZWNoYWluRGVwb3NpdBISCgR0eGlkGAEgASgJUgR0eGlkEhgKB2FkZH'
-    'Jlc3MYAiABKAlSB2FkZHJlc3MSFgoGYW1vdW50GAMgASgBUgZhbW91bnQSEAoDZmVlGAQgASgB'
-    'UgNmZWUSJAoNY29uZmlybWF0aW9ucxgFIAEoBVINY29uZmlybWF0aW9ucw==');
+    'ZXBvc2l0cxp2ChBTaWRlY2hhaW5EZXBvc2l0EhIKBHR4aWQYASABKAlSBHR4aWQSFgoGYW1vdW'
+    '50GAIgASgDUgZhbW91bnQSEAoDZmVlGAMgASgDUgNmZWUSJAoNY29uZmlybWF0aW9ucxgEIAEo'
+    'BVINY29uZmlybWF0aW9ucw==');
 
 @$core.Deprecated('Use createSidechainDepositRequestDescriptor instead')
 const CreateSidechainDepositRequest$json = {
