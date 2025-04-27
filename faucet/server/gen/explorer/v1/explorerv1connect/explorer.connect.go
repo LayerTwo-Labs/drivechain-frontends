@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/LayerTwo-Labs/sidesail/servers/faucet/gen/explorer/v1"
+	v1 "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1"
 	http "net/http"
 	strings "strings"
 )

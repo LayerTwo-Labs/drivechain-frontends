@@ -1,4 +1,4 @@
-module github.com/LayerTwo-Labs/sidesail/servers/faucet
+module github.com/LayerTwo-Labs/sidesail/faucet/server
 
 go 1.24.0
 
