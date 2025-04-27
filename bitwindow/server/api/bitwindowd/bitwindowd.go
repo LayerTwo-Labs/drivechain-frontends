@@ -58,7 +58,6 @@ func (s *Server) CreateDenial(
 	ctx context.Context,
 	req *connect.Request[pb.CreateDenialRequest],
 ) (*connect.Response[emptypb.Empty], error) {
-	// First check if the UTXO exists
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
 		return nil, err

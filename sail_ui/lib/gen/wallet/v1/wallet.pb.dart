@@ -736,17 +736,13 @@ class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
 class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessage {
   factory ListSidechainDepositsResponse_SidechainDeposit({
     $core.String? txid,
-    $core.String? address,
-    $core.double? amount,
-    $core.double? fee,
+    $fixnum.Int64? amount,
+    $fixnum.Int64? fee,
     $core.int? confirmations,
   }) {
     final $result = create();
     if (txid != null) {
       $result.txid = txid;
-    }
-    if (address != null) {
-      $result.address = address;
     }
     if (amount != null) {
       $result.amount = amount;
@@ -765,10 +761,9 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListSidechainDepositsResponse.SidechainDeposit', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..aOS(2, _omitFieldNames ? '' : 'address')
-    ..a<$core.double>(3, _omitFieldNames ? '' : 'amount', $pb.PbFieldType.OD)
-    ..a<$core.double>(4, _omitFieldNames ? '' : 'fee', $pb.PbFieldType.OD)
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
+    ..aInt64(2, _omitFieldNames ? '' : 'amount')
+    ..aInt64(3, _omitFieldNames ? '' : 'fee')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -803,40 +798,31 @@ class ListSidechainDepositsResponse_SidechainDeposit extends $pb.GeneratedMessag
   void clearTxid() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get address => $_getSZ(1);
+  $fixnum.Int64 get amount => $_getI64(1);
   @$pb.TagNumber(2)
-  set address($core.String v) { $_setString(1, v); }
+  set amount($fixnum.Int64 v) { $_setInt64(1, v); }
   @$pb.TagNumber(2)
-  $core.bool hasAddress() => $_has(1);
+  $core.bool hasAmount() => $_has(1);
   @$pb.TagNumber(2)
-  void clearAddress() => clearField(2);
+  void clearAmount() => clearField(2);
 
   @$pb.TagNumber(3)
-  $core.double get amount => $_getN(2);
+  $fixnum.Int64 get fee => $_getI64(2);
   @$pb.TagNumber(3)
-  set amount($core.double v) { $_setDouble(2, v); }
+  set fee($fixnum.Int64 v) { $_setInt64(2, v); }
   @$pb.TagNumber(3)
-  $core.bool hasAmount() => $_has(2);
+  $core.bool hasFee() => $_has(2);
   @$pb.TagNumber(3)
-  void clearAmount() => clearField(3);
+  void clearFee() => clearField(3);
 
   @$pb.TagNumber(4)
-  $core.double get fee => $_getN(3);
+  $core.int get confirmations => $_getIZ(3);
   @$pb.TagNumber(4)
-  set fee($core.double v) { $_setDouble(3, v); }
+  set confirmations($core.int v) { $_setSignedInt32(3, v); }
   @$pb.TagNumber(4)
-  $core.bool hasFee() => $_has(3);
+  $core.bool hasConfirmations() => $_has(3);
   @$pb.TagNumber(4)
-  void clearFee() => clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.int get confirmations => $_getIZ(4);
-  @$pb.TagNumber(5)
-  set confirmations($core.int v) { $_setSignedInt32(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasConfirmations() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearConfirmations() => clearField(5);
+  void clearConfirmations() => clearField(4);
 }
 
 class ListSidechainDepositsResponse extends $pb.GeneratedMessage {
