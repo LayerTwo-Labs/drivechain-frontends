@@ -1,6 +1,4 @@
-import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -14,15 +12,11 @@ class TransactionsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        return ViewModelBuilder<LatestWalletTransactionsViewModel>.reactive(
-          viewModelBuilder: () => LatestWalletTransactionsViewModel(),
+        return ViewModelBuilder<LatestUTXOsViewModel>.reactive(
+          viewModelBuilder: () => LatestUTXOsViewModel(),
           builder: (context, model, child) {
-            return TransactionTable(
+            return UTXOTable(
               entries: model.entries,
-              searchWidget: SailTextField(
-                controller: model.searchController,
-                hintText: 'Enter address or transaction id to search',
-              ),
             );
           },
         );
@@ -31,38 +25,25 @@ class TransactionsTab extends StatelessWidget {
   }
 }
 
-class TransactionTable extends StatefulWidget {
-  final List<WalletTransaction> entries;
-  final Widget searchWidget;
+class UTXOTable extends StatefulWidget {
+  final List<UnspentOutput> entries;
 
-  const TransactionTable({
-    super.key,
-    required this.entries,
-    required this.searchWidget,
-  });
+  const UTXOTable({super.key, required this.entries});
 
   @override
-  State<TransactionTable> createState() => _TransactionTableState();
+  State<UTXOTable> createState() => _UTXOTableState();
 }
 
-class _TransactionTableState extends State<TransactionTable> {
+class _UTXOTableState extends State<UTXOTable> {
   String sortColumn = 'date';
   bool sortAscending = true;
-  List<WalletTransaction> entries = [];
+  late List<UnspentOutput> entries;
 
   @override
   void initState() {
     super.initState();
-    entries = widget.entries;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!listEquals(entries, widget.entries)) {
-      entries = List.from(widget.entries);
-      sortEntries();
-    }
+    entries = List.from(widget.entries);
+    sortEntries();
   }
 
   void onSort(String column) {
@@ -79,175 +60,96 @@ class _TransactionTableState extends State<TransactionTable> {
 
   void sortEntries() {
     entries.sort((a, b) {
-      dynamic aValue;
-      dynamic bValue;
-
+      dynamic aValue, bValue;
       switch (sortColumn) {
-        case 'height':
-          aValue = a.confirmationTime.height;
-          bValue = b.confirmationTime.height;
-          break;
         case 'date':
-          aValue = a.confirmationTime.timestamp.seconds;
-          bValue = b.confirmationTime.timestamp.seconds;
+          aValue = a.receivedAt.toDateTime();
+          bValue = b.receivedAt.toDateTime();
           break;
-        case 'txid':
-          aValue = a.txid;
-          bValue = b.txid;
+        case 'output':
+          aValue = a.output;
+          bValue = b.output;
           break;
-        case 'amount':
-          aValue = a.receivedSatoshi;
-          bValue = b.receivedSatoshi;
+        case 'address':
+          aValue = a.address;
+          bValue = b.address;
+          break;
+        case 'label':
+          aValue = a.label;
+          bValue = b.label;
+          break;
+        case 'value':
+          aValue = a.value;
+          bValue = b.value;
           break;
       }
-
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return SailCard(
-          title: 'Wallet Transaction History',
-          subtitle:
-              'List of transactions for your bitcoin-wallet. Contains send, receive and sidechain-interaction transactions.',
-          bottomPadding: false,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SailStyleValues.padding16,
-                ),
-                child: widget.searchWidget,
-              ),
-              Expanded(
-                child: SailTable(
-                  getRowId: (index) => widget.entries[index].txid,
-                  headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'Conf Height',
-                      onSort: () => onSort('height'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Date',
-                      onSort: () => onSort('date'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'TxID',
-                      onSort: () => onSort('txid'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Amount',
-                      onSort: () => onSort('amount'),
-                    ),
-                  ],
-                  rowBuilder: (context, row, selected) {
-                    final entry = widget.entries[row];
-                    final amount = entry.receivedSatoshi != 0
-                        ? formatBitcoin(satoshiToBTC(entry.receivedSatoshi.toInt()))
-                        : formatBitcoin(satoshiToBTC(entry.sentSatoshi.toInt()));
-
-                    return [
-                      SailTableCell(
-                        value: entry.confirmationTime.height == 0
-                            ? 'Unconfirmed'
-                            : entry.confirmationTime.height.toString(),
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: entry.confirmationTime.timestamp.toDateTime().toLocal().format(),
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: entry.txid,
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: amount,
-                        monospace: true,
-                      ),
-                    ];
-                  },
-                  rowCount: widget.entries.length,
-                  columnWidths: const [100, 150, 200, 150],
-                  drawGrid: true,
-                  sortColumnIndex: [
-                    'height',
-                    'date',
-                    'txid',
-                    'amount',
-                  ].indexOf(sortColumn),
-                  sortAscending: sortAscending,
-                  onSort: (columnIndex, ascending) {
-                    onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
-                  },
-                  onDoubleTap: (rowId) {
-                    final utxo = widget.entries.firstWhere(
-                      (u) => u.txid == rowId,
-                    );
-                    _showUtxoDetails(context, utxo);
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showUtxoDetails(BuildContext context, WalletTransaction utxo) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'Transaction Details',
-            subtitle: 'Details of the selected transaction',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(label: 'TxID', value: utxo.txid),
-                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.receivedSatoshi.toInt()))),
-                  DetailRow(label: 'Date', value: utxo.confirmationTime.timestamp.toDateTime().toLocal().format()),
-                  DetailRow(label: 'Confirmation Height', value: utxo.confirmationTime.height.toString()),
-                ],
-              ),
+    return SailCard(
+      title: 'Your UTXOs',
+      subtitle: 'Your previously used receive addresses, with their current balance',
+      bottomPadding: false,
+      child: Column(
+        children: [
+          Expanded(
+            child: SailTable(
+              getRowId: (index) => entries[index].output,
+              headerBuilder: (context) => [
+                SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
+                SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
+                SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
+                SailTableHeaderCell(name: 'Value', onSort: () => onSort('value')),
+              ],
+              rowBuilder: (context, row, selected) {
+                final utxo = entries[row];
+                return [
+                  SailTableCell(value: utxo.receivedAt.toDateTime().toLocal().toString()),
+                  SailTableCell(value: utxo.output, monospace: true),
+                  SailTableCell(value: utxo.address, monospace: true),
+                  SailTableCell(value: utxo.label, monospace: true),
+                  SailTableCell(value: utxo.value, monospace: true),
+                ];
+              },
+              rowCount: entries.length,
+              columnWidths: const [120, 120, 320, 120, 120],
+              drawGrid: true,
+              sortColumnIndex: [
+                'date',
+                'output',
+                'address',
+                'label',
+                'value',
+              ].indexOf(sortColumn),
+              sortAscending: sortAscending,
+              onSort: (columnIndex, ascending) {
+                onSort(['date', 'output', 'address', 'label', 'value'][columnIndex]);
+              },
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class LatestWalletTransactionsViewModel extends BaseViewModel {
+class LatestUTXOsViewModel extends BaseViewModel {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
-  List<WalletTransaction> get entries => _txProvider.walletTransactions
-      .where(
-        (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
-      )
-      .toList();
+  List<UnspentOutput> get entries => _txProvider.utxos.toList();
 
   String sortColumn = 'date';
   bool sortAscending = true;
 
-  final TextEditingController searchController = TextEditingController();
-
-  LatestWalletTransactionsViewModel() {
-    searchController.addListener(notifyListeners);
+  LatestUTXOsViewModel() {
     _txProvider.addListener(notifyListeners);
   }
 
   @override
   void dispose() {
-    searchController.removeListener(notifyListeners);
     _txProvider.removeListener(notifyListeners);
     super.dispose();
   }
