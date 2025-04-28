@@ -13,7 +13,7 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/cors v1.11.1
 	github.com/rs/zerolog v1.33.0
-	github.com/samber/lo v1.49.1
+	github.com/samber/lo v1.50.0
 	golang.org/x/net v0.39.0
 	google.golang.org/protobuf v1.36.6
 )
