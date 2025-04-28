@@ -120,6 +120,35 @@ final $typed_data.Uint8List listUnspentResponseDescriptor = $convert.base64Decod
     'ChNMaXN0VW5zcGVudFJlc3BvbnNlEi4KBXV0eG9zGAEgAygLMhgud2FsbGV0LnYxLlVuc3Blbn'
     'RPdXRwdXRSBXV0eG9z');
 
+@$core.Deprecated('Use listReceiveAddressesResponseDescriptor instead')
+const ListReceiveAddressesResponse$json = {
+  '1': 'ListReceiveAddressesResponse',
+  '2': [
+    {'1': 'addresses', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.ReceiveAddress', '10': 'addresses'},
+  ],
+};
+
+/// Descriptor for `ListReceiveAddressesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listReceiveAddressesResponseDescriptor = $convert.base64Decode(
+    'ChxMaXN0UmVjZWl2ZUFkZHJlc3Nlc1Jlc3BvbnNlEjcKCWFkZHJlc3NlcxgBIAMoCzIZLndhbG'
+    'xldC52MS5SZWNlaXZlQWRkcmVzc1IJYWRkcmVzc2Vz');
+
+@$core.Deprecated('Use receiveAddressDescriptor instead')
+const ReceiveAddress$json = {
+  '1': 'ReceiveAddress',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'current_balance_sat', '3': 3, '4': 1, '5': 4, '10': 'currentBalanceSat'},
+  ],
+};
+
+/// Descriptor for `ReceiveAddress`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List receiveAddressDescriptor = $convert.base64Decode(
+    'Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhQKBWxhYmVsGAIgAS'
+    'gJUgVsYWJlbBIuChNjdXJyZW50X2JhbGFuY2Vfc2F0GAMgASgEUhFjdXJyZW50QmFsYW5jZVNh'
+    'dA==');
+
 @$core.Deprecated('Use confirmationDescriptor instead')
 const Confirmation$json = {
   '1': 'Confirmation',
@@ -307,6 +336,7 @@ const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
     {'1': 'GetNewAddress', '2': '.google.protobuf.Empty', '3': '.wallet.v1.GetNewAddressResponse'},
     {'1': 'ListTransactions', '2': '.google.protobuf.Empty', '3': '.wallet.v1.ListTransactionsResponse'},
     {'1': 'ListUnspent', '2': '.google.protobuf.Empty', '3': '.wallet.v1.ListUnspentResponse'},
+    {'1': 'ListReceiveAddresses', '2': '.google.protobuf.Empty', '3': '.wallet.v1.ListReceiveAddressesResponse'},
     {'1': 'ListSidechainDeposits', '2': '.wallet.v1.ListSidechainDepositsRequest', '3': '.wallet.v1.ListSidechainDepositsResponse'},
     {'1': 'CreateSidechainDeposit', '2': '.wallet.v1.CreateSidechainDepositRequest', '3': '.wallet.v1.CreateSidechainDepositResponse'},
     {'1': 'SignMessage', '2': '.wallet.v1.SignMessageRequest', '3': '.wallet.v1.SignMessageResponse'},
@@ -328,6 +358,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.google.protobuf.Timestamp': $0.Timestamp$json,
   '.wallet.v1.ListUnspentResponse': ListUnspentResponse$json,
   '.wallet.v1.UnspentOutput': UnspentOutput$json,
+  '.wallet.v1.ListReceiveAddressesResponse': ListReceiveAddressesResponse$json,
+  '.wallet.v1.ReceiveAddress': ReceiveAddress$json,
   '.wallet.v1.ListSidechainDepositsRequest': ListSidechainDepositsRequest$json,
   '.wallet.v1.ListSidechainDepositsResponse': ListSidechainDepositsResponse$json,
   '.wallet.v1.ListSidechainDepositsResponse.SidechainDeposit': ListSidechainDepositsResponse_SidechainDeposit$json,
@@ -349,13 +381,14 @@ final $typed_data.Uint8List walletServiceDescriptor = $convert.base64Decode(
     'ZXQudjEuR2V0TmV3QWRkcmVzc1Jlc3BvbnNlEk8KEExpc3RUcmFuc2FjdGlvbnMSFi5nb29nbG'
     'UucHJvdG9idWYuRW1wdHkaIy53YWxsZXQudjEuTGlzdFRyYW5zYWN0aW9uc1Jlc3BvbnNlEkUK'
     'C0xpc3RVbnNwZW50EhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gh4ud2FsbGV0LnYxLkxpc3RVbn'
-    'NwZW50UmVzcG9uc2USagoVTGlzdFNpZGVjaGFpbkRlcG9zaXRzEicud2FsbGV0LnYxLkxpc3RT'
-    'aWRlY2hhaW5EZXBvc2l0c1JlcXVlc3QaKC53YWxsZXQudjEuTGlzdFNpZGVjaGFpbkRlcG9zaX'
-    'RzUmVzcG9uc2USbQoWQ3JlYXRlU2lkZWNoYWluRGVwb3NpdBIoLndhbGxldC52MS5DcmVhdGVT'
-    'aWRlY2hhaW5EZXBvc2l0UmVxdWVzdBopLndhbGxldC52MS5DcmVhdGVTaWRlY2hhaW5EZXBvc2'
-    'l0UmVzcG9uc2USTAoLU2lnbk1lc3NhZ2USHS53YWxsZXQudjEuU2lnbk1lc3NhZ2VSZXF1ZXN0'
-    'Gh4ud2FsbGV0LnYxLlNpZ25NZXNzYWdlUmVzcG9uc2USUgoNVmVyaWZ5TWVzc2FnZRIfLndhbG'
-    'xldC52MS5WZXJpZnlNZXNzYWdlUmVxdWVzdBogLndhbGxldC52MS5WZXJpZnlNZXNzYWdlUmVz'
-    'cG9uc2USPwoIR2V0U3RhdHMSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaGy53YWxsZXQudjEuR2'
-    'V0U3RhdHNSZXNwb25zZQ==');
+    'NwZW50UmVzcG9uc2USVwoUTGlzdFJlY2VpdmVBZGRyZXNzZXMSFi5nb29nbGUucHJvdG9idWYu'
+    'RW1wdHkaJy53YWxsZXQudjEuTGlzdFJlY2VpdmVBZGRyZXNzZXNSZXNwb25zZRJqChVMaXN0U2'
+    'lkZWNoYWluRGVwb3NpdHMSJy53YWxsZXQudjEuTGlzdFNpZGVjaGFpbkRlcG9zaXRzUmVxdWVz'
+    'dBooLndhbGxldC52MS5MaXN0U2lkZWNoYWluRGVwb3NpdHNSZXNwb25zZRJtChZDcmVhdGVTaW'
+    'RlY2hhaW5EZXBvc2l0Eigud2FsbGV0LnYxLkNyZWF0ZVNpZGVjaGFpbkRlcG9zaXRSZXF1ZXN0'
+    'Gikud2FsbGV0LnYxLkNyZWF0ZVNpZGVjaGFpbkRlcG9zaXRSZXNwb25zZRJMCgtTaWduTWVzc2'
+    'FnZRIdLndhbGxldC52MS5TaWduTWVzc2FnZVJlcXVlc3QaHi53YWxsZXQudjEuU2lnbk1lc3Nh'
+    'Z2VSZXNwb25zZRJSCg1WZXJpZnlNZXNzYWdlEh8ud2FsbGV0LnYxLlZlcmlmeU1lc3NhZ2VSZX'
+    'F1ZXN0GiAud2FsbGV0LnYxLlZlcmlmeU1lc3NhZ2VSZXNwb25zZRI/CghHZXRTdGF0cxIWLmdv'
+    'b2dsZS5wcm90b2J1Zi5FbXB0eRobLndhbGxldC52MS5HZXRTdGF0c1Jlc3BvbnNl');
 

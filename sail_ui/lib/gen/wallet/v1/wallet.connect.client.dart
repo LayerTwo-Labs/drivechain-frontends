@@ -96,6 +96,23 @@ extension type WalletServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<walletv1wallet.ListReceiveAddressesResponse> listReceiveAddresses(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.listReceiveAddresses,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletv1wallet.ListSidechainDepositsResponse> listSidechainDeposits(
     walletv1wallet.ListSidechainDepositsRequest input, {
     connect.Headers? headers,
