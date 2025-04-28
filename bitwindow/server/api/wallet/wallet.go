@@ -218,7 +218,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 		return ""
 	}
 
-	// Use logpool to fetch all transaction info in parallel
+	// Use logpool to fetch info for all transaction info in parallel
 	pool := logpool.NewWithResults[*pb.WalletTransaction](ctx, "wallet/ListTransactions")
 	for _, tx := range txs.Msg.Transactions {
 		txid := tx.Txid.Hex.Value

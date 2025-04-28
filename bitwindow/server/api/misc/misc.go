@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
-	"time"
 
 	"connectrpc.com/connect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
@@ -216,15 +216,21 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 		return nil, fmt.Errorf("could not list coin news: %w", err)
 	}
 
-	// Filter out news older than 7 days
-	news = lo.Filter(news, func(coinNews opreturns.CoinNews, _ int) bool {
-		return time.Since(coinNews.CreatedAt) <= 7*24*time.Hour
-	})
-
+	// Filter by topic if provided
 	if req.Msg.Topic != nil {
 		news = lo.Filter(news, func(coinNews opreturns.CoinNews, _ int) bool {
 			return coinNews.Topic == *req.Msg.Topic
 		})
+	}
+
+	// Sort all news by recency (most recent first)
+	sort.Slice(news, func(i, j int) bool {
+		return news[i].CreatedAt.After(news[j].CreatedAt)
+	})
+
+	// Take up to 10 entries
+	if len(news) > 10 {
+		news = news[:10]
 	}
 
 	return connect.NewResponse(&miscv1.ListCoinNewsResponse{
