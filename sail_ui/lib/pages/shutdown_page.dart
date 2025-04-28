@@ -27,18 +27,10 @@ class _ShuttingDownPageState extends State<ShuttingDownPage> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    if (widget.binaries.isEmpty) {
-      setState(() {
-        _currentMessage = 'Until we meet again';
-      });
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) widget.onComplete();
-      });
-      return;
-    }
-    // Add 1 to account for "Until we meet again" as an equal step
+
     final totalSteps = widget.binaries.length + 1;
-    final duration = Duration(seconds: totalSteps > 4 ? totalSteps : 5);
+    final duration = Duration(seconds: totalSteps);
+
     _controller = AnimationController(
       duration: duration,
       vsync: this,
@@ -51,7 +43,13 @@ class _ShuttingDownPageState extends State<ShuttingDownPage> with SingleTickerPr
 
     _controller.addListener(_updateMessage);
 
-    // Start the animation
+    if (widget.binaries.isEmpty) {
+      setState(() {
+        _currentMessage = 'Until we meet again';
+      });
+    }
+
+    // Start the animation for normal case
     _controller.forward().then((_) {
       if (mounted) {
         widget.onComplete();
