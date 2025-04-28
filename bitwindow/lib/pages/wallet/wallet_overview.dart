@@ -61,7 +61,7 @@ class OverviewTab extends StatelessWidget {
                         child: SailCardStats(
                           title: 'Transaction Count',
                           value: model.stats?.transactionCountTotal.toString() ?? '0',
-                          subtitle: '${model.stats?.transactionCountSinceMonth.toString() ?? '0'} since last month',
+                          subtitle: '${model.stats?.transactionCountSinceMonth.toString() ?? '0'} in last month',
                           icon: SailSVGAsset.activity,
                         ),
                       ),
@@ -145,14 +145,32 @@ class _TransactionTableState extends State<TransactionTable> {
           bValue = b.confirmationTime.timestamp.seconds;
           break;
         case 'txid':
+        case 'output':
+          // Assuming 'output' is txid for now; adjust if you have a separate output field
           aValue = a.txid;
           bValue = b.txid;
           break;
-        case 'amount':
-          aValue = a.receivedSatoshi;
-          bValue = b.receivedSatoshi;
+        case 'address':
+          aValue = a.address;
+          bValue = b.address;
           break;
+        case 'label':
+          aValue = a.label;
+          bValue = b.label;
+          break;
+        case 'amount':
+          // Use receivedSatoshi if present, otherwise sentSatoshi
+          aValue = a.receivedSatoshi != 0 ? a.receivedSatoshi : a.sentSatoshi;
+          bValue = b.receivedSatoshi != 0 ? b.receivedSatoshi : b.sentSatoshi;
+          break;
+        default:
+          aValue = a.confirmationTime.timestamp.seconds;
+          bValue = b.confirmationTime.timestamp.seconds;
       }
+
+      // If values are null, treat as empty string or zero for comparison
+      aValue ??= '';
+      bValue ??= '';
 
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
@@ -165,7 +183,7 @@ class _TransactionTableState extends State<TransactionTable> {
         return SailCard(
           title: 'Wallet Transaction History',
           subtitle:
-              'List of transactions for your bitcoin-wallet. Contains send, receive and sidechain-interaction transactions.',
+              'List of transactions for your L1-wallet. Contains send, receive and sidechain-interaction transactions.',
           bottomPadding: false,
           child: Column(
             children: [
@@ -186,15 +204,15 @@ class _TransactionTableState extends State<TransactionTable> {
                     ),
                     SailTableHeaderCell(
                       name: 'Output',
-                      // No sort implemented for output, but you can add if needed
+                      onSort: () => onSort('output'),
                     ),
                     SailTableHeaderCell(
                       name: 'Address',
-                      // No sort implemented for address, but you can add if needed
+                      onSort: () => onSort('address'),
                     ),
                     SailTableHeaderCell(
                       name: 'Label',
-                      // No sort implemented for label, but you can add if needed
+                      onSort: () => onSort('label'),
                     ),
                     SailTableHeaderCell(
                       name: 'Amount',
@@ -205,7 +223,7 @@ class _TransactionTableState extends State<TransactionTable> {
                     final entry = widget.entries[row];
                     // Format date as "2024 Aug 08"
                     final formattedDate =
-                        DateFormat('yyyy MMM dd').format(entry.confirmationTime.timestamp.toDateTime().toLocal());
+                        DateFormat('yyyy MMM dd HH:mm').format(entry.confirmationTime.timestamp.toDateTime().toLocal());
                     // Format amount without BTC symbol
                     final formattedAmount = formatBitcoin(
                       satoshiToBTC(
@@ -217,19 +235,15 @@ class _TransactionTableState extends State<TransactionTable> {
                     return [
                       SailTableCell(
                         value: formattedDate,
-                        monospace: true,
                       ),
                       SailTableCell(
                         value: entry.txid,
-                        monospace: true,
                       ),
                       SailTableCell(
                         value: entry.address,
-                        monospace: true,
                       ),
                       SailTableCell(
                         value: entry.label,
-                        monospace: true,
                       ),
                       SailTableCell(
                         value: formattedAmount,

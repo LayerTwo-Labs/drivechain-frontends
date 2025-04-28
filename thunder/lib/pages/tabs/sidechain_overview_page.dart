@@ -486,19 +486,17 @@ class _TransactionTableState extends State<TransactionTable> {
                     return [
                       SailTableCell(
                         value: entry.confirmations == 0 ? 'Unconfirmed' : entry.confirmations.toString(),
-                        monospace: true,
                       ),
                       SailTableCell(
                         value: amount,
                         monospace: true,
                       ),
                       SailTableCell(
-                        value: entry.txid,
-                        monospace: true,
+                        value: '${entry.txid.substring(0, 6)}..:${entry.vout}',
+                        copyValue: '${entry.txid}:${entry.vout}',
                       ),
                       SailTableCell(
                         value: DateTime.fromMillisecondsSinceEpoch(entry.blocktime * 1000).toLocal().toString(),
-                        monospace: true,
                       ),
                     ];
                   },

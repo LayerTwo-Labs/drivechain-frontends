@@ -117,7 +117,10 @@ class _UTXOTableState extends State<UTXOTable> {
                   SailTableCell(
                     value: formattedDate,
                   ),
-                  SailTableCell(value: utxo.output, monospace: true),
+                  SailTableCell(
+                    value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
+                    copyValue: utxo.output,
+                  ),
                   SailTableCell(value: utxo.address, monospace: true),
                   SailTableCell(value: utxo.label, monospace: true),
                   SailTableCell(value: formattedAmount, monospace: true),

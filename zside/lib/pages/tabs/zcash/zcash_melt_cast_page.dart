@@ -585,15 +585,12 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
           ),
           SailTableCell(
             value: entry.executeTime.toLocal().format(),
-            monospace: true,
           ),
           SailTableCell(
             value: entry.powerOf.toString(),
-            monospace: true,
           ),
           SailTableCell(
             value: formatExecuteIn(entry.executeIn),
-            monospace: true,
           ),
         ];
       },
@@ -1136,16 +1133,13 @@ class _OperationsTableState extends State<OperationsTable> {
           return [
             SailTableCell(
               value: DateFormat('dd MMM HH:mm:ss').format(entry.creationTime),
-              monospace: true,
             ),
             SailTableCell(
               value: entry.method,
-              monospace: true,
             ),
             SailTableCell(
               value: entry.status,
               textColor: entry.status == 'success' ? SailColorScheme.green : SailColorScheme.red,
-              monospace: true,
               child: entry.status == 'success'
                   ? Tooltip(
                       message: 'Success',
@@ -1158,7 +1152,6 @@ class _OperationsTableState extends State<OperationsTable> {
             ),
             SailTableCell(
               value: entry.id,
-              monospace: true,
             ),
           ];
         },

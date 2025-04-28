@@ -453,56 +453,59 @@ class _ExtraActionsDropdownState extends State<ExtraActionsDropdown> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return MenuAnchor(
-      controller: menuController,
-      style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(theme.colors.background),
-        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-        elevation: WidgetStatePropertyAll(0),
-      ),
-      builder: (context, controller, child) => SailButton(
-        onPressed: () async {
-          if (menuController.isOpen) {
-            menuController.close();
-          } else {
-            menuController.open();
-          }
-        },
-        variant: ButtonVariant.icon,
-        icon: SailSVGAsset.ellipsis,
-      ),
-      menuChildren: [
-        SailMenu(
-          title: widget.title,
-          items: widget.items
-              .map(
-                (item) => SailMenuItem(
-                  onSelected: () {
-                    item.onSelect();
-                    menuController.close();
-                  },
-                  child: SelectionContainer.disabled(
-                    child: SailRow(
-                      spacing: SailStyleValues.padding12,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        SailSVG.fromAsset(item.icon, height: 13, color: theme.colors.text),
-                        SailText.primary13(item.label),
-                        if (item.shortcut != null) ...[
-                          const Spacer(),
-                          SailText.primary12(
-                            item.shortcut!,
-                            color: theme.colors.text.withValues(alpha: 0.6),
-                          ),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: MenuAnchor(
+        controller: menuController,
+        style: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(theme.colors.background),
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          elevation: WidgetStatePropertyAll(0),
+        ),
+        builder: (context, controller, child) => SailButton(
+          onPressed: () async {
+            if (menuController.isOpen) {
+              menuController.close();
+            } else {
+              menuController.open();
+            }
+          },
+          variant: ButtonVariant.icon,
+          icon: SailSVGAsset.ellipsis,
+        ),
+        menuChildren: [
+          SailMenu(
+            title: widget.title,
+            items: widget.items
+                .map(
+                  (item) => SailMenuItem(
+                    onSelected: () {
+                      item.onSelect();
+                      menuController.close();
+                    },
+                    child: SelectionContainer.disabled(
+                      child: SailRow(
+                        spacing: SailStyleValues.padding12,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          SailSVG.fromAsset(item.icon, height: 13, color: theme.colors.text),
+                          SailText.primary13(item.label),
+                          if (item.shortcut != null) ...[
+                            const Spacer(),
+                            SailText.primary12(
+                              item.shortcut!,
+                              color: theme.colors.text.withValues(alpha: 0.6),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              )
-              .toList(),
-        ),
-      ],
+                )
+                .toList(),
+          ),
+        ],
+      ),
     );
   }
 }
