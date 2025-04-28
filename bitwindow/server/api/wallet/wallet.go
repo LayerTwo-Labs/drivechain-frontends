@@ -465,49 +465,28 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 	pool := logpool.NewWithResults[*pb.UnspentOutput](ctx, "wallet/ListUnspent")
 	for _, utxo := range utxos.Msg.Outputs {
 		pool.Go(fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout), func(ctx context.Context) (*pb.UnspentOutput, error) {
-			rawTxResp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
-				Msg: &corepb.GetRawTransactionRequest{
-					Txid: utxo.Txid.Hex.Value,
-				},
-			})
+			address, err := s.getAddressFromOutpoint(ctx, bitcoind, utxo.Txid.Hex.Value, int(utxo.Vout))
 			if err != nil {
-				return nil, fmt.Errorf("enforcer/wallet: could not get raw transaction: %w", err)
+				zerolog.Ctx(ctx).Error().Msgf("could not get address from outpoint: %s", err)
+				// bitcoin core probably doesnt know about the tx yet,
+				// chugging on with empty address info is fine!
 			}
-
-			rawBytes, err := hex.DecodeString(rawTxResp.Msg.Tx.Hex)
-			if err != nil {
-				return nil, fmt.Errorf("could not decode raw tx hex: %w", err)
-			}
-			decodedTx, err := btcutil.NewTxFromBytes(rawBytes)
-			if err != nil {
-				return nil, fmt.Errorf("could not decode raw transaction: %w", err)
-			}
-			vout := int(utxo.Vout)
-			if vout < 0 || vout >= len(decodedTx.MsgTx().TxOut) {
-				return nil, fmt.Errorf("enforcer/wallet: vout %d out of range for tx %s", vout, utxo.Txid)
-			}
-			txOut := decodedTx.MsgTx().TxOut[vout]
-
-			// Extract address from scriptPubKey
-			var address string
-			_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.SigNetParams)
-			if err == nil && len(addrs) > 0 {
-				address = addrs[0].EncodeAddress()
-			}
-			label := getLabel(address)
 
 			// Try to get the timestamp from the transaction (if available)
 			var receivedAt *timestamppb.Timestamp
-			if rawTxResp.Msg.Blocktime != 0 {
-				receivedAt = &timestamppb.Timestamp{Seconds: rawTxResp.Msg.Blocktime}
+			if utxo.UnconfirmedLastSeen != nil {
+				receivedAt = utxo.UnconfirmedLastSeen
+			} else if utxo.ConfirmedAtTime != nil {
+				receivedAt = utxo.ConfirmedAtTime
 			}
 
 			return &pb.UnspentOutput{
 				Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
 				Address:    address,
-				Label:      label,
-				Value:      uint64(txOut.Value),
+				Label:      getLabel(address),
+				Value:      uint64(utxo.ValueSats),
 				ReceivedAt: receivedAt,
+				IsChange:   utxo.IsInternal,
 			}, nil
 		})
 	}
@@ -519,6 +498,102 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 
 	return connect.NewResponse(&pb.ListUnspentResponse{
 		Utxos: utxosWithInfo,
+	}), nil
+}
+
+func (s *Server) getAddressFromOutpoint(ctx context.Context, bitcoind *coreproxy.Bitcoind, txid string, vout int) (string, error) {
+	rawTxResp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
+		Msg: &corepb.GetRawTransactionRequest{
+			Txid: txid,
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("enforcer/wallet: could not get raw transaction: %w", err)
+	}
+
+	rawBytes, err := hex.DecodeString(rawTxResp.Msg.Tx.Hex)
+	if err != nil {
+		return "", fmt.Errorf("could not decode raw tx hex: %w", err)
+	}
+	decodedTx, err := btcutil.NewTxFromBytes(rawBytes)
+	if err != nil {
+		return "", fmt.Errorf("could not decode raw transaction: %w", err)
+	}
+	if vout < 0 || vout >= len(decodedTx.MsgTx().TxOut) {
+		return "", fmt.Errorf("enforcer/wallet: vout %d out of range for tx %s", vout, txid)
+	}
+	txOut := decodedTx.MsgTx().TxOut[vout]
+
+	// Extract address from scriptPubKey
+	var address string
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.SigNetParams)
+	if err == nil && len(addrs) > 0 {
+		address = addrs[0].EncodeAddress()
+	}
+
+	return address, nil
+}
+
+// ListReceiveAddresses implements walletv1connect.WalletServiceHandler.
+func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
+	wallet, err := s.wallet.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
+	}
+
+	// Fetch the addressbook entries once for label lookup
+	addressBookEntries, err := addressbook.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
+	}
+	// Helper to find label for an address
+	getLabel := func(addr string) string {
+		for _, entry := range addressBookEntries {
+			if entry.Address == addr {
+				return entry.Label
+			}
+		}
+		return ""
+	}
+
+	// Use a map[string]*pb.ListReceiveAddressesResponse_ReceiveAddress to accumulate results
+	addressMap := make(map[string]*pb.ReceiveAddress)
+
+	for _, utxo := range utxos.Msg.Outputs {
+		address, err := s.getAddressFromOutpoint(ctx, bitcoind, utxo.Txid.Hex.Value, int(utxo.Vout))
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: could not get address from outpoint: %w", err)
+		}
+		if address == "" {
+			continue
+		}
+		if _, ok := addressMap[address]; !ok {
+			addressMap[address] = &pb.ReceiveAddress{
+				Address:  address,
+				Label:    getLabel(address),
+				IsChange: utxo.IsInternal,
+			}
+		}
+		addressMap[address].CurrentBalanceSat += uint64(utxo.ValueSats)
+	}
+
+	var historicAddresses []*pb.ReceiveAddress
+	for _, addr := range addressMap {
+		historicAddresses = append(historicAddresses, addr)
+	}
+
+	return connect.NewResponse(&pb.ListReceiveAddressesResponse{
+		Addresses: historicAddresses,
 	}), nil
 }
 

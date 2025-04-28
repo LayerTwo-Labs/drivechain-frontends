@@ -228,9 +228,9 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 		return news[i].CreatedAt.After(news[j].CreatedAt)
 	})
 
-	// Take up to 10 entries
-	if len(news) > 10 {
-		news = news[:10]
+	// Take up to 5 entries
+	if len(news) > 5 {
+		news = news[:5]
 	}
 
 	return connect.NewResponse(&miscv1.ListCoinNewsResponse{

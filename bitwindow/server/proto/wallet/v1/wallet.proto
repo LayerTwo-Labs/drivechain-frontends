@@ -13,6 +13,7 @@ service WalletService {
   rpc GetNewAddress(google.protobuf.Empty) returns (GetNewAddressResponse);
   rpc ListTransactions(google.protobuf.Empty) returns (ListTransactionsResponse);
   rpc ListUnspent(google.protobuf.Empty) returns (ListUnspentResponse);
+  rpc ListReceiveAddresses(google.protobuf.Empty) returns (ListReceiveAddressesResponse);
 
   rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
   rpc CreateSidechainDeposit(CreateSidechainDepositRequest) returns (CreateSidechainDepositResponse);
@@ -69,12 +70,25 @@ message UnspentOutput {
   string label = 3;
   // The value of the output, in satoshis.
   uint64 value = 4;
+  // Whether this is a change output.
+  bool is_change = 5;
   // Timestamp of the utxo.
-  google.protobuf.Timestamp received_at = 5;
+  google.protobuf.Timestamp received_at = 6;
 }
 
 message ListUnspentResponse {
   repeated UnspentOutput utxos = 1;
+}
+
+message ListReceiveAddressesResponse {
+  repeated ReceiveAddress addresses = 1;
+}
+
+message ReceiveAddress {
+  string address = 1;
+  string label = 2;
+  uint64 current_balance_sat = 3;
+  bool is_change = 4;
 }
 
 message Confirmation {
