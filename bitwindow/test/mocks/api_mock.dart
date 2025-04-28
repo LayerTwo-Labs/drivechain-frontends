@@ -184,6 +184,11 @@ class MockWalletAPI implements WalletAPI {
   Future<GetStatsResponse> getStats() async {
     return GetStatsResponse();
   }
+
+  @override
+  Future<List<ReceiveAddress>> listReceiveAddresses() async {
+    return [];
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

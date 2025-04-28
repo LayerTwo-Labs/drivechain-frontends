@@ -44,7 +44,7 @@ class CoinNewsView extends StatelessWidget {
               Flexible(
                 child: SailColumn(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: SailStyleValues.padding16,
+                  spacing: 0,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SailRow(
@@ -79,6 +79,7 @@ class CoinNewsView extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SailSpacing(16),
                     ...viewModel.entries.map((entry) => CoinNewsEntry(entry: entry, allTopics: viewModel.topics)),
                   ],
                 ),

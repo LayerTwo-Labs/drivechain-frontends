@@ -96,16 +96,17 @@ const UnspentOutput$json = {
     {'1': 'address', '3': 2, '4': 1, '5': 9, '10': 'address'},
     {'1': 'label', '3': 3, '4': 1, '5': 9, '10': 'label'},
     {'1': 'value', '3': 4, '4': 1, '5': 4, '10': 'value'},
-    {'1': 'received_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'receivedAt'},
+    {'1': 'is_change', '3': 5, '4': 1, '5': 8, '10': 'isChange'},
+    {'1': 'received_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'receivedAt'},
   ],
 };
 
 /// Descriptor for `UnspentOutput`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
     'Cg1VbnNwZW50T3V0cHV0EhYKBm91dHB1dBgBIAEoCVIGb3V0cHV0EhgKB2FkZHJlc3MYAiABKA'
-    'lSB2FkZHJlc3MSFAoFbGFiZWwYAyABKAlSBWxhYmVsEhQKBXZhbHVlGAQgASgEUgV2YWx1ZRI7'
-    'CgtyZWNlaXZlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCnJlY2Vpdm'
-    'VkQXQ=');
+    'lSB2FkZHJlc3MSFAoFbGFiZWwYAyABKAlSBWxhYmVsEhQKBXZhbHVlGAQgASgEUgV2YWx1ZRIb'
+    'Cglpc19jaGFuZ2UYBSABKAhSCGlzQ2hhbmdlEjsKC3JlY2VpdmVkX2F0GAYgASgLMhouZ29vZ2'
+    'xlLnByb3RvYnVmLlRpbWVzdGFtcFIKcmVjZWl2ZWRBdA==');
 
 @$core.Deprecated('Use listUnspentResponseDescriptor instead')
 const ListUnspentResponse$json = {
@@ -140,6 +141,7 @@ const ReceiveAddress$json = {
     {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
     {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
     {'1': 'current_balance_sat', '3': 3, '4': 1, '5': 4, '10': 'currentBalanceSat'},
+    {'1': 'is_change', '3': 4, '4': 1, '5': 8, '10': 'isChange'},
   ],
 };
 
@@ -147,7 +149,7 @@ const ReceiveAddress$json = {
 final $typed_data.Uint8List receiveAddressDescriptor = $convert.base64Decode(
     'Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhQKBWxhYmVsGAIgAS'
     'gJUgVsYWJlbBIuChNjdXJyZW50X2JhbGFuY2Vfc2F0GAMgASgEUhFjdXJyZW50QmFsYW5jZVNh'
-    'dA==');
+    'dBIbCglpc19jaGFuZ2UYBCABKAhSCGlzQ2hhbmdl');
 
 @$core.Deprecated('Use confirmationDescriptor instead')
 const Confirmation$json = {

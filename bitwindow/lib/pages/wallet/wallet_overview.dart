@@ -182,8 +182,7 @@ class _TransactionTableState extends State<TransactionTable> {
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailCard(
           title: 'Wallet Transaction History',
-          subtitle:
-              'List of transactions for your L1-wallet. Contains send, receive and sidechain-interaction transactions.',
+          subtitle: 'Contains send, receive and sidechain-interaction transactions.',
           bottomPadding: false,
           child: Column(
             children: [

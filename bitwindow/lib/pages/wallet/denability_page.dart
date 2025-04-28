@@ -128,7 +128,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   Widget build(BuildContext context) {
     return SailCard(
       title: 'UTXOs and Denials',
-      subtitle: 'List of UTXOs with optional deniability info.',
+      subtitle: 'List of your UTXOs with information about their deniability status.',
       error: widget.error,
       bottomPadding: false,
       inSeparateWindow: widget.newWindowIdentifier != null,
