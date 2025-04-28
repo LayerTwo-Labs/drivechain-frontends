@@ -92,7 +92,6 @@ class _UTXOTableState extends State<UTXOTable> {
   Widget build(BuildContext context) {
     return SailCard(
       title: 'Your UTXOs',
-      subtitle: 'Your previously used receive addresses, with their current balance',
       bottomPadding: false,
       child: Column(
         children: [
@@ -108,7 +107,7 @@ class _UTXOTableState extends State<UTXOTable> {
               ],
               rowBuilder: (context, row, selected) {
                 final utxo = entries[row];
-                final formattedDate = DateFormat('yyyy MMM dd').format(utxo.receivedAt.toDateTime().toLocal());
+                final formattedDate = DateFormat('yyyy MMM dd HH:mm').format(utxo.receivedAt.toDateTime().toLocal());
                 final formattedAmount = formatBitcoin(
                   satoshiToBTC(utxo.value.toInt()),
                   symbol: '',

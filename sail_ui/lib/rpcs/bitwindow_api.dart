@@ -75,6 +75,7 @@ abstract class WalletAPI {
   Future<String> getNewAddress();
   Future<List<WalletTransaction>> listTransactions();
   Future<List<UnspentOutput>> listUnspent();
+  Future<List<ReceiveAddress>> listReceiveAddresses();
 
   // drivechain wallet stuff here
   Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
@@ -474,6 +475,18 @@ class _WalletAPILive implements WalletAPI {
       return response.utxos;
     } catch (e) {
       final error = 'could not list utxos: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<ReceiveAddress>> listReceiveAddresses() async {
+    try {
+      final response = await _client.listReceiveAddresses(Empty());
+      return response.addresses;
+    } catch (e) {
+      final error = 'could not list receive addresses: ${extractConnectException(e)}';
       log.e(error);
       throw WalletException(error);
     }

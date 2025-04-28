@@ -484,7 +484,7 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 				Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
 				Address:    address,
 				Label:      getLabel(address),
-				Value:      uint64(utxo.ValueSats),
+				Value:      utxo.ValueSats,
 				ReceivedAt: receivedAt,
 				IsChange:   utxo.IsInternal,
 			}, nil
@@ -584,7 +584,7 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[em
 				IsChange: utxo.IsInternal,
 			}
 		}
-		addressMap[address].CurrentBalanceSat += uint64(utxo.ValueSats)
+		addressMap[address].CurrentBalanceSat += utxo.ValueSats
 	}
 
 	var historicAddresses []*pb.ReceiveAddress

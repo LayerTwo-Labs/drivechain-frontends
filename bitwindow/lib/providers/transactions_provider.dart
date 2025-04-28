@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/env.dart';
@@ -18,6 +19,7 @@ class TransactionProvider extends ChangeNotifier {
   String address = '';
   List<WalletTransaction> walletTransactions = [];
   List<UnspentOutput> utxos = [];
+  List<ReceiveAddress> receiveAddresses = [];
   bool initialized = false;
   String? error;
 
@@ -51,14 +53,35 @@ class TransactionProvider extends ChangeNotifier {
     error = null;
 
     try {
-      final newTXs = await api.wallet.listTransactions();
-      final newAddress = await api.wallet.getNewAddress();
-      final newUTXOs = await api.wallet.listUnspent();
+      // Run all updates in parallel
+      final results = await Future.wait([
+        update<List<WalletTransaction>>(
+          walletTransactions,
+          api.wallet.listTransactions,
+          (v) => walletTransactions = v,
+          equals: const DeepCollectionEquality().equals,
+        ),
+        update<String>(
+          address,
+          api.wallet.getNewAddress,
+          (v) => address = v,
+        ),
+        update<List<UnspentOutput>>(
+          utxos,
+          api.wallet.listUnspent,
+          (v) => utxos = v,
+          equals: const DeepCollectionEquality().equals,
+        ),
+        update<List<ReceiveAddress>>(
+          receiveAddresses,
+          api.wallet.listReceiveAddresses,
+          (v) => receiveAddresses = v,
+          equals: const DeepCollectionEquality().equals,
+        ),
+      ]);
 
-      if (_dataHasChanged(newTXs, newAddress, newUTXOs)) {
-        walletTransactions = newTXs;
-        address = newAddress;
-        utxos = newUTXOs;
+      // If any update returned true, notify listeners
+      if (results.any((changed) => changed)) {
         initialized = true;
         error = null;
         notifyListeners();
@@ -71,32 +94,20 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
-  bool _dataHasChanged(
-    List<WalletTransaction> newTXs,
-    String newAddress,
-    List<UnspentOutput> newUTXOs,
-  ) {
-    if (newTXs.length != walletTransactions.length) {
+  Future<bool> update<T>(
+    T currentValue,
+    Future<T> Function() fetch,
+    void Function(T) setValue, {
+    bool Function(T a, T b)? equals,
+  }) async {
+    final newValue = await fetch();
+    final isEqual = equals != null ? equals(currentValue, newValue) : currentValue == newValue;
+
+    if (!isEqual) {
+      setValue(newValue);
       return true;
     }
-
-    if (newUTXOs.length != utxos.length) {
-      return true;
-    }
-
-    for (int i = 0; i < newTXs.length; i++) {
-      if (!walletTransactions[i].isEqual(newTXs[i])) {
-        return true;
-      }
-    }
-
-    for (int i = 0; i < newUTXOs.length; i++) {
-      if (!utxos[i].isEqual(newUTXOs[i])) {
-        return true;
-      }
-    }
-
-    return address != newAddress;
+    return false;
   }
 
   @override
@@ -105,17 +116,5 @@ class TransactionProvider extends ChangeNotifier {
     blockchainProvider.removeListener(fetch);
     _fetchTimer?.cancel();
     super.dispose();
-  }
-}
-
-extension WalletTransactionExtensions on WalletTransaction {
-  bool isEqual(WalletTransaction other) {
-    return toDebugString() == other.toDebugString();
-  }
-}
-
-extension UnspentOutputExtensions on UnspentOutput {
-  bool isEqual(UnspentOutput other) {
-    return toDebugString() == other.toDebugString();
   }
 }

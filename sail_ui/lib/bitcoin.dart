@@ -14,30 +14,27 @@ int btcToSatoshi(double btc) {
 
 String formatBitcoin(num? number, {String symbol = 'BTC'}) {
   if (number == null || number.isNaN || number.isInfinite) {
-    return '0.0000,0000${symbol.isEmpty ? '' : ' $symbol'}';
+    return '0.00 000 000${symbol.isEmpty ? '' : ' $symbol'}';
   }
 
   // Ensure positive number and handle negatives
   bool isNegative = number < 0;
   number = number.abs();
 
-  // Format to 8 decimal places and handle potential rounding
+  // Format to 8 decimal places
   final formattedNumber = number.toStringAsFixed(8);
   final parts = formattedNumber.split('.');
 
-  // Handle integer part
   final integerPart = parts[0];
 
-  // Handle decimal part with safety checks
-  String formattedDecimal;
-  if (parts.length < 2) {
-    formattedDecimal = '0000,0000';
-  } else {
-    final decimalPart = parts[1].padRight(8, '0').substring(0, 8);
-    formattedDecimal = '${decimalPart.substring(0, 4)},${decimalPart.substring(4)}';
-  }
+  // Ensure decimal part is 8 digits
+  String decimalPart = (parts.length > 1 ? parts[1] : '').padRight(8, '0').substring(0, 8);
 
-  return '${isNegative ? '-' : ''}$integerPart.$formattedDecimal${symbol.isEmpty ? '' : ' $symbol'}';
+  // Group as: 2 digits, 3 digits, 3 digits
+  String groupedDecimal =
+      '${decimalPart.substring(0, 2)} ${decimalPart.substring(2, 5)} ${decimalPart.substring(5, 8)}';
+
+  return '${isNegative ? '-' : ''}$integerPart.$groupedDecimal${symbol.isEmpty ? '' : ' $symbol'}';
 }
 
 String formatDepositAddress(String address, int sidechainNum) {

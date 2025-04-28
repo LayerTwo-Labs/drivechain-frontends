@@ -358,6 +358,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.String? address,
     $core.String? label,
     $fixnum.Int64? value,
+    $core.bool? isChange,
     $0.Timestamp? receivedAt,
   }) {
     final $result = create();
@@ -373,6 +374,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (value != null) {
       $result.value = value;
     }
+    if (isChange != null) {
+      $result.isChange = isChange;
+    }
     if (receivedAt != null) {
       $result.receivedAt = receivedAt;
     }
@@ -387,7 +391,8 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'address')
     ..aOS(3, _omitFieldNames ? '' : 'label')
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
+    ..aOB(5, _omitFieldNames ? '' : 'isChange')
+    ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -452,17 +457,27 @@ class UnspentOutput extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearValue() => clearField(4);
 
+  /// Whether this is a change output.
+  @$pb.TagNumber(5)
+  $core.bool get isChange => $_getBF(4);
+  @$pb.TagNumber(5)
+  set isChange($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasIsChange() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearIsChange() => clearField(5);
+
   /// Timestamp of the utxo.
-  @$pb.TagNumber(5)
-  $0.Timestamp get receivedAt => $_getN(4);
-  @$pb.TagNumber(5)
-  set receivedAt($0.Timestamp v) { setField(5, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasReceivedAt() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearReceivedAt() => clearField(5);
-  @$pb.TagNumber(5)
-  $0.Timestamp ensureReceivedAt() => $_ensure(4);
+  @$pb.TagNumber(6)
+  $0.Timestamp get receivedAt => $_getN(5);
+  @$pb.TagNumber(6)
+  set receivedAt($0.Timestamp v) { setField(6, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasReceivedAt() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearReceivedAt() => clearField(6);
+  @$pb.TagNumber(6)
+  $0.Timestamp ensureReceivedAt() => $_ensure(5);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {
@@ -558,6 +573,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     $core.String? address,
     $core.String? label,
     $fixnum.Int64? currentBalanceSat,
+    $core.bool? isChange,
   }) {
     final $result = create();
     if (address != null) {
@@ -569,6 +585,9 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     if (currentBalanceSat != null) {
       $result.currentBalanceSat = currentBalanceSat;
     }
+    if (isChange != null) {
+      $result.isChange = isChange;
+    }
     return $result;
   }
   ReceiveAddress._() : super();
@@ -579,6 +598,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'address')
     ..aOS(2, _omitFieldNames ? '' : 'label')
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'currentBalanceSat', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOB(4, _omitFieldNames ? '' : 'isChange')
     ..hasRequiredFields = false
   ;
 
@@ -629,6 +649,15 @@ class ReceiveAddress extends $pb.GeneratedMessage {
   $core.bool hasCurrentBalanceSat() => $_has(2);
   @$pb.TagNumber(3)
   void clearCurrentBalanceSat() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get isChange => $_getBF(3);
+  @$pb.TagNumber(4)
+  set isChange($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasIsChange() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIsChange() => clearField(4);
 }
 
 class Confirmation extends $pb.GeneratedMessage {
