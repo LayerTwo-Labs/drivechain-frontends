@@ -1,37 +1,10 @@
-# This file contains commands to be run on all sub-clients
-format:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    for dir in bitwindow faucet launcher sail_ui thunder; do
-        if [ -d "$dir" ]; then
-            (cd "$dir" && find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120)
-        fi
-    done
-
-fix:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    for dir in bitwindow faucet launcher sail_ui thunder; do
-        if [ -d "$dir" ]; then
-            (cd "$dir" && dart fix --apply)
-        fi
-    done
-
-analyze:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    for dir in bitwindow faucet launcher sail_ui thunder; do
-        if [ -d "$dir" ]; then
-            (cd "$dir" && dart analyze)
-        fi
-    done
-
-lint: format fix analyze
+lint:
+    bash scripts/lint.sh
 
 gen-router:
     #!/usr/bin/env bash
     set -euo pipefail
-    for dir in sail_ui bitwindow faucet launcher thunder; do
+    for dir in sail_ui bitwindow faucet launcher thunder zside; do
         if [ -d "$dir" ]; then
             (cd "$dir" && dart run build_runner build --delete-conflicting-outputs)
         fi
