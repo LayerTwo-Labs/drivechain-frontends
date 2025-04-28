@@ -456,7 +456,6 @@ class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
                     return [
                       SailTableCell(
                         value: entry.confirmations.toString(),
-                        monospace: true,
                       ),
                       SailTableCell(
                         value: formatBitcoin(entry.amount),
@@ -464,11 +463,10 @@ class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
                       ),
                       SailTableCell(
                         value: entry.address,
-                        monospace: true,
                       ),
                       SailTableCell(
-                        value: entry.txid,
-                        monospace: true,
+                        value: entry.txid.substring(0, 6),
+                        copyValue: entry.txid,
                       ),
                     ];
                   },
@@ -637,7 +635,6 @@ class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
                     return [
                       SailTableCell(
                         value: entry.confirmations.toString(),
-                        monospace: true,
                       ),
                       SailTableCell(
                         value: formatBitcoin(entry.amount),
@@ -645,8 +642,8 @@ class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
                         textColor: getCastColor(entry.amount),
                       ),
                       SailTableCell(
-                        value: entry.txid,
-                        monospace: true,
+                        value: entry.txid.substring(0, 6),
+                        copyValue: entry.txid,
                       ),
                     ];
                   },

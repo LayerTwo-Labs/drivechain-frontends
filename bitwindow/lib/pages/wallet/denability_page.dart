@@ -210,8 +210,8 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
 
                 return [
                   SailTableCell(
-                    value: '${utxo.txid}:${utxo.vout}',
-                    monospace: true,
+                    value: '${utxo.txid.substring(0, 6)}..:${utxo.vout}',
+                    copyValue: '${utxo.txid}:${utxo.vout}',
                   ),
                   SailTableCell(
                     value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
@@ -219,22 +219,18 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   ),
                   SailTableCell(
                     value: hops,
-                    monospace: true,
                   ),
                   SailTableCell(
                     value: nextExecution,
-                    monospace: true,
                   ),
                   Tooltip(
                     message: utxo.deniability.cancelReason,
                     child: SailTableCell(
                       value: status,
-                      monospace: true,
                     ),
                   ),
                   SailTableCell(
                     value: canCancel ? 'Cancel' : '-',
-                    monospace: true,
                     child: canCancel
                         ? SailButton(
                             label: 'Cancel',

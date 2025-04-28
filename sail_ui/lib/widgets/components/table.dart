@@ -411,6 +411,7 @@ class _TableRowState extends State<_TableRow> {
       context: context,
       preferredAnchorPoint: position,
       menu: SailMenu(
+        width: 100,
         items: [
           SailMenuItem(
             onSelected: () {
@@ -442,7 +443,7 @@ class _TableRowState extends State<_TableRow> {
     var cellWidgets = <Widget>[];
     int i = 0;
     for (var cell in widget.cells) {
-      final String? cellValue = cell is SailTableCell ? cell.value : null;
+      final String? cellValue = cell is SailTableCell ? cell.copyValue ?? cell.value : null;
 
       cellWidgets.add(
         SizedBox(
@@ -530,6 +531,7 @@ class _TableRowState extends State<_TableRow> {
 class SailTableCell extends StatelessWidget {
   const SailTableCell({
     required this.value,
+    this.copyValue,
     this.child,
     this.alignment = Alignment.centerLeft,
     this.padding = const EdgeInsets.symmetric(horizontal: 8),
@@ -542,6 +544,7 @@ class SailTableCell extends StatelessWidget {
   });
 
   final String value;
+  final String? copyValue;
   final Widget? child;
   final Alignment alignment;
   final EdgeInsets padding;

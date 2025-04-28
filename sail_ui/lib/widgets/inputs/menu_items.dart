@@ -25,8 +25,11 @@ class SailMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final minWidth = width ?? 0;
+    final maxWidth = width ?? double.infinity;
+
     return Container(
-      constraints: const BoxConstraints(minWidth: 254),
+      constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
       decoration: BoxDecoration(
         color: context.sailTheme.colors.background,
         borderRadius: SailStyleValues.borderRadius,
