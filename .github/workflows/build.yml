@@ -77,6 +77,11 @@ jobs:
                   continue
                 fi
                 
+                # Skip Windows for zside
+                if [[ "$client" == "zside" && "$os" == "windows-latest" ]]; then
+                  continue
+                fi
+                
                 # No chains - just add the basic config
                 configurations+=("{\"os\":\"$os\",\"client\":\"$client\"}")
               done
