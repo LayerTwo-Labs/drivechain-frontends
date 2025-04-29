@@ -1,4 +1,5 @@
 import 'package:auto_route/annotations.dart';
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -166,7 +167,7 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
   @override
   Widget build(BuildContext context) {
     return SailTable(
-      getRowId: (index) => blocks[index]?.info.slot.toString() ?? '',
+      getRowId: (index) => blocks[index]?.info.chaintipTxid ?? '',
       headerBuilder: (context) => [
         const SailTableHeaderCell(name: '#'),
         const SailTableHeaderCell(name: 'Active'),
@@ -190,6 +191,15 @@ class _ActiveSidechainsTableState extends State<ActiveSidechainsTable> {
       sortAscending: sortAscending,
       onSort: (columnIndex, ascending) {
         onSort(['slot', 'active', 'name', 'chaintipTxid'][columnIndex]);
+      },
+      onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
+      contextMenuItems: (rowId) {
+        return [
+          SailMenuItem(
+            onSelected: () => showTransactionDetails(context, rowId),
+            child: SailText.primary12('Show Chaintip Transaction'),
+          ),
+        ];
       },
     );
   }

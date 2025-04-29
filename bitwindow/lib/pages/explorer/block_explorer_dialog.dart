@@ -256,7 +256,7 @@ class BlockExplorerDialog extends StatelessWidget {
                     height: 300,
                     child: TXIDTransactionTable(
                       transactions: block.txids,
-                      onTransactionSelected: (txid) => _showTransactionDetails(context, txid),
+                      onTransactionSelected: (txid) => showTransactionDetails(context, txid),
                     ),
                   ),
                 ],
@@ -264,15 +264,6 @@ class BlockExplorerDialog extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _showTransactionDetails(BuildContext context, String txid) {
-    showDialog(
-      context: context,
-      builder: (context) => TransactionDetailsDialog(
-        txid: txid,
       ),
     );
   }
@@ -506,6 +497,7 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
 
   GetRawTransactionResponse? transaction;
   String? error;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -513,20 +505,35 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
     _loadTransaction();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _loadTransaction() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      error = null;
+    });
+
     try {
       final tx = await bitwindow.bitcoind.getRawTransaction(widget.txid);
-      if (mounted) {
-        setState(() {
-          transaction = tx;
-        });
-      }
+
+      if (!mounted) return;
+      setState(() {
+        transaction = tx;
+        error = null;
+        _isLoading = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          error = e.toString();
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        transaction = null;
+        error = 'Failed to load transaction: ${e.toString()}';
+        _isLoading = false;
+      });
     }
   }
 
@@ -538,48 +545,70 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
         constraints: const BoxConstraints(maxWidth: 800),
         child: SailCard(
           title: 'Transaction Details',
-          subtitle: '',
+          subtitle: widget.txid,
           error: error,
-          child: transaction == null
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDetailRow(context, 'Hash', transaction!.txid),
-                      _buildDetailRow(context, '# Inputs', '${transaction!.inputs.length}'),
-                      _buildDetailRow(context, '# Outputs', '${transaction!.outputs.length}'),
-                      _buildDetailRow(context, 'Size', '${transaction!.size} bytes'),
-                      _buildDetailRow(context, 'Virtual Size', '${transaction!.vsize} vbytes'),
-                      _buildDetailRow(context, 'Weight', '${transaction!.weight} wu'),
-                      _buildDetailRow(context, 'Block Hash', transaction!.blockhash),
-                      _buildDetailRow(context, 'Confirmations', '${transaction!.confirmations}'),
-                      _buildDetailRow(context, 'Lock Time', '${transaction!.locktime}'),
-                      if (transaction!.inputs.any((input) => input.coinbase.isNotEmpty))
-                        SailText.primary13('This is a coinbase transaction.'),
-                      const SailSpacing(SailStyleValues.padding16),
-                      SailText.primary13('Decoded from transaction outputs:'),
-                      const SailSpacing(SailStyleValues.padding08),
-                      _buildDecodedOutputsTable(context),
-                      const SailSpacing(SailStyleValues.padding16),
-                      BorderedSection(
-                        title: 'Transaction To String:',
-                        child: SailText.secondary13(
-                          transaction!.toString(),
-                        ),
-                      ),
-                      const SailSpacing(SailStyleValues.padding16),
-                      BorderedSection(
-                        title: 'Raw Transaction Hex',
-                        child: SailText.secondary13(
-                          transaction!.tx.hex,
-                          monospace: true,
-                        ),
-                      ),
-                    ],
+          child: _isLoading
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(SailStyleValues.padding16),
+                    child: CircularProgressIndicator(),
                   ),
-                ),
+                )
+              : transaction == null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(SailStyleValues.padding16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SailText.primary13('Failed to load transaction details'),
+                            if (error != null) SailText.secondary13(error!),
+                            SailButton(
+                              onPressed: _loadTransaction,
+                              label: 'Retry',
+                              variant: ButtonVariant.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildDetailRow(context, '# Inputs', '${transaction!.inputs.length}'),
+                          _buildDetailRow(context, '# Outputs', '${transaction!.outputs.length}'),
+                          _buildDetailRow(context, 'Size', '${transaction!.size} bytes'),
+                          _buildDetailRow(context, 'Virtual Size', '${transaction!.vsize} vbytes'),
+                          _buildDetailRow(context, 'Weight', '${transaction!.weight} wu'),
+                          _buildDetailRow(context, 'Block Hash', transaction!.blockhash),
+                          _buildDetailRow(context, 'Confirmations', '${transaction!.confirmations}'),
+                          _buildDetailRow(context, 'Lock Time', '${transaction!.locktime}'),
+                          if (transaction!.inputs.any((input) => input.coinbase.isNotEmpty))
+                            SailText.primary13('This is a coinbase transaction.'),
+                          const SailSpacing(SailStyleValues.padding16),
+                          SailText.primary13('Decoded from transaction outputs:'),
+                          const SailSpacing(SailStyleValues.padding08),
+                          _buildDecodedOutputsTable(context),
+                          const SailSpacing(SailStyleValues.padding16),
+                          BorderedSection(
+                            title: 'Transaction To String:',
+                            child: SailText.secondary13(
+                              transaction!.toString(),
+                            ),
+                          ),
+                          const SailSpacing(SailStyleValues.padding16),
+                          BorderedSection(
+                            title: 'Raw Transaction Hex',
+                            child: SailText.secondary13(
+                              transaction!.tx.hex,
+                              monospace: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
         ),
       ),
     );
@@ -596,13 +625,14 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
             child: SailText.primary13(
               label,
               monospace: true,
-              color: context.sailTheme.colors.textTertiary,
+              color: context.sailTheme.colors.inactiveNavText,
             ),
           ),
           Expanded(
             child: SailText.secondary13(
               value,
               monospace: true,
+              color: context.sailTheme.colors.inactiveNavText,
             ),
           ),
         ],
@@ -677,4 +707,27 @@ class BorderedSection extends StatelessWidget {
       ],
     );
   }
+}
+
+Future<void> showTransactionDetails(BuildContext context, String txid) async {
+  // Ensure we're running on a new frame
+  await Future.microtask(() async {
+    if (!context.mounted) return;
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      useRootNavigator: true,
+      builder: (BuildContext dialogContext) {
+        return PopScope(
+          canPop: true,
+          onPopInvokedWithResult: (didPop, result) {
+            // You can handle pop result here if needed
+          },
+          child: TransactionDetailsDialog(
+            txid: txid,
+          ),
+        );
+      },
+    );
+  });
 }

@@ -1,7 +1,7 @@
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -97,7 +97,7 @@ class _UTXOTableState extends State<UTXOTable> {
         children: [
           Expanded(
             child: SailTable(
-              getRowId: (index) => entries[index].output,
+              getRowId: (index) => entries[index].output.split(':').first,
               headerBuilder: (context) => [
                 SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
                 SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
@@ -137,6 +137,17 @@ class _UTXOTableState extends State<UTXOTable> {
               sortAscending: sortAscending,
               onSort: (columnIndex, ascending) {
                 onSort(['date', 'output', 'address', 'label', 'value'][columnIndex]);
+              },
+              onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
+              contextMenuItems: (rowId) {
+                return [
+                  SailMenuItem(
+                    onSelected: () async {
+                      await showTransactionDetails(context, rowId);
+                    },
+                    child: SailText.primary12('Show Details'),
+                  ),
+                ];
               },
             ),
           ),
