@@ -5,7 +5,7 @@ class SailDropdownButton<T> extends StatefulWidget {
   final List<SailDropdownItem<T>> items;
   final ValueChanged<T?> onChanged;
   final T? value;
-  final Widget? hint;
+  final String? hint;
   final Widget? icon;
   final bool large;
   final bool enabled;
@@ -74,10 +74,10 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
       if (currentIndex >= 0) {
         currentDisplay = widget.items[currentIndex];
       } else {
-        currentDisplay = widget.hint ?? const SizedBox();
+        currentDisplay = widget.hint != null ? SailText.primary12(widget.hint!, color: Colors.white) : const SizedBox();
       }
     } else {
-      currentDisplay = widget.hint ?? const SizedBox();
+      currentDisplay = widget.hint != null ? SailText.primary12(widget.hint!, color: Colors.white) : const SizedBox();
     }
 
     final button = InkWell(
@@ -95,6 +95,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
             width: 1,
           ),
           borderRadius: SailStyleValues.borderRadius,
+          color: widget.value == null ? theme.colors.primary : Colors.transparent,
         ),
         child: Padding(
           padding: EdgeInsets.symmetric(
@@ -109,7 +110,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
               currentDisplay,
               SailSVG.fromAsset(
                 _controller.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
-                color: theme.colors.text,
+                color: widget.value == null ? Colors.white : theme.colors.text,
                 width: 13,
               ),
             ],
