@@ -584,7 +584,7 @@ Future<void> displayBroadcastNewsDialog(BuildContext context) async {
   await widgetDialog(
     context: context,
     title: 'Broadcast News',
-    subtitle: 'Broadcast News to the whole world, in the list you prefer.',
+    subtitle: 'Broadcast News to the whole world',
     child: BroadcastNewsView(),
   );
 }

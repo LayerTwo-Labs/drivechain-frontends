@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SailTable extends StatefulWidget {
@@ -411,7 +412,7 @@ class _TableRowState extends State<_TableRow> {
       context: context,
       preferredAnchorPoint: position,
       menu: SailMenu(
-        width: 100,
+        width: 200,
         items: [
           SailMenuItem(
             onSelected: () {
@@ -629,4 +630,26 @@ class SailTableHeaderCell extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Formats a [date] according to the user's locale and time format preference.
+String formatDate(DateTime date) {
+  // Try to infer 24-hour format from locale
+  final use24Hour = _is24HourLocale(Intl.getCurrentLocale());
+
+  // Choose format string based on 24-hour preference
+  final dateFormat = use24Hour ? 'yyyy MMM dd HH:mm' : 'yyyy MMM dd hh:mm a';
+
+  return DateFormat(dateFormat, Intl.getCurrentLocale()).format(date.toLocal());
+}
+
+/// Heuristic: Returns true if the locale is likely to use 24-hour time.
+/// This is not perfect, but covers common cases.
+bool _is24HourLocale(String locale) {
+  // Locales that typically use 12-hour time
+  const twelveHourLocales = [
+    'en_US', 'en_PH', 'en_CA', 'en_AU', 'en_NZ', 'en_IE', 'en_IN',
+    // Add more as needed
+  ];
+  return !twelveHourLocales.contains(locale);
 }

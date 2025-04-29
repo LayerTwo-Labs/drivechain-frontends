@@ -4,7 +4,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:faucet/providers/explorer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -22,8 +21,7 @@ class Block {
 
   // Format the block time in a human-friendly way
   String get formattedTime {
-    final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
-    return formatter.format(blockTime.toLocal());
+    return formatDate(blockTime.toLocal());
   }
 
   // Calculate time since block was mined
