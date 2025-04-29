@@ -142,6 +142,7 @@ const ReceiveAddress$json = {
     {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
     {'1': 'current_balance_sat', '3': 3, '4': 1, '5': 4, '10': 'currentBalanceSat'},
     {'1': 'is_change', '3': 4, '4': 1, '5': 8, '10': 'isChange'},
+    {'1': 'last_used_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'lastUsedAt'},
   ],
 };
 
@@ -149,7 +150,8 @@ const ReceiveAddress$json = {
 final $typed_data.Uint8List receiveAddressDescriptor = $convert.base64Decode(
     'Cg5SZWNlaXZlQWRkcmVzcxIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEhQKBWxhYmVsGAIgAS'
     'gJUgVsYWJlbBIuChNjdXJyZW50X2JhbGFuY2Vfc2F0GAMgASgEUhFjdXJyZW50QmFsYW5jZVNh'
-    'dBIbCglpc19jaGFuZ2UYBCABKAhSCGlzQ2hhbmdl');
+    'dBIbCglpc19jaGFuZ2UYBCABKAhSCGlzQ2hhbmdlEjwKDGxhc3RfdXNlZF9hdBgFIAEoCzIaLm'
+    'dvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCmxhc3RVc2VkQXQ=');
 
 @$core.Deprecated('Use confirmationDescriptor instead')
 const Confirmation$json = {

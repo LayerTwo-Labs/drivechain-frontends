@@ -89,6 +89,7 @@ message ReceiveAddress {
   string label = 2;
   uint64 current_balance_sat = 3;
   bool is_change = 4;
+  google.protobuf.Timestamp last_used_at = 5;
 }
 
 message Confirmation {

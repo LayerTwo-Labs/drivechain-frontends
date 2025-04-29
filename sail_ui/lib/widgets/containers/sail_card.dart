@@ -63,7 +63,7 @@ class SailCard extends StatelessWidget {
       child: SailShadow(
         shadowSize: shadowSize,
         child: Material(
-          color: theme.colors.background,
+          color: Colors.transparent,
           clipBehavior: Clip.hardEdge,
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -72,6 +72,7 @@ class SailCard extends StatelessWidget {
                 width: 1.0,
               ),
               borderRadius: borderRadius ?? SailStyleValues.borderRadiusLarge,
+              color: color ?? theme.colors.background,
             ),
             child: SizedBox(
               width: width,
@@ -320,7 +321,7 @@ class SailCardStats extends StatelessWidget {
       child: SailShadow(
         shadowSize: ShadowSize.regular,
         child: Material(
-          color: theme.colors.background,
+          color: Colors.transparent,
           clipBehavior: Clip.hardEdge,
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -329,6 +330,7 @@ class SailCardStats extends StatelessWidget {
                 width: 1.0,
               ),
               borderRadius: SailStyleValues.borderRadiusLarge,
+              color: theme.colors.background,
             ),
             child: SizedBox(
               width: double.infinity,
@@ -370,6 +372,104 @@ class SailCardStats extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class EditField {
+  final String name;
+  String currentValue;
+
+  EditField({required this.name, required this.currentValue});
+}
+
+class SailCardEditValues extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final List<EditField> fields;
+  final void Function(List<EditField> updatedFields) onSave;
+
+  const SailCardEditValues({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.fields,
+    required this.onSave,
+  });
+
+  @override
+  State<SailCardEditValues> createState() => _SailCardEditValuesState();
+}
+
+class _SailCardEditValuesState extends State<SailCardEditValues> {
+  late List<TextEditingController> controllers;
+
+  @override
+  void initState() {
+    super.initState();
+    controllers = widget.fields.map((field) => TextEditingController(text: field.currentValue)).toList();
+    for (var controller in controllers) {
+      controller.addListener(setTheState);
+    }
+  }
+
+  void setTheState() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    for (final c in controllers) {
+      c.removeListener(setTheState);
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailCard(
+      title: widget.title,
+      subtitle: widget.subtitle,
+      withCloseButton: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...List.generate(widget.fields.length, (i) {
+            final field = widget.fields[i];
+            return SailRow(
+              spacing: 16,
+              children: [
+                SailText.primary13(field.name, bold: true),
+                Expanded(
+                  child: SailTextField(
+                    controller: controllers[i],
+                    hintText: field.currentValue,
+                  ),
+                ),
+              ],
+            );
+          }),
+          const SailSpacing(SailStyleValues.padding16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: SailButton(
+              label: 'Save changes',
+              onPressed: () async {
+                final updatedFields = List<EditField>.generate(
+                  widget.fields.length,
+                  (i) => EditField(
+                    name: widget.fields[i].name,
+                    currentValue: controllers[i].text,
+                  ),
+                );
+                widget.onSave(updatedFields);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

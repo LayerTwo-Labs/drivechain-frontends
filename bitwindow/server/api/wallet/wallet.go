@@ -565,6 +565,11 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[em
 		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
 	}
 
+	currentAddress, err := s.GetNewAddress(ctx, connect.NewRequest(&emptypb.Empty{}))
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not get current address: %w", err)
+	}
+
 	// Fetch the addressbook entries once for label lookup
 	addressBookEntries, err := addressbook.List(ctx, s.database)
 	if err != nil {
@@ -591,20 +596,41 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[em
 		if address == "" {
 			continue
 		}
+		utxoTimestamp := utxo.UnconfirmedLastSeen
+		if utxoTimestamp == nil {
+			utxoTimestamp = utxo.ConfirmedAtTime
+		}
+
 		if _, ok := addressMap[address]; !ok {
+
 			addressMap[address] = &pb.ReceiveAddress{
-				Address:  address,
-				Label:    getLabel(address),
-				IsChange: utxo.IsInternal,
+				Address:    address,
+				Label:      getLabel(address),
+				IsChange:   utxo.IsInternal,
+				LastUsedAt: utxoTimestamp,
 			}
 		}
 		addressMap[address].CurrentBalanceSat += utxo.ValueSats
+		if addressMap[address].LastUsedAt == nil {
+			addressMap[address].LastUsedAt = utxoTimestamp
+		} else if utxoTimestamp.AsTime().After(addressMap[address].LastUsedAt.AsTime()) {
+			// the current utxo is more recent than the last used at time
+			addressMap[address].LastUsedAt = utxoTimestamp
+		}
 	}
 
 	var historicAddresses []*pb.ReceiveAddress
 	for _, addr := range addressMap {
 		historicAddresses = append(historicAddresses, addr)
 	}
+	// Append currentAddress to the end of the list
+	historicAddresses = append(historicAddresses, &pb.ReceiveAddress{
+		Address:           currentAddress.Msg.Address,
+		Label:             getLabel(currentAddress.Msg.Address),
+		IsChange:          false,
+		CurrentBalanceSat: 0,
+		LastUsedAt:        nil,
+	})
 
 	return connect.NewResponse(&pb.ListReceiveAddressesResponse{
 		Addresses: historicAddresses,

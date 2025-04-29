@@ -54,37 +54,6 @@ class ReceiveTab extends StatelessWidget {
                               ),
                             ],
                           ),
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: SailTextField(
-                                  label: 'Label (optional)',
-                                  controller: model.labelController,
-                                  hintText: '',
-                                  size: TextFieldSize.small,
-                                  helperText:
-                                      'Save this receive address to your address book with the label you type here',
-                                ),
-                              ),
-                              SailButton(
-                                label: model.hasExistingLabel ? 'Update Label' : 'Set Label',
-                                onPressed: () async {
-                                  try {
-                                    if (model.hasExistingLabel) {
-                                      await model.updateLabel(model.matchingEntry.id);
-                                    } else {
-                                      await model.saveLabel(context);
-                                    }
-                                  } catch (e) {
-                                    // Error handled by model
-                                  }
-                                },
-                                disabled: model.isBusy || !model.hasLabelChanged,
-                              ),
-                            ],
-                          ),
                           if (model.address.isEmpty)
                             SailButton(
                               label: 'Generate new address',
@@ -95,7 +64,7 @@ class ReceiveTab extends StatelessWidget {
                     ),
                   ),
                   SizedBox(
-                    width: 180,
+                    width: 128,
                     child: SailCard(
                       padding: true,
                       child: QrImageView(
@@ -113,7 +82,7 @@ class ReceiveTab extends StatelessWidget {
                 ],
               ),
               ReceiveAddressesTable(
-                entries: model.receiveAddresses,
+                model: model,
               ),
             ],
           ),
@@ -124,42 +93,37 @@ class ReceiveTab extends StatelessWidget {
 }
 
 class ReceiveAddressesTable extends StatefulWidget {
-  final List<ReceiveAddress> entries;
+  final ReceivePageViewModel model;
 
-  const ReceiveAddressesTable({super.key, required this.entries});
+  const ReceiveAddressesTable({
+    super.key,
+    required this.model,
+  });
 
   @override
   State<ReceiveAddressesTable> createState() => _ReceiveAddressesTableState();
 }
 
 class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
-  String sortColumn = 'address';
+  String sortColumn = 'last_used_at';
   bool sortAscending = true;
-  late List<ReceiveAddress> entries;
 
-  @override
-  void initState() {
-    super.initState();
-    entries = List.from(widget.entries);
-    sortEntries();
-  }
-
-  void onSort(String column) {
-    setState(() {
-      if (sortColumn == column) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = column;
-        sortAscending = true;
-      }
-      sortEntries();
-    });
-  }
-
-  void sortEntries() {
+  List<ReceiveAddress> get sortedEntries {
+    final entries = List<ReceiveAddress>.from(widget.model.receiveAddresses);
     entries.sort((a, b) {
       dynamic aValue, bValue;
       switch (sortColumn) {
+        case 'last_used_at':
+          if (a.lastUsedAt.seconds == 0 && b.lastUsedAt.seconds == 0) {
+            return 0;
+          } else if (a.lastUsedAt.seconds == 0) {
+            return sortAscending ? 1 : -1;
+          } else if (b.lastUsedAt.seconds == 0) {
+            return sortAscending ? -1 : 1;
+          }
+          aValue = a.lastUsedAt.toDateTime();
+          bValue = b.lastUsedAt.toDateTime();
+          break;
         case 'address':
           aValue = a.address;
           bValue = b.address;
@@ -175,10 +139,23 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
       }
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
+    return entries;
+  }
+
+  void onSort(String column) {
+    setState(() {
+      if (sortColumn == column) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final entries = sortedEntries;
     return SailCard(
       title: 'Receive Addresses',
       bottomPadding: false,
@@ -189,6 +166,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
             child: SailTable(
               getRowId: (index) => entries[index].address,
               headerBuilder: (context) => [
+                SailTableHeaderCell(name: 'Last Used', onSort: () => onSort('last_used_at')),
                 SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
                 SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
                 SailTableHeaderCell(name: 'Balance', onSort: () => onSort('current_balance_sat')),
@@ -200,22 +178,64 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                   symbol: '',
                 );
                 return [
+                  SailTableCell(
+                    value: utxo.lastUsedAt.seconds == 0 ? 'Never' : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
+                  ),
                   SailTableCell(value: utxo.address),
                   SailTableCell(value: utxo.label),
                   SailTableCell(value: formattedAmount, monospace: true),
                 ];
               },
               rowCount: entries.length,
-              columnWidths: const [200, 100, 50],
+              columnWidths: const [70, 200, 100, 50],
               drawGrid: true,
               sortColumnIndex: [
+                'last_used_at',
                 'address',
                 'label',
                 'current_balance_sat',
               ].indexOf(sortColumn),
               sortAscending: sortAscending,
               onSort: (columnIndex, ascending) {
-                onSort(['address', 'label', 'current_balance_sat'][columnIndex]);
+                onSort(['last_used_at', 'address', 'label', 'current_balance_sat'][columnIndex]);
+              },
+              contextMenuItems: (rowId) {
+                final entry = entries.firstWhere((e) => e.address == rowId);
+
+                return [
+                  SailMenuItem(
+                    closeOnSelect: false,
+                    onSelected: () async {
+                      await Future.microtask(() async {
+                        if (!context.mounted) return;
+                        await showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            surfaceTintColor: Colors.transparent,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              child: SailCardEditValues(
+                                title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
+                                subtitle:
+                                    "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
+                                fields: [
+                                  EditField(name: 'Label', currentValue: entry.label),
+                                ],
+                                onSave: (updatedFields) async {
+                                  final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
+                                  await widget.model.saveLabel(context, entry.address, newLabel);
+                                },
+                              ),
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                    child: SailText.primary12(entry.label.isEmpty ? 'Add Label' : 'Update Label'),
+                  ),
+                ];
               },
             ),
           ),
@@ -228,7 +248,9 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
 class ReceivePageViewModel extends BaseViewModel {
   final AddressBookProvider _addressBookProvider = GetIt.I<AddressBookProvider>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
-  final TextEditingController labelController = TextEditingController();
+
+  @override
+  String? modelError;
 
   String get address => transactionsProvider.address;
 
@@ -237,7 +259,6 @@ class ReceivePageViewModel extends BaseViewModel {
         orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
       );
   bool get hasExistingLabel => matchingEntry.label.isNotEmpty;
-  bool get hasLabelChanged => labelController.text != matchingEntry.label;
 
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   List<ReceiveAddress> get receiveAddresses => _txProvider.receiveAddresses.toList();
@@ -246,97 +267,56 @@ class ReceivePageViewModel extends BaseViewModel {
   bool sortAscending = true;
 
   void init() {
-    transactionsProvider.addListener(_onAddressChanged);
-    _addressBookProvider.addListener(_onAddressBookChanged);
+    transactionsProvider.addListener(notifyListeners);
+    _addressBookProvider.addListener(notifyListeners);
     _txProvider.addListener(notifyListeners);
     generateNewAddress();
     _txProvider.fetch();
-
-    labelController.addListener(notifyListeners);
-  }
-
-  void _onAddressChanged() {
-    if (labelController.text.isEmpty) {
-      labelController.text = matchingEntry.label;
-    }
-    notifyListeners();
-  }
-
-  void _onAddressBookChanged() {
-    // When address book changes, update label if this address exists
-    _onAddressChanged();
   }
 
   @override
   void dispose() {
-    transactionsProvider.removeListener(_onAddressChanged);
-    _addressBookProvider.removeListener(_onAddressBookChanged);
-    labelController.removeListener(notifyListeners);
-    labelController.dispose();
+    transactionsProvider.removeListener(notifyListeners);
+    _addressBookProvider.removeListener(notifyListeners);
     _txProvider.removeListener(notifyListeners);
     super.dispose();
   }
 
   Future<void> generateNewAddress() async {
-    await transactionsProvider.fetch();
+    try {
+      modelError = null;
+      await transactionsProvider.fetch();
+      notifyListeners();
+    } catch (e) {
+      modelError = e.toString();
+      notifyListeners();
+    }
   }
 
-  Future<void> saveLabel(BuildContext context) async {
+  Future<void> saveLabel(BuildContext context, String address, String label) async {
     try {
+      modelError = null;
       setBusy(true);
-      setErrorForObject('create', null);
       notifyListeners();
-
       await _addressBookProvider.createEntry(
-        labelController.text,
+        label,
         address,
         Direction.DIRECTION_RECEIVE,
       );
 
-      labelController.clear();
-      await _addressBookProvider.fetch();
+      // Fetch the transactions provider to update the receiveAddresses list
+      await _txProvider.fetch();
+
+      notifyListeners();
+
       if (context.mounted) {
-        showSnackBar(context, 'Saved New Label');
+        Navigator.of(context).pop();
       }
     } catch (error) {
-      setErrorForObject('create', error.toString());
-      notifyListeners();
-      rethrow;
+      modelError = error.toString();
     } finally {
       setBusy(false);
-    }
-  }
-
-  Future<void> updateLabel(Int64 id) async {
-    try {
-      setBusy(true);
-      setErrorForObject('edit', null);
       notifyListeners();
-
-      await _addressBookProvider.updateLabel(id, labelController.text);
-      labelController.clear();
-    } catch (error) {
-      setErrorForObject('edit', error.toString());
-      notifyListeners();
-      rethrow;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  Future<void> deleteLabel(Int64 id) async {
-    try {
-      setBusy(true);
-      setErrorForObject('delete', null);
-      notifyListeners();
-
-      await _addressBookProvider.deleteEntry(id);
-    } catch (error) {
-      setErrorForObject('delete', error.toString());
-      notifyListeners();
-      rethrow;
-    } finally {
-      setBusy(false);
     }
   }
 }

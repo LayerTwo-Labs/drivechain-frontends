@@ -17,7 +17,6 @@ class AddressBookProvider extends ChangeNotifier {
   String? error;
   bool _isFetching = false;
 
-  // CRUD operations
   Future<void> fetch() async {
     if (_isFetching) return;
     _isFetching = true;
