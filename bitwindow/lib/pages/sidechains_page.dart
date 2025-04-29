@@ -492,9 +492,10 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
             onPressed: () async => viewModel.deposit(context),
           ),
           const SizedBox(height: SailStyleValues.padding16),
-          const Expanded(
+          Expanded(
             child: SailCard(
-              title: 'Your Recent Deposits',
+              title:
+                  'Your Recent Deposits${viewModel.selectedIndex != null && viewModel.sidechains[viewModel.selectedIndex!] != null ? " to ${viewModel.sidechains[viewModel.selectedIndex!]!.info.title}" : ""}',
               subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
               shadowSize: ShadowSize.none,
               child: RecentDepositsTable(),
@@ -527,40 +528,39 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
       getRowId: (index) => viewModel.sortedDeposits[index].txid,
       headerBuilder: (context) => [
         SailTableHeaderCell(
-          name: 'SC #',
-          onSort: () => viewModel.sortDeposits('sc'),
+          name: 'Txid',
+          onSort: () => viewModel.sortDeposits('txid'),
         ),
         SailTableHeaderCell(
           name: 'Amount',
           onSort: () => viewModel.sortDeposits('amount'),
         ),
         SailTableHeaderCell(
-          name: 'Txid',
-          onSort: () => viewModel.sortDeposits('txid'),
+          name: 'Fee',
+          onSort: () => viewModel.sortDeposits('fee'),
         ),
         SailTableHeaderCell(
-          name: 'Address',
-          onSort: () => viewModel.sortDeposits('address'),
-        ),
-        SailTableHeaderCell(
-          name: 'Visible on SC?',
+          name: 'Confirmations',
           onSort: () => viewModel.sortDeposits('confirmations'),
         ),
       ],
       rowBuilder: (context, row, selected) {
         final deposit = viewModel.sortedDeposits[row];
         return [
-          SailTableCell(value: viewModel.selectedIndex.toString()),
-          SailTableCell(value: deposit.amount.toString()),
-          SailTableCell(value: deposit.txid),
-          SailTableCell(value: deposit.confirmations >= 2 ? 'Yes' : 'No'),
+          SailTableCell(
+            value: '${deposit.txid.substring(0, 10)}..',
+            copyValue: deposit.txid,
+          ),
+          SailTableCell(value: formatBitcoin(satoshiToBTC(deposit.amount.toInt()))),
+          SailTableCell(value: formatBitcoin(satoshiToBTC(deposit.fee.toInt()))),
+          SailTableCell(value: deposit.confirmations.toString()),
         ];
       },
       rowCount: viewModel.sortedDeposits.length,
-      columnWidths: const [50, 100, 200, 200, 100],
+      columnWidths: const [100, 200, 200, 200],
       drawGrid: true,
       sortAscending: viewModel.depositSortAscending,
-      sortColumnIndex: ['sc', 'amount', 'txid', 'address', 'confirmations'].indexOf(viewModel.depositSortColumn),
+      sortColumnIndex: ['txid', 'amount', 'fee', 'confirmations'].indexOf(viewModel.depositSortColumn),
       onSort: (columnIndex, ascending) => viewModel.sortDeposits(viewModel.depositSortColumn),
     );
   }

@@ -3,7 +3,6 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
@@ -136,17 +135,15 @@ class _TransactionTableState extends State<TransactionTable> {
       dynamic bValue;
 
       switch (sortColumn) {
-        case 'height':
-          aValue = a.confirmationTime.height;
-          bValue = b.confirmationTime.height;
-          break;
         case 'date':
           aValue = a.confirmationTime.timestamp.seconds;
           bValue = b.confirmationTime.timestamp.seconds;
+          // If timestamps are equal, use txid as secondary sort
+          if (aValue == bValue) {
+            return sortAscending ? a.txid.compareTo(b.txid) : b.txid.compareTo(a.txid);
+          }
           break;
         case 'txid':
-        case 'output':
-          // Assuming 'output' is txid for now; adjust if you have a separate output field
           aValue = a.txid;
           bValue = b.txid;
           break;
@@ -159,9 +156,9 @@ class _TransactionTableState extends State<TransactionTable> {
           bValue = b.label;
           break;
         case 'amount':
-          // Use receivedSatoshi if present, otherwise sentSatoshi
-          aValue = a.receivedSatoshi != 0 ? a.receivedSatoshi : a.sentSatoshi;
-          bValue = b.receivedSatoshi != 0 ? b.receivedSatoshi : b.sentSatoshi;
+          // Calculate total amount for each transaction
+          aValue = (a.receivedSatoshi - a.sentSatoshi).abs();
+          bValue = (b.receivedSatoshi - b.sentSatoshi).abs();
           break;
         default:
           aValue = a.confirmationTime.timestamp.seconds;
@@ -195,15 +192,15 @@ class _TransactionTableState extends State<TransactionTable> {
               SizedBox(
                 height: 300,
                 child: SailTable(
-                  getRowId: (index) => widget.entries[index].txid,
+                  getRowId: (index) => entries[index].txid,
                   headerBuilder: (context) => [
                     SailTableHeaderCell(
                       name: 'Date',
                       onSort: () => onSort('date'),
                     ),
                     SailTableHeaderCell(
-                      name: 'Output',
-                      onSort: () => onSort('output'),
+                      name: 'TXID',
+                      onSort: () => onSort('txid'),
                     ),
                     SailTableHeaderCell(
                       name: 'Address',
@@ -219,24 +216,23 @@ class _TransactionTableState extends State<TransactionTable> {
                     ),
                   ],
                   rowBuilder: (context, row, selected) {
-                    final entry = widget.entries[row];
-                    // Format date as "2024 Aug 08"
-                    final formattedDate =
-                        DateFormat('yyyy MMM dd HH:mm').format(entry.confirmationTime.timestamp.toDateTime().toLocal());
-                    // Format amount without BTC symbol
-                    final formattedAmount = formatBitcoin(
-                      satoshiToBTC(
-                        entry.receivedSatoshi != 0 ? entry.receivedSatoshi.toInt() : entry.sentSatoshi.toInt(),
-                      ),
+                    final entry = entries[row];
+
+                    // Calculate amount and determine sign
+                    final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
+                    final sign = amountDiff > 0 ? '+' : '-';
+                    final formattedAmount = '$sign${formatBitcoin(
+                      satoshiToBTC(amountDiff.abs().toInt()),
                       symbol: '',
-                    );
-                    // Assuming output, address, label fields exist on WalletTransaction
+                    )}';
+
                     return [
                       SailTableCell(
                         value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
                       ),
                       SailTableCell(
-                        value: entry.txid,
+                        value: '${entry.txid.substring(0, 10)}..',
+                        copyValue: entry.txid,
                       ),
                       SailTableCell(
                         value: entry.address,
@@ -250,58 +246,37 @@ class _TransactionTableState extends State<TransactionTable> {
                       ),
                     ];
                   },
-                  rowCount: widget.entries.length,
-                  columnWidths: const [120, 120, 320, 120, 120],
+                  contextMenuItems: (rowId) {
+                    return [
+                      SailMenuItem(
+                        onSelected: () async {
+                          await showTransactionDetails(context, rowId);
+                        },
+                        child: SailText.primary12('Show Details'),
+                      ),
+                    ];
+                  },
+                  rowCount: entries.length,
+                  columnWidths: const [120, 60, 320, 120, 120],
                   drawGrid: true,
                   sortColumnIndex: [
                     'date',
-                    // Add indices for output, address, label if you implement sorting
+                    'txid',
+                    'address',
+                    'label',
                     'amount',
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['date', 'output', 'address', 'label', 'amount'][columnIndex]);
+                    onSort(['date', 'txid', 'address', 'label', 'amount'][columnIndex]);
                   },
-                  onDoubleTap: (rowId) {
-                    final utxo = widget.entries.firstWhere(
-                      (u) => u.txid == rowId,
-                    );
-                    _showUtxoDetails(context, utxo);
-                  },
+                  onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
                 ),
               ),
             ],
           ),
         );
       },
-    );
-  }
-
-  void _showUtxoDetails(BuildContext context, WalletTransaction utxo) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'Transaction Details',
-            subtitle: 'Details of the selected transaction',
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DetailRow(label: 'TxID', value: utxo.txid),
-                  DetailRow(label: 'Amount', value: formatBitcoin(satoshiToBTC(utxo.receivedSatoshi.toInt()))),
-                  DetailRow(label: 'Date', value: utxo.confirmationTime.timestamp.toDateTime().toLocal().format()),
-                  DetailRow(label: 'Confirmation Height', value: utxo.confirmationTime.height.toString()),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

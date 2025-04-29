@@ -30,7 +30,7 @@ class _SettingsPageState extends State<SettingsPage> {
               'Settings',
               bold: true,
             ),
-            SailText.secondary13('Manage your account settings and set e-mail preferences.'),
+            SailText.secondary13('Manage your BitWindow settings.'),
             const SailSpacing(SailStyleValues.padding10),
             Divider(
               height: 1,
