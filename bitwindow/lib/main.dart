@@ -67,7 +67,7 @@ void main(List<String> args) async {
     logFile,
     applicationDir: applicationDir,
   );
-  bootBinaries(log);
+  unawaited(bootBinaries(log));
 
   Environment.validateAtRuntime();
 
@@ -377,7 +377,7 @@ class BitwindowApp extends StatelessWidget {
   }
 }
 
-void bootBinaries(Logger log) async {
+Future<void> bootBinaries(Logger log) async {
   log.i('STARTUP: Booting binaries');
 
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
@@ -392,7 +392,7 @@ void bootBinaries(Logger log) async {
 
 Future<List<Binary>> _loadBinaries(Directory appDir) async {
   // Register all binaries
-  var binaries = [
+  final binaries = [
     ParentChain(),
     Enforcer(),
     BitWindow(),
