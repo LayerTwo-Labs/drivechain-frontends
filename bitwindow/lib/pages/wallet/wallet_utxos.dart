@@ -107,14 +107,13 @@ class _UTXOTableState extends State<UTXOTable> {
               ],
               rowBuilder: (context, row, selected) {
                 final utxo = entries[row];
-                final formattedDate = DateFormat('yyyy MMM dd HH:mm').format(utxo.receivedAt.toDateTime().toLocal());
                 final formattedAmount = formatBitcoin(
                   satoshiToBTC(utxo.value.toInt()),
                   symbol: '',
                 );
                 return [
                   SailTableCell(
-                    value: formattedDate,
+                    value: formatDate(utxo.receivedAt.toDateTime().toLocal()),
                   ),
                   SailTableCell(
                     value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',

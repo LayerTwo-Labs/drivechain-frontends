@@ -233,7 +233,7 @@ class _TransactionTableState extends State<TransactionTable> {
                     // Assuming output, address, label fields exist on WalletTransaction
                     return [
                       SailTableCell(
-                        value: formattedDate,
+                        value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
                       ),
                       SailTableCell(
                         value: entry.txid,

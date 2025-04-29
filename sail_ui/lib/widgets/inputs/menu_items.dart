@@ -158,15 +158,15 @@ class _SailMenuItemState extends State<SailMenuItem> {
   }
 
   void _handleSelection(bool isWindows) {
-    if (widget.onSelected != null) {
-      widget.onSelected!();
-    }
-
     if (widget.closeOnSelect) {
       final menuAnchor = context.findAncestorWidgetOfExactType<MenuAnchor>();
       if (menuAnchor != null) {
         menuAnchor.controller?.close();
       }
+    }
+
+    if (widget.onSelected != null) {
+      widget.onSelected!();
     }
   }
 
