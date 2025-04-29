@@ -314,19 +314,33 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 		return nil, err
 	}
 
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not get bitcoind: %w", err)
+	}
+
 	deposits, err := wallet.ListSidechainDepositTransactions(ctx, connect.NewRequest(&validatorpb.ListSidechainDepositTransactionsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list sidechain deposits: %w", err)
 	}
 
+	// Fetch current height from bitcoind
+	chainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not get block chain info: %w", err)
+	}
+
 	var response pb.ListSidechainDepositsResponse
 	for _, tx := range deposits.Msg.Transactions {
+		if c.Msg.Slot != 0 && tx.SidechainNumber.Value != uint32(c.Msg.Slot) {
+			continue
+		}
 
 		response.Deposits = append(response.Deposits, &pb.ListSidechainDepositsResponse_SidechainDeposit{
 			Txid:          tx.Tx.Txid.Hex.Value,
-			Amount:        int64(tx.Tx.ReceivedSats),
+			Amount:        int64(tx.Tx.SentSats),
 			Fee:           int64(tx.Tx.FeeSats),
-			Confirmations: int32(tx.Tx.ConfirmationInfo.Height),
+			Confirmations: int32(chainInfo.Msg.Blocks - tx.Tx.ConfirmationInfo.Height),
 		})
 	}
 
