@@ -574,6 +574,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     $core.String? label,
     $fixnum.Int64? currentBalanceSat,
     $core.bool? isChange,
+    $0.Timestamp? lastUsedAt,
   }) {
     final $result = create();
     if (address != null) {
@@ -588,6 +589,9 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     if (isChange != null) {
       $result.isChange = isChange;
     }
+    if (lastUsedAt != null) {
+      $result.lastUsedAt = lastUsedAt;
+    }
     return $result;
   }
   ReceiveAddress._() : super();
@@ -599,6 +603,7 @@ class ReceiveAddress extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'label')
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'currentBalanceSat', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(4, _omitFieldNames ? '' : 'isChange')
+    ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'lastUsedAt', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -658,6 +663,17 @@ class ReceiveAddress extends $pb.GeneratedMessage {
   $core.bool hasIsChange() => $_has(3);
   @$pb.TagNumber(4)
   void clearIsChange() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $0.Timestamp get lastUsedAt => $_getN(4);
+  @$pb.TagNumber(5)
+  set lastUsedAt($0.Timestamp v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasLastUsedAt() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLastUsedAt() => clearField(5);
+  @$pb.TagNumber(5)
+  $0.Timestamp ensureLastUsedAt() => $_ensure(4);
 }
 
 class Confirmation extends $pb.GeneratedMessage {

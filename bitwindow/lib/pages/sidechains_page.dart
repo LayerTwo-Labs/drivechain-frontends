@@ -98,7 +98,6 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
               },
               rowCount: 255, // Show all possible slots
               columnWidths: const [37, 130, 100],
-              backgroundColor: context.sailTheme.colors.backgroundSecondary,
               sortAscending: viewModel.sortAscending,
               sortColumnIndex: ['slot', 'name', 'balance'].indexOf(viewModel.sortColumn),
               onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
@@ -114,60 +113,6 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class SelectableListTile extends StatelessWidget {
-  final int index;
-  final SidechainOverview? sidechain;
-  final Color textColor;
-  final bool isSelected;
-  final VoidCallback onSelected;
-
-  const SelectableListTile({
-    required this.index,
-    required this.sidechain,
-    required this.textColor,
-    required this.isSelected,
-    required this.onSelected,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onSelected,
-      child: Container(
-        color: isSelected ? context.sailTheme.colors.primary.withValues(alpha: 0.5) : Colors.transparent,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 30,
-              child: SailText.primary13(
-                '$index: ',
-                color: textColor,
-              ),
-            ),
-            SizedBox(
-              width: 80,
-              child: SailText.primary13(
-                sidechain == null ? 'Inactive' : sidechain!.info.title,
-                color: textColor,
-              ),
-            ),
-            const SailSpacing(SailStyleValues.padding16),
-            SizedBox(
-              width: 120,
-              child: SailText.primary13(
-                sidechain == null ? '' : formatBitcoin(satoshiToBTC(sidechain!.info.balanceSatoshi.toInt())),
-                color: textColor,
-                textAlign: TextAlign.left,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

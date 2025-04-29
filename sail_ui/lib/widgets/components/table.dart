@@ -502,7 +502,7 @@ class _TableRowState extends State<_TableRow> {
       contents = DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.all(Radius.circular(SailStyleValues.padding04)),
-          color: widget.selected || isHovered ? theme.colors.primary : widget.backgroundColor,
+          color: widget.selected || isHovered ? theme.colors.backgroundSecondary : widget.backgroundColor,
         ),
         child: Row(
           children: cellWidgets,
