@@ -258,12 +258,14 @@ class SailAlertCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Future<void> Function() onConfirm;
+  final ButtonVariant? confirmButtonVariant;
 
   const SailAlertCard({
     super.key,
     required this.title,
     required this.subtitle,
     required this.onConfirm,
+    this.confirmButtonVariant,
   });
 
   @override
@@ -286,8 +288,10 @@ class SailAlertCard extends StatelessWidget {
               ),
               SailButton(
                 label: 'Confirm',
-                variant: ButtonVariant.secondary,
-                onPressed: onConfirm,
+                variant: confirmButtonVariant ?? ButtonVariant.secondary,
+                onPressed: () async {
+                  await onConfirm();
+                },
               ),
             ],
           ),

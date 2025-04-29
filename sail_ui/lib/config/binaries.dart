@@ -452,16 +452,15 @@ abstract class Binary {
       case ParentChain():
         final signetDir = path.join(dir, 'signet');
         await _deleteFilesInDir(signetDir, [
+          'anchors.dat',
           'banlist.json',
           'bitcoind.pid',
           'blocks',
           'chainstate',
-          'debug.log',
           'fee_estimates.dat',
           'indexes',
           'mempool.dat',
           'peers.dat',
-          'anchors.dat',
           'settings.json',
         ]);
 
@@ -469,7 +468,7 @@ abstract class Binary {
         await _deleteFilesInDir(dir, ['validator']);
 
       case BitWindow():
-        await _deleteFilesInDir(dir, ['bitwindow.db', 'server.log', 'debug.log']);
+        await _deleteFilesInDir(dir, ['bitwindow.db', 'bitdrive']);
 
       case Bitnames():
         await _deleteFilesInDir(dir, [
@@ -478,7 +477,6 @@ abstract class Binary {
         ]);
       case Thunder():
         await _deleteFilesInDir(dir, [
-          path.join(dir, 'data', 'thunder', 'data.mdb'),
           'data.mdb',
           'logs',
           'start.sh',

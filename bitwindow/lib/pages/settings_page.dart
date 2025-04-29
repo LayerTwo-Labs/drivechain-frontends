@@ -1,6 +1,10 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/main.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -47,6 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 SideNav(
                   items: const [
                     SideNavItem(label: 'General'),
+                    SideNavItem(label: 'Reset'),
                   ],
                   selectedIndex: _selectedIndex,
                   onItemSelected: (index) {
@@ -72,7 +77,8 @@ class _SettingsPageState extends State<SettingsPage> {
     switch (_selectedIndex) {
       case 0:
         return _GeneralSettingsContent();
-      // Add other cases for different sections when needed
+      case 1:
+        return _ResetSettingsContent();
       default:
         return _GeneralSettingsContent();
     }
@@ -168,6 +174,78 @@ class _GeneralSettingsContentState extends State<_GeneralSettingsContent> {
               'When enabled, detailed error reporting will be collected to fix bugs hastily.',
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ResetSettingsContent extends StatefulWidget {
+  @override
+  State<_ResetSettingsContent> createState() => _ResetSettingsContentState();
+}
+
+class _ResetSettingsContentState extends State<_ResetSettingsContent> {
+  Future<void> _onResetAllChains() async {
+    await showDialog(
+      context: context,
+      builder: (context) => SailAlertCard(
+        title: 'Reset All Blockchain Data?',
+        subtitle:
+            'Are you sure you want to reset all blockchain data for bitcoin core, enforcer and bitwindow? This action cannot be undone.',
+        confirmButtonVariant: ButtonVariant.destructive,
+        onConfirm: () async {
+          final binaryProvider = GetIt.I.get<BinaryProvider>();
+          final processProvider = GetIt.I.get<ProcessProvider>();
+
+          final binaries = [
+            ParentChain(),
+            Enforcer(),
+            BitWindow(),
+          ];
+
+          final futures = <Future>[];
+          // Only stop binaries that are started by bitwindow
+          for (final binary in binaries) {
+            futures.add(binaryProvider.stop(binary));
+          }
+
+          // Wait for all stop operations to complete
+          await Future.wait(futures);
+
+          // After all binaries are asked nicely to stop, kill any lingering processes
+          await processProvider.shutdown();
+
+          // wait for 5 seconds to ensure all processes are killed
+          await Future.delayed(const Duration(seconds: 5));
+
+          // wipe all chain data
+          for (final binary in binaries) {
+            await binary.wipeAppDir();
+          }
+
+          // finally, boot the binaries
+          await bootBinaries(GetIt.I.get<Logger>());
+
+          // pop the dialog
+          if (context.mounted) Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding20,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary20('Reset'),
+        SailText.secondary13('Reset all chain data to default.'),
+        SailButton(
+          label: 'Reset All Chains',
+          variant: ButtonVariant.destructive,
+          onPressed: _onResetAllChains,
         ),
       ],
     );
