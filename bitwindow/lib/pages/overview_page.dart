@@ -645,6 +645,7 @@ class BroadcastNewsView extends StatelessWidget {
                 ],
                 onChanged: viewModel.setTopic,
                 value: viewModel.topic,
+                hint: 'Select a topic',
               ),
               SailTextField(
                 label: 'Headline (max 64 characters)',
@@ -707,8 +708,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
   final TextEditingController headlineController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
 
-  Topic? _topic;
-  Topic get topic => _topic ?? topics.first;
+  Topic? topic;
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -724,12 +724,12 @@ class BroadcastNewsViewModel extends BaseViewModel {
 
     if (lastUsedTopicId.isNotEmpty) {
       // Try to find the last used topic in the available topics
-      _topic = topics.firstWhere(
+      topic = topics.firstWhere(
         (t) => t.topic == lastUsedTopicId,
         orElse: () => topics.first,
       );
     } else {
-      _topic = topics.first;
+      topic = topics.first;
     }
     notifyListeners();
   }
@@ -739,7 +739,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
       return;
     }
 
-    _topic = newTopic;
+    topic = newTopic;
     // Persist the selected topic
     await _settings.setValue(LastUsedTopicSetting(newValue: newTopic.topic));
     notifyListeners();
@@ -756,7 +756,7 @@ class BroadcastNewsViewModel extends BaseViewModel {
     }
 
     try {
-      await _api.misc.broadcastNews(topic.topic, headlineController.text, contentController.text);
+      await _api.misc.broadcastNews(topic!.topic, headlineController.text, contentController.text);
       if (!context.mounted) return;
       showSnackBar(context, 'news broadcast successfully!');
       Navigator.of(context).pop();

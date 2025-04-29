@@ -46,7 +46,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
               Flexible(
                 child: SailDropdownButton<AddressBookEntry>(
                   value: null,
-                  hint: SailText.primary13(viewModel.selectedEntry?.label ?? 'Address Book'),
+                  hint: viewModel.selectedEntry?.label ?? 'Address Book',
                   items: viewModel.addressBookEntries.map((entry) {
                     return SailDropdownItem<AddressBookEntry>(
                       value: entry,
