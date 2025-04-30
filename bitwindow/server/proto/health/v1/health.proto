@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package health.v1;
+
+import "google/protobuf/empty.proto";
+
+service HealthService {
+  // Check status of requested services
+  rpc Check(google.protobuf.Empty) returns (CheckResponse);
+}
+
+message CheckResponse {
+  // Define a message to hold both service name and its status
+  message ServiceStatus {
+    string service_name = 1;
+    Status status = 2;
+  }
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_SERVING = 1;
+    STATUS_NOT_SERVING = 2;
+    STATUS_SERVICE_UNKNOWN = 3;
+  }
+
+  // Return a list of service statuses
+  repeated ServiceStatus service_statuses = 1;
+}
