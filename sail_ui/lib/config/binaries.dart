@@ -656,8 +656,8 @@ abstract class Binary {
             paths.add(
               path.join(
                 home,
-                'Downloads',
-                'Drivechain-Launcher-Downloads',
+                '.drivechain-launcher',
+                'binaries',
                 'bitcoin',
                 'L1-bitcoin-patched-latest-x86_64-unknown-linux-gnu',
                 'bitcoind',
@@ -667,8 +667,8 @@ abstract class Binary {
             paths.add(
               path.join(
                 home,
-                'Downloads',
-                'Drivechain-Launcher-Downloads',
+                'Application Support',
+                'binaries',
                 'bitcoin',
                 'L1-bitcoin-patched-latest-x86_64-apple-darwin',
                 'bitcoind',
@@ -678,8 +678,9 @@ abstract class Binary {
             paths.add(
               path.join(
                 home,
-                'Downloads',
-                'Drivechain-Launcher-Downloads',
+                'AppData',
+                'Roaming',
+                'binaries',
                 'bitcoin',
                 'L1-bitcoin-patched-latest-x86_64-w64-msvc',
                 'bitcoind.exe',

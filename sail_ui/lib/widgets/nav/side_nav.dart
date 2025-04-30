@@ -80,11 +80,9 @@ class _SideNavItemState extends State<_SideNavItem> {
             color: widget.isSelected || isHovered ? theme.colors.backgroundSecondary : Colors.transparent,
             borderRadius: SailStyleValues.borderRadius,
           ),
-          child: Expanded(
-            child: SailText.primary13(
-              widget.label,
-              bold: true,
-            ),
+          child: SailText.primary13(
+            widget.label,
+            bold: true,
           ),
         ),
       ),
