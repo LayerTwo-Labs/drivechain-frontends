@@ -1,6 +1,5 @@
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
@@ -67,7 +66,7 @@ class OverviewTab extends StatelessWidget {
                     ],
                   ),
                   TransactionTable(
-                    entries: model.entries,
+                    model: model,
                     searchWidget: SailTextField(
                       controller: model.searchController,
                       hintText: 'Enter address or transaction id to search',
@@ -84,12 +83,12 @@ class OverviewTab extends StatelessWidget {
 }
 
 class TransactionTable extends StatefulWidget {
-  final List<WalletTransaction> entries;
   final Widget searchWidget;
+  final OverviewViewModel model;
 
   const TransactionTable({
     super.key,
-    required this.entries,
+    required this.model,
     required this.searchWidget,
   });
 
@@ -99,41 +98,12 @@ class TransactionTable extends StatefulWidget {
 
 class _TransactionTableState extends State<TransactionTable> {
   String sortColumn = 'date';
-  bool sortAscending = true;
-  List<WalletTransaction> entries = [];
+  bool sortAscending = false;
 
-  @override
-  void initState() {
-    super.initState();
-    entries = widget.entries;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!listEquals(entries, widget.entries)) {
-      entries = List.from(widget.entries);
-      sortEntries();
-    }
-  }
-
-  void onSort(String column) {
-    setState(() {
-      if (sortColumn == column) {
-        sortAscending = !sortAscending;
-      } else {
-        sortColumn = column;
-        sortAscending = true;
-      }
-      sortEntries();
-    });
-  }
-
-  void sortEntries() {
+  List<WalletTransaction> get sortedEntries {
+    final entries = List<WalletTransaction>.from(widget.model.entries);
     entries.sort((a, b) {
-      dynamic aValue;
-      dynamic bValue;
-
+      dynamic aValue, bValue;
       switch (sortColumn) {
         case 'date':
           aValue = a.confirmationTime.timestamp.seconds;
@@ -151,9 +121,9 @@ class _TransactionTableState extends State<TransactionTable> {
           aValue = a.address;
           bValue = b.address;
           break;
-        case 'label':
-          aValue = a.label;
-          bValue = b.label;
+        case 'note':
+          aValue = a.note;
+          bValue = b.note;
           break;
         case 'amount':
           // Calculate total amount for each transaction
@@ -164,17 +134,27 @@ class _TransactionTableState extends State<TransactionTable> {
           aValue = a.confirmationTime.timestamp.seconds;
           bValue = b.confirmationTime.timestamp.seconds;
       }
-
-      // If values are null, treat as empty string or zero for comparison
       aValue ??= '';
       bValue ??= '';
-
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+    return entries;
+  }
+
+  void onSort(String column) {
+    setState(() {
+      if (sortColumn == column) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = column;
+        sortAscending = true;
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final entries = sortedEntries;
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailCard(
@@ -207,8 +187,8 @@ class _TransactionTableState extends State<TransactionTable> {
                       onSort: () => onSort('address'),
                     ),
                     SailTableHeaderCell(
-                      name: 'Label',
-                      onSort: () => onSort('label'),
+                      name: 'Note',
+                      onSort: () => onSort('note'),
                     ),
                     SailTableHeaderCell(
                       name: 'Amount',
@@ -235,10 +215,10 @@ class _TransactionTableState extends State<TransactionTable> {
                         copyValue: entry.txid,
                       ),
                       SailTableCell(
-                        value: entry.address,
+                        value: '${entry.address}${entry.addressLabel.isNotEmpty ? ' (${entry.addressLabel})' : ''}',
                       ),
                       SailTableCell(
-                        value: entry.label,
+                        value: entry.note,
                       ),
                       SailTableCell(
                         value: formattedAmount,
@@ -247,12 +227,46 @@ class _TransactionTableState extends State<TransactionTable> {
                     ];
                   },
                   contextMenuItems: (rowId) {
+                    final entry = entries.firstWhere((e) => e.txid == rowId);
+
                     return [
                       SailMenuItem(
                         onSelected: () async {
                           await showTransactionDetails(context, rowId);
                         },
                         child: SailText.primary12('Show Details'),
+                      ),
+                      SailMenuItem(
+                        closeOnSelect: false,
+                        onSelected: () async {
+                          await Future.microtask(() async {
+                            if (!context.mounted) return;
+                            await showDialog(
+                              context: context,
+                              builder: (context) => Dialog(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                surfaceTintColor: Colors.transparent,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 400),
+                                  child: SailCardEditValues(
+                                    title: entry.note.isEmpty ? 'Add Note' : 'Edit Note',
+                                    subtitle:
+                                        "${entry.note.isEmpty ? "Set a" : "Update the"} note and click Save when you're done",
+                                    fields: [
+                                      EditField(name: 'Note', currentValue: entry.note),
+                                    ],
+                                    onSave: (updatedFields) async {
+                                      final newNote = updatedFields.firstWhere((f) => f.name == 'Note').currentValue;
+                                      await widget.model.saveNote(context, entry.txid, newNote);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            );
+                          });
+                        },
+                        child: SailText.primary12(entry.note.isEmpty ? 'Add Note' : 'Update Note'),
                       ),
                     ];
                   },
@@ -263,12 +277,12 @@ class _TransactionTableState extends State<TransactionTable> {
                     'date',
                     'txid',
                     'address',
-                    'label',
+                    'note',
                     'amount',
                   ].indexOf(sortColumn),
                   sortAscending: sortAscending,
                   onSort: (columnIndex, ascending) {
-                    onSort(['date', 'txid', 'address', 'label', 'amount'][columnIndex]);
+                    onSort(['date', 'txid', 'address', 'note', 'amount'][columnIndex]);
                   },
                   onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
                 ),
@@ -299,6 +313,9 @@ class OverviewViewModel extends BaseViewModel {
   bool sortAscending = true;
   GetStatsResponse? stats;
 
+  @override
+  String? modelError;
+
   final TextEditingController searchController = TextEditingController();
 
   OverviewViewModel() {
@@ -312,6 +329,23 @@ class OverviewViewModel extends BaseViewModel {
   Future<void> getStats() async {
     stats = await _bitwindowRPC.wallet.getStats();
     notifyListeners();
+  }
+
+  Future<void> saveNote(BuildContext context, String txid, String note) async {
+    try {
+      setBusy(true);
+      notifyListeners();
+      await _txProvider.saveNote(txid, note);
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (error) {
+      modelError = error.toString();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
   }
 
   @override

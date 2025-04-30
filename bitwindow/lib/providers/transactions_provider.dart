@@ -110,6 +110,11 @@ class TransactionProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<void> saveNote(String txid, String note) async {
+    await api.bitwindowd.setTransactionNote(txid, note);
+    await fetch();
+  }
+
   @override
   void dispose() {
     balanceProvider.removeListener(fetch);

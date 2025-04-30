@@ -104,9 +104,10 @@ message WalletTransaction {
   uint64 received_satoshi = 3;
   uint64 sent_satoshi = 4;
   string address = 5;
-  string label = 6;
+  string address_label = 6;
+  string note = 7;
 
-  Confirmation confirmation_time = 7;
+  Confirmation confirmation_time = 8;
 }
 
 message ListSidechainDepositsRequest {

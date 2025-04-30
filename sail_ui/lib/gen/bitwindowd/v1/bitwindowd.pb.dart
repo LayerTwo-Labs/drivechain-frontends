@@ -1108,6 +1108,71 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
   void clearSyncProgress() => clearField(6);
 }
 
+/// Request to set a transaction note
+class SetTransactionNoteRequest extends $pb.GeneratedMessage {
+  factory SetTransactionNoteRequest({
+    $core.String? txid,
+    $core.String? note,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (note != null) {
+      $result.note = note;
+    }
+    return $result;
+  }
+  SetTransactionNoteRequest._() : super();
+  factory SetTransactionNoteRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetTransactionNoteRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetTransactionNoteRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..aOS(2, _omitFieldNames ? '' : 'note')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetTransactionNoteRequest clone() => SetTransactionNoteRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetTransactionNoteRequest copyWith(void Function(SetTransactionNoteRequest) updates) => super.copyWith((message) => updates(message as SetTransactionNoteRequest)) as SetTransactionNoteRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetTransactionNoteRequest create() => SetTransactionNoteRequest._();
+  SetTransactionNoteRequest createEmptyInstance() => create();
+  static $pb.PbList<SetTransactionNoteRequest> createRepeated() => $pb.PbList<SetTransactionNoteRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetTransactionNoteRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetTransactionNoteRequest>(create);
+  static SetTransactionNoteRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get note => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set note($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasNote() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNote() => clearField(2);
+}
+
 class BitwindowdServiceApi {
   $pb.RpcClient _client;
   BitwindowdServiceApi(this._client);
@@ -1138,6 +1203,9 @@ class BitwindowdServiceApi {
   ;
   $async.Future<GetSyncInfoResponse> getSyncInfo($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<GetSyncInfoResponse>(ctx, 'BitwindowdService', 'GetSyncInfo', request, GetSyncInfoResponse())
+  ;
+  $async.Future<$1.Empty> setTransactionNote($pb.ClientContext? ctx, SetTransactionNoteRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'SetTransactionNote', request, $1.Empty())
   ;
 }
 

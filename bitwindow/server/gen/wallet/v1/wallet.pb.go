@@ -610,8 +610,9 @@ type WalletTransaction struct {
 	ReceivedSatoshi  uint64                 `protobuf:"varint,3,opt,name=received_satoshi,json=receivedSatoshi,proto3" json:"received_satoshi,omitempty"`
 	SentSatoshi      uint64                 `protobuf:"varint,4,opt,name=sent_satoshi,json=sentSatoshi,proto3" json:"sent_satoshi,omitempty"`
 	Address          string                 `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
-	Label            string                 `protobuf:"bytes,6,opt,name=label,proto3" json:"label,omitempty"`
-	ConfirmationTime *Confirmation          `protobuf:"bytes,7,opt,name=confirmation_time,json=confirmationTime,proto3" json:"confirmation_time,omitempty"`
+	AddressLabel     string                 `protobuf:"bytes,6,opt,name=address_label,json=addressLabel,proto3" json:"address_label,omitempty"`
+	Note             string                 `protobuf:"bytes,7,opt,name=note,proto3" json:"note,omitempty"`
+	ConfirmationTime *Confirmation          `protobuf:"bytes,8,opt,name=confirmation_time,json=confirmationTime,proto3" json:"confirmation_time,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -681,9 +682,16 @@ func (x *WalletTransaction) GetAddress() string {
 	return ""
 }
 
-func (x *WalletTransaction) GetLabel() string {
+func (x *WalletTransaction) GetAddressLabel() string {
 	if x != nil {
-		return x.Label
+		return x.AddressLabel
+	}
+	return ""
+}
+
+func (x *WalletTransaction) GetNote() string {
+	if x != nil {
+		return x.Note
 	}
 	return ""
 }
@@ -1285,15 +1293,16 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"lastUsedAt\"`\n" +
 	"\fConfirmation\x12\x16\n" +
 	"\x06height\x18\x01 \x01(\rR\x06height\x128\n" +
-	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\x86\x02\n" +
+	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xa9\x02\n" +
 	"\x11WalletTransaction\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x19\n" +
 	"\bfee_sats\x18\x02 \x01(\x04R\afeeSats\x12)\n" +
 	"\x10received_satoshi\x18\x03 \x01(\x04R\x0freceivedSatoshi\x12!\n" +
 	"\fsent_satoshi\x18\x04 \x01(\x04R\vsentSatoshi\x12\x18\n" +
-	"\aaddress\x18\x05 \x01(\tR\aaddress\x12\x14\n" +
-	"\x05label\x18\x06 \x01(\tR\x05label\x12D\n" +
-	"\x11confirmation_time\x18\a \x01(\v2\x17.wallet.v1.ConfirmationR\x10confirmationTime\"2\n" +
+	"\aaddress\x18\x05 \x01(\tR\aaddress\x12#\n" +
+	"\raddress_label\x18\x06 \x01(\tR\faddressLabel\x12\x12\n" +
+	"\x04note\x18\a \x01(\tR\x04note\x12D\n" +
+	"\x11confirmation_time\x18\b \x01(\v2\x17.wallet.v1.ConfirmationR\x10confirmationTime\"2\n" +
 	"\x1cListSidechainDepositsRequest\x12\x12\n" +
 	"\x04slot\x18\x01 \x01(\x05R\x04slot\"\xee\x01\n" +
 	"\x1dListSidechainDepositsResponse\x12U\n" +

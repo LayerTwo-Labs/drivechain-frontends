@@ -60,6 +60,9 @@ abstract class BitwindowAPI {
   Future<void> createAddressBookEntry(String label, String address, Direction direction);
   Future<void> updateAddressBookEntry(Int64 id, String label);
   Future<void> deleteAddressBookEntry(Int64 id);
+
+  // Transaction note methods here
+  Future<void> setTransactionNote(String txid, String note);
 }
 
 abstract class WalletAPI {
@@ -397,6 +400,15 @@ class _BitwindowAPILive implements BitwindowAPI {
   Future<void> deleteAddressBookEntry(Int64 id) async {
     await _client.deleteAddressBookEntry(
       DeleteAddressBookEntryRequest()..id = id,
+    );
+  }
+
+  @override
+  Future<void> setTransactionNote(String txid, String note) async {
+    await _client.setTransactionNote(
+      SetTransactionNoteRequest()
+        ..txid = txid
+        ..note = note,
     );
   }
 }

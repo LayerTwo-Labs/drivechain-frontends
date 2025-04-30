@@ -20,6 +20,7 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -209,13 +210,22 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
 	}
-	getLabel := func(addr string) string {
+	matchAddressLabel := func(addr string) string {
 		for _, entry := range addressBookEntries {
 			if entry.Address == addr {
 				return entry.Label
 			}
 		}
 		return ""
+	}
+
+	notes, err := transactions.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
+	}
+	noteMap := make(map[string]string)
+	for _, note := range notes {
+		noteMap[note.TxID] = note.Note
 	}
 
 	// Use logpool to fetch info for all transaction info in parallel
@@ -249,7 +259,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 				if err == nil && len(addrs) > 0 {
 					addr := addrs[0].EncodeAddress()
 					// Try to find a matching addressbook entry
-					label := getLabel(addr)
+					label := matchAddressLabel(addr)
 					// If this is a receive, prefer addressbook entries with receive direction or empty label
 					if tx.ReceivedSats > 0 && label != "" {
 						address = addr
@@ -269,7 +279,8 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 					address = addrs[0].EncodeAddress()
 				}
 			}
-			label := getLabel(address)
+
+			note := noteMap[txid]
 
 			var confirmation *pb.Confirmation
 			if tx.ConfirmationInfo != nil {
@@ -289,7 +300,8 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 				ReceivedSatoshi:  tx.ReceivedSats,
 				SentSatoshi:      tx.SentSats,
 				Address:          address,
-				Label:            label,
+				AddressLabel:     matchAddressLabel(address),
+				Note:             note,
 				ConfirmationTime: confirmation,
 			}, nil
 		})

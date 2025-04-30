@@ -14,6 +14,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -348,4 +349,13 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 		SyncProgress:        float64(processedTip.Height) / float64(tip.Msg.Blocks),
 		HeaderHeight:        int64(tip.Msg.Headers),
 	}), nil
+}
+
+// SetTransactionNote implements bitwindowdv1connect.BitwindowdServiceHandler.
+func (s *Server) SetTransactionNote(ctx context.Context, req *connect.Request[pb.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
+	if err := transactions.SetNote(ctx, s.db, req.Msg.Txid, req.Msg.Note); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
 }

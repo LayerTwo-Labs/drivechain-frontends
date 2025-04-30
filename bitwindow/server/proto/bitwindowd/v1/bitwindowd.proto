@@ -20,6 +20,8 @@ service BitwindowdService {
   rpc DeleteAddressBookEntry(DeleteAddressBookEntryRequest) returns (google.protobuf.Empty);
 
   rpc GetSyncInfo(google.protobuf.Empty) returns (GetSyncInfoResponse);
+
+  rpc SetTransactionNote(SetTransactionNoteRequest) returns (google.protobuf.Empty);
 }
 
 message CreateDenialRequest {
@@ -110,4 +112,10 @@ message GetSyncInfoResponse {
   int64 header_height = 5;
   // sync progress between 0 and 1
   double sync_progress = 6;
+}
+
+// Request to set a transaction note
+message SetTransactionNoteRequest {
+  string txid = 1;
+  string note = 2;
 }
