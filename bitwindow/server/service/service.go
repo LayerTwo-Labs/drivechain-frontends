@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/rs/zerolog"
 )
 
 // Connector represents a function that attempts to connect to a service
@@ -48,19 +47,22 @@ func (s *Service[T]) Get(ctx context.Context) (T, error) {
 
 // Connect attempts to connect to the service, retrying every 500ms for 3 seconds
 func (s *Service[T]) Connect(ctx context.Context) (T, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
-
 	deadline := time.Now().Add(3 * time.Second)
 
 	for time.Now().Before(deadline) {
 		client, err := s.connector(ctx)
-		if err == nil {
+		if err != nil {
+			s.mu.Lock()
+			s.connected = false
+			s.mu.Unlock()
+		} else {
+			s.mu.Lock()
 			s.client = client
 			s.connected = true
+			s.mu.Unlock()
 			return client, nil
 		}
 
@@ -84,10 +86,9 @@ func (s *Service[T]) IsConnected() bool {
 	return s.connected
 }
 
-// StartReconnectLoop starts a goroutine that attempts to reconnect periodically
+// StartReconnectLoop starts a goroutine that attempts to connect periodically,
+// to check whether the service is still available.
 func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
-	log := zerolog.Ctx(ctx)
-
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
@@ -97,15 +98,7 @@ func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if s.IsConnected() {
-					continue
-				}
-
-				if _, err := s.Connect(ctx); err != nil {
-					log.Debug().Err(err).Msgf("failed to reconnect to %s", s.name)
-					continue
-				}
-				log.Info().Msgf("successfully reconnected to %s", s.name)
+				_, _ = s.Connect(ctx)
 			}
 		}
 	}()
