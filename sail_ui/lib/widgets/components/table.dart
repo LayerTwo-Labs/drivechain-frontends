@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -80,6 +79,7 @@ class _SailTableState extends State<SailTable> {
   bool _sortAscending = true;
   BoxConstraints? _currentConstraints;
   double _startColumnWidth = 0;
+  double _dragStartX = 0;
 
   double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);
 
@@ -94,13 +94,12 @@ class _SailTableState extends State<SailTable> {
     _selectedId = widget.selectedRowId;
     _sortColumnIndex = widget.sortColumnIndex;
     _sortAscending = widget.sortAscending ?? true;
-    _widths.addAll(widget.columnWidths);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final parentWidth = context.size?.width ?? double.infinity;
-      if (parentWidth.isFinite) {
-        _resizeColumns(parentWidth);
+      if (parentWidth.isFinite && _widths.isEmpty) {
+        _resizeColumns(parentWidth, force: true);
       }
     });
   }
@@ -120,7 +119,7 @@ class _SailTableState extends State<SailTable> {
           _currentConstraints = constraints;
           if (mounted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _resizeColumns(constraints.maxWidth);
+              _resizeColumns(constraints.maxWidth, force: false);
             });
           }
         }
@@ -129,45 +128,48 @@ class _SailTableState extends State<SailTable> {
     );
   }
 
-  void _resizeColumns(double parentWidth) {
+  void _resizeColumns(double parentWidth, {bool force = false}) {
     if (parentWidth <= 0 || !mounted) return;
 
-    setState(() {
-      final totalWidth = widget.columnWidths.fold(0.0, (sum, width) => sum + width);
-      final minTotalWidth = widget.columnWidths.length * widget.defaultMinColumnWidth;
-      final effectiveParentWidth = max(parentWidth, minTotalWidth);
+    // Only distribute widths if they're empty or we're forced to
+    if (_widths.isEmpty || force) {
+      setState(() {
+        final totalWidth = widget.columnWidths.fold(0.0, (sum, width) => sum + width);
+        final minTotalWidth = widget.columnWidths.length * widget.defaultMinColumnWidth;
+        final effectiveParentWidth = max(parentWidth, minTotalWidth);
 
-      _widths.clear();
-      _distributeColumnWidths(effectiveParentWidth, totalWidth);
-    });
+        _widths.clear();
+        _distributeColumnWidths(effectiveParentWidth, totalWidth);
+      });
+    }
   }
 
   void _distributeColumnWidths(double availableWidth, double totalWidth) {
-    double remainingWidth = availableWidth;
     _widths.clear();
 
-    // Account for resize handles in the total width
+    // Calculate space needed for resize handles
     final numResizeHandles = widget.columnWidths.length - 1;
-    remainingWidth -= (numResizeHandles * 8); // Subtract resize handle widths from available space
+    final handleSpace = widget.resizableColumns ? numResizeHandles * 8.0 : 0.0;
 
+    // Subtract handle space from available width
+    final widthForColumns = availableWidth - handleSpace;
+
+    // Calculate scaling factor to maintain proportions
+    final scaleFactor = widthForColumns / totalWidth;
+
+    // Distribute widths proportionally
     for (var i = 0; i < widget.columnWidths.length; i++) {
       final minWidth = widget.columnMinWidths?.elementAt(i) ?? widget.defaultMinColumnWidth;
-      _widths.add(minWidth);
-      remainingWidth -= minWidth;
-    }
+      final maxWidth = widget.columnMaxWidths?.elementAt(i);
+      final calculatedWidth = widget.columnWidths[i] * scaleFactor;
 
-    if (remainingWidth > 0) {
-      for (var i = 0; i < widget.columnWidths.length; i++) {
-        final proportion = widget.columnWidths[i] / totalWidth;
-        final extraWidth = remainingWidth * proportion;
-        final maxWidth = widget.columnMaxWidths?.elementAt(i);
-
-        if (maxWidth != null) {
-          _widths[i] = min(_widths[i] + extraWidth, maxWidth);
-        } else {
-          _widths[i] += extraWidth;
-        }
-      }
+      // Clamp width between min and max
+      _widths.add(
+        calculatedWidth.clamp(
+          minWidth,
+          maxWidth ?? double.infinity,
+        ),
+      );
     }
   }
 
@@ -205,7 +207,11 @@ class _SailTableState extends State<SailTable> {
   }
 
   Widget _buildTable(BuildContext context, BoxConstraints constraints) {
-    final tableWidth = constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths;
+    // Calculate total width including resize handles
+    final handleWidth = widget.resizableColumns ? (widget.columnWidths.length - 1) * 8.0 : 0.0;
+    final tableWidth = constraints.maxWidth != double.infinity
+        ? constraints.maxWidth
+        : _totalColumnWidths + handleWidth; // Add handle width to total
 
     return Scrollbar(
       controller: _horizontalController,
@@ -295,20 +301,25 @@ class _SailTableState extends State<SailTable> {
       cursor: SystemMouseCursors.resizeLeftRight,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (_) {
+        onHorizontalDragStart: (details) {
           _startColumnWidth = _widths[index];
+          _dragStartX = details.globalPosition.dx;
         },
         onHorizontalDragUpdate: (details) {
-          _handleColumnResize(index, details.delta.dx);
+          final dragDelta = details.globalPosition.dx - _dragStartX;
+          _handleColumnResize(index, dragDelta);
         },
         child: Container(
-          width: 8,
+          width: 8, // Make it huge
           decoration: BoxDecoration(
             border: Border(
               left: BorderSide(
                 color: context.sailTheme.colors.divider,
               ),
             ),
+          ),
+          child: Text(
+            '',
           ),
         ),
       ),
@@ -367,7 +378,9 @@ class _SailTableState extends State<SailTable> {
   void didUpdateWidget(SailTable oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (!listEquals(oldWidget.columnWidths, widget.columnWidths)) {
+    // Only reset widths if column count changes
+    if (oldWidget.columnWidths.length != widget.columnWidths.length) {
+      _widths.clear(); // This will trigger a redistribution
       _resizeColumns(_currentConstraints!.maxWidth);
     }
   }
@@ -446,6 +459,7 @@ class _TableRowState extends State<_TableRow> {
     for (var cell in widget.cells) {
       final String? cellValue = cell is SailTableCell ? cell.copyValue ?? cell.value : null;
 
+      // Add the cell
       cellWidgets.add(
         SizedBox(
           width: widget.widths[i],
@@ -476,6 +490,14 @@ class _TableRowState extends State<_TableRow> {
           ),
         ),
       );
+
+      // Add a spacer for resize handle width (except for last cell)
+      if (i < widget.cells.length - 1) {
+        cellWidgets.add(
+          const SizedBox(width: 8), // Same width as resize handle
+        );
+      }
+
       i += 1;
     }
 
