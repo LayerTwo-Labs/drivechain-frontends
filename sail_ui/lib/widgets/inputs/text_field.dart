@@ -9,6 +9,7 @@ enum TextFieldType { number, bitcoin, text }
 class SailTextField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
+  final bool autofocus;
   final String? label;
   final String hintText;
   final String? helperText;
@@ -43,6 +44,7 @@ class SailTextField extends StatelessWidget {
     this.prefixIconConstraints,
     this.size = TextFieldSize.regular,
     this.focusNode,
+    this.autofocus = false,
     this.onSubmitted,
     this.readOnly = false,
     this.dense = false,
@@ -76,6 +78,7 @@ class SailTextField extends StatelessWidget {
             ),
           ),
           child: TextField(
+            autofocus: autofocus,
             enabled: enabled,
             mouseCursor: enabled ? WidgetStateMouseCursor.textable : SystemMouseCursors.forbidden,
             cursorColor: theme.colors.primary,

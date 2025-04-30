@@ -31,6 +31,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> updateAddressBookEntry($pb.ServerContext ctx, $3.UpdateAddressBookEntryRequest request);
   $async.Future<$1.Empty> deleteAddressBookEntry($pb.ServerContext ctx, $3.DeleteAddressBookEntryRequest request);
   $async.Future<$3.GetSyncInfoResponse> getSyncInfo($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$1.Empty> setTransactionNote($pb.ServerContext ctx, $3.SetTransactionNoteRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -43,6 +44,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'UpdateAddressBookEntry': return $3.UpdateAddressBookEntryRequest();
       case 'DeleteAddressBookEntry': return $3.DeleteAddressBookEntryRequest();
       case 'GetSyncInfo': return $1.Empty();
+      case 'SetTransactionNote': return $3.SetTransactionNoteRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -58,6 +60,7 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
       case 'UpdateAddressBookEntry': return this.updateAddressBookEntry(ctx, request as $3.UpdateAddressBookEntryRequest);
       case 'DeleteAddressBookEntry': return this.deleteAddressBookEntry(ctx, request as $3.DeleteAddressBookEntryRequest);
       case 'GetSyncInfo': return this.getSyncInfo(ctx, request as $1.Empty);
+      case 'SetTransactionNote': return this.setTransactionNote(ctx, request as $3.SetTransactionNoteRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

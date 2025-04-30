@@ -1,0 +1,5 @@
+CREATE TABLE transaction_notes (
+    txid TEXT PRIMARY KEY,
+    note TEXT NOT NULL,
+    set_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

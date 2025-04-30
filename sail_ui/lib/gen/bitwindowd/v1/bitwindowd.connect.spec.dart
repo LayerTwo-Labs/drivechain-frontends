@@ -75,4 +75,11 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
     bitwindowdv1bitwindowd.GetSyncInfoResponse.new,
   );
+
+  static const setTransactionNote = connect.Spec(
+    '/$name/SetTransactionNote',
+    connect.StreamType.unary,
+    bitwindowdv1bitwindowd.SetTransactionNoteRequest.new,
+    googleprotobufempty.Empty.new,
+  );
 }

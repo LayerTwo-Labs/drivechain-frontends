@@ -749,7 +749,8 @@ class WalletTransaction extends $pb.GeneratedMessage {
     $fixnum.Int64? receivedSatoshi,
     $fixnum.Int64? sentSatoshi,
     $core.String? address,
-    $core.String? label,
+    $core.String? addressLabel,
+    $core.String? note,
     Confirmation? confirmationTime,
   }) {
     final $result = create();
@@ -768,8 +769,11 @@ class WalletTransaction extends $pb.GeneratedMessage {
     if (address != null) {
       $result.address = address;
     }
-    if (label != null) {
-      $result.label = label;
+    if (addressLabel != null) {
+      $result.addressLabel = addressLabel;
+    }
+    if (note != null) {
+      $result.note = note;
     }
     if (confirmationTime != null) {
       $result.confirmationTime = confirmationTime;
@@ -786,8 +790,9 @@ class WalletTransaction extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'receivedSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'sentSatoshi', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOS(5, _omitFieldNames ? '' : 'address')
-    ..aOS(6, _omitFieldNames ? '' : 'label')
-    ..aOM<Confirmation>(7, _omitFieldNames ? '' : 'confirmationTime', subBuilder: Confirmation.create)
+    ..aOS(6, _omitFieldNames ? '' : 'addressLabel')
+    ..aOS(7, _omitFieldNames ? '' : 'note')
+    ..aOM<Confirmation>(8, _omitFieldNames ? '' : 'confirmationTime', subBuilder: Confirmation.create)
     ..hasRequiredFields = false
   ;
 
@@ -858,24 +863,33 @@ class WalletTransaction extends $pb.GeneratedMessage {
   void clearAddress() => clearField(5);
 
   @$pb.TagNumber(6)
-  $core.String get label => $_getSZ(5);
+  $core.String get addressLabel => $_getSZ(5);
   @$pb.TagNumber(6)
-  set label($core.String v) { $_setString(5, v); }
+  set addressLabel($core.String v) { $_setString(5, v); }
   @$pb.TagNumber(6)
-  $core.bool hasLabel() => $_has(5);
+  $core.bool hasAddressLabel() => $_has(5);
   @$pb.TagNumber(6)
-  void clearLabel() => clearField(6);
+  void clearAddressLabel() => clearField(6);
 
   @$pb.TagNumber(7)
-  Confirmation get confirmationTime => $_getN(6);
+  $core.String get note => $_getSZ(6);
   @$pb.TagNumber(7)
-  set confirmationTime(Confirmation v) { setField(7, v); }
+  set note($core.String v) { $_setString(6, v); }
   @$pb.TagNumber(7)
-  $core.bool hasConfirmationTime() => $_has(6);
+  $core.bool hasNote() => $_has(6);
   @$pb.TagNumber(7)
-  void clearConfirmationTime() => clearField(7);
-  @$pb.TagNumber(7)
-  Confirmation ensureConfirmationTime() => $_ensure(6);
+  void clearNote() => clearField(7);
+
+  @$pb.TagNumber(8)
+  Confirmation get confirmationTime => $_getN(7);
+  @$pb.TagNumber(8)
+  set confirmationTime(Confirmation v) { setField(8, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasConfirmationTime() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearConfirmationTime() => clearField(8);
+  @$pb.TagNumber(8)
+  Confirmation ensureConfirmationTime() => $_ensure(7);
 }
 
 class ListSidechainDepositsRequest extends $pb.GeneratedMessage {

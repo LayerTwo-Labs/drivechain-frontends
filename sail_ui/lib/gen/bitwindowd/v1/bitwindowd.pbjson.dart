@@ -249,6 +249,20 @@ final $typed_data.Uint8List getSyncInfoResponseDescriptor = $convert.base64Decod
     'Cg1oZWFkZXJfaGVpZ2h0GAUgASgDUgxoZWFkZXJIZWlnaHQSIwoNc3luY19wcm9ncmVzcxgGIA'
     'EoAVIMc3luY1Byb2dyZXNz');
 
+@$core.Deprecated('Use setTransactionNoteRequestDescriptor instead')
+const SetTransactionNoteRequest$json = {
+  '1': 'SetTransactionNoteRequest',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'note', '3': 2, '4': 1, '5': 9, '10': 'note'},
+  ],
+};
+
+/// Descriptor for `SetTransactionNoteRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setTransactionNoteRequestDescriptor = $convert.base64Decode(
+    'ChlTZXRUcmFuc2FjdGlvbk5vdGVSZXF1ZXN0EhIKBHR4aWQYASABKAlSBHR4aWQSEgoEbm90ZR'
+    'gCIAEoCVIEbm90ZQ==');
+
 const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
   '1': 'BitwindowdService',
   '2': [
@@ -261,6 +275,7 @@ const $core.Map<$core.String, $core.dynamic> BitwindowdServiceBase$json = {
     {'1': 'UpdateAddressBookEntry', '2': '.bitwindowd.v1.UpdateAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
     {'1': 'DeleteAddressBookEntry', '2': '.bitwindowd.v1.DeleteAddressBookEntryRequest', '3': '.google.protobuf.Empty'},
     {'1': 'GetSyncInfo', '2': '.google.protobuf.Empty', '3': '.bitwindowd.v1.GetSyncInfoResponse'},
+    {'1': 'SetTransactionNote', '2': '.bitwindowd.v1.SetTransactionNoteRequest', '3': '.google.protobuf.Empty'},
   ],
 };
 
@@ -280,6 +295,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Bitwindowd
   '.bitwindowd.v1.UpdateAddressBookEntryRequest': UpdateAddressBookEntryRequest$json,
   '.bitwindowd.v1.DeleteAddressBookEntryRequest': DeleteAddressBookEntryRequest$json,
   '.bitwindowd.v1.GetSyncInfoResponse': GetSyncInfoResponse$json,
+  '.bitwindowd.v1.SetTransactionNoteRequest': SetTransactionNoteRequest$json,
 };
 
 /// Descriptor for `BitwindowdService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -297,5 +313,7 @@ final $typed_data.Uint8List bitwindowdServiceDescriptor = $convert.base64Decode(
     'Lmdvb2dsZS5wcm90b2J1Zi5FbXB0eRJeChZEZWxldGVBZGRyZXNzQm9va0VudHJ5EiwuYml0d2'
     'luZG93ZC52MS5EZWxldGVBZGRyZXNzQm9va0VudHJ5UmVxdWVzdBoWLmdvb2dsZS5wcm90b2J1'
     'Zi5FbXB0eRJJCgtHZXRTeW5jSW5mbxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRoiLmJpdHdpbm'
-    'Rvd2QudjEuR2V0U3luY0luZm9SZXNwb25zZQ==');
+    'Rvd2QudjEuR2V0U3luY0luZm9SZXNwb25zZRJWChJTZXRUcmFuc2FjdGlvbk5vdGUSKC5iaXR3'
+    'aW5kb3dkLnYxLlNldFRyYW5zYWN0aW9uTm90ZVJlcXVlc3QaFi5nb29nbGUucHJvdG9idWYuRW'
+    '1wdHk=');
 

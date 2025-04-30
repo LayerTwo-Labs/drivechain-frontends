@@ -25,7 +25,6 @@ func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
 	}
 
 	return &pb, nil
-
 }
 
 // MarkBlocksProcessed marks multiple blocks as processed in a single transaction

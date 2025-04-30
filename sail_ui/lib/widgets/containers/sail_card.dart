@@ -450,7 +450,8 @@ class _SailCardEditValuesState extends State<SailCardEditValues> {
                 Expanded(
                   child: SailTextField(
                     controller: controllers[i],
-                    hintText: field.currentValue,
+                    hintText: '',
+                    autofocus: i == 0,
                   ),
                 ),
               ],

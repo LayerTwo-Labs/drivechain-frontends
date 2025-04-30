@@ -176,8 +176,9 @@ const WalletTransaction$json = {
     {'1': 'received_satoshi', '3': 3, '4': 1, '5': 4, '10': 'receivedSatoshi'},
     {'1': 'sent_satoshi', '3': 4, '4': 1, '5': 4, '10': 'sentSatoshi'},
     {'1': 'address', '3': 5, '4': 1, '5': 9, '10': 'address'},
-    {'1': 'label', '3': 6, '4': 1, '5': 9, '10': 'label'},
-    {'1': 'confirmation_time', '3': 7, '4': 1, '5': 11, '6': '.wallet.v1.Confirmation', '10': 'confirmationTime'},
+    {'1': 'address_label', '3': 6, '4': 1, '5': 9, '10': 'addressLabel'},
+    {'1': 'note', '3': 7, '4': 1, '5': 9, '10': 'note'},
+    {'1': 'confirmation_time', '3': 8, '4': 1, '5': 11, '6': '.wallet.v1.Confirmation', '10': 'confirmationTime'},
   ],
 };
 
@@ -186,8 +187,9 @@ final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
     'ChFXYWxsZXRUcmFuc2FjdGlvbhISCgR0eGlkGAEgASgJUgR0eGlkEhkKCGZlZV9zYXRzGAIgAS'
     'gEUgdmZWVTYXRzEikKEHJlY2VpdmVkX3NhdG9zaGkYAyABKARSD3JlY2VpdmVkU2F0b3NoaRIh'
     'CgxzZW50X3NhdG9zaGkYBCABKARSC3NlbnRTYXRvc2hpEhgKB2FkZHJlc3MYBSABKAlSB2FkZH'
-    'Jlc3MSFAoFbGFiZWwYBiABKAlSBWxhYmVsEkQKEWNvbmZpcm1hdGlvbl90aW1lGAcgASgLMhcu'
-    'd2FsbGV0LnYxLkNvbmZpcm1hdGlvblIQY29uZmlybWF0aW9uVGltZQ==');
+    'Jlc3MSIwoNYWRkcmVzc19sYWJlbBgGIAEoCVIMYWRkcmVzc0xhYmVsEhIKBG5vdGUYByABKAlS'
+    'BG5vdGUSRAoRY29uZmlybWF0aW9uX3RpbWUYCCABKAsyFy53YWxsZXQudjEuQ29uZmlybWF0aW'
+    '9uUhBjb25maXJtYXRpb25UaW1l');
 
 @$core.Deprecated('Use listSidechainDepositsRequestDescriptor instead')
 const ListSidechainDepositsRequest$json = {

@@ -60,6 +60,9 @@ const (
 	// BitwindowdServiceGetSyncInfoProcedure is the fully-qualified name of the BitwindowdService's
 	// GetSyncInfo RPC.
 	BitwindowdServiceGetSyncInfoProcedure = "/bitwindowd.v1.BitwindowdService/GetSyncInfo"
+	// BitwindowdServiceSetTransactionNoteProcedure is the fully-qualified name of the
+	// BitwindowdService's SetTransactionNote RPC.
+	BitwindowdServiceSetTransactionNoteProcedure = "/bitwindowd.v1.BitwindowdService/SetTransactionNote"
 )
 
 // BitwindowdServiceClient is a client for the bitwindowd.v1.BitwindowdService service.
@@ -75,6 +78,7 @@ type BitwindowdServiceClient interface {
 	UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
+	SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewBitwindowdServiceClient constructs a client for the bitwindowd.v1.BitwindowdService service.
@@ -142,6 +146,12 @@ func NewBitwindowdServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(bitwindowdServiceMethods.ByName("GetSyncInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		setTransactionNote: connect.NewClient[v1.SetTransactionNoteRequest, emptypb.Empty](
+			httpClient,
+			baseURL+BitwindowdServiceSetTransactionNoteProcedure,
+			connect.WithSchema(bitwindowdServiceMethods.ByName("SetTransactionNote")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -156,6 +166,7 @@ type bitwindowdServiceClient struct {
 	updateAddressBookEntry *connect.Client[v1.UpdateAddressBookEntryRequest, emptypb.Empty]
 	deleteAddressBookEntry *connect.Client[v1.DeleteAddressBookEntryRequest, emptypb.Empty]
 	getSyncInfo            *connect.Client[emptypb.Empty, v1.GetSyncInfoResponse]
+	setTransactionNote     *connect.Client[v1.SetTransactionNoteRequest, emptypb.Empty]
 }
 
 // Stop calls bitwindowd.v1.BitwindowdService.Stop.
@@ -203,6 +214,11 @@ func (c *bitwindowdServiceClient) GetSyncInfo(ctx context.Context, req *connect.
 	return c.getSyncInfo.CallUnary(ctx, req)
 }
 
+// SetTransactionNote calls bitwindowd.v1.BitwindowdService.SetTransactionNote.
+func (c *bitwindowdServiceClient) SetTransactionNote(ctx context.Context, req *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.setTransactionNote.CallUnary(ctx, req)
+}
+
 // BitwindowdServiceHandler is an implementation of the bitwindowd.v1.BitwindowdService service.
 type BitwindowdServiceHandler interface {
 	Stop(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
@@ -216,6 +232,7 @@ type BitwindowdServiceHandler interface {
 	UpdateAddressBookEntry(context.Context, *connect.Request[v1.UpdateAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 	DeleteAddressBookEntry(context.Context, *connect.Request[v1.DeleteAddressBookEntryRequest]) (*connect.Response[emptypb.Empty], error)
 	GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error)
+	SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
 // NewBitwindowdServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -279,6 +296,12 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 		connect.WithSchema(bitwindowdServiceMethods.ByName("GetSyncInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitwindowdServiceSetTransactionNoteHandler := connect.NewUnaryHandler(
+		BitwindowdServiceSetTransactionNoteProcedure,
+		svc.SetTransactionNote,
+		connect.WithSchema(bitwindowdServiceMethods.ByName("SetTransactionNote")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bitwindowd.v1.BitwindowdService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BitwindowdServiceStopProcedure:
@@ -299,6 +322,8 @@ func NewBitwindowdServiceHandler(svc BitwindowdServiceHandler, opts ...connect.H
 			bitwindowdServiceDeleteAddressBookEntryHandler.ServeHTTP(w, r)
 		case BitwindowdServiceGetSyncInfoProcedure:
 			bitwindowdServiceGetSyncInfoHandler.ServeHTTP(w, r)
+		case BitwindowdServiceSetTransactionNoteProcedure:
+			bitwindowdServiceSetTransactionNoteHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -342,4 +367,8 @@ func (UnimplementedBitwindowdServiceHandler) DeleteAddressBookEntry(context.Cont
 
 func (UnimplementedBitwindowdServiceHandler) GetSyncInfo(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.GetSyncInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.GetSyncInfo is not implemented"))
+}
+
+func (UnimplementedBitwindowdServiceHandler) SetTransactionNote(context.Context, *connect.Request[v1.SetTransactionNoteRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitwindowd.v1.BitwindowdService.SetTransactionNote is not implemented"))
 }
