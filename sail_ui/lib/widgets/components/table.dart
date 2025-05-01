@@ -95,10 +95,16 @@ class _SailTableState extends State<SailTable> {
     _sortColumnIndex = widget.sortColumnIndex;
     _sortAscending = widget.sortAscending ?? true;
 
+    // Initialize with default widths immediately
+    if (_widths.isEmpty) {
+      _widths.addAll(List.filled(widget.columnWidths.length, widget.defaultMinColumnWidth));
+    }
+
+    // Still keep the post-frame callback to adjust to actual size
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final parentWidth = context.size?.width ?? double.infinity;
-      if (parentWidth.isFinite && _widths.isEmpty) {
+      if (parentWidth.isFinite) {
         _resizeColumns(parentWidth, force: true);
       }
     });
