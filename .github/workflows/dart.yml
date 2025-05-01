@@ -33,7 +33,7 @@ jobs:
 
       - name: Create necessary directories
         run: |
-          mkdir -p bins
+          rm -rf assets/bin
           mkdir -p assets/bin
 
       - name: Verify formatting for ${{ matrix.package }}
