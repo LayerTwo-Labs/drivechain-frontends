@@ -60,16 +60,17 @@ class EnforcerLive extends EnforcerRPC {
     );
     final logPath = binary.logPath();
 
-    final instance = EnforcerLive._create(
+    final liveInstance = EnforcerLive._create(
       launcherAppDir: launcherAppDir,
       conf: conf,
       binary: binary,
       logPath: logPath,
       restartOnFailure: true,
     );
-
-    instance._init(transport);
-    return instance;
+    // must test connection before moving on, in case it is already running!
+    await liveInstance.testConnection();
+    liveInstance._init(transport);
+    return liveInstance;
   }
 
   void _init(Transport transport) {

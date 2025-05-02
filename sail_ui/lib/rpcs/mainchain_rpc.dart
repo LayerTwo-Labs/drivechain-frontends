@@ -70,6 +70,8 @@ class MainchainRPCLive extends MainchainRPC {
       restartOnFailure: false,
     );
     container.init();
+    // must test connection before moving on, in case it is already running!
+    await container.testConnection();
     return container;
   }
 
