@@ -131,10 +131,12 @@ class SidechainsViewModel extends BaseViewModel {
     sidechainProvider
       ..addListener(notifyListeners)
       ..addListener(errorListener);
+    sidechainProvider.fetch();
     addressController.addListener(notifyListeners);
     depositAmountController.addListener(notifyListeners);
     feeController.addListener(notifyListeners);
   }
+
   List<SidechainOverview?> get sidechains => sidechainProvider.sidechains;
 
   List<SidechainOverview?> _sortedSidechains = [];

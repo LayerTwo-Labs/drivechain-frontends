@@ -49,6 +49,9 @@ abstract class RPCConnection extends ChangeNotifier {
   // accept connections
   List<String> startupErrors();
 
+  // Override this function if you want to do something when connection changes status.
+  void onConnectionStateChanged(bool isConnected) {}
+
   /// Returns confirmed and unconfirmed balance.
   Future<(double, double)> balance();
 
@@ -83,6 +86,7 @@ abstract class RPCConnection extends ChangeNotifier {
         // We were previously disconnected, or had an error. Wipe that,
         // set the correct new state, and notify listeners
         _shouldNotify = true;
+        onConnectionStateChanged(true);
       }
       connected = true;
       connectionError = null;
@@ -140,6 +144,7 @@ abstract class RPCConnection extends ChangeNotifier {
         // or we have a new error on our hands that must be shown
         initializingBinary = false;
         _shouldNotify = true;
+        onConnectionStateChanged(false);
         // we have a new error on our hands!
         log.e('could not test connection ${binary.connectionString}: ${newError ?? ''}!');
       }
@@ -155,7 +160,6 @@ abstract class RPCConnection extends ChangeNotifier {
     } finally {
       _testing = false;
       if (_shouldNotify) {
-        // Only notify listeners if something actually changed
         notifyListeners();
       }
       _shouldNotify = false;

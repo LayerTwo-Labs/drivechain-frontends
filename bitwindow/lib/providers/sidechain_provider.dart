@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class SidechainProvider extends ChangeNotifier {
+  Logger get log => GetIt.I.get<Logger>();
+
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
 
@@ -54,6 +57,7 @@ class SidechainProvider extends ChangeNotifier {
         error = null;
       }
     } catch (e) {
+      log.e('could not fetch sidechains: $e');
       error = e.toString();
     } finally {
       _isFetching = false;
