@@ -6,7 +6,7 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250425153114-8976f5be98c1.1
 	connectrpc.com/connect v1.18.1
 	connectrpc.com/grpcreflect v1.3.0
-	github.com/barebitcoin/btc-buf v0.0.0-20250417094042-61bc6102c5e6
+	github.com/barebitcoin/btc-buf v0.0.0-20250502095110-38e347c4c3dd
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/bufbuild/protovalidate-go v0.10.0
 	github.com/gorilla/mux v1.8.1
@@ -22,7 +22,7 @@ require (
 	cel.dev/expr v0.23.1 // indirect
 	connectrpc.com/grpchealth v1.3.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
-	github.com/barebitcoin/btcd/rpcclient v0.0.0-20240927061622-c0a9f969fd8d // indirect
+	github.com/barebitcoin/btcd/rpcclient v0.0.0-20250502094915-a9085d1da6b6 // indirect
 	github.com/btcsuite/btcd v0.24.2 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
