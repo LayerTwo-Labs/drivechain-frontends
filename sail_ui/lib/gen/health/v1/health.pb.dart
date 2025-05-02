@@ -136,6 +136,9 @@ class HealthServiceApi {
   $async.Future<CheckResponse> check_($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<CheckResponse>(ctx, 'HealthService', 'Check', request, CheckResponse())
   ;
+  $async.Future<CheckResponse> watch($pb.ClientContext? ctx, $1.Empty request) =>
+    _client.invoke<CheckResponse>(ctx, 'HealthService', 'Watch', request, CheckResponse())
+  ;
 }
 
 

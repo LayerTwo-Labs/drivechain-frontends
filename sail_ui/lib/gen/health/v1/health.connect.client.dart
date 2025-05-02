@@ -10,6 +10,7 @@ import "health.connect.spec.dart" as specs;
 
 extension type HealthServiceClient (connect.Transport _transport) {
   /// Check status of requested services
+  /// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   Future<healthv1health.CheckResponse> check(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
@@ -19,6 +20,25 @@ extension type HealthServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.HealthService.check,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  /// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  Stream<healthv1health.CheckResponse> watch(
+    googleprotobufempty.Empty input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.HealthService.watch,
       input,
       signal: signal,
       headers: headers,

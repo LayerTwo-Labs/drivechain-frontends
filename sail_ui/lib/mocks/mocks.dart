@@ -248,6 +248,19 @@ class MockBitwindowRPC extends BitwindowRPC {
   String? _error;
 
   @override
+  WalletAPI get wallet => throw UnimplementedError();
+  @override
+  BitwindowAPI get bitwindowd => throw UnimplementedError();
+  @override
+  BitcoindAPI get bitcoind => throw UnimplementedError();
+  @override
+  DrivechainAPI get drivechain => throw UnimplementedError();
+  @override
+  MiscAPI get misc => throw UnimplementedError();
+  @override
+  HealthAPI get health => throw UnimplementedError();
+
+  @override
   bool get connected => _connected;
   @override
   bool get initializingBinary => _initializing;
@@ -290,15 +303,6 @@ class MockBitwindowRPC extends BitwindowRPC {
   }
 
   @override
-  BitcoindAPI get bitcoind => throw UnimplementedError();
-
-  @override
-  DrivechainAPI get drivechain => throw UnimplementedError();
-
-  @override
-  MiscAPI get misc => throw UnimplementedError();
-
-  @override
   Future<int> ping() {
     return Future.value(0);
   }
@@ -307,11 +311,6 @@ class MockBitwindowRPC extends BitwindowRPC {
   List<String> startupErrors() {
     return [];
   }
-
-  @override
-  WalletAPI get wallet => throw UnimplementedError();
-  @override
-  BitwindowAPI get bitwindowd => throw UnimplementedError();
 
   @override
   Future<BlockchainInfo> getBlockchainInfo() {

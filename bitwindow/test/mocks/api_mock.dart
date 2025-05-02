@@ -4,6 +4,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
+import 'package:sail_ui/gen/health/v1/health.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
@@ -19,6 +20,8 @@ class MockAPI extends BitwindowRPC {
   final DrivechainAPI drivechain = MockDrivechainAPI();
   @override
   final MiscAPI misc = MockMiscAPI();
+  @override
+  final HealthAPI health = MockHealthAPI();
 
   MockAPI({
     required super.conf,
@@ -395,5 +398,17 @@ class MockMiscAPI implements MiscAPI {
   @override
   Future<List<Topic>> listTopics() async {
     return [];
+  }
+}
+
+class MockHealthAPI implements HealthAPI {
+  @override
+  Future<CheckResponse> check() async {
+    return CheckResponse();
+  }
+
+  @override
+  Stream<CheckResponse> watch() {
+    return Stream.periodic(const Duration(seconds: 1)).map((_) => CheckResponse());
   }
 }

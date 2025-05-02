@@ -58,6 +58,7 @@ const $core.Map<$core.String, $core.dynamic> HealthServiceBase$json = {
   '1': 'HealthService',
   '2': [
     {'1': 'Check', '2': '.google.protobuf.Empty', '3': '.health.v1.CheckResponse'},
+    {'1': 'Watch', '2': '.google.protobuf.Empty', '3': '.health.v1.CheckResponse', '6': true},
   ],
 };
 
@@ -71,5 +72,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> HealthServ
 /// Descriptor for `HealthService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
 final $typed_data.Uint8List healthServiceDescriptor = $convert.base64Decode(
     'Cg1IZWFsdGhTZXJ2aWNlEjkKBUNoZWNrEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GhguaGVhbH'
-    'RoLnYxLkNoZWNrUmVzcG9uc2U=');
+    'RoLnYxLkNoZWNrUmVzcG9uc2USOwoFV2F0Y2gSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaGC5o'
+    'ZWFsdGgudjEuQ2hlY2tSZXNwb25zZTAB');
 
