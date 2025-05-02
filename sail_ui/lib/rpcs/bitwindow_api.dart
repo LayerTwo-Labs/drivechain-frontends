@@ -275,8 +275,10 @@ class BitwindowRPCLive extends BitwindowRPC {
         log.i('Health stream completed');
         // If we're still connected, restart the stream
         if (connected) {
-          log.i('Stream completed but still connected, restarting health stream...');
-          startHealthStream();
+          log.i('Stream completed but still connected, restarting health stream in 5 seconds...');
+          Future.delayed(const Duration(seconds: 5), () {
+            startHealthStream();
+          });
         }
       });
   }
