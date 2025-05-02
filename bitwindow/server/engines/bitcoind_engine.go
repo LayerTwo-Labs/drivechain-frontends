@@ -127,14 +127,6 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		lastProcessedHeight -= 20
 	}
 
-	// Create a channel for processed blocks
-	processedBlocksChan := make(chan processedBlockWithData, 200)
-	doneChan := make(chan struct{})
-
-	// Start a single goroutine that both processes blocks and handles database insertion
-	go p.processBlocks(ctx, processedBlocksChan, doneChan)
-
-	// Process blocks in batches of 100
 	batchSize := int32(100)
 	for startHeight := lastProcessedHeight + 1; startHeight <= currentHeight; startHeight += batchSize {
 		endHeight := startHeight + batchSize - 1
@@ -148,7 +140,14 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 			return fmt.Errorf("get blocks: %w", err)
 		}
 
-		// Process fetched blocks
+		// Create a channel for this batch only
+		processedBlocksChan := make(chan processedBlockWithData, len(newBlocks))
+		doneChan := make(chan struct{})
+
+		// Start the consumer for this batch
+		go p.processBlocks(ctx, processedBlocksChan, doneChan)
+
+		// Send this batch's blocks
 		for _, block := range newBlocks {
 			processedBlock := processedBlockWithData{
 				ProcessedBlock: blocks.ProcessedBlock{
@@ -159,11 +158,11 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 			}
 			processedBlocksChan <- processedBlock
 		}
-	}
 
-	// Signal completion and wait for inserter to finish
-	close(processedBlocksChan)
-	<-doneChan
+		// Signal completion and wait for inserter to finish
+		close(processedBlocksChan)
+		<-doneChan
+	}
 
 	return nil
 }
