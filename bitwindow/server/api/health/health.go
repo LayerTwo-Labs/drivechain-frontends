@@ -53,9 +53,89 @@ type Server struct {
 
 // Check implements healthv1connect.HealthServiceHandler.
 func (s *Server) Check(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[healthv1.CheckResponse], error) {
+
+	statuses, err := s.getServiceStatuses(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Int("total_services", len(statuses)).
+		Msg("All health checks completed")
+
+	return connect.NewResponse(&healthv1.CheckResponse{
+		ServiceStatuses: statuses,
+	}), nil
+}
+
+func (s *Server) Watch(ctx context.Context, _ *connect.Request[emptypb.Empty], stream *connect.ServerStream[healthv1.CheckResponse]) error {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			statuses, err := s.getServiceStatuses(ctx)
+			if err != nil {
+				return err
+			}
+			err = stream.Send(&healthv1.CheckResponse{
+				ServiceStatuses: statuses,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// Generic helper function for service health checks
+func checkHealth[T any](
+	ctx context.Context,
+	serviceName string,
+	svc *service.Service[T],
+	healthCheck func(context.Context, T) error,
+) *healthv1.CheckResponse_ServiceStatus {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if !svc.IsConnected() {
+		return &healthv1.CheckResponse_ServiceStatus{
+			ServiceName: serviceName,
+			Status:      healthv1.CheckResponse_STATUS_NOT_SERVING,
+		}
+	}
+
+	client, err := svc.Get(ctx)
+	if err != nil {
+		return &healthv1.CheckResponse_ServiceStatus{
+			ServiceName: serviceName,
+			Status:      healthv1.CheckResponse_STATUS_NOT_SERVING,
+		}
+	}
+
+	if err := healthCheck(ctx, client); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			zerolog.Ctx(ctx).Warn().Msgf("%s health check timed out", serviceName)
+		}
+		return &healthv1.CheckResponse_ServiceStatus{
+			ServiceName: serviceName,
+			Status:      healthv1.CheckResponse_STATUS_NOT_SERVING,
+		}
+	}
+
+	return &healthv1.CheckResponse_ServiceStatus{
+		ServiceName: serviceName,
+		Status:      healthv1.CheckResponse_STATUS_SERVING,
+	}
+}
+
+func (s *Server) getServiceStatuses(ctx context.Context) ([]*healthv1.CheckResponse_ServiceStatus, error) {
 	pool := logpool.NewWithResults[*healthv1.CheckResponse_ServiceStatus](ctx, "health-check")
 
-	// Database check does not use the generic checkHealth() because it's not a service.Service
+	// Database check
 	pool.Go("database", func(ctx context.Context) (*healthv1.CheckResponse_ServiceStatus, error) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
@@ -108,55 +188,9 @@ func (s *Server) Check(ctx context.Context, _ *connect.Request[emptypb.Empty]) (
 
 	statuses, err := pool.Wait(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get service statuses")
+		return nil, err
 	}
 
-	zerolog.Ctx(ctx).Info().
-		Int("total_services", len(statuses)).
-		Msg("All health checks completed")
-
-	return connect.NewResponse(&healthv1.CheckResponse{
-		ServiceStatuses: statuses,
-	}), nil
-}
-
-// Generic helper function for service health checks
-func checkHealth[T any](
-	ctx context.Context,
-	serviceName string,
-	svc *service.Service[T],
-	healthCheck func(context.Context, T) error,
-) *healthv1.CheckResponse_ServiceStatus {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	if !svc.IsConnected() {
-		return &healthv1.CheckResponse_ServiceStatus{
-			ServiceName: serviceName,
-			Status:      healthv1.CheckResponse_STATUS_NOT_SERVING,
-		}
-	}
-
-	client, err := svc.Get(ctx)
-	if err != nil {
-		return &healthv1.CheckResponse_ServiceStatus{
-			ServiceName: serviceName,
-			Status:      healthv1.CheckResponse_STATUS_NOT_SERVING,
-		}
-	}
-
-	if err := healthCheck(ctx, client); err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			zerolog.Ctx(ctx).Warn().Msgf("%s health check timed out", serviceName)
-		}
-		return &healthv1.CheckResponse_ServiceStatus{
-			ServiceName: serviceName,
-			Status:      healthv1.CheckResponse_STATUS_NOT_SERVING,
-		}
-	}
-
-	return &healthv1.CheckResponse_ServiceStatus{
-		ServiceName: serviceName,
-		Status:      healthv1.CheckResponse_STATUS_SERVING,
-	}
+	return statuses, nil
 }

@@ -6,7 +6,12 @@ import "google/protobuf/empty.proto";
 
 service HealthService {
   // Check status of requested services
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc Check(google.protobuf.Empty) returns (CheckResponse);
+
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc Watch(google.protobuf.Empty) returns (stream CheckResponse);
 }
 
 message CheckResponse {

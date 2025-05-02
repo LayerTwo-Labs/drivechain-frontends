@@ -186,9 +186,10 @@ const file_health_v1_health_proto_rawDesc = "" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSTATUS_SERVING\x10\x01\x12\x16\n" +
 	"\x12STATUS_NOT_SERVING\x10\x02\x12\x1a\n" +
-	"\x16STATUS_SERVICE_UNKNOWN\x10\x032J\n" +
+	"\x16STATUS_SERVICE_UNKNOWN\x10\x032\x87\x01\n" +
 	"\rHealthService\x129\n" +
-	"\x05Check\x12\x16.google.protobuf.Empty\x1a\x18.health.v1.CheckResponseB\xac\x01\n" +
+	"\x05Check\x12\x16.google.protobuf.Empty\x1a\x18.health.v1.CheckResponse\x12;\n" +
+	"\x05Watch\x12\x16.google.protobuf.Empty\x1a\x18.health.v1.CheckResponse0\x01B\xac\x01\n" +
 	"\rcom.health.v1B\vHealthProtoP\x01ZIgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/health/v1;healthv1\xa2\x02\x03HXX\xaa\x02\tHealth.V1\xca\x02\tHealth\\V1\xe2\x02\x15Health\\V1\\GPBMetadata\xea\x02\n" +
 	"Health::V1b\x06proto3"
 
@@ -216,9 +217,11 @@ var file_health_v1_health_proto_depIdxs = []int32{
 	2, // 0: health.v1.CheckResponse.service_statuses:type_name -> health.v1.CheckResponse.ServiceStatus
 	0, // 1: health.v1.CheckResponse.ServiceStatus.status:type_name -> health.v1.CheckResponse.Status
 	3, // 2: health.v1.HealthService.Check:input_type -> google.protobuf.Empty
-	1, // 3: health.v1.HealthService.Check:output_type -> health.v1.CheckResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
+	3, // 3: health.v1.HealthService.Watch:input_type -> google.protobuf.Empty
+	1, // 4: health.v1.HealthService.Check:output_type -> health.v1.CheckResponse
+	1, // 5: health.v1.HealthService.Watch:output_type -> health.v1.CheckResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
