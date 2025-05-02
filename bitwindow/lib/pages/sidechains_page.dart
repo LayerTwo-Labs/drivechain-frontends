@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -103,6 +104,27 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
               onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
               selectedRowId: viewModel.selectedIndex?.toString(),
               onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
+              onDoubleTap: (rowId) {
+                final sidechain = viewModel.sidechains[int.parse(rowId)];
+                if (sidechain == null || sidechain.info.chaintipTxid == '') {
+                  return;
+                }
+
+                showTransactionDetails(context, rowId);
+              },
+              contextMenuItems: (rowId) {
+                final sidechain = viewModel.sidechains[int.parse(rowId)];
+                if (sidechain == null || sidechain.info.chaintipTxid == '') {
+                  return [];
+                }
+
+                return [
+                  SailMenuItem(
+                    onSelected: () => showTransactionDetails(context, sidechain.info.chaintipTxid),
+                    child: SailText.primary12('Show Chaintip Transaction'),
+                  ),
+                ];
+              },
             ),
           ),
           const SizedBox(height: SailStyleValues.padding16),
