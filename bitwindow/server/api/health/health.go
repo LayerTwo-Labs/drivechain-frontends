@@ -69,26 +69,79 @@ func (s *Server) Check(ctx context.Context, _ *connect.Request[emptypb.Empty]) (
 }
 
 func (s *Server) Watch(ctx context.Context, _ *connect.Request[emptypb.Empty], stream *connect.ServerStream[healthv1.CheckResponse]) error {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
+	type serviceStatusEvent struct {
+		name   string
+		status bool
+	}
+	myUpdateCh := make(chan serviceStatusEvent, 10)
+
+	// listens for status changes from all running services,
+	// and sends a status update whenever the status changes
+	// any update from any service triggers an event to be sent
+	// on the stream
+	go func() {
+		for status := range s.bitcoind.ConnectedChan() {
+			myUpdateCh <- serviceStatusEvent{name: "bitcoind", status: status}
+		}
+	}()
+	go func() {
+		for status := range s.enforcer.ConnectedChan() {
+			myUpdateCh <- serviceStatusEvent{name: "enforcer", status: status}
+		}
+	}()
+	go func() {
+		for status := range s.wallet.ConnectedChan() {
+			myUpdateCh <- serviceStatusEvent{name: "wallet", status: status}
+		}
+	}()
+	go func() {
+		for status := range s.crypto.ConnectedChan() {
+			myUpdateCh <- serviceStatusEvent{name: "crypto", status: status}
+		}
+	}()
+
+	// get initial status and send it when a client subscribes
+	statuses, err := s.getServiceStatuses(ctx)
+	if err != nil {
+		return err
+	}
+	if err := stream.Send(&healthv1.CheckResponse{ServiceStatuses: statuses}); err != nil {
+		return err
+	}
+
+	statusMap := make(map[string]*healthv1.CheckResponse_ServiceStatus)
+	for _, st := range statuses {
+		statusMap[st.ServiceName] = st
+	}
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-ticker.C:
-			statuses, err := s.getServiceStatuses(ctx)
-			if err != nil {
-				return err
+		case event := <-myUpdateCh:
+			// a service status changed, pushing update on stream
+			statusMap[event.name].Status = connectedBoolToEnum(event.status)
+			zerolog.Ctx(ctx).Info().
+				Str("service", event.name).
+				Bool("connected", event.status).
+				Msg("service status changed")
+
+			var updated []*healthv1.CheckResponse_ServiceStatus
+			for _, st := range statusMap {
+				updated = append(updated, st)
 			}
-			err = stream.Send(&healthv1.CheckResponse{
-				ServiceStatuses: statuses,
-			})
-			if err != nil {
+			if err := stream.Send(&healthv1.CheckResponse{ServiceStatuses: updated}); err != nil {
 				return err
 			}
 		}
 	}
+}
+
+func connectedBoolToEnum(connected bool) healthv1.CheckResponse_Status {
+	if connected {
+		return healthv1.CheckResponse_STATUS_SERVING
+	}
+	return healthv1.CheckResponse_STATUS_NOT_SERVING
 }
 
 // Generic helper function for service health checks
