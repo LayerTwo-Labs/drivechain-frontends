@@ -83,15 +83,17 @@ class BitwindowRPCLive extends BitwindowRPC {
     final conf = await readConf();
     final logPath = binary.logPath();
 
-    final instance = BitwindowRPCLive._create(
+    final liveInstance = BitwindowRPCLive._create(
       conf: conf,
       binary: binary,
       logPath: logPath,
       restartOnFailure: true,
     );
 
-    instance._init(transport);
-    return instance;
+    liveInstance._init(transport);
+    // must test connection before moving on, in case it is already running!
+    await liveInstance.testConnection();
+    return liveInstance;
   }
 
   void _init(Transport transport) {
