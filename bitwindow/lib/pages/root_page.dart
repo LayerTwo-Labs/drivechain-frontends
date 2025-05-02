@@ -512,6 +512,7 @@ class _StatusBarState extends State<StatusBar> {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
     balanceProvider.addListener(setstate);
+    blockchainProvider.addListener(setstate);
   }
 
   void setstate() {
