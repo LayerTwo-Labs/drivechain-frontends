@@ -5,7 +5,7 @@ import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class AddressBookProvider extends ChangeNotifier {
-  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
 
   List<AddressBookEntry> _entries = [];
   List<AddressBookEntry> get entries => _entries;
@@ -17,12 +17,16 @@ class AddressBookProvider extends ChangeNotifier {
   String? error;
   bool _isFetching = false;
 
+  AddressBookProvider() {
+    bitwindowd.addListener(fetch);
+  }
+
   Future<void> fetch() async {
     if (_isFetching) return;
     _isFetching = true;
 
     try {
-      final response = await api.bitwindowd.listAddressBook();
+      final response = await bitwindowd.bitwindowd.listAddressBook();
       _entries = response;
     } catch (e) {
       error = e.toString();
@@ -33,18 +37,18 @@ class AddressBookProvider extends ChangeNotifier {
   }
 
   Future<void> createEntry(String label, String address, Direction direction) async {
-    await api.bitwindowd.createAddressBookEntry(label, address, direction);
+    await bitwindowd.bitwindowd.createAddressBookEntry(label, address, direction);
     await fetch();
     notifyListeners();
   }
 
   Future<void> updateLabel(Int64 id, String newLabel) async {
-    await api.bitwindowd.updateAddressBookEntry(id, newLabel);
+    await bitwindowd.bitwindowd.updateAddressBookEntry(id, newLabel);
     await fetch();
   }
 
   Future<void> deleteEntry(Int64 id) async {
-    await api.bitwindowd.deleteAddressBookEntry(id);
+    await bitwindowd.bitwindowd.deleteAddressBookEntry(id);
     await fetch();
   }
 }

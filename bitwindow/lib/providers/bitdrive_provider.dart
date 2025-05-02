@@ -41,7 +41,7 @@ class PendingDownload {
 }
 
 class BitDriveProvider extends ChangeNotifier {
-  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   Logger get log => GetIt.I.get<Logger>();
   HDWalletProvider get hdWallet => GetIt.I.get<HDWalletProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
@@ -248,14 +248,14 @@ class BitDriveProvider extends ChangeNotifier {
 
     try {
       log.i('BitDrive: Starting file restoration...');
-      final walletTxs = await api.wallet.listTransactions();
+      final walletTxs = await bitwindowd.wallet.listTransactions();
 
       var restoredCount = 0;
       for (final tx in walletTxs) {
         try {
           if (!await hasOpReturn(tx.txid)) continue;
 
-          final opReturns = await api.misc.listOPReturns();
+          final opReturns = await bitwindowd.misc.listOPReturns();
           final opReturn = opReturns.firstWhere(
             (op) => op.txid == tx.txid,
             orElse: () => throw Exception('No OP_RETURN found'),
@@ -381,8 +381,8 @@ class BitDriveProvider extends ChangeNotifier {
       final opReturnData = '$metadataStr|$contentStr';
       log.d('BitDrive: OP_RETURN size: ${opReturnData.length} bytes');
 
-      final address = await api.wallet.getNewAddress();
-      final txid = await api.wallet.sendTransaction(
+      final address = await bitwindowd.wallet.getNewAddress();
+      final txid = await bitwindowd.wallet.sendTransaction(
         address,
         10000, // 0.0001 BTC
         btcPerKvB: fee,
@@ -404,7 +404,7 @@ class BitDriveProvider extends ChangeNotifier {
   Future<List<int>> retrieveContent(String txid) async {
     try {
       // Get transaction data
-      final opReturns = await api.misc.listOPReturns();
+      final opReturns = await bitwindowd.misc.listOPReturns();
       final opReturn = opReturns.firstWhere(
         (op) => op.txid == txid,
         orElse: () => throw Exception('No OP_RETURN data found'),
@@ -462,7 +462,7 @@ class BitDriveProvider extends ChangeNotifier {
 
   Future<bool> hasOpReturn(String txid) async {
     try {
-      final opReturns = await api.misc.listOPReturns();
+      final opReturns = await bitwindowd.misc.listOPReturns();
       return opReturns.any((op) => op.txid == txid);
     } catch (e) {
       error = e.toString();
@@ -512,13 +512,13 @@ class BitDriveProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final walletTxs = await api.wallet.listTransactions();
+      final walletTxs = await bitwindowd.wallet.listTransactions();
 
       for (final tx in walletTxs) {
         try {
           if (!await hasOpReturn(tx.txid)) continue;
 
-          final opReturns = await api.misc.listOPReturns();
+          final opReturns = await bitwindowd.misc.listOPReturns();
           final opReturn = opReturns.firstWhere(
             (op) => op.txid == tx.txid,
             orElse: () => throw Exception('No OP_RETURN found'),

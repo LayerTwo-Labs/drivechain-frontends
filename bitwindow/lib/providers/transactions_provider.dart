@@ -12,7 +12,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
 class TransactionProvider extends ChangeNotifier {
-  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
 
@@ -57,24 +57,24 @@ class TransactionProvider extends ChangeNotifier {
       final results = await Future.wait([
         update<List<WalletTransaction>>(
           walletTransactions,
-          api.wallet.listTransactions,
+          bitwindowd.wallet.listTransactions,
           (v) => walletTransactions = v,
           equals: const DeepCollectionEquality().equals,
         ),
         update<String>(
           address,
-          api.wallet.getNewAddress,
+          bitwindowd.wallet.getNewAddress,
           (v) => address = v,
         ),
         update<List<UnspentOutput>>(
           utxos,
-          api.wallet.listUnspent,
+          bitwindowd.wallet.listUnspent,
           (v) => utxos = v,
           equals: const DeepCollectionEquality().equals,
         ),
         update<List<ReceiveAddress>>(
           receiveAddresses,
-          api.wallet.listReceiveAddresses,
+          bitwindowd.wallet.listReceiveAddresses,
           (v) => receiveAddresses = v,
           equals: const DeepCollectionEquality().equals,
         ),
@@ -111,7 +111,7 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   Future<void> saveNote(String txid, String note) async {
-    await api.bitwindowd.setTransactionNote(txid, note);
+    await bitwindowd.bitwindowd.setTransactionNote(txid, note);
     await fetch();
   }
 

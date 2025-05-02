@@ -135,25 +135,30 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
 }
 
 class SendPageViewModel extends BaseViewModel {
+  Logger get log => GetIt.I<Logger>();
+
   BalanceProvider get balanceProvider => GetIt.I<BalanceProvider>();
   BlockchainProvider get blockchainProvider => GetIt.I<BlockchainProvider>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
   AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
-  BitwindowRPC get api => GetIt.I<BitwindowRPC>();
-  Logger get log => GetIt.I<Logger>();
+  BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
+
   late TextEditingController addressController;
   late TextEditingController amountController;
   late TextEditingController customFeeController;
   late TextEditingController labelController;
+
   Unit unit = Unit.BTC;
   bool subtractFee = false;
   String feeType = 'recommended';
   int confirmationTarget = 2;
   bool useMinimumFee = false;
   Unit feeUnit = Unit.BTC;
+
   EstimateSmartFeeResponse feeEstimate = EstimateSmartFeeResponse();
   List<AddressBookEntry> get addressBookEntries => addressBookProvider.sendEntries;
   AddressBookEntry? selectedEntry;
+
   SendPageViewModel() {
     addressController = TextEditingController(text: '');
     addressController.addListener(decodeURI);
@@ -254,7 +259,7 @@ class SendPageViewModel extends BaseViewModel {
   Future<void> fetchEstimate() async {
     setBusy(true);
     try {
-      final estimate = await api.bitcoind.estimateSmartFee(confirmationTarget);
+      final estimate = await bitwindowd.bitcoind.estimateSmartFee(confirmationTarget);
       Logger().d(
         'Estimate: estimate=${estimate.feeRate} errors=${estimate.errors}',
       );
@@ -283,7 +288,7 @@ class SendPageViewModel extends BaseViewModel {
     }
 
     try {
-      final txid = await api.wallet.sendTransaction(
+      final txid = await bitwindowd.wallet.sendTransaction(
         addressController.text,
         btcToSatoshi(
           double.parse(amountController.text) - (subtractFee ? feeRate : 0),
