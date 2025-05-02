@@ -22,13 +22,16 @@ type Service[T any] struct {
 
 	// For checking if service is connected
 	connected bool
+	// Channel to send connection status changes
+	connectedCh chan bool
 }
 
 // New creates a new service wrapper
 func New[T any](name string, connector Connector[T]) *Service[T] {
 	return &Service[T]{
-		name:      name,
-		connector: connector,
+		name:        name,
+		connector:   connector,
+		connectedCh: make(chan bool, 1),
 	}
 }
 
@@ -47,36 +50,19 @@ func (s *Service[T]) Get(ctx context.Context) (T, error) {
 
 // Connect attempts to connect to the service, retrying every 500ms for 3 seconds
 func (s *Service[T]) Connect(ctx context.Context) (T, error) {
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-	deadline := time.Now().Add(3 * time.Second)
-
-	for time.Now().Before(deadline) {
-		client, err := s.connector(ctx)
-		if err != nil {
-			s.mu.Lock()
-			s.connected = false
-			s.mu.Unlock()
-		} else {
-			s.mu.Lock()
-			s.client = client
-			s.connected = true
-			s.mu.Unlock()
-			return client, nil
-		}
-
-		select {
-		case <-ctx.Done():
-			var zero T
-			return zero, connect.NewError(connect.CodeUnavailable, ctx.Err())
-		case <-ticker.C:
-			continue
-		}
+	client, err := s.connector(ctx)
+	if err != nil {
+		s.setConnected(false)
+		var zero T
+		return zero, connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s not available", s.name))
+	} else {
+		s.mu.Lock()
+		s.client = client
+		s.mu.Unlock()
+		s.setConnected(true)
+		return client, nil
 	}
 
-	var zero T
-	return zero, connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s not available", s.name))
 }
 
 // IsConnected returns whether the service is currently connected
@@ -90,7 +76,7 @@ func (s *Service[T]) IsConnected() bool {
 // to check whether the service is still available.
 func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 
 		for {
@@ -102,4 +88,21 @@ func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+func (s *Service[T]) setConnected(val bool) {
+	s.mu.Lock()
+	changed := s.connected != val
+	s.connected = val
+	s.mu.Unlock()
+	if changed {
+		select {
+		case s.connectedCh <- val:
+		default: // don't block if nobody is listening
+		}
+	}
+}
+
+func (s *Service[T]) ConnectedChan() <-chan bool {
+	return s.connectedCh
 }
