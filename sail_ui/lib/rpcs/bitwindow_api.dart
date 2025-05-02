@@ -92,13 +92,11 @@ class BitwindowRPCLive extends BitwindowRPC {
       restartOnFailure: true,
     );
 
-    liveInstance._init(transport);
-    // must test connection before moving on, in case it is already running!
-    await liveInstance.testConnection();
+    await liveInstance._init(transport);
     return liveInstance;
   }
 
-  void _init(Transport transport) {
+  Future<void> _init(Transport transport) async {
     bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
     wallet = _WalletAPILive(WalletServiceClient(transport));
     bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));
@@ -106,7 +104,8 @@ class BitwindowRPCLive extends BitwindowRPC {
     misc = _MiscAPILive(MiscServiceClient(transport));
     health = _HealthAPILive(HealthServiceClient(transport));
 
-    startConnectionTimer();
+    // must test connection before moving on, in case it is already running!
+    await startConnectionTimer();
     startHealthStream();
   }
 
