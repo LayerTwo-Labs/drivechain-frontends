@@ -3,7 +3,6 @@ package engines
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -93,7 +92,7 @@ type BlockResult struct {
 
 func (p *Parser) handleBlockTick(ctx context.Context) error {
 	err := p.detectChainDeletion(ctx)
-	if strings.Contains(err.Error(), "Block height out of range") {
+	if err != nil && strings.Contains(err.Error(), "Block height out of range") {
 		zerolog.Ctx(ctx).Info().
 			Msgf("bitcoind_engine/parser: still in IBD, waiting for header download..")
 		return nil
@@ -464,8 +463,6 @@ func (p *Parser) findOPReturns(
 			// Log both hex and string representation for easier debugging
 			logger := zerolog.Ctx(ctx).Info()
 			logger.
-				Str("data_hex", hex.EncodeToString(data)).
-				Str("data", opreturns.OPReturnToReadable(data)).
 				Str("txid", txid).
 				Msgf("bitcoind_engine/parser: found op_return")
 

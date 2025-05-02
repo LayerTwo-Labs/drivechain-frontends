@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/rs/zerolog"
 )
 
 // Connector represents a function that attempts to connect to a service
@@ -52,14 +53,14 @@ func (s *Service[T]) Get(ctx context.Context) (T, error) {
 func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 	client, err := s.connector(ctx)
 	if err != nil {
-		s.setConnected(false)
+		s.setConnected(ctx, false)
 		var zero T
 		return zero, connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s not available", s.name))
 	} else {
 		s.mu.Lock()
 		s.client = client
 		s.mu.Unlock()
-		s.setConnected(true)
+		s.setConnected(ctx, true)
 		return client, nil
 	}
 
@@ -90,12 +91,14 @@ func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 	}()
 }
 
-func (s *Service[T]) setConnected(val bool) {
+func (s *Service[T]) setConnected(ctx context.Context, val bool) {
 	s.mu.Lock()
 	changed := s.connected != val
 	s.connected = val
 	s.mu.Unlock()
 	if changed {
+		zerolog.Ctx(ctx).Info().
+			Msgf("%s changed connected to: %t", s.name, val)
 		select {
 		case s.connectedCh <- val:
 		default: // don't block if nobody is listening
