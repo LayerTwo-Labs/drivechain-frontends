@@ -36,12 +36,18 @@ const (
 const (
 	// HealthServiceCheckProcedure is the fully-qualified name of the HealthService's Check RPC.
 	HealthServiceCheckProcedure = "/health.v1.HealthService/Check"
+	// HealthServiceWatchProcedure is the fully-qualified name of the HealthService's Watch RPC.
+	HealthServiceWatchProcedure = "/health.v1.HealthService/Watch"
 )
 
 // HealthServiceClient is a client for the health.v1.HealthService service.
 type HealthServiceClient interface {
 	// Check status of requested services
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	Check(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CheckResponse], error)
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+	Watch(context.Context, *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.CheckResponse], error)
 }
 
 // NewHealthServiceClient constructs a client for the health.v1.HealthService service. By default,
@@ -61,12 +67,19 @@ func NewHealthServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(healthServiceMethods.ByName("Check")),
 			connect.WithClientOptions(opts...),
 		),
+		watch: connect.NewClient[emptypb.Empty, v1.CheckResponse](
+			httpClient,
+			baseURL+HealthServiceWatchProcedure,
+			connect.WithSchema(healthServiceMethods.ByName("Watch")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // healthServiceClient implements HealthServiceClient.
 type healthServiceClient struct {
 	check *connect.Client[emptypb.Empty, v1.CheckResponse]
+	watch *connect.Client[emptypb.Empty, v1.CheckResponse]
 }
 
 // Check calls health.v1.HealthService.Check.
@@ -74,10 +87,19 @@ func (c *healthServiceClient) Check(ctx context.Context, req *connect.Request[em
 	return c.check.CallUnary(ctx, req)
 }
 
+// Watch calls health.v1.HealthService.Watch.
+func (c *healthServiceClient) Watch(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.ServerStreamForClient[v1.CheckResponse], error) {
+	return c.watch.CallServerStream(ctx, req)
+}
+
 // HealthServiceHandler is an implementation of the health.v1.HealthService service.
 type HealthServiceHandler interface {
 	// Check status of requested services
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	Check(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CheckResponse], error)
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+	Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.CheckResponse]) error
 }
 
 // NewHealthServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -93,10 +115,18 @@ func NewHealthServiceHandler(svc HealthServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(healthServiceMethods.ByName("Check")),
 		connect.WithHandlerOptions(opts...),
 	)
+	healthServiceWatchHandler := connect.NewServerStreamHandler(
+		HealthServiceWatchProcedure,
+		svc.Watch,
+		connect.WithSchema(healthServiceMethods.ByName("Watch")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/health.v1.HealthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case HealthServiceCheckProcedure:
 			healthServiceCheckHandler.ServeHTTP(w, r)
+		case HealthServiceWatchProcedure:
+			healthServiceWatchHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -108,4 +138,8 @@ type UnimplementedHealthServiceHandler struct{}
 
 func (UnimplementedHealthServiceHandler) Check(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.CheckResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("health.v1.HealthService.Check is not implemented"))
+}
+
+func (UnimplementedHealthServiceHandler) Watch(context.Context, *connect.Request[emptypb.Empty], *connect.ServerStream[v1.CheckResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("health.v1.HealthService.Watch is not implemented"))
 }
