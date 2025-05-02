@@ -92,7 +92,12 @@ type BlockResult struct {
 }
 
 func (p *Parser) handleBlockTick(ctx context.Context) error {
-	if err := p.detectChainDeletion(ctx); err != nil {
+	err := p.detectChainDeletion(ctx)
+	if strings.Contains(err.Error(), "Block height out of range") {
+		zerolog.Ctx(ctx).Info().
+			Msgf("bitcoind_engine/parser: still in IBD, waiting for header download..")
+		return nil
+	} else if err != nil {
 		zerolog.Ctx(ctx).Error().
 			Err(err).
 			Msgf("bitcoind_engine/parser: could not detect chain deletion")
@@ -574,9 +579,6 @@ func (p *Parser) detectChainDeletion(ctx context.Context) error {
 			Err(err).
 			Msgf("bitcoind_engine/parser: complete reorg detected, wiping processed blocks")
 	} else if err != nil {
-		zerolog.Ctx(ctx).Error().
-			Err(err).
-			Msgf("bitcoind_engine/parser: could not get block at height 1")
 		return fmt.Errorf("detect chain deletion: %w", err)
 	}
 
