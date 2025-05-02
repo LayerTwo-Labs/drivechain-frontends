@@ -69,18 +69,17 @@ class MainchainRPCLive extends MainchainRPC {
       logPath: mainchainLogDir,
       restartOnFailure: false,
     );
-    container.init();
-    // must test connection before moving on, in case it is already running!
-    await container.testConnection();
+    await container.init();
     return container;
   }
 
-  void init() {
+  Future<void> init() async {
     if (Environment.isInTest) {
       return;
     }
     pollIBDStatus();
-    startConnectionTimer();
+    // must test connection before moving on, in case it is already running!
+    await startConnectionTimer();
   }
 
   void pollIBDStatus() {

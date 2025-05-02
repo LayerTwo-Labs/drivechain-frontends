@@ -68,14 +68,13 @@ class EnforcerLive extends EnforcerRPC {
       restartOnFailure: true,
     );
     // must test connection before moving on, in case it is already running!
-    await liveInstance.testConnection();
-    liveInstance._init(transport);
+    await liveInstance._init(transport);
     return liveInstance;
   }
 
-  void _init(Transport transport) {
+  Future<void> _init(Transport transport) async {
     validator = ValidatorServiceClient(transport);
-    startConnectionTimer();
+    await startConnectionTimer();
   }
 
   @override
