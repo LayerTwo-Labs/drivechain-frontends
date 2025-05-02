@@ -485,7 +485,6 @@ class _WalletAPILive implements WalletAPI {
       return await _client.getBalance(Empty());
     } catch (e) {
       final error = 'could not get balance: ${extractConnectException(e)}';
-      log.e(error);
       throw WalletException(error);
     }
   }
@@ -497,7 +496,6 @@ class _WalletAPILive implements WalletAPI {
       return response.address;
     } catch (e) {
       final error = 'could not get new address: ${extractConnectException(e)}';
-      log.e(error);
       throw WalletException(error);
     }
   }
@@ -509,7 +507,6 @@ class _WalletAPILive implements WalletAPI {
       return response.transactions;
     } catch (e) {
       final error = 'could not list transactions: ${extractConnectException(e)}';
-      log.e(error);
       throw WalletException(error);
     }
   }
@@ -521,7 +518,6 @@ class _WalletAPILive implements WalletAPI {
       return response.utxos;
     } catch (e) {
       final error = 'could not list utxos: ${extractConnectException(e)}';
-      log.e(error);
       throw WalletException(error);
     }
   }
@@ -533,7 +529,6 @@ class _WalletAPILive implements WalletAPI {
       return response.addresses;
     } catch (e) {
       final error = 'could not list receive addresses: ${extractConnectException(e)}';
-      log.e(error);
       throw WalletException(error);
     }
   }
@@ -545,7 +540,6 @@ class _WalletAPILive implements WalletAPI {
       return response.deposits;
     } catch (e) {
       final error = 'could not list sidechain deposits: ${extractConnectException(e)}';
-      log.e(error);
       throw WalletException(error);
     }
   }
@@ -563,7 +557,6 @@ class _WalletAPILive implements WalletAPI {
       return response.txid;
     } catch (e) {
       final error = extractConnectException(e);
-      log.e('could not create deposit: $error');
       throw WalletException(error);
     }
   }
@@ -575,7 +568,6 @@ class _WalletAPILive implements WalletAPI {
       return response.signature;
     } catch (e) {
       final error = extractConnectException(e);
-      log.e('could not sign message: $error');
       throw WalletException(error);
     }
   }
@@ -592,7 +584,6 @@ class _WalletAPILive implements WalletAPI {
       return response.valid;
     } catch (e) {
       final error = extractConnectException(e);
-      log.e('could not verify message: $error');
       throw WalletException(error);
     }
   }
@@ -604,7 +595,6 @@ class _WalletAPILive implements WalletAPI {
       return response;
     } catch (e) {
       final error = extractConnectException(e);
-      log.e('could not get stats: $error');
       throw WalletException(error);
     }
   }
@@ -679,7 +669,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response.transactions;
     } catch (e) {
       final error = 'could not list unconfirmed transactions: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -695,7 +684,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return (response.recentBlocks, response.hasMore);
     } catch (e) {
       final error = 'could not list blocks: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -715,7 +703,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response.peers;
     } catch (e) {
       final error = 'could not list peers: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -727,7 +714,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not estimate smart fee: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -739,7 +725,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not get transaction: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -761,7 +746,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response.block;
     } catch (e) {
       final error = 'could not get block: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -777,7 +761,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not dump private key: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -796,7 +779,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not import private key: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -815,7 +797,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not import address: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -833,7 +814,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not import public key: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -848,7 +828,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not refill key pool: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -864,7 +843,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not get account: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -882,7 +860,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not set account: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -897,7 +874,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not get addresses by account: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -912,7 +888,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not list accounts: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -937,7 +912,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not add multisig address: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -954,7 +928,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not create multisig: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -971,7 +944,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not backup wallet: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -997,7 +969,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not create wallet: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1014,7 +985,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not dump wallet: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1031,7 +1001,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not import wallet: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1048,7 +1017,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not unload wallet: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1061,7 +1029,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not create PSBT: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1074,7 +1041,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not decode PSBT: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1087,7 +1053,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not analyze PSBT: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1100,7 +1065,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not combine PSBTs: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1113,7 +1077,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not update PSBT UTXOs: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1126,7 +1089,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not join PSBTs: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1140,7 +1102,6 @@ class _BitcoindAPILive implements BitcoindAPI {
       return response;
     } catch (e) {
       final error = 'could not test mempool acceptance: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1164,7 +1125,6 @@ class _DrivechainAPILive implements DrivechainAPI {
       return response.sidechains;
     } catch (e) {
       final error = 'could not list sidechains: ${extractConnectException(e)}';
-      log.e(error);
       throw DrivechainException(error);
     }
   }
@@ -1176,7 +1136,6 @@ class _DrivechainAPILive implements DrivechainAPI {
       return response.proposals;
     } catch (e) {
       final error = 'could not list sidechain proposals: ${extractConnectException(e)}';
-      log.e(error);
       throw DrivechainException(error);
     }
   }
@@ -1203,7 +1162,6 @@ class _MiscAPILive implements MiscAPI {
       return response.opReturns;
     } catch (e) {
       final error = 'could not list op returns: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1220,7 +1178,6 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not broadcast news: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1236,7 +1193,6 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not create topic: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1248,7 +1204,6 @@ class _MiscAPILive implements MiscAPI {
       return response.coinNews;
     } catch (e) {
       final error = 'could not list coin news: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1260,7 +1215,6 @@ class _MiscAPILive implements MiscAPI {
       return response.topics;
     } catch (e) {
       final error = 'could not list topics: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1284,7 +1238,6 @@ class _HealthAPILive implements HealthAPI {
       return response;
     } catch (e) {
       final error = 'could not check health: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
@@ -1296,7 +1249,6 @@ class _HealthAPILive implements HealthAPI {
       return response;
     } catch (e) {
       final error = 'could not watch health: ${extractConnectException(e)}';
-      log.e(error);
       throw BitcoindException(error);
     }
   }
