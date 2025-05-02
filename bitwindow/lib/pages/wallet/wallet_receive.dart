@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -247,6 +248,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
 
 class ReceivePageViewModel extends BaseViewModel {
   final AddressBookProvider _addressBookProvider = GetIt.I<AddressBookProvider>();
+  final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
   TransactionProvider get transactionsProvider => GetIt.I<TransactionProvider>();
 
   @override
@@ -267,6 +269,9 @@ class ReceivePageViewModel extends BaseViewModel {
   bool sortAscending = true;
 
   void init() {
+    // bitwindowrpc has a health stream that notifies listener. when it changes, we should try to
+    // regenerate an address!
+    _bitwindowRPC.addListener(generateNewAddress);
     transactionsProvider.addListener(notifyListeners);
     _addressBookProvider.addListener(notifyListeners);
     _txProvider.addListener(notifyListeners);
