@@ -9,7 +9,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
 class DenialProvider extends ChangeNotifier {
-  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   TransactionProvider get transactionProvider => GetIt.I.get<TransactionProvider>();
 
   List<DeniabilityUTXO> utxos = [];
@@ -30,7 +30,7 @@ class DenialProvider extends ChangeNotifier {
     _isFetching = true;
 
     try {
-      final newUTXOs = await api.bitwindowd.listDenials();
+      final newUTXOs = await bitwindowd.bitwindowd.listDenials();
       error = null;
 
       if (_dataHasChanged(newUTXOs)) {

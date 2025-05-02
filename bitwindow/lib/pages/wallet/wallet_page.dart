@@ -18,7 +18,7 @@ import 'package:stacked/stacked.dart';
 @RoutePage()
 class WalletPage extends StatelessWidget {
   DenialProvider get denialProvider => GetIt.I.get<DenialProvider>();
-  BitwindowRPC get api => GetIt.I<BitwindowRPC>();
+  BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
   static final GlobalKey<InlineTabBarState> tabKey = GlobalKey<InlineTabBarState>();
   static SendPageViewModel? _sendViewModel; // Static reference to view model
 
