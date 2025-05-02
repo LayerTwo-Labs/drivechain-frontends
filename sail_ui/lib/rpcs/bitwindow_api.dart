@@ -216,20 +216,50 @@ class BitwindowRPCLive extends BitwindowRPC {
     ];
   }
 
+  // Store the previous response for comparison
+  CheckResponse? _previousHealthResponse;
+
   void startHealthStream() {
     health.watch().listen(
       (response) {
-        // Call notifyListeners() for any health update
-        notifyListeners();
+        // Only notify if the health status has changed
+        if (_previousHealthResponse == null || !_areHealthResponsesEqual(_previousHealthResponse!, response)) {
+          _previousHealthResponse = response;
+          log.i('Health responses are not equal, notifying listeners');
+          notifyListeners();
+        }
       },
       onError: (error) {
-        // Log the error but keep the stream alive
-        GetIt.I.get<Logger>().e('Health stream error: $error');
-        // Still notify listeners as this is a state change
+        log.e('Health stream error: $error');
+        // Reset previous response on error since state is uncertain
+        _previousHealthResponse = null;
         notifyListeners();
       },
-      cancelOnError: false, // Don't cancel the stream on errors
+      cancelOnError: false,
     );
+  }
+
+  bool _areHealthResponsesEqual(
+    CheckResponse previous,
+    CheckResponse current,
+  ) {
+    if (previous.serviceStatuses.length != current.serviceStatuses.length) {
+      return false;
+    }
+
+    final prevMap = {
+      for (var status in previous.serviceStatuses) status.serviceName: status.status,
+    };
+
+    for (var status in current.serviceStatuses) {
+      final prevStatus = prevMap[status.serviceName];
+      if (prevStatus != status.status) {
+        log.i('Health status changed: ${status.serviceName} from $prevStatus to ${status.status}');
+        return false;
+      }
+    }
+
+    return true;
   }
 }
 
