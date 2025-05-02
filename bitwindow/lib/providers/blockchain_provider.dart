@@ -11,7 +11,7 @@ import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 
 class BlockchainProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
-  BitwindowRPC get api => GetIt.I.get<BitwindowRPC>();
+  BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   BlockInfoProvider get infoProvider => GetIt.I.get<BlockInfoProvider>();
 
@@ -32,18 +32,19 @@ class BlockchainProvider extends ChangeNotifier {
   BlockchainProvider() {
     _startFetchTimer();
     mainchain.addListener(fetch);
+    bitwindowd.addListener(fetch);
     infoProvider.addListener(notifyListeners);
   }
 
   // call this function from anywhere to refetch blockchain info
   Future<void> fetch() async {
-    if (!api.connected || _isFetching) return;
+    if (!bitwindowd.connected || _isFetching) return;
     _isFetching = true;
 
     try {
-      final newPeers = await api.bitcoind.listPeers();
-      final newTXs = await api.bitcoind.listRecentTransactions();
-      final (newBlocks, hasMore) = await api.bitcoind.listBlocks();
+      final newPeers = await bitwindowd.bitcoind.listPeers();
+      final newTXs = await bitwindowd.bitcoind.listRecentTransactions();
+      final (newBlocks, hasMore) = await bitwindowd.bitcoind.listBlocks();
 
       if (_dataHasChanged(newPeers, newTXs, newBlocks)) {
         peers = newPeers;
@@ -118,7 +119,7 @@ class BlockchainProvider extends ChangeNotifier {
     isLoadingMoreBlocks = true;
     try {
       final lastBlock = blocks.last;
-      final (moreBlocks, hasMore) = await api.bitcoind.listBlocks(
+      final (moreBlocks, hasMore) = await bitwindowd.bitcoind.listBlocks(
         startHeight: lastBlock.height - 1,
       );
 
