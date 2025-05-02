@@ -17,6 +17,8 @@ import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.connect.client.dart';
 import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sail_ui/gen/google/protobuf/empty.pb.dart';
+import 'package:sail_ui/gen/health/v1/health.connect.client.dart';
+import 'package:sail_ui/gen/health/v1/health.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.connect.client.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
@@ -36,125 +38,10 @@ abstract class BitwindowRPC extends RPCConnection {
   BitcoindAPI get bitcoind;
   DrivechainAPI get drivechain;
   MiscAPI get misc;
+  HealthAPI get health;
 
   Future<dynamic> callRAW(String url, [String body = '{}']);
   List<String> getMethods();
-}
-
-abstract class BitwindowAPI {
-  Future<void> stop();
-
-  // Denial methods here
-  Future<void> createDenial({
-    required String txid,
-    required int vout,
-    required int numHops,
-    required int delaySeconds,
-  });
-  Future<void> cancelDenial(Int64 id);
-  Future<GetSyncInfoResponse> getSyncInfo();
-  Future<List<DeniabilityUTXO>> listDenials();
-
-  // Address book methods here
-  Future<List<AddressBookEntry>> listAddressBook();
-  Future<void> createAddressBookEntry(String label, String address, Direction direction);
-  Future<void> updateAddressBookEntry(Int64 id, String label);
-  Future<void> deleteAddressBookEntry(Int64 id);
-
-  // Transaction note methods here
-  Future<void> setTransactionNote(String txid, String note);
-}
-
-abstract class WalletAPI {
-  // pure bitcoind wallet stuff here
-  Future<String> sendTransaction(
-    String destination,
-    int amountSatoshi, {
-    double? btcPerKvB,
-    String? opReturnMessage,
-    String? label,
-  });
-  Future<GetBalanceResponse> getBalance();
-  Future<String> getNewAddress();
-  Future<List<WalletTransaction>> listTransactions();
-  Future<List<UnspentOutput>> listUnspent();
-  Future<List<ReceiveAddress>> listReceiveAddresses();
-
-  // drivechain wallet stuff here
-  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
-  Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee);
-  Future<String> signMessage(String message);
-  Future<bool> verifyMessage(String message, String signature, String publicKey);
-  Future<GetStatsResponse> getStats();
-}
-
-abstract class BitcoindAPI {
-  Future<List<Peer>> listPeers();
-  Future<List<RecentTransaction>> listRecentTransactions();
-  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50});
-  Future<GetBlockchainInfoResponse> getBlockchainInfo();
-  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
-  Future<GetRawTransactionResponse> getRawTransaction(String txid);
-  Future<Block> getBlock({String? hash, int? height});
-
-  Future<CreateWalletResponse> createWallet(
-    String name,
-    String passphrase,
-    bool avoidReuse,
-    bool disablePrivateKeys,
-    bool blank,
-  );
-  Future<BackupWalletResponse> backupWallet(String destination, String wallet);
-  Future<DumpWalletResponse> dumpWallet(String filename, String wallet);
-  Future<ImportWalletResponse> importWallet(String filename, String wallet);
-  Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet);
-
-  // Key/Address management
-  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet);
-  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet);
-  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet);
-  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet);
-  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet);
-
-  // Account operations
-  Future<GetAccountResponse> getAccount(String address, String wallet);
-
-  Future<SetAccountResponse> setAccount(String address, String account, String wallet);
-  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet);
-  Future<ListAccountsResponse> listAccounts(int minConf, String wallet);
-
-  // Multi-sig operations
-  Future<AddMultisigAddressResponse> addMultisigAddress(
-    int requiredSigs,
-    List<String> keys,
-    String label,
-    String wallet,
-  );
-  Future<CreateMultisigResponse> createMultisig(int requiredSigs, List<String> keys);
-
-  // PSBT handling
-  Future<CreatePsbtResponse> createPsbt(CreatePsbtRequest request);
-  Future<DecodePsbtResponse> decodePsbt(DecodePsbtRequest request);
-  Future<AnalyzePsbtResponse> analyzePsbt(AnalyzePsbtRequest request);
-  Future<CombinePsbtResponse> combinePsbt(CombinePsbtRequest request);
-  Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request);
-  Future<JoinPsbtsResponse> joinPsbts(JoinPsbtsRequest request);
-
-  // Transaction misc
-  Future<TestMempoolAcceptResponse> testMempoolAccept(TestMempoolAcceptRequest request);
-}
-
-abstract class DrivechainAPI {
-  Future<List<ListSidechainsResponse_Sidechain>> listSidechains();
-  Future<List<SidechainProposal>> listSidechainProposals();
-}
-
-abstract class MiscAPI {
-  Future<List<OPReturn>> listOPReturns();
-  Future<List<CoinNews>> listCoinNews();
-  Future<List<Topic>> listTopics();
-  Future<CreateTopicResponse> createTopic(String topic, String name);
-  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content);
 }
 
 class BitwindowRPCLive extends BitwindowRPC {
@@ -168,6 +55,8 @@ class BitwindowRPCLive extends BitwindowRPC {
   late final DrivechainAPI drivechain;
   @override
   late final MiscAPI misc;
+  @override
+  late final HealthAPI health;
 
   // Private constructor
   BitwindowRPCLive._create({
@@ -211,8 +100,10 @@ class BitwindowRPCLive extends BitwindowRPC {
     bitcoind = _BitcoindAPILive(BitcoindServiceClient(transport));
     drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
     misc = _MiscAPILive(MiscServiceClient(transport));
+    health = _HealthAPILive(HealthServiceClient(transport));
 
     startConnectionTimer();
+    startHealthStream();
   }
 
   @override
@@ -249,7 +140,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final syncInfo = await bitwindowd.getSyncInfo();
-    // TODO: create info that makes sense. a lot of unused fields here
+    // TODO: create an info type that makes sense. a lot of unused fields here
     return BlockchainInfo(
       chain: 'signet',
       bestBlockHash: syncInfo.tipBlockHash,
@@ -324,6 +215,46 @@ class BitwindowRPCLive extends BitwindowRPC {
       'wallet.v1.WalletService/VerifyMessage',
     ];
   }
+
+  void startHealthStream() {
+    health.watch().listen(
+      (response) {
+        // Call notifyListeners() for any health update
+        notifyListeners();
+      },
+      onError: (error) {
+        // Log the error but keep the stream alive
+        GetIt.I.get<Logger>().e('Health stream error: $error');
+        // Still notify listeners as this is a state change
+        notifyListeners();
+      },
+      cancelOnError: false, // Don't cancel the stream on errors
+    );
+  }
+}
+
+abstract class BitwindowAPI {
+  Future<void> stop();
+
+  // Denial methods here
+  Future<void> createDenial({
+    required String txid,
+    required int vout,
+    required int numHops,
+    required int delaySeconds,
+  });
+  Future<void> cancelDenial(Int64 id);
+  Future<GetSyncInfoResponse> getSyncInfo();
+  Future<List<DeniabilityUTXO>> listDenials();
+
+  // Address book methods here
+  Future<List<AddressBookEntry>> listAddressBook();
+  Future<void> createAddressBookEntry(String label, String address, Direction direction);
+  Future<void> updateAddressBookEntry(Int64 id, String label);
+  Future<void> deleteAddressBookEntry(Int64 id);
+
+  // Transaction note methods here
+  Future<void> setTransactionNote(String txid, String note);
 }
 
 class _BitwindowAPILive implements BitwindowAPI {
@@ -411,6 +342,29 @@ class _BitwindowAPILive implements BitwindowAPI {
         ..note = note,
     );
   }
+}
+
+abstract class WalletAPI {
+  // pure bitcoind wallet stuff here
+  Future<String> sendTransaction(
+    String destination,
+    int amountSatoshi, {
+    double? btcPerKvB,
+    String? opReturnMessage,
+    String? label,
+  });
+  Future<GetBalanceResponse> getBalance();
+  Future<String> getNewAddress();
+  Future<List<WalletTransaction>> listTransactions();
+  Future<List<UnspentOutput>> listUnspent();
+  Future<List<ReceiveAddress>> listReceiveAddresses();
+
+  // drivechain wallet stuff here
+  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(int slot);
+  Future<String> createSidechainDeposit(int slot, String destination, double amount, double fee);
+  Future<String> signMessage(String message);
+  Future<bool> verifyMessage(String message, String signature, String publicKey);
+  Future<GetStatsResponse> getStats();
 }
 
 class _WalletAPILive implements WalletAPI {
@@ -574,6 +528,62 @@ class _WalletAPILive implements WalletAPI {
       throw WalletException(error);
     }
   }
+}
+
+abstract class BitcoindAPI {
+  Future<List<Peer>> listPeers();
+  Future<List<RecentTransaction>> listRecentTransactions();
+  Future<(List<Block>, bool)> listBlocks({int startHeight = 0, int pageSize = 50});
+  Future<GetBlockchainInfoResponse> getBlockchainInfo();
+  Future<EstimateSmartFeeResponse> estimateSmartFee(int confTarget);
+  Future<GetRawTransactionResponse> getRawTransaction(String txid);
+  Future<Block> getBlock({String? hash, int? height});
+
+  Future<CreateWalletResponse> createWallet(
+    String name,
+    String passphrase,
+    bool avoidReuse,
+    bool disablePrivateKeys,
+    bool blank,
+  );
+  Future<BackupWalletResponse> backupWallet(String destination, String wallet);
+  Future<DumpWalletResponse> dumpWallet(String filename, String wallet);
+  Future<ImportWalletResponse> importWallet(String filename, String wallet);
+  Future<UnloadWalletResponse> unloadWallet(String walletName, String wallet);
+
+  // Key/Address management
+  Future<DumpPrivKeyResponse> dumpPrivKey(String address, String wallet);
+  Future<ImportPrivKeyResponse> importPrivKey(String privateKey, String label, bool rescan, String wallet);
+  Future<ImportAddressResponse> importAddress(String address, String label, bool rescan, String wallet);
+  Future<ImportPubKeyResponse> importPubKey(String pubkey, bool rescan, String wallet);
+  Future<KeyPoolRefillResponse> keyPoolRefill(int newSize, String wallet);
+
+  // Account operations
+  Future<GetAccountResponse> getAccount(String address, String wallet);
+
+  Future<SetAccountResponse> setAccount(String address, String account, String wallet);
+  Future<GetAddressesByAccountResponse> getAddressesByAccount(String account, String wallet);
+  Future<ListAccountsResponse> listAccounts(int minConf, String wallet);
+
+  // Multi-sig operations
+  Future<AddMultisigAddressResponse> addMultisigAddress(
+    int requiredSigs,
+    List<String> keys,
+    String label,
+    String wallet,
+  );
+  Future<CreateMultisigResponse> createMultisig(int requiredSigs, List<String> keys);
+
+  // PSBT handling
+  Future<CreatePsbtResponse> createPsbt(CreatePsbtRequest request);
+  Future<DecodePsbtResponse> decodePsbt(DecodePsbtRequest request);
+  Future<AnalyzePsbtResponse> analyzePsbt(AnalyzePsbtRequest request);
+  Future<CombinePsbtResponse> combinePsbt(CombinePsbtRequest request);
+  Future<UtxoUpdatePsbtResponse> utxoUpdatePsbt(UtxoUpdatePsbtRequest request);
+  Future<JoinPsbtsResponse> joinPsbts(JoinPsbtsRequest request);
+
+  // Transaction misc
+  Future<TestMempoolAcceptResponse> testMempoolAccept(TestMempoolAcceptRequest request);
 }
 
 class _BitcoindAPILive implements BitcoindAPI {
@@ -1056,6 +1066,11 @@ class _BitcoindAPILive implements BitcoindAPI {
   }
 }
 
+abstract class DrivechainAPI {
+  Future<List<ListSidechainsResponse_Sidechain>> listSidechains();
+  Future<List<SidechainProposal>> listSidechainProposals();
+}
+
 class _DrivechainAPILive implements DrivechainAPI {
   final DrivechainServiceClient _client;
   Logger get log => GetIt.I.get<Logger>();
@@ -1085,6 +1100,14 @@ class _DrivechainAPILive implements DrivechainAPI {
       throw DrivechainException(error);
     }
   }
+}
+
+abstract class MiscAPI {
+  Future<List<OPReturn>> listOPReturns();
+  Future<List<CoinNews>> listCoinNews();
+  Future<List<Topic>> listTopics();
+  Future<CreateTopicResponse> createTopic(String topic, String name);
+  Future<BroadcastNewsResponse> broadcastNews(String topic, String headline, String content);
 }
 
 class _MiscAPILive implements MiscAPI {
@@ -1157,6 +1180,42 @@ class _MiscAPILive implements MiscAPI {
       return response.topics;
     } catch (e) {
       final error = 'could not list topics: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+}
+
+abstract class HealthAPI {
+  Future<CheckResponse> check();
+  Stream<CheckResponse> watch();
+}
+
+class _HealthAPILive implements HealthAPI {
+  final HealthServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _HealthAPILive(this._client);
+
+  @override
+  Future<CheckResponse> check() async {
+    try {
+      final response = await _client.check(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not check health: ${extractConnectException(e)}';
+      log.e(error);
+      throw BitcoindException(error);
+    }
+  }
+
+  @override
+  Stream<CheckResponse> watch() {
+    try {
+      final response = _client.watch(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not watch health: ${extractConnectException(e)}';
       log.e(error);
       throw BitcoindException(error);
     }

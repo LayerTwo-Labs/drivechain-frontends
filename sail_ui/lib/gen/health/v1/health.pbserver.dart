@@ -23,10 +23,12 @@ export 'health.pb.dart';
 
 abstract class HealthServiceBase extends $pb.GeneratedService {
   $async.Future<$5.CheckResponse> check($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$5.CheckResponse> watch($pb.ServerContext ctx, $1.Empty request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'Check': return $1.Empty();
+      case 'Watch': return $1.Empty();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -34,6 +36,7 @@ abstract class HealthServiceBase extends $pb.GeneratedService {
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'Check': return this.check(ctx, request as $1.Empty);
+      case 'Watch': return this.watch(ctx, request as $1.Empty);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
