@@ -24,12 +24,6 @@ import (
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 
-	logger := zerolog.
-		New(zerolog.NewConsoleWriter()).
-		Level(zerolog.InfoLevel)
-
-	zerolog.DefaultContextLogger = &logger
-
 	if err := realMain(ctx, cancel); err != nil {
 
 		// Error has been printed to the console!
