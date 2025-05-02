@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/http2.dart';
 import 'package:connectrpc/protobuf.dart';
@@ -221,24 +223,68 @@ class BitwindowRPCLive extends BitwindowRPC {
   // Store the previous response for comparison
   CheckResponse? _previousHealthResponse;
 
+  // Keep track of the current stream subscription
+  StreamSubscription<CheckResponse>? _healthStreamSubscription;
+
+  @override
+  void onConnectionStateChanged(bool isConnected) {
+    if (isConnected) {
+      log.i('Connection state changed to true, starting health stream');
+      startHealthStream();
+    } else {
+      log.i('Connection state changed to false, stopping health stream');
+      _healthStreamSubscription?.cancel();
+      _previousHealthResponse = null;
+    }
+  }
+
   void startHealthStream() {
-    health.watch().listen(
+    // Cancel any existing subscription first
+    _healthStreamSubscription?.cancel();
+
+    _healthStreamSubscription = health.watch().listen(
       (response) {
         // Only notify if the health status has changed
-        if (_previousHealthResponse == null || !_areHealthResponsesEqual(_previousHealthResponse!, response)) {
+        if (_previousHealthResponse == null) {
           _previousHealthResponse = response;
-          log.i('Health responses are not equal, notifying listeners');
+          notifyListeners();
+        } else if (!_areHealthResponsesEqual(_previousHealthResponse!, response)) {
+          _previousHealthResponse = response;
           notifyListeners();
         }
       },
       onError: (error) {
         log.e('Health stream error: $error');
+        if (error is Exception) {
+          log.e('Error details: ${error.toString()}');
+        }
         // Reset previous response on error since state is uncertain
         _previousHealthResponse = null;
         notifyListeners();
+
+        // If we're still connected, try to restart the stream after a delay
+        if (connected) {
+          log.i('Health stream dropped, but still connected, restarting health stream in 5 seconds...');
+          Future.delayed(const Duration(seconds: 5), () {
+            startHealthStream();
+          });
+        }
       },
       cancelOnError: false,
-    );
+    )..onDone(() {
+        log.i('Health stream completed');
+        // If we're still connected, restart the stream
+        if (connected) {
+          log.i('Stream completed but still connected, restarting health stream...');
+          startHealthStream();
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _healthStreamSubscription?.cancel();
+    super.dispose();
   }
 
   bool _areHealthResponsesEqual(
@@ -256,7 +302,9 @@ class BitwindowRPCLive extends BitwindowRPC {
     for (var status in current.serviceStatuses) {
       final prevStatus = prevMap[status.serviceName];
       if (prevStatus != status.status) {
-        log.i('Health status changed: ${status.serviceName} from $prevStatus to ${status.status}');
+        log.i(
+          '${status.serviceName} health status changed from ${prevStatus?.name.split('STATUS_').last} to ${status.status.name.split('STATUS_').last}',
+        );
         return false;
       }
     }
