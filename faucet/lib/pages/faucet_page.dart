@@ -348,7 +348,8 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
               child: GestureDetector(
                 onTap: () => launchUrl(Uri.parse(url)),
                 child: SailText.primary12(
-                  '${entry.txid.substring(0, 6)}..:',
+                  '${entry.txid.substring(0, 10)}...',
+                  color: context.sailTheme.colors.info,
                   decoration: TextDecoration.underline,
                 ),
               ),
@@ -356,6 +357,11 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           ),
           SailTableCell(value: formatBitcoin(entry.amount.toInt())),
           SailTableCell(value: entry.confirmations.toString()),
+        ];
+      },
+      contextMenuItems: (rowId) {
+        return [
+          MempoolMenuItem(txid: rowId),
         ];
       },
       rowCount: entries.length,
