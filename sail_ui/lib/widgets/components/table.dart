@@ -51,7 +51,7 @@ class SailTable extends StatefulWidget {
   final bool selectableRows;
   final ValueChanged<String?>? onSelectedRow;
   final void Function(String rowId)? onDoubleTap;
-  final List<SailMenuItem> Function(String rowId)? contextMenuItems;
+  final List<SailMenuEntity> Function(String rowId)? contextMenuItems;
   final double cellHeight;
   final bool shrinkWrap;
   final ScrollPhysics? physics;
@@ -416,7 +416,7 @@ class _TableRow extends StatefulWidget {
   final bool grid;
   final bool drawBorder;
   final void Function()? onDoubleTap;
-  final List<SailMenuItem> Function(String rowId)? contextMenuItems;
+  final List<SailMenuEntity> Function(String rowId)? contextMenuItems;
   final String rowId;
 
   @override
@@ -442,13 +442,7 @@ class _TableRowState extends State<_TableRow> {
           ),
           if (widget.contextMenuItems != null)
             ...widget.contextMenuItems!(rowId).map(
-              (item) => SailMenuItem(
-                onSelected: () {
-                  item.onSelected?.call();
-                  Navigator.of(context).pop();
-                },
-                child: item.child,
-              ),
+              (item) => item,
             ),
         ],
       ),

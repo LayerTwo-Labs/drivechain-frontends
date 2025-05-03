@@ -147,6 +147,7 @@ class _UTXOTableState extends State<UTXOTable> {
                     },
                     child: SailText.primary12('Show Details'),
                   ),
+                  MempoolMenuItem(txid: rowId),
                 ];
               },
             ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const _menuItemHeight = 33.0;
 const _menuDividerHeight = 10.0;
@@ -200,6 +201,29 @@ class SailMenuItemDivider extends StatelessWidget implements SailMenuEntity {
           height: 1.0,
         ),
       ),
+    );
+  }
+}
+
+class MempoolMenuItem extends StatelessWidget implements SailMenuEntity {
+  final String txid;
+
+  const MempoolMenuItem({
+    super.key,
+    required this.txid,
+  });
+
+  @override
+  double get height => _menuItemHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = 'https://mempool.drivechain.live/tx/$txid';
+    return SailMenuItem(
+      onSelected: () async {
+        await launchUrl(Uri.parse(url));
+      },
+      child: SailText.primary12('View on mempool.space'),
     );
   }
 }
