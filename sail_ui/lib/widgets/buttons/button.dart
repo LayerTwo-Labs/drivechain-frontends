@@ -335,8 +335,6 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
       child: SelectionContainer.disabled(
         child: MouseRegion(
           cursor: (widget.disabled || widget.loading) ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
-          onEnter: (_) => setState(() => widget.disabled ? _isHovered = _isHovered : _isHovered = true),
-          onExit: (_) => setState(() => widget.disabled ? _isHovered = _isHovered : _isHovered = false),
           child: GestureDetector(
             onTapDown: _handleTapDown,
             onTapUp: _handleTapUp,
@@ -345,34 +343,38 @@ class __SailScaleButtonState extends State<_SailScaleButton> with SingleTickerPr
             child: AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
-                return Stack(
-                  children: [
-                    // Bottom shadow layer
-                    Container(
-                      decoration: BoxDecoration(
-                        color: widget.variant != ButtonVariant.link ? currentColor.darken(0.2) : Colors.transparent,
-                        borderRadius: widget.variant != ButtonVariant.link ? SailStyleValues.borderRadius : null,
+                return MouseRegion(
+                  onEnter: (_) => setState(() => widget.disabled ? _isHovered = _isHovered : _isHovered = true),
+                  onExit: (_) => setState(() => widget.disabled ? _isHovered = _isHovered : _isHovered = false),
+                  child: Stack(
+                    children: [
+                      // Bottom shadow layer
+                      Container(
+                        decoration: BoxDecoration(
+                          color: widget.variant != ButtonVariant.link ? currentColor.darken(0.2) : Colors.transparent,
+                          borderRadius: widget.variant != ButtonVariant.link ? SailStyleValues.borderRadius : null,
+                        ),
+                        margin: widget.variant != ButtonVariant.link ? const EdgeInsets.only(top: 3) : EdgeInsets.zero,
+                        child: Opacity(
+                          opacity: 0,
+                          child: widget.child,
+                        ),
                       ),
-                      margin: widget.variant != ButtonVariant.link ? const EdgeInsets.only(top: 3) : EdgeInsets.zero,
-                      child: Opacity(
-                        opacity: 0,
+                      // Top button layer
+                      Container(
+                        transform: Matrix4.translationValues(
+                          0,
+                          widget.variant != ButtonVariant.link ? _controller.value * 1.5 : 0.0,
+                          0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: widget.variant != ButtonVariant.link ? currentColor : Colors.transparent,
+                          borderRadius: widget.variant != ButtonVariant.link ? SailStyleValues.borderRadius : null,
+                        ),
                         child: widget.child,
                       ),
-                    ),
-                    // Top button layer
-                    Container(
-                      transform: Matrix4.translationValues(
-                        0,
-                        widget.variant != ButtonVariant.link ? _controller.value * 1.5 : 0.0,
-                        0,
-                      ),
-                      decoration: BoxDecoration(
-                        color: widget.variant != ButtonVariant.link ? currentColor : Colors.transparent,
-                        borderRadius: widget.variant != ButtonVariant.link ? SailStyleValues.borderRadius : null,
-                      ),
-                      child: widget.child,
-                    ),
-                  ],
+                    ],
+                  ),
                 );
               },
             ),
