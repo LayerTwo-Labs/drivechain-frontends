@@ -30,42 +30,47 @@ class _TopNavState extends State<TopNav> {
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              SailRow(
-                leadingSpacing: true,
-                spacing: 30,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  ...widget.routes.asMap().entries.map(
-                        (entry) => DecoratedBox(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: tabsRouter.activeIndex == (entry.value.optionalKey ?? entry.key)
-                                    ? Colors.orange
-                                    : Colors.transparent,
-                                width: 1,
+              Padding(
+                padding: const EdgeInsets.only(left: 48),
+                child: SailRow(
+                  leadingSpacing: true,
+                  spacing: 30,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...widget.routes.asMap().entries.map(
+                          (entry) => DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: tabsRouter.activeIndex == (entry.value.optionalKey ?? entry.key)
+                                      ? Colors.orange
+                                      : Colors.transparent,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 12, bottom: 12),
+                              child: QtTab(
+                                label: entry.value.label,
+                                icon: entry.value.icon,
+                                active: tabsRouter.activeIndex == entry.key,
+                                onTap: () {
+                                  if (entry.value.onTap != null) {
+                                    entry.value.onTap!();
+                                  } else {
+                                    tabsRouter.setActiveIndex(entry.key);
+                                  }
+                                },
                               ),
                             ),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: QtTab(
-                              label: entry.value.label,
-                              icon: entry.value.icon,
-                              active: tabsRouter.activeIndex == entry.key,
-                              onTap: () {
-                                if (entry.value.onTap != null) {
-                                  entry.value.onTap!();
-                                } else {
-                                  tabsRouter.setActiveIndex(entry.key);
-                                }
-                              },
-                            ),
-                          ),
                         ),
-                      ),
-                ],
+                  ],
+                ),
               ),
               Divider(
                 height: 1,
