@@ -151,62 +151,42 @@ class _FaucetPageState extends State<FaucetPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Row(
+                    SailTextField(
+                      label: 'Pay To',
+                      controller: model.addressController,
+                      hintText: 'Enter a L1-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
+                      size: TextFieldSize.small,
+                      suffixWidget: PasteButton(
+                        onPaste: (text) {
+                          model.addressController.text = text;
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: SailStyleValues.padding16),
+                    SailRow(
                       crossAxisAlignment: CrossAxisAlignment.end,
+                      spacing: SailStyleValues.padding08,
                       children: [
                         Expanded(
-                          child: SailTextField(
-                            label: 'Pay To',
-                            controller: model.addressController,
-                            hintText: 'Enter a L1-address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)',
-                            size: TextFieldSize.small,
+                          child: NumericField(
+                            label: 'Amount',
+                            controller: model.amountController,
+                            suffixWidget: SailButton(
+                              label: 'MAX',
+                              variant: ButtonVariant.link,
+                              onPressed: () async {
+                                model.onMaxAmount();
+                              },
+                            ),
+                            inputFormatters: [
+                              CommaReplacerInputFormatter(),
+                              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 4.0),
-                        SailButton(
-                          variant: ButtonVariant.icon,
-                          onPressed: () async {
-                            try {
-                              final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-                              if (clipboardData?.text != null) {
-                                final address = clipboardData!.text!.trim();
-                                model.addressController.text = address;
-                              }
-                            } catch (e) {
-                              if (!context.mounted) return;
-                              showSnackBar(context, 'Clipboard not available');
-                            }
-                          },
-                          icon: SailSVGAsset.clipboardPaste,
                         ),
                       ],
                     ),
                     const SizedBox(height: SailStyleValues.padding16),
-                    Expanded(
-                      child: SailRow(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        spacing: SailStyleValues.padding08,
-                        children: [
-                          Expanded(
-                            child: NumericField(
-                              label: 'Amount',
-                              controller: model.amountController,
-                              suffixWidget: SailButton(
-                                label: 'MAX',
-                                variant: ButtonVariant.link,
-                                onPressed: () async {
-                                  model.onMaxAmount();
-                                },
-                              ),
-                              inputFormatters: [
-                                CommaReplacerInputFormatter(),
-                                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}')),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -240,16 +220,14 @@ class _FaucetPageState extends State<FaucetPage> {
                   ],
                 ),
               ),
-              Flexible(
-                child: SailCard(
-                  bottomPadding: false,
-                  title: 'Latest Transactions',
-                  subtitle: 'View the latest faucet dispensations',
-                  child: SizedBox(
-                    height: 300,
-                    child: LatestTransactionTable(
-                      entries: model.claims,
-                    ),
+              SailCard(
+                bottomPadding: false,
+                title: 'Latest Transactions',
+                subtitle: 'View the latest faucet dispensations',
+                child: SizedBox(
+                  height: 300,
+                  child: LatestTransactionTable(
+                    entries: model.claims,
                   ),
                 ),
               ),
