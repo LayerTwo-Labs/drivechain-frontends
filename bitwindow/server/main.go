@@ -44,6 +44,8 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	conf, err := readConfig()
 	if err != nil {
 		if !flags.WroteHelp(err) {
+			// nolint:forbidigo
+			fmt.Println("could not read config", err)
 			zerolog.Ctx(ctx).Error().Err(err).Msg("read config")
 		}
 		return err
@@ -99,11 +101,13 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 
 	srv, err := server.NewServer(
 		ctx,
+		db,
 		bitcoindConnector,
 		walletConnector,
 		enforcerConnector,
 		cryptoConnector,
-		db,
+		conf.GuiBootedMainchain,
+		conf.GuiBootedEnforcer,
 		func() {
 			log.Info().Msg("shutting down")
 			cancelCtx()

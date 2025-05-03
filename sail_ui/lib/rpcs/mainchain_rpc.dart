@@ -163,7 +163,7 @@ class MainchainRPCLive extends MainchainRPC {
     ];
     log.i('${ParentChain().confFile()} not found, adding sidechain args: $sidechainArgs');
 
-    final finalArgs = cleanArgs(mainchainConf, sidechainArgs);
+    final finalArgs = cleanArgs(mainchainConf, [...sidechainArgs, ...binary.extraBootArgs]);
 
     log.i('Final binary args: $finalArgs');
     return finalArgs;

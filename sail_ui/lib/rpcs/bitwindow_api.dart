@@ -115,6 +115,7 @@ class BitwindowRPCLive extends BitwindowRPC {
       '--bitcoincore.rpcuser=${mainchainConf.username}',
       '--bitcoincore.rpcpassword=${mainchainConf.password}',
       '--log.path=$logPath',
+      if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
     ];
   }
 

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
@@ -25,7 +24,7 @@ abstract class Binary {
   final String binary;
   final NetworkConfig network;
   final int chainLayer;
-  String? mnemonicSeedPhrasePath;
+  List<String> extraBootArgs;
 
   Binary({
     required this.name,
@@ -37,7 +36,7 @@ abstract class Binary {
     required this.binary,
     required this.network,
     required this.chainLayer,
-    this.mnemonicSeedPhrasePath,
+    this.extraBootArgs = const [],
   });
 
   // Runtime properties
@@ -738,6 +737,10 @@ abstract class Binary {
   }
 
   String get connectionString => '$name :${network.port}';
+
+  void addBootArg(String arg) {
+    extraBootArgs = List<String>.from(extraBootArgs)..add(arg);
+  }
 }
 
 class ParentChain extends Binary {

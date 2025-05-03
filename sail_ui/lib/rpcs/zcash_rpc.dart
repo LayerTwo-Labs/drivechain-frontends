@@ -85,15 +85,12 @@ abstract class ZCashRPC extends SidechainRPC {
       '-mainhost=${mainchainConf.host}',
     ];
 
-    return cleanArgs(conf, sidechainArgs);
+    return cleanArgs(conf, [...sidechainArgs, ...binary.extraBootArgs]);
   }
 
   @override
-  Future<void> initBinary({
-    List<String>? arg,
-  }) async {
+  Future<void> initBinary() async {
     final args = await binaryArgs(conf);
-    args.addAll(arg ?? []);
 
     try {
       final appDir = await getApplicationSupportDirectory();
@@ -119,9 +116,7 @@ abstract class ZCashRPC extends SidechainRPC {
     }
 
     // after all assets are loaded properly, THEN init the zcash-binary
-    await super.initBinary(
-      arg: args,
-    );
+    await super.initBinary();
   }
 
   /// There's no account in the wallet out of the box. Calling this

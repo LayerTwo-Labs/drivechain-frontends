@@ -40,11 +40,13 @@ import (
 // New creates a new Server with interceptors applied.
 func NewServer(
 	ctx context.Context,
+	database *sql.DB,
 	bitcoindConnector service.Connector[*server.Bitcoind],
 	walletConnector service.Connector[validatorrpc.WalletServiceClient],
 	enforcerConnector service.Connector[validatorrpc.ValidatorServiceClient],
 	cryptoConnector service.Connector[cryptorpc.CryptoServiceClient],
-	database *sql.DB,
+	guiBootedMainchain bool,
+	guiBootedEnforcer bool,
 	onShutdown func(),
 ) (*Server, error) {
 	mux := http.NewServeMux()
@@ -69,7 +71,7 @@ func NewServer(
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
-		onShutdown, database, walletSvc, bitcoindSvc,
+		onShutdown, database, walletSvc, bitcoindSvc, guiBootedMainchain, guiBootedEnforcer,
 	)))
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
 		bitcoindSvc,

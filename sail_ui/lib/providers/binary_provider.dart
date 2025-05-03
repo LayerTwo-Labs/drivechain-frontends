@@ -265,18 +265,10 @@ class BinaryProvider extends ChangeNotifier {
         await bitwindowRPC?.initBinary();
 
       case Thunder():
-        await thunderRPC?.initBinary(
-          arg: binary.mnemonicSeedPhrasePath != null
-              ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
-              : null,
-        );
+        await thunderRPC?.initBinary();
 
       case Bitnames():
-        await bitnamesRPC?.initBinary(
-          arg: binary.mnemonicSeedPhrasePath != null
-              ? ['--mnemonic-seed-phrase-path', binary.mnemonicSeedPhrasePath!]
-              : null,
-        );
+        await bitnamesRPC?.initBinary();
 
       case ZCash():
         await zcashRPC?.initBinary();
@@ -394,7 +386,7 @@ class BinaryProvider extends ChangeNotifier {
       }
 
       // Skip if mnemonic path is already set
-      if (binary.mnemonicSeedPhrasePath != null) {
+      if (binary.extraBootArgs.contains('--mnemonic-seed-phrase-path')) {
         log.i('Sidechain ${binary.name} already has mnemonic path set, skipping seed setup');
         return;
       }
@@ -413,7 +405,9 @@ class BinaryProvider extends ChangeNotifier {
       }
 
       log.i('Found starter file, setting mnemonic seed phrase path');
-      binary.mnemonicSeedPhrasePath = starterFile.path;
+      binary.addBootArg('--mnemonic-seed-phrase-path');
+      binary.addBootArg(starterFile.path);
+
       log.i('Successfully set mnemonic seed phrase path to: ${starterFile.path}');
 
       // Mark this sidechain as initialized
