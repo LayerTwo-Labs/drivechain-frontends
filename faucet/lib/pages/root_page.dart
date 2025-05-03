@@ -31,7 +31,7 @@ class RootPage extends StatelessWidget {
               ),
             ],
           ),
-          body: Expanded(child: child),
+          body: child,
         );
       },
     );
