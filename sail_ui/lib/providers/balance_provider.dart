@@ -67,7 +67,6 @@ class BalanceProvider extends ChangeNotifier {
       }
     } catch (err) {
       error = err.toString();
-      log.e('Error fetching balance: $err');
     } finally {
       _isFetching = false;
     }

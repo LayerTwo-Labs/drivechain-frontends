@@ -57,7 +57,6 @@ class SidechainProvider extends ChangeNotifier {
         error = null;
       }
     } catch (e) {
-      log.e('could not fetch sidechains: $e');
       error = e.toString();
     } finally {
       _isFetching = false;
