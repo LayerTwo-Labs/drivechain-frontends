@@ -165,7 +165,7 @@ class BinaryProvider extends ChangeNotifier {
         case FileSystemEvent.create:
         case FileSystemEvent.delete:
           // reload metadata when a file is created or deleted
-          binaries = await loadBinaryMetadata(binaries, appDir);
+          binaries = await loadBinaryCreationTimestamp(binaries, appDir);
           notifyListeners();
           break;
         default:
@@ -336,7 +336,7 @@ class BinaryProvider extends ChangeNotifier {
           await _cleanUp(appDir);
         }
       } finally {
-        binaries = await loadBinaryMetadata(binaries, appDir);
+        binaries = await loadBinaryCreationTimestamp(binaries, appDir);
         _activeDownloads[binary.name] = false;
         notifyListeners();
       }
@@ -592,16 +592,16 @@ class BinaryProvider extends ChangeNotifier {
   }
 }
 
-Future<List<Binary>> loadBinaryMetadata(List<Binary> binaries, Directory appDir) async {
+Future<List<Binary>> loadBinaryCreationTimestamp(List<Binary> binaries, Directory appDir) async {
   for (var i = 0; i < binaries.length; i++) {
     final binary = binaries[i];
     try {
       // Load metadata from assets/
-      final (metadata, binaryFile) = await binary.loadMetadata(appDir);
+      final (lastModified, binaryFile) = await binary.getCreationDate(appDir);
 
       final updatedConfig = binary.metadata.copyWith(
         remoteTimestamp: binary.metadata.remoteTimestamp,
-        downloadedTimestamp: metadata?.releaseDate,
+        downloadedTimestamp: lastModified,
         binaryPath: binaryFile,
       );
       binaries[i] = binary.copyWith(metadata: updatedConfig);

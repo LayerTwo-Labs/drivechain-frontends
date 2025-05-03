@@ -172,5 +172,5 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
           .toList() ??
       [];
 
-  return await loadBinaryMetadata(binaries, appDir);
+  return await loadBinaryCreationTimestamp(binaries, appDir);
 }

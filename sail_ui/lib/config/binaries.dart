@@ -226,15 +226,7 @@ abstract class Binary {
       // 3. Extract
       await _extract(extractDir, zipPath, downloadsDir);
 
-      // 4. Save metadata to disk
-      await saveMetadata(
-        appDir,
-        DownloadMetadata(
-          releaseDate: releaseDate,
-        ),
-      );
-
-      // 5. Get the newly downloaded binary path. Should and will exist because we just
+      // 4. Get the newly downloaded binary path. Should and will exist because we just
       // downloaded and extracted correctly
       final binaryPath = await resolveBinaryPath(appDir);
 
@@ -582,13 +574,13 @@ abstract class Binary {
       }
     }
 
-    final file = await _fileFromAssetsBundle(appDir);
+    final file = await writeBinaryFromAssetsBundle(appDir);
     log.i('Found binary in assets bundle: ${file.path}');
 
     return file;
   }
 
-  Future<File> _fileFromAssetsBundle(Directory? appDir) async {
+  Future<File> writeBinaryFromAssetsBundle(Directory? appDir) async {
     log.d('loading binary from assets bundle: $binary');
     ByteData? binResource;
 
@@ -1078,35 +1070,18 @@ extension BinaryDownload on Binary {
     }
   }
 
-  /// Load metadata about the downloaded binary
-  Future<(DownloadMetadata?, File?)> loadMetadata(Directory appDir) async {
+  /// Load when the file was last modified
+  Future<(DateTime?, File?)> getCreationDate(Directory appDir) async {
     try {
       final binaryFile = await resolveBinaryPath(appDir);
+      final stat = await binaryFile.stat();
+      final lastModified = stat.modified;
 
-      final metaFile = File(path.join(appDir.path, 'assets', '$binary.meta'));
-      if (!await metaFile.exists()) {
-        return (null, binaryFile);
-      }
-
-      final json = jsonDecode(await metaFile.readAsString());
-
-      return (DownloadMetadata.fromJson(json), binaryFile);
+      return (lastModified, binaryFile);
     } catch (e) {
       log.e('Failed to load metadata for $binary', error: e);
       return (null, null);
     }
-  }
-
-  /// Save metadata about the downloaded binary
-  Future<void> saveMetadata(Directory datadir, DownloadMetadata meta) async {
-    final metaFile = File(path.join(datadir.path, 'assets', '$binary.meta'));
-
-    // Create parent directories if needed
-    await metaFile.parent.create(recursive: true);
-
-    // Write the metadata, overwriting if it exists
-    await metaFile.writeAsString(jsonEncode(meta.toJson()));
-    _log('Saved metadata to ${metaFile.path}');
   }
 }
 
