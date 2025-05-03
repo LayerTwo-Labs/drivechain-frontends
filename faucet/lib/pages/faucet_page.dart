@@ -322,32 +322,40 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
           onSort: () => onSort('time'),
         ),
         SailTableHeaderCell(
-          name: 'Amount',
-          onSort: () => onSort('amount'),
+          name: 'TxID',
+          onSort: () => onSort('txid'),
         ),
         SailTableHeaderCell(
-          name: 'Category',
-          onSort: () => onSort('category'),
+          name: 'Amount',
+          onSort: () => onSort('amount'),
         ),
         SailTableHeaderCell(
           name: 'Confirmations',
           onSort: () => onSort('confirmations'),
         ),
-        SailTableHeaderCell(
-          name: 'TxID',
-          onSort: () => onSort('txid'),
-        ),
       ],
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
+
+        final url = 'https://mempool.drivechain.live/tx/${entry.txid}';
         return [
           SailTableCell(value: formatTime(entry.time)),
-          SailTableCell(value: entry.amount.toString()),
           SailTableCell(
-            value: entry.details.isEmpty ? '' : entry.details.first.category.toString().replaceAll('CATEGORY_', ''),
+            value: '',
+            copyValue: entry.txid,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => launchUrl(Uri.parse(url)),
+                child: SailText.primary12(
+                  '${entry.txid.substring(0, 6)}..:',
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
           ),
+          SailTableCell(value: formatBitcoin(entry.amount.toInt())),
           SailTableCell(value: entry.confirmations.toString()),
-          SailTableCell(value: entry.txid),
         ];
       },
       rowCount: entries.length,
