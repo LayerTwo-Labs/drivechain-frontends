@@ -4,10 +4,12 @@ import 'package:sail_ui/sail_ui.dart';
 
 class TopNav extends StatefulWidget implements PreferredSizeWidget {
   final List<TopNavRoute> routes;
+  final bool leadingPadding;
 
   const TopNav({
     super.key,
     required this.routes,
+    this.leadingPadding = true,
   });
 
   @override
@@ -33,7 +35,7 @@ class _TopNavState extends State<TopNav> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.only(left: 48),
+                padding: EdgeInsets.only(left: widget.leadingPadding ? 48 : 0),
                 child: SailRow(
                   leadingSpacing: true,
                   spacing: 30,
