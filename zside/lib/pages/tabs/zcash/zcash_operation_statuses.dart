@@ -194,6 +194,7 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                                   },
                                   child: SailText.primary12('Show Details'),
                                 ),
+                                MempoolMenuItem(txid: tx.txid),
                               ];
                             },
                           ),

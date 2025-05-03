@@ -268,6 +268,7 @@ class _TransactionTableState extends State<TransactionTable> {
                         },
                         child: SailText.primary12(entry.note.isEmpty ? 'Add Note' : 'Update Note'),
                       ),
+                      MempoolMenuItem(txid: entry.txid),
                     ];
                   },
                   rowCount: entries.length,
