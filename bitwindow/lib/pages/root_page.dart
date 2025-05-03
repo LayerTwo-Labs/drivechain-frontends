@@ -479,6 +479,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void dispose() {
+    onShutdown(
+      onComplete: () async {
+        await windowManager.destroy();
+      },
+    );
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

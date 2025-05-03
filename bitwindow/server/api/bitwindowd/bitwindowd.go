@@ -19,6 +19,7 @@ import (
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -31,12 +32,17 @@ func New(
 	db *sql.DB,
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	bitcoind *service.Service[*coreproxy.Bitcoind],
+	guiBootedMainchain bool,
+	guiBootedEnforcer bool,
 ) *Server {
 	s := &Server{
 		onShutdown: onShutdown,
 		db:         db,
 		wallet:     wallet,
 		bitcoind:   bitcoind,
+
+		guiBootedMainchain: guiBootedMainchain,
+		guiBootedEnforcer:  guiBootedEnforcer,
 	}
 	return s
 }
@@ -46,11 +52,35 @@ type Server struct {
 	db         *sql.DB
 	wallet     *service.Service[validatorrpc.WalletServiceClient]
 	bitcoind   *service.Service[*coreproxy.Bitcoind]
+
+	guiBootedMainchain bool
+	guiBootedEnforcer  bool
 }
 
 // EstimateSmartFee implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	defer s.onShutdown()
+	defer func() {
+		zerolog.Ctx(ctx).Info().Msg("shutting down..")
+		s.onShutdown()
+	}()
+
+	if s.guiBootedMainchain {
+		zerolog.Ctx(ctx).Info().Msg("mainchain was booted by GUI, shutting down bitcoind..")
+		bitcoind, err := s.bitcoind.Get(ctx)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		bitcoind.Shutdown(ctx)
+		zerolog.Ctx(ctx).Info().Msg("bitcoind shutdown complete")
+	} else {
+		zerolog.Ctx(ctx).Info().Msg("mainchain was not booted by GUI, not shutting down bitcoind..")
+	}
+	if s.guiBootedEnforcer {
+		zerolog.Ctx(ctx).Info().Msg("enforcer was booted by GUI, shutting down bip300301-enforcer..")
+		// TODO: Shutdown whenever the enforcer gets a stop rpc
+	} else {
+		zerolog.Ctx(ctx).Info().Msg("enforcer was not booted by GUI, not shutting down bip300301-enforcer..")
+	}
 
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }

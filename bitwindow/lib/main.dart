@@ -384,6 +384,21 @@ Future<void> bootBinaries(Logger log) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
   final bitwindow = binaryProvider.binaries.firstWhere((b) => b is BitWindow);
 
+  final mainchainRPC = GetIt.I.get<MainchainRPC>();
+  final enforcerRPC = GetIt.I.get<EnforcerRPC>();
+
+  await mainchainRPC.testConnection();
+  await enforcerRPC.testConnection();
+
+  if (!mainchainRPC.connected) {
+    log.i('MainchainRPC not connected, adding --gui-booted-mainchain boot arg');
+    bitwindow.addBootArg('--gui-booted-mainchain');
+  }
+  if (!enforcerRPC.connected) {
+    log.i('EnforcerRPC not connected, adding --gui-booted-enforcer boot arg');
+    bitwindow.addBootArg('--gui-booted-enforcer');
+  }
+
   await binaryProvider.downloadThenBootBinary(
     bitwindow,
     // bitwindow can start without the enforcer
@@ -399,7 +414,12 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
     BitWindow(),
   ];
 
-  return await loadBinaryMetadata(binaries, appDir);
+  // overwrite existing assets with the latest ones! things get updated
+  await Future.wait([
+    for (final binary in binaries) binary.writeBinaryFromAssetsBundle(appDir),
+  ]);
+
+  return await loadBinaryCreationTimestamp(binaries, appDir);
 }
 
 Future<bool> onShutdown({VoidCallback? onComplete}) async {
@@ -411,15 +431,19 @@ Future<bool> onShutdown({VoidCallback? onComplete}) async {
     final runningBinaries = processProvider.runningProcesses.values.map((process) => process.binary).toList();
 
     if (onComplete != null) {
-      // Show shutdown page with running binaries
-      unawaited(
-        GetIt.I.get<AppRouter>().push(
-              ShuttingDownRoute(
-                binaries: runningBinaries,
-                onComplete: onComplete,
+      final router = GetIt.I.get<AppRouter>();
+      // don't show the shutting down page if it's already shown!
+      if (router.current.name != ShuttingDownRoute.name) {
+        // Show shutdown page with running binaries
+        unawaited(
+          GetIt.I.get<AppRouter>().push(
+                ShuttingDownRoute(
+                  binaries: runningBinaries,
+                  onComplete: onComplete,
+                ),
               ),
-            ),
-      );
+        );
+      }
     }
 
     final futures = <Future>[];

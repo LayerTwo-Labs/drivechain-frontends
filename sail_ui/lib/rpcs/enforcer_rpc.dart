@@ -101,6 +101,7 @@ class EnforcerLive extends EnforcerRPC {
       '--node-zmq-addr-sequence=tcp://$host:29000',
       '--enable-wallet',
       walletArg,
+      if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
     ];
   }
 

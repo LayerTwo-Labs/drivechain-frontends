@@ -168,11 +168,8 @@ abstract class RPCConnection extends ChangeNotifier {
     return (connected, connectionError);
   }
 
-  Future<void> initBinary({
-    List<String>? arg,
-  }) async {
+  Future<void> initBinary() async {
     final args = await binaryArgs(conf);
-    args.addAll(arg ?? []);
 
     final processes = GetIt.I.get<ProcessProvider>();
 
