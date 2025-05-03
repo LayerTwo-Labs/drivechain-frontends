@@ -275,5 +275,5 @@ Future<List<Binary>> _loadBinaries(Directory appDir) async {
     Thunder(),
   ];
 
-  return await loadBinaryMetadata(binaries, appDir);
+  return await loadBinaryCreationTimestamp(binaries, appDir);
 }

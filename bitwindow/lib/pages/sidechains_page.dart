@@ -98,7 +98,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                 ];
               },
               rowCount: 255, // Show all possible slots
-              columnWidths: const [37, 130, 100],
+              columnWidths: const [37, 100, 100],
               sortAscending: viewModel.sortAscending,
               sortColumnIndex: ['slot', 'name', 'balance'].indexOf(viewModel.sortColumn),
               onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
