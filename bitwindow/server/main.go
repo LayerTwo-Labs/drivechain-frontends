@@ -83,17 +83,17 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 
 	enforcerConnector := func(ctx context.Context) (rpc.ValidatorServiceClient, error) {
-		enforcer, _, _, err := dial.Enforcer(ctx, conf.EnforcerHost)
-		return enforcer, err
+		validator, err := dial.EnforcerValidator(ctx, conf.EnforcerHost)
+		return validator, err
 	}
 
 	walletConnector := func(ctx context.Context) (rpc.WalletServiceClient, error) {
-		_, wallet, _, err := dial.Enforcer(ctx, conf.EnforcerHost)
+		wallet, err := dial.EnforcerWallet(ctx, conf.EnforcerHost)
 		return wallet, err
 	}
 
 	cryptoConnector := func(ctx context.Context) (cryptorpc.CryptoServiceClient, error) {
-		_, _, crypto, err := dial.Enforcer(ctx, conf.EnforcerHost)
+		crypto, err := dial.EnforcerCrypto(ctx, conf.EnforcerHost)
 		return crypto, err
 	}
 
