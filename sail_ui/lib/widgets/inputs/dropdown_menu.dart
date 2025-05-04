@@ -180,11 +180,13 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
 class SailDropdownItem<T> extends StatelessWidget {
   final String label;
   final dynamic value;
+  final bool monospace;
 
   const SailDropdownItem({
+    super.key,
     required this.value,
     required this.label,
-    super.key,
+    this.monospace = false,
   });
 
   @override
@@ -195,6 +197,7 @@ class SailDropdownItem<T> extends StatelessWidget {
         label,
         style: SailStyleValues.thirteen.copyWith(
           color: SailTheme.of(context).colors.text,
+          fontFamily: monospace ? 'SourceCodePro' : 'Inter',
         ),
       ),
     );
@@ -210,6 +213,8 @@ class SailMultiSelectDropdown extends StatefulWidget {
   final bool openOnHover;
   final String searchPlaceholder;
   final String selectedCountText;
+  final ButtonVariant buttonVariant;
+  final bool showDropdownArrow;
 
   const SailMultiSelectDropdown({
     super.key,
@@ -221,6 +226,8 @@ class SailMultiSelectDropdown extends StatefulWidget {
     this.hint,
     this.enabled = true,
     this.openOnHover = false,
+    this.showDropdownArrow = true,
+    this.buttonVariant = ButtonVariant.outline,
   });
 
   @override
@@ -285,10 +292,12 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
         onTap: _handlePress,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            border: Border.all(
-              color: theme.colors.border,
-              width: 1,
-            ),
+            border: widget.buttonVariant == ButtonVariant.outline
+                ? Border.all(
+                    color: theme.colors.border,
+                    width: 1,
+                  )
+                : null,
             borderRadius: SailStyleValues.borderRadius,
           ),
           child: Padding(
@@ -307,11 +316,12 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                SailSVG.fromAsset(
-                  _controller.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
-                  color: theme.colors.text,
-                  width: 9,
-                ),
+                if (widget.showDropdownArrow)
+                  SailSVG.fromAsset(
+                    _controller.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                    color: theme.colors.text,
+                    width: 9,
+                  ),
               ],
             ),
           ),
@@ -516,12 +526,14 @@ class MultiSelectDropdown extends StatefulWidget {
   final List<SailDropdownItem> items;
   final List<String>? selectedValues;
   final ValueChanged<String> onSelected;
+  final Widget? suffix;
 
   const MultiSelectDropdown({
     required this.searchPlaceholder,
     required this.items,
     required this.selectedValues,
     required this.onSelected,
+    this.suffix,
     super.key,
   });
 
@@ -575,47 +587,53 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
         elevation: const WidgetStatePropertyAll(8),
       ),
-      builder: (context, controller, child) => InkWell(
-        onTap: () {
-          if (menuController.isOpen) {
-            menuController.close();
-          } else {
-            menuController.open();
-            searchController.clear();
-          }
-        },
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: theme.colors.border,
-              width: 1,
-            ),
-            borderRadius: SailStyleValues.borderRadius,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 9,
-              horizontal: 12,
-            ),
-            child: SailRow(
-              spacing: SailStyleValues.padding08,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Expanded(
-                  child: selectedItem != null
-                      ? SailText.primary13(selectedItem.label)
-                      : SailText.primary13(
-                          widget.searchPlaceholder,
-                          color: theme.colors.textSecondary,
+      builder: (context, controller, child) => SelectionContainer.disabled(
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: InkWell(
+            onTap: () {
+              if (menuController.isOpen) {
+                menuController.close();
+              } else {
+                menuController.open();
+                searchController.clear();
+              }
+            },
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: theme.colors.border,
+                  width: 1,
+                ),
+                borderRadius: SailStyleValues.borderRadius,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 9,
+                  horizontal: 12,
+                ),
+                child: SailRow(
+                  spacing: SailStyleValues.padding08,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Expanded(
+                      child: selectedItem != null
+                          ? SailText.primary13(selectedItem.label)
+                          : SailText.primary13(
+                              widget.searchPlaceholder,
+                              color: theme.colors.textSecondary,
+                            ),
+                    ),
+                    widget.suffix ??
+                        SailSVG.fromAsset(
+                          menuController.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
+                          color: theme.colors.inactiveNavText,
+                          width: 9,
                         ),
+                  ],
                 ),
-                SailSVG.fromAsset(
-                  menuController.isOpen ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
-                  color: theme.colors.textSecondary,
-                  width: 9,
-                ),
-              ],
+              ),
             ),
           ),
         ),

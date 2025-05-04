@@ -383,8 +383,7 @@ class BitDriveProvider extends ChangeNotifier {
 
       final address = await bitwindowd.wallet.getNewAddress();
       final txid = await bitwindowd.wallet.sendTransaction(
-        address,
-        10000, // 0.0001 BTC
+        {address: 10000}, // 0.0001 BTC
         btcPerKvB: fee,
         opReturnMessage: opReturnData,
       );

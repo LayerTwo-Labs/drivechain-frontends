@@ -429,11 +429,11 @@ class _BitwindowAPILive implements BitwindowAPI {
 abstract class WalletAPI {
   // pure bitcoind wallet stuff here
   Future<String> sendTransaction(
-    String destination,
-    int amountSatoshi, {
+    Map<String, int> destinations, {
     double? btcPerKvB,
     String? opReturnMessage,
     String? label,
+    List<UnspentOutput> requiredInputs,
   });
   Future<GetBalanceResponse> getBalance();
   Future<String> getNewAddress();
@@ -457,19 +457,19 @@ class _WalletAPILive implements WalletAPI {
 
   @override
   Future<String> sendTransaction(
-    String destination,
-    int amountSatoshi, {
+    Map<String, int> destinations, {
     double? btcPerKvB,
     String? opReturnMessage,
     String? label,
+    List<UnspentOutput>? requiredInputs,
   }) async {
     try {
       final request = SendTransactionRequest(
-        destination: destination,
-        amount: Int64(amountSatoshi),
+        destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
         feeRate: btcPerKvB,
         opReturnMessage: opReturnMessage,
         label: label,
+        requiredInputs: requiredInputs,
       );
 
       final response = await _client.sendTransaction(request);

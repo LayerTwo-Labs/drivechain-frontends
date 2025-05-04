@@ -2172,6 +2172,7 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     $5.Timestamp? confirmedAtTime,
     $1.ReverseHex? confirmedTransitively,
     $5.Timestamp? unconfirmedLastSeen,
+    $0.StringValue? address,
   }) {
     final $result = create();
     if (txid != null) {
@@ -2201,6 +2202,9 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     if (unconfirmedLastSeen != null) {
       $result.unconfirmedLastSeen = unconfirmedLastSeen;
     }
+    if (address != null) {
+      $result.address = address;
+    }
     return $result;
   }
   ListUnspentOutputsResponse_Output._() : super();
@@ -2217,6 +2221,7 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
     ..aOM<$5.Timestamp>(7, _omitFieldNames ? '' : 'confirmedAtTime', subBuilder: $5.Timestamp.create)
     ..aOM<$1.ReverseHex>(8, _omitFieldNames ? '' : 'confirmedTransitively', subBuilder: $1.ReverseHex.create)
     ..aOM<$5.Timestamp>(9, _omitFieldNames ? '' : 'unconfirmedLastSeen', subBuilder: $5.Timestamp.create)
+    ..aOM<$0.StringValue>(10, _omitFieldNames ? '' : 'address', subBuilder: $0.StringValue.create)
     ..hasRequiredFields = false
   ;
 
@@ -2331,6 +2336,19 @@ class ListUnspentOutputsResponse_Output extends $pb.GeneratedMessage {
   void clearUnconfirmedLastSeen() => clearField(9);
   @$pb.TagNumber(9)
   $5.Timestamp ensureUnconfirmedLastSeen() => $_ensure(8);
+
+  /// The address corresponding to this output. Empty if we're unable
+  /// to represent it as an address.
+  @$pb.TagNumber(10)
+  $0.StringValue get address => $_getN(9);
+  @$pb.TagNumber(10)
+  set address($0.StringValue v) { setField(10, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasAddress() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearAddress() => clearField(10);
+  @$pb.TagNumber(10)
+  $0.StringValue ensureAddress() => $_ensure(9);
 }
 
 class ListUnspentOutputsResponse extends $pb.GeneratedMessage {

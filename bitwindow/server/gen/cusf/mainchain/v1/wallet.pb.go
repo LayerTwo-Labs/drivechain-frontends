@@ -1886,8 +1886,11 @@ type ListUnspentOutputsResponse_Output struct {
 	ConfirmedAtTime       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=confirmed_at_time,json=confirmedAtTime,proto3" json:"confirmed_at_time,omitempty"`
 	ConfirmedTransitively *v1.ReverseHex         `protobuf:"bytes,8,opt,name=confirmed_transitively,json=confirmedTransitively,proto3" json:"confirmed_transitively,omitempty"`
 	UnconfirmedLastSeen   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=unconfirmed_last_seen,json=unconfirmedLastSeen,proto3" json:"unconfirmed_last_seen,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// The address corresponding to this output. Empty if we're unable
+	// to represent it as an address.
+	Address       *wrapperspb.StringValue `protobuf:"bytes,10,opt,name=address,proto3" json:"address,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListUnspentOutputsResponse_Output) Reset() {
@@ -1979,6 +1982,13 @@ func (x *ListUnspentOutputsResponse_Output) GetConfirmedTransitively() *v1.Rever
 func (x *ListUnspentOutputsResponse_Output) GetUnconfirmedLastSeen() *timestamppb.Timestamp {
 	if x != nil {
 		return x.UnconfirmedLastSeen
+	}
+	return nil
+}
+
+func (x *ListUnspentOutputsResponse_Output) GetAddress() *wrapperspb.StringValue {
+	if x != nil {
+		return x.Address
 	}
 	return nil
 }
@@ -2100,9 +2110,9 @@ const file_cusf_mainchain_v1_wallet_proto_rawDesc = "" +
 	"\x10DescriptorsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1b\n" +
-	"\x19ListUnspentOutputsRequest\"\xb7\x04\n" +
+	"\x19ListUnspentOutputsRequest\"\xef\x04\n" +
 	"\x1aListUnspentOutputsResponse\x12N\n" +
-	"\aoutputs\x18\x01 \x03(\v24.cusf.mainchain.v1.ListUnspentOutputsResponse.OutputR\aoutputs\x1a\xc8\x03\n" +
+	"\aoutputs\x18\x01 \x03(\v24.cusf.mainchain.v1.ListUnspentOutputsResponse.OutputR\aoutputs\x1a\x80\x04\n" +
 	"\x06Output\x12.\n" +
 	"\x04txid\x18\x01 \x01(\v2\x1a.cusf.common.v1.ReverseHexR\x04txid\x12\x12\n" +
 	"\x04vout\x18\x02 \x01(\rR\x04vout\x12\x1d\n" +
@@ -2114,7 +2124,9 @@ const file_cusf_mainchain_v1_wallet_proto_rawDesc = "" +
 	"\x12confirmed_at_block\x18\x06 \x01(\rR\x10confirmedAtBlock\x12F\n" +
 	"\x11confirmed_at_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x0fconfirmedAtTime\x12Q\n" +
 	"\x16confirmed_transitively\x18\b \x01(\v2\x1a.cusf.common.v1.ReverseHexR\x15confirmedTransitively\x12N\n" +
-	"\x15unconfirmed_last_seen\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x13unconfirmedLastSeen2\xee\f\n" +
+	"\x15unconfirmed_last_seen\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x13unconfirmedLastSeen\x126\n" +
+	"\aaddress\x18\n" +
+	" \x01(\v2\x1c.google.protobuf.StringValueR\aaddress2\xee\f\n" +
 	"\rWalletService\x12\x86\x01\n" +
 	"\x19BroadcastWithdrawalBundle\x123.cusf.mainchain.v1.BroadcastWithdrawalBundleRequest\x1a4.cusf.mainchain.v1.BroadcastWithdrawalBundleResponse\x12\x9b\x01\n" +
 	" CreateBmmCriticalDataTransaction\x12:.cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest\x1a;.cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse\x12\x83\x01\n" +
@@ -2244,39 +2256,40 @@ var file_cusf_mainchain_v1_wallet_proto_depIdxs = []int32{
 	46, // 44: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.confirmed_at_time:type_name -> google.protobuf.Timestamp
 	38, // 45: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.confirmed_transitively:type_name -> cusf.common.v1.ReverseHex
 	46, // 46: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.unconfirmed_last_seen:type_name -> google.protobuf.Timestamp
-	1,  // 47: cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle:input_type -> cusf.mainchain.v1.BroadcastWithdrawalBundleRequest
-	3,  // 48: cusf.mainchain.v1.WalletService.CreateBmmCriticalDataTransaction:input_type -> cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest
-	5,  // 49: cusf.mainchain.v1.WalletService.CreateDepositTransaction:input_type -> cusf.mainchain.v1.CreateDepositTransactionRequest
-	7,  // 50: cusf.mainchain.v1.WalletService.CreateNewAddress:input_type -> cusf.mainchain.v1.CreateNewAddressRequest
-	9,  // 51: cusf.mainchain.v1.WalletService.CreateSidechainProposal:input_type -> cusf.mainchain.v1.CreateSidechainProposalRequest
-	11, // 52: cusf.mainchain.v1.WalletService.CreateWallet:input_type -> cusf.mainchain.v1.CreateWalletRequest
-	13, // 53: cusf.mainchain.v1.WalletService.GetBalance:input_type -> cusf.mainchain.v1.GetBalanceRequest
-	15, // 54: cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions:input_type -> cusf.mainchain.v1.ListSidechainDepositTransactionsRequest
-	17, // 55: cusf.mainchain.v1.WalletService.ListTransactions:input_type -> cusf.mainchain.v1.ListTransactionsRequest
-	27, // 56: cusf.mainchain.v1.WalletService.ListUnspentOutputs:input_type -> cusf.mainchain.v1.ListUnspentOutputsRequest
-	25, // 57: cusf.mainchain.v1.WalletService.GetInfo:input_type -> cusf.mainchain.v1.GetInfoRequest
-	19, // 58: cusf.mainchain.v1.WalletService.SendTransaction:input_type -> cusf.mainchain.v1.SendTransactionRequest
-	21, // 59: cusf.mainchain.v1.WalletService.UnlockWallet:input_type -> cusf.mainchain.v1.UnlockWalletRequest
-	23, // 60: cusf.mainchain.v1.WalletService.GenerateBlocks:input_type -> cusf.mainchain.v1.GenerateBlocksRequest
-	2,  // 61: cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle:output_type -> cusf.mainchain.v1.BroadcastWithdrawalBundleResponse
-	4,  // 62: cusf.mainchain.v1.WalletService.CreateBmmCriticalDataTransaction:output_type -> cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse
-	6,  // 63: cusf.mainchain.v1.WalletService.CreateDepositTransaction:output_type -> cusf.mainchain.v1.CreateDepositTransactionResponse
-	8,  // 64: cusf.mainchain.v1.WalletService.CreateNewAddress:output_type -> cusf.mainchain.v1.CreateNewAddressResponse
-	10, // 65: cusf.mainchain.v1.WalletService.CreateSidechainProposal:output_type -> cusf.mainchain.v1.CreateSidechainProposalResponse
-	12, // 66: cusf.mainchain.v1.WalletService.CreateWallet:output_type -> cusf.mainchain.v1.CreateWalletResponse
-	14, // 67: cusf.mainchain.v1.WalletService.GetBalance:output_type -> cusf.mainchain.v1.GetBalanceResponse
-	16, // 68: cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions:output_type -> cusf.mainchain.v1.ListSidechainDepositTransactionsResponse
-	18, // 69: cusf.mainchain.v1.WalletService.ListTransactions:output_type -> cusf.mainchain.v1.ListTransactionsResponse
-	28, // 70: cusf.mainchain.v1.WalletService.ListUnspentOutputs:output_type -> cusf.mainchain.v1.ListUnspentOutputsResponse
-	26, // 71: cusf.mainchain.v1.WalletService.GetInfo:output_type -> cusf.mainchain.v1.GetInfoResponse
-	20, // 72: cusf.mainchain.v1.WalletService.SendTransaction:output_type -> cusf.mainchain.v1.SendTransactionResponse
-	22, // 73: cusf.mainchain.v1.WalletService.UnlockWallet:output_type -> cusf.mainchain.v1.UnlockWalletResponse
-	24, // 74: cusf.mainchain.v1.WalletService.GenerateBlocks:output_type -> cusf.mainchain.v1.GenerateBlocksResponse
-	61, // [61:75] is the sub-list for method output_type
-	47, // [47:61] is the sub-list for method input_type
-	47, // [47:47] is the sub-list for extension type_name
-	47, // [47:47] is the sub-list for extension extendee
-	0,  // [0:47] is the sub-list for field type_name
+	43, // 47: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.address:type_name -> google.protobuf.StringValue
+	1,  // 48: cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle:input_type -> cusf.mainchain.v1.BroadcastWithdrawalBundleRequest
+	3,  // 49: cusf.mainchain.v1.WalletService.CreateBmmCriticalDataTransaction:input_type -> cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest
+	5,  // 50: cusf.mainchain.v1.WalletService.CreateDepositTransaction:input_type -> cusf.mainchain.v1.CreateDepositTransactionRequest
+	7,  // 51: cusf.mainchain.v1.WalletService.CreateNewAddress:input_type -> cusf.mainchain.v1.CreateNewAddressRequest
+	9,  // 52: cusf.mainchain.v1.WalletService.CreateSidechainProposal:input_type -> cusf.mainchain.v1.CreateSidechainProposalRequest
+	11, // 53: cusf.mainchain.v1.WalletService.CreateWallet:input_type -> cusf.mainchain.v1.CreateWalletRequest
+	13, // 54: cusf.mainchain.v1.WalletService.GetBalance:input_type -> cusf.mainchain.v1.GetBalanceRequest
+	15, // 55: cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions:input_type -> cusf.mainchain.v1.ListSidechainDepositTransactionsRequest
+	17, // 56: cusf.mainchain.v1.WalletService.ListTransactions:input_type -> cusf.mainchain.v1.ListTransactionsRequest
+	27, // 57: cusf.mainchain.v1.WalletService.ListUnspentOutputs:input_type -> cusf.mainchain.v1.ListUnspentOutputsRequest
+	25, // 58: cusf.mainchain.v1.WalletService.GetInfo:input_type -> cusf.mainchain.v1.GetInfoRequest
+	19, // 59: cusf.mainchain.v1.WalletService.SendTransaction:input_type -> cusf.mainchain.v1.SendTransactionRequest
+	21, // 60: cusf.mainchain.v1.WalletService.UnlockWallet:input_type -> cusf.mainchain.v1.UnlockWalletRequest
+	23, // 61: cusf.mainchain.v1.WalletService.GenerateBlocks:input_type -> cusf.mainchain.v1.GenerateBlocksRequest
+	2,  // 62: cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle:output_type -> cusf.mainchain.v1.BroadcastWithdrawalBundleResponse
+	4,  // 63: cusf.mainchain.v1.WalletService.CreateBmmCriticalDataTransaction:output_type -> cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse
+	6,  // 64: cusf.mainchain.v1.WalletService.CreateDepositTransaction:output_type -> cusf.mainchain.v1.CreateDepositTransactionResponse
+	8,  // 65: cusf.mainchain.v1.WalletService.CreateNewAddress:output_type -> cusf.mainchain.v1.CreateNewAddressResponse
+	10, // 66: cusf.mainchain.v1.WalletService.CreateSidechainProposal:output_type -> cusf.mainchain.v1.CreateSidechainProposalResponse
+	12, // 67: cusf.mainchain.v1.WalletService.CreateWallet:output_type -> cusf.mainchain.v1.CreateWalletResponse
+	14, // 68: cusf.mainchain.v1.WalletService.GetBalance:output_type -> cusf.mainchain.v1.GetBalanceResponse
+	16, // 69: cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions:output_type -> cusf.mainchain.v1.ListSidechainDepositTransactionsResponse
+	18, // 70: cusf.mainchain.v1.WalletService.ListTransactions:output_type -> cusf.mainchain.v1.ListTransactionsResponse
+	28, // 71: cusf.mainchain.v1.WalletService.ListUnspentOutputs:output_type -> cusf.mainchain.v1.ListUnspentOutputsResponse
+	26, // 72: cusf.mainchain.v1.WalletService.GetInfo:output_type -> cusf.mainchain.v1.GetInfoResponse
+	20, // 73: cusf.mainchain.v1.WalletService.SendTransaction:output_type -> cusf.mainchain.v1.SendTransactionResponse
+	22, // 74: cusf.mainchain.v1.WalletService.UnlockWallet:output_type -> cusf.mainchain.v1.UnlockWalletResponse
+	24, // 75: cusf.mainchain.v1.WalletService.GenerateBlocks:output_type -> cusf.mainchain.v1.GenerateBlocksResponse
+	62, // [62:76] is the sub-list for method output_type
+	48, // [48:62] is the sub-list for method input_type
+	48, // [48:48] is the sub-list for extension type_name
+	48, // [48:48] is the sub-list for extension extendee
+	0,  // [0:48] is the sub-list for field type_name
 }
 
 func init() { file_cusf_mainchain_v1_wallet_proto_init() }

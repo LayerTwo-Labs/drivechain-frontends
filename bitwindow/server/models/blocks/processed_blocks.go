@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 )
 
 func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
@@ -27,36 +25,14 @@ func GetProcessedTip(ctx context.Context, db *sql.DB) (*ProcessedBlock, error) {
 	return &pb, nil
 }
 
-// MarkBlocksProcessed marks multiple blocks as processed in a single transaction
-func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBlock) error {
-	if len(blocks) == 0 {
-		return nil
-	}
-
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer database.SafeDefer(ctx, tx.Rollback)
-
-	stmt, err := tx.PrepareContext(ctx, `
+// MarkBlockProcessed marks a block as processed in a single transaction
+func MarkBlockProcessed(ctx context.Context, db *sql.DB, block ProcessedBlock) error {
+	_, err := db.ExecContext(ctx, `
 		REPLACE INTO processed_blocks (height, block_hash) 
 		VALUES (?, ?)
-	`)
+	`, block.Height, block.Hash)
 	if err != nil {
-		return fmt.Errorf("prepare statement: %w", err)
-	}
-	defer database.SafeDefer(ctx, stmt.Close)
-
-	for _, block := range blocks {
-		_, err = stmt.ExecContext(ctx, block.Height, block.Hash)
-		if err != nil {
-			return fmt.Errorf("mark block processed: %w", err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
+		return fmt.Errorf("mark block processed: %w", err)
 	}
 
 	return nil
