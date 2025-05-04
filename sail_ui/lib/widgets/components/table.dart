@@ -655,12 +655,15 @@ class SailTableHeaderCell extends StatelessWidget {
 }
 
 /// Formats a [date] according to the user's locale and time format preference.
-String formatDate(DateTime date) {
+String formatDate(DateTime date, {bool long = true}) {
   // Try to infer 24-hour format from locale
   final use24Hour = _is24HourLocale(Intl.getCurrentLocale());
 
   // Choose format string based on 24-hour preference
-  final dateFormat = use24Hour ? 'yyyy MMM dd HH:mm' : 'yyyy MMM dd hh:mm a';
+  var dateFormat = use24Hour ? 'yyyy MMM dd HH:mm' : 'yyyy MMM dd hh:mm a';
+  if (!long) {
+    dateFormat = dateFormat.replaceAll('yyyy ', '');
+  }
 
   return DateFormat(dateFormat, Intl.getCurrentLocale()).format(date.toLocal());
 }

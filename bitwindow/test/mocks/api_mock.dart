@@ -139,11 +139,11 @@ class MockBitwindowdAPI implements BitwindowAPI {
 class MockWalletAPI implements WalletAPI {
   @override
   Future<String> sendTransaction(
-    String destination,
-    int amountSatoshi, {
+    Map<String, int> destinations, {
     double? btcPerKvB,
     String? label,
     String? opReturnMessage,
+    List<UnspentOutput>? requiredInputs,
   }) async {
     return 'mock_txid';
   }

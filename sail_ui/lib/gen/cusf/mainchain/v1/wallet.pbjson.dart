@@ -536,13 +536,14 @@ const ListUnspentOutputsResponse_Output$json = {
     {'1': 'confirmed_at_time', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'confirmedAtTime'},
     {'1': 'confirmed_transitively', '3': 8, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'confirmedTransitively'},
     {'1': 'unconfirmed_last_seen', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'unconfirmedLastSeen'},
+    {'1': 'address', '3': 10, '4': 1, '5': 11, '6': '.google.protobuf.StringValue', '10': 'address'},
   ],
 };
 
 /// Descriptor for `ListUnspentOutputsResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listUnspentOutputsResponseDescriptor = $convert.base64Decode(
     'ChpMaXN0VW5zcGVudE91dHB1dHNSZXNwb25zZRJOCgdvdXRwdXRzGAEgAygLMjQuY3VzZi5tYW'
-    'luY2hhaW4udjEuTGlzdFVuc3BlbnRPdXRwdXRzUmVzcG9uc2UuT3V0cHV0UgdvdXRwdXRzGsgD'
+    'luY2hhaW4udjEuTGlzdFVuc3BlbnRPdXRwdXRzUmVzcG9uc2UuT3V0cHV0UgdvdXRwdXRzGoAE'
     'CgZPdXRwdXQSLgoEdHhpZBgBIAEoCzIaLmN1c2YuY29tbW9uLnYxLlJldmVyc2VIZXhSBHR4aW'
     'QSEgoEdm91dBgCIAEoDVIEdm91dBIdCgp2YWx1ZV9zYXRzGAMgASgEUgl2YWx1ZVNhdHMSHwoL'
     'aXNfaW50ZXJuYWwYBCABKAhSCmlzSW50ZXJuYWwSIQoMaXNfY29uZmlybWVkGAUgASgIUgtpc0'
@@ -551,7 +552,8 @@ final $typed_data.Uint8List listUnspentOutputsResponseDescriptor = $convert.base
     '9jb25maXJtZWRBdFRpbWUSUQoWY29uZmlybWVkX3RyYW5zaXRpdmVseRgIIAEoCzIaLmN1c2Yu'
     'Y29tbW9uLnYxLlJldmVyc2VIZXhSFWNvbmZpcm1lZFRyYW5zaXRpdmVseRJOChV1bmNvbmZpcm'
     '1lZF9sYXN0X3NlZW4YCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUhN1bmNvbmZp'
-    'cm1lZExhc3RTZWVu');
+    'cm1lZExhc3RTZWVuEjYKB2FkZHJlc3MYCiABKAsyHC5nb29nbGUucHJvdG9idWYuU3RyaW5nVm'
+    'FsdWVSB2FkZHJlc3M=');
 
 const $core.Map<$core.String, $core.dynamic> WalletServiceBase$json = {
   '1': 'WalletService',

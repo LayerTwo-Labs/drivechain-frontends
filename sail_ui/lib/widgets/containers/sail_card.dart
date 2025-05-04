@@ -170,7 +170,7 @@ class SailCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                    if (title != null) const SailSpacing(SailStyleValues.padding32),
+                    if (title != null) const SailSpacing(SailStyleValues.padding16),
                     Flexible(
                       child: child,
                     ),

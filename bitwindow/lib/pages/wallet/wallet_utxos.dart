@@ -38,12 +38,10 @@ class UTXOTable extends StatefulWidget {
 class _UTXOTableState extends State<UTXOTable> {
   String sortColumn = 'date';
   bool sortAscending = true;
-  late List<UnspentOutput> entries;
 
   @override
   void initState() {
     super.initState();
-    entries = List.from(widget.entries);
     sortEntries();
   }
 
@@ -60,7 +58,7 @@ class _UTXOTableState extends State<UTXOTable> {
   }
 
   void sortEntries() {
-    entries.sort((a, b) {
+    widget.entries.sort((a, b) {
       dynamic aValue, bValue;
       switch (sortColumn) {
         case 'date':
@@ -97,7 +95,7 @@ class _UTXOTableState extends State<UTXOTable> {
         children: [
           Expanded(
             child: SailTable(
-              getRowId: (index) => entries[index].output.split(':').first,
+              getRowId: (index) => widget.entries[index].output.split(':').first,
               headerBuilder: (context) => [
                 SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
                 SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
@@ -106,7 +104,7 @@ class _UTXOTableState extends State<UTXOTable> {
                 SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
               ],
               rowBuilder: (context, row, selected) {
-                final utxo = entries[row];
+                final utxo = widget.entries[row];
                 final formattedAmount = formatBitcoin(
                   satoshiToBTC(utxo.value.toInt()),
                   symbol: '',
@@ -124,7 +122,7 @@ class _UTXOTableState extends State<UTXOTable> {
                   SailTableCell(value: formattedAmount, monospace: true),
                 ];
               },
-              rowCount: entries.length,
+              rowCount: widget.entries.length,
               columnWidths: const [120, 120, 320, 120, 120],
               drawGrid: true,
               sortColumnIndex: [

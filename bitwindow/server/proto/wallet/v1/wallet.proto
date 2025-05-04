@@ -30,21 +30,21 @@ message GetNewAddressResponse {
 }
 
 message SendTransactionRequest {
-  // The destination address to send to.
-  string destination = 1;
-
-  // The amount in satoshi to send.
-  uint64 amount = 2;
+  // Map of destination address to amount in satoshi.
+  map<string, uint64> destinations = 1;
 
   // Fee rate, measured in BTC/kvB. If set to zero, a reasonable
   // rate is used by asking Core for an estimate.
-  double fee_rate = 3;
+  double fee_rate = 2;
 
   // Message to include as an OP_RETURN output
-  string op_return_message = 4;
+  string op_return_message = 3;
 
   // If set, will save the address with this label in the address book
-  string label = 5;
+  string label = 4;
+
+  // UTXOs that must be included in the transaction.
+  repeated UnspentOutput required_inputs = 5;
 }
 
 message SendTransactionResponse {

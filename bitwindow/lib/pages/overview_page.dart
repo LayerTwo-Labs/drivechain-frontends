@@ -934,8 +934,7 @@ class NewGraffittiViewModel extends BaseViewModel {
     try {
       final address = await _api.wallet.getNewAddress();
       final _ = await _api.wallet.sendTransaction(
-        address,
-        10000,
+        {address: 10000}, // 0.0001 BTC
         opReturnMessage: messageController.text,
       );
 

@@ -6,11 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
-	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
@@ -28,6 +29,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -65,7 +67,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		return nil, errors.New("wallet not connected")
 	}
 
-	if c.Msg.Destination == "" {
+	if len(c.Msg.Destinations) == 0 {
 		err := errors.New("must provide a destination")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -76,18 +78,17 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	}
 
 	const dustLimit = 546
-	if c.Msg.Amount < dustLimit {
-		err := fmt.Errorf(
-			"amount to %s is below dust limit (%s): %s",
-			c.Msg.Destination, btcutil.Amount(dustLimit), btcutil.Amount(c.Msg.Amount),
-		)
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	for destination, amount := range c.Msg.Destinations {
+		if amount < dustLimit {
+			err := fmt.Errorf(
+				"amount to %s is below dust limit (%s): %s",
+				destination, btcutil.Amount(dustLimit), btcutil.Amount(amount),
+			)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
 	}
 
 	log := zerolog.Ctx(ctx)
-
-	destinations := make(map[string]uint64)
-	destinations[c.Msg.Destination] = c.Msg.Amount
 
 	var feeRate *validatorpb.SendTransactionRequest_FeeRate
 	if c.Msg.FeeRate != 0 {
@@ -116,28 +117,30 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		return nil, err
 	}
 	created, err := wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
-		Destinations:    destinations,
+		Destinations:    c.Msg.Destinations,
 		FeeRate:         feeRate,
 		OpReturnMessage: opReturnMessage,
+		RequiredUtxos: lo.Map(c.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) *validatorpb.SendTransactionRequest_RequiredUtxo {
+			parts := strings.Split(u.Output, ":")
+			if len(parts) != 2 {
+				return nil
+			}
+			txid := parts[0]
+			vout, err := strconv.ParseUint(parts[1], 10, 32)
+			if err != nil {
+				return nil
+			}
+
+			return &validatorpb.SendTransactionRequest_RequiredUtxo{
+				Txid: &commonv1.ReverseHex{
+					Hex: &wrapperspb.StringValue{Value: txid},
+				},
+				Vout: uint32(vout),
+			}
+		}),
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not send transaction: %w", err)
-	}
-
-	if c.Msg.Label != "" {
-		direction, err := addressbook.DirectionFromProto(bitwindowdv1.Direction_DIRECTION_SEND)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		}
-
-		err = addressbook.Create(ctx, s.database, c.Msg.Label, c.Msg.Destination, direction)
-		if err != nil {
-			if err.Error() == addressbook.ErrUniqueAddress {
-				// that's fine! Don't do anything
-			} else {
-				return nil, fmt.Errorf("could not create address book entry: %w", err)
-			}
-		}
 	}
 
 	log.Info().Msgf("send tx: broadcast transaction: %s", created.Msg.Txid)

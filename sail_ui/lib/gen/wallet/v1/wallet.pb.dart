@@ -84,18 +84,15 @@ class GetNewAddressResponse extends $pb.GeneratedMessage {
 
 class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest({
-    $core.String? destination,
-    $fixnum.Int64? amount,
+    $core.Map<$core.String, $fixnum.Int64>? destinations,
     $core.double? feeRate,
     $core.String? opReturnMessage,
     $core.String? label,
+    $core.Iterable<UnspentOutput>? requiredInputs,
   }) {
     final $result = create();
-    if (destination != null) {
-      $result.destination = destination;
-    }
-    if (amount != null) {
-      $result.amount = amount;
+    if (destinations != null) {
+      $result.destinations.addAll(destinations);
     }
     if (feeRate != null) {
       $result.feeRate = feeRate;
@@ -106,6 +103,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (label != null) {
       $result.label = label;
     }
+    if (requiredInputs != null) {
+      $result.requiredInputs.addAll(requiredInputs);
+    }
     return $result;
   }
   SendTransactionRequest._() : super();
@@ -113,11 +113,11 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   factory SendTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SendTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'destination')
-    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'amount', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..a<$core.double>(3, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
-    ..aOS(4, _omitFieldNames ? '' : 'opReturnMessage')
-    ..aOS(5, _omitFieldNames ? '' : 'label')
+    ..m<$core.String, $fixnum.Int64>(1, _omitFieldNames ? '' : 'destinations', entryClassName: 'SendTransactionRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OU6, packageName: const $pb.PackageName('wallet.v1'))
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'feeRate', $pb.PbFieldType.OD)
+    ..aOS(3, _omitFieldNames ? '' : 'opReturnMessage')
+    ..aOS(4, _omitFieldNames ? '' : 'label')
+    ..pc<UnspentOutput>(5, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
     ..hasRequiredFields = false
   ;
 
@@ -142,56 +142,44 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   static SendTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SendTransactionRequest>(create);
   static SendTransactionRequest? _defaultInstance;
 
-  /// The destination address to send to.
+  /// Map of destination address to amount in satoshi.
   @$pb.TagNumber(1)
-  $core.String get destination => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set destination($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasDestination() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearDestination() => clearField(1);
-
-  /// The amount in satoshi to send.
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get amount => $_getI64(1);
-  @$pb.TagNumber(2)
-  set amount($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasAmount() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearAmount() => clearField(2);
+  $core.Map<$core.String, $fixnum.Int64> get destinations => $_getMap(0);
 
   /// Fee rate, measured in BTC/kvB. If set to zero, a reasonable
   /// rate is used by asking Core for an estimate.
-  @$pb.TagNumber(3)
-  $core.double get feeRate => $_getN(2);
-  @$pb.TagNumber(3)
-  set feeRate($core.double v) { $_setDouble(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasFeeRate() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearFeeRate() => clearField(3);
+  @$pb.TagNumber(2)
+  $core.double get feeRate => $_getN(1);
+  @$pb.TagNumber(2)
+  set feeRate($core.double v) { $_setDouble(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFeeRate() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFeeRate() => clearField(2);
 
   /// Message to include as an OP_RETURN output
-  @$pb.TagNumber(4)
-  $core.String get opReturnMessage => $_getSZ(3);
-  @$pb.TagNumber(4)
-  set opReturnMessage($core.String v) { $_setString(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasOpReturnMessage() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearOpReturnMessage() => clearField(4);
+  @$pb.TagNumber(3)
+  $core.String get opReturnMessage => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set opReturnMessage($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasOpReturnMessage() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearOpReturnMessage() => clearField(3);
 
   /// If set, will save the address with this label in the address book
+  @$pb.TagNumber(4)
+  $core.String get label => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set label($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasLabel() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLabel() => clearField(4);
+
+  /// UTXOs that must be included in the transaction.
   @$pb.TagNumber(5)
-  $core.String get label => $_getSZ(4);
-  @$pb.TagNumber(5)
-  set label($core.String v) { $_setString(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasLabel() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearLabel() => clearField(5);
+  $core.List<UnspentOutput> get requiredInputs => $_getList(4);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
