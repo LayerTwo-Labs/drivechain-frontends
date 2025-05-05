@@ -140,7 +140,8 @@ class MockWalletAPI implements WalletAPI {
   @override
   Future<String> sendTransaction(
     Map<String, int> destinations, {
-    double? btcPerKvB,
+    int? feeSatPerVbyte,
+    int? fixedFeeSats,
     String? label,
     String? opReturnMessage,
     List<UnspentOutput>? requiredInputs,

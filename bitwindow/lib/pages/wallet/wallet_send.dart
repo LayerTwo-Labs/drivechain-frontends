@@ -11,7 +11,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
 import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pbserver.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
@@ -88,8 +87,6 @@ class PayToCard extends ViewModelWidget<SendPageViewModel> {
             selectedEntry: viewModel.selectedEntry,
             onAddressSelected: viewModel.onAddressSelected,
             onUseAvailableBalance: viewModel.onUseAvailableBalance,
-            unit: viewModel.unit,
-            onUnitChanged: viewModel.onUnitChanged,
             subtractFee: viewModel.recipients[i].subtractFee,
             onSubtractFeeChanged: (val) {
               viewModel.recipients[i].subtractFee = val;
@@ -134,8 +131,6 @@ class _RecipientFields extends StatelessWidget {
   final AddressBookEntry? selectedEntry;
   final ValueChanged<AddressBookEntry?> onAddressSelected;
   final Future<void> Function(int index) onUseAvailableBalance;
-  final Unit unit;
-  final ValueChanged<Unit> onUnitChanged;
   final bool subtractFee;
   final ValueChanged<bool> onSubtractFeeChanged;
   final int index;
@@ -148,8 +143,6 @@ class _RecipientFields extends StatelessWidget {
     required this.selectedEntry,
     required this.onAddressSelected,
     required this.onUseAvailableBalance,
-    required this.unit,
-    required this.onUnitChanged,
     required this.subtractFee,
     required this.onSubtractFeeChanged,
   });
@@ -251,12 +244,19 @@ class PayFromCard extends ViewModelWidget<SendPageViewModel> {
   }
 }
 
-class FeeCard extends StatelessWidget {
+class FeeCard extends ViewModelWidget<SendPageViewModel> {
   const FeeCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Container();
+  Widget build(BuildContext context, SendPageViewModel viewModel) {
+    return SailCard(
+      title: 'Fee',
+      child: SailTextField(
+        controller: viewModel.feeController,
+        hintText: 'Hard-coded fee (in sats)',
+        suffixWidget: SailText.primary13('sats'),
+      ),
+    );
   }
 }
 
@@ -298,18 +298,10 @@ class SendPageViewModel extends BaseViewModel {
   AddressBookProvider get addressBookProvider => GetIt.I<AddressBookProvider>();
   BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
 
-  Unit unit = Unit.BTC;
-  bool subtractFee = false;
-  String feeType = 'recommended';
-  int confirmationTarget = 2;
-  bool useMinimumFee = false;
-  Unit feeUnit = Unit.BTC;
-
-  EstimateSmartFeeResponse feeEstimate = EstimateSmartFeeResponse();
   List<AddressBookEntry> get addressBookEntries => addressBookProvider.sendEntries;
   AddressBookEntry? selectedEntry;
   TextEditingController selectedUTXOs = TextEditingController();
-
+  TextEditingController feeController = TextEditingController(text: '1000');
   List<UnspentOutput> get allUtxos => transactionsProvider.utxos.sorted(
         (a, b) {
           final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
@@ -328,7 +320,6 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   SendPageViewModel() {
-    fetchEstimate();
     addressBookProvider.addListener(notifyListeners);
     transactionsProvider.addListener(notifyListeners);
     init();
@@ -340,26 +331,10 @@ class SendPageViewModel extends BaseViewModel {
   Future<void> init() async {
     applicationDir = await Environment.datadir();
     logFile = await getLogFile();
-    await fetchEstimate();
-
-    // Add listener for address changes
-    addressBookProvider.addListener(_onAddressBookChanged);
   }
 
   Directory? applicationDir;
   File? logFile;
-
-  void decodeURI() {
-    try {
-      // TODO: Implement
-    } catch (e) {
-      // do nothing, it's okay!
-    }
-  }
-
-  // Amount of blocks to confirm the transaction in
-  List<int> get confirmationTargets => [1, 2, 4, 6, 12, 24, 48, 144, 432, 1008];
-  double get feeRate => feeEstimate.feeRate == 0 ? 0.0002 : feeEstimate.feeRate;
 
   @override
   void dispose() {
@@ -370,20 +345,8 @@ class SendPageViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  void onUnitChanged(Unit value) {
-    unit = value;
-    notifyListeners();
-  }
-
-  void onSubtractFeeChanged(bool value) {
-    subtractFee = value;
-    notifyListeners();
-  }
-
   Future<void> onUseAvailableBalance(int index) async {
     try {
-      subtractFee = true;
-
       // 1. Sum up the amounts of all recipients except the one at 'index'
       double sumOtherRecipients = 0.0;
       for (int i = 0; i < recipients.length; i++) {
@@ -393,7 +356,7 @@ class SendPageViewModel extends BaseViewModel {
       }
 
       // 2. Calculate available balance minus fee
-      final available = balanceProvider.balance - feeRate;
+      final available = balanceProvider.balance - satoshiToBTC((int.tryParse(feeController.text) ?? 1000));
 
       // 3. Set the remaining amount for the recipient at 'index'
       final remaining = available - sumOtherRecipients;
@@ -412,40 +375,6 @@ class SendPageViewModel extends BaseViewModel {
 
   void clearAddress() {
     notifyListeners();
-  }
-
-  void setFeeType(String value) {
-    feeType = value;
-    if (feeType == 'recommended') {
-      useMinimumFee = false;
-    }
-    notifyListeners();
-  }
-
-  void setConfirmationTarget(int? value) {
-    if (value == null) {
-      return;
-    }
-
-    confirmationTarget = value;
-    notifyListeners();
-    fetchEstimate();
-  }
-
-  Future<void> fetchEstimate() async {
-    setBusy(true);
-    try {
-      final estimate = await bitwindowd.bitcoind.estimateSmartFee(confirmationTarget);
-      Logger().d(
-        'Estimate: estimate=${estimate.feeRate} errors=${estimate.errors}',
-      );
-      feeEstimate = estimate;
-    } catch (error) {
-      setError(error.toString());
-    } finally {
-      setBusy(false);
-      notifyListeners();
-    }
   }
 
   Future<void> sendTransaction(BuildContext context) async {
@@ -473,9 +402,6 @@ class SendPageViewModel extends BaseViewModel {
       for (int i = 0; i < recipients.length; i++) {
         final r = recipients[i];
         var amount = double.tryParse(r.amountController.text) ?? 0.0;
-        if (subtractFee && i == recipients.length - 1) {
-          amount -= feeRate;
-        }
         final address = r.addressController.text;
         final satoshis = btcToSatoshi(amount);
 
@@ -485,15 +411,15 @@ class SendPageViewModel extends BaseViewModel {
 
       final txid = await bitwindowd.wallet.sendTransaction(
         destinations,
-        btcPerKvB: feeRate,
+        fixedFeeSats: int.tryParse(feeController.text) ?? 1000,
         requiredInputs: selectedUtxos,
       );
-      Logger().d('Sent transaction: txid=$txid');
+      log.d('Sent transaction: txid=$txid');
       if (context.mounted) {
         showSnackBar(context, 'Sent in txid=$txid');
       }
     } catch (error) {
-      Logger().e('Error sending transaction: $error');
+      log.e('Error sending transaction: $error');
       if (context.mounted) {
         showSnackBar(context, 'Could not send transaction $error', duration: 5);
       }
@@ -503,44 +429,6 @@ class SendPageViewModel extends BaseViewModel {
       await transactionsProvider.fetch();
       await addressBookProvider.fetch();
       await balanceProvider.fetch();
-    }
-  }
-
-  void setUseMinimumFee(bool? value) {
-    useMinimumFee = value ?? false;
-    if (useMinimumFee) {}
-    notifyListeners();
-  }
-
-  void onFeeUnitChanged(Unit value) {
-    feeUnit = value;
-    notifyListeners();
-  }
-
-  String getConfirmationTargetLabel(int target) {
-    switch (target) {
-      case 1:
-        return '10 minutes (next block)';
-      case 2:
-        return '20 minutes (2 blocks)';
-      case 4:
-        return '40 minutes (4 blocks)';
-      case 6:
-        return '60 minutes (6 blocks)';
-      case 12:
-        return '2 hours (12 blocks)';
-      case 24:
-        return '4 hours (24 blocks)';
-      case 48:
-        return '8 hours (48 blocks)';
-      case 144:
-        return '24 hours (144 blocks)';
-      case 432:
-        return '3 days (504 blocks)';
-      case 1008:
-        return '7 days (1008 blocks)';
-      default:
-        return '$target minutes';
     }
   }
 
@@ -556,12 +444,8 @@ class SendPageViewModel extends BaseViewModel {
     initialRecipient.addListener(_onRecipientChanged);
     recipients.add(initialRecipient);
     selectedRecipientIndex = 0;
+    feeController.text = '1000';
 
-    unit = Unit.BTC;
-    subtractFee = false;
-    feeType = 'recommended';
-    confirmationTarget = 2;
-    useMinimumFee = false;
     notifyListeners();
   }
 
@@ -572,29 +456,16 @@ class SendPageViewModel extends BaseViewModel {
     }
   }
 
-  void handleBitcoinURI(BitcoinURI uri) {
-    // TODO: Reimplement this
-    /*
-    addressController.text = uri.address;
-    if (uri.amount != null) {
-      amountController.text = uri.amount!.toString();
+  void handleBitcoinURI(BitcoinURI uri) async {
+    await clearAll();
+    if (recipients.isNotEmpty) {
+      final recipient = recipients.first;
+      recipient.addressController.text = uri.address;
+      if (uri.amount != null) {
+        recipient.amountController.text = uri.amount!.toString();
+      }
     }
-    if (uri.label != null) {
-      labelController.text = uri.label!;
-    }
-    */
     notifyListeners();
-  }
-
-  void _onAddressChanged() {
-    decodeURI(); // Keep existing URI decoder
-
-    notifyListeners();
-  }
-
-  void _onAddressBookChanged() {
-    // When address book changes, update label if this address exists
-    _onAddressChanged();
   }
 
   void onSelectionChanged(List<UnspentOutput> selected) {
@@ -674,7 +545,6 @@ class _UTXOSelectorState extends State<UTXOSelector> {
           children: [
             Expanded(
               child: SailTextField(
-                label: '',
                 controller: TextEditingController(
                   text: widget.selectedUtxos.map((u) => formatUnspentOutput(u, long: false)).join('\n'),
                 ),

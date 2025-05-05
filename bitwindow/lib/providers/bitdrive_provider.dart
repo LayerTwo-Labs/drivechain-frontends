@@ -12,6 +12,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class BitDriveContent {
   final String fileName;
@@ -66,7 +67,7 @@ class BitDriveProvider extends ChangeNotifier {
   String? fileName;
   String? mimeType;
   bool shouldEncrypt = true;
-  double fee = 0.0001;
+  int fee = 1000;
   String? _bitdriveDir;
 
   // Constants
@@ -332,7 +333,7 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   void setFee(double value) {
-    fee = value;
+    fee = (btcToSatoshi(value)).toInt();
     notifyListeners();
   }
 
@@ -384,7 +385,7 @@ class BitDriveProvider extends ChangeNotifier {
       final address = await bitwindowd.wallet.getNewAddress();
       final txid = await bitwindowd.wallet.sendTransaction(
         {address: 10000}, // 0.0001 BTC
-        btcPerKvB: fee,
+        fixedFeeSats: 1000,
         opReturnMessage: opReturnData,
       );
 

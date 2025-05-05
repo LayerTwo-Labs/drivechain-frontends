@@ -35,10 +35,11 @@ const SendTransactionRequest$json = {
   '1': 'SendTransactionRequest',
   '2': [
     {'1': 'destinations', '3': 1, '4': 3, '5': 11, '6': '.wallet.v1.SendTransactionRequest.DestinationsEntry', '10': 'destinations'},
-    {'1': 'fee_rate', '3': 2, '4': 1, '5': 1, '10': 'feeRate'},
-    {'1': 'op_return_message', '3': 3, '4': 1, '5': 9, '10': 'opReturnMessage'},
-    {'1': 'label', '3': 4, '4': 1, '5': 9, '10': 'label'},
-    {'1': 'required_inputs', '3': 5, '4': 3, '5': 11, '6': '.wallet.v1.UnspentOutput', '10': 'requiredInputs'},
+    {'1': 'fee_sat_per_vbyte', '3': 2, '4': 1, '5': 4, '10': 'feeSatPerVbyte'},
+    {'1': 'fixed_fee_sats', '3': 3, '4': 1, '5': 4, '10': 'fixedFeeSats'},
+    {'1': 'op_return_message', '3': 4, '4': 1, '5': 9, '10': 'opReturnMessage'},
+    {'1': 'label', '3': 5, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'required_inputs', '3': 6, '4': 3, '5': 11, '6': '.wallet.v1.UnspentOutput', '10': 'requiredInputs'},
   ],
   '3': [SendTransactionRequest_DestinationsEntry$json],
 };
@@ -57,11 +58,12 @@ const SendTransactionRequest_DestinationsEntry$json = {
 final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64Decode(
     'ChZTZW5kVHJhbnNhY3Rpb25SZXF1ZXN0ElcKDGRlc3RpbmF0aW9ucxgBIAMoCzIzLndhbGxldC'
     '52MS5TZW5kVHJhbnNhY3Rpb25SZXF1ZXN0LkRlc3RpbmF0aW9uc0VudHJ5UgxkZXN0aW5hdGlv'
-    'bnMSGQoIZmVlX3JhdGUYAiABKAFSB2ZlZVJhdGUSKgoRb3BfcmV0dXJuX21lc3NhZ2UYAyABKA'
-    'lSD29wUmV0dXJuTWVzc2FnZRIUCgVsYWJlbBgEIAEoCVIFbGFiZWwSQQoPcmVxdWlyZWRfaW5w'
-    'dXRzGAUgAygLMhgud2FsbGV0LnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcmVkSW5wdXRzGj8KEU'
-    'Rlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBXZhbHVlGAIgASgEUgV2YWx1'
-    'ZToCOAE=');
+    'bnMSKQoRZmVlX3NhdF9wZXJfdmJ5dGUYAiABKARSDmZlZVNhdFBlclZieXRlEiQKDmZpeGVkX2'
+    'ZlZV9zYXRzGAMgASgEUgxmaXhlZEZlZVNhdHMSKgoRb3BfcmV0dXJuX21lc3NhZ2UYBCABKAlS'
+    'D29wUmV0dXJuTWVzc2FnZRIUCgVsYWJlbBgFIAEoCVIFbGFiZWwSQQoPcmVxdWlyZWRfaW5wdX'
+    'RzGAYgAygLMhgud2FsbGV0LnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcmVkSW5wdXRzGj8KEURl'
+    'c3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBXZhbHVlGAIgASgEUgV2YWx1ZT'
+    'oCOAE=');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {
