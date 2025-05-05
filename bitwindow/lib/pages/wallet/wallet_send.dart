@@ -618,7 +618,9 @@ class SendPageViewModel extends BaseViewModel {
   void removeRecipient(int index) {
     recipients[index].removeListener(_onRecipientChanged);
     recipients.removeAt(index);
-    selectedRecipientIndex = index - 1;
+    if (index != 0) {
+      selectedRecipientIndex = index - 1;
+    }
     notifyListeners();
   }
 }

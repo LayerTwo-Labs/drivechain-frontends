@@ -60,12 +60,15 @@ func (p *Parser) Run(ctx context.Context) error {
 
 		case <-alertTicker.C:
 			if processing {
+				zerolog.Ctx(ctx).Trace().
+					Msgf("bitcoind_engine/parser: still processing block, skipping alert tick")
 				continue
 			}
 
 			// nolint:ineffassign
 			processing = true
 			if err := p.handleBlockTick(ctx); err != nil {
+				processing = false
 				zerolog.Ctx(ctx).Error().
 					Err(err).
 					Msgf("bitcoind_engine/parser: could not handle tick")
