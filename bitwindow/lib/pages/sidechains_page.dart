@@ -531,6 +531,15 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
       sortAscending: viewModel.depositSortAscending,
       sortColumnIndex: ['txid', 'amount', 'fee', 'confirmations'].indexOf(viewModel.depositSortColumn),
       onSort: (columnIndex, ascending) => viewModel.sortDeposits(viewModel.depositSortColumn),
+      onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
+      contextMenuItems: (rowId) {
+        return [
+          SailMenuItem(
+            onSelected: () => showTransactionDetails(context, rowId),
+            child: SailText.primary12('Show Transaction Details'),
+          ),
+        ];
+      },
     );
   }
 }
