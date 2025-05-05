@@ -79,15 +79,17 @@ type SendTransactionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Map of destination address to amount in satoshi.
 	Destinations map[string]uint64 `protobuf:"bytes,1,rep,name=destinations,proto3" json:"destinations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	// Fee rate, measured in BTC/kvB. If set to zero, a reasonable
+	// Fee rate, measured in sat/vb. If set to zero, a reasonable
 	// rate is used by asking Core for an estimate.
-	FeeRate float64 `protobuf:"fixed64,2,opt,name=fee_rate,json=feeRate,proto3" json:"fee_rate,omitempty"`
+	FeeSatPerVbyte uint64 `protobuf:"varint,2,opt,name=fee_sat_per_vbyte,json=feeSatPerVbyte,proto3" json:"fee_sat_per_vbyte,omitempty"`
+	// Hard-coded amount, in sats.
+	FixedFeeSats uint64 `protobuf:"varint,3,opt,name=fixed_fee_sats,json=fixedFeeSats,proto3" json:"fixed_fee_sats,omitempty"`
 	// Message to include as an OP_RETURN output
-	OpReturnMessage string `protobuf:"bytes,3,opt,name=op_return_message,json=opReturnMessage,proto3" json:"op_return_message,omitempty"`
+	OpReturnMessage string `protobuf:"bytes,4,opt,name=op_return_message,json=opReturnMessage,proto3" json:"op_return_message,omitempty"`
 	// If set, will save the address with this label in the address book
-	Label string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	Label string `protobuf:"bytes,5,opt,name=label,proto3" json:"label,omitempty"`
 	// UTXOs that must be included in the transaction.
-	RequiredInputs []*UnspentOutput `protobuf:"bytes,5,rep,name=required_inputs,json=requiredInputs,proto3" json:"required_inputs,omitempty"`
+	RequiredInputs []*UnspentOutput `protobuf:"bytes,6,rep,name=required_inputs,json=requiredInputs,proto3" json:"required_inputs,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -129,9 +131,16 @@ func (x *SendTransactionRequest) GetDestinations() map[string]uint64 {
 	return nil
 }
 
-func (x *SendTransactionRequest) GetFeeRate() float64 {
+func (x *SendTransactionRequest) GetFeeSatPerVbyte() uint64 {
 	if x != nil {
-		return x.FeeRate
+		return x.FeeSatPerVbyte
+	}
+	return 0
+}
+
+func (x *SendTransactionRequest) GetFixedFeeSats() uint64 {
+	if x != nil {
+		return x.FixedFeeSats
 	}
 	return 0
 }
@@ -1258,13 +1267,14 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x16wallet/v1/wallet.proto\x12\twallet.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"G\n" +
 	"\x15GetNewAddressResponse\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x14\n" +
-	"\x05index\x18\x02 \x01(\rR\x05index\"\xd2\x02\n" +
+	"\x05index\x18\x02 \x01(\rR\x05index\"\x88\x03\n" +
 	"\x16SendTransactionRequest\x12W\n" +
-	"\fdestinations\x18\x01 \x03(\v23.wallet.v1.SendTransactionRequest.DestinationsEntryR\fdestinations\x12\x19\n" +
-	"\bfee_rate\x18\x02 \x01(\x01R\afeeRate\x12*\n" +
-	"\x11op_return_message\x18\x03 \x01(\tR\x0fopReturnMessage\x12\x14\n" +
-	"\x05label\x18\x04 \x01(\tR\x05label\x12A\n" +
-	"\x0frequired_inputs\x18\x05 \x03(\v2\x18.wallet.v1.UnspentOutputR\x0erequiredInputs\x1a?\n" +
+	"\fdestinations\x18\x01 \x03(\v23.wallet.v1.SendTransactionRequest.DestinationsEntryR\fdestinations\x12)\n" +
+	"\x11fee_sat_per_vbyte\x18\x02 \x01(\x04R\x0efeeSatPerVbyte\x12$\n" +
+	"\x0efixed_fee_sats\x18\x03 \x01(\x04R\ffixedFeeSats\x12*\n" +
+	"\x11op_return_message\x18\x04 \x01(\tR\x0fopReturnMessage\x12\x14\n" +
+	"\x05label\x18\x05 \x01(\tR\x05label\x12A\n" +
+	"\x0frequired_inputs\x18\x06 \x03(\v2\x18.wallet.v1.UnspentOutputR\x0erequiredInputs\x1a?\n" +
 	"\x11DestinationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x04R\x05value:\x028\x01\"-\n" +

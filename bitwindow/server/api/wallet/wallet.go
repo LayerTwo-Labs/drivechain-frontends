@@ -72,8 +72,8 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if c.Msg.FeeRate < 0 {
-		err := errors.New("fee rate cannot be negative")
+	if c.Msg.FeeSatPerVbyte > 0 && c.Msg.FixedFeeSats > 0 {
+		err := errors.New("cannot provide both fee rate and fee amount")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -91,14 +91,14 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	log := zerolog.Ctx(ctx)
 
 	var feeRate *validatorpb.SendTransactionRequest_FeeRate
-	if c.Msg.FeeRate != 0 {
-		btcPerByte, err := btcutil.NewAmount(c.Msg.FeeRate / 1000)
-		if err != nil {
-			return nil, err
-		}
-		satoshiPerVByte := uint64(btcPerByte.ToUnit(btcutil.AmountSatoshi))
+	if c.Msg.FeeSatPerVbyte != 0 {
 		feeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: satoshiPerVByte},
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: c.Msg.FeeSatPerVbyte},
+		}
+	}
+	if c.Msg.FixedFeeSats != 0 {
+		feeRate = &validatorpb.SendTransactionRequest_FeeRate{
+			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{Sats: c.Msg.FixedFeeSats},
 		}
 	}
 

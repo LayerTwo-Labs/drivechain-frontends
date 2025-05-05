@@ -123,7 +123,12 @@ class SailTextField extends StatelessWidget {
                       alignment: Alignment.center,
                       widthFactor: 1.0,
                       child: Padding(
-                        padding: EdgeInsets.all(1),
+                        padding: EdgeInsets.only(
+                          top: 1,
+                          bottom: 1,
+                          left: 1,
+                          right: 8,
+                        ),
                         child: suffixWidget,
                       ),
                     ),

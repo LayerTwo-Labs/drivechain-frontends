@@ -430,7 +430,8 @@ abstract class WalletAPI {
   // pure bitcoind wallet stuff here
   Future<String> sendTransaction(
     Map<String, int> destinations, {
-    double? btcPerKvB,
+    int? feeSatPerVbyte,
+    int? fixedFeeSats,
     String? opReturnMessage,
     String? label,
     List<UnspentOutput> requiredInputs,
@@ -458,7 +459,8 @@ class _WalletAPILive implements WalletAPI {
   @override
   Future<String> sendTransaction(
     Map<String, int> destinations, {
-    double? btcPerKvB,
+    int? feeSatPerVbyte,
+    int? fixedFeeSats,
     String? opReturnMessage,
     String? label,
     List<UnspentOutput>? requiredInputs,
@@ -466,7 +468,8 @@ class _WalletAPILive implements WalletAPI {
     try {
       final request = SendTransactionRequest(
         destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
-        feeRate: btcPerKvB,
+        feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
+        fixedFeeSats: fixedFeeSats != null ? Int64(fixedFeeSats) : null,
         opReturnMessage: opReturnMessage,
         label: label,
         requiredInputs: requiredInputs,
