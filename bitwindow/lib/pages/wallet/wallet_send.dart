@@ -676,7 +676,7 @@ class _UTXOSelectorState extends State<UTXOSelector> {
               child: SailTextField(
                 label: '',
                 controller: TextEditingController(
-                  text: widget.selectedUtxos.map((u) => formatUnspentOutput(u, long: true)).join('\n'),
+                  text: widget.selectedUtxos.map((u) => formatUnspentOutput(u, long: false)).join('\n'),
                 ),
                 readOnly: true,
                 maxLines: null,

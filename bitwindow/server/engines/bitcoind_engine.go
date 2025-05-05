@@ -18,6 +18,7 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 )
 
 func NewBitcoind(
@@ -67,13 +68,18 @@ func (p *Parser) Run(ctx context.Context) error {
 
 			// nolint:ineffassign
 			processing = true
+
+			zerolog.Ctx(ctx).Trace().
+				Msgf("bitcoind_engine/parser: processing block tick")
+
 			if err := p.handleBlockTick(ctx); err != nil {
-				processing = false
 				zerolog.Ctx(ctx).Error().
 					Err(err).
 					Msgf("bitcoind_engine/parser: could not handle tick")
-				continue
 			}
+
+			zerolog.Ctx(ctx).Trace().
+				Msgf("bitcoind_engine/parser: finished processing block tick")
 			processing = false
 
 		case <-mempoolTicker.C:
@@ -94,7 +100,8 @@ type BlockResult struct {
 }
 
 func (p *Parser) handleBlockTick(ctx context.Context) error {
-	err := p.detectChainDeletion(ctx)
+
+	err := p.ensureSyncIsHealthy(ctx)
 	if err != nil && strings.Contains(err.Error(), "Block height out of range") {
 		zerolog.Ctx(ctx).Info().
 			Msgf("bitcoind_engine/parser: still in IBD, waiting for header download..")
@@ -106,11 +113,17 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		return nil
 	}
 
+	zerolog.Ctx(ctx).Trace().
+		Msgf("bitcoind_engine/parser: detected chain deletion")
+
 	// Get latest processed height
 	lastProcessedBlock, err := blocks.GetProcessedTip(ctx, p.db)
 	if err != nil {
 		return fmt.Errorf("get latest processed height: %w", err)
 	}
+
+	zerolog.Ctx(ctx).Trace().
+		Msgf("bitcoind_engine/parser: found last processed tip")
 
 	var lastProcessedHeight int32 = -1
 	var lastProcessedHash string
@@ -128,62 +141,112 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		return nil
 	}
 
+	zerolog.Ctx(ctx).Trace().
+		Msgf("bitcoind_engine/parser: found current height: %d", currentHeight)
+
 	if lastProcessedHeight == currentHeight && lastProcessedHash != currentHash {
 		// probably some sort of reorg, process the last 20 blocks again!
 		// doesnt handle very deep reorgs, but thats okay
 		lastProcessedHeight -= 20
+		zerolog.Ctx(ctx).Trace().
+			Msgf("bitcoind_engine/parser: detected reorg, processing last 20 blocks")
 	}
 
-	pool := logpool.New(ctx, "bitcoind_engine/processBlocks").WithMaxGoroutines(30)
-	for height := lastProcessedHeight + 1; height <= currentHeight; height++ {
+	batchSize := 30
+	for batchStart := lastProcessedHeight + 1; batchStart <= currentHeight; batchStart += int32(batchSize) {
+		batchEnd := batchStart + int32(batchSize) - 1
+		if batchEnd > currentHeight {
+			batchEnd = currentHeight
+		}
 
-		pool.Go(fmt.Sprintf("block-%d", height), func(ctx context.Context) error {
-			block, err := p.getBlock(ctx, height)
-			if err != nil {
-				return err
-			}
+		pool := logpool.NewWithResults[*corepb.GetBlockResponse](ctx, "bitcoind_engine/processBlocks").
+			WithCancelOnError().
+			WithFirstError()
 
-			return p.processBlock(ctx, block)
-		})
+		for height := batchStart; height <= batchEnd; height++ {
+			pool.Go(fmt.Sprintf("block-%d", height), func(ctx context.Context) (*corepb.GetBlockResponse, error) {
+				ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+				defer cancel()
 
+				zerolog.Ctx(ctx).Trace().
+					Msgf("bitcoind_engine/parser: processing block %d", height)
+
+				block, err := p.getBlock(ctx, height)
+				if err != nil {
+					zerolog.Ctx(ctx).Error().
+						Err(err).
+						Msgf("bitcoind_engine/parser: could not get block %d", height)
+					return nil, err
+				}
+
+				// If the block only has one transaction it's uninteresting,
+				// because it only has a coinbase transaction, e.g: an empty block
+				if len(block.Txids) > 1 {
+					zerolog.Ctx(ctx).Info().
+						Int32("height", int32(block.Height)).
+						Msgf("bitcoind_engine/parser: block has more than one transaction, inspecting transactions for OP returns")
+
+					height := int32(block.Height)
+					for _, txid := range block.Txids {
+						if err := p.opReturnForTXID(ctx, txid, &height, block.Time.AsTime()); err != nil {
+							zerolog.Ctx(ctx).Error().
+								Err(err).
+								Msgf("bitcoind_engine/parser: could not process transaction %s", txid)
+						}
+					}
+
+					zerolog.Ctx(ctx).Trace().
+						Int32("height", int32(block.Height)).
+						Msgf("bitcoind_engine/parser: finished processing transactions for block %d", block.Height)
+				}
+
+				return block, nil
+			})
+		}
+
+		zerolog.Ctx(ctx).Trace().
+			Msgf("bitcoind_engine/parser: waiting for block processing to finish")
+		results, err := pool.Wait(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().
+				Err(err).
+				Msgf("bitcoind_engine/parser: could not process blocks")
+			return fmt.Errorf("could not process blocks: %w", err)
+		}
+
+		if err := p.processBlocks(ctx, results); err != nil {
+			zerolog.Ctx(ctx).Error().
+				Err(err).
+				Msgf("bitcoind_engine/parser: could not process blocks")
+		}
 	}
-	if err := pool.Wait(ctx); err != nil {
-		return fmt.Errorf("could not process blocks: %w", err)
-	}
+
+	zerolog.Ctx(ctx).Trace().
+		Msgf("bitcoind_engine/parser: finished processing blocks")
 
 	return nil
 }
 
 // processBlock processes a single block: checks if it contains any OP_RETURN transactions, inserts any found into the database,
 // and marks the block as processed.
-func (p *Parser) processBlock(ctx context.Context, block *corepb.GetBlockResponse) error {
-	// If the block only has one transaction it's uninteresting,
-	// because it only has a coinbase transaction, e.g: an empty block
-	if len(block.Txids) > 1 {
-		zerolog.Ctx(ctx).Trace().
-			Int32("height", int32(block.Height)).
-			Msgf("bitcoind_engine/parser: block has more than one transaction, inspecting transactions for OP returns")
+func (p *Parser) processBlocks(ctx context.Context, coreBlocks []*corepb.GetBlockResponse) error {
 
-		height := int32(block.Height)
-		for _, txid := range block.Txids {
-			if err := p.opReturnForTXID(ctx, txid, &height, block.Time.AsTime()); err != nil {
-				zerolog.Ctx(ctx).Error().
-					Err(err).
-					Msgf("bitcoind_engine/parser: could not process transaction %s", txid)
-			}
+	// Insert the processed blocks
+	if err := blocks.MarkBlocksProcessed(ctx, p.db, lo.Map(coreBlocks, func(block *corepb.GetBlockResponse, _ int) blocks.ProcessedBlock {
+		return blocks.ProcessedBlock{
+			Height: int32(block.Height),
+			Hash:   block.Hash,
 		}
-	}
-
-	// Insert the processed block
-	if err := blocks.MarkBlockProcessed(ctx, p.db, blocks.ProcessedBlock{
-		Height: int32(block.Height),
-		Hash:   block.Hash,
-	}); err != nil {
+	})); err != nil {
 		zerolog.Ctx(ctx).Error().
 			Err(err).
 			Msgf("bitcoind_engine/parser: could not insert block")
 		return err
 	}
+
+	zerolog.Ctx(ctx).Trace().
+		Int32("height", int32(len(coreBlocks))).
+		Msgf("bitcoind_engine/parser: successfully inserted blocks")
 
 	return nil
 }
@@ -495,10 +558,10 @@ func shouldSkip(pkScript []byte) bool {
 	return false
 }
 
-// detectChainDeletion checks if the hash of block at height 1 differs
+// ensureSyncIsHealthy checks if the hash of block at height 1 differs
 // from whats in our database. If so, it wipes everything in processed_blocks,
 // to force a re-sync.
-func (p *Parser) detectChainDeletion(ctx context.Context) error {
+func (p *Parser) ensureSyncIsHealthy(ctx context.Context) error {
 	// Get block at height 1 to check for chain switch
 	block1, err := p.getBlock(ctx, 1)
 	if err != nil && strings.Contains(err.Error(), "Block not found on disk") {
