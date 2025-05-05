@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/main.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -225,7 +228,12 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           }
 
           // finally, boot the binaries
-          await bootBinaries(GetIt.I.get<Logger>());
+          unawaited(bootBinaries(GetIt.I.get<Logger>()));
+
+          final mainchainRPC = GetIt.I.get<MainchainRPC>();
+          while (!mainchainRPC.connected) {
+            await Future.delayed(const Duration(seconds: 1));
+          }
 
           // pop the dialog
           if (context.mounted) Navigator.of(context).pop();

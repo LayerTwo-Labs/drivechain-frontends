@@ -107,7 +107,7 @@ class ReceiveAddressesTable extends StatefulWidget {
 
 class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
   String sortColumn = 'last_used_at';
-  bool sortAscending = true;
+  bool sortAscending = false;
 
   List<ReceiveAddress> get sortedEntries {
     final entries = List<ReceiveAddress>.from(widget.model.receiveAddresses);
@@ -116,7 +116,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
       switch (sortColumn) {
         case 'last_used_at':
           if (a.lastUsedAt.seconds == 0 && b.lastUsedAt.seconds == 0) {
-            return 0;
+            return sortAscending ? a.address.compareTo(b.address) : b.address.compareTo(a.address);
           } else if (a.lastUsedAt.seconds == 0) {
             return sortAscending ? 1 : -1;
           } else if (b.lastUsedAt.seconds == 0) {
@@ -124,7 +124,11 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
           }
           aValue = a.lastUsedAt.toDateTime();
           bValue = b.lastUsedAt.toDateTime();
-          break;
+          int cmp = aValue.compareTo(bValue);
+          if (cmp == 0) {
+            return sortAscending ? a.address.compareTo(b.address) : b.address.compareTo(a.address);
+          }
+          return sortAscending ? cmp : -cmp;
         case 'address':
           aValue = a.address;
           bValue = b.address;
