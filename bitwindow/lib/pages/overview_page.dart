@@ -480,8 +480,8 @@ class CoinNewsOldView extends StatelessWidget {
                   variant: ButtonVariant.secondary,
                 ),
                 SailButton(
-                  label: 'Graffitti Explorer',
-                  onPressed: () => displayGraffittiExplorerDialog(context),
+                  label: 'Graffiti Explorer',
+                  onPressed: () => displayGraffitiExplorerDialog(context),
                   variant: ButtonVariant.secondary,
                 ),
               ],
@@ -607,13 +607,13 @@ Future<void> displayCreateTopicDialog(BuildContext context) async {
   );
 }
 
-Future<void> displayGraffittiExplorerDialog(BuildContext context) async {
+Future<void> displayGraffitiExplorerDialog(BuildContext context) async {
   await widgetDialog(
     context: context,
-    title: 'Graffitti Explorer',
+    title: 'Graffiti Explorer',
     subtitle: 'List all previous OP_RETURN messages found in the blockchain.',
     maxWidth: MediaQuery.of(context).size.width - 100,
-    child: const GraffittiExplorerView(),
+    child: const GraffitiExplorerView(),
   );
 }
 
@@ -884,15 +884,15 @@ class CreateTopicViewModel extends BaseViewModel {
   }
 }
 
-class NewGraffittiView extends StatelessWidget {
-  const NewGraffittiView({
+class NewGraffitiView extends StatelessWidget {
+  const NewGraffitiView({
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<NewGraffittiViewModel>.reactive(
-      viewModelBuilder: () => NewGraffittiViewModel(),
+    return ViewModelBuilder<NewGraffitiViewModel>.reactive(
+      viewModelBuilder: () => NewGraffitiViewModel(),
       builder: (context, viewModel, child) {
         return SailColumn(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -908,7 +908,7 @@ class NewGraffittiView extends StatelessWidget {
             ),
             SailButton(
               label: 'Broadcast',
-              onPressed: () => viewModel.createGraffitti(context),
+              onPressed: () => viewModel.createGraffiti(context),
               disabled: viewModel.messageController.text.isEmpty,
             ),
           ],
@@ -918,15 +918,15 @@ class NewGraffittiView extends StatelessWidget {
   }
 }
 
-class NewGraffittiViewModel extends BaseViewModel {
+class NewGraffitiViewModel extends BaseViewModel {
   final TextEditingController messageController = TextEditingController();
   final BitwindowRPC _api = GetIt.I<BitwindowRPC>();
 
-  NewGraffittiViewModel() {
+  NewGraffitiViewModel() {
     messageController.addListener(notifyListeners);
   }
 
-  Future<void> createGraffitti(BuildContext context) async {
+  Future<void> createGraffiti(BuildContext context) async {
     if (messageController.text.isEmpty) {
       return;
     }
@@ -1023,15 +1023,15 @@ class CoinNewsTable extends StatelessWidget {
   }
 }
 
-class GraffittiExplorerView extends StatelessWidget {
-  const GraffittiExplorerView({
+class GraffitiExplorerView extends StatelessWidget {
+  const GraffitiExplorerView({
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder<GraffittiExplorerViewModel>.reactive(
-      viewModelBuilder: () => GraffittiExplorerViewModel(),
+    return ViewModelBuilder<GraffitiExplorerViewModel>.reactive(
+      viewModelBuilder: () => GraffitiExplorerViewModel(),
       builder: (context, viewModel, child) {
         return SailColumn(
           spacing: SailStyleValues.padding16,
@@ -1040,11 +1040,11 @@ class GraffittiExplorerView extends StatelessWidget {
           children: [
             // add button here, that opens ANOTHER dialog, where you can enter a message.
             SailButton(
-              label: 'New Graffitti',
-              onPressed: () => newGraffittiDialog(context),
+              label: 'New Graffiti',
+              onPressed: () => newGraffitiDialog(context),
             ),
             Expanded(
-              child: GraffittiTable(
+              child: GraffitiTable(
                 entries: viewModel.entries,
                 onSort: viewModel.onSort,
               ),
@@ -1055,24 +1055,24 @@ class GraffittiExplorerView extends StatelessWidget {
     );
   }
 
-  Future<void> newGraffittiDialog(BuildContext context) async {
+  Future<void> newGraffitiDialog(BuildContext context) async {
     await widgetDialog(
       context: context,
-      title: 'New Graffitti',
+      title: 'New Graffiti',
       subtitle: 'Write whatever you want and broadcast it to the blockchain',
-      child: const NewGraffittiView(),
+      child: const NewGraffitiView(),
     );
   }
 }
 
-class GraffittiExplorerViewModel extends BaseViewModel {
+class GraffitiExplorerViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
 
   String _sortColumn = 'time';
   bool _sortAscending = true;
   List<OPReturn> get entries => _newsProvider.opReturns;
 
-  GraffittiExplorerViewModel() {
+  GraffitiExplorerViewModel() {
     _newsProvider.fetch();
     _newsProvider.addListener(notifyListeners);
   }
@@ -1123,11 +1123,11 @@ class GraffittiExplorerViewModel extends BaseViewModel {
   }
 }
 
-class GraffittiTable extends StatelessWidget {
+class GraffitiTable extends StatelessWidget {
   final List<OPReturn> entries;
   final Function(String) onSort;
 
-  const GraffittiTable({
+  const GraffitiTable({
     super.key,
     required this.entries,
     required this.onSort,

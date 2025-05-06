@@ -121,7 +121,7 @@ void main(List<String> args) async {
   const windowOptions = WindowOptions(
     minimumSize: Size(900, 600),
     size: Size(900, 600),
-    titleBarStyle: TitleBarStyle.hidden,
+    titleBarStyle: TitleBarStyle.normal,
     title: 'Bitcoin Core + CUSF BIP 300/301 Activator',
   );
 

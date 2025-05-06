@@ -52,33 +52,33 @@ func NewServer(
 	mux := http.NewServeMux()
 
 	bitcoindSvc := service.New("bitcoind", bitcoindConnector)
-	enforcerSvc := service.New("enforcer", enforcerConnector)
+	validatorSvc := service.New("enforcer", enforcerConnector)
 	walletSvc := service.New("wallet", walletConnector)
 	cryptoSvc := service.New("crypto", cryptoConnector)
 
 	// Start reconnection loops
 	bitcoindSvc.StartReconnectLoop(ctx)
-	enforcerSvc.StartReconnectLoop(ctx)
+	validatorSvc.StartReconnectLoop(ctx)
 	walletSvc.StartReconnectLoop(ctx)
 	cryptoSvc.StartReconnectLoop(ctx)
 
 	srv := &Server{
 		mux:      mux,
 		Bitcoind: bitcoindSvc,
-		Enforcer: enforcerSvc,
+		Enforcer: validatorSvc,
 		Wallet:   walletSvc,
 		Crypto:   cryptoSvc,
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
-		onShutdown, database, walletSvc, bitcoindSvc, guiBootedMainchain, guiBootedEnforcer,
+		onShutdown, database, validatorSvc, walletSvc, bitcoindSvc, guiBootedMainchain, guiBootedEnforcer,
 	)))
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
 		bitcoindSvc,
 	)))
 
 	drivechainClient := drivechainv1connect.DrivechainServiceHandler(api_drivechain.New(
-		enforcerSvc,
+		validatorSvc,
 	))
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
@@ -89,11 +89,11 @@ func NewServer(
 		database, walletSvc,
 	)))
 	Register(srv, healthv1connect.NewHealthServiceHandler, healthv1connect.HealthServiceHandler(api_health.New(
-		database, bitcoindSvc, enforcerSvc, walletSvc, cryptoSvc,
+		database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,
 	)))
 
 	// Register all enforcer services, only to be used as a bridge
-	enforcer := api_enforcer.New(enforcerSvc, walletSvc, cryptoSvc)
+	enforcer := api_enforcer.New(validatorSvc, walletSvc, cryptoSvc)
 	Register(srv, validatorrpc.NewValidatorServiceHandler, validatorrpc.ValidatorServiceHandler(enforcer))
 	Register(srv, validatorrpc.NewWalletServiceHandler, validatorrpc.WalletServiceHandler(enforcer))
 	Register(srv, cryptorpc.NewCryptoServiceHandler, cryptorpc.CryptoServiceHandler(enforcer))
