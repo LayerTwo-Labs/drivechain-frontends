@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
+import 'package:bitwindow/widgets/pagination.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
@@ -31,9 +32,9 @@ class CoinNewsView extends StatelessWidget {
                 onSelect: () => displayCreateTopicDialog(context),
               ),
               ExtraActionItem(
-                label: 'Graffitti Explorer',
+                label: 'Graffiti Explorer',
                 icon: SailSVGAsset.sprayCan,
-                onSelect: () => displayGraffittiExplorerDialog(context),
+                onSelect: () => displayGraffitiExplorerDialog(context),
               ),
             ],
           ),
@@ -43,7 +44,8 @@ class CoinNewsView extends StatelessWidget {
             children: [
               Flexible(
                 child: SailColumn(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   spacing: 0,
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -80,7 +82,17 @@ class CoinNewsView extends StatelessWidget {
                       ],
                     ),
                     const SailSpacing(16),
-                    ...viewModel.entries.map((entry) => CoinNewsEntry(entry: entry, allTopics: viewModel.topics)),
+                    ...viewModel.paginatedEntries
+                        .map((entry) => CoinNewsEntry(entry: entry, allTopics: viewModel.topics)),
+                    const SizedBox(height: 16),
+                    Pagination(
+                      currentPage: viewModel.currentPage,
+                      totalPages: viewModel.totalPages,
+                      onPageChanged: viewModel.setPage,
+                      pageSize: viewModel.pageSize,
+                      pageSizeOptions: const [5, 10, 20, 50],
+                      onPageSizeChanged: (val) => viewModel.setPageSize(val ?? viewModel.pageSize),
+                    ),
                   ],
                 ),
               ),
@@ -97,7 +109,10 @@ class CoinNewsViewModel extends BaseViewModel {
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
   final TextEditingController searchController = TextEditingController();
 
-  // Get news entries for all selected topics
+  // Pagination state
+  int currentPage = 1;
+  int pageSize = 10;
+
   List<CoinNews> get entries => _newsProvider.news
       .where(
         (news) =>
@@ -107,6 +122,25 @@ class CoinNewsViewModel extends BaseViewModel {
                 news.content.toLowerCase().contains(searchController.text.toLowerCase())),
       )
       .toList();
+
+  List<CoinNews> get paginatedEntries {
+    final start = (currentPage - 1) * pageSize;
+    final end = (start + pageSize).clamp(0, entries.length);
+    return entries.sublist(start, end);
+  }
+
+  int get totalPages => (entries.length / pageSize).ceil().clamp(1, 9999);
+
+  void setPage(int page) {
+    currentPage = page;
+    notifyListeners();
+  }
+
+  void setPageSize(int size) {
+    pageSize = size;
+    currentPage = 1;
+    notifyListeners();
+  }
 
   List<Topic> get topics => _newsProvider.topics;
 
@@ -125,8 +159,8 @@ class CoinNewsViewModel extends BaseViewModel {
     final loadedSetting = await _settings.getValue(setting);
 
     if (loadedSetting.value.isEmpty && topics.isNotEmpty) {
-      // Initialize with first topic if nothing is saved
-      _selectedTopicIds = [topics[0].topic];
+      // Initialize with all topics if nothing is saved
+      _selectedTopicIds = topics.map((topic) => topic.topic).toList();
     } else {
       _selectedTopicIds = loadedSetting.value;
     }

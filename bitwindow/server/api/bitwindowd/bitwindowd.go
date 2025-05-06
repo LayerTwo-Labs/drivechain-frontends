@@ -30,6 +30,7 @@ var _ rpc.BitwindowdServiceHandler = new(Server)
 func New(
 	onShutdown func(),
 	db *sql.DB,
+	validator *service.Service[validatorrpc.ValidatorServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	bitcoind *service.Service[*coreproxy.Bitcoind],
 	guiBootedMainchain bool,
@@ -38,6 +39,7 @@ func New(
 	s := &Server{
 		onShutdown: onShutdown,
 		db:         db,
+		validator:  validator,
 		wallet:     wallet,
 		bitcoind:   bitcoind,
 
@@ -50,6 +52,7 @@ func New(
 type Server struct {
 	onShutdown func()
 	db         *sql.DB
+	validator  *service.Service[validatorrpc.ValidatorServiceClient]
 	wallet     *service.Service[validatorrpc.WalletServiceClient]
 	bitcoind   *service.Service[*coreproxy.Bitcoind]
 
@@ -75,9 +78,18 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) 
 	} else {
 		zerolog.Ctx(ctx).Info().Msg("mainchain was not booted by GUI, not shutting down bitcoind..")
 	}
+
 	if s.guiBootedEnforcer {
 		zerolog.Ctx(ctx).Info().Msg("enforcer was booted by GUI, shutting down bip300301-enforcer..")
-		// TODO: Shutdown whenever the enforcer gets a stop rpc
+		validator, err := s.validator.Get(ctx)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		_, err = validator.Stop(ctx, connect.NewRequest(&validatorpb.StopRequest{}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not stop enforcer: %w", err))
+		}
+		zerolog.Ctx(ctx).Info().Msg("bip300301-enforcer shutdown complete")
 	} else {
 		zerolog.Ctx(ctx).Info().Msg("enforcer was not booted by GUI, not shutting down bip300301-enforcer..")
 	}

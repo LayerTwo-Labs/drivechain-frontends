@@ -19,7 +19,10 @@ class SailButton extends StatefulWidget {
   final bool loading;
   final bool disabled;
   final SailSVGAsset? icon;
+  final SailSVGAsset? endIcon;
   final EdgeInsets? padding;
+  final double? iconHeight;
+  final double? iconWidth;
 
   const SailButton({
     super.key,
@@ -29,6 +32,9 @@ class SailButton extends StatefulWidget {
     this.loading = false,
     this.disabled = false,
     this.icon,
+    this.endIcon,
+    this.iconHeight,
+    this.iconWidth,
     this.padding,
   })  : assert(
           variant != ButtonVariant.icon || (icon != null && label == null),
@@ -109,13 +115,23 @@ class _SailButtonState extends State<SailButton> {
             child: LoadingIndicator.insideButton(foregroundColor),
           ),
           const SizedBox(width: 8),
-        ] else if (widget.icon != null) ...[
-          SailSVG.fromAsset(
-            widget.icon!,
-            color: foregroundColor,
-            width: 14,
-          ),
-          if (widget.label != null) const SizedBox(width: 8),
+        ] else if (widget.icon != null || widget.endIcon != null) ...[
+          if (widget.icon != null)
+            SailSVG.fromAsset(
+              widget.icon!,
+              color: foregroundColor,
+              height: widget.iconHeight,
+              width: (widget.iconWidth ?? widget.iconHeight) == null ? 14 : widget.iconWidth,
+            ),
+          if (widget.icon != null && widget.label != null) const SizedBox(width: 8),
+          if (widget.endIcon != null)
+            SailSVG.fromAsset(
+              widget.endIcon!,
+              color: foregroundColor,
+              height: widget.iconHeight,
+              width: (widget.iconWidth ?? widget.iconHeight) == null ? 14 : widget.iconWidth,
+            ),
+          if (widget.endIcon != null && widget.label != null) const SizedBox(width: 8),
         ],
         if (widget.label != null)
           SailText.primary12(
