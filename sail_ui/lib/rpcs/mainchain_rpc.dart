@@ -146,6 +146,7 @@ class MainchainRPCLive extends MainchainRPC {
       return [
         '-rpcthreads=40',
         '-rpcworkqueue=100',
+        '-rest',
       ];
     }
 
@@ -163,6 +164,9 @@ class MainchainRPCLive extends MainchainRPC {
       '-txindex',
       '-fallbackfee=0.00021',
       '-zmqpubsequence=tcp://0.0.0.0:29000',
+      '-rpcthreads=40',
+      '-rpcworkqueue=100',
+      '-rest',
     ];
     log.i('${ParentChain().confFile()} not found, adding sidechain args: $sidechainArgs');
 
