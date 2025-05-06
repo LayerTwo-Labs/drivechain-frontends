@@ -36,9 +36,31 @@ type Server struct {
 	crypto    *service.Service[cryptorpc.CryptoServiceClient]
 }
 
+// Stop implements mainchainv1connect.ValidatorServiceHandler.
+func (s *Server) Stop(ctx context.Context, c *connect.Request[mainchainv1.StopRequest]) (*connect.Response[mainchainv1.StopResponse], error) {
+	validator, err := s.validator.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return validator.Stop(ctx, c)
+}
+
 // SubscribeHeaderSyncProgress implements mainchainv1connect.ValidatorServiceHandler.
-func (s *Server) SubscribeHeaderSyncProgress(context.Context, *connect.Request[mainchainv1.SubscribeHeaderSyncProgressRequest], *connect.ServerStream[mainchainv1.SubscribeHeaderSyncProgressResponse]) error {
-	panic("unimplemented")
+func (s *Server) SubscribeHeaderSyncProgress(ctx context.Context, c *connect.Request[mainchainv1.SubscribeHeaderSyncProgressRequest], stream *connect.ServerStream[mainchainv1.SubscribeHeaderSyncProgressResponse]) error {
+	validator, err := s.validator.Get(ctx)
+	if err != nil {
+		return err
+	}
+	clientStream, err := validator.SubscribeHeaderSyncProgress(ctx, c)
+	if err != nil {
+		return err
+	}
+	for clientStream.Receive() {
+		if err := stream.Send(clientStream.Msg()); err != nil {
+			return err
+		}
+	}
+	return clientStream.Err()
 }
 
 // BroadcastWithdrawalBundle implements mainchainv1connect.WalletServiceHandler.

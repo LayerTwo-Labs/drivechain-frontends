@@ -1345,8 +1345,10 @@ type GetInfoResponse struct {
 	// Number of UTXOs in the wallet.
 	UnspentOutputCount uint32            `protobuf:"varint,3,opt,name=unspent_output_count,json=unspentOutputCount,proto3" json:"unspent_output_count,omitempty"`
 	Descriptors        map[string]string `protobuf:"bytes,4,rep,name=descriptors,proto3" json:"descriptors,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// The chain tip the wallet is synced to.
+	Tip           *GetInfoResponse_Tip `protobuf:"bytes,5,opt,name=tip,proto3" json:"tip,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetInfoResponse) Reset() {
@@ -1403,6 +1405,13 @@ func (x *GetInfoResponse) GetUnspentOutputCount() uint32 {
 func (x *GetInfoResponse) GetDescriptors() map[string]string {
 	if x != nil {
 		return x.Descriptors
+	}
+	return nil
+}
+
+func (x *GetInfoResponse) GetTip() *GetInfoResponse_Tip {
+	if x != nil {
+		return x.Tip
 	}
 	return nil
 }
@@ -1873,6 +1882,60 @@ func (x *SendTransactionRequest_RequiredUtxo) GetVout() uint32 {
 	return 0
 }
 
+type GetInfoResponse_Tip struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The height of the tip of the wallet.
+	Height uint32 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	// The hash of the tip of the wallet.
+	Hash          *v1.ReverseHex `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetInfoResponse_Tip) Reset() {
+	*x = GetInfoResponse_Tip{}
+	mi := &file_cusf_mainchain_v1_wallet_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetInfoResponse_Tip) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetInfoResponse_Tip) ProtoMessage() {}
+
+func (x *GetInfoResponse_Tip) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_wallet_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetInfoResponse_Tip.ProtoReflect.Descriptor instead.
+func (*GetInfoResponse_Tip) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_wallet_proto_rawDescGZIP(), []int{26, 1}
+}
+
+func (x *GetInfoResponse_Tip) GetHeight() uint32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *GetInfoResponse_Tip) GetHash() *v1.ReverseHex {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
 type ListUnspentOutputsResponse_Output struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Txid      *v1.ReverseHex         `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
@@ -1895,7 +1958,7 @@ type ListUnspentOutputsResponse_Output struct {
 
 func (x *ListUnspentOutputsResponse_Output) Reset() {
 	*x = ListUnspentOutputsResponse_Output{}
-	mi := &file_cusf_mainchain_v1_wallet_proto_msgTypes[37]
+	mi := &file_cusf_mainchain_v1_wallet_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1907,7 +1970,7 @@ func (x *ListUnspentOutputsResponse_Output) String() string {
 func (*ListUnspentOutputsResponse_Output) ProtoMessage() {}
 
 func (x *ListUnspentOutputsResponse_Output) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_wallet_proto_msgTypes[37]
+	mi := &file_cusf_mainchain_v1_wallet_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2101,15 +2164,19 @@ const file_cusf_mainchain_v1_wallet_proto_rawDesc = "" +
 	"\x16GenerateBlocksResponse\x129\n" +
 	"\n" +
 	"block_hash\x18\x01 \x01(\v2\x1a.cusf.common.v1.ReverseHexR\tblockHash\"\x10\n" +
-	"\x0eGetInfoRequest\"\xa1\x02\n" +
+	"\x0eGetInfoRequest\"\xaa\x03\n" +
 	"\x0fGetInfoResponse\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12+\n" +
 	"\x11transaction_count\x18\x02 \x01(\rR\x10transactionCount\x120\n" +
 	"\x14unspent_output_count\x18\x03 \x01(\rR\x12unspentOutputCount\x12U\n" +
-	"\vdescriptors\x18\x04 \x03(\v23.cusf.mainchain.v1.GetInfoResponse.DescriptorsEntryR\vdescriptors\x1a>\n" +
+	"\vdescriptors\x18\x04 \x03(\v23.cusf.mainchain.v1.GetInfoResponse.DescriptorsEntryR\vdescriptors\x128\n" +
+	"\x03tip\x18\x05 \x01(\v2&.cusf.mainchain.v1.GetInfoResponse.TipR\x03tip\x1a>\n" +
 	"\x10DescriptorsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1b\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aM\n" +
+	"\x03Tip\x12\x16\n" +
+	"\x06height\x18\x01 \x01(\rR\x06height\x12.\n" +
+	"\x04hash\x18\x02 \x01(\v2\x1a.cusf.common.v1.ReverseHexR\x04hash\"\x1b\n" +
 	"\x19ListUnspentOutputsRequest\"\xef\x04\n" +
 	"\x1aListUnspentOutputsResponse\x12N\n" +
 	"\aoutputs\x18\x01 \x03(\v24.cusf.mainchain.v1.ListUnspentOutputsResponse.OutputR\aoutputs\x1a\x80\x04\n" +
@@ -2157,7 +2224,7 @@ func file_cusf_mainchain_v1_wallet_proto_rawDescGZIP() []byte {
 	return file_cusf_mainchain_v1_wallet_proto_rawDescData
 }
 
-var file_cusf_mainchain_v1_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_cusf_mainchain_v1_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_cusf_mainchain_v1_wallet_proto_goTypes = []any{
 	(*WalletTransaction)(nil),                                                    // 0: cusf.mainchain.v1.WalletTransaction
 	(*BroadcastWithdrawalBundleRequest)(nil),                                     // 1: cusf.mainchain.v1.BroadcastWithdrawalBundleRequest
@@ -2194,102 +2261,105 @@ var file_cusf_mainchain_v1_wallet_proto_goTypes = []any{
 	(*ListSidechainDepositTransactionsResponse_SidechainDepositTransaction)(nil), // 32: cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransaction
 	(*SendTransactionRequest_FeeRate)(nil),                                       // 33: cusf.mainchain.v1.SendTransactionRequest.FeeRate
 	(*SendTransactionRequest_RequiredUtxo)(nil),                                  // 34: cusf.mainchain.v1.SendTransactionRequest.RequiredUtxo
-	nil, // 35: cusf.mainchain.v1.SendTransactionRequest.DestinationsEntry
-	nil, // 36: cusf.mainchain.v1.GetInfoResponse.DescriptorsEntry
-	(*ListUnspentOutputsResponse_Output)(nil), // 37: cusf.mainchain.v1.ListUnspentOutputsResponse.Output
-	(*v1.ReverseHex)(nil),                     // 38: cusf.common.v1.ReverseHex
-	(*wrapperspb.UInt32Value)(nil),            // 39: google.protobuf.UInt32Value
-	(*wrapperspb.BytesValue)(nil),             // 40: google.protobuf.BytesValue
-	(*wrapperspb.UInt64Value)(nil),            // 41: google.protobuf.UInt64Value
-	(*v1.ConsensusHex)(nil),                   // 42: cusf.common.v1.ConsensusHex
-	(*wrapperspb.StringValue)(nil),            // 43: google.protobuf.StringValue
-	(*SidechainDeclaration)(nil),              // 44: cusf.mainchain.v1.SidechainDeclaration
-	(*v1.Hex)(nil),                            // 45: cusf.common.v1.Hex
-	(*timestamppb.Timestamp)(nil),             // 46: google.protobuf.Timestamp
-	(*OutPoint)(nil),                          // 47: cusf.mainchain.v1.OutPoint
+	nil,                         // 35: cusf.mainchain.v1.SendTransactionRequest.DestinationsEntry
+	nil,                         // 36: cusf.mainchain.v1.GetInfoResponse.DescriptorsEntry
+	(*GetInfoResponse_Tip)(nil), // 37: cusf.mainchain.v1.GetInfoResponse.Tip
+	(*ListUnspentOutputsResponse_Output)(nil), // 38: cusf.mainchain.v1.ListUnspentOutputsResponse.Output
+	(*v1.ReverseHex)(nil),                     // 39: cusf.common.v1.ReverseHex
+	(*wrapperspb.UInt32Value)(nil),            // 40: google.protobuf.UInt32Value
+	(*wrapperspb.BytesValue)(nil),             // 41: google.protobuf.BytesValue
+	(*wrapperspb.UInt64Value)(nil),            // 42: google.protobuf.UInt64Value
+	(*v1.ConsensusHex)(nil),                   // 43: cusf.common.v1.ConsensusHex
+	(*wrapperspb.StringValue)(nil),            // 44: google.protobuf.StringValue
+	(*SidechainDeclaration)(nil),              // 45: cusf.mainchain.v1.SidechainDeclaration
+	(*v1.Hex)(nil),                            // 46: cusf.common.v1.Hex
+	(*timestamppb.Timestamp)(nil),             // 47: google.protobuf.Timestamp
+	(*OutPoint)(nil),                          // 48: cusf.mainchain.v1.OutPoint
 }
 var file_cusf_mainchain_v1_wallet_proto_depIdxs = []int32{
-	38, // 0: cusf.mainchain.v1.WalletTransaction.txid:type_name -> cusf.common.v1.ReverseHex
+	39, // 0: cusf.mainchain.v1.WalletTransaction.txid:type_name -> cusf.common.v1.ReverseHex
 	29, // 1: cusf.mainchain.v1.WalletTransaction.confirmation_info:type_name -> cusf.mainchain.v1.WalletTransaction.Confirmation
-	39, // 2: cusf.mainchain.v1.BroadcastWithdrawalBundleRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	40, // 3: cusf.mainchain.v1.BroadcastWithdrawalBundleRequest.transaction:type_name -> google.protobuf.BytesValue
-	39, // 4: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	41, // 5: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.value_sats:type_name -> google.protobuf.UInt64Value
-	39, // 6: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.height:type_name -> google.protobuf.UInt32Value
-	42, // 7: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.critical_hash:type_name -> cusf.common.v1.ConsensusHex
-	38, // 8: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.prev_bytes:type_name -> cusf.common.v1.ReverseHex
-	38, // 9: cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse.txid:type_name -> cusf.common.v1.ReverseHex
-	39, // 10: cusf.mainchain.v1.CreateDepositTransactionRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	43, // 11: cusf.mainchain.v1.CreateDepositTransactionRequest.address:type_name -> google.protobuf.StringValue
-	41, // 12: cusf.mainchain.v1.CreateDepositTransactionRequest.value_sats:type_name -> google.protobuf.UInt64Value
-	41, // 13: cusf.mainchain.v1.CreateDepositTransactionRequest.fee_sats:type_name -> google.protobuf.UInt64Value
-	38, // 14: cusf.mainchain.v1.CreateDepositTransactionResponse.txid:type_name -> cusf.common.v1.ReverseHex
-	39, // 15: cusf.mainchain.v1.CreateSidechainProposalRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	44, // 16: cusf.mainchain.v1.CreateSidechainProposalRequest.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
+	40, // 2: cusf.mainchain.v1.BroadcastWithdrawalBundleRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	41, // 3: cusf.mainchain.v1.BroadcastWithdrawalBundleRequest.transaction:type_name -> google.protobuf.BytesValue
+	40, // 4: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	42, // 5: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.value_sats:type_name -> google.protobuf.UInt64Value
+	40, // 6: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.height:type_name -> google.protobuf.UInt32Value
+	43, // 7: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.critical_hash:type_name -> cusf.common.v1.ConsensusHex
+	39, // 8: cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest.prev_bytes:type_name -> cusf.common.v1.ReverseHex
+	39, // 9: cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse.txid:type_name -> cusf.common.v1.ReverseHex
+	40, // 10: cusf.mainchain.v1.CreateDepositTransactionRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	44, // 11: cusf.mainchain.v1.CreateDepositTransactionRequest.address:type_name -> google.protobuf.StringValue
+	42, // 12: cusf.mainchain.v1.CreateDepositTransactionRequest.value_sats:type_name -> google.protobuf.UInt64Value
+	42, // 13: cusf.mainchain.v1.CreateDepositTransactionRequest.fee_sats:type_name -> google.protobuf.UInt64Value
+	39, // 14: cusf.mainchain.v1.CreateDepositTransactionResponse.txid:type_name -> cusf.common.v1.ReverseHex
+	40, // 15: cusf.mainchain.v1.CreateSidechainProposalRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	45, // 16: cusf.mainchain.v1.CreateSidechainProposalRequest.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
 	30, // 17: cusf.mainchain.v1.CreateSidechainProposalResponse.confirmed:type_name -> cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed
 	31, // 18: cusf.mainchain.v1.CreateSidechainProposalResponse.not_confirmed:type_name -> cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed
 	32, // 19: cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.transactions:type_name -> cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransaction
 	0,  // 20: cusf.mainchain.v1.ListTransactionsResponse.transactions:type_name -> cusf.mainchain.v1.WalletTransaction
 	35, // 21: cusf.mainchain.v1.SendTransactionRequest.destinations:type_name -> cusf.mainchain.v1.SendTransactionRequest.DestinationsEntry
 	33, // 22: cusf.mainchain.v1.SendTransactionRequest.fee_rate:type_name -> cusf.mainchain.v1.SendTransactionRequest.FeeRate
-	45, // 23: cusf.mainchain.v1.SendTransactionRequest.op_return_message:type_name -> cusf.common.v1.Hex
+	46, // 23: cusf.mainchain.v1.SendTransactionRequest.op_return_message:type_name -> cusf.common.v1.Hex
 	34, // 24: cusf.mainchain.v1.SendTransactionRequest.required_utxos:type_name -> cusf.mainchain.v1.SendTransactionRequest.RequiredUtxo
-	38, // 25: cusf.mainchain.v1.SendTransactionResponse.txid:type_name -> cusf.common.v1.ReverseHex
-	39, // 26: cusf.mainchain.v1.GenerateBlocksRequest.blocks:type_name -> google.protobuf.UInt32Value
-	38, // 27: cusf.mainchain.v1.GenerateBlocksResponse.block_hash:type_name -> cusf.common.v1.ReverseHex
+	39, // 25: cusf.mainchain.v1.SendTransactionResponse.txid:type_name -> cusf.common.v1.ReverseHex
+	40, // 26: cusf.mainchain.v1.GenerateBlocksRequest.blocks:type_name -> google.protobuf.UInt32Value
+	39, // 27: cusf.mainchain.v1.GenerateBlocksResponse.block_hash:type_name -> cusf.common.v1.ReverseHex
 	36, // 28: cusf.mainchain.v1.GetInfoResponse.descriptors:type_name -> cusf.mainchain.v1.GetInfoResponse.DescriptorsEntry
-	37, // 29: cusf.mainchain.v1.ListUnspentOutputsResponse.outputs:type_name -> cusf.mainchain.v1.ListUnspentOutputsResponse.Output
-	38, // 30: cusf.mainchain.v1.WalletTransaction.Confirmation.block_hash:type_name -> cusf.common.v1.ReverseHex
-	46, // 31: cusf.mainchain.v1.WalletTransaction.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
-	38, // 32: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.block_hash:type_name -> cusf.common.v1.ReverseHex
-	39, // 33: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.confirmations:type_name -> google.protobuf.UInt32Value
-	39, // 34: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.height:type_name -> google.protobuf.UInt32Value
-	47, // 35: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.outpoint:type_name -> cusf.mainchain.v1.OutPoint
-	38, // 36: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
-	38, // 37: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.block_hash:type_name -> cusf.common.v1.ReverseHex
-	39, // 38: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.height:type_name -> google.protobuf.UInt32Value
-	38, // 39: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
-	39, // 40: cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransaction.sidechain_number:type_name -> google.protobuf.UInt32Value
-	0,  // 41: cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransaction.tx:type_name -> cusf.mainchain.v1.WalletTransaction
-	38, // 42: cusf.mainchain.v1.SendTransactionRequest.RequiredUtxo.txid:type_name -> cusf.common.v1.ReverseHex
-	38, // 43: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.txid:type_name -> cusf.common.v1.ReverseHex
-	46, // 44: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.confirmed_at_time:type_name -> google.protobuf.Timestamp
-	38, // 45: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.confirmed_transitively:type_name -> cusf.common.v1.ReverseHex
-	46, // 46: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.unconfirmed_last_seen:type_name -> google.protobuf.Timestamp
-	43, // 47: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.address:type_name -> google.protobuf.StringValue
-	1,  // 48: cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle:input_type -> cusf.mainchain.v1.BroadcastWithdrawalBundleRequest
-	3,  // 49: cusf.mainchain.v1.WalletService.CreateBmmCriticalDataTransaction:input_type -> cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest
-	5,  // 50: cusf.mainchain.v1.WalletService.CreateDepositTransaction:input_type -> cusf.mainchain.v1.CreateDepositTransactionRequest
-	7,  // 51: cusf.mainchain.v1.WalletService.CreateNewAddress:input_type -> cusf.mainchain.v1.CreateNewAddressRequest
-	9,  // 52: cusf.mainchain.v1.WalletService.CreateSidechainProposal:input_type -> cusf.mainchain.v1.CreateSidechainProposalRequest
-	11, // 53: cusf.mainchain.v1.WalletService.CreateWallet:input_type -> cusf.mainchain.v1.CreateWalletRequest
-	13, // 54: cusf.mainchain.v1.WalletService.GetBalance:input_type -> cusf.mainchain.v1.GetBalanceRequest
-	15, // 55: cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions:input_type -> cusf.mainchain.v1.ListSidechainDepositTransactionsRequest
-	17, // 56: cusf.mainchain.v1.WalletService.ListTransactions:input_type -> cusf.mainchain.v1.ListTransactionsRequest
-	27, // 57: cusf.mainchain.v1.WalletService.ListUnspentOutputs:input_type -> cusf.mainchain.v1.ListUnspentOutputsRequest
-	25, // 58: cusf.mainchain.v1.WalletService.GetInfo:input_type -> cusf.mainchain.v1.GetInfoRequest
-	19, // 59: cusf.mainchain.v1.WalletService.SendTransaction:input_type -> cusf.mainchain.v1.SendTransactionRequest
-	21, // 60: cusf.mainchain.v1.WalletService.UnlockWallet:input_type -> cusf.mainchain.v1.UnlockWalletRequest
-	23, // 61: cusf.mainchain.v1.WalletService.GenerateBlocks:input_type -> cusf.mainchain.v1.GenerateBlocksRequest
-	2,  // 62: cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle:output_type -> cusf.mainchain.v1.BroadcastWithdrawalBundleResponse
-	4,  // 63: cusf.mainchain.v1.WalletService.CreateBmmCriticalDataTransaction:output_type -> cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse
-	6,  // 64: cusf.mainchain.v1.WalletService.CreateDepositTransaction:output_type -> cusf.mainchain.v1.CreateDepositTransactionResponse
-	8,  // 65: cusf.mainchain.v1.WalletService.CreateNewAddress:output_type -> cusf.mainchain.v1.CreateNewAddressResponse
-	10, // 66: cusf.mainchain.v1.WalletService.CreateSidechainProposal:output_type -> cusf.mainchain.v1.CreateSidechainProposalResponse
-	12, // 67: cusf.mainchain.v1.WalletService.CreateWallet:output_type -> cusf.mainchain.v1.CreateWalletResponse
-	14, // 68: cusf.mainchain.v1.WalletService.GetBalance:output_type -> cusf.mainchain.v1.GetBalanceResponse
-	16, // 69: cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions:output_type -> cusf.mainchain.v1.ListSidechainDepositTransactionsResponse
-	18, // 70: cusf.mainchain.v1.WalletService.ListTransactions:output_type -> cusf.mainchain.v1.ListTransactionsResponse
-	28, // 71: cusf.mainchain.v1.WalletService.ListUnspentOutputs:output_type -> cusf.mainchain.v1.ListUnspentOutputsResponse
-	26, // 72: cusf.mainchain.v1.WalletService.GetInfo:output_type -> cusf.mainchain.v1.GetInfoResponse
-	20, // 73: cusf.mainchain.v1.WalletService.SendTransaction:output_type -> cusf.mainchain.v1.SendTransactionResponse
-	22, // 74: cusf.mainchain.v1.WalletService.UnlockWallet:output_type -> cusf.mainchain.v1.UnlockWalletResponse
-	24, // 75: cusf.mainchain.v1.WalletService.GenerateBlocks:output_type -> cusf.mainchain.v1.GenerateBlocksResponse
-	62, // [62:76] is the sub-list for method output_type
-	48, // [48:62] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	37, // 29: cusf.mainchain.v1.GetInfoResponse.tip:type_name -> cusf.mainchain.v1.GetInfoResponse.Tip
+	38, // 30: cusf.mainchain.v1.ListUnspentOutputsResponse.outputs:type_name -> cusf.mainchain.v1.ListUnspentOutputsResponse.Output
+	39, // 31: cusf.mainchain.v1.WalletTransaction.Confirmation.block_hash:type_name -> cusf.common.v1.ReverseHex
+	47, // 32: cusf.mainchain.v1.WalletTransaction.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
+	39, // 33: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.block_hash:type_name -> cusf.common.v1.ReverseHex
+	40, // 34: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.confirmations:type_name -> google.protobuf.UInt32Value
+	40, // 35: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.height:type_name -> google.protobuf.UInt32Value
+	48, // 36: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.outpoint:type_name -> cusf.mainchain.v1.OutPoint
+	39, // 37: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
+	39, // 38: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.block_hash:type_name -> cusf.common.v1.ReverseHex
+	40, // 39: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.height:type_name -> google.protobuf.UInt32Value
+	39, // 40: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
+	40, // 41: cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransaction.sidechain_number:type_name -> google.protobuf.UInt32Value
+	0,  // 42: cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransaction.tx:type_name -> cusf.mainchain.v1.WalletTransaction
+	39, // 43: cusf.mainchain.v1.SendTransactionRequest.RequiredUtxo.txid:type_name -> cusf.common.v1.ReverseHex
+	39, // 44: cusf.mainchain.v1.GetInfoResponse.Tip.hash:type_name -> cusf.common.v1.ReverseHex
+	39, // 45: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.txid:type_name -> cusf.common.v1.ReverseHex
+	47, // 46: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.confirmed_at_time:type_name -> google.protobuf.Timestamp
+	39, // 47: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.confirmed_transitively:type_name -> cusf.common.v1.ReverseHex
+	47, // 48: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.unconfirmed_last_seen:type_name -> google.protobuf.Timestamp
+	44, // 49: cusf.mainchain.v1.ListUnspentOutputsResponse.Output.address:type_name -> google.protobuf.StringValue
+	1,  // 50: cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle:input_type -> cusf.mainchain.v1.BroadcastWithdrawalBundleRequest
+	3,  // 51: cusf.mainchain.v1.WalletService.CreateBmmCriticalDataTransaction:input_type -> cusf.mainchain.v1.CreateBmmCriticalDataTransactionRequest
+	5,  // 52: cusf.mainchain.v1.WalletService.CreateDepositTransaction:input_type -> cusf.mainchain.v1.CreateDepositTransactionRequest
+	7,  // 53: cusf.mainchain.v1.WalletService.CreateNewAddress:input_type -> cusf.mainchain.v1.CreateNewAddressRequest
+	9,  // 54: cusf.mainchain.v1.WalletService.CreateSidechainProposal:input_type -> cusf.mainchain.v1.CreateSidechainProposalRequest
+	11, // 55: cusf.mainchain.v1.WalletService.CreateWallet:input_type -> cusf.mainchain.v1.CreateWalletRequest
+	13, // 56: cusf.mainchain.v1.WalletService.GetBalance:input_type -> cusf.mainchain.v1.GetBalanceRequest
+	15, // 57: cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions:input_type -> cusf.mainchain.v1.ListSidechainDepositTransactionsRequest
+	17, // 58: cusf.mainchain.v1.WalletService.ListTransactions:input_type -> cusf.mainchain.v1.ListTransactionsRequest
+	27, // 59: cusf.mainchain.v1.WalletService.ListUnspentOutputs:input_type -> cusf.mainchain.v1.ListUnspentOutputsRequest
+	25, // 60: cusf.mainchain.v1.WalletService.GetInfo:input_type -> cusf.mainchain.v1.GetInfoRequest
+	19, // 61: cusf.mainchain.v1.WalletService.SendTransaction:input_type -> cusf.mainchain.v1.SendTransactionRequest
+	21, // 62: cusf.mainchain.v1.WalletService.UnlockWallet:input_type -> cusf.mainchain.v1.UnlockWalletRequest
+	23, // 63: cusf.mainchain.v1.WalletService.GenerateBlocks:input_type -> cusf.mainchain.v1.GenerateBlocksRequest
+	2,  // 64: cusf.mainchain.v1.WalletService.BroadcastWithdrawalBundle:output_type -> cusf.mainchain.v1.BroadcastWithdrawalBundleResponse
+	4,  // 65: cusf.mainchain.v1.WalletService.CreateBmmCriticalDataTransaction:output_type -> cusf.mainchain.v1.CreateBmmCriticalDataTransactionResponse
+	6,  // 66: cusf.mainchain.v1.WalletService.CreateDepositTransaction:output_type -> cusf.mainchain.v1.CreateDepositTransactionResponse
+	8,  // 67: cusf.mainchain.v1.WalletService.CreateNewAddress:output_type -> cusf.mainchain.v1.CreateNewAddressResponse
+	10, // 68: cusf.mainchain.v1.WalletService.CreateSidechainProposal:output_type -> cusf.mainchain.v1.CreateSidechainProposalResponse
+	12, // 69: cusf.mainchain.v1.WalletService.CreateWallet:output_type -> cusf.mainchain.v1.CreateWalletResponse
+	14, // 70: cusf.mainchain.v1.WalletService.GetBalance:output_type -> cusf.mainchain.v1.GetBalanceResponse
+	16, // 71: cusf.mainchain.v1.WalletService.ListSidechainDepositTransactions:output_type -> cusf.mainchain.v1.ListSidechainDepositTransactionsResponse
+	18, // 72: cusf.mainchain.v1.WalletService.ListTransactions:output_type -> cusf.mainchain.v1.ListTransactionsResponse
+	28, // 73: cusf.mainchain.v1.WalletService.ListUnspentOutputs:output_type -> cusf.mainchain.v1.ListUnspentOutputsResponse
+	26, // 74: cusf.mainchain.v1.WalletService.GetInfo:output_type -> cusf.mainchain.v1.GetInfoResponse
+	20, // 75: cusf.mainchain.v1.WalletService.SendTransaction:output_type -> cusf.mainchain.v1.SendTransactionResponse
+	22, // 76: cusf.mainchain.v1.WalletService.UnlockWallet:output_type -> cusf.mainchain.v1.UnlockWalletResponse
+	24, // 77: cusf.mainchain.v1.WalletService.GenerateBlocks:output_type -> cusf.mainchain.v1.GenerateBlocksResponse
+	64, // [64:78] is the sub-list for method output_type
+	50, // [50:64] is the sub-list for method input_type
+	50, // [50:50] is the sub-list for extension type_name
+	50, // [50:50] is the sub-list for extension extendee
+	0,  // [0:50] is the sub-list for field type_name
 }
 
 func init() { file_cusf_mainchain_v1_wallet_proto_init() }
@@ -2313,7 +2383,7 @@ func file_cusf_mainchain_v1_wallet_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cusf_mainchain_v1_wallet_proto_rawDesc), len(file_cusf_mainchain_v1_wallet_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   38,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

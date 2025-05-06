@@ -3329,6 +3329,70 @@ class SubscribeHeaderSyncProgressResponse extends $pb.GeneratedMessage {
   $0.UInt32Value ensureCurrentHeight() => $_ensure(0);
 }
 
+class StopRequest extends $pb.GeneratedMessage {
+  factory StopRequest() => create();
+  StopRequest._() : super();
+  factory StopRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StopRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StopRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StopRequest clone() => StopRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StopRequest copyWith(void Function(StopRequest) updates) => super.copyWith((message) => updates(message as StopRequest)) as StopRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StopRequest create() => StopRequest._();
+  StopRequest createEmptyInstance() => create();
+  static $pb.PbList<StopRequest> createRepeated() => $pb.PbList<StopRequest>();
+  @$core.pragma('dart2js:noInline')
+  static StopRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StopRequest>(create);
+  static StopRequest? _defaultInstance;
+}
+
+class StopResponse extends $pb.GeneratedMessage {
+  factory StopResponse() => create();
+  StopResponse._() : super();
+  factory StopResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StopResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StopResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StopResponse clone() => StopResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StopResponse copyWith(void Function(StopResponse) updates) => super.copyWith((message) => updates(message as StopResponse)) as StopResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StopResponse create() => StopResponse._();
+  StopResponse createEmptyInstance() => create();
+  static $pb.PbList<StopResponse> createRepeated() => $pb.PbList<StopResponse>();
+  @$core.pragma('dart2js:noInline')
+  static StopResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StopResponse>(create);
+  static StopResponse? _defaultInstance;
+}
+
 class ValidatorServiceApi {
   $pb.RpcClient _client;
   ValidatorServiceApi(this._client);
@@ -3368,6 +3432,9 @@ class ValidatorServiceApi {
   ;
   $async.Future<SubscribeHeaderSyncProgressResponse> subscribeHeaderSyncProgress($pb.ClientContext? ctx, SubscribeHeaderSyncProgressRequest request) =>
     _client.invoke<SubscribeHeaderSyncProgressResponse>(ctx, 'ValidatorService', 'SubscribeHeaderSyncProgress', request, SubscribeHeaderSyncProgressResponse())
+  ;
+  $async.Future<StopResponse> stop($pb.ClientContext? ctx, StopRequest request) =>
+    _client.invoke<StopResponse>(ctx, 'ValidatorService', 'Stop', request, StopResponse())
   ;
 }
 

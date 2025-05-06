@@ -2040,12 +2040,81 @@ class GetInfoRequest extends $pb.GeneratedMessage {
   static GetInfoRequest? _defaultInstance;
 }
 
+class GetInfoResponse_Tip extends $pb.GeneratedMessage {
+  factory GetInfoResponse_Tip({
+    $core.int? height,
+    $1.ReverseHex? hash,
+  }) {
+    final $result = create();
+    if (height != null) {
+      $result.height = height;
+    }
+    if (hash != null) {
+      $result.hash = hash;
+    }
+    return $result;
+  }
+  GetInfoResponse_Tip._() : super();
+  factory GetInfoResponse_Tip.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetInfoResponse_Tip.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetInfoResponse.Tip', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'height', $pb.PbFieldType.OU3)
+    ..aOM<$1.ReverseHex>(2, _omitFieldNames ? '' : 'hash', subBuilder: $1.ReverseHex.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetInfoResponse_Tip clone() => GetInfoResponse_Tip()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetInfoResponse_Tip copyWith(void Function(GetInfoResponse_Tip) updates) => super.copyWith((message) => updates(message as GetInfoResponse_Tip)) as GetInfoResponse_Tip;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetInfoResponse_Tip create() => GetInfoResponse_Tip._();
+  GetInfoResponse_Tip createEmptyInstance() => create();
+  static $pb.PbList<GetInfoResponse_Tip> createRepeated() => $pb.PbList<GetInfoResponse_Tip>();
+  @$core.pragma('dart2js:noInline')
+  static GetInfoResponse_Tip getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetInfoResponse_Tip>(create);
+  static GetInfoResponse_Tip? _defaultInstance;
+
+  /// The height of the tip of the wallet.
+  @$pb.TagNumber(1)
+  $core.int get height => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set height($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasHeight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHeight() => clearField(1);
+
+  /// The hash of the tip of the wallet.
+  @$pb.TagNumber(2)
+  $1.ReverseHex get hash => $_getN(1);
+  @$pb.TagNumber(2)
+  set hash($1.ReverseHex v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasHash() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHash() => clearField(2);
+  @$pb.TagNumber(2)
+  $1.ReverseHex ensureHash() => $_ensure(1);
+}
+
 class GetInfoResponse extends $pb.GeneratedMessage {
   factory GetInfoResponse({
     $core.String? network,
     $core.int? transactionCount,
     $core.int? unspentOutputCount,
     $core.Map<$core.String, $core.String>? descriptors,
+    GetInfoResponse_Tip? tip,
   }) {
     final $result = create();
     if (network != null) {
@@ -2060,6 +2129,9 @@ class GetInfoResponse extends $pb.GeneratedMessage {
     if (descriptors != null) {
       $result.descriptors.addAll(descriptors);
     }
+    if (tip != null) {
+      $result.tip = tip;
+    }
     return $result;
   }
   GetInfoResponse._() : super();
@@ -2071,6 +2143,7 @@ class GetInfoResponse extends $pb.GeneratedMessage {
     ..a<$core.int>(2, _omitFieldNames ? '' : 'transactionCount', $pb.PbFieldType.OU3)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'unspentOutputCount', $pb.PbFieldType.OU3)
     ..m<$core.String, $core.String>(4, _omitFieldNames ? '' : 'descriptors', entryClassName: 'GetInfoResponse.DescriptorsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.OS, packageName: const $pb.PackageName('cusf.mainchain.v1'))
+    ..aOM<GetInfoResponse_Tip>(5, _omitFieldNames ? '' : 'tip', subBuilder: GetInfoResponse_Tip.create)
     ..hasRequiredFields = false
   ;
 
@@ -2127,6 +2200,18 @@ class GetInfoResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(4)
   $core.Map<$core.String, $core.String> get descriptors => $_getMap(3);
+
+  /// The chain tip the wallet is synced to.
+  @$pb.TagNumber(5)
+  GetInfoResponse_Tip get tip => $_getN(4);
+  @$pb.TagNumber(5)
+  set tip(GetInfoResponse_Tip v) { setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasTip() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTip() => clearField(5);
+  @$pb.TagNumber(5)
+  GetInfoResponse_Tip ensureTip() => $_ensure(4);
 }
 
 class ListUnspentOutputsRequest extends $pb.GeneratedMessage {

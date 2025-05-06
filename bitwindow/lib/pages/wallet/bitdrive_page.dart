@@ -100,14 +100,14 @@ class BitDriveTab extends StatelessWidget {
                                       ),
                                       SailButton(
                                         variant: ButtonVariant.icon,
-                                        icon: SailSVGAsset.iconArrow,
+                                        icon: SailSVGAsset.arrowUp,
                                         onPressed: () async {
                                           model.adjustFee(0.0001);
                                         },
                                       ),
                                       SailButton(
                                         variant: ButtonVariant.icon,
-                                        icon: SailSVGAsset.iconArrow,
+                                        icon: SailSVGAsset.arrowDown,
                                         onPressed: () async {
                                           model.adjustFee(-0.0001);
                                         },

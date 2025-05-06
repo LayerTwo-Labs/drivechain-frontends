@@ -482,8 +482,9 @@ const GetInfoResponse$json = {
     {'1': 'transaction_count', '3': 2, '4': 1, '5': 13, '10': 'transactionCount'},
     {'1': 'unspent_output_count', '3': 3, '4': 1, '5': 13, '10': 'unspentOutputCount'},
     {'1': 'descriptors', '3': 4, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.GetInfoResponse.DescriptorsEntry', '10': 'descriptors'},
+    {'1': 'tip', '3': 5, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.GetInfoResponse.Tip', '10': 'tip'},
   ],
-  '3': [GetInfoResponse_DescriptorsEntry$json],
+  '3': [GetInfoResponse_DescriptorsEntry$json, GetInfoResponse_Tip$json],
 };
 
 @$core.Deprecated('Use getInfoResponseDescriptor instead')
@@ -496,14 +497,25 @@ const GetInfoResponse_DescriptorsEntry$json = {
   '7': {'7': true},
 };
 
+@$core.Deprecated('Use getInfoResponseDescriptor instead')
+const GetInfoResponse_Tip$json = {
+  '1': 'Tip',
+  '2': [
+    {'1': 'height', '3': 1, '4': 1, '5': 13, '10': 'height'},
+    {'1': 'hash', '3': 2, '4': 1, '5': 11, '6': '.cusf.common.v1.ReverseHex', '10': 'hash'},
+  ],
+};
+
 /// Descriptor for `GetInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getInfoResponseDescriptor = $convert.base64Decode(
     'Cg9HZXRJbmZvUmVzcG9uc2USGAoHbmV0d29yaxgBIAEoCVIHbmV0d29yaxIrChF0cmFuc2FjdG'
     'lvbl9jb3VudBgCIAEoDVIQdHJhbnNhY3Rpb25Db3VudBIwChR1bnNwZW50X291dHB1dF9jb3Vu'
     'dBgDIAEoDVISdW5zcGVudE91dHB1dENvdW50ElUKC2Rlc2NyaXB0b3JzGAQgAygLMjMuY3VzZi'
     '5tYWluY2hhaW4udjEuR2V0SW5mb1Jlc3BvbnNlLkRlc2NyaXB0b3JzRW50cnlSC2Rlc2NyaXB0'
-    'b3JzGj4KEERlc2NyaXB0b3JzRW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKA'
-    'lSBXZhbHVlOgI4AQ==');
+    'b3JzEjgKA3RpcBgFIAEoCzImLmN1c2YubWFpbmNoYWluLnYxLkdldEluZm9SZXNwb25zZS5UaX'
+    'BSA3RpcBo+ChBEZXNjcmlwdG9yc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBXZhbHVlGAIg'
+    'ASgJUgV2YWx1ZToCOAEaTQoDVGlwEhYKBmhlaWdodBgBIAEoDVIGaGVpZ2h0Ei4KBGhhc2gYAi'
+    'ABKAsyGi5jdXNmLmNvbW1vbi52MS5SZXZlcnNlSGV4UgRoYXNo');
 
 @$core.Deprecated('Use listUnspentOutputsRequestDescriptor instead')
 const ListUnspentOutputsRequest$json = {
@@ -617,6 +629,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.cusf.mainchain.v1.GetInfoRequest': GetInfoRequest$json,
   '.cusf.mainchain.v1.GetInfoResponse': GetInfoResponse$json,
   '.cusf.mainchain.v1.GetInfoResponse.DescriptorsEntry': GetInfoResponse_DescriptorsEntry$json,
+  '.cusf.mainchain.v1.GetInfoResponse.Tip': GetInfoResponse_Tip$json,
   '.cusf.mainchain.v1.SendTransactionRequest': SendTransactionRequest$json,
   '.cusf.mainchain.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.cusf.mainchain.v1.SendTransactionRequest.FeeRate': SendTransactionRequest_FeeRate$json,

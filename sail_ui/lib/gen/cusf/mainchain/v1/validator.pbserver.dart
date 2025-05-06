@@ -33,6 +33,7 @@ abstract class ValidatorServiceBase extends $pb.GeneratedService {
   $async.Future<$4.GetTwoWayPegDataResponse> getTwoWayPegData($pb.ServerContext ctx, $4.GetTwoWayPegDataRequest request);
   $async.Future<$4.SubscribeEventsResponse> subscribeEvents($pb.ServerContext ctx, $4.SubscribeEventsRequest request);
   $async.Future<$4.SubscribeHeaderSyncProgressResponse> subscribeHeaderSyncProgress($pb.ServerContext ctx, $4.SubscribeHeaderSyncProgressRequest request);
+  $async.Future<$4.StopResponse> stop($pb.ServerContext ctx, $4.StopRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -48,6 +49,7 @@ abstract class ValidatorServiceBase extends $pb.GeneratedService {
       case 'GetTwoWayPegData': return $4.GetTwoWayPegDataRequest();
       case 'SubscribeEvents': return $4.SubscribeEventsRequest();
       case 'SubscribeHeaderSyncProgress': return $4.SubscribeHeaderSyncProgressRequest();
+      case 'Stop': return $4.StopRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -66,6 +68,7 @@ abstract class ValidatorServiceBase extends $pb.GeneratedService {
       case 'GetTwoWayPegData': return this.getTwoWayPegData(ctx, request as $4.GetTwoWayPegDataRequest);
       case 'SubscribeEvents': return this.subscribeEvents(ctx, request as $4.SubscribeEventsRequest);
       case 'SubscribeHeaderSyncProgress': return this.subscribeHeaderSyncProgress(ctx, request as $4.SubscribeHeaderSyncProgressRequest);
+      case 'Stop': return this.stop(ctx, request as $4.StopRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

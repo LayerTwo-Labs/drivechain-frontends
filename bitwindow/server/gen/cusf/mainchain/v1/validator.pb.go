@@ -1480,6 +1480,78 @@ func (x *SubscribeHeaderSyncProgressResponse) GetCurrentHeight() *wrapperspb.UIn
 	return nil
 }
 
+type StopRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopRequest) Reset() {
+	*x = StopRequest{}
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopRequest) ProtoMessage() {}
+
+func (x *StopRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopRequest.ProtoReflect.Descriptor instead.
+func (*StopRequest) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_validator_proto_rawDescGZIP(), []int{28}
+}
+
+type StopResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopResponse) Reset() {
+	*x = StopResponse{}
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopResponse) ProtoMessage() {}
+
+func (x *StopResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopResponse.ProtoReflect.Descriptor instead.
+func (*StopResponse) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_validator_proto_rawDescGZIP(), []int{29}
+}
+
 type Deposit_Output struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	Address       *v1.Hex                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
@@ -1490,7 +1562,7 @@ type Deposit_Output struct {
 
 func (x *Deposit_Output) Reset() {
 	*x = Deposit_Output{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[28]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1502,7 +1574,7 @@ func (x *Deposit_Output) String() string {
 func (*Deposit_Output) ProtoMessage() {}
 
 func (x *Deposit_Output) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[28]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1546,7 +1618,7 @@ type WithdrawalBundleEvent_Event struct {
 
 func (x *WithdrawalBundleEvent_Event) Reset() {
 	*x = WithdrawalBundleEvent_Event{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[29]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1558,7 +1630,7 @@ func (x *WithdrawalBundleEvent_Event) String() string {
 func (*WithdrawalBundleEvent_Event) ProtoMessage() {}
 
 func (x *WithdrawalBundleEvent_Event) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[29]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1638,7 +1710,7 @@ type WithdrawalBundleEvent_Event_Failed struct {
 
 func (x *WithdrawalBundleEvent_Event_Failed) Reset() {
 	*x = WithdrawalBundleEvent_Event_Failed{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[30]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1650,7 +1722,7 @@ func (x *WithdrawalBundleEvent_Event_Failed) String() string {
 func (*WithdrawalBundleEvent_Event_Failed) ProtoMessage() {}
 
 func (x *WithdrawalBundleEvent_Event_Failed) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[30]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1676,7 +1748,7 @@ type WithdrawalBundleEvent_Event_Succeeded struct {
 
 func (x *WithdrawalBundleEvent_Event_Succeeded) Reset() {
 	*x = WithdrawalBundleEvent_Event_Succeeded{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[31]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1688,7 +1760,7 @@ func (x *WithdrawalBundleEvent_Event_Succeeded) String() string {
 func (*WithdrawalBundleEvent_Event_Succeeded) ProtoMessage() {}
 
 func (x *WithdrawalBundleEvent_Event_Succeeded) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[31]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1726,7 +1798,7 @@ type WithdrawalBundleEvent_Event_Submitted struct {
 
 func (x *WithdrawalBundleEvent_Event_Submitted) Reset() {
 	*x = WithdrawalBundleEvent_Event_Submitted{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[32]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1738,7 +1810,7 @@ func (x *WithdrawalBundleEvent_Event_Submitted) String() string {
 func (*WithdrawalBundleEvent_Event_Submitted) ProtoMessage() {}
 
 func (x *WithdrawalBundleEvent_Event_Submitted) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[32]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1767,7 +1839,7 @@ type BlockInfo_Event struct {
 
 func (x *BlockInfo_Event) Reset() {
 	*x = BlockInfo_Event{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[33]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1779,7 +1851,7 @@ func (x *BlockInfo_Event) String() string {
 func (*BlockInfo_Event) ProtoMessage() {}
 
 func (x *BlockInfo_Event) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[33]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1849,7 +1921,7 @@ type GetBlockInfoResponse_Info struct {
 
 func (x *GetBlockInfoResponse_Info) Reset() {
 	*x = GetBlockInfoResponse_Info{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[34]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1861,7 +1933,7 @@ func (x *GetBlockInfoResponse_Info) String() string {
 func (*GetBlockInfoResponse_Info) ProtoMessage() {}
 
 func (x *GetBlockInfoResponse_Info) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[34]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1900,7 +1972,7 @@ type GetBmmHStarCommitmentResponse_BlockNotFoundError struct {
 
 func (x *GetBmmHStarCommitmentResponse_BlockNotFoundError) Reset() {
 	*x = GetBmmHStarCommitmentResponse_BlockNotFoundError{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[35]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1912,7 +1984,7 @@ func (x *GetBmmHStarCommitmentResponse_BlockNotFoundError) String() string {
 func (*GetBmmHStarCommitmentResponse_BlockNotFoundError) ProtoMessage() {}
 
 func (x *GetBmmHStarCommitmentResponse_BlockNotFoundError) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[35]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1944,7 +2016,7 @@ type GetBmmHStarCommitmentResponse_OptionalCommitment struct {
 
 func (x *GetBmmHStarCommitmentResponse_OptionalCommitment) Reset() {
 	*x = GetBmmHStarCommitmentResponse_OptionalCommitment{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[36]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1956,7 +2028,7 @@ func (x *GetBmmHStarCommitmentResponse_OptionalCommitment) String() string {
 func (*GetBmmHStarCommitmentResponse_OptionalCommitment) ProtoMessage() {}
 
 func (x *GetBmmHStarCommitmentResponse_OptionalCommitment) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[36]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1990,7 +2062,7 @@ type GetBmmHStarCommitmentResponse_Commitment struct {
 
 func (x *GetBmmHStarCommitmentResponse_Commitment) Reset() {
 	*x = GetBmmHStarCommitmentResponse_Commitment{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[37]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2002,7 +2074,7 @@ func (x *GetBmmHStarCommitmentResponse_Commitment) String() string {
 func (*GetBmmHStarCommitmentResponse_Commitment) ProtoMessage() {}
 
 func (x *GetBmmHStarCommitmentResponse_Commitment) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[37]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2042,7 +2114,7 @@ type GetCoinbasePSBTRequest_ProposeSidechain struct {
 
 func (x *GetCoinbasePSBTRequest_ProposeSidechain) Reset() {
 	*x = GetCoinbasePSBTRequest_ProposeSidechain{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[38]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2054,7 +2126,7 @@ func (x *GetCoinbasePSBTRequest_ProposeSidechain) String() string {
 func (*GetCoinbasePSBTRequest_ProposeSidechain) ProtoMessage() {}
 
 func (x *GetCoinbasePSBTRequest_ProposeSidechain) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[38]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2094,7 +2166,7 @@ type GetCoinbasePSBTRequest_AckSidechain struct {
 
 func (x *GetCoinbasePSBTRequest_AckSidechain) Reset() {
 	*x = GetCoinbasePSBTRequest_AckSidechain{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[39]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2106,7 +2178,7 @@ func (x *GetCoinbasePSBTRequest_AckSidechain) String() string {
 func (*GetCoinbasePSBTRequest_AckSidechain) ProtoMessage() {}
 
 func (x *GetCoinbasePSBTRequest_AckSidechain) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[39]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2146,7 +2218,7 @@ type GetCoinbasePSBTRequest_ProposeBundle struct {
 
 func (x *GetCoinbasePSBTRequest_ProposeBundle) Reset() {
 	*x = GetCoinbasePSBTRequest_ProposeBundle{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[40]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2158,7 +2230,7 @@ func (x *GetCoinbasePSBTRequest_ProposeBundle) String() string {
 func (*GetCoinbasePSBTRequest_ProposeBundle) ProtoMessage() {}
 
 func (x *GetCoinbasePSBTRequest_ProposeBundle) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[40]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2202,7 +2274,7 @@ type GetCoinbasePSBTRequest_AckBundles struct {
 
 func (x *GetCoinbasePSBTRequest_AckBundles) Reset() {
 	*x = GetCoinbasePSBTRequest_AckBundles{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[41]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2214,7 +2286,7 @@ func (x *GetCoinbasePSBTRequest_AckBundles) String() string {
 func (*GetCoinbasePSBTRequest_AckBundles) ProtoMessage() {}
 
 func (x *GetCoinbasePSBTRequest_AckBundles) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[41]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2296,7 +2368,7 @@ type GetCoinbasePSBTRequest_AckBundles_RepeatPrevious struct {
 
 func (x *GetCoinbasePSBTRequest_AckBundles_RepeatPrevious) Reset() {
 	*x = GetCoinbasePSBTRequest_AckBundles_RepeatPrevious{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[42]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2308,7 +2380,7 @@ func (x *GetCoinbasePSBTRequest_AckBundles_RepeatPrevious) String() string {
 func (*GetCoinbasePSBTRequest_AckBundles_RepeatPrevious) ProtoMessage() {}
 
 func (x *GetCoinbasePSBTRequest_AckBundles_RepeatPrevious) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[42]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2332,7 +2404,7 @@ type GetCoinbasePSBTRequest_AckBundles_LeadingBy50 struct {
 
 func (x *GetCoinbasePSBTRequest_AckBundles_LeadingBy50) Reset() {
 	*x = GetCoinbasePSBTRequest_AckBundles_LeadingBy50{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[43]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2344,7 +2416,7 @@ func (x *GetCoinbasePSBTRequest_AckBundles_LeadingBy50) String() string {
 func (*GetCoinbasePSBTRequest_AckBundles_LeadingBy50) ProtoMessage() {}
 
 func (x *GetCoinbasePSBTRequest_AckBundles_LeadingBy50) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[43]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2369,7 +2441,7 @@ type GetCoinbasePSBTRequest_AckBundles_Upvotes struct {
 
 func (x *GetCoinbasePSBTRequest_AckBundles_Upvotes) Reset() {
 	*x = GetCoinbasePSBTRequest_AckBundles_Upvotes{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[44]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2381,7 +2453,7 @@ func (x *GetCoinbasePSBTRequest_AckBundles_Upvotes) String() string {
 func (*GetCoinbasePSBTRequest_AckBundles_Upvotes) ProtoMessage() {}
 
 func (x *GetCoinbasePSBTRequest_AckBundles_Upvotes) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[44]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2416,7 +2488,7 @@ type GetCtipResponse_Ctip struct {
 
 func (x *GetCtipResponse_Ctip) Reset() {
 	*x = GetCtipResponse_Ctip{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[45]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2428,7 +2500,7 @@ func (x *GetCtipResponse_Ctip) String() string {
 func (*GetCtipResponse_Ctip) ProtoMessage() {}
 
 func (x *GetCtipResponse_Ctip) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[45]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2490,7 +2562,7 @@ type GetSidechainProposalsResponse_SidechainProposal struct {
 
 func (x *GetSidechainProposalsResponse_SidechainProposal) Reset() {
 	*x = GetSidechainProposalsResponse_SidechainProposal{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[46]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2502,7 +2574,7 @@ func (x *GetSidechainProposalsResponse_SidechainProposal) String() string {
 func (*GetSidechainProposalsResponse_SidechainProposal) ProtoMessage() {}
 
 func (x *GetSidechainProposalsResponse_SidechainProposal) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[46]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2583,7 +2655,7 @@ type GetSidechainsResponse_SidechainInfo struct {
 
 func (x *GetSidechainsResponse_SidechainInfo) Reset() {
 	*x = GetSidechainsResponse_SidechainInfo{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[47]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2595,7 +2667,7 @@ func (x *GetSidechainsResponse_SidechainInfo) String() string {
 func (*GetSidechainsResponse_SidechainInfo) ProtoMessage() {}
 
 func (x *GetSidechainsResponse_SidechainInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[47]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2663,7 +2735,7 @@ type GetTwoWayPegDataResponse_ResponseItem struct {
 
 func (x *GetTwoWayPegDataResponse_ResponseItem) Reset() {
 	*x = GetTwoWayPegDataResponse_ResponseItem{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[48]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2675,7 +2747,7 @@ func (x *GetTwoWayPegDataResponse_ResponseItem) String() string {
 func (*GetTwoWayPegDataResponse_ResponseItem) ProtoMessage() {}
 
 func (x *GetTwoWayPegDataResponse_ResponseItem) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[48]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2718,7 +2790,7 @@ type SubscribeEventsResponse_Event struct {
 
 func (x *SubscribeEventsResponse_Event) Reset() {
 	*x = SubscribeEventsResponse_Event{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[49]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2730,7 +2802,7 @@ func (x *SubscribeEventsResponse_Event) String() string {
 func (*SubscribeEventsResponse_Event) ProtoMessage() {}
 
 func (x *SubscribeEventsResponse_Event) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[49]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2797,7 +2869,7 @@ type SubscribeEventsResponse_Event_ConnectBlock struct {
 
 func (x *SubscribeEventsResponse_Event_ConnectBlock) Reset() {
 	*x = SubscribeEventsResponse_Event_ConnectBlock{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[50]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2809,7 +2881,7 @@ func (x *SubscribeEventsResponse_Event_ConnectBlock) String() string {
 func (*SubscribeEventsResponse_Event_ConnectBlock) ProtoMessage() {}
 
 func (x *SubscribeEventsResponse_Event_ConnectBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[50]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2848,7 +2920,7 @@ type SubscribeEventsResponse_Event_DisconnectBlock struct {
 
 func (x *SubscribeEventsResponse_Event_DisconnectBlock) Reset() {
 	*x = SubscribeEventsResponse_Event_DisconnectBlock{}
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[51]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2860,7 +2932,7 @@ func (x *SubscribeEventsResponse_Event_DisconnectBlock) String() string {
 func (*SubscribeEventsResponse_Event_DisconnectBlock) ProtoMessage() {}
 
 func (x *SubscribeEventsResponse_Event_DisconnectBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[51]
+	mi := &file_cusf_mainchain_v1_validator_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3074,14 +3146,16 @@ const file_cusf_mainchain_v1_validator_proto_rawDesc = "" +
 	"\"SubscribeHeaderSyncProgressRequest\"\x82\x01\n" +
 	"#SubscribeHeaderSyncProgressResponse\x12H\n" +
 	"\x0ecurrent_height\x18\x01 \x01(\v2\x1c.google.protobuf.UInt32ValueH\x00R\rcurrentHeight\x88\x01\x01B\x11\n" +
-	"\x0f_current_height*\x8a\x01\n" +
+	"\x0f_current_height\"\r\n" +
+	"\vStopRequest\"\x0e\n" +
+	"\fStopResponse*\x8a\x01\n" +
 	"\aNetwork\x12\x17\n" +
 	"\x13NETWORK_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fNETWORK_UNKNOWN\x10\x01\x12\x13\n" +
 	"\x0fNETWORK_MAINNET\x10\x02\x12\x13\n" +
 	"\x0fNETWORK_REGTEST\x10\x03\x12\x12\n" +
 	"\x0eNETWORK_SIGNET\x10\x04\x12\x13\n" +
-	"\x0fNETWORK_TESTNET\x10\x052\xa7\n" +
+	"\x0fNETWORK_TESTNET\x10\x052\xf0\n" +
 	"\n" +
 	"\x10ValidatorService\x12q\n" +
 	"\x12GetBlockHeaderInfo\x12,.cusf.mainchain.v1.GetBlockHeaderInfoRequest\x1a-.cusf.mainchain.v1.GetBlockHeaderInfoResponse\x12_\n" +
@@ -3095,7 +3169,8 @@ const file_cusf_mainchain_v1_validator_proto_rawDesc = "" +
 	"\rGetSidechains\x12'.cusf.mainchain.v1.GetSidechainsRequest\x1a(.cusf.mainchain.v1.GetSidechainsResponse\x12k\n" +
 	"\x10GetTwoWayPegData\x12*.cusf.mainchain.v1.GetTwoWayPegDataRequest\x1a+.cusf.mainchain.v1.GetTwoWayPegDataResponse\x12j\n" +
 	"\x0fSubscribeEvents\x12).cusf.mainchain.v1.SubscribeEventsRequest\x1a*.cusf.mainchain.v1.SubscribeEventsResponse0\x01\x12\x8e\x01\n" +
-	"\x1bSubscribeHeaderSyncProgress\x125.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest\x1a6.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse0\x01B\xe3\x01\n" +
+	"\x1bSubscribeHeaderSyncProgress\x125.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest\x1a6.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse0\x01\x12G\n" +
+	"\x04Stop\x12\x1e.cusf.mainchain.v1.StopRequest\x1a\x1f.cusf.mainchain.v1.StopResponseB\xe3\x01\n" +
 	"\x15com.cusf.mainchain.v1B\x0eValidatorProtoP\x01ZTgithub.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
 
 var (
@@ -3111,7 +3186,7 @@ func file_cusf_mainchain_v1_validator_proto_rawDescGZIP() []byte {
 }
 
 var file_cusf_mainchain_v1_validator_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_cusf_mainchain_v1_validator_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
+var file_cusf_mainchain_v1_validator_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_cusf_mainchain_v1_validator_proto_goTypes = []any{
 	(Network)(0),                                             // 0: cusf.mainchain.v1.Network
 	(*BlockHeaderInfo)(nil),                                  // 1: cusf.mainchain.v1.BlockHeaderInfo
@@ -3142,123 +3217,125 @@ var file_cusf_mainchain_v1_validator_proto_goTypes = []any{
 	(*SubscribeEventsResponse)(nil),                          // 26: cusf.mainchain.v1.SubscribeEventsResponse
 	(*SubscribeHeaderSyncProgressRequest)(nil),               // 27: cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest
 	(*SubscribeHeaderSyncProgressResponse)(nil),              // 28: cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse
-	(*Deposit_Output)(nil),                                   // 29: cusf.mainchain.v1.Deposit.Output
-	(*WithdrawalBundleEvent_Event)(nil),                      // 30: cusf.mainchain.v1.WithdrawalBundleEvent.Event
-	(*WithdrawalBundleEvent_Event_Failed)(nil),               // 31: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Failed
-	(*WithdrawalBundleEvent_Event_Succeeded)(nil),            // 32: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded
-	(*WithdrawalBundleEvent_Event_Submitted)(nil),            // 33: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Submitted
-	(*BlockInfo_Event)(nil),                                  // 34: cusf.mainchain.v1.BlockInfo.Event
-	(*GetBlockInfoResponse_Info)(nil),                        // 35: cusf.mainchain.v1.GetBlockInfoResponse.Info
-	(*GetBmmHStarCommitmentResponse_BlockNotFoundError)(nil), // 36: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError
-	(*GetBmmHStarCommitmentResponse_OptionalCommitment)(nil), // 37: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment
-	(*GetBmmHStarCommitmentResponse_Commitment)(nil),         // 38: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment
-	(*GetCoinbasePSBTRequest_ProposeSidechain)(nil),          // 39: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain
-	(*GetCoinbasePSBTRequest_AckSidechain)(nil),              // 40: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain
-	(*GetCoinbasePSBTRequest_ProposeBundle)(nil),             // 41: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle
-	(*GetCoinbasePSBTRequest_AckBundles)(nil),                // 42: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles
-	(*GetCoinbasePSBTRequest_AckBundles_RepeatPrevious)(nil), // 43: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.RepeatPrevious
-	(*GetCoinbasePSBTRequest_AckBundles_LeadingBy50)(nil),    // 44: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.LeadingBy50
-	(*GetCoinbasePSBTRequest_AckBundles_Upvotes)(nil),        // 45: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.Upvotes
-	(*GetCtipResponse_Ctip)(nil),                             // 46: cusf.mainchain.v1.GetCtipResponse.Ctip
-	(*GetSidechainProposalsResponse_SidechainProposal)(nil),  // 47: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal
-	(*GetSidechainsResponse_SidechainInfo)(nil),              // 48: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo
-	(*GetTwoWayPegDataResponse_ResponseItem)(nil),            // 49: cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem
-	(*SubscribeEventsResponse_Event)(nil),                    // 50: cusf.mainchain.v1.SubscribeEventsResponse.Event
-	(*SubscribeEventsResponse_Event_ConnectBlock)(nil),       // 51: cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock
-	(*SubscribeEventsResponse_Event_DisconnectBlock)(nil),    // 52: cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock
-	(*v1.ReverseHex)(nil),                                    // 53: cusf.common.v1.ReverseHex
-	(*v1.ConsensusHex)(nil),                                  // 54: cusf.common.v1.ConsensusHex
-	(*wrapperspb.UInt64Value)(nil),                           // 55: google.protobuf.UInt64Value
-	(*OutPoint)(nil),                                         // 56: cusf.mainchain.v1.OutPoint
-	(*wrapperspb.UInt32Value)(nil),                           // 57: google.protobuf.UInt32Value
-	(*v1.Hex)(nil),                                           // 58: cusf.common.v1.Hex
-	(*SidechainDeclaration)(nil),                             // 59: cusf.mainchain.v1.SidechainDeclaration
+	(*StopRequest)(nil),                                      // 29: cusf.mainchain.v1.StopRequest
+	(*StopResponse)(nil),                                     // 30: cusf.mainchain.v1.StopResponse
+	(*Deposit_Output)(nil),                                   // 31: cusf.mainchain.v1.Deposit.Output
+	(*WithdrawalBundleEvent_Event)(nil),                      // 32: cusf.mainchain.v1.WithdrawalBundleEvent.Event
+	(*WithdrawalBundleEvent_Event_Failed)(nil),               // 33: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Failed
+	(*WithdrawalBundleEvent_Event_Succeeded)(nil),            // 34: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded
+	(*WithdrawalBundleEvent_Event_Submitted)(nil),            // 35: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Submitted
+	(*BlockInfo_Event)(nil),                                  // 36: cusf.mainchain.v1.BlockInfo.Event
+	(*GetBlockInfoResponse_Info)(nil),                        // 37: cusf.mainchain.v1.GetBlockInfoResponse.Info
+	(*GetBmmHStarCommitmentResponse_BlockNotFoundError)(nil), // 38: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError
+	(*GetBmmHStarCommitmentResponse_OptionalCommitment)(nil), // 39: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment
+	(*GetBmmHStarCommitmentResponse_Commitment)(nil),         // 40: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment
+	(*GetCoinbasePSBTRequest_ProposeSidechain)(nil),          // 41: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain
+	(*GetCoinbasePSBTRequest_AckSidechain)(nil),              // 42: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain
+	(*GetCoinbasePSBTRequest_ProposeBundle)(nil),             // 43: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle
+	(*GetCoinbasePSBTRequest_AckBundles)(nil),                // 44: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles
+	(*GetCoinbasePSBTRequest_AckBundles_RepeatPrevious)(nil), // 45: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.RepeatPrevious
+	(*GetCoinbasePSBTRequest_AckBundles_LeadingBy50)(nil),    // 46: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.LeadingBy50
+	(*GetCoinbasePSBTRequest_AckBundles_Upvotes)(nil),        // 47: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.Upvotes
+	(*GetCtipResponse_Ctip)(nil),                             // 48: cusf.mainchain.v1.GetCtipResponse.Ctip
+	(*GetSidechainProposalsResponse_SidechainProposal)(nil),  // 49: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal
+	(*GetSidechainsResponse_SidechainInfo)(nil),              // 50: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo
+	(*GetTwoWayPegDataResponse_ResponseItem)(nil),            // 51: cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem
+	(*SubscribeEventsResponse_Event)(nil),                    // 52: cusf.mainchain.v1.SubscribeEventsResponse.Event
+	(*SubscribeEventsResponse_Event_ConnectBlock)(nil),       // 53: cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock
+	(*SubscribeEventsResponse_Event_DisconnectBlock)(nil),    // 54: cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock
+	(*v1.ReverseHex)(nil),                                    // 55: cusf.common.v1.ReverseHex
+	(*v1.ConsensusHex)(nil),                                  // 56: cusf.common.v1.ConsensusHex
+	(*wrapperspb.UInt64Value)(nil),                           // 57: google.protobuf.UInt64Value
+	(*OutPoint)(nil),                                         // 58: cusf.mainchain.v1.OutPoint
+	(*wrapperspb.UInt32Value)(nil),                           // 59: google.protobuf.UInt32Value
+	(*v1.Hex)(nil),                                           // 60: cusf.common.v1.Hex
+	(*SidechainDeclaration)(nil),                             // 61: cusf.mainchain.v1.SidechainDeclaration
 }
 var file_cusf_mainchain_v1_validator_proto_depIdxs = []int32{
-	53, // 0: cusf.mainchain.v1.BlockHeaderInfo.block_hash:type_name -> cusf.common.v1.ReverseHex
-	53, // 1: cusf.mainchain.v1.BlockHeaderInfo.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
-	54, // 2: cusf.mainchain.v1.BlockHeaderInfo.work:type_name -> cusf.common.v1.ConsensusHex
-	55, // 3: cusf.mainchain.v1.Deposit.sequence_number:type_name -> google.protobuf.UInt64Value
-	56, // 4: cusf.mainchain.v1.Deposit.outpoint:type_name -> cusf.mainchain.v1.OutPoint
-	29, // 5: cusf.mainchain.v1.Deposit.output:type_name -> cusf.mainchain.v1.Deposit.Output
-	54, // 6: cusf.mainchain.v1.WithdrawalBundleEvent.m6id:type_name -> cusf.common.v1.ConsensusHex
-	30, // 7: cusf.mainchain.v1.WithdrawalBundleEvent.event:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent.Event
-	54, // 8: cusf.mainchain.v1.BlockInfo.bmm_commitment:type_name -> cusf.common.v1.ConsensusHex
-	34, // 9: cusf.mainchain.v1.BlockInfo.events:type_name -> cusf.mainchain.v1.BlockInfo.Event
-	53, // 10: cusf.mainchain.v1.GetBlockHeaderInfoRequest.block_hash:type_name -> cusf.common.v1.ReverseHex
+	55, // 0: cusf.mainchain.v1.BlockHeaderInfo.block_hash:type_name -> cusf.common.v1.ReverseHex
+	55, // 1: cusf.mainchain.v1.BlockHeaderInfo.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
+	56, // 2: cusf.mainchain.v1.BlockHeaderInfo.work:type_name -> cusf.common.v1.ConsensusHex
+	57, // 3: cusf.mainchain.v1.Deposit.sequence_number:type_name -> google.protobuf.UInt64Value
+	58, // 4: cusf.mainchain.v1.Deposit.outpoint:type_name -> cusf.mainchain.v1.OutPoint
+	31, // 5: cusf.mainchain.v1.Deposit.output:type_name -> cusf.mainchain.v1.Deposit.Output
+	56, // 6: cusf.mainchain.v1.WithdrawalBundleEvent.m6id:type_name -> cusf.common.v1.ConsensusHex
+	32, // 7: cusf.mainchain.v1.WithdrawalBundleEvent.event:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent.Event
+	56, // 8: cusf.mainchain.v1.BlockInfo.bmm_commitment:type_name -> cusf.common.v1.ConsensusHex
+	36, // 9: cusf.mainchain.v1.BlockInfo.events:type_name -> cusf.mainchain.v1.BlockInfo.Event
+	55, // 10: cusf.mainchain.v1.GetBlockHeaderInfoRequest.block_hash:type_name -> cusf.common.v1.ReverseHex
 	1,  // 11: cusf.mainchain.v1.GetBlockHeaderInfoResponse.header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
 	1,  // 12: cusf.mainchain.v1.GetBlockHeaderInfoResponse.ancestor_infos:type_name -> cusf.mainchain.v1.BlockHeaderInfo
-	53, // 13: cusf.mainchain.v1.GetBlockInfoRequest.block_hash:type_name -> cusf.common.v1.ReverseHex
-	57, // 14: cusf.mainchain.v1.GetBlockInfoRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	35, // 15: cusf.mainchain.v1.GetBlockInfoResponse.info:type_name -> cusf.mainchain.v1.GetBlockInfoResponse.Info
-	35, // 16: cusf.mainchain.v1.GetBlockInfoResponse.ancestor_infos:type_name -> cusf.mainchain.v1.GetBlockInfoResponse.Info
-	53, // 17: cusf.mainchain.v1.GetBmmHStarCommitmentRequest.block_hash:type_name -> cusf.common.v1.ReverseHex
-	57, // 18: cusf.mainchain.v1.GetBmmHStarCommitmentRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	36, // 19: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.block_not_found:type_name -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError
-	38, // 20: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.commitment:type_name -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment
+	55, // 13: cusf.mainchain.v1.GetBlockInfoRequest.block_hash:type_name -> cusf.common.v1.ReverseHex
+	59, // 14: cusf.mainchain.v1.GetBlockInfoRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	37, // 15: cusf.mainchain.v1.GetBlockInfoResponse.info:type_name -> cusf.mainchain.v1.GetBlockInfoResponse.Info
+	37, // 16: cusf.mainchain.v1.GetBlockInfoResponse.ancestor_infos:type_name -> cusf.mainchain.v1.GetBlockInfoResponse.Info
+	55, // 17: cusf.mainchain.v1.GetBmmHStarCommitmentRequest.block_hash:type_name -> cusf.common.v1.ReverseHex
+	59, // 18: cusf.mainchain.v1.GetBmmHStarCommitmentRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	38, // 19: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.block_not_found:type_name -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError
+	40, // 20: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.commitment:type_name -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment
 	0,  // 21: cusf.mainchain.v1.GetChainInfoResponse.network:type_name -> cusf.mainchain.v1.Network
 	1,  // 22: cusf.mainchain.v1.GetChainTipResponse.block_header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
-	39, // 23: cusf.mainchain.v1.GetCoinbasePSBTRequest.propose_sidechains:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain
-	40, // 24: cusf.mainchain.v1.GetCoinbasePSBTRequest.ack_sidechains:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain
-	41, // 25: cusf.mainchain.v1.GetCoinbasePSBTRequest.propose_bundles:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle
-	42, // 26: cusf.mainchain.v1.GetCoinbasePSBTRequest.ack_bundles:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles
-	54, // 27: cusf.mainchain.v1.GetCoinbasePSBTResponse.psbt:type_name -> cusf.common.v1.ConsensusHex
-	57, // 28: cusf.mainchain.v1.GetCtipRequest.sidechain_number:type_name -> google.protobuf.UInt32Value
-	46, // 29: cusf.mainchain.v1.GetCtipResponse.ctip:type_name -> cusf.mainchain.v1.GetCtipResponse.Ctip
-	47, // 30: cusf.mainchain.v1.GetSidechainProposalsResponse.sidechain_proposals:type_name -> cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal
-	48, // 31: cusf.mainchain.v1.GetSidechainsResponse.sidechains:type_name -> cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo
-	57, // 32: cusf.mainchain.v1.GetTwoWayPegDataRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	53, // 33: cusf.mainchain.v1.GetTwoWayPegDataRequest.start_block_hash:type_name -> cusf.common.v1.ReverseHex
-	53, // 34: cusf.mainchain.v1.GetTwoWayPegDataRequest.end_block_hash:type_name -> cusf.common.v1.ReverseHex
-	49, // 35: cusf.mainchain.v1.GetTwoWayPegDataResponse.blocks:type_name -> cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem
-	57, // 36: cusf.mainchain.v1.SubscribeEventsRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	50, // 37: cusf.mainchain.v1.SubscribeEventsResponse.event:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event
-	57, // 38: cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse.current_height:type_name -> google.protobuf.UInt32Value
-	58, // 39: cusf.mainchain.v1.Deposit.Output.address:type_name -> cusf.common.v1.Hex
-	55, // 40: cusf.mainchain.v1.Deposit.Output.value_sats:type_name -> google.protobuf.UInt64Value
-	31, // 41: cusf.mainchain.v1.WithdrawalBundleEvent.Event.failed:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent.Event.Failed
-	32, // 42: cusf.mainchain.v1.WithdrawalBundleEvent.Event.succeeded:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded
-	33, // 43: cusf.mainchain.v1.WithdrawalBundleEvent.Event.submitted:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent.Event.Submitted
-	55, // 44: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded.sequence_number:type_name -> google.protobuf.UInt64Value
-	54, // 45: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded.transaction:type_name -> cusf.common.v1.ConsensusHex
+	41, // 23: cusf.mainchain.v1.GetCoinbasePSBTRequest.propose_sidechains:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain
+	42, // 24: cusf.mainchain.v1.GetCoinbasePSBTRequest.ack_sidechains:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain
+	43, // 25: cusf.mainchain.v1.GetCoinbasePSBTRequest.propose_bundles:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle
+	44, // 26: cusf.mainchain.v1.GetCoinbasePSBTRequest.ack_bundles:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles
+	56, // 27: cusf.mainchain.v1.GetCoinbasePSBTResponse.psbt:type_name -> cusf.common.v1.ConsensusHex
+	59, // 28: cusf.mainchain.v1.GetCtipRequest.sidechain_number:type_name -> google.protobuf.UInt32Value
+	48, // 29: cusf.mainchain.v1.GetCtipResponse.ctip:type_name -> cusf.mainchain.v1.GetCtipResponse.Ctip
+	49, // 30: cusf.mainchain.v1.GetSidechainProposalsResponse.sidechain_proposals:type_name -> cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal
+	50, // 31: cusf.mainchain.v1.GetSidechainsResponse.sidechains:type_name -> cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo
+	59, // 32: cusf.mainchain.v1.GetTwoWayPegDataRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	55, // 33: cusf.mainchain.v1.GetTwoWayPegDataRequest.start_block_hash:type_name -> cusf.common.v1.ReverseHex
+	55, // 34: cusf.mainchain.v1.GetTwoWayPegDataRequest.end_block_hash:type_name -> cusf.common.v1.ReverseHex
+	51, // 35: cusf.mainchain.v1.GetTwoWayPegDataResponse.blocks:type_name -> cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem
+	59, // 36: cusf.mainchain.v1.SubscribeEventsRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	52, // 37: cusf.mainchain.v1.SubscribeEventsResponse.event:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event
+	59, // 38: cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse.current_height:type_name -> google.protobuf.UInt32Value
+	60, // 39: cusf.mainchain.v1.Deposit.Output.address:type_name -> cusf.common.v1.Hex
+	57, // 40: cusf.mainchain.v1.Deposit.Output.value_sats:type_name -> google.protobuf.UInt64Value
+	33, // 41: cusf.mainchain.v1.WithdrawalBundleEvent.Event.failed:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent.Event.Failed
+	34, // 42: cusf.mainchain.v1.WithdrawalBundleEvent.Event.succeeded:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded
+	35, // 43: cusf.mainchain.v1.WithdrawalBundleEvent.Event.submitted:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent.Event.Submitted
+	57, // 44: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded.sequence_number:type_name -> google.protobuf.UInt64Value
+	56, // 45: cusf.mainchain.v1.WithdrawalBundleEvent.Event.Succeeded.transaction:type_name -> cusf.common.v1.ConsensusHex
 	2,  // 46: cusf.mainchain.v1.BlockInfo.Event.deposit:type_name -> cusf.mainchain.v1.Deposit
 	3,  // 47: cusf.mainchain.v1.BlockInfo.Event.withdrawal_bundle:type_name -> cusf.mainchain.v1.WithdrawalBundleEvent
 	1,  // 48: cusf.mainchain.v1.GetBlockInfoResponse.Info.header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
 	4,  // 49: cusf.mainchain.v1.GetBlockInfoResponse.Info.block_info:type_name -> cusf.mainchain.v1.BlockInfo
-	53, // 50: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError.block_hash:type_name -> cusf.common.v1.ReverseHex
-	54, // 51: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment.commitment:type_name -> cusf.common.v1.ConsensusHex
-	54, // 52: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment.commitment:type_name -> cusf.common.v1.ConsensusHex
-	37, // 53: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment.ancestor_commitments:type_name -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment
-	57, // 54: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain.sidechain_number:type_name -> google.protobuf.UInt32Value
-	54, // 55: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain.data:type_name -> cusf.common.v1.ConsensusHex
-	57, // 56: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain.sidechain_number:type_name -> google.protobuf.UInt32Value
-	54, // 57: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain.data_hash:type_name -> cusf.common.v1.ConsensusHex
-	57, // 58: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle.sidechain_number:type_name -> google.protobuf.UInt32Value
-	53, // 59: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle.bundle_txid:type_name -> cusf.common.v1.ReverseHex
-	43, // 60: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.repeat_previous:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.RepeatPrevious
-	44, // 61: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.leading_by_50:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.LeadingBy50
-	45, // 62: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.upvotes:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.Upvotes
-	53, // 63: cusf.mainchain.v1.GetCtipResponse.Ctip.txid:type_name -> cusf.common.v1.ReverseHex
-	57, // 64: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.sidechain_number:type_name -> google.protobuf.UInt32Value
-	54, // 65: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.description:type_name -> cusf.common.v1.ConsensusHex
-	59, // 66: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
-	53, // 67: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.description_sha256d_hash:type_name -> cusf.common.v1.ReverseHex
-	57, // 68: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.vote_count:type_name -> google.protobuf.UInt32Value
-	57, // 69: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.proposal_height:type_name -> google.protobuf.UInt32Value
-	57, // 70: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.proposal_age:type_name -> google.protobuf.UInt32Value
-	57, // 71: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.sidechain_number:type_name -> google.protobuf.UInt32Value
-	54, // 72: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.description:type_name -> cusf.common.v1.ConsensusHex
-	57, // 73: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.vote_count:type_name -> google.protobuf.UInt32Value
-	57, // 74: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.proposal_height:type_name -> google.protobuf.UInt32Value
-	57, // 75: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.activation_height:type_name -> google.protobuf.UInt32Value
-	59, // 76: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
+	55, // 50: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.BlockNotFoundError.block_hash:type_name -> cusf.common.v1.ReverseHex
+	56, // 51: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment.commitment:type_name -> cusf.common.v1.ConsensusHex
+	56, // 52: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment.commitment:type_name -> cusf.common.v1.ConsensusHex
+	39, // 53: cusf.mainchain.v1.GetBmmHStarCommitmentResponse.Commitment.ancestor_commitments:type_name -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse.OptionalCommitment
+	59, // 54: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain.sidechain_number:type_name -> google.protobuf.UInt32Value
+	56, // 55: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeSidechain.data:type_name -> cusf.common.v1.ConsensusHex
+	59, // 56: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain.sidechain_number:type_name -> google.protobuf.UInt32Value
+	56, // 57: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckSidechain.data_hash:type_name -> cusf.common.v1.ConsensusHex
+	59, // 58: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle.sidechain_number:type_name -> google.protobuf.UInt32Value
+	55, // 59: cusf.mainchain.v1.GetCoinbasePSBTRequest.ProposeBundle.bundle_txid:type_name -> cusf.common.v1.ReverseHex
+	45, // 60: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.repeat_previous:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.RepeatPrevious
+	46, // 61: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.leading_by_50:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.LeadingBy50
+	47, // 62: cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.upvotes:type_name -> cusf.mainchain.v1.GetCoinbasePSBTRequest.AckBundles.Upvotes
+	55, // 63: cusf.mainchain.v1.GetCtipResponse.Ctip.txid:type_name -> cusf.common.v1.ReverseHex
+	59, // 64: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.sidechain_number:type_name -> google.protobuf.UInt32Value
+	56, // 65: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.description:type_name -> cusf.common.v1.ConsensusHex
+	61, // 66: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
+	55, // 67: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.description_sha256d_hash:type_name -> cusf.common.v1.ReverseHex
+	59, // 68: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.vote_count:type_name -> google.protobuf.UInt32Value
+	59, // 69: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.proposal_height:type_name -> google.protobuf.UInt32Value
+	59, // 70: cusf.mainchain.v1.GetSidechainProposalsResponse.SidechainProposal.proposal_age:type_name -> google.protobuf.UInt32Value
+	59, // 71: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.sidechain_number:type_name -> google.protobuf.UInt32Value
+	56, // 72: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.description:type_name -> cusf.common.v1.ConsensusHex
+	59, // 73: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.vote_count:type_name -> google.protobuf.UInt32Value
+	59, // 74: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.proposal_height:type_name -> google.protobuf.UInt32Value
+	59, // 75: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.activation_height:type_name -> google.protobuf.UInt32Value
+	61, // 76: cusf.mainchain.v1.GetSidechainsResponse.SidechainInfo.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
 	1,  // 77: cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem.block_header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
 	4,  // 78: cusf.mainchain.v1.GetTwoWayPegDataResponse.ResponseItem.block_info:type_name -> cusf.mainchain.v1.BlockInfo
-	51, // 79: cusf.mainchain.v1.SubscribeEventsResponse.Event.connect_block:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock
-	52, // 80: cusf.mainchain.v1.SubscribeEventsResponse.Event.disconnect_block:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock
+	53, // 79: cusf.mainchain.v1.SubscribeEventsResponse.Event.connect_block:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock
+	54, // 80: cusf.mainchain.v1.SubscribeEventsResponse.Event.disconnect_block:type_name -> cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock
 	1,  // 81: cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock.header_info:type_name -> cusf.mainchain.v1.BlockHeaderInfo
 	4,  // 82: cusf.mainchain.v1.SubscribeEventsResponse.Event.ConnectBlock.block_info:type_name -> cusf.mainchain.v1.BlockInfo
-	53, // 83: cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock.block_hash:type_name -> cusf.common.v1.ReverseHex
+	55, // 83: cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock.block_hash:type_name -> cusf.common.v1.ReverseHex
 	5,  // 84: cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo:input_type -> cusf.mainchain.v1.GetBlockHeaderInfoRequest
 	7,  // 85: cusf.mainchain.v1.ValidatorService.GetBlockInfo:input_type -> cusf.mainchain.v1.GetBlockInfoRequest
 	9,  // 86: cusf.mainchain.v1.ValidatorService.GetBmmHStarCommitment:input_type -> cusf.mainchain.v1.GetBmmHStarCommitmentRequest
@@ -3271,20 +3348,22 @@ var file_cusf_mainchain_v1_validator_proto_depIdxs = []int32{
 	23, // 93: cusf.mainchain.v1.ValidatorService.GetTwoWayPegData:input_type -> cusf.mainchain.v1.GetTwoWayPegDataRequest
 	25, // 94: cusf.mainchain.v1.ValidatorService.SubscribeEvents:input_type -> cusf.mainchain.v1.SubscribeEventsRequest
 	27, // 95: cusf.mainchain.v1.ValidatorService.SubscribeHeaderSyncProgress:input_type -> cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest
-	6,  // 96: cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo:output_type -> cusf.mainchain.v1.GetBlockHeaderInfoResponse
-	8,  // 97: cusf.mainchain.v1.ValidatorService.GetBlockInfo:output_type -> cusf.mainchain.v1.GetBlockInfoResponse
-	10, // 98: cusf.mainchain.v1.ValidatorService.GetBmmHStarCommitment:output_type -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse
-	12, // 99: cusf.mainchain.v1.ValidatorService.GetChainInfo:output_type -> cusf.mainchain.v1.GetChainInfoResponse
-	14, // 100: cusf.mainchain.v1.ValidatorService.GetChainTip:output_type -> cusf.mainchain.v1.GetChainTipResponse
-	16, // 101: cusf.mainchain.v1.ValidatorService.GetCoinbasePSBT:output_type -> cusf.mainchain.v1.GetCoinbasePSBTResponse
-	18, // 102: cusf.mainchain.v1.ValidatorService.GetCtip:output_type -> cusf.mainchain.v1.GetCtipResponse
-	20, // 103: cusf.mainchain.v1.ValidatorService.GetSidechainProposals:output_type -> cusf.mainchain.v1.GetSidechainProposalsResponse
-	22, // 104: cusf.mainchain.v1.ValidatorService.GetSidechains:output_type -> cusf.mainchain.v1.GetSidechainsResponse
-	24, // 105: cusf.mainchain.v1.ValidatorService.GetTwoWayPegData:output_type -> cusf.mainchain.v1.GetTwoWayPegDataResponse
-	26, // 106: cusf.mainchain.v1.ValidatorService.SubscribeEvents:output_type -> cusf.mainchain.v1.SubscribeEventsResponse
-	28, // 107: cusf.mainchain.v1.ValidatorService.SubscribeHeaderSyncProgress:output_type -> cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse
-	96, // [96:108] is the sub-list for method output_type
-	84, // [84:96] is the sub-list for method input_type
+	29, // 96: cusf.mainchain.v1.ValidatorService.Stop:input_type -> cusf.mainchain.v1.StopRequest
+	6,  // 97: cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo:output_type -> cusf.mainchain.v1.GetBlockHeaderInfoResponse
+	8,  // 98: cusf.mainchain.v1.ValidatorService.GetBlockInfo:output_type -> cusf.mainchain.v1.GetBlockInfoResponse
+	10, // 99: cusf.mainchain.v1.ValidatorService.GetBmmHStarCommitment:output_type -> cusf.mainchain.v1.GetBmmHStarCommitmentResponse
+	12, // 100: cusf.mainchain.v1.ValidatorService.GetChainInfo:output_type -> cusf.mainchain.v1.GetChainInfoResponse
+	14, // 101: cusf.mainchain.v1.ValidatorService.GetChainTip:output_type -> cusf.mainchain.v1.GetChainTipResponse
+	16, // 102: cusf.mainchain.v1.ValidatorService.GetCoinbasePSBT:output_type -> cusf.mainchain.v1.GetCoinbasePSBTResponse
+	18, // 103: cusf.mainchain.v1.ValidatorService.GetCtip:output_type -> cusf.mainchain.v1.GetCtipResponse
+	20, // 104: cusf.mainchain.v1.ValidatorService.GetSidechainProposals:output_type -> cusf.mainchain.v1.GetSidechainProposalsResponse
+	22, // 105: cusf.mainchain.v1.ValidatorService.GetSidechains:output_type -> cusf.mainchain.v1.GetSidechainsResponse
+	24, // 106: cusf.mainchain.v1.ValidatorService.GetTwoWayPegData:output_type -> cusf.mainchain.v1.GetTwoWayPegDataResponse
+	26, // 107: cusf.mainchain.v1.ValidatorService.SubscribeEvents:output_type -> cusf.mainchain.v1.SubscribeEventsResponse
+	28, // 108: cusf.mainchain.v1.ValidatorService.SubscribeHeaderSyncProgress:output_type -> cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse
+	30, // 109: cusf.mainchain.v1.ValidatorService.Stop:output_type -> cusf.mainchain.v1.StopResponse
+	97, // [97:110] is the sub-list for method output_type
+	84, // [84:97] is the sub-list for method input_type
 	84, // [84:84] is the sub-list for extension type_name
 	84, // [84:84] is the sub-list for extension extendee
 	0,  // [0:84] is the sub-list for field type_name
@@ -3307,25 +3386,25 @@ func file_cusf_mainchain_v1_validator_proto_init() {
 	file_cusf_mainchain_v1_validator_proto_msgTypes[17].OneofWrappers = []any{}
 	file_cusf_mainchain_v1_validator_proto_msgTypes[22].OneofWrappers = []any{}
 	file_cusf_mainchain_v1_validator_proto_msgTypes[27].OneofWrappers = []any{}
-	file_cusf_mainchain_v1_validator_proto_msgTypes[29].OneofWrappers = []any{
+	file_cusf_mainchain_v1_validator_proto_msgTypes[31].OneofWrappers = []any{
 		(*WithdrawalBundleEvent_Event_Failed_)(nil),
 		(*WithdrawalBundleEvent_Event_Succeeded_)(nil),
 		(*WithdrawalBundleEvent_Event_Submitted_)(nil),
 	}
-	file_cusf_mainchain_v1_validator_proto_msgTypes[33].OneofWrappers = []any{
+	file_cusf_mainchain_v1_validator_proto_msgTypes[35].OneofWrappers = []any{
 		(*BlockInfo_Event_Deposit)(nil),
 		(*BlockInfo_Event_WithdrawalBundle)(nil),
 	}
-	file_cusf_mainchain_v1_validator_proto_msgTypes[36].OneofWrappers = []any{}
-	file_cusf_mainchain_v1_validator_proto_msgTypes[37].OneofWrappers = []any{}
-	file_cusf_mainchain_v1_validator_proto_msgTypes[41].OneofWrappers = []any{
+	file_cusf_mainchain_v1_validator_proto_msgTypes[38].OneofWrappers = []any{}
+	file_cusf_mainchain_v1_validator_proto_msgTypes[39].OneofWrappers = []any{}
+	file_cusf_mainchain_v1_validator_proto_msgTypes[43].OneofWrappers = []any{
 		(*GetCoinbasePSBTRequest_AckBundles_RepeatPrevious_)(nil),
 		(*GetCoinbasePSBTRequest_AckBundles_LeadingBy_50)(nil),
 		(*GetCoinbasePSBTRequest_AckBundles_Upvotes_)(nil),
 	}
-	file_cusf_mainchain_v1_validator_proto_msgTypes[46].OneofWrappers = []any{}
-	file_cusf_mainchain_v1_validator_proto_msgTypes[47].OneofWrappers = []any{}
-	file_cusf_mainchain_v1_validator_proto_msgTypes[49].OneofWrappers = []any{
+	file_cusf_mainchain_v1_validator_proto_msgTypes[48].OneofWrappers = []any{}
+	file_cusf_mainchain_v1_validator_proto_msgTypes[49].OneofWrappers = []any{}
+	file_cusf_mainchain_v1_validator_proto_msgTypes[51].OneofWrappers = []any{
 		(*SubscribeEventsResponse_Event_ConnectBlock_)(nil),
 		(*SubscribeEventsResponse_Event_DisconnectBlock_)(nil),
 	}
@@ -3335,7 +3414,7 @@ func file_cusf_mainchain_v1_validator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cusf_mainchain_v1_validator_proto_rawDesc), len(file_cusf_mainchain_v1_validator_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   52,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
