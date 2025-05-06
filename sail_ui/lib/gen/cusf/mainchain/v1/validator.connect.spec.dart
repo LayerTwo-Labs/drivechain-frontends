@@ -101,4 +101,14 @@ abstract final class ValidatorService {
     cusfmainchainv1validator.SubscribeHeaderSyncProgressRequest.new,
     cusfmainchainv1validator.SubscribeHeaderSyncProgressResponse.new,
   );
+
+  /// Safely shutdown the validator. This is equivalent to sending a SIGINT
+  /// to the validator process, and can be used to trigger a graceful shutdown
+  /// in cases where you don't have access to the validator process.
+  static const stop = connect.Spec(
+    '/$name/Stop',
+    connect.StreamType.unary,
+    cusfmainchainv1validator.StopRequest.new,
+    cusfmainchainv1validator.StopResponse.new,
+  );
 }

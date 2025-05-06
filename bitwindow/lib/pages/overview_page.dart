@@ -104,7 +104,7 @@ class TransactionsView extends StatelessWidget {
                   SailCard(
                     bottomPadding: false,
                     title: 'Latest Transactions',
-                    subtitle: 'View the latest transactions on the sidechain',
+                    subtitle: 'View the latest transactions on L1',
                     error: model.hasErrorForKey('blockchain') ? model.error('blockchain').toString() : null,
                     child: SizedBox(
                       height: 300,

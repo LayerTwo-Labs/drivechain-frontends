@@ -219,4 +219,24 @@ extension type ValidatorServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Safely shutdown the validator. This is equivalent to sending a SIGINT
+  /// to the validator process, and can be used to trigger a graceful shutdown
+  /// in cases where you don't have access to the validator process.
+  Future<cusfmainchainv1validator.StopResponse> stop(
+    cusfmainchainv1validator.StopRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ValidatorService.stop,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

@@ -770,6 +770,24 @@ final $typed_data.Uint8List subscribeHeaderSyncProgressResponseDescriptor = $con
     'gBIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5VSW50MzJWYWx1ZUgAUg1jdXJyZW50SGVpZ2h0iAEB'
     'QhEKD19jdXJyZW50X2hlaWdodA==');
 
+@$core.Deprecated('Use stopRequestDescriptor instead')
+const StopRequest$json = {
+  '1': 'StopRequest',
+};
+
+/// Descriptor for `StopRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List stopRequestDescriptor = $convert.base64Decode(
+    'CgtTdG9wUmVxdWVzdA==');
+
+@$core.Deprecated('Use stopResponseDescriptor instead')
+const StopResponse$json = {
+  '1': 'StopResponse',
+};
+
+/// Descriptor for `StopResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List stopResponseDescriptor = $convert.base64Decode(
+    'CgxTdG9wUmVzcG9uc2U=');
+
 const $core.Map<$core.String, $core.dynamic> ValidatorServiceBase$json = {
   '1': 'ValidatorService',
   '2': [
@@ -785,6 +803,7 @@ const $core.Map<$core.String, $core.dynamic> ValidatorServiceBase$json = {
     {'1': 'GetTwoWayPegData', '2': '.cusf.mainchain.v1.GetTwoWayPegDataRequest', '3': '.cusf.mainchain.v1.GetTwoWayPegDataResponse'},
     {'1': 'SubscribeEvents', '2': '.cusf.mainchain.v1.SubscribeEventsRequest', '3': '.cusf.mainchain.v1.SubscribeEventsResponse', '6': true},
     {'1': 'SubscribeHeaderSyncProgress', '2': '.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest', '3': '.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse', '6': true},
+    {'1': 'Stop', '2': '.cusf.mainchain.v1.StopRequest', '3': '.cusf.mainchain.v1.StopResponse'},
   ],
 };
 
@@ -851,6 +870,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ValidatorS
   '.cusf.mainchain.v1.SubscribeEventsResponse.Event.DisconnectBlock': SubscribeEventsResponse_Event_DisconnectBlock$json,
   '.cusf.mainchain.v1.SubscribeHeaderSyncProgressRequest': SubscribeHeaderSyncProgressRequest$json,
   '.cusf.mainchain.v1.SubscribeHeaderSyncProgressResponse': SubscribeHeaderSyncProgressResponse$json,
+  '.cusf.mainchain.v1.StopRequest': StopRequest$json,
+  '.cusf.mainchain.v1.StopResponse': StopResponse$json,
 };
 
 /// Descriptor for `ValidatorService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -878,5 +899,7 @@ final $typed_data.Uint8List validatorServiceDescriptor = $convert.base64Decode(
     'Y3JpYmVFdmVudHNSZXF1ZXN0GiouY3VzZi5tYWluY2hhaW4udjEuU3Vic2NyaWJlRXZlbnRzUm'
     'VzcG9uc2UwARKOAQobU3Vic2NyaWJlSGVhZGVyU3luY1Byb2dyZXNzEjUuY3VzZi5tYWluY2hh'
     'aW4udjEuU3Vic2NyaWJlSGVhZGVyU3luY1Byb2dyZXNzUmVxdWVzdBo2LmN1c2YubWFpbmNoYW'
-    'luLnYxLlN1YnNjcmliZUhlYWRlclN5bmNQcm9ncmVzc1Jlc3BvbnNlMAE=');
+    'luLnYxLlN1YnNjcmliZUhlYWRlclN5bmNQcm9ncmVzc1Jlc3BvbnNlMAESRwoEU3RvcBIeLmN1'
+    'c2YubWFpbmNoYWluLnYxLlN0b3BSZXF1ZXN0Gh8uY3VzZi5tYWluY2hhaW4udjEuU3RvcFJlc3'
+    'BvbnNl');
 

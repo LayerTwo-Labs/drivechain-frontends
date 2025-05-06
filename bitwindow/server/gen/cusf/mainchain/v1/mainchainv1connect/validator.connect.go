@@ -71,6 +71,8 @@ const (
 	// ValidatorServiceSubscribeHeaderSyncProgressProcedure is the fully-qualified name of the
 	// ValidatorService's SubscribeHeaderSyncProgress RPC.
 	ValidatorServiceSubscribeHeaderSyncProgressProcedure = "/cusf.mainchain.v1.ValidatorService/SubscribeHeaderSyncProgress"
+	// ValidatorServiceStopProcedure is the fully-qualified name of the ValidatorService's Stop RPC.
+	ValidatorServiceStopProcedure = "/cusf.mainchain.v1.ValidatorService/Stop"
 )
 
 // ValidatorServiceClient is a client for the cusf.mainchain.v1.ValidatorService service.
@@ -95,6 +97,10 @@ type ValidatorServiceClient interface {
 	SubscribeEvents(context.Context, *connect.Request[v1.SubscribeEventsRequest]) (*connect.ServerStreamForClient[v1.SubscribeEventsResponse], error)
 	// Stream header sync progress updates
 	SubscribeHeaderSyncProgress(context.Context, *connect.Request[v1.SubscribeHeaderSyncProgressRequest]) (*connect.ServerStreamForClient[v1.SubscribeHeaderSyncProgressResponse], error)
+	// Safely shutdown the validator. This is equivalent to sending a SIGINT
+	// to the validator process, and can be used to trigger a graceful shutdown
+	// in cases where you don't have access to the validator process.
+	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
 }
 
 // NewValidatorServiceClient constructs a client for the cusf.mainchain.v1.ValidatorService service.
@@ -180,6 +186,12 @@ func NewValidatorServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(validatorServiceMethods.ByName("SubscribeHeaderSyncProgress")),
 			connect.WithClientOptions(opts...),
 		),
+		stop: connect.NewClient[v1.StopRequest, v1.StopResponse](
+			httpClient,
+			baseURL+ValidatorServiceStopProcedure,
+			connect.WithSchema(validatorServiceMethods.ByName("Stop")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -197,6 +209,7 @@ type validatorServiceClient struct {
 	getTwoWayPegData            *connect.Client[v1.GetTwoWayPegDataRequest, v1.GetTwoWayPegDataResponse]
 	subscribeEvents             *connect.Client[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse]
 	subscribeHeaderSyncProgress *connect.Client[v1.SubscribeHeaderSyncProgressRequest, v1.SubscribeHeaderSyncProgressResponse]
+	stop                        *connect.Client[v1.StopRequest, v1.StopResponse]
 }
 
 // GetBlockHeaderInfo calls cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo.
@@ -259,6 +272,11 @@ func (c *validatorServiceClient) SubscribeHeaderSyncProgress(ctx context.Context
 	return c.subscribeHeaderSyncProgress.CallServerStream(ctx, req)
 }
 
+// Stop calls cusf.mainchain.v1.ValidatorService.Stop.
+func (c *validatorServiceClient) Stop(ctx context.Context, req *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
+	return c.stop.CallUnary(ctx, req)
+}
+
 // ValidatorServiceHandler is an implementation of the cusf.mainchain.v1.ValidatorService service.
 type ValidatorServiceHandler interface {
 	// Fetches information about a specific mainchain block header,
@@ -281,6 +299,10 @@ type ValidatorServiceHandler interface {
 	SubscribeEvents(context.Context, *connect.Request[v1.SubscribeEventsRequest], *connect.ServerStream[v1.SubscribeEventsResponse]) error
 	// Stream header sync progress updates
 	SubscribeHeaderSyncProgress(context.Context, *connect.Request[v1.SubscribeHeaderSyncProgressRequest], *connect.ServerStream[v1.SubscribeHeaderSyncProgressResponse]) error
+	// Safely shutdown the validator. This is equivalent to sending a SIGINT
+	// to the validator process, and can be used to trigger a graceful shutdown
+	// in cases where you don't have access to the validator process.
+	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
 }
 
 // NewValidatorServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -362,6 +384,12 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 		connect.WithSchema(validatorServiceMethods.ByName("SubscribeHeaderSyncProgress")),
 		connect.WithHandlerOptions(opts...),
 	)
+	validatorServiceStopHandler := connect.NewUnaryHandler(
+		ValidatorServiceStopProcedure,
+		svc.Stop,
+		connect.WithSchema(validatorServiceMethods.ByName("Stop")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/cusf.mainchain.v1.ValidatorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ValidatorServiceGetBlockHeaderInfoProcedure:
@@ -388,6 +416,8 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 			validatorServiceSubscribeEventsHandler.ServeHTTP(w, r)
 		case ValidatorServiceSubscribeHeaderSyncProgressProcedure:
 			validatorServiceSubscribeHeaderSyncProgressHandler.ServeHTTP(w, r)
+		case ValidatorServiceStopProcedure:
+			validatorServiceStopHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -443,4 +473,8 @@ func (UnimplementedValidatorServiceHandler) SubscribeEvents(context.Context, *co
 
 func (UnimplementedValidatorServiceHandler) SubscribeHeaderSyncProgress(context.Context, *connect.Request[v1.SubscribeHeaderSyncProgressRequest], *connect.ServerStream[v1.SubscribeHeaderSyncProgressResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.ValidatorService.SubscribeHeaderSyncProgress is not implemented"))
+}
+
+func (UnimplementedValidatorServiceHandler) Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.ValidatorService.Stop is not implemented"))
 }

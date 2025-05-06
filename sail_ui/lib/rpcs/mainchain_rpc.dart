@@ -143,11 +143,21 @@ class MainchainRPCLive extends MainchainRPC {
     if (mainchainConf.hasConfFile) {
       // the conf file exists, and should take total precedence
       log.i('Mainchain conf file is present, not adding sidechain args');
-      return [
-        '-rpcthreads=40',
-        '-rpcworkqueue=100',
-        '-rest',
-      ];
+      var extraArgs = <String>[];
+
+      if (!mainchainConf.isFromConfigFile('rest')) {
+        extraArgs.add('-rest');
+      }
+
+      if (!mainchainConf.isFromConfigFile('rpcthreads  ')) {
+        extraArgs.add('-rpcthreads=40');
+      }
+
+      if (!mainchainConf.isFromConfigFile('rpcworkqueue')) {
+        extraArgs.add('-rpcworkqueue=100');
+      }
+
+      return extraArgs;
     }
 
     // only add sidechain args if the conf file is not present
