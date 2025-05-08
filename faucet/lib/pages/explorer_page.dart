@@ -132,18 +132,25 @@ class _ExplorerPageState extends State<ExplorerPage> {
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    SailText.primary13('Height: ${model.latestMainchainBlock?.blockHeight}'),
+                                    SailText.primary13(
+                                      'Height: ${model.latestMainchainBlock?.blockHeight}',
+                                      color: context.sailTheme.colors.primary,
+                                    ),
                                     const SizedBox(height: 4),
                                     SailText.primary13(
                                       'Hash: ${model.latestMainchainBlock?.hash}',
                                       overflow: TextOverflow.ellipsis,
+                                      color: context.sailTheme.colors.primary,
                                     ),
                                     const SizedBox(height: 4),
-                                    SailText.primary13('Time: ${model.latestMainchainBlock?.formattedTime}'),
+                                    SailText.primary13(
+                                      'Time: ${model.latestMainchainBlock?.formattedTime}',
+                                      color: context.sailTheme.colors.primary,
+                                    ),
                                     const SizedBox(height: 4),
                                     SailText.primary13(
                                       model.latestMainchainBlock?.timeSince() ?? '',
-                                      color: context.sailTheme.colors.orange,
+                                      color: context.sailTheme.colors.primary,
                                       bold: true,
                                     ),
                                   ],
@@ -206,14 +213,21 @@ class _ExplorerPageState extends State<ExplorerPage> {
                                   ? Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        SailText.primary13('Height: ${model.latestBitnamesBlock?.blockHeight}'),
+                                        SailText.primary13(
+                                          'Height: ${model.latestBitnamesBlock?.blockHeight}',
+                                          color: context.sailTheme.colors.primary,
+                                        ),
                                         const SizedBox(height: 4),
                                         SailText.primary13(
                                           'Hash: ${model.latestBitnamesBlock?.hash}',
                                           overflow: TextOverflow.ellipsis,
+                                          color: context.sailTheme.colors.primary,
                                         ),
                                         const SizedBox(height: 4),
-                                        SailText.primary13('Time: ${model.latestBitnamesBlock?.formattedTime}'),
+                                        SailText.primary13(
+                                          'Time: ${model.latestBitnamesBlock?.formattedTime}',
+                                          color: context.sailTheme.colors.primary,
+                                        ),
                                         const SizedBox(height: 4),
                                         SailText.primary13(
                                           model.latestBitnamesBlock?.timeSince() ?? '',
