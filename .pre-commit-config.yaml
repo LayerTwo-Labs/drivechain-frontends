@@ -4,11 +4,11 @@ repos:
     hooks:
       # Run format first, quickest operation
       - id: dart-format
-        exclude: "lib/gen/.*"
+        # exclude: "lib/gen/.*"
         args:
           - "-l 120"
 
       - id: flutter-analyze
         exclude: "lib/gen/.*"
         args:
-          - clients/bitwindow/lib/*
+          - bitwindow/lib/*
