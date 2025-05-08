@@ -88,7 +88,8 @@ class EnforcerLive extends EnforcerRPC {
     final starterPath = path.join(
       launcherAppDir.path,
       'wallet_starters',
-      'l1_starter.txt',
+      'mnemonics',
+      'l1.txt',
     );
     final starterFile = File(starterPath);
 
