@@ -6,6 +6,7 @@ import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
@@ -85,15 +86,24 @@ class EnforcerLive extends EnforcerRPC {
       host = '0.0.0.0';
     }
 
-    final starterPath = path.join(
-      launcherAppDir.path,
-      'wallet_starters',
-      'mnemonics',
-      'l1.txt',
+    final downloadsDir = await getDownloadsDirectory();
+    if (downloadsDir == null) {
+      throw Exception('Could not determine downloads directory');
+    }
+    
+    final mnemonicPath = path.join(
+      downloadsDir.path,
+      'Drivechain-Launcher-Downloads',
+      'enforcer',
+      'mnemonic',
+      'mnemonic.txt',
     );
-    final starterFile = File(starterPath);
-
-    final walletArg = await starterFile.exists() ? '--wallet-seed-file=$starterPath' : '--wallet-auto-create';
+    
+    final mnemonicFile = File(mnemonicPath);
+    
+    final walletArg = await mnemonicFile.exists() 
+      ? '--wallet-seed-file=${mnemonicFile.path}' 
+      : '--wallet-auto-create';
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',

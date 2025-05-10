@@ -217,7 +217,7 @@ Future<void> initDependencies(
     path.join(
       applicationDir.path,
       '..',
-      'com.layertwolabs.launcher',
+      'drivechain-launcher',
     ),
   );
   final enforcer = await EnforcerLive.create(
