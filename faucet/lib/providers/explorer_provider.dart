@@ -10,6 +10,7 @@ class ExplorerProvider extends ChangeNotifier {
 
   ChainTip? mainchainTip;
   ChainTip? thunderTip;
+  ChainTip? bitassetsTip;
   ChainTip? bitnamesTip;
   bool initialized = false;
 
@@ -34,6 +35,9 @@ class ExplorerProvider extends ChangeNotifier {
       }
       if (response.thunder.height > 0) {
         thunderTip = response.thunder;
+      }
+      if (response.bitassets.height > 0) {
+        bitassetsTip = response.bitassets;
       }
       if (response.bitnames.height > 0) {
         bitnamesTip = response.bitnames;
