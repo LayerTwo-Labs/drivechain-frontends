@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
@@ -40,22 +41,18 @@ class HDWalletProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<String>> _getMnemonicPaths() async {
-    final String base;
-    if (Platform.isMacOS) {
-      base = '${Platform.environment['HOME']}/Library/Application Support';
-    } else if (Platform.isLinux) {
-      base = '${Platform.environment['HOME']}/.config';
-    } else if (Platform.isWindows) {
-      base = Platform.environment['APPDATA']!;
-    } else {
-      throw Exception('Unsupported platform');
+  Future<String> _getMnemonicPath() async {
+    final downloadsDir = await getDownloadsDirectory();
+    if (downloadsDir == null) {
+      throw Exception('Could not determine downloads directory');
     }
-
-    return [
-      path.join(base, 'com.layertwolabs.launcher', 'wallet_starters', 'mnemonics', 'l1.txt'),
-      path.join(base, 'drivechain-launcher', 'wallet_starters', 'mnemonics', 'l1.txt'),
-    ];
+    return path.join(
+      downloadsDir.path,
+      'Drivechain-Launcher-Downloads',
+      'enforcer',
+      'mnemonic',
+      'mnemonic.txt',
+    );
   }
 
   Future<bool> loadMnemonic() async {
@@ -71,19 +68,9 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<void> _loadMnemonic() async {
     try {
-      final paths = await _getMnemonicPaths();
-      File? file;
-
-      for (final path in paths) {
-        try {
-          file = File(path);
-          if (await file.exists()) break;
-        } catch (e) {
-          // Continue to next path
-        }
-      }
-
-      if (file == null) {
+      final mnemonicPath = await _getMnemonicPath();
+      final file = File(mnemonicPath);
+      if (!await file.exists()) {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
