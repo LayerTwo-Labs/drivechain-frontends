@@ -61,6 +61,14 @@ class ExplorerViewModel extends BaseViewModel {
         )
       : null;
 
+  Block? get latestBitassetsBlock => explorerProvider.bitassetsTip != null
+      ? Block(
+          hash: explorerProvider.bitassetsTip!.hash,
+          blockHeight: explorerProvider.bitassetsTip!.height.toInt(),
+          blockTime: explorerProvider.bitassetsTip!.timestamp.toDateTime(),
+        )
+      : null;
+
   Block? get latestBitnamesBlock => explorerProvider.bitnamesTip != null
       ? Block(
           hash: explorerProvider.bitnamesTip!.hash,
@@ -190,6 +198,43 @@ class _ExplorerPageState extends State<ExplorerPage> {
                                       children: [
                                         SailText.primary13(
                                           'Unable to connect to Thunder',
+                                          color: context.sailTheme.colors.error,
+                                          bold: true,
+                                        ),
+                                      ],
+                                    ),
+                        ),
+                      ),
+                      IntrinsicHeight(
+                        child: SailCard(
+                          title: 'Latest BitAssets Block',
+                          subtitle: 'Most recent block on the BitAssets sidechain (L2-S4)',
+                          child:
+                              ((model.latestBitassetsBlock?.blockHeight ?? 0) > 0 || !model.explorerProvider.initialized)
+                                  ? Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        SailText.primary13('Height: ${model.latestBitassetsBlock?.blockHeight}'),
+                                        const SizedBox(height: 4),
+                                        SailText.primary13(
+                                          'Hash: ${model.latestBitassetsBlock?.hash}',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        SailText.primary13('Time: ${model.latestBitassetsBlock?.formattedTime}'),
+                                        const SizedBox(height: 4),
+                                        SailText.primary13(
+                                          model.latestBitassetsBlock?.timeSince() ?? '',
+                                          color: context.sailTheme.colors.orange,
+                                          bold: true,
+                                        ),
+                                      ],
+                                    )
+                                  : Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        SailText.primary13(
+                                          'Unable to connect to BitAssets',
                                           color: context.sailTheme.colors.error,
                                           bold: true,
                                         ),
