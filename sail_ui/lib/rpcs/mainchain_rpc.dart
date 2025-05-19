@@ -112,7 +112,7 @@ class MainchainRPCLive extends MainchainRPC {
 
         // Only notify if status changed
         if (wasInHeaderSync != inHeaderSync || wasInIBD != inIBD || inSync != wasInSync) {
-          log.i('IBD status changed - inHeaderSync: $inHeaderSync, inIBD: $inIBD');
+          log.i('IBD status changed - inHeaderSync: $inHeaderSync, inIBD: $inIBD, inSync: $inSync');
           notifyListeners();
         }
       } catch (error) {
@@ -141,7 +141,7 @@ class MainchainRPCLive extends MainchainRPC {
   @override
   Future<void> waitForSync() async {
     int lastLoggedThousand = 0;
-    while (inIBD) {
+    while (inSync) {
       try {
         final info = await getBlockchainInfo();
         int currentThousand = (info.blocks / 1000).floor();
