@@ -313,6 +313,18 @@ class SidechainsViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  String? get formatError {
+    if (addressController.text.isEmpty) {
+      return 'A deposit address from your sidechain must be set before you can format it.';
+    }
+
+    if (addressController.text.contains('_')) {
+      return 'You can only format an address once. Unformatted addresses can not contain underscores.';
+    }
+
+    return null;
+  }
+
   void deposit(BuildContext context) async {
     if (double.tryParse(depositAmountController.text) == null) {
       showSnackBar(context, 'Invalid amount, enter a number');
@@ -417,10 +429,14 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                 },
                 icon: SailSVGAsset.iconCopy,
               ),
-              SailButton(
-                variant: ButtonVariant.icon,
-                onPressed: viewModel.formatAddress,
-                icon: SailSVGAsset.iconFormat,
+              Tooltip(
+                message: viewModel.formatError ?? 'Format as deposit address',
+                child: SailButton(
+                  variant: ButtonVariant.icon,
+                  onPressed: viewModel.formatAddress,
+                  disabled: viewModel.formatError != null,
+                  icon: SailSVGAsset.iconFormat,
+                ),
               ),
             ],
           ),
