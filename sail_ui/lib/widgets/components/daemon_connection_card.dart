@@ -64,11 +64,14 @@ class DaemonConnectionCard extends StatelessWidget {
                 },
                 icon: SailSVGAsset.tabSettings,
               ),
-              SailButton(
-                variant: ButtonVariant.icon,
-                onPressed: restartDaemon,
-                loading: connection.initializingBinary,
-                icon: SailSVGAsset.iconRestart,
+              Tooltip(
+                message: 'Restart ${connection.binary.name}',
+                child: SailButton(
+                  variant: ButtonVariant.icon,
+                  onPressed: restartDaemon,
+                  loading: connection.initializingBinary,
+                  icon: SailSVGAsset.iconRestart,
+                ),
               ),
               if (deleteFunction != null)
                 SailButton(

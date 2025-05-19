@@ -21,9 +21,11 @@ abstract class MainchainRPC extends RPCConnection {
 
   bool inIBD = true;
   bool inHeaderSync = true;
+  bool inSync = true;
 
   Future<void> waitForIBD();
   Future<void> waitForHeaderSync();
+  Future<void> waitForSync();
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
   List<String> getMethods();
   Future<List<PeerInfo>> getPeerInfo();
@@ -83,9 +85,10 @@ class MainchainRPCLive extends MainchainRPC {
   }
 
   void pollIBDStatus() {
-    // start off with the assumption that the parent chain is in IBD
+    // start off with the assumption that the parent chain is syncing
     inIBD = true;
     inHeaderSync = true;
+    inSync = true;
     log.i('mainchain init: starting IBD status polling');
 
     Timer.periodic(const Duration(seconds: 1), (timer) async {
@@ -100,8 +103,15 @@ class MainchainRPCLive extends MainchainRPC {
         final wasInIBD = inIBD;
         inIBD = inHeaderSync || info.initialBlockDownload;
 
+        final wasInSync = inSync;
+        if (!inIBD && info.blocks == info.headers) {
+          // IBD is done, and block height matches header height,
+          // we're fully synced
+          inSync = false;
+        }
+
         // Only notify if status changed
-        if (wasInHeaderSync != inHeaderSync || wasInIBD != inIBD) {
+        if (wasInHeaderSync != inHeaderSync || wasInIBD != inIBD || inSync != wasInSync) {
           log.i('IBD status changed - inHeaderSync: $inHeaderSync, inIBD: $inIBD');
           notifyListeners();
         }
@@ -119,7 +129,24 @@ class MainchainRPCLive extends MainchainRPC {
         final info = await getBlockchainInfo();
         int currentThousand = (info.blocks / 1000).floor();
         if (currentThousand > lastLoggedThousand) {
-          log.w('Synced ${info.blocks} blocks');
+          log.w('Synced ${info.headers} headers');
+          lastLoggedThousand = currentThousand;
+        }
+      } finally {
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+  }
+
+  @override
+  Future<void> waitForSync() async {
+    int lastLoggedThousand = 0;
+    while (inIBD) {
+      try {
+        final info = await getBlockchainInfo();
+        int currentThousand = (info.blocks / 1000).floor();
+        if (currentThousand > lastLoggedThousand) {
+          log.w('Synced ${info.blocks}/${info.headers} blocks');
           lastLoggedThousand = currentThousand;
         }
       } finally {

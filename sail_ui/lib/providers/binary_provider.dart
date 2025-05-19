@@ -549,7 +549,7 @@ class BinaryProvider extends ChangeNotifier {
     // parent chain does not need to be restarted on crash, it's very stable
     await startBinary(parentChain, useStarter: false);
 
-    log.i('[T+${getElapsed()}ms] STARTUP: Waiting for mainchain to connect...');
+    log.i('[T+${getElapsed()}ms] STARTUP: Waiting for mainchain to connect and sync headers...');
     await mainchainRPC.waitForHeaderSync();
     log.i('[T+${getElapsed()}ms] STARTUP: Mainchain headers synced, starting enforcer');
 
