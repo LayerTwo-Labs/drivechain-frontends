@@ -35,7 +35,7 @@ dependencies:
   fixnum: ^1.1.1
   get_it: ^7.7.0
   meta: ^1.16.0
-  protobuf: ^3.1.0
+  protobuf: ^4.0.0
   dotted_border: ^3.0.1
   window_manager: ^0.4.3
   synchronized: ^3.3.1
@@ -44,7 +44,7 @@ dependencies:
   url_launcher: ^6.3.1
   pointycastle: ^3.9.1
   crypto: ^3.0.6
-  connectrpc: 0.2.0
+  connectrpc: 0.4.0
   desktop_multi_window: ^0.2.1
   convert: ^3.1.1
   bip39_mnemonic: ^3.0.9
