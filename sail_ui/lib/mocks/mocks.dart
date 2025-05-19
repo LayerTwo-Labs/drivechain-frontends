@@ -151,6 +151,11 @@ class MockMainchainRPC extends MainchainRPC {
   Future<TxOutsetInfo> getTxOutsetInfo() {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> waitForSync() async {
+    return;
+  }
 }
 
 class MockEnforcerRPC extends EnforcerRPC {
