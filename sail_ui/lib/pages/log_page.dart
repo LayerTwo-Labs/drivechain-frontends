@@ -31,12 +31,98 @@ class _LogPageState extends State<LogPage> {
   Timer? _tailTimer;
   int _lastPosition = 0;
   bool _stickToBottom = true;
+  static const int maxLines = 1000;
+  static const int chunkSize = 8192;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeLogView();
+    });
+  }
+
+  Future<void> _initializeLogView() async {
+    final logFile = File(widget.logPath);
+    if (!logFile.existsSync()) return;
+
+    // Read the last N lines initially
+    await _readLastNLines(logFile);
+
+    // Start tailing for new content
     _startTailing();
+  }
+
+  Future<void> _readLastNLines(File logFile) async {
+    final length = logFile.lengthSync();
+    if (length == 0) return;
+
+    final raf = logFile.openSync(mode: FileMode.read);
+    try {
+      // Start from the end of the file
+      raf.setPositionSync(length);
+
+      // Read backwards in chunks until we have enough lines
+      final lines = <String>[];
+      var position = length;
+
+      while (lines.length < maxLines && position > 0) {
+        final readSize = position > chunkSize ? chunkSize : position;
+        position -= readSize;
+        raf.setPositionSync(position);
+        final chunk = raf.readSync(readSize);
+
+        try {
+          final content = utf8.decode(chunk, allowMalformed: true);
+          final newLines = content
+              .split('\n')
+              .where((line) => line.isNotEmpty)
+              .where((line) => !isSpam(line))
+              .map((line) => line.trim())
+              .toList()
+              .reversed; // Reverse to maintain chronological order
+
+          lines.insertAll(0, newLines);
+          if (lines.length > maxLines) {
+            lines.removeRange(0, lines.length - maxLines);
+          }
+        } catch (e) {
+          // If UTF8 fails, try Latin1
+          final content = latin1.decode(chunk);
+          final newLines = content
+              .split('\n')
+              .where((line) => line.isNotEmpty)
+              .where((line) => !isSpam(line))
+              .map((line) => line.trim())
+              .toList()
+              .reversed;
+
+          lines.insertAll(0, newLines);
+          if (lines.length > maxLines) {
+            lines.removeRange(0, lines.length - maxLines);
+          }
+        }
+      }
+
+      setState(() {
+        _logLines.addAll(lines);
+        _lastPosition = length;
+      });
+
+      // Try multiple times to scroll to bottom
+      for (var i = 0; i < 5; i++) {
+        await Future.delayed(Duration(milliseconds: 100 * (i + 1)));
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          setState(() {
+            _stickToBottom = true;
+          });
+        }
+      }
+    } finally {
+      raf.closeSync();
+    }
   }
 
   void _scrollListener() {
@@ -131,6 +217,8 @@ class _LogPageState extends State<LogPage> {
       if (length < _lastPosition) {
         _lastPosition = 0;
         _logLines.clear();
+        await _readLastNLines(logFile);
+        return;
       }
 
       if (length > _lastPosition) {
@@ -160,8 +248,8 @@ class _LogPageState extends State<LogPage> {
 
         setState(() {
           _logLines.addAll(newLines);
-          if (_logLines.length > 1000) {
-            _logLines.removeRange(0, _logLines.length - 1000);
+          if (_logLines.length > maxLines) {
+            _logLines.removeRange(0, _logLines.length - maxLines);
           }
         });
 
