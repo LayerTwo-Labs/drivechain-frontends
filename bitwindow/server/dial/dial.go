@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
+	"time"
 
 	"connectrpc.com/connect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
@@ -14,6 +16,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/rs/zerolog"
 	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -26,9 +29,8 @@ func EnforcerValidator(ctx context.Context, url string) (
 		return nil, errors.New("empty validator url")
 	}
 
-	// Use the provided context directly with grpc.NewClient
 	client := rpc.NewValidatorServiceClient(
-		newInsecureClient(),
+		getSharedClient(ctx),
 		fmt.Sprintf("http://%s", url),
 		connect.WithGRPC(),
 	)
@@ -49,7 +51,7 @@ func EnforcerWallet(ctx context.Context, url string) (
 	}
 
 	client := rpc.NewWalletServiceClient(
-		newInsecureClient(),
+		getSharedClient(ctx),
 		fmt.Sprintf("http://%s", url),
 		connect.WithGRPC(),
 	)
@@ -71,7 +73,7 @@ func EnforcerCrypto(ctx context.Context, url string) (
 	}
 
 	client := cryptorpc.NewCryptoServiceClient(
-		newInsecureClient(),
+		getSharedClient(ctx),
 		fmt.Sprintf("http://%s", url),
 		connect.WithGRPC(),
 	)
@@ -90,17 +92,34 @@ func EnforcerCrypto(ctx context.Context, url string) (
 	return client, nil
 }
 
-// https://connectrpc.com/docs/go/deployment/#h2c
-func newInsecureClient() *http.Client {
-	return &http.Client{
-		Transport: &http2.Transport{
-			AllowHTTP: true,
-			DialTLS: func(network, addr string, _ *tls.Config) (net.Conn, error) {
-				// If you're also using this client for non-h2c traffic, you may want
-				// to delegate to tls.Dial if the network isn't TCP or the addr isn't
-				// in an allowlist.
-				return net.Dial(network, addr)
+var (
+	// Shared HTTP client for all connections
+	sharedClient *http.Client
+	clientOnce   sync.Once
+)
+
+// getSharedClient returns a singleton HTTP client for all connections
+func getSharedClient(ctx context.Context) *http.Client {
+	clientOnce.Do(func() {
+		sharedClient = &http.Client{
+			Transport: &http2.Transport{
+				AllowHTTP: true,
+				DialTLS: func(network, addr string, _ *tls.Config) (net.Conn, error) {
+					return net.Dial(network, addr)
+				},
+				// Without explicit timeouts here, clients linger indefinitely
+				IdleConnTimeout:  15 * time.Second,
+				ReadIdleTimeout:  30 * time.Second, // Close if no data received for 30s
+				PingTimeout:      15 * time.Second,
+				WriteByteTimeout: 10 * time.Second,
+
+				CountError: func(errType string) {
+					zerolog.Ctx(ctx).Error().Msgf("HTTP/2 transport error: %s", errType)
+				},
 			},
-		},
-	}
+			// Request-level timeout
+			Timeout: 30 * time.Second, // Overall request timeout
+		}
+	})
+	return sharedClient
 }
