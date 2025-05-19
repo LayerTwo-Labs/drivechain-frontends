@@ -117,7 +117,6 @@ func getSharedClient(ctx context.Context) *http.Client {
 					zerolog.Ctx(ctx).Error().Msgf("HTTP/2 transport error: %s", errType)
 				},
 			},
-			// Request-level timeout
 			Timeout: 30 * time.Second, // Overall request timeout
 		}
 	})
