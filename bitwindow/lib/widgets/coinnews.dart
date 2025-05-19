@@ -56,7 +56,7 @@ class CoinNewsView extends StatelessWidget {
                       children: [
                         Expanded(
                           child: SailTextField(
-                            hintText: 'Search coinnews...',
+                            hintText: 'Search coin news...',
                             controller: viewModel.searchController,
                           ),
                         ),
@@ -90,7 +90,7 @@ class CoinNewsView extends StatelessWidget {
                       totalPages: viewModel.totalPages,
                       onPageChanged: viewModel.setPage,
                       pageSize: viewModel.pageSize,
-                      pageSizeOptions: const [5, 10, 20, 50],
+                      pageSizeOptions: const [3, 5, 10, 20, 50],
                       onPageSizeChanged: (val) => viewModel.setPageSize(val ?? viewModel.pageSize),
                     ),
                   ],
@@ -111,7 +111,7 @@ class CoinNewsViewModel extends BaseViewModel {
 
   // Pagination state
   int currentPage = 1;
-  int pageSize = 10;
+  int pageSize = 3;
 
   List<CoinNews> get entries => _newsProvider.news
       .where(
@@ -136,9 +136,14 @@ class CoinNewsViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void setPageSize(int size) {
+  void setPageSize(int size) async {
     pageSize = size;
     currentPage = 1;
+
+    // Persist the page size
+    final setting = PageSizeSetting(newValue: size);
+    await _settings.setValue(setting);
+
     notifyListeners();
   }
 
@@ -151,6 +156,7 @@ class CoinNewsViewModel extends BaseViewModel {
   CoinNewsViewModel() {
     _newsProvider.addListener(notifyListeners);
     _loadSelectedTopics();
+    _loadPageSize();
     searchController.addListener(notifyListeners);
   }
 
@@ -164,6 +170,13 @@ class CoinNewsViewModel extends BaseViewModel {
     } else {
       _selectedTopicIds = loadedSetting.value;
     }
+    notifyListeners();
+  }
+
+  Future<void> _loadPageSize() async {
+    final setting = PageSizeSetting();
+    final loadedSetting = await _settings.getValue(setting);
+    pageSize = loadedSetting.value;
     notifyListeners();
   }
 
@@ -223,6 +236,35 @@ class SelectedTopicsSetting extends SettingValue<List<String>> {
   @override
   SettingValue<List<String>> withValue([List<String>? value]) {
     return SelectedTopicsSetting(newValue: value);
+  }
+}
+
+class PageSizeSetting extends SettingValue<int> {
+  @override
+  String get key => 'coin_news_page_size';
+
+  PageSizeSetting({super.newValue});
+
+  @override
+  int defaultValue() => 3; // Default to 3 items per page
+
+  @override
+  int? fromJson(String jsonString) {
+    try {
+      return int.parse(jsonString);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  String toJson() {
+    return value.toString();
+  }
+
+  @override
+  SettingValue<int> withValue([int? value]) {
+    return PageSizeSetting(newValue: value);
   }
 }
 
