@@ -17,6 +17,9 @@ import (
 	api_explorer "github.com/LayerTwo-Labs/sidesail/faucet/server/api/explorer"
 	api_faucet "github.com/LayerTwo-Labs/sidesail/faucet/server/api/faucet"
 	"github.com/LayerTwo-Labs/sidesail/faucet/server/api/faucet/validation"
+	api_validator "github.com/LayerTwo-Labs/sidesail/faucet/server/api/validator"
+	"github.com/LayerTwo-Labs/sidesail/faucet/server/connector"
+	validatordrpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	explorerrpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1/explorerv1connect"
 	faucetrpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/faucet/v1/faucetv1connect"
 	faucet_ip "github.com/LayerTwo-Labs/sidesail/faucet/server/ip"
@@ -32,6 +35,7 @@ import (
 func New(
 	ctx context.Context, bitcoind *coreproxy.Bitcoind,
 	rpcClients *api_explorer.RpcClients,
+	enforcerConnector connector.Connector[validatordrpc.ValidatorServiceClient],
 ) *Server {
 	interceptors := []connect.Interceptor{
 		faucet_ip.Interceptor(),
@@ -41,6 +45,8 @@ func New(
 	mux := http.NewServeMux()
 	srv := &Server{mux: mux, interceptors: interceptors}
 
+	validatorSvc := connector.New("enforcer", enforcerConnector)
+
 	Register(
 		srv, faucetrpc.NewFaucetServiceHandler,
 		faucetrpc.FaucetServiceHandler(api_faucet.New(bitcoind)),
@@ -49,6 +55,11 @@ func New(
 		srv, explorerrpc.NewExplorerServiceHandler,
 		explorerrpc.ExplorerServiceHandler(api_explorer.New(bitcoind, rpcClients)),
 	)
+	Register(
+		srv, validatordrpc.NewValidatorServiceHandler,
+		validatordrpc.ValidatorServiceHandler(api_validator.New(validatorSvc)),
+	)
+
 	return srv
 }
 

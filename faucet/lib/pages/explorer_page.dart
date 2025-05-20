@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:faucet/api/api_base.dart';
 import 'package:faucet/providers/explorer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -121,203 +123,246 @@ class _ExplorerPageState extends State<ExplorerPage> {
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => ExplorerViewModel(),
         builder: ((context, model, child) {
-          return Padding(
-            padding: const EdgeInsets.all(SailStyleValues.padding16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Horizontal layout for block cards
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isMobile = constraints.maxWidth < 600; // Adjust threshold as needed
-                    final cardList = [
-                      // Mainchain block card
-                      IntrinsicHeight(
-                        child: SailCard(
-                          title: 'Latest Mainchain Block',
-                          subtitle: 'Most recent block on the mainchain',
-                          child: (model.latestMainchainBlock != null || !model.explorerProvider.initialized)
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SailText.primary13('Height: ${model.latestMainchainBlock?.blockHeight}'),
-                                    const SizedBox(height: 4),
-                                    SailText.primary13(
-                                      'Hash: ${model.latestMainchainBlock?.hash}',
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    SailText.primary13('Time: ${model.latestMainchainBlock?.formattedTime}'),
-                                    const SizedBox(height: 4),
-                                    SailText.primary13(
-                                      model.latestMainchainBlock?.timeSince() ?? '',
-                                      color: context.sailTheme.colors.orange,
-                                      bold: true,
-                                    ),
-                                  ],
-                                )
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SailText.primary13(
-                                      'Unable to connect to Mainchain',
-                                      color: context.sailTheme.colors.error,
-                                      bold: true,
-                                    ),
-                                  ],
-                                ),
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(SailStyleValues.padding16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Horizontal layout for block cards
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600; // Adjust threshold as needed
+                      final cardList = [
+                        // Mainchain block card
+                        IntrinsicHeight(
+                          child: SailCard(
+                            title: 'Latest Mainchain Block',
+                            subtitle: 'Most recent block on the mainchain',
+                            child: (model.latestMainchainBlock != null || !model.explorerProvider.initialized)
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary13('Height: ${model.latestMainchainBlock?.blockHeight}'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13(
+                                        'Hash: ${model.latestMainchainBlock?.hash}',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13('Time: ${model.latestMainchainBlock?.formattedTime}'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13(
+                                        model.latestMainchainBlock?.timeSince() ?? '',
+                                        color: context.sailTheme.colors.orange,
+                                        bold: true,
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary13(
+                                        'Unable to connect to Mainchain',
+                                        color: context.sailTheme.colors.error,
+                                        bold: true,
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
-                      IntrinsicHeight(
-                        child: SailCard(
-                          title: 'Latest Thunder Block',
-                          subtitle: 'Most recent block on the Thunder sidechain (L2-S9)',
-                          child:
-                              ((model.latestThunderBlock?.blockHeight ?? 0) > 0 || !model.explorerProvider.initialized)
-                                  ? Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        SailText.primary13('Height: ${model.latestThunderBlock?.blockHeight}'),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13(
-                                          'Hash: ${model.latestThunderBlock?.hash}',
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13('Time: ${model.latestThunderBlock?.formattedTime}'),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13(
-                                          model.latestThunderBlock?.timeSince() ?? '',
-                                          color: context.sailTheme.colors.orange,
-                                          bold: true,
-                                        ),
-                                      ],
-                                    )
-                                  : Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        SailText.primary13(
-                                          'Unable to connect to Thunder',
-                                          color: context.sailTheme.colors.error,
-                                          bold: true,
-                                        ),
-                                      ],
-                                    ),
+                        IntrinsicHeight(
+                          child: SailCard(
+                            title: 'Latest Thunder Block',
+                            subtitle: 'Most recent block on the Thunder sidechain (L2-S9)',
+                            child: ((model.latestThunderBlock?.blockHeight ?? 0) > 0 ||
+                                    !model.explorerProvider.initialized)
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary13('Height: ${model.latestThunderBlock?.blockHeight}'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13(
+                                        'Hash: ${model.latestThunderBlock?.hash}',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13('Time: ${model.latestThunderBlock?.formattedTime}'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13(
+                                        model.latestThunderBlock?.timeSince() ?? '',
+                                        color: context.sailTheme.colors.orange,
+                                        bold: true,
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary13(
+                                        'Unable to connect to Thunder',
+                                        color: context.sailTheme.colors.error,
+                                        bold: true,
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
-                      IntrinsicHeight(
-                        child: SailCard(
-                          title: 'Latest BitAssets Block',
-                          subtitle: 'Most recent block on the BitAssets sidechain (L2-S4)',
-                          child:
-                              ((model.latestBitassetsBlock?.blockHeight ?? 0) > 0 || !model.explorerProvider.initialized)
-                                  ? Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        SailText.primary13('Height: ${model.latestBitassetsBlock?.blockHeight}'),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13(
-                                          'Hash: ${model.latestBitassetsBlock?.hash}',
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13('Time: ${model.latestBitassetsBlock?.formattedTime}'),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13(
-                                          model.latestBitassetsBlock?.timeSince() ?? '',
-                                          color: context.sailTheme.colors.orange,
-                                          bold: true,
-                                        ),
-                                      ],
-                                    )
-                                  : Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        SailText.primary13(
-                                          'Unable to connect to BitAssets',
-                                          color: context.sailTheme.colors.error,
-                                          bold: true,
-                                        ),
-                                      ],
-                                    ),
+                        IntrinsicHeight(
+                          child: SailCard(
+                            title: 'Latest BitAssets Block',
+                            subtitle: 'Most recent block on the BitAssets sidechain (L2-S4)',
+                            child: ((model.latestBitassetsBlock?.blockHeight ?? 0) > 0 ||
+                                    !model.explorerProvider.initialized)
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary13('Height: ${model.latestBitassetsBlock?.blockHeight}'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13(
+                                        'Hash: ${model.latestBitassetsBlock?.hash}',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13('Time: ${model.latestBitassetsBlock?.formattedTime}'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13(
+                                        model.latestBitassetsBlock?.timeSince() ?? '',
+                                        color: context.sailTheme.colors.orange,
+                                        bold: true,
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary13(
+                                        'Unable to connect to BitAssets',
+                                        color: context.sailTheme.colors.error,
+                                        bold: true,
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
-                      IntrinsicHeight(
-                        child: SailCard(
-                          title: 'Latest BitNames Block',
-                          subtitle: 'Most recent block on the BitNames sidechain (L2-S2)',
-                          child:
-                              ((model.latestBitnamesBlock?.blockHeight ?? 0) > 0 || !model.explorerProvider.initialized)
-                                  ? Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        SailText.primary13('Height: ${model.latestBitnamesBlock?.blockHeight}'),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13(
-                                          'Hash: ${model.latestBitnamesBlock?.hash}',
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13('Time: ${model.latestBitnamesBlock?.formattedTime}'),
-                                        const SizedBox(height: 4),
-                                        SailText.primary13(
-                                          model.latestBitnamesBlock?.timeSince() ?? '',
-                                          color: context.sailTheme.colors.orange,
-                                          bold: true,
-                                        ),
-                                      ],
-                                    )
-                                  : Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        SailText.primary13(
-                                          'Unable to connect to BitNames',
-                                          color: context.sailTheme.colors.error,
-                                          bold: true,
-                                        ),
-                                      ],
-                                    ),
+                        IntrinsicHeight(
+                          child: SailCard(
+                            title: 'Latest BitNames Block',
+                            subtitle: 'Most recent block on the BitNames sidechain (L2-S2)',
+                            child: ((model.latestBitnamesBlock?.blockHeight ?? 0) > 0 ||
+                                    !model.explorerProvider.initialized)
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary13('Height: ${model.latestBitnamesBlock?.blockHeight}'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13(
+                                        'Hash: ${model.latestBitnamesBlock?.hash}',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13('Time: ${model.latestBitnamesBlock?.formattedTime}'),
+                                      const SizedBox(height: 4),
+                                      SailText.primary13(
+                                        model.latestBitnamesBlock?.timeSince() ?? '',
+                                        color: context.sailTheme.colors.orange,
+                                        bold: true,
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailText.primary13(
+                                        'Unable to connect to BitNames',
+                                        color: context.sailTheme.colors.error,
+                                        bold: true,
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
-                    ];
+                      ];
 
-                    return isMobile
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            spacing: SailStyleValues.padding16,
-                            children: cardList,
-                          )
-                        : SailRow(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            spacing: SailStyleValues.padding16,
-                            children: [
-                              for (var card in cardList) ...[
-                                Expanded(child: card),
+                      return isMobile
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: SailStyleValues.padding16,
+                              children: cardList,
+                            )
+                          : SailRow(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: SailStyleValues.padding16,
+                              children: [
+                                for (var card in cardList) ...[
+                                  Expanded(child: card),
+                                ],
                               ],
-                            ],
-                          );
-                  },
-                ),
-                const SizedBox(height: SailStyleValues.padding16),
-                // Refresh button with auto-refresh indicator
-                Row(
-                  children: [
-                    SailButton(
-                      label: 'Refresh Now',
-                      onPressed: () async => model.refreshData(),
-                      variant: ButtonVariant.primary,
-                    ),
-                    const SizedBox(width: 16),
-                    SailText.secondary12(
-                      'Auto-refreshes every 30 seconds',
-                      italic: true,
-                    ),
-                  ],
-                ),
-              ],
+                            );
+                    },
+                  ),
+                  const SizedBox(height: SailStyleValues.padding16),
+                  // Refresh button with auto-refresh indicator
+                  Row(
+                    children: [
+                      SailButton(
+                        label: 'Refresh Now',
+                        onPressed: () async => model.refreshData(),
+                        variant: ButtonVariant.primary,
+                      ),
+                      const SizedBox(width: 16),
+                      SailText.secondary12(
+                        'Auto-refreshes every 30 seconds',
+                        italic: true,
+                      ),
+                    ],
+                  ),
+                  SailSpacing(SailStyleValues.padding16),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 500),
+                    child: ConsoleCard(),
+                  ),
+                  SailSpacing(SailStyleValues.padding64 * 4),
+                ],
+              ),
             ),
           );
         }),
+      ),
+    );
+  }
+}
+
+class ConsoleCard extends StatelessWidget {
+  const ConsoleCard({super.key});
+
+  API get api => GetIt.I.get<API>();
+
+  @override
+  Widget build(BuildContext context) {
+    return SailCard(
+      title: 'Enforcer RPC',
+      subtitle:
+          'Get information from the enforcer. Try typing in "enforcer" in the input below. Try GetCtip {"sidechain_number": 9} to get thunders ctip.',
+      child: ConsoleView(
+        services: [
+          ConsoleService(
+            name: 'enforcer',
+            commands: api.getMethods(),
+            execute: (command, args) async {
+              String jsonBody = '{}';
+              if (args.isNotEmpty) {
+                try {
+                  json.decode(args[0]).toString();
+                  jsonBody = args[0];
+                } catch (e) {
+                  throw Exception('Argument must be a single JSON object, e.g. {"key": "value"} $e');
+                }
+              }
+              return await api.callRAW(command, 'cusf.mainchain.v1.ValidatorService', jsonBody);
+            },
+          ),
+        ],
       ),
     );
   }

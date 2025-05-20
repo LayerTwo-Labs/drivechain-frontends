@@ -1,9 +1,13 @@
 format:
     find . -name "*.dart" -not -path "./lib/gen/*" | xargs dart format -l 120
 
-gen:
+gen: gen-validator
     buf generate --template ../buf.dart.gen.yaml ./server
     cd server && buf generate --template buf.go.gen.yaml .
+
+
+gen-validator:
+    cd server && buf generate --template buf.go.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 
 build-client:
     flutter build web
@@ -22,7 +26,7 @@ run-server: build-server
     ./server/faucetd
 
 build-server:
-    go build -o ./server/faucetd ./server
+    cd server && go build -o faucetd
 
 lint: 
     golangci-lint run ./server/...
