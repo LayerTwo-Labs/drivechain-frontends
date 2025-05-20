@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/utils/file_utils.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -288,18 +289,13 @@ class _LogPageState extends State<LogPage> {
         backgroundColor: SailColorScheme.blackLighter,
         foregroundColor: SailColorScheme.whiteDark,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.vertical_align_bottom),
-            onPressed: () {
-              _stickToBottom = true;
-              if (_scrollController.hasClients) {
-                _scrollController.animateTo(
-                  _scrollController.position.maxScrollExtent,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                );
-              }
+          SailButton(
+            onPressed: () async {
+              final logFile = File(widget.logPath);
+              await openFile(logFile);
             },
+            variant: ButtonVariant.icon,
+            icon: SailSVGAsset.download,
           ),
         ],
       ),
