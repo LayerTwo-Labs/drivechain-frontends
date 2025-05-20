@@ -90,7 +90,7 @@ class EnforcerLive extends EnforcerRPC {
     if (downloadsDir == null) {
       throw Exception('Could not determine downloads directory');
     }
-    
+
     final mnemonicPath = path.join(
       downloadsDir.path,
       'Drivechain-Launcher-Downloads',
@@ -98,12 +98,10 @@ class EnforcerLive extends EnforcerRPC {
       'mnemonic',
       'mnemonic.txt',
     );
-    
+
     final mnemonicFile = File(mnemonicPath);
-    
-    final walletArg = await mnemonicFile.exists() 
-      ? '--wallet-seed-file=${mnemonicFile.path}' 
-      : '--wallet-auto-create';
+
+    final walletArg = await mnemonicFile.exists() ? '--wallet-seed-file=${mnemonicFile.path}' : '--wallet-auto-create';
 
     return [
       '--node-rpc-pass=${mainchainConf.password}',
