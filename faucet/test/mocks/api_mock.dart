@@ -5,4 +5,14 @@ class MockAPI implements API {
   ServiceClients clients = ServiceClients.setup(
     baseUrl: 'http://127.0.0.1:8080',
   );
+
+  @override
+  List<String> getMethods() {
+    return [];
+  }
+
+  @override
+  Future callRAW(String url, String service, [String body = '{}']) {
+    return Future.value();
+  }
 }

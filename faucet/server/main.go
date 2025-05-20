@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/faucet/server/api/explorer"
+	"github.com/LayerTwo-Labs/sidesail/faucet/server/dial"
+	validatordrpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/faucet/server/jsonrpc"
 	"github.com/LayerTwo-Labs/sidesail/faucet/server/server"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -77,11 +79,16 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("start core proxy: %w", err)
 	}
 
+	validatorConnector := func(ctx context.Context) (validatordrpc.ValidatorServiceClient, error) {
+		validator, err := dial.EnforcerValidator(ctx, conf.EnforcerHost)
+		return validator, err
+	}
+
 	srv := server.New(ctx, proxy, &explorer.RpcClients{
 		Thunder:   thunderClient,
 		BitAssets: bitassetsClient,
 		BitNames:  bitnamesClient,
-	})
+	}, validatorConnector)
 
 	zerolog.Ctx(ctx).Info().Msgf("server: listening on %q", conf.Listen)
 

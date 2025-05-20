@@ -335,13 +335,12 @@ class _ConsoleViewState extends State<ConsoleView> {
                                 if (_currentService != null)
                                   SailText.primary13(
                                     _currentService!,
-                                    color: theme.colors.textTertiary,
+                                    color: theme.colors.textSecondary,
                                     monospace: true,
                                   ),
                                 if (_currentService != null) const SizedBox(width: 8),
                                 SailText.primary13(
                                   '>',
-                                  color: theme.colors.text,
                                   monospace: true,
                                 ),
                                 const SizedBox(width: 8),
@@ -424,7 +423,7 @@ class ConsoleEntryWidget extends StatelessWidget {
           const SailSpacing(SailStyleValues.padding08),
           SailText.secondary13(
             _timeFormat.format(entry.timestamp),
-            color: theme.colors.textTertiary,
+            color: theme.colors.textSecondary,
             monospace: true,
           ),
           const SizedBox(width: 8),
@@ -439,7 +438,7 @@ class ConsoleEntryWidget extends StatelessWidget {
                 ),
               )
             else
-              const Icon(Icons.chevron_right, size: 16),
+              Icon(Icons.chevron_right, size: 16, color: theme.colors.textSecondary),
           ] else
             const SizedBox(width: 16),
           const SizedBox(width: 8),
