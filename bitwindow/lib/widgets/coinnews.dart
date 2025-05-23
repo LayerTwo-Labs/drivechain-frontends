@@ -4,9 +4,12 @@ import 'dart:math';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/widgets/pagination.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
+import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -82,8 +85,10 @@ class CoinNewsView extends StatelessWidget {
                       ],
                     ),
                     const SailSpacing(16),
-                    ...viewModel.paginatedEntries
-                        .map((entry) => CoinNewsEntry(entry: entry, allTopics: viewModel.topics)),
+                    CoinNewsTable(
+                      entries: viewModel.paginatedEntries,
+                      onSort: viewModel.sortEntries,
+                    ),
                     const SizedBox(height: 16),
                     Pagination(
                       currentPage: viewModel.currentPage,
@@ -105,23 +110,103 @@ class CoinNewsView extends StatelessWidget {
 }
 
 class CoinNewsViewModel extends BaseViewModel {
+  BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
+
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
   final ClientSettings _settings = GetIt.I.get<ClientSettings>();
   final TextEditingController searchController = TextEditingController();
 
   // Pagination state
   int currentPage = 1;
-  int pageSize = 3;
+  int pageSize = 5;
 
-  List<CoinNews> get entries => _newsProvider.news
-      .where(
-        (news) =>
-            _selectedTopicIds.contains(news.topic) &&
-            (searchController.text.isEmpty ||
-                news.headline.toLowerCase().contains(searchController.text.toLowerCase()) ||
-                news.content.toLowerCase().contains(searchController.text.toLowerCase())),
-      )
-      .toList();
+  // Sorting state
+  bool _sortAscending = false;
+  String _sortColumn = 'date';
+
+  bool get loading {
+    return !_newsProvider.initialized;
+  }
+
+  List<CoinNews> get entries {
+    if (loading) {
+      // if loading, add dummy date for the skeletonizer to render things properly
+      return [
+        CoinNews(
+          topic: 'bitcoin',
+          headline: 'Bitcoin price hits new all-time high',
+          content: 'Bitcoin price hits new all-time high',
+          createTime: Timestamp.fromDateTime(DateTime.now()),
+        ),
+        CoinNews(
+          topic: 'bitcoin',
+          headline: 'Bitcoin price hits new all-time high',
+          content: 'Bitcoin price hits new all-time high',
+          createTime: Timestamp.fromDateTime(DateTime.now()),
+        ),
+        CoinNews(
+          topic: 'drivechain',
+          headline: 'Drivechain upgrade successfully completed',
+          content:
+              'The long-awaited Drivechain upgrade has been successfully implemented, bringing bitcoin to the masses.',
+          createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 2))),
+        ),
+        CoinNews(
+          topic: 'defi',
+          headline: 'New DeFi protocol launches with 100M TVL',
+          content:
+              'A revolutionary DeFi protocol has launched, offering innovative yield farming strategies and cross-layer (using drivechain!!) liquidity solutions.',
+          createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 4))),
+        ),
+        CoinNews(
+          topic: 'bitcoin',
+          headline: 'Major financial institution announces Bitcoin ETF',
+          content:
+              'A leading financial institution has filed for a spot Bitcoin ETF, potentially opening the door for institutional investors to gain direct exposure to Bitcoin.',
+          createTime: Timestamp.fromDateTime(DateTime.now().subtract(const Duration(hours: 6))),
+        ),
+      ];
+    }
+
+    var filteredEntries = _newsProvider.news
+        .where(
+          (news) =>
+              _selectedTopicIds.contains(news.topic) &&
+              (searchController.text.isEmpty ||
+                  news.headline.toLowerCase().contains(searchController.text.toLowerCase()) ||
+                  news.content.toLowerCase().contains(searchController.text.toLowerCase())),
+        )
+        .toList();
+
+    // Apply sorting
+    filteredEntries.sort((a, b) {
+      dynamic aValue = '';
+      dynamic bValue = '';
+
+      switch (_sortColumn) {
+        case 'date':
+          aValue = a.createTime.toDateTime().millisecondsSinceEpoch;
+          bValue = b.createTime.toDateTime().millisecondsSinceEpoch;
+          break;
+        case 'topic':
+          aValue = a.topic;
+          bValue = b.topic;
+          break;
+        case 'title':
+          aValue = a.headline;
+          bValue = b.headline;
+          break;
+        case 'readtime':
+          aValue = expectedReadTime(a.content);
+          bValue = expectedReadTime(b.content);
+          break;
+      }
+
+      return _sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+
+    return filteredEntries;
+  }
 
   List<CoinNews> get paginatedEntries {
     final start = (currentPage - 1) * pageSize;
@@ -198,6 +283,17 @@ class CoinNewsViewModel extends BaseViewModel {
       newSelection.add(topicId);
     }
     await setSelectedTopics(newSelection);
+  }
+
+  void sortEntries(String column) {
+    if (_sortColumn == column) {
+      _sortAscending = !_sortAscending;
+    } else {
+      _sortColumn = column;
+      // Default to descending for date column, ascending for others
+      _sortAscending = column != 'date';
+    }
+    notifyListeners();
   }
 
   @override
@@ -381,6 +477,81 @@ class _CoinNewsEntryState extends State<CoinNewsEntry> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class CoinNewsTable extends ViewModelWidget<CoinNewsViewModel> {
+  final List<CoinNews> entries;
+  final Function(String) onSort;
+
+  const CoinNewsTable({
+    super.key,
+    required this.entries,
+    required this.onSort,
+  });
+
+  @override
+  Widget build(BuildContext context, CoinNewsViewModel viewModel) {
+    return SailSkeletonizer(
+      description: 'Waiting for backend to boot and load coin news..',
+      enabled: viewModel.loading,
+      child: SailTable(
+        shrinkWrap: true,
+        getRowId: (index) => index.toString(),
+        headerBuilder: (context) => [
+          const SailTableHeaderCell(name: 'Date'),
+          const SailTableHeaderCell(name: 'Topic'),
+          const SailTableHeaderCell(name: 'Title'),
+          const SailTableHeaderCell(name: 'Read time'),
+        ],
+        rowBuilder: (context, row, selected) {
+          final entry = entries[row];
+          final matchingTopic = viewModel.topics.firstWhereOrNull((t) => t.topic == entry.topic);
+
+          return [
+            SailTableCell(value: formatDate(entry.createTime.toDateTime())),
+            SailTableCell(value: matchingTopic?.name ?? entry.topic),
+            SailTableCell(value: entry.headline),
+            SailTableCell(value: expectedReadTime(entry.content)),
+          ];
+        },
+        rowCount: entries.length,
+        columnWidths: const [70, 50, 200, 30],
+        drawGrid: true,
+        onSort: (columnIndex, ascending) {
+          onSort(['date', 'topic', 'title', 'readtime'][columnIndex]);
+        },
+        onDoubleTap: (rowId) {
+          final news = entries[int.parse(rowId)];
+
+          final article = Article(
+            title: news.headline,
+            markdown: news.content,
+            filename: '',
+          );
+
+          showArticleDetails(context, article, 'Coin News');
+        },
+        contextMenuItems: (rowId) {
+          return [
+            SailMenuItem(
+              onSelected: () {
+                final news = entries[int.parse(rowId)];
+
+                final article = Article(
+                  title: news.headline,
+                  markdown: news.content,
+                  filename: '',
+                );
+
+                showArticleDetails(context, article, 'Coin News');
+              },
+              child: SailText.primary12('Show Details'),
+            ),
+          ];
+        },
       ),
     );
   }
