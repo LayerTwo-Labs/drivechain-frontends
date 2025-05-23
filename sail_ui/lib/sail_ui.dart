@@ -72,4 +72,5 @@ export 'rpcs/zcash_rpc.dart';
 export 'rpcs/zcash_rpc_mock.dart';
 export 'widgets/components/sail_info_box.dart';
 export 'widgets/console/console_view.dart';
+export 'widgets/loaders/skeletonizer.dart';
 export 'widgets/nav/side_nav.dart';

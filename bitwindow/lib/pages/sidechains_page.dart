@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/change_tracking_mixin.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -65,66 +67,70 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: SailTable(
-              getRowId: (index) => index.toString(),
-              headerBuilder: (context) => [
-                SailTableHeaderCell(
-                  name: 'Slot',
-                  onSort: () => viewModel.sortSidechains('slot'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Name',
-                  onSort: () => viewModel.sortSidechains('name'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Balance',
-                  onSort: () => viewModel.sortSidechains('balance'),
-                ),
-              ],
-              rowBuilder: (context, row, selected) {
-                final slot = row; // This is now the slot number (0-254)
-                final sidechain = viewModel.sidechains[slot];
-                final textColor =
-                    sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
-                return [
-                  SailTableCell(value: '$slot:', textColor: textColor),
-                  SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
-                  SailTableCell(
-                    value: formatBitcoin(
-                      satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0),
+            child: SailSkeletonizer(
+              description: 'Waiting for enforcer to become available..',
+              enabled: viewModel.loading,
+              child: SailTable(
+                getRowId: (index) => index.toString(),
+                headerBuilder: (context) => [
+                  SailTableHeaderCell(
+                    name: 'Slot',
+                    onSort: () => viewModel.sortSidechains('slot'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'Name',
+                    onSort: () => viewModel.sortSidechains('name'),
+                  ),
+                  SailTableHeaderCell(
+                    name: 'Balance',
+                    onSort: () => viewModel.sortSidechains('balance'),
+                  ),
+                ],
+                rowBuilder: (context, row, selected) {
+                  final slot = row; // This is now the slot number (0-254)
+                  final sidechain = viewModel.sidechains[slot];
+                  final textColor =
+                      sidechain == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.text;
+                  return [
+                    SailTableCell(value: '$slot:', textColor: textColor),
+                    SailTableCell(value: sidechain?.info.title ?? '', textColor: textColor),
+                    SailTableCell(
+                      value: formatBitcoin(
+                        satoshiToBTC(sidechain?.info.balanceSatoshi.toInt() ?? 0),
+                      ),
+                      textColor: textColor,
                     ),
-                    textColor: textColor,
-                  ),
-                ];
-              },
-              rowCount: 255, // Show all possible slots
-              columnWidths: const [37, 100, 100],
-              sortAscending: viewModel.sortAscending,
-              sortColumnIndex: ['slot', 'name', 'balance'].indexOf(viewModel.sortColumn),
-              onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
-              selectedRowId: viewModel.selectedIndex?.toString(),
-              onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
-              onDoubleTap: (rowId) {
-                final sidechain = viewModel.sidechains[int.parse(rowId)];
-                if (sidechain == null || sidechain.info.chaintipTxid == '') {
-                  return;
-                }
+                  ];
+                },
+                rowCount: 255, // Show all possible slots
+                columnWidths: const [37, 100, 100],
+                sortAscending: viewModel.sortAscending,
+                sortColumnIndex: ['slot', 'name', 'balance'].indexOf(viewModel.sortColumn),
+                onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
+                selectedRowId: viewModel.selectedIndex?.toString(),
+                onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
+                onDoubleTap: (rowId) {
+                  final sidechain = viewModel.sidechains[int.parse(rowId)];
+                  if (sidechain == null || sidechain.info.chaintipTxid == '') {
+                    return;
+                  }
 
-                showTransactionDetails(context, rowId);
-              },
-              contextMenuItems: (rowId) {
-                final sidechain = viewModel.sidechains[int.parse(rowId)];
-                if (sidechain == null || sidechain.info.chaintipTxid == '') {
-                  return [];
-                }
+                  showTransactionDetails(context, rowId);
+                },
+                contextMenuItems: (rowId) {
+                  final sidechain = viewModel.sidechains[int.parse(rowId)];
+                  if (sidechain == null || sidechain.info.chaintipTxid == '') {
+                    return [];
+                  }
 
-                return [
-                  SailMenuItem(
-                    onSelected: () => showTransactionDetails(context, sidechain.info.chaintipTxid),
-                    child: SailText.primary12('Show Chaintip Transaction'),
-                  ),
-                ];
-              },
+                  return [
+                    SailMenuItem(
+                      onSelected: () => showTransactionDetails(context, sidechain.info.chaintipTxid),
+                      child: SailText.primary12('Show Chaintip Transaction'),
+                    ),
+                  ];
+                },
+              ),
             ),
           ),
           const SizedBox(height: SailStyleValues.padding16),
@@ -140,24 +146,28 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
   }
 }
 
-class SidechainsViewModel extends BaseViewModel {
+class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider transactionsProvider = GetIt.I.get<TransactionProvider>();
   final SidechainProvider sidechainProvider = GetIt.I.get<SidechainProvider>();
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
+  final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController depositAmountController = TextEditingController();
   final TextEditingController feeController = TextEditingController(text: '0.0001');
 
   SidechainsViewModel() {
+    initChangeTracker();
     sidechainProvider
-      ..addListener(notifyListeners)
+      ..addListener(_onChange)
       ..addListener(errorListener);
     sidechainProvider.fetch();
-    addressController.addListener(notifyListeners);
-    depositAmountController.addListener(notifyListeners);
-    feeController.addListener(notifyListeners);
+    addressController.addListener(_onChange);
+    depositAmountController.addListener(_onChange);
+    feeController.addListener(_onChange);
   }
+
+  bool get loading => _enforcerRPC.initializingBinary;
 
   List<SidechainOverview?> get sidechains => sidechainProvider.sidechains;
 
@@ -351,8 +361,9 @@ class SidechainsViewModel extends BaseViewModel {
       setBusy(false);
     }
 
-    // refetch sidechain transaction list & transaction list
+    // refetch sidechain transaction list
     await sidechainProvider.fetch();
+    // refetching the transaction list also triggers the balance to be updated
     await transactionsProvider.fetch();
   }
 
@@ -363,6 +374,14 @@ class SidechainsViewModel extends BaseViewModel {
     addressController.removeListener(notifyListeners);
     depositAmountController.removeListener(notifyListeners);
     feeController.removeListener(notifyListeners);
+  }
+
+  void _onChange() {
+    track('sidechains', sidechainProvider.sidechains);
+    track('sortedSidechains', _sortedSidechains);
+    track('sortedDeposits', _sortedDeposits);
+    track('recentDeposits', sidechainProvider.sidechains[_selectedIndex ?? 254]?.deposits ?? []);
+    notifyIfChanged();
   }
 }
 

@@ -343,7 +343,7 @@ class ConsoleCard extends StatelessWidget {
     return SailCard(
       title: 'Enforcer RPC',
       subtitle:
-          'Get information from the enforcer. Try typing in "enforcer" in the input below. Try GetCtip {"sidechain_number": 9} to get thunders ctip.',
+          'Get information from the enforcer. Try typing in "enforcer" in the input below, or GetCtip {"sidechain_number": 9} to get thunders ctip.',
       child: ConsoleView(
         services: [
           ConsoleService(

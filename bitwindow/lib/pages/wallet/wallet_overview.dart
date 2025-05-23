@@ -1,10 +1,16 @@
+import 'dart:async';
+
+import 'package:bitwindow/change_tracking_mixin.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -28,7 +34,7 @@ class OverviewTab extends StatelessWidget {
                     spacing: 16,
                     children: [
                       Expanded(
-                        child: SailCardStats(
+                        child: WalletStats(
                           title: 'Balance',
                           subtitle: '${formatBitcoin(model.pendingBalance)} pending',
                           value: formatBitcoin(model.balance, symbol: ''),
@@ -37,7 +43,7 @@ class OverviewTab extends StatelessWidget {
                         ),
                       ),
                       Expanded(
-                        child: SailCardStats(
+                        child: WalletStats(
                           title: 'Number of UTXOs',
                           value: model.stats?.utxosCurrent.toString() ?? '0',
                           subtitle:
@@ -46,7 +52,7 @@ class OverviewTab extends StatelessWidget {
                         ),
                       ),
                       Expanded(
-                        child: SailCardStats(
+                        child: WalletStats(
                           title: 'Sidechain Deposit Volume',
                           value: formatBitcoin(model.stats?.sidechainDepositVolume.toInt() ?? 0, symbol: ''),
                           subtitle:
@@ -56,7 +62,7 @@ class OverviewTab extends StatelessWidget {
                         ),
                       ),
                       Expanded(
-                        child: SailCardStats(
+                        child: WalletStats(
                           title: 'Transaction Count',
                           value: model.stats?.transactionCountTotal.toString() ?? '0',
                           subtitle: '${model.stats?.transactionCountSinceMonth.toString() ?? '0'} in last month',
@@ -171,121 +177,125 @@ class _TransactionTableState extends State<TransactionTable> {
               ),
               SizedBox(
                 height: 300,
-                child: SailTable(
-                  getRowId: (index) => entries[index].txid,
-                  headerBuilder: (context) => [
-                    SailTableHeaderCell(
-                      name: 'Date',
-                      onSort: () => onSort('date'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'TXID',
-                      onSort: () => onSort('txid'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Address',
-                      onSort: () => onSort('address'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Note',
-                      onSort: () => onSort('note'),
-                    ),
-                    SailTableHeaderCell(
-                      name: 'Amount',
-                      onSort: () => onSort('amount'),
-                    ),
-                  ],
-                  rowBuilder: (context, row, selected) {
-                    final entry = entries[row];
+                child: SailSkeletonizer(
+                  description: 'Waiting for enforcer to boot and wallet to sync..',
+                  enabled: widget.model.loading,
+                  child: SailTable(
+                    getRowId: (index) => entries[index].txid,
+                    headerBuilder: (context) => [
+                      SailTableHeaderCell(
+                        name: 'Date',
+                        onSort: () => onSort('date'),
+                      ),
+                      SailTableHeaderCell(
+                        name: 'TXID',
+                        onSort: () => onSort('txid'),
+                      ),
+                      SailTableHeaderCell(
+                        name: 'Address',
+                        onSort: () => onSort('address'),
+                      ),
+                      SailTableHeaderCell(
+                        name: 'Note',
+                        onSort: () => onSort('note'),
+                      ),
+                      SailTableHeaderCell(
+                        name: 'Amount',
+                        onSort: () => onSort('amount'),
+                      ),
+                    ],
+                    rowBuilder: (context, row, selected) {
+                      final entry = entries[row];
 
-                    // Calculate amount and determine sign
-                    final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
-                    final sign = amountDiff > 0 ? '+' : '-';
-                    final formattedAmount = '$sign${formatBitcoin(
-                      satoshiToBTC(amountDiff.abs().toInt()),
-                      symbol: '',
-                    )}';
+                      // Calculate amount and determine sign
+                      final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
+                      final sign = amountDiff > 0 ? '+' : '-';
+                      final formattedAmount = '$sign${formatBitcoin(
+                        satoshiToBTC(amountDiff.abs().toInt()),
+                        symbol: '',
+                      )}';
 
-                    return [
-                      SailTableCell(
-                        value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
-                      ),
-                      SailTableCell(
-                        value: '${entry.txid.substring(0, 10)}..',
-                        copyValue: entry.txid,
-                      ),
-                      SailTableCell(
-                        value: '${entry.address}${entry.addressLabel.isNotEmpty ? ' (${entry.addressLabel})' : ''}',
-                      ),
-                      SailTableCell(
-                        value: entry.note,
-                      ),
-                      SailTableCell(
-                        value: formattedAmount,
-                        monospace: true,
-                      ),
-                    ];
-                  },
-                  contextMenuItems: (rowId) {
-                    final entry = entries.firstWhere((e) => e.txid == rowId);
+                      return [
+                        SailTableCell(
+                          value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
+                        ),
+                        SailTableCell(
+                          value: '${entry.txid.substring(0, 10)}..',
+                          copyValue: entry.txid,
+                        ),
+                        SailTableCell(
+                          value: '${entry.address}${entry.addressLabel.isNotEmpty ? ' (${entry.addressLabel})' : ''}',
+                        ),
+                        SailTableCell(
+                          value: entry.note,
+                        ),
+                        SailTableCell(
+                          value: formattedAmount,
+                          monospace: true,
+                        ),
+                      ];
+                    },
+                    contextMenuItems: (rowId) {
+                      final entry = entries.firstWhere((e) => e.txid == rowId);
 
-                    return [
-                      SailMenuItem(
-                        onSelected: () async {
-                          await showTransactionDetails(context, rowId);
-                        },
-                        child: SailText.primary12('Show Details'),
-                      ),
-                      SailMenuItem(
-                        closeOnSelect: false,
-                        onSelected: () async {
-                          await Future.microtask(() async {
-                            if (!context.mounted) return;
-                            await showDialog(
-                              context: context,
-                              builder: (context) => Dialog(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                surfaceTintColor: Colors.transparent,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 400),
-                                  child: SailCardEditValues(
-                                    title: entry.note.isEmpty ? 'Add Note' : 'Edit Note',
-                                    subtitle:
-                                        "${entry.note.isEmpty ? "Set a" : "Update the"} note and click Save when you're done",
-                                    fields: [
-                                      EditField(name: 'Note', currentValue: entry.note),
-                                    ],
-                                    onSave: (updatedFields) async {
-                                      final newNote = updatedFields.firstWhere((f) => f.name == 'Note').currentValue;
-                                      await widget.model.saveNote(context, entry.txid, newNote);
-                                    },
+                      return [
+                        SailMenuItem(
+                          onSelected: () async {
+                            await showTransactionDetails(context, rowId);
+                          },
+                          child: SailText.primary12('Show Details'),
+                        ),
+                        SailMenuItem(
+                          closeOnSelect: false,
+                          onSelected: () async {
+                            await Future.microtask(() async {
+                              if (!context.mounted) return;
+                              await showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  surfaceTintColor: Colors.transparent,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 400),
+                                    child: SailCardEditValues(
+                                      title: entry.note.isEmpty ? 'Add Note' : 'Edit Note',
+                                      subtitle:
+                                          "${entry.note.isEmpty ? "Set a" : "Update the"} note and click Save when you're done",
+                                      fields: [
+                                        EditField(name: 'Note', currentValue: entry.note),
+                                      ],
+                                      onSave: (updatedFields) async {
+                                        final newNote = updatedFields.firstWhere((f) => f.name == 'Note').currentValue;
+                                        await widget.model.saveNote(context, entry.txid, newNote);
+                                      },
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          });
-                        },
-                        child: SailText.primary12(entry.note.isEmpty ? 'Add Note' : 'Update Note'),
-                      ),
-                      MempoolMenuItem(txid: entry.txid),
-                    ];
-                  },
-                  rowCount: entries.length,
-                  columnWidths: const [120, 60, 320, 120, 120],
-                  drawGrid: true,
-                  sortColumnIndex: [
-                    'date',
-                    'txid',
-                    'address',
-                    'note',
-                    'amount',
-                  ].indexOf(sortColumn),
-                  sortAscending: sortAscending,
-                  onSort: (columnIndex, ascending) {
-                    onSort(['date', 'txid', 'address', 'note', 'amount'][columnIndex]);
-                  },
-                  onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
+                              );
+                            });
+                          },
+                          child: SailText.primary12(entry.note.isEmpty ? 'Add Note' : 'Update Note'),
+                        ),
+                        MempoolMenuItem(txid: entry.txid),
+                      ];
+                    },
+                    rowCount: entries.length,
+                    columnWidths: const [120, 60, 320, 120, 120],
+                    drawGrid: true,
+                    sortColumnIndex: [
+                      'date',
+                      'txid',
+                      'address',
+                      'note',
+                      'amount',
+                    ].indexOf(sortColumn),
+                    sortAscending: sortAscending,
+                    onSort: (columnIndex, ascending) {
+                      onSort(['date', 'txid', 'address', 'note', 'amount'][columnIndex]);
+                    },
+                    onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
+                  ),
                 ),
               ),
             ],
@@ -296,16 +306,63 @@ class _TransactionTableState extends State<TransactionTable> {
   }
 }
 
-class OverviewViewModel extends BaseViewModel {
+class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
+  final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
   final BalanceProvider _balanceProvider = GetIt.I<BalanceProvider>();
 
-  List<WalletTransaction> get entries => _txProvider.walletTransactions
-      .where(
-        (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
-      )
-      .toList();
+  List<WalletTransaction> get entries {
+    if (loading) {
+      return [
+        WalletTransaction(
+          txid: 'dummy_tx_1',
+          feeSats: Int64(1000),
+          receivedSatoshi: Int64(50000000), // 0.5 BTC
+          sentSatoshi: Int64(0),
+          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+          addressLabel: 'Main Wallet',
+          note: 'Received payment',
+          confirmationTime: Confirmation(
+            height: 800000,
+            timestamp: Timestamp.fromDateTime(DateTime(2024)),
+          ),
+        ),
+        WalletTransaction(
+          txid: 'dummy_tx_2',
+          feeSats: Int64(2000),
+          receivedSatoshi: Int64(0),
+          sentSatoshi: Int64(100000000), // 1 BTC
+          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+          addressLabel: 'Exchange',
+          note: 'Sent to exchange',
+          confirmationTime: Confirmation(
+            height: 800001,
+            timestamp: Timestamp.fromDateTime(DateTime(2024)),
+          ),
+        ),
+        WalletTransaction(
+          txid: 'dummy_tx_3',
+          feeSats: Int64(1500),
+          receivedSatoshi: Int64(25000000), // 0.25 BTC
+          sentSatoshi: Int64(0),
+          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+          addressLabel: 'Mining Pool',
+          note: 'Mining reward',
+          confirmationTime: Confirmation(
+            height: 800002,
+            timestamp: Timestamp.fromDateTime(DateTime(2024)),
+          ),
+        ),
+      ];
+    }
+
+    return _txProvider.walletTransactions
+        .where(
+          (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
+        )
+        .toList();
+  }
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
@@ -319,17 +376,42 @@ class OverviewViewModel extends BaseViewModel {
 
   final TextEditingController searchController = TextEditingController();
 
+  bool get loading => _enforcerRPC.initializingBinary;
+
   OverviewViewModel() {
-    searchController.addListener(notifyListeners);
-    _txProvider.addListener(notifyListeners);
-    _txProvider.addListener(getStats);
-    _balanceProvider.addListener(getStats);
+    initChangeTracker();
+    searchController.addListener(_onChange);
+    _txProvider.addListener(_onChange);
+    _txProvider.addListener(_debouncedGetStats);
+    _balanceProvider.addListener(_debouncedGetStats);
     getStats();
   }
 
+  void _onChange() {
+    track('entries', entries);
+    track('balance', balance);
+    track('pendingBalance', pendingBalance);
+    track('searchText', searchController.text);
+    track('loading', loading);
+    track('stats', stats);
+    notifyIfChanged();
+  }
+
+  // Debounce stats fetching
+  Timer? _statsTimer;
+  void _debouncedGetStats() {
+    _statsTimer?.cancel();
+    _statsTimer = Timer(const Duration(milliseconds: 100), () {
+      getStats();
+    });
+  }
+
   Future<void> getStats() async {
-    stats = await _bitwindowRPC.wallet.getStats();
-    notifyListeners();
+    final newStats = await _bitwindowRPC.wallet.getStats();
+    if (track('stats', newStats)) {
+      stats = newStats;
+      notifyListeners();
+    }
   }
 
   Future<void> saveNote(BuildContext context, String txid, String note) async {
@@ -351,9 +433,42 @@ class OverviewViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    searchController.removeListener(notifyListeners);
-    _txProvider.removeListener(notifyListeners);
-    _txProvider.removeListener(getStats);
+    _statsTimer?.cancel();
+    searchController.removeListener(_onChange);
+    _txProvider.removeListener(_onChange);
+    _txProvider.removeListener(_debouncedGetStats);
+    _balanceProvider.removeListener(_debouncedGetStats);
     super.dispose();
+  }
+}
+
+class WalletStats extends ViewModelWidget<OverviewViewModel> {
+  final String title;
+  final String subtitle;
+  final String value;
+  final SailSVGAsset icon;
+  final bool bitcoinAmount;
+
+  const WalletStats({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.icon,
+    this.bitcoinAmount = false,
+  });
+
+  @override
+  Widget build(BuildContext context, OverviewViewModel viewModel) {
+    return SailCardStats(
+      title: title,
+      subtitle: subtitle,
+      value: value,
+      icon: icon,
+      loading: LoadingDetails(
+        enabled: viewModel.loading,
+        description: 'Waiting for enforcer to boot and wallet to sync..',
+      ),
+    );
   }
 }

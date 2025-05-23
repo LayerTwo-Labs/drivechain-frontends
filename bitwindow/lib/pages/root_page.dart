@@ -561,15 +561,23 @@ class _StatusBarState extends State<StatusBar> {
       },
       mainchainInfo: true,
       endWidgets: [
-        Tooltip(
-          message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
-          child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+        SailSkeletonizer(
+          description: 'Waiting for bitcoind to connect..',
+          enabled: !blockchainProvider.mainchain.connected,
+          child: Tooltip(
+            message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
+            child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+          ),
         ),
         const DividerDot(),
-        Tooltip(
-          message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
-          child: SailText.primary12(
-            formatTimeDifference(blockchainProvider.peers.length, 'peer'),
+        SailSkeletonizer(
+          description: 'Waiting for bitcoind to connect..',
+          enabled: !blockchainProvider.mainchain.connected,
+          child: Tooltip(
+            message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
+            child: SailText.primary12(
+              formatTimeDifference(blockchainProvider.peers.length, 'peer'),
+            ),
           ),
         ),
       ],

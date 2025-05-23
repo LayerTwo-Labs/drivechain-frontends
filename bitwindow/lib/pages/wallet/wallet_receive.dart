@@ -45,6 +45,10 @@ class ReceiveTab extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: SailTextField(
+                                  loading: LoadingDetails(
+                                    enabled: model.address.isEmpty,
+                                    description: 'Waiting for enforcer to start and wallet to sync..',
+                                  ),
                                   controller: TextEditingController(text: model.address),
                                   hintText: 'A Drivechain address',
                                   readOnly: true,
@@ -168,80 +172,85 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
         children: [
           SizedBox(
             height: 300,
-            child: SailTable(
-              getRowId: (index) => entries[index].address,
-              headerBuilder: (context) => [
-                SailTableHeaderCell(name: 'Last Used', onSort: () => onSort('last_used_at')),
-                SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
-                SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
-                SailTableHeaderCell(name: 'Balance', onSort: () => onSort('current_balance_sat')),
-              ],
-              rowBuilder: (context, row, selected) {
-                final utxo = entries[row];
-                final formattedAmount = formatBitcoin(
-                  satoshiToBTC(utxo.currentBalanceSat.toInt()),
-                  symbol: '',
-                );
-                return [
-                  SailTableCell(
-                    value: utxo.lastUsedAt.seconds == 0 ? 'Never' : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
-                  ),
-                  SailTableCell(value: utxo.address),
-                  SailTableCell(value: utxo.label),
-                  SailTableCell(value: formattedAmount, monospace: true),
-                ];
-              },
-              rowCount: entries.length,
-              columnWidths: const [70, 200, 100, 50],
-              drawGrid: true,
-              sortColumnIndex: [
-                'last_used_at',
-                'address',
-                'label',
-                'current_balance_sat',
-              ].indexOf(sortColumn),
-              sortAscending: sortAscending,
-              onSort: (columnIndex, ascending) {
-                onSort(['last_used_at', 'address', 'label', 'current_balance_sat'][columnIndex]);
-              },
-              contextMenuItems: (rowId) {
-                final entry = entries.firstWhere((e) => e.address == rowId);
+            child: SailSkeletonizer(
+              description: 'Waiting for enforcer to start and wallet to sync..',
+              enabled: widget.model.receiveAddresses.isEmpty,
+              child: SailTable(
+                getRowId: (index) => entries[index].address,
+                headerBuilder: (context) => [
+                  SailTableHeaderCell(name: 'Last Used', onSort: () => onSort('last_used_at')),
+                  SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
+                  SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
+                  SailTableHeaderCell(name: 'Balance', onSort: () => onSort('current_balance_sat')),
+                ],
+                rowBuilder: (context, row, selected) {
+                  final utxo = entries[row];
+                  final formattedAmount = formatBitcoin(
+                    satoshiToBTC(utxo.currentBalanceSat.toInt()),
+                    symbol: '',
+                  );
+                  return [
+                    SailTableCell(
+                      value:
+                          utxo.lastUsedAt.seconds == 0 ? 'Never' : formatDate(utxo.lastUsedAt.toDateTime().toLocal()),
+                    ),
+                    SailTableCell(value: utxo.address),
+                    SailTableCell(value: utxo.label),
+                    SailTableCell(value: formattedAmount, monospace: true),
+                  ];
+                },
+                rowCount: entries.length,
+                columnWidths: const [70, 200, 100, 50],
+                drawGrid: true,
+                sortColumnIndex: [
+                  'last_used_at',
+                  'address',
+                  'label',
+                  'current_balance_sat',
+                ].indexOf(sortColumn),
+                sortAscending: sortAscending,
+                onSort: (columnIndex, ascending) {
+                  onSort(['last_used_at', 'address', 'label', 'current_balance_sat'][columnIndex]);
+                },
+                contextMenuItems: (rowId) {
+                  final entry = entries.firstWhere((e) => e.address == rowId);
 
-                return [
-                  SailMenuItem(
-                    closeOnSelect: false,
-                    onSelected: () async {
-                      await Future.microtask(() async {
-                        if (!context.mounted) return;
-                        await showDialog(
-                          context: context,
-                          builder: (context) => Dialog(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            surfaceTintColor: Colors.transparent,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 400),
-                              child: SailCardEditValues(
-                                title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
-                                subtitle:
-                                    "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
-                                fields: [
-                                  EditField(name: 'Label', currentValue: entry.label),
-                                ],
-                                onSave: (updatedFields) async {
-                                  final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
-                                  await widget.model.saveLabel(context, entry.address, newLabel);
-                                },
+                  return [
+                    SailMenuItem(
+                      closeOnSelect: false,
+                      onSelected: () async {
+                        await Future.microtask(() async {
+                          if (!context.mounted) return;
+                          await showDialog(
+                            context: context,
+                            builder: (context) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              surfaceTintColor: Colors.transparent,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 400),
+                                child: SailCardEditValues(
+                                  title: entry.label.isEmpty ? 'Add Label' : 'Edit Label',
+                                  subtitle:
+                                      "${entry.label.isEmpty ? "Set a" : "Update the"} label and click Save when you're done",
+                                  fields: [
+                                    EditField(name: 'Label', currentValue: entry.label),
+                                  ],
+                                  onSave: (updatedFields) async {
+                                    final newLabel = updatedFields.firstWhere((f) => f.name == 'Label').currentValue;
+                                    await widget.model.saveLabel(context, entry.address, newLabel);
+                                  },
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      });
-                    },
-                    child: SailText.primary12(entry.label.isEmpty ? 'Add Label' : 'Update Label'),
-                  ),
-                ];
-              },
+                          );
+                        });
+                      },
+                      child: SailText.primary12(entry.label.isEmpty ? 'Add Label' : 'Update Label'),
+                    ),
+                  ];
+                },
+              ),
             ),
           ),
         ],

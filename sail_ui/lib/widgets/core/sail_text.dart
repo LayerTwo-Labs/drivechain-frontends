@@ -312,6 +312,7 @@ class SailText {
     bool underline = false,
     Color? color,
     bool monospace = false,
+    TextDecoration? decoration,
   }) {
     return Builder(
       builder: (context) {
@@ -322,7 +323,7 @@ class SailText {
             color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.boldWeight : null,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
-            decoration: underline ? TextDecoration.underline : TextDecoration.none,
+            decoration: decoration ?? (underline ? TextDecoration.underline : TextDecoration.none),
             fontFamily: monospace ? 'SourceCodePro' : 'Inter',
           ),
           textAlign: textAlign,

@@ -215,9 +215,8 @@ class _SailTableState extends State<SailTable> {
   Widget _buildTable(BuildContext context, BoxConstraints constraints) {
     // Calculate total width including resize handles
     final handleWidth = widget.resizableColumns ? (widget.columnWidths.length - 1) * 8.0 : 0.0;
-    final tableWidth = constraints.maxWidth != double.infinity
-        ? constraints.maxWidth
-        : _totalColumnWidths + handleWidth; // Add handle width to total
+    final tableWidth =
+        constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths + handleWidth;
 
     return Scrollbar(
       controller: _horizontalController,
@@ -228,16 +227,13 @@ class _SailTableState extends State<SailTable> {
         physics: const ClampingScrollPhysics(),
         child: SizedBox(
           width: tableWidth,
-          child: OverflowBox(
-            maxWidth: tableWidth,
-            alignment: Alignment.topLeft,
-            child: Column(
-              children: [
-                _buildHeader(context),
-                if (!widget.shrinkWrap) Expanded(child: _buildRows(context)),
-                if (widget.shrinkWrap) _buildRows(context),
-              ],
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // This ensures the column takes minimum space
+            children: [
+              _buildHeader(context),
+              if (!widget.shrinkWrap) Expanded(child: _buildRows(context)),
+              if (widget.shrinkWrap) _buildRows(context),
+            ],
           ),
         ),
       ),
