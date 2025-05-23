@@ -56,9 +56,9 @@ func EnforcerWallet(ctx context.Context, url string) (
 		connect.WithGRPC(),
 	)
 
-	_, err := client.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+	_, err := client.CreateNewAddress(ctx, connect.NewRequest(&pb.CreateNewAddressRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("get balance: %w", err)
+		return nil, fmt.Errorf("create new address: %w", err)
 	}
 
 	return client, nil

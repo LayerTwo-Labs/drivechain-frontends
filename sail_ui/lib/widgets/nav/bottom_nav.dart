@@ -5,6 +5,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/utils/change_tracker.dart';
 import 'package:sail_ui/widgets/loaders/progress.dart';
 import 'package:stacked/stacked.dart';
 
@@ -68,8 +69,12 @@ class BottomNav extends StatelessWidget {
                                 width: SailStyleValues.iconSizeSecondary,
                                 height: SailStyleValues.iconSizeSecondary,
                               ),
-                              SailText.secondary12(
-                                formatBitcoin(model.balance, symbol: 'BTC'),
+                              SailSkeletonizer(
+                                description: 'Waiting for wallet to sync..',
+                                enabled: model.balanceSyncing,
+                                child: SailText.secondary12(
+                                  formatBitcoin(model.balance, symbol: 'BTC'),
+                                ),
                               ),
                             ],
                           ),
@@ -252,7 +257,7 @@ class ConnectionMonitor {
   String? get error => rpc.connectionError;
 }
 
-class BottomNavViewModel extends BaseViewModel {
+class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   final log = Logger(level: Level.debug);
   final ConnectionMonitor additionalConnection;
 
@@ -271,13 +276,26 @@ class BottomNavViewModel extends BaseViewModel {
     required this.mainchainInfo,
     required this.navigateToLogs,
   }) {
+    initChangeTracker();
     // Add listeners for required connections
-    mainchain.addListener(notifyListeners);
-    enforcer.addListener(notifyListeners);
+    mainchain.addListener(_onChange);
+    enforcer.addListener(_onChange);
+    additionalConnection.rpc.addListener(_onChange);
+    blockInfoProvider.addListener(_onChange);
+  }
 
-    // Add listeners for additional connections
-    additionalConnection.rpc.addListener(notifyListeners);
-    blockInfoProvider.addListener(notifyListeners);
+  void _onChange() {
+    track('allConnected', allConnected);
+    track('balance', balance);
+    track('pendingBalance', pendingBalance);
+    track('connectionColor', connectionColor);
+    track('connectionStatus', connectionStatus);
+    track('balanceSyncing', balanceSyncing);
+    track('showUnconfirmed', showUnconfirmed);
+    track('mainchainSyncInfo', blockInfoProvider.mainchainSyncInfo);
+    track('enforcerSyncInfo', blockInfoProvider.enforcerSyncInfo);
+    track('additionalSyncInfo', blockInfoProvider.additionalSyncInfo);
+    notifyIfChanged();
   }
 
   // Balance getters
@@ -291,10 +309,26 @@ class BottomNavViewModel extends BaseViewModel {
     if (allConnected) {
       return SailColorScheme.green;
     }
-    if (!mainchain.connected || !enforcer.connected) {
+
+    if ((!mainchain.connected && !mainchain.initializingBinary) ||
+        (!enforcer.connected && !enforcer.initializingBinary) ||
+        (!additionalConnection.connected && !additionalConnection.initializing)) {
+      // done initializing, but not connected
       return SailColorScheme.red;
     }
     return SailColorScheme.orange;
+  }
+
+  bool get balanceSyncing {
+    if (allConnected) {
+      return false;
+    }
+
+    if (balance > 0 || pendingBalance > 0) {
+      return false;
+    }
+
+    return true;
   }
 
   String get connectionStatus {
@@ -305,10 +339,10 @@ class BottomNavViewModel extends BaseViewModel {
     List<String> errors = [];
 
     // Check required connections
-    if (!mainchain.connected && mainchain.connectionError != null) {
+    if (!mainchain.connected && mainchain.connectionError != null && !mainchain.initializingBinary) {
       errors.add('Mainchain: ${mainchain.connectionError}');
     }
-    if (!enforcer.connected && enforcer.connectionError != null) {
+    if (!enforcer.connected && enforcer.connectionError != null && !mainchain.initializingBinary) {
       errors.add('Enforcer: ${enforcer.connectionError}');
     }
 
@@ -327,10 +361,10 @@ class BottomNavViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    mainchain.removeListener(notifyListeners);
-    enforcer.removeListener(notifyListeners);
-    additionalConnection.rpc.removeListener(notifyListeners);
-
+    mainchain.removeListener(_onChange);
+    enforcer.removeListener(_onChange);
+    additionalConnection.rpc.removeListener(_onChange);
+    blockInfoProvider.removeListener(_onChange);
     super.dispose();
   }
 }

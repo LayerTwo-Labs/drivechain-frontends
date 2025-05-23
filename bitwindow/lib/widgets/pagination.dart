@@ -43,7 +43,8 @@ class Pagination extends StatelessWidget {
           variant: ButtonVariant.ghost,
           onPressed: currentPage > 1 ? () async => onPageChanged(currentPage - 1) : null,
           icon: SailSVGAsset.chevronLeft,
-          iconHeight: 10,
+          iconHeight: 8,
+          small: true,
         ),
         SailSpacing(SailStyleValues.padding16),
         ..._buildPageButtons(context, visiblePages),
@@ -53,7 +54,8 @@ class Pagination extends StatelessWidget {
           variant: ButtonVariant.ghost,
           onPressed: currentPage < totalPages ? () async => onPageChanged(currentPage + 1) : null,
           endIcon: SailSVGAsset.chevronRight,
-          iconHeight: 10,
+          iconHeight: 8,
+          small: true,
         ),
         SailSpacing(SailStyleValues.padding16),
         if (onPageSizeChanged != null)
@@ -72,10 +74,11 @@ class Pagination extends StatelessWidget {
     int? last;
     for (final page in visiblePages) {
       if (last != null && page - last > 1) {
-        widgets.add(SailText.primary12('...'));
+        widgets.add(SailText.primary10('...'));
       }
       widgets.add(
         SailButton(
+          small: true,
           variant: ButtonVariant.outline,
           onPressed: page == currentPage ? null : () async => onPageChanged(page),
           label: '$page',

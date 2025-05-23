@@ -28,6 +28,7 @@ class SailTextField extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final List<TextInputFormatter>? inputFormatters;
+  final LoadingDetails? loading;
 
   const SailTextField({
     super.key,
@@ -52,6 +53,7 @@ class SailTextField extends StatelessWidget {
     this.minLines,
     this.maxLines,
     this.inputFormatters,
+    this.loading,
   });
 
   @override
@@ -117,21 +119,29 @@ class SailTextField extends StatelessWidget {
                 borderRadius: SailStyleValues.borderRadius,
                 borderSide: BorderSide(color: theme.colors.border),
               ),
-              suffixIcon: suffixWidget == null
-                  ? null
-                  : Align(
-                      alignment: Alignment.center,
-                      widthFactor: 1.0,
+              suffixIcon: loading != null && loading!.enabled
+                  ? Tooltip(
+                      message: loading!.description,
                       child: Padding(
-                        padding: EdgeInsets.only(
-                          top: 1,
-                          bottom: 1,
-                          left: 1,
-                          right: 8,
-                        ),
-                        child: suffixWidget,
+                        padding: EdgeInsets.all(SailStyleValues.padding08),
+                        child: LoadingIndicator(),
                       ),
-                    ),
+                    )
+                  : suffixWidget == null
+                      ? null
+                      : Align(
+                          alignment: Alignment.center,
+                          widthFactor: 1.0,
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: 1,
+                              bottom: 1,
+                              left: 1,
+                              right: 8,
+                            ),
+                            child: suffixWidget,
+                          ),
+                        ),
               prefixStyle: TextStyle(
                 color: SailTheme.of(context).colors.textTertiary,
                 fontSize: textSize,

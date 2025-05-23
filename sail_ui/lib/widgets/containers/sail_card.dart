@@ -307,6 +307,7 @@ class SailCardStats extends StatelessWidget {
   final String value;
   final SailSVGAsset icon;
   final bool bitcoinAmount;
+  final LoadingDetails? loading;
 
   const SailCardStats({
     super.key,
@@ -315,6 +316,7 @@ class SailCardStats extends StatelessWidget {
     required this.value,
     required this.icon,
     this.bitcoinAmount = false,
+    this.loading,
   });
 
   @override
@@ -364,12 +366,20 @@ class SailCardStats extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           if (bitcoinAmount) SailSVG.fromAsset(SailSVGAsset.bitcoin, color: theme.colors.text),
-                          SailText.primary24(value, bold: true),
+                          SailSkeletonizer(
+                            description: loading?.description ?? '',
+                            enabled: loading?.enabled ?? false,
+                            child: SailText.primary24(value, bold: true),
+                          ),
                         ],
                       ),
                     ),
                     const SailSpacing(SailStyleValues.padding10),
-                    SailText.secondary12(subtitle, color: theme.colors.inactiveNavText),
+                    SailSkeletonizer(
+                      description: loading?.description ?? '',
+                      enabled: loading?.enabled ?? false,
+                      child: SailText.secondary12(subtitle, color: theme.colors.inactiveNavText),
+                    ),
                   ],
                 ),
               ),

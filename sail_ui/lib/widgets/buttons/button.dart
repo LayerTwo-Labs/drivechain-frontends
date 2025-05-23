@@ -23,6 +23,7 @@ class SailButton extends StatefulWidget {
   final EdgeInsets? padding;
   final double? iconHeight;
   final double? iconWidth;
+  final bool small;
 
   const SailButton({
     super.key,
@@ -36,6 +37,7 @@ class SailButton extends StatefulWidget {
     this.iconHeight,
     this.iconWidth,
     this.padding,
+    this.small = false,
   })  : assert(
           variant != ButtonVariant.icon || (icon != null && label == null),
           'Icon must be set with no label for icon-variant',
@@ -134,12 +136,19 @@ class _SailButtonState extends State<SailButton> {
           if (widget.endIcon != null && widget.label != null) const SizedBox(width: 8),
         ],
         if (widget.label != null)
-          SailText.primary12(
-            _isLoading ? 'Please wait' : widget.label!,
-            color: foregroundColor,
-            bold: true,
-            decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
-          ),
+          widget.small
+              ? SailText.primary10(
+                  _isLoading ? 'Please wait' : widget.label!,
+                  color: foregroundColor,
+                  bold: true,
+                  decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
+                )
+              : SailText.primary12(
+                  _isLoading ? 'Please wait' : widget.label!,
+                  color: foregroundColor,
+                  bold: true,
+                  decoration: variant == ButtonVariant.link ? TextDecoration.underline : null,
+                ),
       ],
     );
   }

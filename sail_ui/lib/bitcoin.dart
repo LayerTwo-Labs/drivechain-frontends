@@ -14,7 +14,7 @@ int btcToSatoshi(double btc) {
 
 String formatBitcoin(num? number, {String symbol = 'BTC'}) {
   if (number == null || number.isNaN || number.isInfinite) {
-    return '0.00 000 000${symbol.isEmpty ? '' : ' $symbol'}';
+    return '0.0000,0000${symbol.isEmpty ? '' : ' $symbol'}';
   }
 
   // Ensure positive number and handle negatives
@@ -30,9 +30,8 @@ String formatBitcoin(num? number, {String symbol = 'BTC'}) {
   // Ensure decimal part is 8 digits
   String decimalPart = (parts.length > 1 ? parts[1] : '').padRight(8, '0').substring(0, 8);
 
-  // Group as: 2 digits, 3 digits, 3 digits
-  String groupedDecimal =
-      '${decimalPart.substring(0, 2)} ${decimalPart.substring(2, 5)} ${decimalPart.substring(5, 8)}';
+  // Group as: 4 digits, 4 digits with comma
+  String groupedDecimal = '${decimalPart.substring(0, 4)},${decimalPart.substring(4, 8)}';
 
   return '${isNegative ? '-' : ''}$integerPart.$groupedDecimal${symbol.isEmpty ? '' : ' $symbol'}';
 }
