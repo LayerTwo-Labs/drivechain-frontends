@@ -497,6 +497,7 @@ class CoinNewsTable extends ViewModelWidget<CoinNewsViewModel> {
     return SailSkeletonizer(
       description: 'Waiting for backend to boot and load coin news..',
       enabled: viewModel.loading,
+      duration: const Duration(seconds: 3),
       child: SailTable(
         shrinkWrap: true,
         getRowId: (index) => index.toString(),
