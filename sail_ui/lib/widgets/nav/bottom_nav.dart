@@ -320,11 +320,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   bool get balanceSyncing {
-    if (allConnected) {
-      return false;
-    }
-
-    if (balance > 0 || pendingBalance > 0) {
+    if (_balanceProvider.initialized) {
       return false;
     }
 

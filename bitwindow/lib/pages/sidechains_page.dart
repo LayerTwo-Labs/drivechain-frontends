@@ -240,7 +240,10 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   void errorListener() {
-    setErrorForObject('sidechain', sidechainProvider.error);
+    final hasChanges = track('error', sidechainProvider.error);
+    if (hasChanges) {
+      setErrorForObject('sidechain', sidechainProvider.error);
+    }
   }
 
   void decrementSelectedIndex() {

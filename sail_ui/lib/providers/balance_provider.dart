@@ -13,6 +13,7 @@ class BalanceProvider extends ChangeNotifier {
   final Map<RPCConnection, (double confirmed, double pending)> _balances = {};
   String? error;
 
+  bool initialized = false;
   bool _isFetching = false;
   Timer? _fetchTimer;
 
@@ -55,6 +56,7 @@ class BalanceProvider extends ChangeNotifier {
           continue;
         }
         final (confirmed, pending) = await rpc.balance();
+        initialized = true;
         if (_balances[rpc] != (confirmed, pending)) {
           _balances[rpc] = (confirmed, pending);
           changed = true;

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/change_tracking_mixin.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/debug_window.dart';
@@ -506,7 +507,7 @@ class StatusBar extends StatefulWidget {
   State<StatusBar> createState() => _StatusBarState();
 }
 
-class _StatusBarState extends State<StatusBar> {
+class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTrackingMixin {
   BlockchainProvider get blockchainProvider => GetIt.I.get<BlockchainProvider>();
   BalanceProvider get balanceProvider => GetIt.I.get<BalanceProvider>();
   BitwindowRPC get bitwindow => GetIt.I.get<BitwindowRPC>();
@@ -515,13 +516,16 @@ class _StatusBarState extends State<StatusBar> {
   @override
   void initState() {
     super.initState();
+    initChangeTracker();
+    blockchainProvider.addListener(_onChange);
+    balanceProvider.addListener(_onChange);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
-    balanceProvider.addListener(setstate);
-    blockchainProvider.addListener(setstate);
   }
 
-  void setstate() {
-    setState(() {});
+  void _onChange() {
+    track('lastBlockTime', blockchainProvider.infoProvider.mainchainSyncInfo?.lastBlockAt);
+    track('peerCount', blockchainProvider.peers.length);
+    notifyIfChanged();
   }
 
   String _getTimeSinceLastBlock() {
@@ -587,7 +591,8 @@ class _StatusBarState extends State<StatusBar> {
   @override
   void dispose() {
     _timer.cancel();
-    balanceProvider.removeListener(setstate);
+    blockchainProvider.removeListener(_onChange);
+    balanceProvider.removeListener(_onChange);
     super.dispose();
   }
 }
