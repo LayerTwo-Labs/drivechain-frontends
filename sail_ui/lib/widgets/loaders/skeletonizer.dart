@@ -10,6 +10,7 @@ class SailSkeletonizer extends StatelessWidget {
   final bool enableSwitchAnimation;
   final bool ignoreContainers;
   final bool justifyMultiLineText;
+  final Duration duration;
 
   const SailSkeletonizer({
     super.key,
@@ -19,6 +20,7 @@ class SailSkeletonizer extends StatelessWidget {
     this.enableSwitchAnimation = true,
     this.ignoreContainers = false,
     this.justifyMultiLineText = true,
+    this.duration = const Duration(seconds: 2),
   });
 
   @override
@@ -30,7 +32,7 @@ class SailSkeletonizer extends StatelessWidget {
       effect: ShimmerEffect(
         baseColor: theme.colors.backgroundSecondary,
         highlightColor: theme.colors.text.withValues(alpha: 0.5),
-        duration: const Duration(seconds: 1),
+        duration: duration,
       ),
       ignoreContainers: ignoreContainers,
       justifyMultiLineText: justifyMultiLineText,
