@@ -790,15 +790,11 @@ class GetBlockHeaderInfoRequest extends $pb.GeneratedMessage {
 
 class GetBlockHeaderInfoResponse extends $pb.GeneratedMessage {
   factory GetBlockHeaderInfoResponse({
-    BlockHeaderInfo? headerInfo,
-    $core.Iterable<BlockHeaderInfo>? ancestorInfos,
+    $core.Iterable<BlockHeaderInfo>? headerInfos,
   }) {
     final $result = create();
-    if (headerInfo != null) {
-      $result.headerInfo = headerInfo;
-    }
-    if (ancestorInfos != null) {
-      $result.ancestorInfos.addAll(ancestorInfos);
+    if (headerInfos != null) {
+      $result.headerInfos.addAll(headerInfos);
     }
     return $result;
   }
@@ -807,8 +803,7 @@ class GetBlockHeaderInfoResponse extends $pb.GeneratedMessage {
   factory GetBlockHeaderInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockHeaderInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<BlockHeaderInfo>(1, _omitFieldNames ? '' : 'headerInfo', subBuilder: BlockHeaderInfo.create)
-    ..pc<BlockHeaderInfo>(2, _omitFieldNames ? '' : 'ancestorInfos', $pb.PbFieldType.PM, subBuilder: BlockHeaderInfo.create)
+    ..pc<BlockHeaderInfo>(1, _omitFieldNames ? '' : 'headerInfos', $pb.PbFieldType.PM, subBuilder: BlockHeaderInfo.create)
     ..hasRequiredFields = false
   ;
 
@@ -834,19 +829,7 @@ class GetBlockHeaderInfoResponse extends $pb.GeneratedMessage {
   static GetBlockHeaderInfoResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  BlockHeaderInfo get headerInfo => $_getN(0);
-  @$pb.TagNumber(1)
-  set headerInfo(BlockHeaderInfo v) { setField(1, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasHeaderInfo() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearHeaderInfo() => clearField(1);
-  @$pb.TagNumber(1)
-  BlockHeaderInfo ensureHeaderInfo() => $_ensure(0);
-
-  /// Ancestors MUST be sorted newest-first
-  @$pb.TagNumber(2)
-  $core.List<BlockHeaderInfo> get ancestorInfos => $_getList(1);
+  $core.List<BlockHeaderInfo> get headerInfos => $_getList(0);
 }
 
 class GetBlockInfoRequest extends $pb.GeneratedMessage {
@@ -1008,15 +991,11 @@ class GetBlockInfoResponse_Info extends $pb.GeneratedMessage {
 
 class GetBlockInfoResponse extends $pb.GeneratedMessage {
   factory GetBlockInfoResponse({
-    GetBlockInfoResponse_Info? info,
-    $core.Iterable<GetBlockInfoResponse_Info>? ancestorInfos,
+    $core.Iterable<GetBlockInfoResponse_Info>? infos,
   }) {
     final $result = create();
-    if (info != null) {
-      $result.info = info;
-    }
-    if (ancestorInfos != null) {
-      $result.ancestorInfos.addAll(ancestorInfos);
+    if (infos != null) {
+      $result.infos.addAll(infos);
     }
     return $result;
   }
@@ -1025,8 +1004,7 @@ class GetBlockInfoResponse extends $pb.GeneratedMessage {
   factory GetBlockInfoResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBlockInfoResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
-    ..aOM<GetBlockInfoResponse_Info>(1, _omitFieldNames ? '' : 'info', subBuilder: GetBlockInfoResponse_Info.create)
-    ..pc<GetBlockInfoResponse_Info>(2, _omitFieldNames ? '' : 'ancestorInfos', $pb.PbFieldType.PM, subBuilder: GetBlockInfoResponse_Info.create)
+    ..pc<GetBlockInfoResponse_Info>(1, _omitFieldNames ? '' : 'infos', $pb.PbFieldType.PM, subBuilder: GetBlockInfoResponse_Info.create)
     ..hasRequiredFields = false
   ;
 
@@ -1051,20 +1029,10 @@ class GetBlockInfoResponse extends $pb.GeneratedMessage {
   static GetBlockInfoResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBlockInfoResponse>(create);
   static GetBlockInfoResponse? _defaultInstance;
 
+  /// Empty if the requested block was not found.
+  /// Ancestors MUST be sorted newest-first.
   @$pb.TagNumber(1)
-  GetBlockInfoResponse_Info get info => $_getN(0);
-  @$pb.TagNumber(1)
-  set info(GetBlockInfoResponse_Info v) { setField(1, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasInfo() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearInfo() => clearField(1);
-  @$pb.TagNumber(1)
-  GetBlockInfoResponse_Info ensureInfo() => $_ensure(0);
-
-  /// Ancestors MUST be sorted newest-first
-  @$pb.TagNumber(2)
-  $core.List<GetBlockInfoResponse_Info> get ancestorInfos => $_getList(1);
+  $core.List<GetBlockInfoResponse_Info> get infos => $_getList(0);
 }
 
 class GetBmmHStarCommitmentRequest extends $pb.GeneratedMessage {

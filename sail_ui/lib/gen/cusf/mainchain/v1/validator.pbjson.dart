@@ -196,17 +196,14 @@ final $typed_data.Uint8List getBlockHeaderInfoRequestDescriptor = $convert.base6
 const GetBlockHeaderInfoResponse$json = {
   '1': 'GetBlockHeaderInfoResponse',
   '2': [
-    {'1': 'header_info', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.BlockHeaderInfo', '10': 'headerInfo'},
-    {'1': 'ancestor_infos', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.BlockHeaderInfo', '10': 'ancestorInfos'},
+    {'1': 'header_infos', '3': 1, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.BlockHeaderInfo', '10': 'headerInfos'},
   ],
 };
 
 /// Descriptor for `GetBlockHeaderInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockHeaderInfoResponseDescriptor = $convert.base64Decode(
-    'ChpHZXRCbG9ja0hlYWRlckluZm9SZXNwb25zZRJDCgtoZWFkZXJfaW5mbxgBIAEoCzIiLmN1c2'
-    'YubWFpbmNoYWluLnYxLkJsb2NrSGVhZGVySW5mb1IKaGVhZGVySW5mbxJJCg5hbmNlc3Rvcl9p'
-    'bmZvcxgCIAMoCzIiLmN1c2YubWFpbmNoYWluLnYxLkJsb2NrSGVhZGVySW5mb1INYW5jZXN0b3'
-    'JJbmZvcw==');
+    'ChpHZXRCbG9ja0hlYWRlckluZm9SZXNwb25zZRJFCgxoZWFkZXJfaW5mb3MYASADKAsyIi5jdX'
+    'NmLm1haW5jaGFpbi52MS5CbG9ja0hlYWRlckluZm9SC2hlYWRlckluZm9z');
 
 @$core.Deprecated('Use getBlockInfoRequestDescriptor instead')
 const GetBlockInfoRequest$json = {
@@ -232,8 +229,7 @@ final $typed_data.Uint8List getBlockInfoRequestDescriptor = $convert.base64Decod
 const GetBlockInfoResponse$json = {
   '1': 'GetBlockInfoResponse',
   '2': [
-    {'1': 'info', '3': 1, '4': 1, '5': 11, '6': '.cusf.mainchain.v1.GetBlockInfoResponse.Info', '10': 'info'},
-    {'1': 'ancestor_infos', '3': 2, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.GetBlockInfoResponse.Info', '10': 'ancestorInfos'},
+    {'1': 'infos', '3': 1, '4': 3, '5': 11, '6': '.cusf.mainchain.v1.GetBlockInfoResponse.Info', '10': 'infos'},
   ],
   '3': [GetBlockInfoResponse_Info$json],
 };
@@ -249,12 +245,11 @@ const GetBlockInfoResponse_Info$json = {
 
 /// Descriptor for `GetBlockInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBlockInfoResponseDescriptor = $convert.base64Decode(
-    'ChRHZXRCbG9ja0luZm9SZXNwb25zZRJACgRpbmZvGAEgASgLMiwuY3VzZi5tYWluY2hhaW4udj'
-    'EuR2V0QmxvY2tJbmZvUmVzcG9uc2UuSW5mb1IEaW5mbxJTCg5hbmNlc3Rvcl9pbmZvcxgCIAMo'
-    'CzIsLmN1c2YubWFpbmNoYWluLnYxLkdldEJsb2NrSW5mb1Jlc3BvbnNlLkluZm9SDWFuY2VzdG'
-    '9ySW5mb3MaiAEKBEluZm8SQwoLaGVhZGVyX2luZm8YASABKAsyIi5jdXNmLm1haW5jaGFpbi52'
-    'MS5CbG9ja0hlYWRlckluZm9SCmhlYWRlckluZm8SOwoKYmxvY2tfaW5mbxgCIAEoCzIcLmN1c2'
-    'YubWFpbmNoYWluLnYxLkJsb2NrSW5mb1IJYmxvY2tJbmZv');
+    'ChRHZXRCbG9ja0luZm9SZXNwb25zZRJCCgVpbmZvcxgBIAMoCzIsLmN1c2YubWFpbmNoYWluLn'
+    'YxLkdldEJsb2NrSW5mb1Jlc3BvbnNlLkluZm9SBWluZm9zGogBCgRJbmZvEkMKC2hlYWRlcl9p'
+    'bmZvGAEgASgLMiIuY3VzZi5tYWluY2hhaW4udjEuQmxvY2tIZWFkZXJJbmZvUgpoZWFkZXJJbm'
+    'ZvEjsKCmJsb2NrX2luZm8YAiABKAsyHC5jdXNmLm1haW5jaGFpbi52MS5CbG9ja0luZm9SCWJs'
+    'b2NrSW5mbw==');
 
 @$core.Deprecated('Use getBmmHStarCommitmentRequestDescriptor instead')
 const GetBmmHStarCommitmentRequest$json = {
