@@ -23,7 +23,6 @@ void showArticleDetails(BuildContext context, Article article, String groupTitle
                 bottom: SailStyleValues.padding10,
               ),
               decoration: BoxDecoration(
-                color: theme.colors.background.withValues(alpha: 0.9),
                 border: Border(
                   bottom: BorderSide(
                     color: theme.colors.background,
