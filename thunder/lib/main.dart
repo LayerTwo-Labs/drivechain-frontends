@@ -46,9 +46,9 @@ Future<void> start(List<String> args) async {
   }
 
   await windowManager.ensureInitialized();
-
   const windowOptions = WindowOptions(
-    minimumSize: Size(600, 700),
+    minimumSize: Size(1200, 600),
+    size: Size(1200, 600),
     titleBarStyle: TitleBarStyle.normal,
     title: 'Bitcoin Core + CUSF BIP 300/301 Activator',
   );

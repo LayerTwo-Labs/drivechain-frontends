@@ -30,7 +30,8 @@ void main() async {
 
   await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
-    minimumSize: Size(600, 700),
+    minimumSize: Size(1200, 600),
+    size: Size(1200, 600),
     titleBarStyle: TitleBarStyle.normal,
     title: 'Drivechain Launcher',
   );

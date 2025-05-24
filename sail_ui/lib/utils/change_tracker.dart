@@ -1,81 +1,65 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-import 'package:stacked/stacked.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 
-/// A utility class to track changes in values and only notify when necessary
-class ChangeTracker {
+mixin ChangeTrackingMixin on ChangeNotifier {
+  Logger get log => GetIt.I.get<Logger>();
+
   final Map<String, dynamic> _previousValues = {};
-  Timer? _debounceTimer;
-  final VoidCallback onNotify;
-  final Duration debounceDuration;
+  bool _hasChanges = false;
 
-  ChangeTracker({
-    required this.onNotify,
-    this.debounceDuration = const Duration(milliseconds: 100),
-  });
+  void initChangeTracker() {
+    _previousValues.clear();
+    _hasChanges = false;
+  }
 
-  /// Track a value and notify if it changed
-  bool track<T>(String key, T value) {
-    final previous = _previousValues[key];
-    final hasChanged = !_equals(previous, value);
+  bool track(String key, dynamic value) {
+    final previousValue = _previousValues[key];
+    final hasChanged = !_deepEquals(previousValue, value);
 
     if (hasChanged) {
+      log.i('Value changed for key "$key":\nOld: $previousValue\nNew: $value');
       _previousValues[key] = value;
+      _hasChanges = true;
     }
 
     return hasChanged;
   }
 
-  /// Debounced notification that only triggers if any tracked values changed
-  void notify() {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(debounceDuration, () {
-      if (_shouldNotify()) {
-        onNotify();
-      }
-    });
-  }
-
-  bool _shouldNotify() {
-    return _previousValues.values.any((value) => value is bool && value == true);
-  }
-
-  bool _equals(dynamic a, dynamic b) {
-    if (a == b) return true;
-    if (a is List && b is List) return listEquals(a, b);
-    if (a is Map && b is Map) return mapEquals(a, b);
-    return false;
-  }
-
-  void dispose() {
-    _debounceTimer?.cancel();
-    _previousValues.clear();
-  }
-}
-
-mixin ChangeTrackingMixin on BaseViewModel {
-  late final ChangeTracker _changeTracker;
-
-  void initChangeTracker() {
-    _changeTracker = ChangeTracker(
-      onNotify: notifyListeners,
-    );
-  }
-
-  @override
-  void dispose() {
-    _changeTracker.dispose();
-    super.dispose();
-  }
-
-  /// Track a value and notify if it changed
-  bool track<T>(String key, T value) {
-    return _changeTracker.track(key, value);
-  }
-
-  /// Debounced notification that only triggers if any tracked values changed
   void notifyIfChanged() {
-    _changeTracker.notify();
+    if (_hasChanges) {
+      log.i('Notifying listeners of changes');
+      _hasChanges = false;
+      notifyListeners();
+    }
+  }
+
+  bool _deepEquals(dynamic a, dynamic b) {
+    if (a == b) return true;
+    if (a == null || b == null) return false;
+
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (int i = 0; i < a.length; i++) {
+        if (!_deepEquals(a[i], b[i])) return false;
+      }
+      return true;
+    }
+
+    if (a is Map && b is Map) {
+      if (a.length != b.length) return false;
+      for (final key in a.keys) {
+        if (!b.containsKey(key) || !_deepEquals(a[key], b[key])) return false;
+      }
+      return true;
+    }
+
+    if (a is Object && b is Object) {
+      final aProps = a.toString();
+      final bProps = b.toString();
+      return aProps == bProps;
+    }
+
+    return false;
   }
 }

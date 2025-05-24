@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:bitwindow/change_tracking_mixin.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:fixnum/fixnum.dart';
@@ -12,6 +11,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/utils/change_tracker.dart';
 import 'package:stacked/stacked.dart';
 
 class OverviewTab extends StatelessWidget {
