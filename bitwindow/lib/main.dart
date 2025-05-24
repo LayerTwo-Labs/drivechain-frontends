@@ -67,7 +67,6 @@ void main(List<String> args) async {
     logFile,
     applicationDir: applicationDir,
   );
-  unawaited(bootBinaries(log));
 
   Environment.validateAtRuntime();
 
@@ -119,8 +118,8 @@ void main(List<String> args) async {
   await windowManager.ensureInitialized();
 
   const windowOptions = WindowOptions(
-    minimumSize: Size(900, 600),
-    size: Size(900, 600),
+    minimumSize: Size(1200, 600),
+    size: Size(1200, 600),
     titleBarStyle: TitleBarStyle.normal,
     title: 'Bitcoin Core + CUSF BIP 300/301 Activator',
   );
@@ -131,6 +130,8 @@ void main(List<String> args) async {
       await windowManager.focus();
     }),
   );
+
+  unawaited(bootBinaries(log));
   await setupSignalHandlers(log);
 
   // Get client settings to check debug mode
