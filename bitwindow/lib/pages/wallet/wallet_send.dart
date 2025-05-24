@@ -445,6 +445,7 @@ class SendPageViewModel extends BaseViewModel {
     recipients.add(initialRecipient);
     selectedRecipientIndex = 0;
     feeController.text = '1000';
+    selectedUtxos = [];
 
     notifyListeners();
   }

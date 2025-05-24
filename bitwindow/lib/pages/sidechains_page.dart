@@ -381,9 +381,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   void _onChange() {
     track('sidechains', sidechainProvider.sidechains);
-    track('sortedSidechains', _sortedSidechains);
-    track('sortedDeposits', _sortedDeposits);
-    track('recentDeposits', sidechainProvider.sidechains[_selectedIndex ?? 254]?.deposits ?? []);
+    track('deposits', recentDeposits);
     notifyIfChanged();
   }
 }
