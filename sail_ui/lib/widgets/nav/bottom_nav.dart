@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -138,7 +137,6 @@ class BottomNav extends StatelessWidget {
                     ),
                   ),
                 ),
-                const DividerDot(),
                 ChainLoaders(),
                 const DividerDot(),
                 ...endWidgets,
@@ -267,7 +265,6 @@ class ConnectionMonitor {
 }
 
 class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
-  final log = Logger(level: Level.debug);
   final ConnectionMonitor additionalConnection;
 
   // Required connections
