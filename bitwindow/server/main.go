@@ -164,6 +164,7 @@ func initLogger(logFile *os.File) {
 		Logger().
 		Level(zerolog.InfoLevel)
 	zerolog.DefaultContextLogger = &logger
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 }
 
 func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, error) {
