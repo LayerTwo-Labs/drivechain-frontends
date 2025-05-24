@@ -262,7 +262,7 @@ class ConnectionMonitor {
   });
 
   bool get connected => rpc.connected;
-  bool get initializing => rpc.initializingBinary;
+  bool get initializingBinary => rpc.initializingBinary;
   String? get connectionError => rpc.connectionError;
 }
 
@@ -321,7 +321,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if ((!mainchain.connected && !mainchain.initializingBinary) ||
         (!enforcer.connected && !enforcer.initializingBinary) ||
-        (!additionalConnection.connected && !additionalConnection.initializing)) {
+        (!additionalConnection.connected && !additionalConnection.initializingBinary)) {
       // done initializing, but not connected
       return SailColorScheme.red;
     }
@@ -341,24 +341,28 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return 'Initializing bitcoind..';
     }
 
-    if (mainchain.connectionError != null) {
-      return mainchain.connectionError!;
+    if (mainchain.connectionError != null || mainchain.startupError != null) {
+      return mainchain.connectionError ?? mainchain.startupError!;
     }
 
-    if (enforcer.initializingBinary) {
+    if (enforcer.initializingBinary || enforcer.startupError != null) {
       return 'Initializing enforcer..';
     }
 
-    if (enforcer.connectionError != null) {
-      return enforcer.connectionError!;
+    if (enforcer.connectionError != null || enforcer.startupError != null) {
+      return enforcer.connectionError ?? enforcer.startupError!;
     }
 
-    if (additionalConnection.initializing) {
+    if (additionalConnection.initializingBinary) {
       return 'Initializing ${additionalConnection.name}..';
     }
 
-    if (additionalConnection.connectionError != null) {
-      return additionalConnection.connectionError!;
+    if (additionalConnection.connectionError != null || additionalConnection.rpc.startupError != null) {
+      return additionalConnection.connectionError ?? additionalConnection.rpc.startupError!;
+    }
+
+    if (!allConnected) {
+      return 'Wiring things together...';
     }
 
     return 'All binaries connected';
