@@ -367,7 +367,7 @@ class BitwindowApp extends StatelessWidget {
         return MaterialApp.router(
           routerDelegate: router.delegate(),
           routeInformationParser: router.defaultRouteParser(),
-          title: 'Bitcoin Core + CUSF BIP 300/301 Activator',
+          title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
           theme: ThemeData(
             visualDensity: VisualDensity.compact,
             fontFamily: 'Inter',
