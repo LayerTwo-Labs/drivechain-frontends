@@ -4,10 +4,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/change_tracking_mixin.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:thunder/providers/address_provider.dart';
 import 'package:thunder/providers/transactions_provider.dart';
 
 class DepositWithdrawHelp extends StatelessWidget {
@@ -57,17 +59,18 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
   }
 }
 
-class DepositWithdrawTabViewModel extends BaseViewModel {
+class DepositWithdrawTabViewModel extends BaseViewModel with ChangeTrackingMixin {
+  @override
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   ThunderRPC get _rpc => GetIt.I.get<ThunderRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  AddressProvider get _addressProvider => GetIt.I.get<AddressProvider>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
   final labelController = TextEditingController();
 
-  String? depositAddress;
   double? sidechainFee;
   double? mainchainFee;
 
@@ -81,12 +84,23 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
         ((double.tryParse(bitcoinAmountController.text) ?? 0) + (mainchainFee ?? 0) + (sidechainFee ?? 0)),
       );
 
+  String? get depositAddress => _addressProvider.depositAddress;
+
   DepositWithdrawTabViewModel() {
+    initChangeTracker();
     _initControllers();
     _initFees();
-    _transactionsProvider.addListener(notifyListeners);
-    _balanceProvider.addListener(notifyListeners);
-    generateDepositAddress();
+    _transactionsProvider.addListener(_onChange);
+    _balanceProvider.addListener(_onChange);
+    _addressProvider.addListener(_onChange);
+  }
+
+  void _onChange() {
+    track('balance', _balanceProvider.balance);
+    track('pendingBalance', _balanceProvider.pendingBalance);
+    track('transactions', _transactionsProvider.sidechainTransactions);
+    track('depositAddress', depositAddress);
+    notifyIfChanged();
   }
 
   void _initControllers() {
@@ -117,20 +131,6 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
   Future<void> estimateMainchainFee() async {
     mainchainFee = 0.0001;
     notifyListeners();
-  }
-
-  Future<void> generateDepositAddress() async {
-    setBusy(true);
-    depositError = null;
-    try {
-      depositAddress = await _rpc.getDepositAddress();
-    } catch (error) {
-      log.e('Failed to generate deposit address', error: error);
-      depositError = 'Failed to generate deposit address: ${error.toString()}';
-    } finally {
-      setBusy(false);
-      notifyListeners();
-    }
   }
 
   Future<void> executePegOut(BuildContext context) async {
@@ -207,8 +207,9 @@ class DepositWithdrawTabViewModel extends BaseViewModel {
     bitcoinAddressController.dispose();
     bitcoinAmountController.dispose();
     labelController.dispose();
-    _transactionsProvider.removeListener(notifyListeners);
-    _balanceProvider.removeListener(notifyListeners);
+    _transactionsProvider.removeListener(_onChange);
+    _balanceProvider.removeListener(_onChange);
+    _addressProvider.removeListener(_onChange);
     super.dispose();
   }
 }
@@ -231,18 +232,18 @@ class DepositTab extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (model.isBusy)
-                const Center(child: LoadingIndicator())
-              else ...[
-                SailTextField(
-                  controller: TextEditingController(text: model.depositAddress),
-                  hintText: 'Generating deposit address...',
-                  readOnly: true,
-                  suffixWidget: CopyButton(
-                    text: model.depositAddress ?? '',
-                  ),
+              SailTextField(
+                loading: LoadingDetails(
+                  enabled: model.depositAddress == null,
+                  description: 'Waiting for thunder to boot...',
                 ),
-              ],
+                controller: TextEditingController(text: model.depositAddress),
+                hintText: 'Generating deposit address...',
+                readOnly: true,
+                suffixWidget: CopyButton(
+                  text: model.depositAddress ?? '',
+                ),
+              ),
             ],
           ),
         );
@@ -322,6 +323,7 @@ class WithdrawTab extends ViewModelWidget<DepositWithdrawTabViewModel> {
                   SailButton(
                     label: 'Send',
                     onPressed: () => viewModel.executePegOut(context),
+                    loading: viewModel.isBusy,
                   ),
                   const SizedBox(width: SailStyleValues.padding08),
                   SailButton(

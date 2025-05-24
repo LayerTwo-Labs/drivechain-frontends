@@ -6,10 +6,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:sail_ui/change_tracking_mixin.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:thunder/providers/address_provider.dart';
 import 'package:thunder/providers/transactions_provider.dart';
 
 @RoutePage()
@@ -46,20 +48,26 @@ class SidechainOverviewTabPage extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    SailText.primary24(
-                                      '${formatBitcoin(model.totalBalance)} ${model.ticker}',
-                                      bold: true,
+                                    SailSkeletonizer(
+                                      enabled: !model.balanceInitialized,
+                                      description: 'Waiting for thunder to boot...',
+                                      child: SailText.primary24(
+                                        '${formatBitcoin(model.totalBalance)} ${model.ticker}',
+                                        bold: true,
+                                      ),
                                     ),
                                     const SizedBox(height: 4), // Further reduced spacing
                                     BalanceRow(
                                       label: 'Available',
                                       amount: model.balance,
                                       ticker: model.ticker,
+                                      loading: !model.balanceInitialized,
                                     ),
                                     BalanceRow(
                                       label: 'Pending',
                                       amount: model.pendingBalance,
                                       ticker: model.ticker,
+                                      loading: !model.balanceInitialized,
                                     ),
                                   ],
                                 ),
@@ -76,24 +84,24 @@ class SidechainOverviewTabPage extends StatelessWidget {
                           spacing: SailStyleValues.padding04,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (model.isGeneratingAddress)
-                              const Center(child: LoadingIndicator())
-                            else ...[
-                              SailColumn(
-                                mainAxisSize: MainAxisSize.max,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SailTextField(
-                                    controller: TextEditingController(text: model.receiveAddress),
-                                    hintText: 'Generating deposit address...',
-                                    readOnly: true,
-                                    suffixWidget: CopyButton(
-                                      text: model.receiveAddress ?? '',
-                                    ),
+                            SailColumn(
+                              mainAxisSize: MainAxisSize.max,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SailTextField(
+                                  loading: LoadingDetails(
+                                    enabled: model.receiveAddress == null,
+                                    description: 'Waiting for thunder to boot...',
                                   ),
-                                ],
-                              ),
-                            ],
+                                  controller: TextEditingController(text: model.receiveAddress),
+                                  hintText: 'Generating deposit address...',
+                                  readOnly: true,
+                                  suffixWidget: CopyButton(
+                                    text: model.receiveAddress ?? '',
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -137,20 +145,22 @@ class SidechainOverviewTabPage extends StatelessWidget {
   }
 }
 
-class OverviewTabViewModel extends BaseViewModel {
+class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
+  @override
   final log = Logger(level: Level.debug);
   TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
   ThunderRPC get _rpc => GetIt.I.get<ThunderRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
+  AddressProvider get _addressProvider => GetIt.I.get<AddressProvider>();
 
   final bitcoinAddressController = TextEditingController();
   final bitcoinAmountController = TextEditingController();
   final labelController = TextEditingController();
 
-  String? receiveAddress;
   double? sidechainFee;
   String? sendError;
   String? receiveError;
+  bool isSending = false;
 
   // Properties for sending
   double? get sendAmount => double.tryParse(bitcoinAmountController.text);
@@ -167,19 +177,25 @@ class OverviewTabViewModel extends BaseViewModel {
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
   double get totalBalance => balance + pendingBalance;
+  bool get balanceInitialized => _balanceProvider.initialized;
 
-  bool _sendingTransaction = false;
-  bool _generatingAddress = false;
-
-  bool get isSending => _sendingTransaction;
-  bool get isGeneratingAddress => _generatingAddress;
+  String? get receiveAddress => _addressProvider.receiveAddress;
 
   OverviewTabViewModel() {
+    initChangeTracker();
     _initControllers();
     _initFees();
-    _transactionsProvider.addListener(ensureAddress);
-    _balanceProvider.addListener(ensureAddress);
-    generateReceiveAddress();
+    _transactionsProvider.addListener(_onChange);
+    _balanceProvider.addListener(_onChange);
+    _addressProvider.addListener(_onChange);
+  }
+
+  void _onChange() {
+    track('balance', balance);
+    track('pendingBalance', pendingBalance);
+    track('transactions', transactions);
+    track('receiveAddress', receiveAddress);
+    notifyIfChanged();
   }
 
   void _initControllers() {
@@ -189,13 +205,6 @@ class OverviewTabViewModel extends BaseViewModel {
 
   Future<void> _initFees() async {
     await Future.wait([estimateSidechainFee()]);
-  }
-
-  void ensureAddress() {
-    if (receiveAddress == null) {
-      generateReceiveAddress();
-    }
-    notifyListeners();
   }
 
   void _capAmount() {
@@ -212,23 +221,6 @@ class OverviewTabViewModel extends BaseViewModel {
   Future<void> estimateSidechainFee() async {
     sidechainFee = await _rpc.sideEstimateFee();
     notifyListeners();
-  }
-
-  Future<void> generateReceiveAddress() async {
-    _generatingAddress = true;
-    receiveError = null;
-    notifyListeners();
-
-    try {
-      receiveAddress = await _rpc.getSideAddress();
-    } catch (error) {
-      log.e('Failed to generate receive address', error: error);
-      receiveError = error.toString();
-      receiveAddress = null;
-    } finally {
-      _generatingAddress = false;
-      notifyListeners();
-    }
   }
 
   Future<void> executeSendOnSidechain(BuildContext context) async {
@@ -255,7 +247,7 @@ class OverviewTabViewModel extends BaseViewModel {
 
     if (!context.mounted) return;
 
-    _sendingTransaction = true;
+    isSending = true;
     notifyListeners();
 
     try {
@@ -276,7 +268,7 @@ class OverviewTabViewModel extends BaseViewModel {
       log.e('Send failed', error: error);
       sendError = error.toString();
     } finally {
-      _sendingTransaction = false;
+      isSending = false;
       notifyListeners();
     }
   }
@@ -315,8 +307,9 @@ class OverviewTabViewModel extends BaseViewModel {
     bitcoinAddressController.dispose();
     bitcoinAmountController.dispose();
     labelController.dispose();
-    _transactionsProvider.removeListener(ensureAddress);
-    _balanceProvider.removeListener(ensureAddress);
+    _transactionsProvider.removeListener(_onChange);
+    _balanceProvider.removeListener(_onChange);
+    _addressProvider.removeListener(_onChange);
     super.dispose();
   }
 }
@@ -632,12 +625,14 @@ class BalanceRow extends StatelessWidget {
   final String label;
   final double amount;
   final String ticker;
+  final bool loading;
 
   const BalanceRow({
     super.key,
     required this.label,
     required this.amount,
     required this.ticker,
+    this.loading = false,
   });
 
   @override
@@ -648,7 +643,11 @@ class BalanceRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           SailText.secondary15(label),
-          SailText.secondary15('${formatBitcoin(amount)} $ticker'),
+          SailSkeletonizer(
+            enabled: loading,
+            description: 'Waiting for thunder to boot...',
+            child: SailText.secondary15('${formatBitcoin(amount)} $ticker'),
+          ),
         ],
       ),
     );
