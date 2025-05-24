@@ -54,6 +54,12 @@ mixin ChangeTrackingMixin on ChangeNotifier {
       return true;
     }
 
+    if (a is Object && b is Object) {
+      final aProps = a.toString();
+      final bProps = b.toString();
+      return aProps == bProps;
+    }
+
     return false;
   }
 }
