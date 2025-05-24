@@ -1,6 +1,5 @@
 import 'package:auto_route/annotations.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
-import 'package:bitwindow/pages/sidechain_proposal_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -83,12 +82,6 @@ class SidechainActivationManagementView extends StatelessWidget {
               child: PendingSidechainProposalsTable(proposals: model.sidechainProposals),
             ),
             SailSpacing(SailStyleValues.padding08),
-            SailButton(
-              onPressed: () async {
-                await showSidechainProposalModal(context);
-              },
-              label: 'Create Sidechain Proposal',
-            ),
           ],
         ),
       ),
