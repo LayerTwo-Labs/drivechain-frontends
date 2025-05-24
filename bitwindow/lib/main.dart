@@ -118,10 +118,10 @@ void main(List<String> args) async {
   await windowManager.ensureInitialized();
 
   const windowOptions = WindowOptions(
-    minimumSize: Size(1200, 600),
+    minimumSize: Size(400, 400),
     size: Size(1200, 600),
     titleBarStyle: TitleBarStyle.normal,
-    title: 'Bitcoin Core + CUSF BIP 300/301 Activator',
+    title: 'Bitcoin Core + CUSF BIP 300/301 Enforcer',
   );
 
   unawaited(
