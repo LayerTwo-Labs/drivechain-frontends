@@ -705,7 +705,7 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[emptypb.Empty]
 	thirtyDaysAgo := now.AddDate(0, 0, -30)
 	for _, dep := range sidechainDeposits.Msg.Transactions {
 		if dep.Tx != nil {
-			amt := int64(dep.Tx.ReceivedSats)
+			amt := int64(dep.Tx.SentSats)
 			depositSum += amt
 			if dep.Tx.ConfirmationInfo.Timestamp != nil {
 				t := dep.Tx.ConfirmationInfo.Timestamp.AsTime()

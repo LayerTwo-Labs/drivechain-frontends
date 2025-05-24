@@ -54,9 +54,10 @@ class OverviewTab extends StatelessWidget {
                       Expanded(
                         child: WalletStats(
                           title: 'Sidechain Deposit Volume',
-                          value: formatBitcoin(model.stats?.sidechainDepositVolume.toInt() ?? 0, symbol: ''),
+                          value:
+                              formatBitcoin(satoshiToBTC(model.stats?.sidechainDepositVolume.toInt() ?? 0), symbol: ''),
                           subtitle:
-                              '${formatBitcoin(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0, symbol: '')} last 30 days',
+                              '${formatBitcoin(satoshiToBTC(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0), symbol: '')} last 30 days',
                           bitcoinAmount: true,
                           icon: SailSVGAsset.wallet,
                         ),

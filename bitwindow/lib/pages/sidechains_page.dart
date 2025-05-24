@@ -373,15 +373,18 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   void dispose() {
     super.dispose();
-    sidechainProvider.removeListener(notifyListeners);
-    addressController.removeListener(notifyListeners);
-    depositAmountController.removeListener(notifyListeners);
-    feeController.removeListener(notifyListeners);
+    sidechainProvider.removeListener(_onChange);
+    addressController.removeListener(_onChange);
+    depositAmountController.removeListener(_onChange);
+    feeController.removeListener(_onChange);
   }
 
   void _onChange() {
     track('sidechains', sidechainProvider.sidechains);
     track('deposits', recentDeposits);
+    track('depositAmount', depositAmountController.text);
+    track('addressController', addressController.text);
+    track('fee', feeController.text);
     notifyIfChanged();
   }
 }
