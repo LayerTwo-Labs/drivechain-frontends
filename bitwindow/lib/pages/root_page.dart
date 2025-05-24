@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:bitwindow/change_tracking_mixin.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/debug_window.dart';
@@ -30,6 +29,7 @@ import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/utils/change_tracker.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:sail_ui/widgets/platform_menu.dart';
