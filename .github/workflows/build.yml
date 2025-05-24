@@ -98,7 +98,7 @@ jobs:
           matrix=$(IFS=,; echo "{\"include\":[${configurations[*]}]}")
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
-  build:
+  build-and-upload:
     needs: matrix-prep
     runs-on: ${{ matrix.os }}
     defaults:
@@ -202,44 +202,33 @@ jobs:
           if-no-files-found: error
           path: ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/*
 
-  upload-artifacts-to-releases-drivechain-info:
-    name: Upload artifacts to releases.drivechain.info
-    runs-on: ubuntu-latest
-    needs: build
-    # Modified if condition to run even with partial failures
-    if: |
-      always() && 
-      github.event_name == 'push' && 
-      github.ref == 'refs/heads/master' && 
-      github.repository_owner == 'LayerTwo-Labs'
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-
-      - name: Rename and move artifacts
-        working-directory: .
-        continue-on-error: true
+      - name: Rename and upload
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
-          # Thunder
-          mv thunder-binaries-macOS-testchain/thunder-osx64.zip L2-S9-Thunder-latest-x86_64-apple-darwin.zip || true
-          mv thunder-binaries-Linux-testchain/thunder-x86_64-linux-gnu.zip L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip || true
-          mv thunder-binaries-Windows-testchain/thunder-win64.zip L2-S9-Thunder-latest-x86_64-pc-windows-msvc.zip || true
-          # ZSide
-          mv zside-binaries-macOS-zcash/zside-osx64.zip L2-S5-ZSide-latest-x86_64-apple-darwin.zip || true
-          mv zside-binaries-Linux-zcash/zside-x86_64-linux-gnu.zip L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.zip || true
-          # BitWindow
-          mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
-          mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
-          mv bitwindow-binaries-Windows/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip || true
-          # Launcher
-          mv launcher-binaries-macOS/launcher-osx64.zip Launcher-latest-x86_64-apple-darwin.zip || true
-          mv launcher-binaries-Linux/launcher-x86_64-linux-gnu.zip Launcher-latest-x86_64-unknown-linux-gnu.zip || true
-          mv launcher-binaries-Windows/launcher-win64.zip Launcher-latest-x86_64-pc-windows-msvc.zip || true
+          # Only one binary was built, but we go ahead and try to rename+upload all of them.
+          # No if checks needed!
 
-      - name: Upload artifacts to releases.drivechain.info
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/thunder-osx64.zip L2-S9-Thunder-latest-x86_64-apple-darwin.zip || true
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/thunder-x86_64-linux-gnu.zip L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip || true
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/thunder-win64.zip L2-S9-Thunder-latest-x86_64-pc-windows-msvc.zip || true
+
+          # ZSide
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/zside-osx64.zip L2-S5-ZSide-latest-x86_64-apple-darwin.zip || true
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/zside-x86_64-linux-gnu.zip L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.zip || true
+
+          # BitWindow
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip || true
+
+          # Launcher
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/launcher-osx64.zip Launcher-latest-x86_64-apple-darwin.zip || true
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/launcher-x86_64-linux-gnu.zip Launcher-latest-x86_64-unknown-linux-gnu.zip || true
+          mv ${{ env.BUILD_DIR }}/${{ matrix.client }}/release/launcher-win64.zip Launcher-latest-x86_64-pc-windows-msvc.zip || true
+
+      - name: Upload to releases.drivechain.info
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: cross-the-world/ssh-scp-ssh-pipelines@latest
-        continue-on-error: true
         with:
           host: 45.33.96.47
           user: root
