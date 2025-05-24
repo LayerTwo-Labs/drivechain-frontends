@@ -109,23 +109,32 @@ class BottomNav extends StatelessWidget {
                 InkWell(
                   onTap: () async => displayConnectionStatusDialog(context),
                   child: Tooltip(
-                    message: model.connectionStatus,
-                    child: DecoratedBox(
-                      decoration: model.connectionColor == SailColorScheme.red
-                          ? BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color: SailColorScheme.red.withValues(alpha: 0.5),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            )
-                          : const BoxDecoration(),
-                      child: SailSVG.fromAsset(
-                        SailSVGAsset.iconConnectionStatus,
-                        color: model.connectionColor,
-                      ),
+                    message: 'Open daemon status dialog',
+                    child: SailRow(
+                      spacing: SailStyleValues.padding08,
+                      children: [
+                        DecoratedBox(
+                          decoration: model.connectionColor == SailColorScheme.red
+                              ? BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: SailColorScheme.red.withValues(alpha: 0.5),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                )
+                              : const BoxDecoration(),
+                          child: SailSVG.fromAsset(
+                            SailSVGAsset.iconConnectionStatus,
+                            color: model.connectionColor,
+                          ),
+                        ),
+                        if (model.connectionStatus == 'All binaries connected')
+                          SailText.secondary12(model.connectionStatus)
+                        else
+                          SailText.primary12(model.connectionStatus),
+                      ],
                     ),
                   ),
                 ),
@@ -254,7 +263,7 @@ class ConnectionMonitor {
 
   bool get connected => rpc.connected;
   bool get initializing => rpc.initializingBinary;
-  String? get error => rpc.connectionError;
+  String? get connectionError => rpc.connectionError;
 }
 
 class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
@@ -328,26 +337,31 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   String get connectionStatus {
-    if (allConnected) {
-      return 'All binaries connected';
+    if (mainchain.initializingBinary) {
+      return 'Initializing bitcoind..';
     }
 
-    List<String> errors = [];
-
-    // Check required connections
-    if (!mainchain.connected && mainchain.connectionError != null && !mainchain.initializingBinary) {
-      errors.add('Mainchain: ${mainchain.connectionError}');
-    }
-    if (!enforcer.connected && enforcer.connectionError != null && !mainchain.initializingBinary) {
-      errors.add('Enforcer: ${enforcer.connectionError}');
+    if (mainchain.connectionError != null) {
+      return mainchain.connectionError!;
     }
 
-    // Check additional connections
-    if (!additionalConnection.connected && additionalConnection.error != null) {
-      errors.add('${additionalConnection.name}: ${additionalConnection.error}');
+    if (enforcer.initializingBinary) {
+      return 'Initializing enforcer..';
     }
 
-    return errors.isEmpty ? '' : errors.join('\n');
+    if (enforcer.connectionError != null) {
+      return enforcer.connectionError!;
+    }
+
+    if (additionalConnection.initializing) {
+      return 'Initializing ${additionalConnection.name}..';
+    }
+
+    if (additionalConnection.connectionError != null) {
+      return additionalConnection.connectionError!;
+    }
+
+    return 'All binaries connected';
   }
 
   void setShowUnconfirmed(bool value) {
@@ -379,7 +393,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
     final additionalSynced = additionalConnected && viewModel.blockInfoProvider.additionalSyncInfo!.isSynced;
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 700),
+      constraints: const BoxConstraints(maxWidth: 300),
       child: SailRow(
         spacing: 0,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -389,6 +403,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
             ChainLoader(
               name: viewModel.blockInfoProvider.mainchain.name,
               syncInfo: viewModel.blockInfoProvider.mainchainSyncInfo!,
+              justPercent: true,
             ),
             DividerDot(),
           ],
@@ -396,6 +411,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
             ChainLoader(
               name: viewModel.blockInfoProvider.enforcer.name,
               syncInfo: viewModel.blockInfoProvider.enforcerSyncInfo!,
+              justPercent: true,
             ),
             DividerDot(),
           ],
@@ -403,13 +419,15 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
             ChainLoader(
               name: viewModel.blockInfoProvider.additionalConnection!.name,
               syncInfo: viewModel.blockInfoProvider.additionalSyncInfo!,
+              justPercent: true,
             ),
-            DividerDot(),
           ],
-          if (mainchainSynced && enforcerSynced && additionalSynced)
-            SailText.primary12(
+          if (mainchainSynced) ...[
+            DividerDot(),
+            SailText.secondary12(
               '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.blocks ?? 'Loading')} blocks',
             ),
+          ],
         ],
       ),
     );
@@ -419,11 +437,13 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
 class ChainLoader extends StatelessWidget {
   final String name;
   final SyncInfo syncInfo;
+  final bool justPercent;
 
   const ChainLoader({
     super.key,
     required this.name,
     required this.syncInfo,
+    this.justPercent = false,
   });
 
   @override
@@ -435,6 +455,7 @@ class ChainLoader extends StatelessWidget {
           progress: syncInfo.verificationProgress,
           current: syncInfo.blocks,
           goal: syncInfo.headers,
+          justPercent: justPercent,
         ),
       ),
     );

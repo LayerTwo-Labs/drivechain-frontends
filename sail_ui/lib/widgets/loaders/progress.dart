@@ -7,6 +7,7 @@ class ProgressBar extends StatelessWidget {
   final int? current;
   final int? goal;
   final bool small;
+  final bool justPercent;
 
   const ProgressBar({
     super.key,
@@ -14,12 +15,19 @@ class ProgressBar extends StatelessWidget {
     this.current,
     this.goal,
     this.small = false,
+    this.justPercent = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final numberFormat = NumberFormat.decimalPattern('fr_FR');
     final theme = SailTheme.of(context);
+    final numberFormat = NumberFormat.decimalPattern('fr_FR');
+
+    var textInsideBar =
+        '${current != null ? numberFormat.format(current) : '0'} / ${goal != null ? numberFormat.format(goal) : '0'}';
+    if (justPercent) {
+      textInsideBar = '${(progress * 100).toStringAsFixed(2)}%';
+    }
 
     return SizedBox(
       height: small ? 10 : 16,
@@ -32,7 +40,7 @@ class ProgressBar extends StatelessWidget {
                 // Background container
                 Container(
                   decoration: BoxDecoration(
-                    color: theme.colors.backgroundSecondary,
+                    color: theme.colors.backgroundSecondary.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -44,7 +52,7 @@ class ProgressBar extends StatelessWidget {
                     widthFactor: progress,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: theme.colors.text,
+                        color: theme.colors.backgroundSecondary,
                         borderRadius: BorderRadius.horizontal(
                           left: const Radius.circular(999),
                           right: Radius.circular(progress > 0.99 ? 999 : 0),
@@ -54,18 +62,15 @@ class ProgressBar extends StatelessWidget {
                   ),
                 ),
                 if (current != null && goal != null)
+                  // Use Positioned.fill for stable text positioning
                   Positioned.fill(
-                    // Use Positioned.fill for stable text positioning
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 100),
-                        child: Text(
-                          '${current != null ? numberFormat.format(current) : '0'} / ${goal != null ? numberFormat.format(goal) : '0'}',
+                        child: SailText.primary10(
+                          textInsideBar,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: progress > 0.99 ? theme.colors.background : theme.colors.inactiveNavText,
-                          ),
+                          color: progress > 0.99 ? theme.colors.background : theme.colors.inactiveNavText,
                         ),
                       ),
                     ),
@@ -73,8 +78,8 @@ class ProgressBar extends StatelessWidget {
               ],
             ),
           ),
-          if (!small) const SizedBox(width: 8.0),
-          if (!small)
+          if (!small && !justPercent) const SizedBox(width: 8.0),
+          if (!small && !justPercent)
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 50, maxWidth: 50),
               child: SailText.primary12(

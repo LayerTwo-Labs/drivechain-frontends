@@ -570,7 +570,7 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
           enabled: !blockchainProvider.mainchain.connected,
           child: Tooltip(
             message: blockchainProvider.blocks.firstOrNull?.toPretty() ?? '',
-            child: SailText.primary12('Last block: ${_getTimeSinceLastBlock()}'),
+            child: SailText.secondary12('Last block: ${_getTimeSinceLastBlock()}'),
           ),
         ),
         const DividerDot(),
@@ -579,7 +579,7 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
           enabled: !blockchainProvider.mainchain.connected,
           child: Tooltip(
             message: blockchainProvider.peers.map((e) => 'Peer id=${e.id} addr=${e.addr}').join('\n'),
-            child: SailText.primary12(
+            child: SailText.secondary12(
               formatTimeDifference(blockchainProvider.peers.length, 'peer'),
             ),
           ),
