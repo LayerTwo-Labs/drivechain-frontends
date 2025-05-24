@@ -72,6 +72,10 @@ class _UTXOTableState extends State<UTXOTable> {
         case 'date':
           aValue = a.receivedAt.toDateTime();
           bValue = b.receivedAt.toDateTime();
+          // If dates are equal, sort by output
+          if (aValue.compareTo(bValue) == 0) {
+            return a.output.compareTo(b.output);
+          }
           break;
         case 'output':
           aValue = a.output;

@@ -414,6 +414,7 @@ class SendPageViewModel extends BaseViewModel {
         fixedFeeSats: int.tryParse(feeController.text) ?? 1000,
         requiredInputs: selectedUtxos,
       );
+      await clearAll();
       log.d('Sent transaction: txid=$txid');
       if (context.mounted) {
         showSnackBar(context, 'Sent in txid=$txid');

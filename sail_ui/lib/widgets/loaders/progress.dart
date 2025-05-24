@@ -70,7 +70,7 @@ class ProgressBar extends StatelessWidget {
                         child: SailText.primary10(
                           textInsideBar,
                           textAlign: TextAlign.center,
-                          color: progress > 0.99 ? theme.colors.background : theme.colors.inactiveNavText,
+                          color: theme.colors.inactiveNavText,
                         ),
                       ),
                     ),
