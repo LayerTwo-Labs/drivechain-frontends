@@ -48,7 +48,7 @@ class OverviewTab extends StatelessWidget {
                           value: model.stats?.utxosCurrent.toString() ?? '0',
                           subtitle:
                               '${model.stats?.utxosUniqueAddresses.toString() ?? '0'} unique address${model.stats?.utxosUniqueAddresses.toInt() == 1 ? '' : 'es'}',
-                          icon: SailSVGAsset.bitcoin,
+                          icon: SailSVGAsset.coins,
                         ),
                       ),
                       Expanded(
