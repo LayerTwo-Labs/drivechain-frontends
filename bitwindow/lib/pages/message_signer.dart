@@ -8,33 +8,28 @@ class MessageSigner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SailPadding(
-      padding: const EdgeInsets.all(SailStyleValues.padding16),
-      child: Dialog(
-        child: SizedBox(
-          width: 800,
-          height: 600,
-          child: SailCard(
-            withCloseButton: true,
-            color: context.sailTheme.colors.background,
-            padding: false,
-            child: Positioned.fill(
-              child: InlineTabBar(
-                tabs: const [
-                  TabItem(
-                    label: 'Sign Message',
-                    icon: SailSVGAsset.iconPen,
-                    child: SignMessageTab(),
-                  ),
-                  TabItem(
-                    label: 'Verify Message',
-                    icon: SailSVGAsset.iconCheck,
-                    child: VerifyMessageTab(),
-                  ),
-                ],
-                initialIndex: 0,
+    return Dialog(
+      child: SizedBox(
+        width: 800,
+        height: 600,
+        child: SailCard(
+          withCloseButton: true,
+          color: context.sailTheme.colors.background,
+          padding: false,
+          child: InlineTabBar(
+            tabs: const [
+              TabItem(
+                label: 'Sign Message',
+                icon: SailSVGAsset.iconPen,
+                child: SignMessageTab(),
               ),
-            ),
+              TabItem(
+                label: 'Verify Message',
+                icon: SailSVGAsset.iconCheck,
+                child: VerifyMessageTab(),
+              ),
+            ],
+            initialIndex: 0,
           ),
         ),
       ),
@@ -184,58 +179,63 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
       title: 'Verify Message',
       subtitle:
           "Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any",
-      child: SailColumn(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: SailStyleValues.padding16,
-        children: [
-          SailTextField(
-            controller: _addressController,
-            label: 'Enter a Drivechain address (e.g. n2wxQmfexkjwEPgdD6iJA7T7RtzkrnHxhFc)',
-            hintText: '',
-          ),
-          SailTextField(
-            controller: _messageController,
-            label: 'Message',
-            maxLines: 5,
-            hintText: '',
-          ),
-          SailTextField(
-            controller: _signatureController,
-            label: 'Signature',
-            hintText: '',
-          ),
-          SailButton(
-            label: 'Verify Message',
-            icon: SailSVGAsset.iconQuestion,
-            onPressed: _verifyMessage,
-          ),
-          if (_error != null) ...[
-            Row(
-              children: [
-                Icon(Icons.error, color: theme.colors.error),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SailText.primary13(
-                    _error!,
-                    color: theme.colors.error,
-                  ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: SailColumn(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: SailStyleValues.padding16,
+            children: [
+              SailTextField(
+                controller: _addressController,
+                label: 'Enter a Drivechain address (e.g. n2wxQmfexkjwEPgdD6iJA7T7RtzkrnHxhFc)',
+                hintText: '',
+              ),
+              SailTextField(
+                controller: _messageController,
+                label: 'Message',
+                maxLines: 5,
+                hintText: '',
+              ),
+              SailTextField(
+                controller: _signatureController,
+                label: 'Signature',
+                hintText: '',
+              ),
+              SailButton(
+                label: 'Verify Message',
+                icon: SailSVGAsset.iconQuestion,
+                onPressed: _verifyMessage,
+              ),
+              if (_error != null) ...[
+                Row(
+                  children: [
+                    Icon(Icons.error, color: theme.colors.error),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SailText.primary13(
+                        _error!,
+                        color: theme.colors.error,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
-          if (_isValid != null && _error == null) ...[
-            const SizedBox(width: 16),
-            Icon(
-              _isValid! ? Icons.check_circle : Icons.error,
-              color: _isValid! ? theme.colors.success : theme.colors.error,
-            ),
-            const SizedBox(width: 8),
-            SailText.primary13(
-              _isValid! ? 'Message verified' : 'Invalid signature',
-              color: _isValid! ? theme.colors.success : theme.colors.error,
-            ),
-          ],
-        ],
+              if (_isValid != null && _error == null) ...[
+                const SizedBox(width: 16),
+                Icon(
+                  _isValid! ? Icons.check_circle : Icons.error,
+                  color: _isValid! ? theme.colors.success : theme.colors.error,
+                ),
+                const SizedBox(width: 8),
+                SailText.primary13(
+                  _isValid! ? 'Message verified' : 'Invalid signature',
+                  color: _isValid! ? theme.colors.success : theme.colors.error,
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

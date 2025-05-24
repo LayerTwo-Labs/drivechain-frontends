@@ -48,15 +48,16 @@ class OverviewTab extends StatelessWidget {
                           value: model.stats?.utxosCurrent.toString() ?? '0',
                           subtitle:
                               '${model.stats?.utxosUniqueAddresses.toString() ?? '0'} unique address${model.stats?.utxosUniqueAddresses.toInt() == 1 ? '' : 'es'}',
-                          icon: SailSVGAsset.bitcoin,
+                          icon: SailSVGAsset.coins,
                         ),
                       ),
                       Expanded(
                         child: WalletStats(
                           title: 'Sidechain Deposit Volume',
-                          value: formatBitcoin(model.stats?.sidechainDepositVolume.toInt() ?? 0, symbol: ''),
+                          value:
+                              formatBitcoin(satoshiToBTC(model.stats?.sidechainDepositVolume.toInt() ?? 0), symbol: ''),
                           subtitle:
-                              '${formatBitcoin(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0, symbol: '')} last 30 days',
+                              '${formatBitcoin(satoshiToBTC(model.stats?.sidechainDepositVolumeLast30Days.toInt() ?? 0), symbol: '')} last 30 days',
                           bitcoinAmount: true,
                           icon: SailSVGAsset.wallet,
                         ),

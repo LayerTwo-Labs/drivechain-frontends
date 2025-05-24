@@ -15,6 +15,7 @@ import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:thunder/pages/tabs/testchain/mainchain/deposit_withdraw_tab_route.dart';
+import 'package:thunder/providers/address_provider.dart';
 import 'package:thunder/providers/transactions_provider.dart';
 
 import 'mocks/rpc_mock_sidechain.dart';
@@ -40,6 +41,7 @@ void main() {
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
     GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
+    GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
     final balanceProvider = BalanceProvider(connections: [sidechainRPC]);
     GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);
     // don't start test until balance is fetched

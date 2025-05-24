@@ -131,7 +131,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
       subtitle: 'List of your UTXOs with information about their deniability status.',
       error: widget.error,
       bottomPadding: false,
-      inSeparateWindow: widget.newWindowIdentifier != null,
+      inSeparateWindow: widget.newWindowIdentifier == null,
       newWindowIdentifier: widget.newWindowIdentifier,
       child: Column(
         children: [
