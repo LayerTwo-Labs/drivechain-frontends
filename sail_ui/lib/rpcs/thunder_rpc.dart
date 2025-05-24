@@ -72,7 +72,7 @@ class ThunderLive extends ThunderRPC {
 
   @override
   Future<List<String>> binaryArgs(NodeConnectionSettings mainchainConf) async {
-    return binary.extraBootArgs;
+    return ['--headless'] + binary.extraBootArgs;
   }
 
   @override
