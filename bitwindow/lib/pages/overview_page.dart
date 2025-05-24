@@ -25,7 +25,6 @@ class OverviewPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            ExperimentalBanner(),
             SailColumn(
               spacing: SailStyleValues.padding16,
               children: [
