@@ -14,7 +14,7 @@ abstract class SailColorScheme {
   static const blackKindaLight = Color.fromARGB(255, 31, 31, 31);
   static const blackLighter = Color.fromARGB(255, 45, 45, 45);
   static const blackLightest = Color(0xff64748B);
-  static const purple = Color(0xffBB87FC);
+  static const purple = Color(0xff5400AA);
   static const greenLight = Color(0xff79FD7E);
   static const green = Color(0xff2AB517);
   static const orange = Color(0xffF7931E);

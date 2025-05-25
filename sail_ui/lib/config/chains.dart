@@ -252,7 +252,7 @@ class Thunder extends Sidechain {
   int slot = 9;
 
   @override
-  Color color = SailColorScheme.green;
+  Color color = SailColorScheme.purple;
 
   @override
   Thunder copyWith({
