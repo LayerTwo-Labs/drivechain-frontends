@@ -380,7 +380,11 @@ class ConsoleEntryWidget extends StatelessWidget {
   final List<ConsoleEntry> entries;
   final _timeFormat = DateFormat('HH:mm:ss');
 
-  ConsoleEntryWidget({super.key, required this.entry, required this.entries});
+  ConsoleEntryWidget({
+    super.key,
+    required this.entry,
+    required this.entries,
+  });
 
   bool _hasResponse(String requestId) => entries.any(
         (e) => e.requestId == requestId && (e.type == EntryType.response || e.type == EntryType.error),
@@ -397,7 +401,7 @@ class ConsoleEntryWidget extends StatelessWidget {
         case EntryType.response:
           return theme.colors.text;
         case EntryType.error:
-          return theme.colors.error;
+          return theme.colors.destructiveButtonHover;
       }
     }
 

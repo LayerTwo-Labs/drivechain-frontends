@@ -33,6 +33,9 @@ enum Tabs {
   // sidechain balance/transfer route
   SidechainOverview,
 
+  // sidechain balance/transfer route
+  Console,
+
   // trailing common routes
   SettingsHome,
 }
@@ -149,6 +152,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
             DepositWithdrawTabRoute(),
             // sidechain balance/transfer route
             SidechainOverviewTabRoute(),
+            // sidechain console route
+            ConsoleTabRoute(),
             // trailing common routes
             SettingsTabRoute(),
           ],
@@ -175,6 +180,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         },
                       ),
                       TopNavRoute(
+                        label: 'Console',
+                        optionalKey: Tabs.Console.index,
+                        onTap: () {
+                          tabsRouter.setActiveIndex(Tabs.Console.index);
+                        },
+                      ),
+                      TopNavRoute(
                         icon: SailSVGAsset.settings,
                       ),
                     ],
@@ -196,13 +208,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                                 ),
                               );
                         },
-                        endWidgets: [
-                          SailButton(
-                            icon: SailSVGAsset.settings,
-                            variant: ButtonVariant.icon,
-                            onPressed: () async => tabsRouter.setActiveIndex(Tabs.SettingsHome.index),
-                          ),
-                        ],
+                        endWidgets: [],
                       ),
                     ],
                   ),

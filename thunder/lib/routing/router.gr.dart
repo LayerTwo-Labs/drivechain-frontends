@@ -11,10 +11,25 @@
 part of 'router.dart';
 
 /// generated route for
+/// [ConsoleTabPage]
+class ConsoleTabRoute extends PageRouteInfo<void> {
+  const ConsoleTabRoute({List<PageRouteInfo>? children}) : super(ConsoleTabRoute.name, initialChildren: children);
+
+  static const String name = 'ConsoleTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ConsoleTabPage();
+    },
+  );
+}
+
+/// generated route for
 /// [DepositWithdrawTabPage]
 class DepositWithdrawTabRoute extends PageRouteInfo<void> {
   const DepositWithdrawTabRoute({List<PageRouteInfo>? children})
-    : super(DepositWithdrawTabRoute.name, initialChildren: children);
+      : super(DepositWithdrawTabRoute.name, initialChildren: children);
 
   static const String name = 'DepositWithdrawTabRoute';
 
@@ -29,8 +44,7 @@ class DepositWithdrawTabRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children})
-    : super(HomeRoute.name, initialChildren: children);
+  const HomeRoute({List<PageRouteInfo>? children}) : super(HomeRoute.name, initialChildren: children);
 
   static const String name = 'HomeRoute';
 
@@ -50,10 +64,10 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
     required Widget child,
     List<PageRouteInfo>? children,
   }) : super(
-         SailTestRoute.name,
-         args: SailTestRouteArgs(key: key, child: child),
-         initialChildren: children,
-       );
+          SailTestRoute.name,
+          args: SailTestRouteArgs(key: key, child: child),
+          initialChildren: children,
+        );
 
   static const String name = 'SailTestRoute';
 
@@ -82,8 +96,7 @@ class SailTestRouteArgs {
 /// generated route for
 /// [SettingsTabPage]
 class SettingsTabRoute extends PageRouteInfo<void> {
-  const SettingsTabRoute({List<PageRouteInfo>? children})
-    : super(SettingsTabRoute.name, initialChildren: children);
+  const SettingsTabRoute({List<PageRouteInfo>? children}) : super(SettingsTabRoute.name, initialChildren: children);
 
   static const String name = 'SettingsTabRoute';
 
@@ -99,7 +112,7 @@ class SettingsTabRoute extends PageRouteInfo<void> {
 /// [SidechainOverviewTabPage]
 class SidechainOverviewTabRoute extends PageRouteInfo<void> {
   const SidechainOverviewTabRoute({List<PageRouteInfo>? children})
-    : super(SidechainOverviewTabRoute.name, initialChildren: children);
+      : super(SidechainOverviewTabRoute.name, initialChildren: children);
 
   static const String name = 'SidechainOverviewTabRoute';
 

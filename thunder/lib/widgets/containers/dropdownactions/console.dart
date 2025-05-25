@@ -15,7 +15,7 @@ class ConsoleWindow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailCard(
-      title: 'Debug Console',
+      title: 'Thunder Console',
       subtitle: 'Execute commands and view responses',
       child: ConsoleView(
         services: [

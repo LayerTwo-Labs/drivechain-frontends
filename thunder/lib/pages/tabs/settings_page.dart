@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:thunder/main.dart';
@@ -235,9 +234,9 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SailText.primary20('Reset'),
-        SailText.secondary13('Reset all chain data to default.'),
+        SailText.secondary13('Reset blockchain data'),
         SailButton(
-          label: 'Reset All Chains',
+          label: 'Reset Thunder Data',
           variant: ButtonVariant.destructive,
           onPressed: _onResetAllChains,
         ),
