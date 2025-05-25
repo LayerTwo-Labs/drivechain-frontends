@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -423,10 +424,16 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
               justPercent: true,
             ),
           ],
-          if (mainchainSynced) ...[
+          if (viewModel.blockInfoProvider.additionalConnection?.name.toLowerCase() == BitWindow().name.toLowerCase() &&
+              mainchainSynced) ...[
             DividerDot(),
             SailText.secondary12(
               '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.blocks ?? 'Loading')} blocks',
+            ),
+          ] else if (additionalSynced) ...[
+            DividerDot(),
+            SailText.secondary12(
+              '${formatWithThousandSpacers(viewModel.blockInfoProvider.additionalSyncInfo?.blocks ?? 'Loading')} blocks',
             ),
           ],
         ],
