@@ -222,16 +222,19 @@ jobs:
         continue-on-error: true
         run: |
           # Thunder
-          mv thunder-binaries-macOS-testchain/thunder-osx64.zip L2-S9-Thunder-latest-x86_64-apple-darwin.zip || true
-          mv thunder-binaries-Linux-testchain/thunder-x86_64-linux-gnu.zip L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip || true
-          mv thunder-binaries-Windows-testchain/thunder-win64.zip L2-S9-Thunder-latest-x86_64-pc-windows-msvc.zip || true
+          mv thunder-binaries-macOS-testchain/thunder-osx64.zip test-thunder-x86_64-apple-darwin.zip || true
+          mv thunder-binaries-Linux-testchain/thunder-x86_64-linux-gnu.zip test-thunder-x86_64-unknown-linux-gnu.zip || true
+          mv thunder-binaries-Windows-testchain/thunder-win64.zip test-thunder-x86_64-pc-windows-msvc.zip || true
+
           # ZSide
           mv zside-binaries-macOS-zcash/zside-osx64.zip L2-S5-ZSide-latest-x86_64-apple-darwin.zip || true
           mv zside-binaries-Linux-zcash/zside-x86_64-linux-gnu.zip L2-S5-ZSide-latest-x86_64-unknown-linux-gnu.zip || true
+
           # BitWindow
           mv bitwindow-binaries-macOS/bitwindow-osx64.zip BitWindow-latest-x86_64-apple-darwin.zip || true
           mv bitwindow-binaries-Linux/bitwindow-x86_64-linux-gnu.zip BitWindow-latest-x86_64-unknown-linux-gnu.zip || true
           mv bitwindow-binaries-Windows/bitwindow-win64.zip BitWindow-latest-x86_64-pc-windows-msvc.zip || true
+
           # Launcher
           mv launcher-binaries-macOS/launcher-osx64.zip Launcher-latest-x86_64-apple-darwin.zip || true
           mv launcher-binaries-Linux/launcher-x86_64-linux-gnu.zip Launcher-latest-x86_64-unknown-linux-gnu.zip || true
@@ -247,3 +250,4 @@ jobs:
           port: 22
           scp: |
             'BitWindow-*.zip' => '/var/www/html/'
+            'test-*.zip' => '/var/www/html/'
