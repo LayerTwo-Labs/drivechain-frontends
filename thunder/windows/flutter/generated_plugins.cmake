@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   desktop_multi_window
   screen_retriever_windows
+  sentry_flutter
   url_launcher_windows
   window_manager
 )
