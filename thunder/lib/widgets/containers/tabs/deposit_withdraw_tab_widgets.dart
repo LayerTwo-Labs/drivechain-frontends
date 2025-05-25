@@ -62,7 +62,7 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
 class DepositWithdrawTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   final log = Logger(level: Level.debug);
-  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  TransactionProvider get _transactionsProvider => GetIt.I.get<TransactionProvider>();
   ThunderRPC get _rpc => GetIt.I.get<ThunderRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AddressProvider get _addressProvider => GetIt.I.get<AddressProvider>();

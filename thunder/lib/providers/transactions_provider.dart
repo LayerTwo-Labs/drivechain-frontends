@@ -4,26 +4,23 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
+import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-class TransactionsProvider extends ChangeNotifier {
+class TransactionProvider extends ChangeNotifier {
   ThunderRPC get rpc => GetIt.I.get<ThunderRPC>();
   Logger get log => GetIt.I.get<Logger>();
 
-  // because the class extends ChangeNotifier, any subscribers
-  // to this class will be notified of changes to these
-  // variables.
-  List<UTXO> unspentMainchainUTXOs = [];
   List<CoreTransaction> sidechainTransactions = [];
+  List<ThunderUTXO> utxos = [];
   bool initialized = false;
 
-  bool _isFetching = false;
-
-  TransactionsProvider() {
+  TransactionProvider() {
     rpc.addListener(fetch);
     fetch();
   }
 
+  bool _isFetching = false;
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
     if (_isFetching) {
@@ -33,10 +30,12 @@ class TransactionsProvider extends ChangeNotifier {
 
     try {
       final newSidechainTransactions = (await rpc.listTransactions()).reversed.toList();
+      final newUTXOs = await rpc.listUTXOs();
       const newInitialized = true;
 
-      if (_dataHasChanged(newSidechainTransactions, newInitialized)) {
+      if (_dataHasChanged(newSidechainTransactions, newUTXOs, newInitialized)) {
         sidechainTransactions = newSidechainTransactions;
+        utxos = newUTXOs;
         initialized = newInitialized;
         notifyListeners();
       }
@@ -47,6 +46,7 @@ class TransactionsProvider extends ChangeNotifier {
 
   bool _dataHasChanged(
     List<CoreTransaction> newSidechainTransactions,
+    List<ThunderUTXO> newUTXOs,
     bool newInitialized,
   ) {
     if (newInitialized != initialized) {
@@ -54,6 +54,10 @@ class TransactionsProvider extends ChangeNotifier {
     }
 
     if (!listEquals(sidechainTransactions, newSidechainTransactions)) {
+      return true;
+    }
+
+    if (!listEquals(utxos, newUTXOs)) {
       return true;
     }
 

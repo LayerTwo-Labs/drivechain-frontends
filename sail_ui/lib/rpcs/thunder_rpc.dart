@@ -8,6 +8,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
+import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 final log = GetIt.I.get<Logger>();
@@ -21,6 +22,51 @@ abstract class ThunderRPC extends SidechainRPC {
     required super.restartOnFailure,
     required super.chain,
   });
+
+  /// Get total sidechain wealth in BTC
+  Future<double> getSidechainWealth();
+
+  /// Create a deposit transaction
+  Future<String> createDeposit(String address, double amount, double fee);
+
+  /// Get pending withdrawal bundle
+  Future<Map<String, dynamic>?> getPendingWithdrawalBundle();
+
+  /// Connect to a peer
+  Future<void> connectPeer(String peerAddress);
+
+  /// List connected peers
+  Future<List<Map<String, dynamic>>> listPeers();
+
+  /// Mine a block with optional coinbase value
+  Future<void> mine([int? coinbaseValueSats]);
+
+  /// Get block by hash
+  Future<Map<String, dynamic>?> getBlock(String hash);
+
+  /// Get best mainchain block hash
+  Future<String?> getBestMainchainBlockHash();
+
+  /// Get best sidechain block hash
+  Future<String?> getBestSidechainBlockHash();
+
+  /// Get BMM inclusions
+  Future<String> getBMMInclusions(String blockHash);
+
+  /// List all UTXOs
+  Future<List<ThunderUTXO>> listUTXOs();
+
+  /// Remove transaction from mempool
+  Future<void> removeFromMempool(String txid);
+
+  /// Get latest failed withdrawal bundle height
+  Future<int?> getLatestFailedWithdrawalBundleHeight();
+
+  /// Generate new mnemonic
+  Future<String> generateMnemonic();
+
+  /// Set seed from mnemonic
+  Future<void> setSeedFromMnemonic(String mnemonic);
 }
 
 class ThunderLive extends ThunderRPC {
@@ -182,12 +228,14 @@ class ThunderLive extends ThunderRPC {
   }
 
   /// Get total sidechain wealth in BTC
+  @override
   Future<double> getSidechainWealth() async {
     final wealthSats = await _client().call('sidechain_wealth_sats') as int;
     return satoshiToBTC(wealthSats);
   }
 
   /// Create a deposit transaction
+  @override
   Future<String> createDeposit(String address, double amount, double fee) async {
     final response = await _client().call('create_deposit', {
       'address': address,
@@ -198,75 +246,88 @@ class ThunderLive extends ThunderRPC {
   }
 
   /// Get pending withdrawal bundle
+  @override
   Future<Map<String, dynamic>?> getPendingWithdrawalBundle() async {
     final response = await _client().call('pending_withdrawal_bundle');
     return response as Map<String, dynamic>?;
   }
 
   /// Connect to a peer
+  @override
   Future<void> connectPeer(String peerAddress) async {
     await _client().call('connect_peer', peerAddress);
   }
 
   /// List connected peers
+  @override
   Future<List<Map<String, dynamic>>> listPeers() async {
     final response = await _client().call('list_peers') as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
 
   /// Mine a block with optional coinbase value
+  @override
   Future<void> mine([int? coinbaseValueSats]) async {
     await _client().call('mine', coinbaseValueSats);
   }
 
   /// Get block by hash
+  @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
     final response = await _client().call('get_block', hash);
     return response as Map<String, dynamic>?;
   }
 
   /// Get best mainchain block hash
+  @override
   Future<String?> getBestMainchainBlockHash() async {
     final response = await _client().call('get_best_mainchain_block_hash');
     return response as String?;
   }
 
   /// Get best sidechain block hash
+  @override
   Future<String?> getBestSidechainBlockHash() async {
     final response = await _client().call('get_best_sidechain_block_hash');
     return response as String?;
   }
 
   /// Get BMM inclusions
+  @override
   Future<String> getBMMInclusions(String blockHash) async {
     final response = await _client().call('get_bmm_inclusions', blockHash);
     return response as String;
   }
 
   /// List all UTXOs
-  Future<List<Map<String, dynamic>>> listUTXOs() async {
-    final response = await _client().call('list_utxos') as List<dynamic>;
-    return response.cast<Map<String, dynamic>>();
+  @override
+  Future<List<ThunderUTXO>> listUTXOs() async {
+    final response = await _client().call('get_wallet_utxos') as List<dynamic>;
+    return ThunderUTXO.fromJsonList(response);
   }
 
   /// Remove transaction from mempool
+  @override
   Future<void> removeFromMempool(String txid) async {
     await _client().call('remove_from_mempool', txid);
   }
 
   /// Get latest failed withdrawal bundle height
+  @override
   Future<int?> getLatestFailedWithdrawalBundleHeight() async {
     final response = await _client().call('latest_failed_withdrawal_bundle_height');
     return response as int?;
   }
 
   /// Generate new mnemonic
+  @override
   Future<String> generateMnemonic() async {
     final response = await _client().call('generate_mnemonic');
     return response as String;
   }
 
   /// Set seed from mnemonic
+  @override
   Future<void> setSeedFromMnemonic(String mnemonic) async {
     await _client().call('set_seed_from_mnemonic', mnemonic);
   }

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -11,6 +10,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:thunder/pages/tabs/wallet_utxos.dart';
 import 'package:thunder/providers/address_provider.dart';
 import 'package:thunder/providers/transactions_provider.dart';
 
@@ -135,7 +135,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
               ),
               // Transaction history
               Expanded(
-                child: TransactionsTab(),
+                child: UTXOsTab(),
               ),
             ],
           ),
@@ -148,7 +148,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
 class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   final log = Logger(level: Level.debug);
-  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  TransactionProvider get _transactionsProvider => GetIt.I.get<TransactionProvider>();
   ThunderRPC get _rpc => GetIt.I.get<ThunderRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AddressProvider get _addressProvider => GetIt.I.get<AddressProvider>();
@@ -351,7 +351,7 @@ class TransactionsTab extends StatelessWidget {
       viewModelBuilder: () => LatestWalletTransactionsViewModel(),
       builder: (context, model, child) {
         return TransactionTable(
-          entries: model.entries,
+          model: model,
           searchWidget: SailTextField(
             controller: model.searchController,
             hintText: 'Enter address or transaction id to search',
@@ -363,12 +363,12 @@ class TransactionsTab extends StatelessWidget {
 }
 
 class TransactionTable extends StatefulWidget {
-  final List<CoreTransaction> entries;
   final Widget searchWidget;
+  final LatestWalletTransactionsViewModel model;
 
   const TransactionTable({
     super.key,
-    required this.entries,
+    required this.model,
     required this.searchWidget,
   });
 
@@ -378,22 +378,40 @@ class TransactionTable extends StatefulWidget {
 
 class _TransactionTableState extends State<TransactionTable> {
   String sortColumn = 'date';
-  bool sortAscending = true;
-  List<CoreTransaction> entries = [];
+  bool sortAscending = false;
 
-  @override
-  void initState() {
-    super.initState();
-    entries = widget.entries;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!listEquals(entries, widget.entries)) {
-      entries = List.from(widget.entries);
-      sortEntries();
-    }
+  List<CoreTransaction> get sortedEntries {
+    final entries = List<CoreTransaction>.from(widget.model.entries);
+    entries.sort((a, b) {
+      dynamic aValue, bValue;
+      switch (sortColumn) {
+        case 'height':
+          aValue = a.confirmations;
+          bValue = b.confirmations;
+          break;
+        case 'date':
+          aValue = a.time;
+          bValue = b.time;
+          // If timestamps are equal, use txid as secondary sort
+          if (aValue == bValue) {
+            return sortAscending ? a.txid.compareTo(b.txid) : b.txid.compareTo(a.txid);
+          }
+          break;
+        case 'txid':
+          aValue = a.txid;
+          bValue = b.txid;
+          break;
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        default:
+          aValue = a.time;
+          bValue = b.time;
+      }
+      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+    });
+    return entries;
   }
 
   void onSort(String column) {
@@ -404,40 +422,12 @@ class _TransactionTableState extends State<TransactionTable> {
         sortColumn = column;
         sortAscending = true;
       }
-      sortEntries();
-    });
-  }
-
-  void sortEntries() {
-    entries.sort((a, b) {
-      dynamic aValue;
-      dynamic bValue;
-
-      switch (sortColumn) {
-        case 'height':
-          aValue = a.confirmations;
-          bValue = b.confirmations;
-          break;
-        case 'date':
-          aValue = a.time;
-          bValue = b.time;
-          break;
-        case 'txid':
-          aValue = a.txid;
-          bValue = b.txid;
-          break;
-        case 'amount':
-          aValue = a.amount;
-          bValue = b.amount;
-          break;
-      }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final entries = sortedEntries;
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailCard(
@@ -453,7 +443,7 @@ class _TransactionTableState extends State<TransactionTable> {
               ),
               Expanded(
                 child: SailTable(
-                  getRowId: (index) => widget.entries[index].txid,
+                  getRowId: (index) => entries[index].txid,
                   headerBuilder: (context) => [
                     SailTableHeaderCell(
                       name: 'Conf Height',
@@ -473,7 +463,7 @@ class _TransactionTableState extends State<TransactionTable> {
                     ),
                   ],
                   rowBuilder: (context, row, selected) {
-                    final entry = widget.entries[row];
+                    final entry = entries[row];
                     final amount = formatBitcoin(satoshiToBTC(entry.amount.toInt()));
 
                     return [
@@ -493,7 +483,7 @@ class _TransactionTableState extends State<TransactionTable> {
                       ),
                     ];
                   },
-                  rowCount: widget.entries.length,
+                  rowCount: entries.length,
                   columnWidths: const [110, 150, 200, 150],
                   drawGrid: true,
                   sortColumnIndex: [
@@ -507,7 +497,7 @@ class _TransactionTableState extends State<TransactionTable> {
                     onSort(['height', 'date', 'txid', 'amount'][columnIndex]);
                   },
                   onDoubleTap: (rowId) {
-                    final utxo = widget.entries.firstWhere(
+                    final utxo = entries.firstWhere(
                       (u) => u.txid == rowId,
                     );
                     _showUtxoDetails(context, utxo);
@@ -584,7 +574,7 @@ class DetailRow extends StatelessWidget {
 }
 
 class LatestWalletTransactionsViewModel extends BaseViewModel {
-  final TransactionsProvider _txProvider = GetIt.I<TransactionsProvider>();
+  final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final TextEditingController searchController = TextEditingController();
 
   List<CoreTransaction> get entries => _txProvider.sidechainTransactions
@@ -664,7 +654,7 @@ class TransactionHistoryCard extends ViewModelWidget<OverviewTabViewModel> {
         viewModelBuilder: () => LatestWalletTransactionsViewModel(),
         builder: (context, model, child) {
           return TransactionTable(
-            entries: model.entries,
+            model: model,
             searchWidget: SailTextField(
               controller: model.searchController,
               hintText: 'Enter address or transaction id to search',
