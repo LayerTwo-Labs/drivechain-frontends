@@ -174,6 +174,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                           tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
                         },
                       ),
+                      TopNavRoute(
+                        icon: SailSVGAsset.settings,
+                      ),
                     ],
                   ),
                   body: Column(
