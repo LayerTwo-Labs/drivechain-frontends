@@ -72,7 +72,7 @@ class SendOnSidechainViewModel extends BaseViewModel {
   ThunderRPC get _rpc => GetIt.I.get<ThunderRPC>();
 
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
-  TransactionsProvider get _transactionsProvider => GetIt.I.get<TransactionsProvider>();
+  TransactionProvider get _transactionsProvider => GetIt.I.get<TransactionProvider>();
   AppRouter get _router => GetIt.I.get<AppRouter>();
 
   final bitcoinAddressController = TextEditingController();

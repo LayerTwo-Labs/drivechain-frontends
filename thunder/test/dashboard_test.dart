@@ -21,7 +21,7 @@ import 'package:thunder/providers/transactions_provider.dart';
 import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
 
-final txProvider = TransactionsProvider();
+final txProvider = TransactionProvider();
 
 void main() {
   // there's timers in sidechainrpc and mainchainrpc, that
@@ -40,7 +40,7 @@ void main() {
     GetIt.I.registerLazySingleton<MainchainRPC>(() => MockMainchainRPC());
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
-    GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
+    GetIt.I.registerLazySingleton<TransactionProvider>(() => txProvider);
     GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
     final balanceProvider = BalanceProvider(connections: [sidechainRPC]);
     GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);

@@ -9,6 +9,7 @@ import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
+import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class MockMainchainRPC extends MainchainRPC {
@@ -443,6 +444,81 @@ class MockThunderRPC extends ThunderRPC {
   @override
   Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) {
     return Future.value('txid_sidechain_send_5678');
+  }
+
+  @override
+  Future<void> connectPeer(String peerAddress) async {
+    return;
+  }
+
+  @override
+  Future<String> createDeposit(String address, double amount, double fee) {
+    return Future.value('txid_create_deposit_1234');
+  }
+
+  @override
+  Future<String> generateMnemonic() {
+    return Future.value('mnemonic_generate_1234');
+  }
+
+  @override
+  Future<String> getBMMInclusions(String blockHash) {
+    return Future.value('txid_get_bmm_inclusions_1234');
+  }
+
+  @override
+  Future<String?> getBestMainchainBlockHash() {
+    return Future.value('blockhash_get_best_mainchain_1234');
+  }
+
+  @override
+  Future<String?> getBestSidechainBlockHash() {
+    return Future.value('blockhash_get_best_sidechain_1234');
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getBlock(String hash) {
+    return Future.value({'block': 'block_get_1234'});
+  }
+
+  @override
+  Future<int?> getLatestFailedWithdrawalBundleHeight() {
+    return Future.value(1234);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() {
+    return Future.value({'pending_withdrawal_bundle': 'pending_withdrawal_bundle_1234'});
+  }
+
+  @override
+  Future<double> getSidechainWealth() {
+    return Future.value(1234.56);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> listPeers() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<List<ThunderUTXO>> listUTXOs() {
+    return Future.value([]);
+  }
+
+  @override
+  Future<void> mine([int? coinbaseValueSats]) async {
+    return;
+  }
+
+  @override
+  Future<void> removeFromMempool(String txid) async {
+    return;
+  }
+
+  @override
+  Future<void> setSeedFromMnemonic(String mnemonic) async {
+    return;
   }
 }
 

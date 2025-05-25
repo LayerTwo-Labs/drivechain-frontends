@@ -238,8 +238,8 @@ Future<void> initDependencies(
   );
   unawaited(blockInfoProvider.fetch());
 
-  GetIt.I.registerLazySingleton<TransactionsProvider>(
-    () => TransactionsProvider(),
+  GetIt.I.registerLazySingleton<TransactionProvider>(
+    () => TransactionProvider(),
   );
 }
 
