@@ -222,9 +222,9 @@ jobs:
         continue-on-error: true
         run: |
           # Thunder
-          mv thunder-binaries-macOS-testchain/thunder-osx64.zip test-thunder-x86_64-apple-darwin.zip || true
-          mv thunder-binaries-Linux-testchain/thunder-x86_64-linux-gnu.zip test-thunder-x86_64-unknown-linux-gnu.zip || true
-          mv thunder-binaries-Windows-testchain/thunder-win64.zip test-thunder-x86_64-pc-windows-msvc.zip || true
+          mv thunder-binaries-macOS/thunder-osx64.zip test-thunder-x86_64-apple-darwin.zip || true
+          mv thunder-binaries-Linux/thunder-x86_64-linux-gnu.zip test-thunder-x86_64-unknown-linux-gnu.zip || true
+          mv thunder-binaries-Windows/thunder-win64.zip test-thunder-x86_64-pc-windows-msvc.zip || true
 
           # ZSide
           mv zside-binaries-macOS-zcash/zside-osx64.zip L2-S5-ZSide-latest-x86_64-apple-darwin.zip || true
