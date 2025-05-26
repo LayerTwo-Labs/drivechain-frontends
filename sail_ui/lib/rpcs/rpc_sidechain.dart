@@ -8,7 +8,6 @@ abstract class SidechainRPC extends RPCConnection {
     required super.conf,
     required this.chain,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   });
 

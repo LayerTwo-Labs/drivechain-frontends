@@ -937,13 +937,69 @@ extension BinaryPaths on Binary {
     return switch (this) {
       var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
       var b when b is ZCash => filePath([datadir(), 'regtest', 'debug.log']),
-      var b when b is Thunder => filePath([datadir(), 'logs', 'TODO.log']),
-      var b when b is Bitnames => filePath([datadir(), 'logs', 'TODO.log']),
+      var b when b is Thunder || b is Bitnames => _findLatestVersionedLog(),
+      var b when b is Bitnames => filePath([datadir(), 'logs', 'unknown.log']),
       var b when b is ParentChain => filePath([datadir(), 'debug.log']),
       var b when b is BitWindow => filePath([datadir(), 'server.log']),
       var b when b is Enforcer => filePath([datadir(), 'bip300301_enforcer.log']),
       _ => throw 'unsupported binary type: $runtimeType',
     };
+  }
+
+  String _findLatestVersionedLog() {
+    final logsDir = Directory(filePath([datadir(), 'logs']));
+    if (!logsDir.existsSync()) {
+      return filePath([datadir(), 'logs', 'unknown.log']);
+    }
+
+    // Get all version directories
+    final versionDirs = logsDir
+        .listSync()
+        .whereType<Directory>()
+        .where((dir) => dir.path.split(Platform.pathSeparator).last.startsWith('v'))
+        .toList();
+
+    if (versionDirs.isEmpty) {
+      return filePath([datadir(), 'logs', 'unknown.log']); // Fallback if no version directories found
+    }
+
+    // Sort version directories by version number
+    versionDirs.sort((a, b) {
+      final aVersion = a.path.split(Platform.pathSeparator).last.substring(1); // Remove 'v' prefix
+      final bVersion = b.path.split(Platform.pathSeparator).last.substring(1);
+
+      // Split version numbers into components and compare each
+      final aParts = aVersion.split('.').map(int.parse).toList();
+      final bParts = bVersion.split('.').map(int.parse).toList();
+
+      // Compare each part of the version number
+      for (var i = 0; i < aParts.length && i < bParts.length; i++) {
+        if (aParts[i] != bParts[i]) {
+          return bParts[i].compareTo(aParts[i]); // Descending order
+        }
+      }
+
+      // If all parts match up to the shorter length, longer version is newer
+      return bParts.length.compareTo(aParts.length);
+    });
+
+    final latestVersionDir = versionDirs.first;
+
+    // Get all log files in the latest version directory
+    final logFiles = latestVersionDir.listSync().whereType<File>().where((file) => file.path.endsWith('.log')).toList();
+
+    if (logFiles.isEmpty) {
+      return filePath([datadir(), 'logs', 'unknown.log']); // Fallback if no log files found
+    }
+
+    // Sort log files by date in filename (YYYY-MM-DD.log format)
+    logFiles.sort((a, b) {
+      final aDate = a.path.split(Platform.pathSeparator).last.split('.')[0];
+      final bDate = b.path.split(Platform.pathSeparator).last.split('.')[0];
+      return bDate.compareTo(aDate); // Descending order
+    });
+
+    return logFiles.first.path;
   }
 
   String datadir() {

@@ -76,7 +76,6 @@ Future<void> registerTestDependencies() async {
       () => MockAPI(
         conf: NodeConnectionSettings.empty(),
         binary: MockBinary(),
-        logPath: '',
         restartOnFailure: true,
       ),
     );
@@ -87,7 +86,6 @@ Future<void> registerTestDependencies() async {
       MockAPI(
         conf: NodeConnectionSettings.empty(),
         binary: MockBinary(),
-        logPath: '',
         restartOnFailure: true,
       ),
     ],

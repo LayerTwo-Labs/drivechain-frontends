@@ -480,10 +480,10 @@ class BalanceDisplay extends StatelessWidget {
 }
 
 class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
-  final BalanceProvider _balanceProvider;
+  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   bool _showUnconfirmed = false;
 
-  BalanceDisplayViewModel() : _balanceProvider = GetIt.I.get<BalanceProvider>() {
+  BalanceDisplayViewModel() {
     initChangeTracker();
     _balanceProvider.addListener(_onChange);
   }

@@ -134,7 +134,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                   onSelected: () => GetIt.I.get<AppRouter>().push(
                         LogRoute(
                           title: '${thunderRPC.chain.name} Logs',
-                          logPath: thunderRPC.logPath,
+                          logPath: thunderRPC.binary.logPath(),
                         ),
                       ),
                 ),

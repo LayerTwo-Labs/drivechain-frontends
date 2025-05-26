@@ -18,7 +18,6 @@ abstract class ThunderRPC extends SidechainRPC {
   ThunderRPC({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
     required super.chain,
   });
@@ -87,7 +86,6 @@ class ThunderLive extends ThunderRPC {
   ThunderLive._create({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
     required super.chain,
   });
@@ -95,7 +93,6 @@ class ThunderLive extends ThunderRPC {
   // Async factory
   static Future<ThunderLive> create({
     required Binary binary,
-    required String logPath,
     required Sidechain chain,
   }) async {
     final conf = await readConf();
@@ -103,7 +100,6 @@ class ThunderLive extends ThunderRPC {
     final instance = ThunderLive._create(
       conf: conf,
       binary: binary,
-      logPath: logPath,
       restartOnFailure: false,
       chain: chain,
     );
