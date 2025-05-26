@@ -181,6 +181,8 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   String? get receiveAddress => _addressProvider.receiveAddress;
 
+  bool get allConnected => _rpc.connected;
+
   OverviewTabViewModel() {
     initChangeTracker();
     _initControllers();
@@ -188,6 +190,7 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     _transactionsProvider.addListener(_onChange);
     _balanceProvider.addListener(_onChange);
     _addressProvider.addListener(_onChange);
+    _rpc.addListener(_onChange);
   }
 
   void _onChange() {
@@ -195,6 +198,8 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('pendingBalance', pendingBalance);
     track('transactions', transactions);
     track('receiveAddress', receiveAddress);
+    track('allConnected', allConnected);
+    track('balanceInitialized', balanceInitialized);
     notifyIfChanged();
   }
 
