@@ -11,15 +11,15 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/providers/sidechain/address_provider.dart';
+import 'package:sail_ui/providers/sidechain/notification_provider.dart';
+import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:thunder/config/runtime_args.dart';
-import 'package:thunder/providers/address_provider.dart';
-import 'package:thunder/providers/notification_provider.dart';
-import 'package:thunder/providers/transactions_provider.dart';
 import 'package:thunder/routing/router.dart';
 import 'package:thunder/rpc/models/active_sidechains.dart';
 import 'package:thunder/storage/sail_settings/font_settings.dart';
@@ -249,6 +249,7 @@ Future<void> initDependencies(
     chain: Sidechain.fromBinary(binary),
   );
   GetIt.I.registerSingleton<ThunderRPC>(thunder);
+  GetIt.I.registerSingleton<SidechainRPC>(thunder);
 
   // After RPCs including sidechain rpcs have been registered, register the binary provider
   final binaryProvider = BinaryProvider(

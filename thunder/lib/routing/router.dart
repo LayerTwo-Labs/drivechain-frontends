@@ -4,8 +4,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:thunder/pages/tabs/console_page.dart';
 import 'package:thunder/pages/tabs/home_page.dart';
 import 'package:thunder/pages/tabs/settings_page.dart';
-import 'package:thunder/pages/tabs/sidechain_overview_page.dart';
-import 'package:thunder/pages/tabs/testchain/mainchain/deposit_withdraw_tab_route.dart';
 import 'package:thunder/pages/test_page.dart';
 
 part 'router.gr.dart';
@@ -35,7 +33,7 @@ class AppRouter extends RootStackRouter {
           initial: true,
           children: [
             AutoRoute(
-              page: DepositWithdrawTabRoute.page,
+              page: ParentChainRoute.page,
             ),
             AutoRoute(
               page: SidechainOverviewTabRoute.page,
