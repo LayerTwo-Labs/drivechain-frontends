@@ -107,7 +107,7 @@ class BottomNav extends StatelessWidget {
                 ),
                 Expanded(child: Container()),
                 InkWell(
-                  onTap: () async => displayConnectionStatusDialog(context),
+                  onTap: () async => displayConnectionStatusDialog(context, additionalConnection),
                   child: Tooltip(
                     message: 'Open daemon status dialog',
                     child: SailRow(
@@ -152,12 +152,11 @@ class BottomNav extends StatelessWidget {
 
   void displayConnectionStatusDialog(
     BuildContext context,
+    ConnectionMonitor additionalConnection,
   ) {
     widgetDialog(
       context: context,
       title: 'Daemon Status',
-      subtitle:
-          "You can use BitWindow without the enforcer, but it's not that interesting because the wallet does not work.",
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => BottomNavViewModel(
           mainchainInfo: mainchainInfo,

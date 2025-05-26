@@ -99,7 +99,7 @@ Future<T?> widgetDialog<T>({
         ),
         child: SailCard(
           title: title,
-          subtitle: subtitle ?? '',
+          subtitle: subtitle,
           withCloseButton: true,
           child: child,
         ),
