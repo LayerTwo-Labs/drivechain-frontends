@@ -8,6 +8,7 @@ on:
       - "sail_ui/**"
       - "bitwindow/**"
       - "thunder/**"
+      - "bitnames/**"
       - "zside/**"
       - "launcher/**"
       - ".github/workflows/**"
@@ -18,6 +19,7 @@ on:
       - "sail_ui/**"
       - "bitwindow/**"
       - "thunder/**"
+      - "bitnames/**"
       - "zside/**"
       - "launcher/**"
       - ".github/workflows/**"
@@ -27,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       thunder: ${{ steps.filter.outputs.thunder }}
+      bitnames: ${{ steps.filter.outputs.bitnames }}
       zside: ${{ steps.filter.outputs.zside }}
       bitwindow: ${{ steps.filter.outputs.bitwindow }}
       launcher: ${{ steps.filter.outputs.launcher }}
@@ -39,6 +42,10 @@ jobs:
           filters: |
             thunder:
               - 'thunder/**'
+              - 'sail_ui/**'
+              - '.github/workflows/**'
+            bitnames:
+              - 'bitnames/**'
               - 'sail_ui/**'
               - '.github/workflows/**'
             zside:
@@ -90,6 +97,7 @@ jobs:
           
           # Add configurations for each client that needs building
           add_client_configs "thunder" "${{ needs.check-changes.outputs.thunder }}"
+          add_client_configs "bitnames" "${{ needs.check-changes.outputs.bitnames }}"
           add_client_configs "zside" "${{ needs.check-changes.outputs.zside }}"
           add_client_configs "bitwindow" "${{ needs.check-changes.outputs.bitwindow }}"
           add_client_configs "launcher" "${{ needs.check-changes.outputs.launcher }}"
@@ -225,6 +233,11 @@ jobs:
           mv thunder-binaries-macOS/thunder-osx64.zip test-thunder-x86_64-apple-darwin.zip || true
           mv thunder-binaries-Linux/thunder-x86_64-linux-gnu.zip test-thunder-x86_64-unknown-linux-gnu.zip || true
           mv thunder-binaries-Windows/thunder-win64.zip test-thunder-x86_64-pc-windows-msvc.zip || true
+
+          # BitNames
+          mv bitnames-binaries-macOS/bitnames-osx64.zip test-bitnames-x86_64-apple-darwin.zip || true
+          mv bitnames-binaries-Linux/bitnames-x86_64-linux-gnu.zip test-bitnames-x86_64-unknown-linux-gnu.zip || true
+          mv bitnames-binaries-Windows/bitnames-win64.zip test-bitnames-x86_64-pc-windows-msvc.zip || true
 
           # ZSide
           mv zside-binaries-macOS-zcash/zside-osx64.zip L2-S5-ZSide-latest-x86_64-apple-darwin.zip || true
