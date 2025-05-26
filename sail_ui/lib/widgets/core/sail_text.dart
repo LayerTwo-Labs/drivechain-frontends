@@ -139,7 +139,7 @@ class SailText {
     Color? color,
     bool underline = false,
     bool monospace = false,
-    TextOverflow overflow = TextOverflow.ellipsis,
+    TextOverflow? overflow = TextOverflow.ellipsis,
   }) {
     return Builder(
       builder: (context) {
