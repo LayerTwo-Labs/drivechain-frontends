@@ -9,14 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/mocks/mocks.dart';
+import 'package:sail_ui/pages/sidechains/parent_chain_page.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/process_provider.dart';
+import 'package:sail_ui/providers/sidechain/address_provider.dart';
+import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_rpc.dart';
-import 'package:thunder/pages/tabs/testchain/mainchain/deposit_withdraw_tab_route.dart';
-import 'package:thunder/providers/address_provider.dart';
-import 'package:thunder/providers/transactions_provider.dart';
 
 import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
@@ -51,7 +51,7 @@ void main() {
   testWidgets('can render and show balance', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpSailPage(
-      const DepositWithdrawTabPage(),
+      const ParentChainPage(),
     );
     await tester.pumpAndSettle();
   });

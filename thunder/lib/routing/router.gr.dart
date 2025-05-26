@@ -26,22 +26,6 @@ class ConsoleTabRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [DepositWithdrawTabPage]
-class DepositWithdrawTabRoute extends PageRouteInfo<void> {
-  const DepositWithdrawTabRoute({List<PageRouteInfo>? children})
-      : super(DepositWithdrawTabRoute.name, initialChildren: children);
-
-  static const String name = 'DepositWithdrawTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const DepositWithdrawTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
   const HomeRoute({List<PageRouteInfo>? children}) : super(HomeRoute.name, initialChildren: children);
@@ -104,22 +88,6 @@ class SettingsTabRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const SettingsTabPage();
-    },
-  );
-}
-
-/// generated route for
-/// [SidechainOverviewTabPage]
-class SidechainOverviewTabRoute extends PageRouteInfo<void> {
-  const SidechainOverviewTabRoute({List<PageRouteInfo>? children})
-      : super(SidechainOverviewTabRoute.name, initialChildren: children);
-
-  static const String name = 'SidechainOverviewTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const SidechainOverviewTabPage();
     },
   );
 }
