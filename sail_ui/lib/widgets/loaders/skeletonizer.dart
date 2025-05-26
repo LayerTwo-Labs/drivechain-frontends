@@ -20,7 +20,7 @@ class SailSkeletonizer extends StatelessWidget {
     this.enableSwitchAnimation = true,
     this.ignoreContainers = false,
     this.justifyMultiLineText = true,
-    this.duration = const Duration(seconds: 2),
+    this.duration = const Duration(seconds: 3),
   });
 
   @override
