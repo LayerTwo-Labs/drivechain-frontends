@@ -35,7 +35,7 @@ dependencies:
   fixnum: ^1.1.1
   get_it: ^7.7.0
   meta: ^1.16.0
-  protobuf: ^4.0.0
+  protobuf: ^4.1.0
   dotted_border: ^3.0.1
   window_manager: ^0.4.3
   synchronized: ^3.3.1
