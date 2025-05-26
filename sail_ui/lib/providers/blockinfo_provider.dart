@@ -25,6 +25,15 @@ class SyncInfo {
     required this.headers,
     required this.lastBlockAt,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SyncInfo && other.blocks == blocks && other.headers == headers && other.lastBlockAt == lastBlockAt;
+  }
+
+  @override
+  int get hashCode => Object.hash(blocks, headers, lastBlockAt);
 }
 
 /// Represents a binary that has some sort of sync-status
@@ -154,6 +163,11 @@ class BlockInfoProvider extends ChangeNotifier {
         bool wasSynced = additionalSyncInfo?.isSynced ?? false;
         await _fetchAdditional();
         bool isSynced = additionalSyncInfo?.isSynced ?? false;
+        if (additionalConnection!.name == Thunder().name) {
+          // We can't check whether we're in IBD for thunder, so
+          // we stay aggressive forever...
+          isSynced = false;
+        }
 
         if (wasSynced != isSynced) {
           // changed sync status, so we must apply the correct timer
@@ -270,9 +284,7 @@ class BlockInfoProvider extends ChangeNotifier {
 
   bool _syncInfoHasChanged(SyncInfo? oldInfo, SyncInfo? newInfo) {
     if (oldInfo == null || newInfo == null) return true;
-    return oldInfo.blocks != newInfo.blocks ||
-        oldInfo.headers != newInfo.headers ||
-        oldInfo.lastBlockAt != newInfo.lastBlockAt;
+    return oldInfo != newInfo;
   }
 
   // For manual fetching of all connections
