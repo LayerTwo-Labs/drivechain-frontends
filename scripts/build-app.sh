@@ -23,7 +23,7 @@ case "$os" in
 esac
 
 if test -z "$os" -o -z "$client"; then
-    echo "Usage: $0 <linux/macos/windows> <thunder/launcher/bitwindow> [code_sign_identity] [notarization_key_path] [notarization_key_id] [notarization_issuer_id]"
+    echo "Usage: $0 <linux/macos/windows> <thunder/bitnames/launcher/bitwindow> [code_sign_identity] [notarization_key_path] [notarization_key_id] [notarization_issuer_id]"
     exit 1
 fi
 
