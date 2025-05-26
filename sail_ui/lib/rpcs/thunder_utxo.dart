@@ -1,23 +1,23 @@
 import 'dart:convert';
 
 /// Represents a Thunder UTXO
-class ThunderUTXO {
+class SidechainUTXO {
   final String outpoint;
   final String address;
   final int valueSats;
 
-  ThunderUTXO({
+  SidechainUTXO({
     required this.outpoint,
     required this.address,
     required this.valueSats,
   });
 
-  factory ThunderUTXO.fromJson(Map<String, dynamic> json) {
+  factory SidechainUTXO.fromJson(Map<String, dynamic> json) {
     final outpoint = json['outpoint']['Deposit'] as String;
     final address = json['output']['address'] as String;
     final valueSats = json['output']['content']['Value'] as int;
 
-    return ThunderUTXO(
+    return SidechainUTXO(
       outpoint: outpoint,
       address: address,
       valueSats: valueSats,
@@ -32,11 +32,11 @@ class ThunderUTXO {
         },
       };
 
-  static List<ThunderUTXO> fromJsonList(List<dynamic> json) {
-    return json.map((item) => ThunderUTXO.fromJson(item as Map<String, dynamic>)).toList();
+  static List<SidechainUTXO> fromJsonList(List<dynamic> json) {
+    return json.map((item) => SidechainUTXO.fromJson(item as Map<String, dynamic>)).toList();
   }
 
-  static String toJsonList(List<ThunderUTXO> utxos) {
+  static String toJsonList(List<SidechainUTXO> utxos) {
     return jsonEncode(utxos.map((utxo) => utxo.toJson()).toList());
   }
 }

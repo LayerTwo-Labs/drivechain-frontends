@@ -503,7 +503,7 @@ class MockThunderRPC extends ThunderRPC {
   }
 
   @override
-  Future<List<ThunderUTXO>> listUTXOs() {
+  Future<List<SidechainUTXO>> listUTXOs() {
     return Future.value([]);
   }
 
@@ -660,11 +660,6 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<List<BitnamesUTXO>> listUtxos() {
-    return Future.value([]);
-  }
-
-  @override
   Future<String> registerBitName(String plainName, BitNameData? data) {
     return Future.value('mock_txid_register_bitname');
   }
@@ -672,6 +667,56 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<String> reserveBitName(String name) {
     return Future.value('mock_txid_reserve_bitname');
+  }
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async {
+    return [];
+  }
+
+  @override
+  Future<String> generateMnemonic() {
+    return Future.value('mock_mnemonic_generate_1234');
+  }
+
+  @override
+  Future<String> getBMMInclusions(String blockHash) {
+    return Future.value('mock_bmm_inclusions_1234');
+  }
+
+  @override
+  Future<String?> getBestMainchainBlockHash() {
+    return Future.value('mock_best_mainchain_block_hash_1234');
+  }
+
+  @override
+  Future<String?> getBestSidechainBlockHash() {
+    return Future.value('mock_best_sidechain_block_hash_1234');
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getBlock(String hash) {
+    return Future.value({'block': 'mock_block_1234'});
+  }
+
+  @override
+  Future<int?> getLatestFailedWithdrawalBundleHeight() {
+    return Future.value(1234);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() {
+    return Future.value({'pending_withdrawal_bundle': 'mock_pending_withdrawal_bundle_1234'});
+  }
+
+  @override
+  Future<int> getSidechainWealth() {
+    return Future.value(1234);
+  }
+
+  @override
+  Future<void> setSeedFromMnemonic(String mnemonic) {
+    return Future.value();
   }
 }
 

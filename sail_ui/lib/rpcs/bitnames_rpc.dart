@@ -6,6 +6,7 @@ import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
+import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the bitnames server.
@@ -32,14 +33,38 @@ abstract class BitnamesRPC extends SidechainRPC {
   /// List peers
   Future<List<BitnamesPeerInfo>> listPeers();
 
-  /// List all UTXOs
-  Future<List<BitnamesUTXO>> listUtxos();
-
   /// Register a BitName
   Future<String> registerBitName(String plainName, BitNameData? data);
 
   /// Reserve a BitName
   Future<String> reserveBitName(String name);
+
+  /// Get block data
+  Future<Map<String, dynamic>?> getBlock(String hash);
+
+  /// Get mainchain blocks that commit to a specified block hash
+  Future<String> getBMMInclusions(String blockHash);
+
+  /// Get the best known mainchain block hash
+  Future<String?> getBestMainchainBlockHash();
+
+  /// Get the best sidechain block hash known by Bitnames
+  Future<String?> getBestSidechainBlockHash();
+
+  /// Get the height of the latest failed withdrawal bundle
+  Future<int?> getLatestFailedWithdrawalBundleHeight();
+
+  /// Get pending withdrawal bundle
+  Future<Map<String, dynamic>?> getPendingWithdrawalBundle();
+
+  /// Generate a mnemonic seed phrase
+  Future<String> generateMnemonic();
+
+  /// Set the wallet seed from a mnemonic seed phrase
+  Future<void> setSeedFromMnemonic(String mnemonic);
+
+  /// Get total sidechain wealth in sats
+  Future<int> getSidechainWealth();
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -154,14 +179,14 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> getDepositAddress() async {
-    final response = await _client().call('get-new-address') as String;
+    final response = await _client().call('get_new_address') as String;
     return formatDepositAddress(response, chain.slot);
   }
 
   @override
   Future<String> getSideAddress() async {
-    final response = await _client().call('get-new-address');
-    return response as String;
+    final response = await _client().call('get_new_address') as String;
+    return response;
   }
 
   @override
@@ -183,7 +208,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<double> sideEstimateFee() async {
-    // Bitnames has fixed fees for now, matching Thunder's implementation
+    // Bitnames has fixed fees for now
     return 0.00001;
   }
 
@@ -228,12 +253,6 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<List<BitnamesUTXO>> listUtxos() async {
-    final response = await _client().call('list-utxos') as List<dynamic>;
-    return response.map((e) => BitnamesUTXO.fromJson(e as Map<String, dynamic>)).toList();
-  }
-
-  @override
   Future<String> registerBitName(String plainName, BitNameData? data) async {
     final response = await _client().call('register_bitname', {
       'plain_name': plainName,
@@ -252,13 +271,13 @@ class BitnamesLive extends BitnamesRPC {
 
   /// Get a new encryption key
   Future<String> getNewEncryptionKey() async {
-    final response = await _client().call('get-new-encryption-key');
+    final response = await _client().call('get_new_encryption_key');
     return response as String;
   }
 
   /// Get a new verifying/signing key
   Future<String> getNewVerifyingKey() async {
-    final response = await _client().call('get-new-verifying-key');
+    final response = await _client().call('get_new_verifying_key');
     return response as String;
   }
 
@@ -318,10 +337,63 @@ class BitnamesLive extends BitnamesRPC {
     return response as Map<String, dynamic>;
   }
 
-  /// List owned UTXOs
-  Future<List<BitnamesUTXO>> myUtxos() async {
-    final response = await _client().call('my_utxos') as List<dynamic>;
-    return response.map((e) => BitnamesUTXO.fromJson(e as Map<String, dynamic>)).toList();
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async {
+    final response = await _client().call('get_wallet_utxos') as List<dynamic>;
+    return response.map((e) => SidechainUTXO.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getBlock(String hash) async {
+    final response = await _client().call('get_block', hash);
+    return response as Map<String, dynamic>?;
+  }
+
+  @override
+  Future<String> getBMMInclusions(String blockHash) async {
+    final response = await _client().call('get_bmm_inclusions', blockHash);
+    return response as String;
+  }
+
+  @override
+  Future<String?> getBestMainchainBlockHash() async {
+    final response = await _client().call('get_best_mainchain_block_hash');
+    return response as String?;
+  }
+
+  @override
+  Future<String?> getBestSidechainBlockHash() async {
+    final response = await _client().call('get_best_sidechain_block_hash');
+    return response as String?;
+  }
+
+  @override
+  Future<int?> getLatestFailedWithdrawalBundleHeight() async {
+    final response = await _client().call('latest_failed_withdrawal_bundle_height');
+    return response as int?;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getPendingWithdrawalBundle() async {
+    final response = await _client().call('pending_withdrawal_bundle');
+    return response as Map<String, dynamic>?;
+  }
+
+  @override
+  Future<String> generateMnemonic() async {
+    final response = await _client().call('generate_mnemonic');
+    return response as String;
+  }
+
+  @override
+  Future<void> setSeedFromMnemonic(String mnemonic) async {
+    await _client().call('set_seed_from_mnemonic', mnemonic);
+  }
+
+  @override
+  Future<int> getSidechainWealth() async {
+    final response = await _client().call('sidechain_wealth_sats');
+    return response as int;
   }
 }
 
@@ -429,20 +501,5 @@ class BitnamesPeerInfo {
   factory BitnamesPeerInfo.fromJson(Map<String, dynamic> json) => BitnamesPeerInfo(
         address: json['address'] as String,
         status: json['status'] as String,
-      );
-}
-
-class BitnamesUTXO {
-  final String outpoint;
-  final Map<String, dynamic> output;
-
-  BitnamesUTXO({
-    required this.outpoint,
-    required this.output,
-  });
-
-  factory BitnamesUTXO.fromJson(Map<String, dynamic> json) => BitnamesUTXO(
-        outpoint: json['outpoint'] as String,
-        output: json['output'] as Map<String, dynamic>,
       );
 }

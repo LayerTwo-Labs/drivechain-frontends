@@ -163,7 +163,7 @@ class BlockInfoProvider extends ChangeNotifier {
         bool wasSynced = additionalSyncInfo?.isSynced ?? false;
         await _fetchAdditional();
         bool isSynced = additionalSyncInfo?.isSynced ?? false;
-        if (additionalConnection!.name == Thunder().name) {
+        if (additionalConnection!.name == Thunder().name || additionalConnection!.name == Bitnames().name) {
           // We can't check whether we're in IBD for thunder, so
           // we stay aggressive forever...
           isSynced = false;

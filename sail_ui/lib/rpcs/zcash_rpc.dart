@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
+import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 const zcashFee = 0.0001;
@@ -377,6 +378,11 @@ class ZcashRPCLive extends ZCashRPC {
   @override
   Future<int> account() {
     return Future.value(0);
+  }
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async {
+    return [];
   }
 }
 

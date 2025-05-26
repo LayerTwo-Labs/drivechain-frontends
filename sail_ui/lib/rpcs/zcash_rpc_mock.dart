@@ -5,6 +5,7 @@ import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/rpcs/zcash_rpc.dart';
 import 'package:sail_ui/settings/secure_store.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
@@ -751,5 +752,10 @@ class MockZCashRPCLive extends ZCashRPC {
     }
 
     await _updateUTXOSet(utxoSet);
+  }
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async {
+    return [];
   }
 }
