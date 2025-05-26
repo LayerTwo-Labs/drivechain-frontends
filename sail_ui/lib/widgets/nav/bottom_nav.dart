@@ -25,128 +25,90 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => BottomNavViewModel(
-        additionalConnection: additionalConnection,
-        mainchainInfo: mainchainInfo,
-        navigateToLogs: navigateToLogs,
-      ),
-      fireOnViewModelReadyOnce: true,
-      builder: ((context, model, child) {
-        return SizedBox(
-          height: 36,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: SailTheme.of(context).colors.border,
-                ),
-              ),
-            ),
-            child: SailRow(
-              mainAxisAlignment: MainAxisAlignment.end,
-              spacing: SailStyleValues.padding04,
-              leadingSpacing: true,
-              trailingSpacing: true,
-              children: [
-                const SailSpacing(SailStyleValues.padding04),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      model.setShowUnconfirmed(!model.showUnconfirmed);
-                    },
-                    child: SailRow(
-                      children: [
-                        Tooltip(
-                          message: 'Confirmed balance',
-                          child: SailRow(
-                            spacing: SailStyleValues.padding08,
-                            children: [
-                              SailSVG.icon(
-                                SailSVGAsset.iconCoins,
-                                color: SailColorScheme.green,
-                                width: SailStyleValues.iconSizeSecondary,
-                                height: SailStyleValues.iconSizeSecondary,
-                              ),
-                              SailSkeletonizer(
-                                description: 'Waiting for wallet to sync..',
-                                enabled: model.balanceSyncing,
-                                child: SailText.secondary12(
-                                  formatBitcoin(model.balance, symbol: 'BTC'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (model.showUnconfirmed || model.pendingBalance > 0) const DividerDot(),
-                        if (model.showUnconfirmed || model.pendingBalance > 0)
-                          AnimatedOpacity(
-                            duration: const Duration(milliseconds: 200),
-                            opacity: model.showUnconfirmed ? 1.0 : 0.0,
-                            child: Tooltip(
-                              message: 'Unconfirmed balance',
-                              child: SailRow(
-                                spacing: SailStyleValues.padding08,
-                                children: [
-                                  SailSVG.icon(
-                                    SailSVGAsset.iconCoins,
-                                    width: SailStyleValues.iconSizeSecondary,
-                                    height: SailStyleValues.iconSizeSecondary,
-                                  ),
-                                  SailText.secondary12(
-                                    formatBitcoin(model.pendingBalance, symbol: 'BTC'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(child: Container()),
-                InkWell(
-                  onTap: () async => displayConnectionStatusDialog(context, additionalConnection),
-                  child: Tooltip(
-                    message: 'Open daemon status dialog',
-                    child: SailRow(
-                      spacing: SailStyleValues.padding08,
-                      children: [
-                        DecoratedBox(
-                          decoration: model.connectionColor == SailColorScheme.red
-                              ? BoxDecoration(
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: SailColorScheme.red.withValues(alpha: 0.5),
-                                      blurRadius: 8,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                )
-                              : const BoxDecoration(),
-                          child: SailSVG.fromAsset(
-                            SailSVGAsset.iconConnectionStatus,
-                            color: model.connectionColor,
-                          ),
-                        ),
-                        if (model.connectionStatus == 'All binaries connected')
-                          SailText.secondary12(model.connectionStatus)
-                        else
-                          SailText.primary12(model.connectionStatus),
-                      ],
-                    ),
-                  ),
-                ),
-                ChainLoaders(),
-                const DividerDot(),
-                ...endWidgets,
-                const SailSpacing(SailStyleValues.padding08),
-              ],
+    return SizedBox(
+      height: 36,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: SailTheme.of(context).colors.border,
             ),
           ),
-        );
-      }),
+        ),
+        child: SailRow(
+          mainAxisAlignment: MainAxisAlignment.end,
+          spacing: SailStyleValues.padding04,
+          leadingSpacing: true,
+          trailingSpacing: true,
+          children: [
+            const SailSpacing(SailStyleValues.padding04),
+            ViewModelBuilder.reactive(
+              viewModelBuilder: () => BalanceDisplayViewModel(),
+              builder: (context, model, child) {
+                return BalanceDisplay(
+                  balance: model.balance,
+                  pendingBalance: model.pendingBalance,
+                  balanceSyncing: model.balanceSyncing,
+                  showUnconfirmed: model.showUnconfirmed,
+                  onToggleUnconfirmed: model.toggleUnconfirmed,
+                );
+              },
+            ),
+            Expanded(child: Container()),
+            ViewModelBuilder.reactive(
+              viewModelBuilder: () => BottomNavViewModel(
+                additionalConnection: additionalConnection,
+                mainchainInfo: mainchainInfo,
+                navigateToLogs: navigateToLogs,
+              ),
+              fireOnViewModelReadyOnce: true,
+              builder: ((context, model, child) {
+                return SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    InkWell(
+                      onTap: () async => displayConnectionStatusDialog(context, additionalConnection),
+                      child: Tooltip(
+                        message: 'Open daemon status dialog',
+                        child: SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            DecoratedBox(
+                              decoration: model.connectionColor == SailColorScheme.red
+                                  ? BoxDecoration(
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: SailColorScheme.red.withValues(alpha: 0.5),
+                                          blurRadius: 8,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
+                                    )
+                                  : const BoxDecoration(),
+                              child: SailSVG.fromAsset(
+                                SailSVGAsset.iconConnectionStatus,
+                                color: model.connectionColor,
+                              ),
+                            ),
+                            if (model.connectionStatus == 'All binaries connected')
+                              SailText.secondary12(model.connectionStatus)
+                            else
+                              SailText.primary12(model.connectionStatus),
+                          ],
+                        ),
+                      ),
+                    ),
+                    ChainLoaders(),
+                    const DividerDot(),
+                    ...endWidgets,
+                    const SailSpacing(SailStyleValues.padding08),
+                  ],
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -270,12 +232,10 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   // Required connections
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
-  BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   BlockInfoProvider get blockInfoProvider => GetIt.I.get<BlockInfoProvider>();
 
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
-  bool showUnconfirmed = false;
 
   BottomNavViewModel({
     required this.additionalConnection,
@@ -292,18 +252,10 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   void _onChange() {
     track('allConnected', allConnected);
-    track('balance', balance);
-    track('pendingBalance', pendingBalance);
     track('connectionColor', connectionColor);
     track('connectionStatus', connectionStatus);
-    track('balanceSyncing', balanceSyncing);
-    track('showUnconfirmed', showUnconfirmed);
     notifyIfChanged();
   }
-
-  // Balance getters
-  double get balance => _balanceProvider.balance;
-  double get pendingBalance => _balanceProvider.pendingBalance;
 
   // Connection status
   bool get allConnected => mainchain.connected && enforcer.connected && additionalConnection.connected;
@@ -320,14 +272,6 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailColorScheme.red;
     }
     return SailColorScheme.orange;
-  }
-
-  bool get balanceSyncing {
-    if (_balanceProvider.initialized) {
-      return false;
-    }
-
-    return true;
   }
 
   String get connectionStatus {
@@ -360,11 +304,6 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     return 'All binaries connected';
-  }
-
-  void setShowUnconfirmed(bool value) {
-    showUnconfirmed = value;
-    notifyListeners();
   }
 
   @override
@@ -463,5 +402,113 @@ class ChainLoader extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class BalanceDisplay extends StatelessWidget {
+  final double balance;
+  final double pendingBalance;
+  final bool balanceSyncing;
+  final bool showUnconfirmed;
+  final VoidCallback onToggleUnconfirmed;
+
+  const BalanceDisplay({
+    super.key,
+    required this.balance,
+    required this.pendingBalance,
+    required this.balanceSyncing,
+    required this.showUnconfirmed,
+    required this.onToggleUnconfirmed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onToggleUnconfirmed,
+        child: SailRow(
+          children: [
+            Tooltip(
+              message: 'Confirmed balance',
+              child: SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
+                  SailSVG.icon(
+                    SailSVGAsset.iconCoins,
+                    color: SailColorScheme.green,
+                    width: SailStyleValues.iconSizeSecondary,
+                    height: SailStyleValues.iconSizeSecondary,
+                  ),
+                  SailSkeletonizer(
+                    description: 'Waiting for wallet to sync..',
+                    enabled: balanceSyncing,
+                    child: SailText.secondary12(
+                      formatBitcoin(balance, symbol: 'BTC'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (showUnconfirmed || pendingBalance > 0) const DividerDot(),
+            if (showUnconfirmed || pendingBalance > 0)
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: showUnconfirmed ? 1.0 : 0.0,
+                child: Tooltip(
+                  message: 'Unconfirmed balance',
+                  child: SailRow(
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      SailSVG.icon(
+                        SailSVGAsset.iconCoins,
+                        width: SailStyleValues.iconSizeSecondary,
+                        height: SailStyleValues.iconSizeSecondary,
+                      ),
+                      SailText.secondary12(
+                        formatBitcoin(pendingBalance, symbol: 'BTC'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
+  final BalanceProvider _balanceProvider;
+  bool _showUnconfirmed = false;
+
+  BalanceDisplayViewModel() : _balanceProvider = GetIt.I.get<BalanceProvider>() {
+    initChangeTracker();
+    _balanceProvider.addListener(_onChange);
+  }
+
+  void _onChange() {
+    track('balance', balance);
+    track('pendingBalance', pendingBalance);
+    track('balanceSyncing', balanceSyncing);
+    track('showUnconfirmed', showUnconfirmed);
+    notifyIfChanged();
+  }
+
+  double get balance => _balanceProvider.balance;
+  double get pendingBalance => _balanceProvider.pendingBalance;
+  bool get balanceSyncing => !_balanceProvider.initialized;
+  bool get showUnconfirmed => _showUnconfirmed;
+
+  void toggleUnconfirmed() {
+    _showUnconfirmed = !_showUnconfirmed;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _balanceProvider.removeListener(_onChange);
+    super.dispose();
   }
 }
