@@ -56,7 +56,12 @@ class BalanceProvider extends ChangeNotifier {
           continue;
         }
         final (confirmed, pending) = await rpc.balance();
-        initialized = true;
+        if (!initialized) {
+          // wen't from not initialized to initialized, make sure to notify
+          changed = true;
+          initialized = true;
+        }
+
         if (_balances[rpc] != (confirmed, pending)) {
           _balances[rpc] = (confirmed, pending);
           changed = true;

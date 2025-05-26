@@ -74,7 +74,6 @@ abstract class ZCashRPC extends SidechainRPC {
   ZCashRPC({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   }) : super(chain: ZCash());
 
@@ -143,7 +142,6 @@ class ZcashRPCLive extends ZCashRPC {
   ZcashRPCLive({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   });
 

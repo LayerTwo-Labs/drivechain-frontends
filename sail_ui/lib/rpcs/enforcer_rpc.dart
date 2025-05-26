@@ -18,7 +18,6 @@ abstract class EnforcerRPC extends RPCConnection {
   EnforcerRPC({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   });
 
@@ -37,7 +36,6 @@ class EnforcerLive extends EnforcerRPC {
   EnforcerLive._create({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
     required this.launcherAppDir,
   });
@@ -59,13 +57,11 @@ class EnforcerLive extends EnforcerRPC {
       httpClient: httpClient,
       statusParser: const StatusParser(),
     );
-    final logPath = binary.logPath();
 
     final liveInstance = EnforcerLive._create(
       launcherAppDir: launcherAppDir,
       conf: conf,
       binary: binary,
-      logPath: logPath,
       restartOnFailure: true,
     );
     // must test connection before moving on, in case it is already running!

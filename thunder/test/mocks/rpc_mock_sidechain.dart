@@ -8,7 +8,6 @@ class MockSidechainRPC extends SidechainRPC {
           conf: NodeConnectionSettings('mock town', 'mock mock', 1337, '', '', true),
           chain: TestSidechain(),
           binary: MockBinary(),
-          logPath: './mocked.log',
           restartOnFailure: false,
         );
 

@@ -246,7 +246,6 @@ Future<void> initDependencies(
   final binary = binaries.firstWhere((b) => b is Thunder);
   final thunder = await ThunderLive.create(
     binary: binary,
-    logPath: path.join(binary.datadir(), 'thunder.log'),
     chain: Sidechain.fromBinary(binary),
   );
   GetIt.I.registerSingleton<ThunderRPC>(thunder);

@@ -10,7 +10,6 @@ import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/routing/router.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
@@ -125,7 +124,6 @@ Future<void> initDependencies(Logger log) async {
         case Thunder():
           final thunder = await ThunderLive.create(
             binary: binary,
-            logPath: path.join(binary.datadir(), 'thunder.log'),
             chain: Sidechain.fromBinary(binary),
           );
           GetIt.I.registerSingleton<ThunderRPC>(thunder);
@@ -133,7 +131,6 @@ Future<void> initDependencies(Logger log) async {
         case Bitnames():
           final bitnames = await BitnamesLive.create(
             binary: binary,
-            logPath: path.join(binary.datadir(), 'bitnames.log'),
             chain: Sidechain.fromBinary(binary),
           );
           GetIt.I.registerSingleton<BitnamesRPC>(bitnames);

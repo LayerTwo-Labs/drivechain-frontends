@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
@@ -13,7 +12,6 @@ abstract class MainchainRPC extends RPCConnection {
   MainchainRPC({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   });
 
@@ -56,19 +54,16 @@ class MainchainRPCLive extends MainchainRPC {
   MainchainRPCLive._create({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   });
   static Future<MainchainRPCLive> create(
     Binary binary,
   ) async {
-    final mainchainLogDir = [ParentChain().datadir(), 'signet', 'debug.log'].join(Platform.pathSeparator);
     final conf = await readConf();
 
     final container = MainchainRPCLive._create(
       conf: conf,
       binary: binary,
-      logPath: mainchainLogDir,
       restartOnFailure: false,
     );
     await container.init();

@@ -13,7 +13,6 @@ abstract class BitnamesRPC extends SidechainRPC {
   BitnamesRPC({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
     required super.chain,
   });
@@ -61,7 +60,6 @@ class BitnamesLive extends BitnamesRPC {
   BitnamesLive._create({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
     required super.chain,
   });
@@ -69,7 +67,6 @@ class BitnamesLive extends BitnamesRPC {
   // Async factory
   static Future<BitnamesLive> create({
     required Binary binary,
-    required String logPath,
     required Sidechain chain,
   }) async {
     final conf = await readConf();
@@ -77,7 +74,6 @@ class BitnamesLive extends BitnamesRPC {
     final instance = BitnamesLive._create(
       conf: conf,
       binary: binary,
-      logPath: logPath,
       restartOnFailure: true,
       chain: chain,
     );

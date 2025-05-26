@@ -17,7 +17,6 @@ class MockMainchainRPC extends MainchainRPC {
       : super(
           conf: NodeConnectionSettings.empty(),
           binary: ParentChain(),
-          logPath: '',
           restartOnFailure: false,
         );
 
@@ -164,7 +163,6 @@ class MockEnforcerRPC extends EnforcerRPC {
       : super(
           conf: NodeConnectionSettings.empty(),
           binary: Enforcer(),
-          logPath: '',
           restartOnFailure: true,
         );
 
@@ -246,7 +244,11 @@ class MockEnforcerRPC extends EnforcerRPC {
 
 class MockBitwindowRPC extends BitwindowRPC {
   MockBitwindowRPC()
-      : super(conf: NodeConnectionSettings.empty(), binary: BitWindow(), logPath: '', restartOnFailure: true);
+      : super(
+          conf: NodeConnectionSettings.empty(),
+          binary: BitWindow(),
+          restartOnFailure: true,
+        );
 
   bool _connected = false;
   bool _initializing = false;
@@ -339,7 +341,6 @@ class MockThunderRPC extends ThunderRPC {
       : super(
           conf: NodeConnectionSettings.empty(),
           binary: Thunder(),
-          logPath: '',
           restartOnFailure: true,
           chain: Thunder(),
         );
@@ -527,7 +528,6 @@ class MockBitnamesRPC extends BitnamesRPC {
       : super(
           conf: NodeConnectionSettings.empty(),
           binary: Bitnames(),
-          logPath: '',
           restartOnFailure: true,
           chain: Bitnames(),
         );

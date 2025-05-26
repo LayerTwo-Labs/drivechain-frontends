@@ -31,7 +31,6 @@ abstract class BitwindowRPC extends RPCConnection {
   BitwindowRPC({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   });
 
@@ -64,7 +63,6 @@ class BitwindowRPCLive extends BitwindowRPC {
   BitwindowRPCLive._create({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   });
 
@@ -83,12 +81,10 @@ class BitwindowRPCLive extends BitwindowRPC {
     );
 
     final conf = await readConf();
-    final logPath = binary.logPath();
 
     final liveInstance = BitwindowRPCLive._create(
       conf: conf,
       binary: binary,
-      logPath: logPath,
       restartOnFailure: true,
     );
 
@@ -114,7 +110,6 @@ class BitwindowRPCLive extends BitwindowRPC {
     return [
       '--bitcoincore.rpcuser=${mainchainConf.username}',
       '--bitcoincore.rpcpassword=${mainchainConf.password}',
-      '--log.path=$logPath',
       if (binary.extraBootArgs.isNotEmpty) ...binary.extraBootArgs,
     ];
   }

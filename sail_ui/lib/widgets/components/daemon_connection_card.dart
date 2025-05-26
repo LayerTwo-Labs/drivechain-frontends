@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/loaders/progress.dart';
 import 'package:sail_ui/widgets/modals/daemon_settings_modal.dart';
@@ -49,7 +50,7 @@ class DaemonConnectionCard extends StatelessWidget {
               Expanded(child: Container()),
               SailButton(
                 variant: ButtonVariant.ghost,
-                onPressed: () async => navigateToLogs!(connection.binary.binary, connection.logPath),
+                onPressed: () async => navigateToLogs!(connection.binary.binary, connection.binary.logPath()),
                 label: 'View logs',
               ),
               SailButton(

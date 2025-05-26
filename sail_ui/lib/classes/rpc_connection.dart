@@ -21,14 +21,12 @@ abstract class RPCConnection extends ChangeNotifier {
 
   NodeConnectionSettings conf;
   final Binary binary;
-  final String logPath;
   // if set to true, the process will be restarted when exiting with a non-zero exit code
   final bool restartOnFailure;
 
   RPCConnection({
     required this.conf,
     required this.binary,
-    required this.logPath,
     required this.restartOnFailure,
   });
 

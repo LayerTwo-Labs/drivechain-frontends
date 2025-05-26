@@ -26,7 +26,6 @@ class MockAPI extends BitwindowRPC {
   MockAPI({
     required super.conf,
     required super.binary,
-    required super.logPath,
     required super.restartOnFailure,
   });
 

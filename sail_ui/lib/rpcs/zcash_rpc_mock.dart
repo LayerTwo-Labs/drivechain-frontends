@@ -91,7 +91,6 @@ class MockZCashRPCLive extends ZCashRPC {
       : super(
           conf: NodeConnectionSettings('./mocked.conf', 'mocktown', 1337, '', '', true),
           binary: ZCash(),
-          logPath: './mocked.log',
           restartOnFailure: false,
         ) {
     _initializeUTXOSet(); // Initialize UTXO set when mock is created
