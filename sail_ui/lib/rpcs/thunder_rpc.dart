@@ -153,16 +153,17 @@ class ThunderLive extends ThunderRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final blocks = await _client().call('getblockcount') as int;
+    final bestBlockHash = await getBestSidechainBlockHash();
     return BlockchainInfo(
       chain: 'signet',
       blocks: blocks,
       headers: blocks,
-      bestBlockHash: '',
+      bestBlockHash: bestBlockHash ?? '',
       difficulty: 0,
       time: 0,
       medianTime: 0,
       verificationProgress: 100.0,
-      initialBlockDownload: false,
+      initialBlockDownload: true,
       chainWork: '',
       sizeOnDisk: 0,
       pruned: false,

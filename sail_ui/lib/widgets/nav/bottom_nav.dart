@@ -288,7 +288,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     mainchain.addListener(_onChange);
     enforcer.addListener(_onChange);
     additionalConnection.rpc.addListener(_onChange);
-    blockInfoProvider.addListener(_onChange);
+    blockInfoProvider.addListener(notifyListeners);
   }
 
   void _onChange() {
@@ -299,9 +299,6 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('connectionStatus', connectionStatus);
     track('balanceSyncing', balanceSyncing);
     track('showUnconfirmed', showUnconfirmed);
-    track('mainchainSyncInfo', blockInfoProvider.mainchainSyncInfo);
-    track('enforcerSyncInfo', blockInfoProvider.enforcerSyncInfo);
-    track('additionalSyncInfo', blockInfoProvider.additionalSyncInfo);
     notifyIfChanged();
   }
 
