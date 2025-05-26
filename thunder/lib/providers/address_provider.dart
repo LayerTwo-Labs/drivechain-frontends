@@ -14,6 +14,7 @@ class AddressProvider extends ChangeNotifier {
   String? depositError;
 
   bool _isFetching = false;
+  Timer? _retryTimer;
 
   AddressProvider() {
     // fetching on each rpc update makes sure
@@ -22,6 +23,19 @@ class AddressProvider extends ChangeNotifier {
     rpc.addListener(fetch);
     // fetch immediately in case rpc is connected
     fetch();
+    _startRetryTimer();
+  }
+
+  void _startRetryTimer() {
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (receiveAddress != null && depositAddress != null) {
+        timer.cancel();
+        _retryTimer = null;
+        return;
+      }
+      fetch();
+    });
   }
 
   Future<void> fetch() async {
@@ -61,6 +75,7 @@ class AddressProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     rpc.removeListener(fetch);
     super.dispose();
   }
