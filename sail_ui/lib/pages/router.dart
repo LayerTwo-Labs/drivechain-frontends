@@ -8,8 +8,8 @@ class AppRouter extends RootStackRouter {
 
   @override
   List<AutoRoute> get routes => [
-        // HomeScreen is generated as HomeRoute because
-        // of the replaceInRouteName property
+        AutoRoute(page: SidechainOverviewTabRoute.page),
+        AutoRoute(page: ParentChainRoute.page),
         AutoRoute(page: LogRoute.page),
         AutoRoute(page: ShuttingDownRoute.page),
       ];

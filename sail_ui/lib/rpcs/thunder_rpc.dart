@@ -52,9 +52,6 @@ abstract class ThunderRPC extends SidechainRPC {
   /// Get BMM inclusions
   Future<String> getBMMInclusions(String blockHash);
 
-  /// List all UTXOs
-  Future<List<ThunderUTXO>> listUTXOs();
-
   /// Remove transaction from mempool
   Future<void> removeFromMempool(String txid);
 
@@ -298,9 +295,9 @@ class ThunderLive extends ThunderRPC {
 
   /// List all UTXOs
   @override
-  Future<List<ThunderUTXO>> listUTXOs() async {
+  Future<List<SidechainUTXO>> listUTXOs() async {
     final response = await _client().call('get_wallet_utxos') as List<dynamic>;
-    return ThunderUTXO.fromJsonList(response);
+    return SidechainUTXO.fromJsonList(response);
   }
 
   /// Remove transaction from mempool

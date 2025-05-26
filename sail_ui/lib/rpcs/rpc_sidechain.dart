@@ -1,5 +1,6 @@
 import 'package:sail_ui/classes/rpc_connection.dart';
 import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// RPC connection for all sidechain nodes
@@ -31,6 +32,7 @@ abstract class SidechainRPC extends RPCConnection {
   );
   Future<String> getSideAddress();
   Future<double> sideEstimateFee();
+  Future<List<SidechainUTXO>> listUTXOs();
 
   Sidechain chain;
 }
