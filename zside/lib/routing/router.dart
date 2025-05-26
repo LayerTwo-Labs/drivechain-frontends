@@ -4,7 +4,6 @@ import 'package:sail_ui/sail_ui.dart';
 import 'package:zside/pages/tabs/home_page.dart';
 import 'package:zside/pages/tabs/settings/settings_tab.dart';
 import 'package:zside/pages/tabs/sidechain_overview_page.dart';
-import 'package:zside/pages/tabs/testchain/mainchain/deposit_withdraw_tab_route.dart';
 import 'package:zside/pages/tabs/zcash/zcash_bill_page.dart';
 import 'package:zside/pages/tabs/zcash/zcash_melt_cast_page.dart';
 import 'package:zside/pages/tabs/zcash/zcash_operation_statuses.dart';
@@ -40,7 +39,7 @@ class AppRouter extends RootStackRouter {
           initial: true,
           children: [
             AutoRoute(
-              page: DepositWithdrawTabRoute.page,
+              page: ParentChainRoute.page,
             ),
             AutoRoute(
               page: SidechainOverviewTabRoute.page,
