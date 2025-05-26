@@ -31,6 +31,7 @@ class StaticField extends StatelessWidget {
                 value,
                 color: context.sailTheme.colors.text,
                 monospace: true,
+                overflow: TextOverflow.visible,
               ),
             ),
             if (copyable)

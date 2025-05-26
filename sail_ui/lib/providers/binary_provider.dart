@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -246,11 +245,13 @@ class BinaryProvider extends ChangeNotifier {
     Binary binary, {
     bool useStarter = false,
   }) async {
-    if (useStarter && (binary is Thunder || binary is Bitnames)) {
-      try {
-        await _setStarterSeed(binary);
-      } catch (e) {
-        log.e('Error setting starter seed: $e');
+    if (binary is Thunder || binary is Bitnames) {
+      binary = binary as Sidechain;
+      // We're booting some sort of sidechain. Check the launcher-directory for
+      // a starter seed
+      final mnemonicPath = binary.getMnemonicPath(appDir);
+      if (mnemonicPath != null) {
+        binary.addBootArg('--mnemonic-seed-phrase-path=$mnemonicPath');
       }
     }
 
@@ -338,85 +339,6 @@ class BinaryProvider extends ChangeNotifier {
   Future<void> _cleanUp(Directory datadir) async {
     final downloadsDir = Directory(path.join(datadir.path, 'assets', 'downloads'));
     await downloadsDir.delete(recursive: true);
-  }
-
-  Future<bool> _isSidechainInitialized(int slot) async {
-    try {
-      final masterStarterPath = path.join(appDir.path, 'wallet_starters', 'master_starter.json');
-      final masterStarterFile = File(masterStarterPath);
-
-      if (!masterStarterFile.existsSync()) {
-        return false;
-      }
-
-      final masterData = jsonDecode(await masterStarterFile.readAsString()) as Map<String, dynamic>;
-      return masterData['sidechain_${slot}_init'] ?? false;
-    } catch (e) {
-      log.e('Error checking sidechain initialization: $e');
-      return false;
-    }
-  }
-
-  Future<void> _setSidechainInitialized(int slot) async {
-    try {
-      final masterStarterPath = path.join(appDir.path, 'wallet_starters', 'master_starter.json');
-      final masterStarterFile = File(masterStarterPath);
-
-      if (!masterStarterFile.existsSync()) {
-        return;
-      }
-
-      final masterData = jsonDecode(await masterStarterFile.readAsString()) as Map<String, dynamic>;
-      masterData['sidechain_${slot}_init'] = true;
-      await masterStarterFile.writeAsString(jsonEncode(masterData));
-    } catch (e) {
-      log.e('Error setting sidechain initialization: $e');
-    }
-  }
-
-  Future<void> _setStarterSeed(Binary binary) async {
-    if (binary is! Sidechain) return;
-
-    try {
-      // Check if this sidechain has already been initialized
-      final isInitialized = await _isSidechainInitialized(binary.slot);
-      if (isInitialized) {
-        log.i('Sidechain ${binary.name} already initialized, skipping seed setup');
-        return;
-      }
-
-      // Skip if mnemonic path is already set
-      if (binary.extraBootArgs.contains('--mnemonic-seed-phrase-path')) {
-        log.i('Sidechain ${binary.name} already has mnemonic path set, skipping seed setup');
-        return;
-      }
-
-      final starterDir = path.join(appDir.path, 'wallet_starters');
-      final starterFile = File(
-        path.join(
-          starterDir,
-          'sidechain_${binary.slot}_starter.txt',
-        ),
-      );
-
-      if (!starterFile.existsSync()) {
-        log.i('No starter file found for ${binary.name}');
-        return;
-      }
-
-      log.i('Found starter file, setting mnemonic seed phrase path');
-      binary.addBootArg('--mnemonic-seed-phrase-path');
-      binary.addBootArg(starterFile.path);
-
-      log.i('Successfully set mnemonic seed phrase path to: ${starterFile.path}');
-
-      // Mark this sidechain as initialized
-      await _setSidechainInitialized(binary.slot);
-      notifyListeners();
-    } catch (e, st) {
-      log.e('Error setting starter seed', error: e, stackTrace: st);
-      rethrow;
-    }
   }
 
   Future<void> stop(Binary binary) async {
