@@ -13,7 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/sail_ui.dart' hide SidechainOverviewTabRoute;
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
 import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:sail_ui/widgets/platform_menu.dart';
@@ -149,7 +149,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
           homeIndex: Tabs.ParentChainPeg.index,
           routes: [
             // parent chain routes
-            DepositWithdrawTabRoute(),
+            ParentChainRoute(),
 
             // sidechain balance/transfer route
             SidechainOverviewTabRoute(),

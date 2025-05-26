@@ -1,3 +1,4 @@
+// dart format width=80
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 // **************************************************************************
@@ -10,32 +11,9 @@
 part of 'router.dart';
 
 /// generated route for
-/// [DepositWithdrawTabPage]
-class DepositWithdrawTabRoute extends PageRouteInfo<void> {
-  const DepositWithdrawTabRoute({List<PageRouteInfo>? children})
-      : super(
-          DepositWithdrawTabRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'DepositWithdrawTabRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const DepositWithdrawTabPage();
-    },
-  );
-}
-
-/// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children})
-      : super(
-          HomeRoute.name,
-          initialChildren: children,
-        );
+  const HomeRoute({List<PageRouteInfo>? children}) : super(HomeRoute.name, initialChildren: children);
 
   static const String name = 'HomeRoute';
 
@@ -56,10 +34,7 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
     List<PageRouteInfo>? children,
   }) : super(
           SailTestRoute.name,
-          args: SailTestRouteArgs(
-            key: key,
-            child: child,
-          ),
+          args: SailTestRouteArgs(key: key, child: child),
           initialChildren: children,
         );
 
@@ -69,19 +44,13 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
     name,
     builder: (data) {
       final args = data.argsAs<SailTestRouteArgs>();
-      return SailTestPage(
-        key: args.key,
-        child: args.child,
-      );
+      return SailTestPage(key: args.key, child: args.child);
     },
   );
 }
 
 class SailTestRouteArgs {
-  const SailTestRouteArgs({
-    this.key,
-    required this.child,
-  });
+  const SailTestRouteArgs({this.key, required this.child});
 
   final Key? key;
 
@@ -96,11 +65,7 @@ class SailTestRouteArgs {
 /// generated route for
 /// [SettingsTabPage]
 class SettingsTabRoute extends PageRouteInfo<void> {
-  const SettingsTabRoute({List<PageRouteInfo>? children})
-      : super(
-          SettingsTabRoute.name,
-          initialChildren: children,
-        );
+  const SettingsTabRoute({List<PageRouteInfo>? children}) : super(SettingsTabRoute.name, initialChildren: children);
 
   static const String name = 'SettingsTabRoute';
 
@@ -116,10 +81,7 @@ class SettingsTabRoute extends PageRouteInfo<void> {
 /// [SidechainOverviewTabPage]
 class SidechainOverviewTabRoute extends PageRouteInfo<void> {
   const SidechainOverviewTabRoute({List<PageRouteInfo>? children})
-      : super(
-          SidechainOverviewTabRoute.name,
-          initialChildren: children,
-        );
+      : super(SidechainOverviewTabRoute.name, initialChildren: children);
 
   static const String name = 'SidechainOverviewTabRoute';
 
@@ -134,11 +96,7 @@ class SidechainOverviewTabRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [ZCashBillPage]
 class ZCashBillRoute extends PageRouteInfo<void> {
-  const ZCashBillRoute({List<PageRouteInfo>? children})
-      : super(
-          ZCashBillRoute.name,
-          initialChildren: children,
-        );
+  const ZCashBillRoute({List<PageRouteInfo>? children}) : super(ZCashBillRoute.name, initialChildren: children);
 
   static const String name = 'ZCashBillRoute';
 
@@ -154,10 +112,7 @@ class ZCashBillRoute extends PageRouteInfo<void> {
 /// [ZCashMeltCastTabPage]
 class ZCashMeltCastTabRoute extends PageRouteInfo<void> {
   const ZCashMeltCastTabRoute({List<PageRouteInfo>? children})
-      : super(
-          ZCashMeltCastTabRoute.name,
-          initialChildren: children,
-        );
+      : super(ZCashMeltCastTabRoute.name, initialChildren: children);
 
   static const String name = 'ZCashMeltCastTabRoute';
 
@@ -173,10 +128,7 @@ class ZCashMeltCastTabRoute extends PageRouteInfo<void> {
 /// [ZCashOperationStatusesTabPage]
 class ZCashOperationStatusesTabRoute extends PageRouteInfo<void> {
   const ZCashOperationStatusesTabRoute({List<PageRouteInfo>? children})
-      : super(
-          ZCashOperationStatusesTabRoute.name,
-          initialChildren: children,
-        );
+      : super(ZCashOperationStatusesTabRoute.name, initialChildren: children);
 
   static const String name = 'ZCashOperationStatusesTabRoute';
 
@@ -191,11 +143,7 @@ class ZCashOperationStatusesTabRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [ZCashRPCTabPage]
 class ZCashRPCTabRoute extends PageRouteInfo<void> {
-  const ZCashRPCTabRoute({List<PageRouteInfo>? children})
-      : super(
-          ZCashRPCTabRoute.name,
-          initialChildren: children,
-        );
+  const ZCashRPCTabRoute({List<PageRouteInfo>? children}) : super(ZCashRPCTabRoute.name, initialChildren: children);
 
   static const String name = 'ZCashRPCTabRoute';
 
@@ -211,10 +159,7 @@ class ZCashRPCTabRoute extends PageRouteInfo<void> {
 /// [ZCashShieldDeshieldTabPage]
 class ZCashShieldDeshieldTabRoute extends PageRouteInfo<void> {
   const ZCashShieldDeshieldTabRoute({List<PageRouteInfo>? children})
-      : super(
-          ZCashShieldDeshieldTabRoute.name,
-          initialChildren: children,
-        );
+      : super(ZCashShieldDeshieldTabRoute.name, initialChildren: children);
 
   static const String name = 'ZCashShieldDeshieldTabRoute';
 
@@ -230,10 +175,7 @@ class ZCashShieldDeshieldTabRoute extends PageRouteInfo<void> {
 /// [ZCashTransferTabPage]
 class ZCashTransferTabRoute extends PageRouteInfo<void> {
   const ZCashTransferTabRoute({List<PageRouteInfo>? children})
-      : super(
-          ZCashTransferTabRoute.name,
-          initialChildren: children,
-        );
+      : super(ZCashTransferTabRoute.name, initialChildren: children);
 
   static const String name = 'ZCashTransferTabRoute';
 

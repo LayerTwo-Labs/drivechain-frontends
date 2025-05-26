@@ -1,3 +1,4 @@
+import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'mock_binary.dart';
@@ -339,5 +340,10 @@ class MockZCashRPC extends ZCashRPC {
   @override
   List<String> getMethods() {
     return zcashRPCMethods;
+  }
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async {
+    return [];
   }
 }
