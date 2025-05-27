@@ -25,7 +25,7 @@ abstract class BitnamesRPC extends SidechainRPC {
   Future<BitNameData?> getBitNameData(String name);
 
   /// List all BitNames
-  Future<List<String>> listBitNames();
+  Future<List<BitnameEntry>> listBitNames();
 
   /// Connect to a peer
   Future<void> connectPeer(String address);
@@ -65,6 +65,70 @@ abstract class BitnamesRPC extends SidechainRPC {
 
   /// Get total sidechain wealth in sats
   Future<int> getSidechainWealth();
+
+  /// Get a new encryption key
+  Future<String> getNewEncryptionKey();
+
+  /// Get a new verifying/signing key
+  Future<String> getNewVerifyingKey();
+
+  /// Create a deposit to an address
+  Future<String> createDeposit({required String address, required int feeSats, required int valueSats});
+
+  /// Decrypt a message with the specified encryption key
+  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey});
+
+  /// Encrypt a message to the specified encryption pubkey
+  Future<String> encryptMsg({required String msg, required String encryptionPubkey});
+
+  /// Get a new address
+  Future<String> getNewAddress();
+
+  /// Get the current block count
+  Future<int> getBlockCount();
+
+  /// Get all paymail
+  Future<Map<String, dynamic>> getPaymail();
+
+  /// Get wallet addresses, sorted by base58 encoding
+  Future<List<String>> getWalletAddresses();
+
+  /// Get wallet UTXOs
+  Future<List<dynamic>> getWalletUTXOs();
+
+  /// List all UTXOs
+  @override
+  Future<List<SidechainUTXO>> listUTXOs();
+
+  /// List owned UTXOs
+  Future<List<dynamic>> myUTXOs();
+
+  /// Get OpenAPI schema
+  Future<Map<String, dynamic>> openapiSchema();
+
+  /// Resolve a commitment from a BitName
+  Future<String> resolveCommit(String bitname);
+
+  /// Sign an arbitrary message with the specified verifying key
+  Future<String> signArbitraryMsg({required String msg, required String verifyingKey});
+
+  /// Sign an arbitrary message with the secret key for the specified address
+  Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address});
+
+  /// Stop the node
+  @override
+  Future<void> stop();
+
+  /// Transfer funds to the specified address
+  Future<String> transfer({required String dest, required int value, required int fee, String? memo});
+
+  /// Initiate a withdrawal to the specified mainchain address
+  Future<String> withdraw({
+    required String mainchainAddress,
+    required int amountSats,
+    required int feeSats,
+    required int mainchainFeeSats,
+  });
 }
 
 class BitnamesLive extends BitnamesRPC {
@@ -236,9 +300,36 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<List<String>> listBitNames() async {
+  Future<List<BitnameEntry>> listBitNames() async {
     final response = await _client().call('bitnames') as List<dynamic>;
-    return response.cast<String>();
+    return response.map<BitnameEntry>((item) {
+      if (item is! List || item.length != 2) {
+        throw FormatException('Invalid bitname entry format: $item');
+      }
+
+      final hash = item[0] as String;
+      final detailsMap = item[1] as Map<String, dynamic>;
+
+      // Handle commitment which can be a List<int> or String
+      String? parseCommitment(dynamic value) {
+        if (value == null) return null;
+        if (value is String) return value;
+        if (value is List) {
+          // Convert List<int> to hex string
+          return value.map((e) => e.toRadixString(16).padLeft(2, '0')).join('');
+        }
+        return value.toString();
+      }
+
+      // Create a new map with the commitment properly parsed
+      final parsedDetails = Map<String, dynamic>.from(detailsMap);
+      if (detailsMap.containsKey('commitment')) {
+        parsedDetails['commitment'] = parseCommitment(detailsMap['commitment']);
+      }
+
+      final details = BitnameDetails.fromJson(parsedDetails);
+      return BitnameEntry(hash: hash, details: details);
+    }).toList();
   }
 
   @override
@@ -263,23 +354,13 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> reserveBitName(String name) async {
-    final response = await _client().call('reserve_bitname', name);
-    return response as String;
+    // Pass the name directly as the second argument to call()
+    final response = await _client().call('reserve_bitname', [name]) as String;
+
+    return response;
   }
 
   /// Additional methods from OpenAPI schema
-
-  /// Get a new encryption key
-  Future<String> getNewEncryptionKey() async {
-    final response = await _client().call('get_new_encryption_key');
-    return response as String;
-  }
-
-  /// Get a new verifying/signing key
-  Future<String> getNewVerifyingKey() async {
-    final response = await _client().call('get_new_verifying_key');
-    return response as String;
-  }
 
   /// Sign an arbitrary message with the specified verifying key
   Future<String> signArbitraryMessage(String message, String verifyingKey) async {
@@ -302,17 +383,6 @@ class BitnamesLive extends BitnamesRPC {
     };
   }
 
-  /// Verify a signature
-  Future<bool> verifySignature(String message, String signature, String verifyingKey, String dst) async {
-    final response = await _client().call('verify_signature', {
-      'msg': message,
-      'signature': signature,
-      'verifying_key': verifyingKey,
-      'dst': dst,
-    });
-    return response as bool;
-  }
-
   /// Encrypt a message
   Future<String> encryptMessage(String message, String encryptionPubkey) async {
     final response = await _client().call('encrypt_msg', {
@@ -332,6 +402,7 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   /// Get paymail information
+  @override
   Future<Map<String, dynamic>> getPaymail() async {
     final response = await _client().call('get_paymail');
     return response as Map<String, dynamic>;
@@ -395,6 +466,142 @@ class BitnamesLive extends BitnamesRPC {
     final response = await _client().call('sidechain_wealth_sats');
     return response as int;
   }
+
+  @override
+  Future<String> getNewEncryptionKey() async {
+    final response = await _client().call('get_new_encryption_key');
+    return response as String;
+  }
+
+  @override
+  Future<String> getNewVerifyingKey() async {
+    final response = await _client().call('get_new_verifying_key');
+    return response as String;
+  }
+
+  @override
+  Future<String> createDeposit({required String address, required int feeSats, required int valueSats}) async {
+    final response = await _client().call('create_deposit', {
+      'address': address,
+      'fee_sats': feeSats,
+      'value_sats': valueSats,
+    });
+    return response as String;
+  }
+
+  @override
+  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
+    final response = await _client().call('decrypt_msg', {
+      'ciphertext': ciphertext,
+      'encryption_pubkey': encryptionPubkey,
+    });
+    return response as String;
+  }
+
+  @override
+  Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
+    final response = await _client().call('encrypt_msg', {
+      'msg': msg,
+      'encryption_pubkey': encryptionPubkey,
+    });
+    return response as String;
+  }
+
+  @override
+  Future<String> getNewAddress() async {
+    final response = await _client().call('get_new_address');
+    return response as String;
+  }
+
+  @override
+  Future<int> getBlockCount() async {
+    final response = await _client().call('get_blockcount');
+    return response as int;
+  }
+
+  @override
+  Future<List<String>> getWalletAddresses() async {
+    final response = await _client().call('get_wallet_addresses') as List<dynamic>;
+    return response.cast<String>();
+  }
+
+  @override
+  Future<List<dynamic>> getWalletUTXOs() async {
+    final response = await _client().call('get_wallet_utxos') as List<dynamic>;
+    return response;
+  }
+
+  @override
+  Future<List<dynamic>> myUTXOs() async {
+    final response = await _client().call('my_utxos') as List<dynamic>;
+    return response;
+  }
+
+  @override
+  Future<Map<String, dynamic>> openapiSchema() async {
+    final response = await _client().call('openapi_schema');
+    return response as Map<String, dynamic>;
+  }
+
+  @override
+  Future<String> resolveCommit(String bitname) async {
+    final response = await _client().call('resolve_commit', bitname);
+    return response as String;
+  }
+
+  @override
+  Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
+    final response = await _client().call('sign_arbitrary_msg', {
+      'msg': msg,
+      'verifying_key': verifyingKey,
+    });
+    return response as String;
+  }
+
+  @override
+  Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
+    final response = await _client().call('sign_arbitrary_msg_as_addr', {
+      'msg': msg,
+      'address': address,
+    });
+    return {
+      'verifying_key': response['verifying_key'] as String,
+      'signature': response['signature'] as String,
+    };
+  }
+
+  @override
+  Future<void> stop() async {
+    await _client().call('stop');
+    await Future.delayed(const Duration(seconds: 2));
+  }
+
+  @override
+  Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
+    final response = await _client().call('transfer', {
+      'dest': dest,
+      'value': value,
+      'fee': fee,
+      'memo': memo,
+    });
+    return response as String;
+  }
+
+  @override
+  Future<String> withdraw({
+    required String mainchainAddress,
+    required int amountSats,
+    required int feeSats,
+    required int mainchainFeeSats,
+  }) async {
+    final response = await _client().call('withdraw', {
+      'mainchain_address': mainchainAddress,
+      'amount_sats': amountSats,
+      'fee_sats': feeSats,
+      'mainchain_fee_sats': mainchainFeeSats,
+    });
+    return response as String;
+  }
 }
 
 final bitnamesRPCMethods = [
@@ -414,7 +621,7 @@ final bitnamesRPCMethods = [
   'get_new_address',
   'get_new_encryption_key',
   'get_new_verifying_key',
-  'getblockcount',
+  'get_blockcount',
   'get_paymail',
   'get_wallet_addresses',
   'get_wallet_utxos',
@@ -427,8 +634,9 @@ final bitnamesRPCMethods = [
   'pending_withdrawal_bundle',
   'register_bitname',
   'reserve_bitname',
+  'resolve_commit',
   'set_seed_from_mnemonic',
-  'sidechain_wealth_sats',
+  'sidechain_wealth',
   'sign_arbitrary_msg',
   'sign_arbitrary_msg_as_addr',
   'stop',
@@ -437,7 +645,7 @@ final bitnamesRPCMethods = [
   'withdraw',
 ];
 
-/// Models for Bitnames RPC responses
+// Models for Bitnames RPC responses
 class BitNameData {
   final String? commitment;
   final String? encryptionPubkey;
@@ -501,5 +709,41 @@ class BitnamesPeerInfo {
   factory BitnamesPeerInfo.fromJson(Map<String, dynamic> json) => BitnamesPeerInfo(
         address: json['address'] as String,
         status: json['status'] as String,
+      );
+}
+
+class BitnameEntry {
+  final String hash;
+  final BitnameDetails details;
+  BitnameEntry({required this.hash, required this.details});
+}
+
+class BitnameDetails {
+  final String seqId;
+  final String? commitment;
+  final String? socketAddrV4;
+  final String? socketAddrV6;
+  final String? encryptionPubkey;
+  final String? signingPubkey;
+  final int? paymailFeeSats;
+
+  BitnameDetails({
+    required this.seqId,
+    this.commitment,
+    this.socketAddrV4,
+    this.socketAddrV6,
+    this.encryptionPubkey,
+    this.signingPubkey,
+    this.paymailFeeSats,
+  });
+
+  factory BitnameDetails.fromJson(Map<String, dynamic> json) => BitnameDetails(
+        seqId: json['seq_id'] as String,
+        commitment: json['commitment'] as String?,
+        socketAddrV4: json['socket_addr_v4'] as String?,
+        socketAddrV6: json['socket_addr_v6'] as String?,
+        encryptionPubkey: json['encryption_pubkey'] as String?,
+        signingPubkey: json['signing_pubkey'] as String?,
+        paymailFeeSats: json['paymail_fee_sats'] as int?,
       );
 }

@@ -1,4 +1,4 @@
-# Thunder
+# BitNames
 
 A collection of frontends for different Drivechain-based sidechains.
 

@@ -650,7 +650,7 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<List<String>> listBitNames() {
+  Future<List<BitnameEntry>> listBitNames() {
     return Future.value([]);
   }
 
@@ -717,6 +717,108 @@ class MockBitnamesRPC extends BitnamesRPC {
   @override
   Future<void> setSeedFromMnemonic(String mnemonic) {
     return Future.value();
+  }
+
+  @override
+  Future<String> createDeposit({required String address, required int feeSats, required int valueSats}) async {
+    return Future.value('mock_txid_create_deposit_1234');
+  }
+
+  @override
+  Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
+    return Future.value('mock_decrypted_msg_1234');
+  }
+
+  @override
+  Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
+    return Future.value('mock_encrypted_msg_1234');
+  }
+
+  @override
+  Future<int> getBlockCount() async {
+    return Future.value(1234);
+  }
+
+  @override
+  Future<String> getNewAddress() async {
+    return Future.value('mock_new_address_1234');
+  }
+
+  @override
+  Future<String> getNewEncryptionKey() async {
+    return Future.value('mock_new_encryption_key_1234');
+  }
+
+  @override
+  Future<String> getNewVerifyingKey() async {
+    return Future.value('mock_new_verifying_key_1234');
+  }
+
+  @override
+  Future<Map<String, dynamic>> getPaymail() async {
+    return Future.value({'paymail': 'mock_paymail_1234'});
+  }
+
+  @override
+  Future<List<String>> getWalletAddresses() async {
+    return Future.value(['mock_wallet_address_1234']);
+  }
+
+  @override
+  Future<List> getWalletUTXOs() async {
+    return Future.value([
+      SidechainUTXO(
+        valueSats: 1000,
+        address: 'mock_address_1234',
+        outpoint: 'mock_outpoint_1234',
+      ),
+    ]);
+  }
+
+  @override
+  Future<List> myUTXOs() async {
+    return Future.value([
+      SidechainUTXO(
+        valueSats: 1000,
+        address: 'mock_address_1234',
+        outpoint: 'mock_outpoint_1234',
+      ),
+    ]);
+  }
+
+  @override
+  Future<Map<String, dynamic>> openapiSchema() async {
+    return Future.value({'openapi_schema': 'mock_openapi_schema_1234'});
+  }
+
+  @override
+  Future<String> resolveCommit(String bitname) async {
+    return Future.value('mock_resolve_commit_1234');
+  }
+
+  @override
+  Future<String> signArbitraryMsg({required String msg, required String verifyingKey}) async {
+    return Future.value('mock_signed_msg_1234');
+  }
+
+  @override
+  Future<Map<String, String>> signArbitraryMsgAsAddr({required String msg, required String address}) async {
+    return Future.value({'signed_msg': 'mock_signed_msg_1234'});
+  }
+
+  @override
+  Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
+    return Future.value('mock_txid_transfer_1234');
+  }
+
+  @override
+  Future<String> withdraw({
+    required String mainchainAddress,
+    required int amountSats,
+    required int feeSats,
+    required int mainchainFeeSats,
+  }) async {
+    return Future.value('mock_txid_withdraw_1234');
   }
 }
 

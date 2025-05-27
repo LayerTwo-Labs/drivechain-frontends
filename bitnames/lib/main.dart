@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitnames/config/runtime_args.dart';
+import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:bitnames/providers/notification_provider.dart';
 import 'package:bitnames/routing/router.dart';
 import 'package:bitnames/rpc/models/active_sidechains.dart';
@@ -290,6 +291,10 @@ Future<void> initDependencies(
 
   GetIt.I.registerLazySingleton<TransactionProvider>(
     () => TransactionProvider(),
+  );
+
+  GetIt.I.registerLazySingleton<BitnamesProvider>(
+    () => BitnamesProvider(),
   );
 }
 

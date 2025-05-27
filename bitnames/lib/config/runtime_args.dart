@@ -9,7 +9,7 @@ abstract class RuntimeArgs {
   static bool isInTest = Platform.environment['FLUTTER_TEST']?.isNotEmpty ?? const bool.fromEnvironment('FLUTTER_TEST');
 
   static Future<Directory> datadir() async {
-    final fromEnv = Platform.environment['THUNDER_DATADIR'] ?? const String.fromEnvironment('THUNDER_DATADIR');
+    final fromEnv = Platform.environment['BITNAMES_DATADIR'] ?? const String.fromEnvironment('BITNAMES_DATADIR');
     if (fromEnv.isNotEmpty) {
       final dir = Directory(fromEnv);
       return dir;
@@ -18,12 +18,12 @@ abstract class RuntimeArgs {
     return await getApplicationSupportDirectory();
   }
 
-  static bool consoleLog = Platform.environment['THUNDER_LOG_CONSOLE']?.isNotEmpty ?? false;
+  static bool consoleLog = Platform.environment['BITNAMES_LOG_CONSOLE']?.isNotEmpty ?? false;
 
-  static bool fileLog = Platform.environment['THUNDER_LOG_FILE']?.isNotEmpty ?? false;
+  static bool fileLog = Platform.environment['BITNAMES_LOG_FILE']?.isNotEmpty ?? false;
 
   static final String _network =
-      Platform.environment['THUNDER_NETWORK'] ?? const String.fromEnvironment('THUNDER_NETWORK');
+      Platform.environment['BITNAMES_NETWORK'] ?? const String.fromEnvironment('BITNAMES_NETWORK');
 
   static String? network = _network.isNotEmpty ? _network : null;
 }
