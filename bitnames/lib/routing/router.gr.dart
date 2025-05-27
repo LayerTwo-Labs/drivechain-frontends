@@ -11,6 +11,22 @@
 part of 'router.dart';
 
 /// generated route for
+/// [BitnamesTabPage]
+class BitnamesTabRoute extends PageRouteInfo<void> {
+  const BitnamesTabRoute({List<PageRouteInfo>? children})
+    : super(BitnamesTabRoute.name, initialChildren: children);
+
+  static const String name = 'BitnamesTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitnamesTabPage();
+    },
+  );
+}
+
+/// generated route for
 /// [ConsoleTabPage]
 class ConsoleTabRoute extends PageRouteInfo<void> {
   const ConsoleTabRoute({List<PageRouteInfo>? children})

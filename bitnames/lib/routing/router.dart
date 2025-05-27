@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitnames/pages/tabs/console_page.dart';
 import 'package:bitnames/pages/tabs/home_page.dart';
+import 'package:bitnames/pages/tabs/reserve_register_page.dart';
 import 'package:bitnames/pages/tabs/settings_page.dart';
 import 'package:bitnames/pages/test_page.dart';
 import 'package:flutter/widgets.dart';
@@ -38,6 +39,9 @@ class AppRouter extends RootStackRouter {
             AutoRoute(
               page: SidechainOverviewTabRoute.page,
               initial: true,
+            ),
+            AutoRoute(
+              page: BitnamesTabRoute.page,
             ),
             AutoRoute(
               page: SettingsTabRoute.page,

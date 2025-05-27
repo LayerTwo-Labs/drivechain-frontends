@@ -16,22 +16,33 @@ class SailNotification extends StatelessWidget {
     required this.removeNotification,
     this.onPressed,
   });
+
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return Dismissible(
-      key: Key(content),
-      direction: DismissDirection.horizontal,
-      onDismissed: (direction) {
-        removeNotification(content);
-      },
-      child: InkWell(
-        onTap: onPressed,
-        child: Card(
-          color: theme.colors.text,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
+    return Material(
+      color: Colors.transparent,
+      child: Dismissible(
+        key: Key(content),
+        direction: DismissDirection.horizontal,
+        onDismissed: (direction) {
+          removeNotification(content);
+        },
+        child: InkWell(
+          onTap: onPressed,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: SailTheme.of(context).colors.backgroundSecondary,
+              boxShadow: [
+                BoxShadow(
+                  color: SailTheme.of(context).colors.shadow,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -45,10 +56,18 @@ class SailNotification extends StatelessWidget {
                         children: [
                           SailSVG.fromAsset(SailSVGAsset.iconInfo, color: findColorForType(dialogType)),
                           const SizedBox(width: 8),
-                          SailText.primary13(title, color: theme.colors.background),
+                          SailText.primary13(
+                            title,
+                            color: theme.colors.text,
+                            overflow: TextOverflow.visible,
+                          ),
                         ],
                       ),
-                      SailText.primary12(content, color: theme.colors.background),
+                      SailText.primary12(
+                        content,
+                        color: theme.colors.text,
+                        overflow: TextOverflow.visible,
+                      ),
                     ],
                   ),
                 ),
