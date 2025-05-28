@@ -142,6 +142,7 @@ class BitnamesTabPage extends StatelessWidget {
                             key: registerCardKey,
                             title: 'Register',
                             subtitle: 'Register a reserved bitname',
+                            error: model.registerError,
                             child: SailColumn(
                               spacing: SailStyleValues.padding16,
                               children: [
@@ -420,13 +421,13 @@ class BitnamesViewModel extends BaseViewModel {
     reserveError = null;
     notifyListeners();
     try {
-      await bitnamesRPC.reserveBitName(name);
+      final txid = await bitnamesRPC.reserveBitName(name);
       reserveLoading = false;
       notifyListeners();
       if (context.mounted) {
         notificationProvider.add(
           title: 'Success',
-          content: 'Bitname "$name" reserved successfully!',
+          content: 'Bitname "$name" reserved successfully in $txid!',
           dialogType: DialogType.success,
         );
       }
@@ -454,21 +455,23 @@ class BitnamesViewModel extends BaseViewModel {
     registerError = null;
     notifyListeners();
     try {
-      final data = BitNameData(
-        commitment: commitment,
-        encryptionPubkey: useEncryptionKey ? encryptionKey : null,
-        paymailFeeSats: 1000,
-        signingPubkey: useSigningKey ? signingKey : null,
-        socketAddrV4: ipv4,
-        socketAddrV6: ipv6,
+      final txid = await bitnamesRPC.registerBitName(
+        name,
+        BitNameData(
+          commitment: commitment,
+          encryptionPubkey: useEncryptionKey ? encryptionKey : null,
+          paymailFeeSats: 1000,
+          signingPubkey: useSigningKey ? signingKey : null,
+          socketAddrV4: ipv4,
+          socketAddrV6: ipv6,
+        ),
       );
-      await bitnamesRPC.registerBitName(name, data);
       registerLoading = false;
       notifyListeners();
       if (context.mounted) {
         notificationProvider.add(
           title: 'Success',
-          content: 'Bitname "$name" registered successfully!',
+          content: 'Bitname "$name" registered successfully in $txid!',
           dialogType: DialogType.success,
         );
       }

@@ -229,7 +229,7 @@ class _SailTableState extends State<SailTable> {
           child: SizedBox(
             width: tableWidth,
             child: Column(
-              mainAxisSize: MainAxisSize.min, // This ensures the column takes minimum space
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _buildHeader(context),
                 if (!widget.shrinkWrap) Expanded(child: _buildRows(context)),

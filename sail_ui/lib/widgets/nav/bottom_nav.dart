@@ -148,7 +148,7 @@ class BottomNav extends StatelessWidget {
                       infoMessage: null,
                       navigateToLogs: model.navigateToLogs,
                     ),
-                  if (!model.mainchain.connected || !onlyShowAdditional)
+                  if (!model.enforcer.connected || !onlyShowAdditional)
                     DaemonConnectionCard(
                       connection: model.enforcer,
                       syncInfo: model.blockInfoProvider.enforcerSyncInfo,
