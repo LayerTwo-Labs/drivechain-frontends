@@ -79,6 +79,10 @@ abstract class Binary {
       return Bitnames();
     }
 
+    if (BitAssets().name.toLowerCase() == name) {
+      return BitAssets();
+    }
+
     if (TestSidechain().name.toLowerCase() == name) {
       return TestSidechain();
     }
@@ -109,6 +113,8 @@ abstract class Binary {
       base = Thunder();
     } else if (name == Bitnames().name) {
       base = Bitnames();
+    } else if (name == BitAssets().name) {
+      base = BitAssets();
     } else {
       base = _BinaryImpl(
         name: name,
@@ -466,6 +472,13 @@ abstract class Binary {
           'data.mdb',
           'logs',
         ]);
+
+      case BitAssets():
+        await _deleteFilesInDir(dir, [
+          'data.mdb',
+          'logs',
+        ]);
+
       case Thunder():
         await _deleteFilesInDir(dir, [
           'data.mdb',
@@ -521,6 +534,12 @@ abstract class Binary {
       case Bitnames():
         await _deleteFilesInDir(dir, [
           'bitnames-cli',
+          'logs',
+        ]);
+
+      case BitAssets():
+        await _deleteFilesInDir(dir, [
+          'bitassets-cli',
           'logs',
         ]);
 
@@ -937,8 +956,7 @@ extension BinaryPaths on Binary {
     return switch (this) {
       var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
       var b when b is ZCash => filePath([datadir(), 'regtest', 'debug.log']),
-      var b when b is Thunder || b is Bitnames => _findLatestVersionedLog(),
-      var b when b is Bitnames => filePath([datadir(), 'logs', 'unknown.log']),
+      var b when b is Thunder || b is Bitnames || b is BitAssets => _findLatestVersionedLog(),
       var b when b is ParentChain => filePath([datadir(), 'debug.log']),
       var b when b is BitWindow => filePath([datadir(), 'server.log']),
       var b when b is Enforcer => filePath([datadir(), 'bip300301_enforcer.log']),

@@ -70,6 +70,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is BitWindow => _binaryProvider.bitwindowConnected,
       var b when b is Thunder => _binaryProvider.thunderConnected,
       var b when b is Bitnames => _binaryProvider.bitnamesConnected,
+      var b when b is BitAssets => _binaryProvider.bitassetsConnected,
       _ => false,
     };
 
@@ -80,6 +81,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
       var b when b is Thunder => _binaryProvider.thunderInitializing,
       var b when b is Bitnames => _binaryProvider.bitnamesInitializing,
+      var b when b is BitAssets => _binaryProvider.bitassetsInitializing,
       _ => false,
     };
 
@@ -89,6 +91,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is BitWindow => _binaryProvider.bitwindowStopping,
       var b when b is Thunder => _binaryProvider.thunderStopping,
       var b when b is Bitnames => _binaryProvider.bitnamesStopping,
+      var b when b is BitAssets => _binaryProvider.bitassetsStopping,
       _ => false,
     };
     final isProcessRunning = _processProvider.isRunning(binary);
@@ -140,6 +143,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is BitWindow => _binaryProvider.bitwindowConnected,
       var b when b is Thunder => _binaryProvider.thunderConnected,
       var b when b is Bitnames => _binaryProvider.bitnamesConnected,
+      var b when b is BitAssets => _binaryProvider.bitassetsConnected,
       _ => false,
     };
 
@@ -150,6 +154,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
       var b when b is Thunder => _binaryProvider.thunderInitializing,
       var b when b is Bitnames => _binaryProvider.bitnamesInitializing,
+      var b when b is BitAssets => _binaryProvider.bitassetsInitializing,
       _ => false,
     };
 
@@ -159,6 +164,7 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is BitWindow => _binaryProvider.bitwindowStopping,
       var b when b is Thunder => _binaryProvider.thunderStopping,
       var b when b is Bitnames => _binaryProvider.bitnamesStopping,
+      var b when b is BitAssets => _binaryProvider.bitassetsStopping,
       _ => false,
     };
 
@@ -355,6 +361,13 @@ class _OverviewPageState extends State<OverviewPage> {
         stopping = _binaryProvider.bitnamesStopping;
         error = _binaryProvider.bitnamesError;
         startupError = _binaryProvider.bitnamesStartupError;
+
+      case BitAssets():
+        connected = _binaryProvider.bitassetsConnected;
+        initializing = _binaryProvider.bitassetsInitializing;
+        stopping = _binaryProvider.bitassetsStopping;
+        error = _binaryProvider.bitassetsError;
+        startupError = _binaryProvider.bitassetsStartupError;
     }
 
     return Builder(

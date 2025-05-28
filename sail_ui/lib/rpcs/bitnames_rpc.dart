@@ -258,7 +258,6 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<List<CoreTransaction>> listTransactions() async {
-    // TODO: Implement once we know the transaction format
     throw UnimplementedError();
   }
 

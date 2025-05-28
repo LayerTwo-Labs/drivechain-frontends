@@ -136,9 +136,8 @@ class EnforcerLive extends EnforcerRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final res = await validator.getChainTip(GetChainTipRequest());
-    // TODO: Use something better than core blockchaininfo fields....
     return BlockchainInfo(
-      chain: 'signet', // TODO: find correct net
+      chain: 'signet',
       blocks: res.blockHeaderInfo.height,
       headers: res.blockHeaderInfo.height,
       bestBlockHash: res.blockHeaderInfo.blockHash.hex.toString(),
