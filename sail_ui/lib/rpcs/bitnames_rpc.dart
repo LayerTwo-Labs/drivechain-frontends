@@ -348,16 +348,15 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> registerBitName(String plainName, BitNameData? data) async {
-    final response = await _client().call('register_bitname', {
-      'plain_name': plainName,
-      'bitname_data': data?.toJson(),
-    });
+    final response = await _client().call('register_bitname', [
+      plainName,
+      data?.toJson(),
+    ]);
     return response as String;
   }
 
   @override
   Future<String> reserveBitName(String name) async {
-    // Pass the name directly as the second argument to call()
     final response = await _client().call('reserve_bitname', [name]) as String;
 
     return response;
