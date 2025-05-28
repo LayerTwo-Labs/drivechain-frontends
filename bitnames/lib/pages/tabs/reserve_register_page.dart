@@ -165,6 +165,36 @@ class BitnamesTabPage extends StatelessWidget {
                                   hintText: 'Enter IPv6 address',
                                   controller: model.ipv6Controller,
                                 ),
+                                SailCheckbox(
+                                  label: 'Set Encryption Pubkey',
+                                  value: model.useEncryptionKey,
+                                  onChanged: (value) {
+                                    model.useEncryptionKey = value;
+                                    model.notifyListeners();
+                                  },
+                                ),
+                                if (model.useEncryptionKey && model.encryptionKey != null)
+                                  SailTextField(
+                                    label: 'Encryption Pubkey',
+                                    controller: TextEditingController(text: model.encryptionKey),
+                                    hintText: 'Encryption Pubkey',
+                                    readOnly: true,
+                                  ),
+                                SailCheckbox(
+                                  label: 'Set Signing Pubkey',
+                                  value: model.useSigningKey,
+                                  onChanged: (value) {
+                                    model.useSigningKey = value;
+                                    model.notifyListeners();
+                                  },
+                                ),
+                                if (model.useSigningKey && model.signingKey != null)
+                                  SailTextField(
+                                    label: 'Signing Pubkey',
+                                    controller: TextEditingController(text: model.signingKey),
+                                    hintText: 'Signing Pubkey',
+                                    readOnly: true,
+                                  ),
                                 SailButton(
                                   label: 'Register',
                                   onPressed: model.registerLoading ? null : () => model.registerBitname(context),
@@ -308,6 +338,10 @@ class BitnamesViewModel extends BaseViewModel {
   bool registerLoading = false;
   String? registerError;
 
+  // New state variables
+  bool useEncryptionKey = false;
+  bool useSigningKey = false;
+
   BitnamesViewModel() {
     searchController.addListener(notifyListeners);
     provider.addListener(notifyListeners);
@@ -422,9 +456,9 @@ class BitnamesViewModel extends BaseViewModel {
     try {
       final data = BitNameData(
         commitment: commitment,
-        encryptionPubkey: encryptionKey,
+        encryptionPubkey: useEncryptionKey ? encryptionKey : null,
         paymailFeeSats: 1000,
-        signingPubkey: signingKey,
+        signingPubkey: useSigningKey ? signingKey : null,
         socketAddrV4: ipv4,
         socketAddrV6: ipv6,
       );
@@ -443,6 +477,8 @@ class BitnamesViewModel extends BaseViewModel {
       commitmentController.clear();
       ipv4Controller.clear();
       ipv6Controller.clear();
+      useEncryptionKey = false;
+      useSigningKey = false;
 
       await generateKeysWithRetry();
     } catch (e) {
