@@ -154,16 +154,19 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
           outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
           address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
           valueSats: 1500000000,
+          type: OutpointType.regular,
         ),
         SidechainUTXO(
           outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
           address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
           valueSats: 1500000000,
+          type: OutpointType.regular,
         ),
         SidechainUTXO(
           outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
           address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
           valueSats: 1500000000,
+          type: OutpointType.regular,
         ),
       ];
     }

@@ -745,6 +745,10 @@ class _UTXOTableState extends State<UTXOTable> {
           aValue = a.valueSats;
           bValue = b.valueSats;
           break;
+        case 'type':
+          aValue = a.type;
+          bValue = b.type;
+          break;
         default:
           aValue = a.valueSats;
           bValue = b.valueSats;
@@ -768,6 +772,7 @@ class _UTXOTableState extends State<UTXOTable> {
                 shrinkWrap: true,
                 getRowId: (index) => widget.entries[index].outpoint.split(':').first,
                 headerBuilder: (context) => [
+                  SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
                   SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
                   SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
                   SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
@@ -779,6 +784,7 @@ class _UTXOTableState extends State<UTXOTable> {
                     symbol: '',
                   );
                   return [
+                    SailTableCell(value: utxo.type.name, monospace: true),
                     SailTableCell(
                       value: '${utxo.outpoint.substring(0, 6)}..:${utxo.outpoint.split(':').last}',
                       copyValue: utxo.outpoint,
@@ -788,16 +794,17 @@ class _UTXOTableState extends State<UTXOTable> {
                   ];
                 },
                 rowCount: widget.entries.length,
-                columnWidths: const [120, 320, 120],
+                columnWidths: const [120, 120, 320, 120],
                 drawGrid: true,
                 sortColumnIndex: [
+                  'type',
                   'output',
                   'address',
                   'value',
                 ].indexOf(sortColumn),
                 sortAscending: sortAscending,
                 onSort: (columnIndex, ascending) {
-                  onSort(['output', 'address', 'value'][columnIndex]);
+                  onSort(['type', 'output', 'address', 'value'][columnIndex]);
                 },
               ),
             ),
@@ -819,16 +826,19 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
           outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
           address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
           valueSats: 1500000000,
+          type: OutpointType.regular,
         ),
         SidechainUTXO(
           outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
           address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
           valueSats: 1500000000,
+          type: OutpointType.regular,
         ),
         SidechainUTXO(
           outpoint: 'ef96ff0ab79d3666b7ea55d832bfa36947f0839cdf1708e4f4087cb89d6e0716:0',
           address: '4L1ZvhVLvRUFJkXEn1yen5Z663Nf',
           valueSats: 1500000000,
+          type: OutpointType.regular,
         ),
       ];
     }

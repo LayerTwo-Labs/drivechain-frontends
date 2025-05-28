@@ -3,6 +3,7 @@ import 'package:bitnames/providers/bitnames_provider.dart';
 import 'package:bitnames/providers/notification_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -43,7 +44,7 @@ class BitnamesTabPage extends StatelessWidget {
                             ),
                           ),
                           SailButton(
-                            label: 'Create New Bitname',
+                            label: 'Register New Bitname',
                             onPressed: () async {
                               // Scroll to the Register card
                               await Scrollable.ensureVisible(
@@ -316,6 +317,7 @@ class DetailRow extends StatelessWidget {
 }
 
 class BitnamesViewModel extends BaseViewModel {
+  final BalanceProvider balanceProvider = GetIt.I.get<BalanceProvider>();
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
   final BitnamesProvider provider = GetIt.I.get<BitnamesProvider>();
   final BitnamesRPC bitnamesRPC = GetIt.I.get<BitnamesRPC>();
@@ -411,6 +413,12 @@ class BitnamesViewModel extends BaseViewModel {
   bool get isLoading => !provider.initialized;
 
   Future<void> reserveBitname(BuildContext context) async {
+    if (balanceProvider.balance < 0.00001000) {
+      reserveError = 'Insufficient balance, deposit more funds on the Parent Chain tab to reserve a bitname';
+      notifyListeners();
+      return;
+    }
+
     final name = reserveNameController.text.trim();
     if (name.isEmpty) {
       reserveError = 'Name cannot be empty';
@@ -441,6 +449,12 @@ class BitnamesViewModel extends BaseViewModel {
   }
 
   Future<void> registerBitname(BuildContext context) async {
+    if (balanceProvider.balance < 0.00001000) {
+      registerError = 'Insufficient balance, deposit more funds on the Parent Chain tab to register a bitname';
+      notifyListeners();
+      return;
+    }
+
     final name = registerNameController.text.trim();
     final commitment = commitmentController.text.trim().isEmpty ? null : commitmentController.text.trim();
     final ipv4 = ipv4Controller.text.trim().isEmpty ? null : ipv4Controller.text.trim();
