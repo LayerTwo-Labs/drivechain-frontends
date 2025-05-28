@@ -94,17 +94,36 @@ abstract class Sidechain extends Binary {
   }
 
   String? getMnemonicPath(Directory appDir) {
-    final launcherAppDir = Directory(
+    var launcherAppDir = Directory(
       path.join(
         appDir.path,
         '..',
         'drivechain-launcher',
       ),
     );
+
     final walletDir = path.join(launcherAppDir.path, 'wallet_starters');
     final mnemonicPath = path.normalize(path.join(walletDir, 'mnemonics', 'sidechain_$slot.txt'));
 
     if (!File(mnemonicPath).existsSync()) {
+      if (getOS() == OS.linux) {
+        // for some reason, on linux the app is in a different directory!
+        launcherAppDir = Directory(
+          path.join(
+            Platform.environment['HOME']!,
+            '.config',
+            'drivechain-launcher',
+          ),
+        );
+
+        final walletDir = path.join(launcherAppDir.path, 'wallet_starters');
+        final mnemonicPath = path.normalize(path.join(walletDir, 'mnemonics', 'sidechain_$slot.txt'));
+
+        if (File(mnemonicPath).existsSync()) {
+          return mnemonicPath;
+        }
+      }
+
       return null;
     }
 
