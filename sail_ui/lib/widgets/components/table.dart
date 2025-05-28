@@ -218,22 +218,24 @@ class _SailTableState extends State<SailTable> {
     final tableWidth =
         constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths + handleWidth;
 
-    return Scrollbar(
-      controller: _horizontalController,
-      scrollbarOrientation: ScrollbarOrientation.bottom,
-      child: SingleChildScrollView(
+    return SelectionContainer.disabled(
+      child: Scrollbar(
         controller: _horizontalController,
-        scrollDirection: Axis.horizontal,
-        physics: const ClampingScrollPhysics(),
-        child: SizedBox(
-          width: tableWidth,
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // This ensures the column takes minimum space
-            children: [
-              _buildHeader(context),
-              if (!widget.shrinkWrap) Expanded(child: _buildRows(context)),
-              if (widget.shrinkWrap) _buildRows(context),
-            ],
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        child: SingleChildScrollView(
+          controller: _horizontalController,
+          scrollDirection: Axis.horizontal,
+          physics: const ClampingScrollPhysics(),
+          child: SizedBox(
+            width: tableWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // This ensures the column takes minimum space
+              children: [
+                _buildHeader(context),
+                if (!widget.shrinkWrap) Expanded(child: _buildRows(context)),
+                if (widget.shrinkWrap) _buildRows(context),
+              ],
+            ),
           ),
         ),
       ),
