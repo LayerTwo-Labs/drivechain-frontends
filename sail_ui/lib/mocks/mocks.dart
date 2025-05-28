@@ -771,6 +771,7 @@ class MockBitnamesRPC extends BitnamesRPC {
         valueSats: 1000,
         address: 'mock_address_1234',
         outpoint: 'mock_outpoint_1234',
+        type: OutpointType.regular,
       ),
     ]);
   }
@@ -782,6 +783,7 @@ class MockBitnamesRPC extends BitnamesRPC {
         valueSats: 1000,
         address: 'mock_address_1234',
         outpoint: 'mock_outpoint_1234',
+        type: OutpointType.regular,
       ),
     ]);
   }
