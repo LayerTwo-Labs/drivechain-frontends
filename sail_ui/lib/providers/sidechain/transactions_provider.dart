@@ -27,20 +27,30 @@ class TransactionProvider extends ChangeNotifier {
     }
     _isFetching = true;
 
-    try {
-      final newSidechainTransactions = (await rpc.listTransactions()).reversed.toList();
-      final newUTXOs = await rpc.listUTXOs();
-      const newInitialized = true;
+    var newSidechainTransactions = sidechainTransactions;
+    var newUTXOs = utxos;
+    final newInitialized = true;
 
-      if (_dataHasChanged(newSidechainTransactions, newUTXOs, newInitialized)) {
-        sidechainTransactions = newSidechainTransactions;
-        utxos = newUTXOs;
-        initialized = newInitialized;
-        notifyListeners();
-      }
-    } finally {
-      _isFetching = false;
+    try {
+      newSidechainTransactions = (await rpc.listTransactions()).reversed.toList();
+    } catch (e) {
+      log.e('could not fetch sidechain transactions: $e');
     }
+
+    try {
+      newUTXOs = await rpc.listUTXOs();
+    } catch (e) {
+      log.e('could not fetch UTXOs: $e');
+    }
+
+    if (_dataHasChanged(newSidechainTransactions, newUTXOs, newInitialized)) {
+      sidechainTransactions = newSidechainTransactions;
+      utxos = newUTXOs;
+      initialized = newInitialized;
+      notifyListeners();
+    }
+
+    _isFetching = false;
   }
 
   bool _dataHasChanged(

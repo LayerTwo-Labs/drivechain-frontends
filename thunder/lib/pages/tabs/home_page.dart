@@ -209,6 +209,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                               );
                         },
                         endWidgets: [],
+                        onlyShowAdditional: true,
                       ),
                     ],
                   ),

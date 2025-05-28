@@ -36,6 +36,9 @@ enum Tabs {
   // sidechain balance/transfer route
   Bitnames,
 
+  // bitnames messaging route
+  Messaging,
+
   // sidechain balance/transfer route
   Console,
 
@@ -160,6 +163,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 SidechainOverviewTabRoute(),
                 // bitnames route
                 BitnamesTabRoute(),
+                // bitnames messaging route
+                MessagingTabRoute(),
                 // sidechain console route
                 ConsoleTabRoute(),
                 // trailing common routes
@@ -195,6 +200,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             },
                           ),
                           TopNavRoute(
+                            label: 'Messaging',
+                            optionalKey: Tabs.Messaging.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.Messaging.index);
+                            },
+                          ),
+                          TopNavRoute(
                             label: 'Console',
                             optionalKey: Tabs.Console.index,
                             onTap: () {
@@ -211,6 +223,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                           Expanded(child: children[tabsRouter.activeIndex]),
                           BottomNav(
                             mainchainInfo: false,
+                            onlyShowAdditional: true,
                             additionalConnection: ConnectionMonitor(
                               rpc: _rpc,
                               name: _rpc.chain.name,

@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:convert/convert.dart' show hex;
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:sail_ui/bitcoin.dart';
@@ -383,24 +386,6 @@ class BitnamesLive extends BitnamesRPC {
     };
   }
 
-  /// Encrypt a message
-  Future<String> encryptMessage(String message, String encryptionPubkey) async {
-    final response = await _client().call('encrypt_msg', {
-      'msg': message,
-      'encryption_pubkey': encryptionPubkey,
-    });
-    return response as String;
-  }
-
-  /// Decrypt a message
-  Future<String> decryptMessage(String ciphertext, String encryptionPubkey) async {
-    final response = await _client().call('decrypt_msg', {
-      'ciphertext': ciphertext,
-      'encryption_pubkey': encryptionPubkey,
-    });
-    return response as String;
-  }
-
   /// Get paymail information
   @override
   Future<Map<String, dynamic>> getPaymail() async {
@@ -491,19 +476,23 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<String> decryptMsg({required String ciphertext, required String encryptionPubkey}) async {
-    final response = await _client().call('decrypt_msg', {
-      'ciphertext': ciphertext,
-      'encryption_pubkey': encryptionPubkey,
-    });
-    return response as String;
+    final response = await _client().call('decrypt_msg', [
+      encryptionPubkey,
+      ciphertext,
+      true,
+    ]);
+    // convert hex to string
+    final bytes = hex.decode(response as String);
+    final decoded = utf8.decode(bytes);
+    return decoded;
   }
 
   @override
   Future<String> encryptMsg({required String msg, required String encryptionPubkey}) async {
-    final response = await _client().call('encrypt_msg', {
-      'msg': msg,
-      'encryption_pubkey': encryptionPubkey,
-    });
+    final response = await _client().call(
+      'encrypt_msg',
+      [encryptionPubkey, msg],
+    );
     return response as String;
   }
 

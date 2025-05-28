@@ -197,6 +197,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                       Expanded(child: children[tabsRouter.activeIndex]),
                       BottomNav(
                         mainchainInfo: false,
+                        onlyShowAdditional: true,
                         additionalConnection: ConnectionMonitor(
                           rpc: _rpc,
                           name: _rpc.chain.name,

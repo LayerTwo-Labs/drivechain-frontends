@@ -14,7 +14,7 @@ part of 'router.dart';
 /// [BitnamesTabPage]
 class BitnamesTabRoute extends PageRouteInfo<void> {
   const BitnamesTabRoute({List<PageRouteInfo>? children})
-    : super(BitnamesTabRoute.name, initialChildren: children);
+      : super(BitnamesTabRoute.name, initialChildren: children);
 
   static const String name = 'BitnamesTabRoute';
 
@@ -30,7 +30,7 @@ class BitnamesTabRoute extends PageRouteInfo<void> {
 /// [ConsoleTabPage]
 class ConsoleTabRoute extends PageRouteInfo<void> {
   const ConsoleTabRoute({List<PageRouteInfo>? children})
-    : super(ConsoleTabRoute.name, initialChildren: children);
+      : super(ConsoleTabRoute.name, initialChildren: children);
 
   static const String name = 'ConsoleTabRoute';
 
@@ -46,7 +46,7 @@ class ConsoleTabRoute extends PageRouteInfo<void> {
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
   const HomeRoute({List<PageRouteInfo>? children})
-    : super(HomeRoute.name, initialChildren: children);
+      : super(HomeRoute.name, initialChildren: children);
 
   static const String name = 'HomeRoute';
 
@@ -59,6 +59,22 @@ class HomeRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [MessagingTabPage]
+class MessagingTabRoute extends PageRouteInfo<void> {
+  const MessagingTabRoute({List<PageRouteInfo>? children})
+      : super(MessagingTabRoute.name, initialChildren: children);
+
+  static const String name = 'MessagingTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const MessagingTabPage();
+    },
+  );
+}
+
+/// generated route for
 /// [SailTestPage]
 class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
   SailTestRoute({
@@ -66,10 +82,10 @@ class SailTestRoute extends PageRouteInfo<SailTestRouteArgs> {
     required Widget child,
     List<PageRouteInfo>? children,
   }) : super(
-         SailTestRoute.name,
-         args: SailTestRouteArgs(key: key, child: child),
-         initialChildren: children,
-       );
+          SailTestRoute.name,
+          args: SailTestRouteArgs(key: key, child: child),
+          initialChildren: children,
+        );
 
   static const String name = 'SailTestRoute';
 
@@ -93,13 +109,23 @@ class SailTestRouteArgs {
   String toString() {
     return 'SailTestRouteArgs{key: $key, child: $child}';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SailTestRouteArgs) return false;
+    return key == other.key && child == other.child;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ child.hashCode;
 }
 
 /// generated route for
 /// [SettingsTabPage]
 class SettingsTabRoute extends PageRouteInfo<void> {
   const SettingsTabRoute({List<PageRouteInfo>? children})
-    : super(SettingsTabRoute.name, initialChildren: children);
+      : super(SettingsTabRoute.name, initialChildren: children);
 
   static const String name = 'SettingsTabRoute';
 

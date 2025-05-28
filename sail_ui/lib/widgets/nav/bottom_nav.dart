@@ -14,6 +14,7 @@ class BottomNav extends StatelessWidget {
   final ConnectionMonitor additionalConnection;
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
+  final bool onlyShowAdditional;
 
   const BottomNav({
     super.key,
@@ -21,6 +22,7 @@ class BottomNav extends StatelessWidget {
     required this.additionalConnection,
     required this.mainchainInfo,
     required this.navigateToLogs,
+    this.onlyShowAdditional = false,
   });
 
   @override
@@ -67,7 +69,8 @@ class BottomNav extends StatelessWidget {
                   spacing: SailStyleValues.padding08,
                   children: [
                     InkWell(
-                      onTap: () async => displayConnectionStatusDialog(context, additionalConnection),
+                      onTap: () async =>
+                          displayConnectionStatusDialog(context, additionalConnection, onlyShowAdditional),
                       child: Tooltip(
                         message: 'Open daemon status dialog',
                         child: SailRow(
@@ -115,6 +118,7 @@ class BottomNav extends StatelessWidget {
   void displayConnectionStatusDialog(
     BuildContext context,
     ConnectionMonitor additionalConnection,
+    bool onlyShowAdditional,
   ) {
     widgetDialog(
       context: context,
@@ -136,24 +140,26 @@ class BottomNav extends StatelessWidget {
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DaemonConnectionCard(
-                    connection: model.mainchain,
-                    syncInfo: model.blockInfoProvider.mainchainSyncInfo,
-                    restartDaemon: () => model.mainchain.initBinary(),
-                    infoMessage: null,
-                    navigateToLogs: model.navigateToLogs,
-                  ),
-                  DaemonConnectionCard(
-                    connection: model.enforcer,
-                    syncInfo: model.blockInfoProvider.enforcerSyncInfo,
-                    infoMessage: model.mainchain.initializingBinary
-                        ? 'Waiting for mainchain to finish init'
-                        : model.mainchain.inHeaderSync
-                            ? 'Waiting for L1 to sync headers...'
-                            : null,
-                    restartDaemon: () => model.enforcer.initBinary(),
-                    navigateToLogs: model.navigateToLogs,
-                  ),
+                  if (!model.mainchain.connected || !onlyShowAdditional)
+                    DaemonConnectionCard(
+                      connection: model.mainchain,
+                      syncInfo: model.blockInfoProvider.mainchainSyncInfo,
+                      restartDaemon: () => model.mainchain.initBinary(),
+                      infoMessage: null,
+                      navigateToLogs: model.navigateToLogs,
+                    ),
+                  if (!model.mainchain.connected || !onlyShowAdditional)
+                    DaemonConnectionCard(
+                      connection: model.enforcer,
+                      syncInfo: model.blockInfoProvider.enforcerSyncInfo,
+                      infoMessage: model.mainchain.initializingBinary
+                          ? 'Waiting for mainchain to finish init'
+                          : model.mainchain.inHeaderSync
+                              ? 'Waiting for L1 to sync headers...'
+                              : null,
+                      restartDaemon: () => model.enforcer.initBinary(),
+                      navigateToLogs: model.navigateToLogs,
+                    ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,
                     syncInfo: model.blockInfoProvider.additionalSyncInfo,
