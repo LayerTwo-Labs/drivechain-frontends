@@ -141,6 +141,35 @@
       },
       "chain_layer": 2,
       "sidechain_slot": 2
+    },
+    {
+      "version": "latest",
+      "name": "BitAssets",
+      "description": "Variant of BitDNS that aims to replace ICANN",
+      "repo_url": "",
+      "directories": {
+        "linux": "plain_bitassets",
+        "darwin": "plain_bitassets",
+        "win32": "Bitassets"
+      },
+      "download": {
+        "base_url": "https://releases.drivechain.info/",
+        "files": {
+          "linux": "L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip",
+          "darwin": "L2-S4-BitAssets-latest-x86_64-apple-darwin.zip",
+          "win32": "L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip"
+        }
+      },
+      "binary": {
+        "linux": "bitassets",
+        "darwin": "bitassets",
+        "win32": "bitassets.exe"
+      },
+      "network": {
+        "port": 6004
+      },
+      "chain_layer": 2,
+      "sidechain_slot": 4
     }
   ]
 }

@@ -9,6 +9,7 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/providers/process_provider.dart';
+import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
@@ -43,6 +44,7 @@ class BinaryProvider extends ChangeNotifier {
   late final BitwindowRPC? bitwindowRPC;
   late final ThunderRPC? thunderRPC;
   late final BitnamesRPC? bitnamesRPC;
+  late final BitAssetsRPC? bitassetsRPC;
   late final ZCashRPC? zcashRPC;
 
   // Track download status and active downloads for each binary
@@ -67,6 +69,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitwindowConnected => bitwindowRPC?.connected ?? false;
   bool get thunderConnected => thunderRPC?.connected ?? false;
   bool get bitnamesConnected => bitnamesRPC?.connected ?? false;
+  bool get bitassetsConnected => bitassetsRPC?.connected ?? false;
   bool get zcashConnected => zcashRPC?.connected ?? false;
 
   bool get mainchainInitializing => mainchainRPC.initializingBinary;
@@ -74,6 +77,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitwindowInitializing => bitwindowRPC?.initializingBinary ?? false;
   bool get thunderInitializing => thunderRPC?.initializingBinary ?? false;
   bool get bitnamesInitializing => bitnamesRPC?.initializingBinary ?? false;
+  bool get bitassetsInitializing => bitassetsRPC?.initializingBinary ?? false;
   bool get zcashInitializing => zcashRPC?.initializingBinary ?? false;
 
   bool get mainchainStopping => mainchainRPC.stoppingBinary;
@@ -81,6 +85,7 @@ class BinaryProvider extends ChangeNotifier {
   bool get bitwindowStopping => bitwindowRPC?.stoppingBinary ?? false;
   bool get thunderStopping => thunderRPC?.stoppingBinary ?? false;
   bool get bitnamesStopping => bitnamesRPC?.stoppingBinary ?? false;
+  bool get bitassetsStopping => bitassetsRPC?.stoppingBinary ?? false;
   bool get zcashStopping => zcashRPC?.stoppingBinary ?? false;
 
   // Only show errors for explicitly launched binaries
@@ -89,6 +94,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get bitwindowError => bitwindowRPC?.connectionError;
   String? get thunderError => thunderRPC?.connectionError;
   String? get bitnamesError => bitnamesRPC?.connectionError;
+  String? get bitassetsError => bitassetsRPC?.connectionError;
   String? get zcashError => zcashRPC?.connectionError;
 
   // Only show errors for explicitly launched binaries
@@ -97,6 +103,7 @@ class BinaryProvider extends ChangeNotifier {
   String? get bitwindowStartupError => bitwindowRPC?.startupError;
   String? get thunderStartupError => thunderRPC?.startupError;
   String? get bitnamesStartupError => bitnamesRPC?.startupError;
+  String? get bitassetsStartupError => bitassetsRPC?.startupError;
   String? get zcashStartupError => zcashRPC?.startupError;
 
   bool get inIBD => mainchainRPC.inIBD;
@@ -130,6 +137,13 @@ class BinaryProvider extends ChangeNotifier {
       bitnamesRPC?.addListener(notifyListeners);
     } catch (_) {
       bitnamesRPC = null;
+    }
+
+    try {
+      bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
+      bitassetsRPC?.addListener(notifyListeners);
+    } catch (_) {
+      bitassetsRPC = null;
     }
 
     try {
@@ -233,6 +247,9 @@ class BinaryProvider extends ChangeNotifier {
       Bitnames() => enforcerConnected && mainchainReady
           ? null
           : 'Mainchain and Enforcer must be running and headers synced before starting Bitnames',
+      BitAssets() => enforcerConnected && mainchainReady
+          ? null
+          : 'Mainchain and Enforcer must be running and headers synced before starting BitAssets',
       ZCash() => enforcerConnected && mainchainReady
           ? null
           : 'Mainchain and Enforcer must be running and headers synced before starting ZCash',
@@ -245,7 +262,7 @@ class BinaryProvider extends ChangeNotifier {
     Binary binary, {
     bool useStarter = false,
   }) async {
-    if (binary is Thunder || binary is Bitnames) {
+    if (binary is Thunder || binary is Bitnames || binary is BitAssets) {
       binary = binary as Sidechain;
       // We're booting some sort of sidechain. Check the launcher-directory for
       // a starter seed
@@ -270,6 +287,9 @@ class BinaryProvider extends ChangeNotifier {
 
       case Bitnames():
         await bitnamesRPC?.initBinary();
+
+      case BitAssets():
+        await bitassetsRPC?.initBinary();
 
       case ZCash():
         await zcashRPC?.initBinary();
@@ -353,6 +373,8 @@ class BinaryProvider extends ChangeNotifier {
         await thunderRPC?.stop();
       case Bitnames():
         await bitnamesRPC?.stop();
+      case BitAssets():
+        await bitassetsRPC?.stop();
       case ZCash():
         await zcashRPC?.stop();
     }
@@ -365,6 +387,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitWindow => bitwindowConnected,
       var b when b is Thunder => thunderConnected,
       var b when b is Bitnames => bitnamesConnected,
+      var b when b is BitAssets => bitassetsConnected,
       var b when b is ZCash => zcashConnected,
       _ => false,
     };
@@ -377,6 +400,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitWindow => bitwindowInitializing,
       var b when b is Thunder => thunderInitializing,
       var b when b is Bitnames => bitnamesInitializing,
+      var b when b is BitAssets => bitassetsInitializing,
       var b when b is ZCash => zcashInitializing,
       _ => false,
     };
@@ -389,6 +413,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitWindow => bitwindowStopping,
       var b when b is Thunder => thunderStopping,
       var b when b is Bitnames => bitnamesStopping,
+      var b when b is BitAssets => bitassetsStopping,
       var b when b is ZCash => zcashStopping,
       _ => false,
     };
@@ -401,6 +426,7 @@ class BinaryProvider extends ChangeNotifier {
       var b when b is BitWindow => _processProvider.isRunning(BitWindow()),
       var b when b is Thunder => _processProvider.isRunning(Thunder()),
       var b when b is Bitnames => _processProvider.isRunning(Bitnames()),
+      var b when b is BitAssets => _processProvider.isRunning(BitAssets()),
       var b when b is ZCash => _processProvider.isRunning(ZCash()),
       _ => false,
     };
@@ -503,6 +529,7 @@ class BinaryProvider extends ChangeNotifier {
     bitwindowRPC?.removeListener(notifyListeners);
     thunderRPC?.removeListener(notifyListeners);
     bitnamesRPC?.removeListener(notifyListeners);
+    bitassetsRPC?.removeListener(notifyListeners);
     zcashRPC?.removeListener(notifyListeners);
     super.dispose();
   }

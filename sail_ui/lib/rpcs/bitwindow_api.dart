@@ -139,7 +139,6 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<BlockchainInfo> getBlockchainInfo() async {
     final syncInfo = await bitwindowd.getSyncInfo();
-    // TODO: create an info type that makes sense. a lot of unused fields here
     return BlockchainInfo(
       chain: 'signet',
       bestBlockHash: syncInfo.tipBlockHash,

@@ -3,14 +3,6 @@
 version: 2
 updates:
   - package-ecosystem: pub
-    directory: "/sidesail"
-    schedule:
-      interval: weekly
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-patch"]
-
-  - package-ecosystem: pub
     directory: "/sail_ui"
     schedule:
       interval: weekly
@@ -26,10 +18,13 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
 
-  - package-ecosystem: gomod
+  - package-ecosystem: pub
     directory: "/faucet/server"
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: pub
     directory: "/bitwindow"
@@ -45,7 +40,39 @@ updates:
       interval: weekly
 
   - package-ecosystem: pub
+    directory: "/thunder"
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: pub
+    directory: "/bitnames"
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: pub
+    directory: "/bitassets"
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: pub
     directory: "/launcher"
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: pub
+    directory: "/zside"
     schedule:
       interval: weekly
     ignore:

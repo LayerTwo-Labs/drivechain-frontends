@@ -6,6 +6,7 @@ on:
       - "sail_ui/**"
       - "thunder/**"
       - "bitnames/**"
+      - "bitassets/**"
       - "zside/**"
       - "bitwindow/**"
       - "faucet/**"
@@ -17,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [sail_ui, thunder, bitnames, zside, bitwindow, faucet, launcher]
+        package: [sail_ui, thunder, bitnames, bitassets, zside, bitwindow, faucet, launcher]
 
     defaults:
       run:

@@ -34,6 +34,9 @@ abstract class Sidechain extends Binary {
 
       case 'bitnames':
         return Bitnames();
+
+      case 'bitassets':
+        return BitAssets();
     }
     return null;
   }
@@ -52,6 +55,7 @@ abstract class Sidechain extends Binary {
           network: binary.network,
           chainLayer: binary.chainLayer,
         );
+
       case 'zSide':
         return ZCash(
           name: binary.name,
@@ -64,6 +68,7 @@ abstract class Sidechain extends Binary {
           network: binary.network,
           chainLayer: binary.chainLayer,
         );
+
       case 'Thunder':
         return Thunder(
           name: binary.name,
@@ -76,8 +81,22 @@ abstract class Sidechain extends Binary {
           network: binary.network,
           chainLayer: binary.chainLayer,
         );
+
       case 'Bitnames':
         return Bitnames(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          binary: binary.binary,
+          network: binary.network,
+          chainLayer: binary.chainLayer,
+        );
+
+      case 'BitAssets':
+        return BitAssets(
           name: binary.name,
           version: binary.version,
           description: binary.description,
@@ -198,7 +217,7 @@ class ZCash extends Sidechain {
     super.name = 'zSide',
     super.version = '0.1.0',
     super.description = 'ZCash Sidechain',
-    super.repoUrl = 'https://github.com/drivechain-project/zside',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/zebra',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'zsided',
@@ -261,7 +280,7 @@ class Thunder extends Sidechain {
     super.name = 'Thunder',
     super.version = '0.1.0',
     super.description = 'Thunder Sidechain',
-    super.repoUrl = 'https://github.com/drivechain-project/thunder',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/thunder-rust',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'thunder',
@@ -324,7 +343,7 @@ class Bitnames extends Sidechain {
     super.name = 'Bitnames',
     super.version = '0.1.0',
     super.description = 'Bitnames Sidechain',
-    super.repoUrl = 'https://github.com/drivechain-project/bitnames',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/plain-bitnames',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'bitnames',
@@ -369,6 +388,69 @@ class Bitnames extends Sidechain {
     int? chainLayer,
   }) {
     return Bitnames(
+      name: name,
+      version: version ?? this.version,
+      description: description ?? this.description,
+      repoUrl: repoUrl ?? this.repoUrl,
+      directories: directories ?? this.directories,
+      metadata: metadata ?? this.metadata,
+      binary: binary ?? this.binary,
+      network: network ?? this.network,
+      chainLayer: chainLayer ?? this.chainLayer,
+    );
+  }
+}
+
+class BitAssets extends Sidechain {
+  BitAssets({
+    super.name = 'BitAssets',
+    super.version = '0.1.0',
+    super.description = 'Bitassets Sidechain',
+    super.repoUrl = 'https://github.com/LayerTwo-Labs/plain-bitassets',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    super.binary = 'bitassets',
+    NetworkConfig? network,
+    super.chainLayer = 2,
+  }) : super(
+          directories: directories ??
+              DirectoryConfig(
+                base: {
+                  OS.linux: 'plain_bitassets',
+                  OS.macos: 'plain_bitassets',
+                  OS.windows: 'plain_bitassets',
+                },
+              ),
+          metadata: metadata ??
+              MetadataConfig(
+                baseUrl: 'https://releases.drivechain.info/',
+                files: {
+                  OS.linux: 'L2-S4-BitAssets-latest-x86_64-unknown-linux-gnu.zip',
+                  OS.macos: 'L2-S4-BitAssets-latest-x86_64-apple-darwin.zip',
+                  OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
+                },
+              ),
+          network: network ?? NetworkConfig(port: 6004),
+        );
+
+  @override
+  int slot = 4;
+
+  @override
+  Color color = SailColorScheme.blue;
+
+  @override
+  BitAssets copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    String? binary,
+    NetworkConfig? network,
+    int? chainLayer,
+  }) {
+    return BitAssets(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,

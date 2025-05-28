@@ -13,6 +13,7 @@ import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
@@ -134,6 +135,13 @@ Future<void> initDependencies(Logger log) async {
             chain: Sidechain.fromBinary(binary),
           );
           GetIt.I.registerSingleton<BitnamesRPC>(bitnames);
+
+        case BitAssets():
+          final bitassets = await BitAssetsLive.create(
+            binary: binary,
+            chain: Sidechain.fromBinary(binary),
+          );
+          GetIt.I.registerSingleton<BitAssetsRPC>(bitassets);
       }
     }),
   );
