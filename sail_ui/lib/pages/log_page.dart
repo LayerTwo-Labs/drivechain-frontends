@@ -362,7 +362,7 @@ class LogPageViewModel extends BaseViewModel {
     });
   }
 
-  void _scrollToBottom({overrideBottom = false}) {
+  void _scrollToBottom({bool overrideBottom = false}) {
     // Only scroll to bottom if currently at or near the bottom
     final isAtBottom = scrollController.hasClients &&
         scrollController.position.pixels >= scrollController.position.maxScrollExtent - 150; // 150 pixels threshold

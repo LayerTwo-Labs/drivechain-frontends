@@ -24,8 +24,8 @@ class SailColumn extends StatelessWidget {
   });
 
   bool notLastOrFirst(int i) => i >= 0 && i < (children.length - 1);
-  bool isNotOptional(i) => children[i] is! SailOptional;
-  bool isOptionalWithValue(i) {
+  bool isNotOptional(int i) => children[i] is! SailOptional;
+  bool isOptionalWithValue(int i) {
     final child = children[i];
     if (child is SailOptional) {
       return (child).value != null;
