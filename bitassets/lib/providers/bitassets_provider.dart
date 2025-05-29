@@ -8,8 +8,10 @@ class BitAssetsProvider extends ChangeNotifier {
   BitAssetsRPC get rpc => GetIt.I.get<BitAssetsRPC>();
 
   List<BitAssetEntry> entries = [];
+  List<DutchAuctionEntry> auctions = [];
   bool initialized = false;
   bool _isFetching = false;
+  bool _isLoadingAuctions = true;
   Timer? _retryTimer;
 
   BitAssetsProvider() {
@@ -34,27 +36,61 @@ class BitAssetsProvider extends ChangeNotifier {
     if (_isFetching) return;
     _isFetching = true;
 
-    try {
-      final newEntries = await rpc.listBitAssets();
-      const newInitialized = true;
+    List<BitAssetEntry>? newEntries;
+    List<DutchAuctionEntry>? newAuctions;
+    bool newInitialized = initialized;
 
-      if (!_listEquals(entries, newEntries) || newInitialized != initialized) {
+    // Try to fetch BitAssets
+    try {
+      newEntries = await rpc.listBitAssets();
+      newInitialized = true;
+    } catch (e) {
+      // Handle BitAssets error independently
+    }
+
+    // Try to fetch Dutch Auctions
+    try {
+      newAuctions = await rpc.dutchAuctions();
+    } catch (e) {
+      // Handle auction error independently
+    }
+
+    if (_dataHasChanged(newEntries, newAuctions, newInitialized)) {
+      if (newEntries != null) {
         entries = newEntries;
         initialized = newInitialized;
-        notifyListeners();
       }
-    } finally {
-      _isFetching = false;
+      if (newAuctions != null) {
+        auctions = newAuctions;
+        _isLoadingAuctions = false;
+      }
+      notifyListeners();
     }
+
+    _isFetching = false;
   }
 
-  bool _listEquals(List<BitAssetEntry> a, List<BitAssetEntry> b) {
-    if (a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
-      if (a[i].hash != b[i].hash) return false;
+  bool _dataHasChanged(
+    List<BitAssetEntry>? newEntries,
+    List<DutchAuctionEntry>? newAuctions,
+    bool newInitialized,
+  ) {
+    if (newInitialized != initialized) {
+      return true;
     }
-    return true;
+
+    if (newEntries != null && !listEquals(entries, newEntries)) {
+      return true;
+    }
+
+    if (newAuctions != null && !listEquals(auctions, newAuctions)) {
+      return true;
+    }
+
+    return false;
   }
+
+  bool get isLoadingAuctions => _isLoadingAuctions;
 
   @override
   void dispose() {

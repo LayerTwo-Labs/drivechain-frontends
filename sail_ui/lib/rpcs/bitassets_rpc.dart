@@ -573,10 +573,7 @@ class BitAssetsLive extends BitAssetsRPC {
       if (item is! List || item.length != 2) {
         throw FormatException('Invalid dutch auction entry format: $item');
       }
-      return DutchAuctionEntry(
-        id: item[0] as String,
-        data: item[1] as Map<String, dynamic>,
-      );
+      return DutchAuctionEntry.fromJson(item);
     }).toList();
   }
 
@@ -898,12 +895,46 @@ class DutchAuctionParams {
 
 class DutchAuctionEntry {
   final String id;
-  final Map<String, dynamic> data;
+  final String baseAsset;
+  final String quoteAsset;
+  final int baseAmount;
+  final int initialPrice;
+  final int finalPrice;
+  final int startBlock;
+  final int duration;
+  final String status;
+  final int? currentPrice;
 
   DutchAuctionEntry({
     required this.id,
-    required this.data,
+    required this.baseAsset,
+    required this.quoteAsset,
+    required this.baseAmount,
+    required this.initialPrice,
+    required this.finalPrice,
+    required this.startBlock,
+    required this.duration,
+    required this.status,
+    this.currentPrice,
   });
+
+  factory DutchAuctionEntry.fromJson(List<dynamic> json) {
+    final id = json[0] as String;
+    final data = json[1] as Map<String, dynamic>;
+
+    return DutchAuctionEntry(
+      id: id,
+      baseAsset: data['base_asset'] as String? ?? '',
+      quoteAsset: data['quote_asset'] as String? ?? '',
+      baseAmount: data['base_amount'] as int? ?? 0,
+      initialPrice: data['initial_price'] as int? ?? 0,
+      finalPrice: data['final_price'] as int? ?? 0,
+      startBlock: data['start_block'] as int? ?? 0,
+      duration: data['duration'] as int? ?? 0,
+      status: data['status'] as String? ?? 'Unknown',
+      currentPrice: data['current_price'] as int?,
+    );
+  }
 }
 
 class BitAssetsUTXO extends SidechainUTXO {
