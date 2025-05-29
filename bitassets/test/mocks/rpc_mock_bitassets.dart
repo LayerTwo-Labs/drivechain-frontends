@@ -137,9 +137,11 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
-  Future<BitAssetData?> getBitAssetData(String assetId) {
+  Future<BitAssetRequest?> getBitAssetData(String assetId) {
     return Future.value(
-      BitAssetData(),
+      BitAssetRequest(
+        initialSupply: 123,
+      ),
     );
   }
 
@@ -265,11 +267,6 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
-  Future<List> myUTXOs() {
-    return Future.value([]);
-  }
-
-  @override
   Future<Map<String, dynamic>> openapiSchema() {
     return Future.value({});
   }
@@ -280,7 +277,7 @@ class MockBitAssetsRPC extends BitAssetsRPC {
   }
 
   @override
-  Future<String> registerBitAsset(String assetId, BitAssetData? data) {
+  Future<String> registerBitAsset(String assetId, BitAssetRequest? data) {
     return Future.value('mocked');
   }
 

@@ -24,7 +24,7 @@ abstract class BitAssetsRPC extends SidechainRPC {
   Future<BalanceResponse> getBalance();
 
   /// Get BitAsset data
-  Future<BitAssetData?> getBitAssetData(String assetId);
+  Future<BitAssetRequest?> getBitAssetData(String assetId);
 
   /// List all BitAssets
   Future<List<BitAssetEntry>> listBitAssets();
@@ -36,10 +36,10 @@ abstract class BitAssetsRPC extends SidechainRPC {
   Future<List<BitAssetsPeerInfo>> listPeers();
 
   /// Register a BitAsset
-  Future<String> registerBitAsset(String assetId, BitAssetData? data);
+  Future<String> registerBitAsset(String plaintextName, BitAssetRequest data);
 
   /// Reserve a BitAsset
-  Future<String> reserveBitAsset(String assetId);
+  Future<String> reserveBitAsset(String name);
 
   /// Get deposit address
   @override
@@ -80,9 +80,6 @@ abstract class BitAssetsRPC extends SidechainRPC {
   /// List all UTXOs
   @override
   Future<List<SidechainUTXO>> listUTXOs();
-
-  /// List owned UTXOs
-  Future<List<dynamic>> myUTXOs();
 
   /// Get OpenAPI schema
   Future<Map<String, dynamic>> openapiSchema();
@@ -338,14 +335,14 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<BalanceResponse> getBalance() async {
-    final response = await _client().call('balance') as Map<String, dynamic>;
+    final response = await _client().call('bitcoin_balance') as Map<String, dynamic>;
     return BalanceResponse.fromJson(response);
   }
 
   @override
-  Future<BitAssetData?> getBitAssetData(String assetId) async {
+  Future<BitAssetRequest?> getBitAssetData(String assetId) async {
     final response = await _client().call('bitasset_data', assetId) as Map<String, dynamic>?;
-    return response != null ? BitAssetData.fromJson(response) : null;
+    return response != null ? BitAssetRequest.fromJson(response) : null;
   }
 
   @override
@@ -361,7 +358,7 @@ class BitAssetsLive extends BitAssetsRPC {
       final detailsMap = item[2] as Map<String, dynamic>;
 
       return BitAssetEntry(
-        seqId: seqId,
+        sequenceID: seqId,
         hash: hash,
         details: BitAssetDetails.fromJson(detailsMap),
       );
@@ -380,17 +377,19 @@ class BitAssetsLive extends BitAssetsRPC {
   }
 
   @override
-  Future<String> registerBitAsset(String assetId, BitAssetData? data) async {
-    final response = await _client().call('register_bitasset', {
-      'asset_id': assetId,
-      'data': data?.toJson(),
-    });
+  Future<String> registerBitAsset(String plaintextName, BitAssetRequest data) async {
+    final params = {
+      'plaintext_name': plaintextName,
+      ...data.toJson(),
+    };
+
+    final response = await _client().call('register_bitasset', params);
     return response as String;
   }
 
   @override
-  Future<String> reserveBitAsset(String assetId) async {
-    final response = await _client().call('reserve_bitasset', assetId);
+  Future<String> reserveBitAsset(String name) async {
+    final response = await _client().call('reserve_bitasset', [name]);
     return response as String;
   }
 
@@ -420,14 +419,8 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
-    final response = await _client().call('list_utxos') as List<dynamic>;
+    final response = await _client().call('get_wallet_utxos') as List<dynamic>;
     return response.map((e) => BitAssetsUTXO.fromJson(e as Map<String, dynamic>)).toList();
-  }
-
-  @override
-  Future<List<dynamic>> myUTXOs() async {
-    final response = await _client().call('my_utxos') as List<dynamic>;
-    return response;
   }
 
   @override
@@ -716,6 +709,8 @@ final bitAssetsRPCMethods = [
   'get_new_encryption_key',
   'get_new_verifying_key',
   'get_blockcount',
+  'get_transaction',
+  'get_transaction_info',
   'get_wallet_addresses',
   'get_wallet_utxos',
   'latest_failed_withdrawal_bundle_height',
@@ -738,14 +733,16 @@ final bitAssetsRPCMethods = [
 ];
 
 // Models for BitAssets RPC responses
-class BitAssetData {
+class BitAssetRequest {
   final String? commitment;
   final String? encryptionPubkey;
   final String? signingPubkey;
   final String? socketAddrV4;
   final String? socketAddrV6;
+  final int initialSupply;
 
-  BitAssetData({
+  BitAssetRequest({
+    required this.initialSupply,
     this.commitment,
     this.encryptionPubkey,
     this.signingPubkey,
@@ -754,6 +751,7 @@ class BitAssetData {
   });
 
   Map<String, dynamic> toJson() => {
+        'initial_supply': initialSupply,
         if (commitment != null) 'commitment': commitment,
         if (encryptionPubkey != null) 'encryption_pubkey': encryptionPubkey,
         if (signingPubkey != null) 'signing_pubkey': signingPubkey,
@@ -761,7 +759,8 @@ class BitAssetData {
         if (socketAddrV6 != null) 'socket_addr_v6': socketAddrV6,
       };
 
-  factory BitAssetData.fromJson(Map<String, dynamic> json) => BitAssetData(
+  factory BitAssetRequest.fromJson(Map<String, dynamic> json) => BitAssetRequest(
+        initialSupply: json['initial_supply'] as int,
         commitment: json['commitment'] as String?,
         encryptionPubkey: json['encryption_pubkey'] as String?,
         signingPubkey: json['signing_pubkey'] as String?,
@@ -801,12 +800,12 @@ class BitAssetsPeerInfo {
 }
 
 class BitAssetEntry {
-  final int seqId;
+  final int sequenceID;
   final String hash;
   final BitAssetDetails details;
 
   BitAssetEntry({
-    required this.seqId,
+    required this.sequenceID,
     required this.hash,
     required this.details,
   });
@@ -908,17 +907,29 @@ class DutchAuctionEntry {
 }
 
 class BitAssetsUTXO extends SidechainUTXO {
+  final Map<String, dynamic> output;
+
   BitAssetsUTXO({
     required super.outpoint,
-    required super.address,
-    required super.valueSats,
-    required super.type,
-  });
+    required this.output,
+  }) : super(
+          address: output['address'] as String,
+          valueSats: _extractValueSats(output['content']),
+          type: OutpointType.deposit, // TODO: determine actual type from data
+        );
+
+  static int _extractValueSats(Map<String, dynamic> content) {
+    // Extract value based on content type
+    if (content.containsKey('BitcoinSats')) {
+      return content['BitcoinSats'] as int;
+    } else if (content.containsKey('BitAsset')) {
+      return content['BitAsset']['amount'] as int;
+    }
+    return 0;
+  }
 
   factory BitAssetsUTXO.fromJson(Map<String, dynamic> json) => BitAssetsUTXO(
         outpoint: json['outpoint'] as String,
-        address: json['address'] as String,
-        valueSats: json['value_sats'] as int,
-        type: OutpointType.deposit, // TODO: add type based on real data
+        output: json['output'] as Map<String, dynamic>,
       );
 }

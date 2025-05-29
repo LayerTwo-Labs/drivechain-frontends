@@ -123,7 +123,7 @@ bitassets_cli=bitassets-cli$bin_name_postfix
 
 # Avoid fetching the binary if it already exists
 if ! test -f $assets_dir/$bitassets || ! test -f $assets_dir/$bitassets_cli; then
-    echo BitAssets binaries do not exist: $assets_dir/$bitassets and/or $assets_dir/$bitassets_cli
+    echo bitassets binaries do not exist: $assets_dir/$bitassets and/or $assets_dir/$bitassets_cli
 
     # Fetch the bitassets binary for the specified platform
     bitassets_file=L2-S4-BitAssets-latest-x86_64-$bitassets_version_postfix.zip
@@ -152,7 +152,7 @@ if ! test -f $assets_dir/$bitassets || ! test -f $assets_dir/$bitassets_cli; the
         exit 1
     fi
 
-    echo "BitAssets binaries renamed to $bitassets and $bitassets_cli"
+    echo "bitassets binaries renamed to $bitassets and $bitassets_cli"
 
     # Make the binaries executable
     chmod +x "$assets_dir/$bitassets"
