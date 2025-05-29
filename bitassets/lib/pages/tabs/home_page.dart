@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:auto_route/auto_route.dart' as auto_router;
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/main.dart';
+import 'package:bitassets/providers/notification_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +16,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/providers/sidechain/notification_provider.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/widgets/nav/bottom_nav.dart';
@@ -34,6 +34,12 @@ enum Tabs {
   SidechainOverview,
 
   // sidechain balance/transfer route
+  BitAssets,
+
+  // bitassets messaging route
+  Messaging,
+
+  // sidechain balance/transfer route
   Console,
 
   // trailing common routes
@@ -50,7 +56,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver, WindowListener {
   NotificationProvider get _notificationProvider => GetIt.I.get<NotificationProvider>();
-  BitAssetsRPC get bitassetsRPC => GetIt.I.get<BitAssetsRPC>();
+  BitAssetsRPC get _rpc => GetIt.I.get<BitAssetsRPC>();
 
   final ValueNotifier<List<Widget>> notificationsNotifier = ValueNotifier([]);
 
@@ -79,146 +85,184 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
 
-    return CrossPlatformMenuBar(
-      menus: [
-        PlatformMenu(
-          label: bitassetsRPC.chain.name,
+    return Stack(
+      children: [
+        // Your main app content
+        CrossPlatformMenuBar(
           menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'About $bitassetsRPC.rpc.chain.name',
-                  onSelected: null,
+            PlatformMenu(
+              label: _rpc.chain.name,
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'About $BitAssetsRPC.rpc.chain.name',
+                      onSelected: null,
+                    ),
+                  ],
+                ),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Quit $BitAssetsRPC.rpc.chain.name',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
+                      onSelected: () => didRequestAppExit(),
+                    ),
+                  ],
                 ),
               ],
             ),
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Quit $bitassetsRPC.rpc.chain.name',
-                  shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
-                  onSelected: () => didRequestAppExit(),
+
+            // This Node menu
+            PlatformMenu(
+              label: 'This Node',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Console',
+                      onSelected: () async {
+                        final applicationDir = await getApplicationSupportDirectory();
+                        final logFile = await getLogFile();
+
+                        final window = await DesktopMultiWindow.createWindow(
+                          jsonEncode({
+                            'window_type': 'console',
+                            'application_dir': applicationDir.path,
+                            'log_file': logFile.path,
+                          }),
+                        );
+                        await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
+                        await window.center();
+                        await window.setTitle('$BitAssetsRPC.rpc.chain.name Console');
+                        await window.show();
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'View Logs',
+                      onSelected: () => GetIt.I.get<AppRouter>().push(
+                            LogRoute(
+                              title: '${_rpc.chain.name} Logs',
+                              logPath: _rpc.binary.logPath(),
+                            ),
+                          ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ],
-        ),
-
-        // This Node menu
-        PlatformMenu(
-          label: 'This Node',
-          menus: [
-            PlatformMenuItemGroup(
-              members: [
-                PlatformMenuItem(
-                  label: 'Console',
-                  onSelected: () async {
-                    final applicationDir = await getApplicationSupportDirectory();
-                    final logFile = await getLogFile();
-
-                    final window = await DesktopMultiWindow.createWindow(
-                      jsonEncode({
-                        'window_type': 'console',
-                        'application_dir': applicationDir.path,
-                        'log_file': logFile.path,
-                      }),
+          child: Scaffold(
+            backgroundColor: theme.colors.background,
+            body: auto_router.AutoTabsRouter.builder(
+              homeIndex: Tabs.ParentChainPeg.index,
+              routes: [
+                // parent chain routes
+                ParentChainRoute(),
+                // sidechain balance/transfer route
+                SidechainOverviewTabRoute(),
+                // bitassets route
+                BitAssetsTabRoute(),
+                // bitassets messaging route
+                MessagingTabRoute(),
+                // sidechain console route
+                ConsoleTabRoute(),
+                // trailing common routes
+                SettingsTabRoute(),
+              ],
+              builder: (context, children, tabsRouter) {
+                return ViewModelBuilder.reactive(
+                  viewModelBuilder: () => HomePageViewModel(),
+                  fireOnViewModelReadyOnce: true,
+                  builder: (context, model, child) {
+                    return Scaffold(
+                      backgroundColor: theme.colors.background,
+                      appBar: TopNav(
+                        routes: [
+                          TopNavRoute(
+                            label: 'Parent Chain',
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Overview',
+                            optionalKey: Tabs.SidechainOverview.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'BitAssets',
+                            optionalKey: Tabs.BitAssets.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.BitAssets.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Messaging',
+                            optionalKey: Tabs.Messaging.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.Messaging.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Console',
+                            optionalKey: Tabs.Console.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.Console.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            icon: SailSVGAsset.settings,
+                          ),
+                        ],
+                      ),
+                      body: Column(
+                        children: [
+                          Expanded(child: children[tabsRouter.activeIndex]),
+                          BottomNav(
+                            mainchainInfo: false,
+                            onlyShowAdditional: true,
+                            additionalConnection: ConnectionMonitor(
+                              rpc: _rpc,
+                              name: _rpc.chain.name,
+                            ),
+                            navigateToLogs: (title, logPath) {
+                              GetIt.I.get<AppRouter>().push(
+                                    LogRoute(
+                                      title: title,
+                                      logPath: logPath,
+                                    ),
+                                  );
+                            },
+                            endWidgets: [],
+                          ),
+                        ],
+                      ),
                     );
-                    await window.setFrame(const Offset(0, 0) & const Size(1280, 720));
-                    await window.center();
-                    await window.setTitle('$bitassetsRPC.rpc.chain.name Console');
-                    await window.show();
                   },
-                ),
-                PlatformMenuItem(
-                  label: 'View Logs',
-                  onSelected: () => GetIt.I.get<AppRouter>().push(
-                        LogRoute(
-                          title: '${bitassetsRPC.chain.name} Logs',
-                          logPath: bitassetsRPC.binary.logPath(),
-                        ),
-                      ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-      child: Scaffold(
-        backgroundColor: theme.colors.background,
-        body: auto_router.AutoTabsRouter.builder(
-          homeIndex: Tabs.ParentChainPeg.index,
-          routes: [
-            // parent chain routes
-            ParentChainRoute(),
-            // sidechain balance/transfer route
-            SidechainOverviewTabRoute(),
-            // sidechain console route
-            ConsoleTabRoute(),
-            // trailing common routes
-            SettingsTabRoute(),
-          ],
-          builder: (context, children, tabsRouter) {
-            return ViewModelBuilder.reactive(
-              viewModelBuilder: () => HomePageViewModel(),
-              fireOnViewModelReadyOnce: true,
-              builder: (context, model, child) {
-                return Scaffold(
-                  backgroundColor: theme.colors.background,
-                  appBar: TopNav(
-                    routes: [
-                      TopNavRoute(
-                        label: 'Parent Chain',
-                        onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
-                        },
-                      ),
-                      TopNavRoute(
-                        label: 'Overview',
-                        optionalKey: Tabs.SidechainOverview.index,
-                        onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.SidechainOverview.index);
-                        },
-                      ),
-                      TopNavRoute(
-                        label: 'Console',
-                        optionalKey: Tabs.Console.index,
-                        onTap: () {
-                          tabsRouter.setActiveIndex(Tabs.Console.index);
-                        },
-                      ),
-                      TopNavRoute(
-                        icon: SailSVGAsset.settings,
-                      ),
-                    ],
-                  ),
-                  body: Column(
-                    children: [
-                      Expanded(child: children[tabsRouter.activeIndex]),
-                      BottomNav(
-                        mainchainInfo: false,
-                        additionalConnection: ConnectionMonitor(
-                          rpc: bitassetsRPC,
-                          name: bitassetsRPC.chain.name,
-                        ),
-                        navigateToLogs: (title, logPath) {
-                          GetIt.I.get<AppRouter>().push(
-                                LogRoute(
-                                  title: title,
-                                  logPath: logPath,
-                                ),
-                              );
-                        },
-                        endWidgets: [],
-                        onlyShowAdditional: true,
-                      ),
-                    ],
-                  ),
                 );
               },
-            );
-          },
+            ),
+          ),
         ),
-      ),
+        // Notification stack overlay
+        Positioned(
+          right: 24,
+          bottom: 24,
+          child: ValueListenableBuilder<List<Widget>>(
+            valueListenable: notificationsNotifier,
+            builder: (context, notifications, _) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: notifications,
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

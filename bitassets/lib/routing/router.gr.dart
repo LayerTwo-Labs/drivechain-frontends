@@ -11,6 +11,21 @@
 part of 'router.dart';
 
 /// generated route for
+/// [BitAssetsTabPage]
+class BitAssetsTabRoute extends PageRouteInfo<void> {
+  const BitAssetsTabRoute({List<PageRouteInfo>? children}) : super(BitAssetsTabRoute.name, initialChildren: children);
+
+  static const String name = 'BitAssetsTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const BitAssetsTabPage();
+    },
+  );
+}
+
+/// generated route for
 /// [ConsoleTabPage]
 class ConsoleTabRoute extends PageRouteInfo<void> {
   const ConsoleTabRoute({List<PageRouteInfo>? children}) : super(ConsoleTabRoute.name, initialChildren: children);
@@ -36,6 +51,21 @@ class HomeRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const HomePage();
+    },
+  );
+}
+
+/// generated route for
+/// [MessagingTabPage]
+class MessagingTabRoute extends PageRouteInfo<void> {
+  const MessagingTabRoute({List<PageRouteInfo>? children}) : super(MessagingTabRoute.name, initialChildren: children);
+
+  static const String name = 'MessagingTabRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const MessagingTabPage();
     },
   );
 }
@@ -75,6 +105,16 @@ class SailTestRouteArgs {
   String toString() {
     return 'SailTestRouteArgs{key: $key, child: $child}';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SailTestRouteArgs) return false;
+    return key == other.key && child == other.child;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ child.hashCode;
 }
 
 /// generated route for

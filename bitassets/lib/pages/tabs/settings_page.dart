@@ -215,8 +215,8 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           // finally, boot the binaries
           bootBinaries(GetIt.I.get<Logger>());
 
-          final bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
-          while (!bitassetsRPC.connected) {
+          final rpc = GetIt.I.get<BitAssetsRPC>();
+          while (!rpc.connected) {
             await Future.delayed(const Duration(seconds: 1));
           }
 

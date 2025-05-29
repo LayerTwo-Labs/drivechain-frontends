@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitassets/config/runtime_args.dart';
+import 'package:bitassets/providers/bitassets_provider.dart';
+import 'package:bitassets/providers/notification_provider.dart';
 import 'package:bitassets/routing/router.dart';
 import 'package:bitassets/rpc/models/active_sidechains.dart';
 import 'package:bitassets/storage/sail_settings/font_settings.dart';
@@ -17,7 +19,6 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/providers/sidechain/address_provider.dart';
-import 'package:sail_ui/providers/sidechain/notification_provider.dart';
 import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
@@ -290,6 +291,10 @@ Future<void> initDependencies(
 
   GetIt.I.registerLazySingleton<TransactionProvider>(
     () => TransactionProvider(),
+  );
+
+  GetIt.I.registerLazySingleton<BitAssetsProvider>(
+    () => BitAssetsProvider(),
   );
 }
 
