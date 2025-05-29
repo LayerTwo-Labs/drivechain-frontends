@@ -39,6 +39,9 @@ enum Tabs {
   // bitassets messaging route
   Messaging,
 
+  // bitassets dutch auction route
+  DutchAuction,
+
   // sidechain balance/transfer route
   Console,
 
@@ -165,6 +168,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                 BitAssetsTabRoute(),
                 // bitassets messaging route
                 MessagingTabRoute(),
+                // bitassets dutch auction route
+                DutchAuctionTabRoute(),
                 // sidechain console route
                 ConsoleTabRoute(),
                 // trailing common routes
@@ -204,6 +209,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             optionalKey: Tabs.Messaging.index,
                             onTap: () {
                               tabsRouter.setActiveIndex(Tabs.Messaging.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Dutch Auction',
+                            optionalKey: Tabs.DutchAuction.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.DutchAuction.index);
                             },
                           ),
                           TopNavRoute(

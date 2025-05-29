@@ -114,7 +114,7 @@ class BitAssetsTabPage extends StatelessWidget {
                         Expanded(
                           child: SailCard(
                             title: 'Reserve',
-                            subtitle: 'Reserve a new bitname',
+                            subtitle: 'Reserve a new bitasset',
                             error: model.reserveError,
                             child: SailColumn(
                               spacing: SailStyleValues.padding16,
@@ -139,7 +139,7 @@ class BitAssetsTabPage extends StatelessWidget {
                           child: SailCard(
                             key: registerCardKey,
                             title: 'Register',
-                            subtitle: 'Register a reserved bitname',
+                            subtitle: 'Register a reserved bitasset',
                             error: model.registerError,
                             child: SailColumn(
                               spacing: SailStyleValues.padding16,
@@ -148,6 +148,11 @@ class BitAssetsTabPage extends StatelessWidget {
                                   label: 'Plaintext Name',
                                   hintText: 'Enter name to register',
                                   controller: model.registerNameController,
+                                ),
+                                SailTextField(
+                                  label: 'Initial Supply',
+                                  hintText: 'Enter initial supply',
+                                  controller: model.initialSupplyController,
                                 ),
                                 SailTextField(
                                   label: 'Commitment',
@@ -223,7 +228,7 @@ class ReserveRegisterTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SailCard(
       title: 'Reserve & Register',
-      subtitle: 'Register a new bitname',
+      subtitle: 'Register a new bitasset',
       child: Center(
         child: SailText.primary13('Coming soon...'),
       ),
@@ -419,7 +424,7 @@ class BitAssetsViewModel extends BaseViewModel {
 
   Future<void> reserveBitname(BuildContext context) async {
     if (balanceProvider.balance < 0.00001000) {
-      reserveError = 'Insufficient balance, deposit more funds on the Parent Chain tab to reserve a bitname';
+      reserveError = 'Insufficient balance, deposit more funds on the Parent Chain tab to reserve a bitasset';
       notifyListeners();
       return;
     }
@@ -455,7 +460,7 @@ class BitAssetsViewModel extends BaseViewModel {
 
   Future<void> registerBitAsset(BuildContext context) async {
     if (balanceProvider.balance < 0.00001000) {
-      registerError = 'Insufficient balance, deposit more funds on the Parent Chain tab to register a bitname';
+      registerError = 'Insufficient balance, deposit more funds on the Parent Chain tab to register a bitasset';
       notifyListeners();
       return;
     }
