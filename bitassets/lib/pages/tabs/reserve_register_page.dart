@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:bitassets/providers/notification_provider.dart';
@@ -7,6 +9,7 @@ import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
+import 'package:thirds/blake3.dart';
 
 @RoutePage()
 class BitAssetsTabPage extends StatelessWidget {
@@ -386,7 +389,21 @@ class BitAssetsViewModel extends BaseViewModel {
       return provider.entries;
     }
 
+    // Hash the search text with Blake3 using thirds package
+    String? searchHash;
+    try {
+      searchHash = blake3Hex(utf8.encode(searchText));
+    } catch (e) {
+      // If hashing fails, continue with regular search
+      searchHash = null;
+    }
+
     return provider.entries.where((entry) {
+      // Check if search text hash matches entry hash
+      if (searchHash != null && entry.hash.toLowerCase() == searchHash.toLowerCase()) {
+        return true;
+      }
+
       // Search in hash
       if (entry.hash.toLowerCase().contains(searchText)) {
         return true;

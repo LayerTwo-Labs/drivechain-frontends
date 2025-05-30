@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:auto_route/auto_route.dart';
+import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:thirds/blake3.dart';
 
 @RoutePage()
 class MessagingTabPage extends StatefulWidget {
@@ -14,6 +18,7 @@ class MessagingTabPage extends StatefulWidget {
 
 class _MessagingTabPageState extends State<MessagingTabPage> {
   final BitAssetsRPC rpc = GetIt.I.get<BitAssetsRPC>();
+  final bitassetsProvider = GetIt.I.get<BitAssetsProvider>();
 
   // Encrypt controllers/state
   final TextEditingController encryptPubkeyController = TextEditingController();
@@ -29,42 +34,20 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
   bool decryptLoading = false;
   String? decryptError;
 
-  Future<void> handleEncrypt() async {
-    setState(() {
-      encryptLoading = true;
-      encryptError = null;
-      encryptResult = null;
-    });
-    try {
-      final ciphertext = await rpc.encryptMsg(
-        msg: encryptMessageController.text.trim(),
-        encryptionPubkey: encryptPubkeyController.text.trim(),
-      );
-      setState(() => encryptResult = ciphertext);
-    } catch (e) {
-      setState(() => encryptError = e.toString());
-    } finally {
-      setState(() => encryptLoading = false);
-    }
+  bool get _hasBitAssetEncryptMatch {
+    return _resolveEncryptionKey(encryptPubkeyController.text) != null;
   }
 
-  Future<void> handleDecrypt() async {
-    setState(() {
-      decryptLoading = true;
-      decryptError = null;
-      decryptResult = null;
-    });
-    try {
-      final plaintext = await rpc.decryptMsg(
-        ciphertext: decryptMessageController.text.trim(),
-        encryptionPubkey: decryptPubkeyController.text.trim(),
-      );
-      setState(() => decryptResult = plaintext);
-    } catch (e) {
-      setState(() => decryptError = e.toString());
-    } finally {
-      setState(() => decryptLoading = false);
-    }
+  bool get _hasBitAssetDecryptMatch {
+    return _resolveEncryptionKey(decryptPubkeyController.text) != null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Add listeners to update UI when text changes
+    encryptPubkeyController.addListener(_onChange);
+    decryptPubkeyController.addListener(_onChange);
   }
 
   @override
@@ -86,6 +69,7 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
                     label: "Receiver's BitAsset or Encryption Pubkey (Bech32m)",
                     hintText: 'Enter a BitAsset or a pubkey',
                     controller: encryptPubkeyController,
+                    suffixWidget: _hasBitAssetEncryptMatch ? SailSVG.icon(SailSVGAsset.iconSuccess, width: 20) : null,
                   ),
                   const SizedBox(height: 16),
                   SailTextField(
@@ -127,6 +111,7 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
                     label: "Receiver's BitAsset or Encryption Pubkey (Bech32m)",
                     hintText: 'Enter a BitAsset or a pubkey',
                     controller: decryptPubkeyController,
+                    suffixWidget: _hasBitAssetDecryptMatch ? SailSVG.icon(SailSVGAsset.iconSuccess, width: 20) : null,
                   ),
                   const SizedBox(height: 16),
                   SailTextField(
@@ -157,5 +142,90 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
         ],
       ),
     );
+  }
+
+  /// Resolves the input to an encryption pubkey
+  /// Input can be: username, blake3 hash, or direct encryption key
+  String? _resolveEncryptionKey(String input) {
+    if (input.isEmpty) {
+      return null;
+    }
+
+    final trimmedInput = input.trim();
+
+    // First, check if input is already a direct hash match in bitassets
+    var existingEntryMatch =
+        bitassetsProvider.entries.where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase()).firstOrNull;
+
+    // then check if input is a blake3 hash match
+    existingEntryMatch ??= bitassetsProvider.entries
+        .where((entry) => entry.hash == blake3Hex(utf8.encode(trimmedInput)).toLowerCase())
+        .firstOrNull;
+
+    // If no bitasset match found, assume input is a direct encryption key
+    return existingEntryMatch?.details.encryptionPubkey;
+  }
+
+  void _onChange() {
+    setState(() {});
+  }
+
+  Future<void> handleEncrypt() async {
+    setState(() {
+      encryptLoading = true;
+      encryptError = null;
+      encryptResult = null;
+    });
+
+    try {
+      final resolvedKey = _resolveEncryptionKey(encryptPubkeyController.text) ?? encryptPubkeyController.text.trim();
+      if (resolvedKey.isEmpty) {
+        setState(() => encryptError = 'Must enter a valid pubkey');
+        return;
+      }
+
+      final ciphertext = await rpc.encryptMsg(
+        msg: encryptMessageController.text.trim(),
+        encryptionPubkey: resolvedKey,
+      );
+      setState(() => encryptResult = ciphertext);
+    } catch (e) {
+      setState(() => encryptError = e.toString());
+    } finally {
+      setState(() => encryptLoading = false);
+    }
+  }
+
+  Future<void> handleDecrypt() async {
+    setState(() {
+      decryptLoading = true;
+      decryptError = null;
+      decryptResult = null;
+    });
+
+    try {
+      final resolvedKey = _resolveEncryptionKey(decryptPubkeyController.text) ?? decryptPubkeyController.text.trim();
+      if (resolvedKey.isEmpty) {
+        setState(() => decryptError = 'Must enter a valid pubkey');
+        return;
+      }
+
+      final plaintext = await rpc.decryptMsg(
+        ciphertext: decryptMessageController.text.trim(),
+        encryptionPubkey: resolvedKey,
+      );
+      setState(() => decryptResult = plaintext);
+    } catch (e) {
+      setState(() => decryptError = e.toString());
+    } finally {
+      setState(() => decryptLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    encryptPubkeyController.removeListener(_onChange);
+    decryptPubkeyController.removeListener(_onChange);
+    super.dispose();
   }
 }
