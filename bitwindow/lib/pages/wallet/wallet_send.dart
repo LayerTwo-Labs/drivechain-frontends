@@ -552,7 +552,7 @@ class _UTXOSelectorState extends State<UTXOSelector> {
                 ),
                 readOnly: true,
                 maxLines: null,
-                hintText: 'Auto-Select',
+                hintText: 'Any UTXO',
                 suffixWidget: SailMultiSelectDropdown(
                   items: utxoItems,
                   selectedValues: selectedValues,

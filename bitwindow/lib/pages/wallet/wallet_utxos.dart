@@ -46,11 +46,23 @@ class UTXOTable extends StatefulWidget {
 class _UTXOTableState extends State<UTXOTable> {
   String sortColumn = 'date';
   bool sortAscending = true;
+  List<UnspentOutput> sortedEntries = [];
 
   @override
   void initState() {
     super.initState();
+    sortedEntries = List.from(widget.entries);
     sortEntries();
+  }
+
+  @override
+  void didUpdateWidget(UTXOTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update sorted entries when the widget's entries change
+    if (widget.entries != oldWidget.entries) {
+      sortedEntries = List.from(widget.entries);
+      sortEntries();
+    }
   }
 
   void onSort(String column) {
@@ -66,7 +78,7 @@ class _UTXOTableState extends State<UTXOTable> {
   }
 
   void sortEntries() {
-    widget.entries.sort((a, b) {
+    sortedEntries.sort((a, b) {
       dynamic aValue, bValue;
       switch (sortColumn) {
         case 'date':
@@ -110,7 +122,7 @@ class _UTXOTableState extends State<UTXOTable> {
               description: 'Waiting for enforcer to start and wallet to sync..',
               enabled: widget.model.loading,
               child: SailTable(
-                getRowId: (index) => widget.entries[index].output.split(':').first,
+                getRowId: (index) => sortedEntries[index].output.split(':').first,
                 headerBuilder: (context) => [
                   SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
                   SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
@@ -119,7 +131,7 @@ class _UTXOTableState extends State<UTXOTable> {
                   SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
                 ],
                 rowBuilder: (context, row, selected) {
-                  final utxo = widget.entries[row];
+                  final utxo = sortedEntries[row];
                   final formattedAmount = formatBitcoin(
                     satoshiToBTC(utxo.value.toInt()),
                     symbol: '',
@@ -137,7 +149,7 @@ class _UTXOTableState extends State<UTXOTable> {
                     SailTableCell(value: formattedAmount, monospace: true),
                   ];
                 },
-                rowCount: widget.entries.length,
+                rowCount: sortedEntries.length,
                 columnWidths: const [120, 120, 320, 120, 120],
                 drawGrid: true,
                 sortColumnIndex: [
@@ -208,7 +220,7 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   void _onChange() {
-    track('entries', entries);
+    track('entriesss', entries);
     track('loading', loading);
     notifyIfChanged();
   }

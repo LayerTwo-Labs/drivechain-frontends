@@ -9,11 +9,11 @@ class TopNav extends StatefulWidget implements PreferredSizeWidget {
   const TopNav({
     super.key,
     required this.routes,
-    this.leadingPadding = true,
+    this.leadingPadding = false,
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(65);
+  Size get preferredSize => const Size.fromHeight(35);
 
   @override
   State<TopNav> createState() => _TopNavState();
@@ -25,7 +25,7 @@ class _TopNavState extends State<TopNav> {
     final theme = context.sailTheme;
 
     return PreferredSize(
-      preferredSize: const Size.fromHeight(65),
+      preferredSize: const Size.fromHeight(35),
       child: Builder(
         builder: (context) {
           final tabsRouter = AutoTabsRouter.of(context);
@@ -55,7 +55,7 @@ class _TopNavState extends State<TopNav> {
                               ),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.only(top: 12, bottom: 12),
+                              padding: const EdgeInsets.only(top: 8, bottom: 6),
                               child: QtTab(
                                 label: entry.value.label,
                                 icon: entry.value.icon,
