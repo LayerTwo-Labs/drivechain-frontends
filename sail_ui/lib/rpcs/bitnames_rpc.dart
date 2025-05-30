@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:convert/convert.dart' show hex;
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/bitcoin.dart';
 import 'package:sail_ui/classes/node_connection_settings.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
@@ -10,6 +11,8 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/chains.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
+import 'package:sail_ui/settings/client_settings.dart';
+import 'package:sail_ui/settings/hash_plaintext_settings.dart';
 import 'package:sail_ui/widgets/components/core_transaction.dart';
 
 /// API to the bitnames server.
@@ -303,6 +306,16 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<List<BitnameEntry>> listBitNames() async {
+    final clientSettings = GetIt.I.get<ClientSettings>();
+
+    Map<String, String>? hashNameMapping;
+    try {
+      final settingValue = await clientSettings.getValue(HashNameMappingSetting());
+      hashNameMapping = settingValue.value;
+    } catch (e) {
+      // do nothing
+    }
+
     final response = await _client().call('bitnames') as List<dynamic>;
     return response.map<BitnameEntry>((item) {
       if (item is! List || item.length != 2) {
@@ -330,7 +343,11 @@ class BitnamesLive extends BitnamesRPC {
       }
 
       final details = BitnameDetails.fromJson(parsedDetails);
-      return BitnameEntry(hash: hash, details: details);
+      return BitnameEntry(
+        hash: hash,
+        details: details,
+        plaintextName: hashNameMapping?[hash],
+      );
     }).toList();
   }
 
@@ -701,8 +718,14 @@ class BitnamesPeerInfo {
 
 class BitnameEntry {
   final String hash;
+  final String? plaintextName;
   final BitnameDetails details;
-  BitnameEntry({required this.hash, required this.details});
+
+  BitnameEntry({
+    required this.hash,
+    required this.details,
+    this.plaintextName,
+  });
 }
 
 class BitnameDetails {

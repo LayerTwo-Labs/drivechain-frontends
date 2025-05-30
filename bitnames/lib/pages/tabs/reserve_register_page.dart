@@ -68,6 +68,7 @@ class BitnamesTabPage extends StatelessWidget {
                             getRowId: (index) => model.entries[index].hash,
                             headerBuilder: (context) => [
                               SailTableHeaderCell(name: 'Hash'),
+                              SailTableHeaderCell(name: 'Plaintext Name'),
                               SailTableHeaderCell(name: 'Sequence ID'),
                               SailTableHeaderCell(name: 'Encryption Key'),
                               SailTableHeaderCell(name: 'Signing Key'),
@@ -81,6 +82,7 @@ class BitnamesTabPage extends StatelessWidget {
                                   value: shortHash,
                                   copyValue: entry.hash,
                                 ),
+                                SailTableCell(value: entry.plaintextName ?? '<unknown>'),
                                 SailTableCell(value: entry.details.seqId),
                                 SailTableCell(value: entry.details.encryptionPubkey ?? '-'),
                                 SailTableCell(value: entry.details.signingPubkey ?? '-'),
@@ -101,7 +103,7 @@ class BitnamesTabPage extends StatelessWidget {
                               ];
                             },
                             rowCount: model.entries.length,
-                            columnWidths: const [120, 100, 200, 200, 100],
+                            columnWidths: const [120, 120, 100, 200, 200, 100],
                             drawGrid: true,
                           ),
                         ),
