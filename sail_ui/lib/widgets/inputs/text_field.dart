@@ -127,21 +127,19 @@ class SailTextField extends StatelessWidget {
                         child: LoadingIndicator(),
                       ),
                     )
-                  : suffixWidget == null
-                      ? null
-                      : Align(
-                          alignment: Alignment.center,
-                          widthFactor: 1.0,
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              top: 1,
-                              bottom: 1,
-                              left: 1,
-                              right: 8,
-                            ),
-                            child: suffixWidget,
-                          ),
+                  : Align(
+                      alignment: Alignment.center,
+                      widthFactor: 1.0,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: 1,
+                          bottom: 1,
+                          left: 1,
+                          right: 8,
                         ),
+                        child: suffixWidget ?? Container(alignment: Alignment.centerRight, width: 10, height: 10),
+                      ),
+                    ),
               prefixStyle: TextStyle(
                 color: SailTheme.of(context).colors.textTertiary,
                 fontSize: textSize,
