@@ -68,6 +68,7 @@ class BitAssetsTabPage extends StatelessWidget {
                             getRowId: (index) => model.entries[index].hash,
                             headerBuilder: (context) => [
                               SailTableHeaderCell(name: 'Hash'),
+                              SailTableHeaderCell(name: 'Plaintext Name'),
                               SailTableHeaderCell(name: 'Sequence ID'),
                               SailTableHeaderCell(name: 'Encryption Key'),
                               SailTableHeaderCell(name: 'Signing Key'),
@@ -80,7 +81,7 @@ class BitAssetsTabPage extends StatelessWidget {
                                   value: shortHash,
                                   copyValue: entry.hash,
                                 ),
-                                SailTableCell(value: entry.hash),
+                                SailTableCell(value: entry.plaintextName ?? '<unknown>'),
                                 SailTableCell(value: entry.sequenceID.toString()),
                                 SailTableCell(value: entry.details.encryptionPubkey ?? '-'),
                                 SailTableCell(value: entry.details.signingPubkey ?? '-'),

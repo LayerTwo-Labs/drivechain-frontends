@@ -153,14 +153,21 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
 
     final trimmedInput = input.trim();
 
-    // First, check if input is already a direct hash match in bitassets
-    var existingEntryMatch =
-        bitassetsProvider.entries.where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase()).firstOrNull;
-
     // then check if input is a blake3 hash match
-    existingEntryMatch ??= bitassetsProvider.entries
+    var existingEntryMatch = bitassetsProvider.entries
         .where((entry) => entry.hash == blake3Hex(utf8.encode(trimmedInput)).toLowerCase())
         .firstOrNull;
+
+    if (existingEntryMatch != null) {
+      // we found a plaintext match! save it to disk for easy access later
+      bitassetsProvider.saveHashNameMapping(existingEntryMatch.hash, trimmedInput);
+      // refetch to set the name in the list
+      bitassetsProvider.fetch();
+    }
+
+    // First, check if input is already a direct hash match in bitassets
+    existingEntryMatch ??=
+        bitassetsProvider.entries.where((entry) => entry.hash.toLowerCase() == trimmedInput.toLowerCase()).firstOrNull;
 
     // If no bitasset match found, assume input is a direct encryption key
     return existingEntryMatch?.details.encryptionPubkey;
