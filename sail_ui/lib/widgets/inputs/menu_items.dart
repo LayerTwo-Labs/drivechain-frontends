@@ -218,12 +218,12 @@ class MempoolMenuItem extends StatelessWidget implements SailMenuEntity {
 
   @override
   Widget build(BuildContext context) {
-    final url = 'https://mempool.drivechain.live/tx/$txid';
+    final url = 'https://explorer.drivechain.info/tx/$txid';
     return SailMenuItem(
       onSelected: () async {
         await launchUrl(Uri.parse(url));
       },
-      child: SailText.primary12('View on mempool.space'),
+      child: SailText.primary12('View on explorer.drivechain.info'),
     );
   }
 }
