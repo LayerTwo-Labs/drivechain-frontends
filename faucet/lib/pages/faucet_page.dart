@@ -70,7 +70,7 @@ class FaucetViewModel extends BaseViewModel {
 
       if (!context.mounted) return '';
 
-      final url = 'https://mempool.drivechain.live/tx/${txid.txid}';
+      final url = 'https://explorer.drivechain.info/tx/${txid.txid}';
       showSnackBar(
         context,
         '',
@@ -337,7 +337,7 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
       rowBuilder: (context, row, selected) {
         final entry = entries[row];
 
-        final url = 'https://mempool.drivechain.live/tx/${entry.txid}';
+        final url = 'https://explorer.drivechain.info/tx/${entry.txid}';
         return [
           SailTableCell(value: formatTime(entry.time)),
           SailTableCell(
