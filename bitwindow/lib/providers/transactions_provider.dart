@@ -57,7 +57,20 @@ class TransactionProvider extends ChangeNotifier {
       final results = await Future.wait([
         update<List<WalletTransaction>>(
           walletTransactions,
-          bitwindowd.wallet.listTransactions,
+          () async {
+            final fetchedTransactions = await bitwindowd.wallet.listTransactions();
+            // Sort by confirmation time, newest first
+            fetchedTransactions.sort((a, b) {
+              final aTime = a.confirmationTime.timestamp.seconds;
+              final bTime = b.confirmationTime.timestamp.seconds;
+              // If timestamps are equal, use txid as secondary sort
+              if (aTime == bTime) {
+                return b.txid.compareTo(a.txid);
+              }
+              return bTime.compareTo(aTime); // Newest first
+            });
+            return fetchedTransactions;
+          },
           (v) => walletTransactions = v,
           equals: const DeepCollectionEquality().equals,
         ),
@@ -68,13 +81,34 @@ class TransactionProvider extends ChangeNotifier {
         ),
         update<List<UnspentOutput>>(
           utxos,
-          bitwindowd.wallet.listUnspent,
+          () async {
+            final fetchedUtxos = await bitwindowd.wallet.listUnspent();
+            // Sort by date received, newest first
+            fetchedUtxos.sort((a, b) {
+              final aTime = a.receivedAt.seconds;
+              final bTime = b.receivedAt.seconds;
+              // If timestamps are equal, use output as secondary sort
+              if (aTime == bTime) {
+                return b.output.compareTo(a.output);
+              }
+              return bTime.compareTo(aTime); // Newest first
+            });
+            return fetchedUtxos;
+          },
           (v) => utxos = v,
           equals: const DeepCollectionEquality().equals,
         ),
         update<List<ReceiveAddress>>(
           receiveAddresses,
-          bitwindowd.wallet.listReceiveAddresses,
+          () async {
+            final fetchedAddresses = await bitwindowd.wallet.listReceiveAddresses();
+            // Sort by creation time if available, or by address alphabetically
+            fetchedAddresses.sort((a, b) {
+              // Assuming addresses have some timestamp or index, otherwise sort alphabetically
+              return a.address.compareTo(b.address);
+            });
+            return fetchedAddresses;
+          },
           (v) => receiveAddresses = v,
           equals: const DeepCollectionEquality().equals,
         ),

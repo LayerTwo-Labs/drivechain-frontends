@@ -358,11 +358,24 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
       ];
     }
 
-    return _txProvider.walletTransactions
+    final filteredTransactions = _txProvider.walletTransactions
         .where(
           (tx) => searchController.text.isEmpty || tx.txid.contains(searchController.text),
         )
         .toList();
+
+    // Always sort by date, newest first
+    filteredTransactions.sort((a, b) {
+      final aTime = a.confirmationTime.timestamp.seconds;
+      final bTime = b.confirmationTime.timestamp.seconds;
+      // If timestamps are equal, use txid as secondary sort
+      if (aTime == bTime) {
+        return b.txid.compareTo(a.txid);
+      }
+      return bTime.compareTo(aTime); // Newest first
+    });
+
+    return filteredTransactions;
   }
 
   double get balance => _balanceProvider.balance;

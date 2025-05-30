@@ -22,7 +22,6 @@ class RootPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: theme.colors.background,
           appBar: TopNav(
-            leadingPadding: false,
             routes: [
               TopNavRoute(
                 label: 'Faucet',

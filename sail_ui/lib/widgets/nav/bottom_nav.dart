@@ -447,7 +447,7 @@ class BalanceDisplay extends StatelessWidget {
                     height: SailStyleValues.iconSizeSecondary,
                   ),
                   SailSkeletonizer(
-                    description: 'Waiting for wallet to sync..',
+                    description: 'Syncing wallet..',
                     enabled: balanceSyncing,
                     child: SailText.secondary12(
                       formatBitcoin(balance, symbol: 'BTC'),
