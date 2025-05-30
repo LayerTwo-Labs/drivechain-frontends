@@ -9,6 +9,6 @@ repos:
           - "-l 120"
 
       - id: flutter-analyze
-        exclude: "lib/gen/.*"
+        # exclude: "lib/gen/.*"
         args:
-          - clients/bitwindow/lib/*
+          - bitwindow/lib/*
