@@ -6,7 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/config/chains.dart';
+import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/providers/process_provider.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';

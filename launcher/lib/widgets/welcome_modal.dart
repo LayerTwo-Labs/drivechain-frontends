@@ -10,7 +10,6 @@ import 'package:get_it/get_it.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 // Extension method for chunking lists

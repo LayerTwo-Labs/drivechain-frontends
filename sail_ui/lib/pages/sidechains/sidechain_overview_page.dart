@@ -5,14 +5,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/sidechain/address_provider.dart';
-import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/thunder_rpc.dart';
-import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/change_tracker.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -149,7 +142,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
 class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   final log = Logger(level: Level.debug);
-  TransactionProvider get _transactionsProvider => GetIt.I.get<TransactionProvider>();
+  SidechainTransactionsProvider get _transactionsProvider => GetIt.I.get<SidechainTransactionsProvider>();
   SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AddressProvider get _addressProvider => GetIt.I.get<AddressProvider>();
@@ -317,34 +310,6 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     _balanceProvider.removeListener(_onChange);
     _addressProvider.removeListener(_onChange);
     super.dispose();
-  }
-}
-
-class DepositWithdrawHelp extends StatelessWidget {
-  ThunderRPC get _rpc => GetIt.I.get<ThunderRPC>();
-
-  const DepositWithdrawHelp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return QuestionContainer(
-      category: 'Deposit & Withdraw help',
-      children: [
-        const QuestionTitle('What are deposits and withdrawals?'),
-        QuestionText(
-          'You are currently connected to two blockchains. Bitcoin Core with BIP 300+301, and a sidechain called ${_rpc.chain.name}.',
-        ),
-        const QuestionText(
-          'Deposits and withdrawals move bitcoin from one chain to the other. A deposit adds bitcoin to the sidechain, and a withdrawal removes bitcoin from the sidechain.',
-        ),
-        const QuestionText(
-          'When we use the word deposit or withdraw in this application, we always refer to moving coins across chains.',
-        ),
-        const QuestionText(
-          "Only after you have deposited coins to the sidechain, can you start using it's special features! If you're a developer and know your way around a command line, there's a special rpc called createsidechaindeposit that lets you deposit from your parent chain wallet.",
-        ),
-      ],
-    );
   }
 }
 
@@ -580,7 +545,7 @@ class DetailRow extends StatelessWidget {
 }
 
 class LatestWalletTransactionsViewModel extends BaseViewModel {
-  final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
+  final SidechainTransactionsProvider _txProvider = GetIt.I<SidechainTransactionsProvider>();
   final TextEditingController searchController = TextEditingController();
 
   List<CoreTransaction> get entries => _txProvider.sidechainTransactions
@@ -816,7 +781,7 @@ class _UTXOTableState extends State<UTXOTable> {
 }
 
 class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
-  final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
+  final SidechainTransactionsProvider _txProvider = GetIt.I<SidechainTransactionsProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
 
   List<SidechainUTXO> get entries {

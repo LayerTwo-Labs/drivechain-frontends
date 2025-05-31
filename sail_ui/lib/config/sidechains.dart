@@ -2,9 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/file_utils.dart';
 
 abstract class Sidechain extends Binary {
   Sidechain({
@@ -113,41 +111,49 @@ abstract class Sidechain extends Binary {
   }
 
   String? getMnemonicPath(Directory appDir) {
-    var launcherAppDir = Directory(
+    final walletDir = getWalletDir(appDir);
+    if (walletDir == null) {
+      return null;
+    }
+    final mnemonicPath = path.normalize(path.join(walletDir, 'mnemonics', 'sidechain_$slot.txt'));
+
+    return mnemonicPath;
+  }
+}
+
+String? getWalletDir(Directory appDir) {
+  var launcherAppDir = Directory(
+    path.join(
+      appDir.path,
+      '..',
+      'drivechain-launcher',
+    ),
+  );
+
+  var walletDir = path.join(launcherAppDir.path, 'wallet_starters');
+
+  if (!Directory(walletDir).existsSync()) {
+    if (getOS() != OS.linux) {
+      // on windows and macos, this means we couldn't find it
+      return null;
+    }
+
+    // on linux on the other hand, we can look in one more place
+    launcherAppDir = Directory(
       path.join(
-        appDir.path,
-        '..',
+        Platform.environment['HOME']!,
+        '.config',
         'drivechain-launcher',
       ),
     );
 
-    final walletDir = path.join(launcherAppDir.path, 'wallet_starters');
-    final mnemonicPath = path.normalize(path.join(walletDir, 'mnemonics', 'sidechain_$slot.txt'));
-
-    if (!File(mnemonicPath).existsSync()) {
-      if (getOS() == OS.linux) {
-        // for some reason, on linux the app is in a different directory!
-        launcherAppDir = Directory(
-          path.join(
-            Platform.environment['HOME']!,
-            '.config',
-            'drivechain-launcher',
-          ),
-        );
-
-        final walletDir = path.join(launcherAppDir.path, 'wallet_starters');
-        final mnemonicPath = path.normalize(path.join(walletDir, 'mnemonics', 'sidechain_$slot.txt'));
-
-        if (File(mnemonicPath).existsSync()) {
-          return mnemonicPath;
-        }
-      }
-
+    walletDir = path.join(launcherAppDir.path, 'wallet_starters');
+    if (!Directory(walletDir).existsSync()) {
       return null;
     }
-
-    return mnemonicPath;
   }
+
+  return walletDir;
 }
 
 class TestSidechain extends Sidechain {

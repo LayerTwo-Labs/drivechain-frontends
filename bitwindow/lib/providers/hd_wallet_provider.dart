@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
@@ -8,12 +9,14 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
+import 'package:sail_ui/config/sidechains.dart';
 
 class HDWalletProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
+
+  final Directory appDir;
 
   String? _seedHex;
   String? _masterKey;
@@ -29,6 +32,8 @@ class HDWalletProvider extends ChangeNotifier {
   bool get isProcessing => _isProcessing;
   String? get mnemonic => _mnemonic;
 
+  HDWalletProvider(this.appDir);
+
   Future<void> init() async {
     if (_initialized) return;
 
@@ -39,20 +44,6 @@ class HDWalletProvider extends ChangeNotifier {
       _error = "Couldn't sync to wallet for HD Explorer";
       notifyListeners();
     }
-  }
-
-  Future<String> _getMnemonicPath() async {
-    final downloadsDir = await getDownloadsDirectory();
-    if (downloadsDir == null) {
-      throw Exception('Could not determine downloads directory');
-    }
-    return path.join(
-      downloadsDir.path,
-      'Drivechain-Launcher-Downloads',
-      'enforcer',
-      'mnemonic',
-      'mnemonic.txt',
-    );
   }
 
   Future<bool> loadMnemonic() async {
@@ -68,13 +59,25 @@ class HDWalletProvider extends ChangeNotifier {
 
   Future<void> _loadMnemonic() async {
     try {
-      final mnemonicPath = await _getMnemonicPath();
-      final file = File(mnemonicPath);
-      if (!await file.exists()) {
+      final walletDir = getWalletDir(appDir);
+      if (walletDir == null) {
         throw Exception("Couldn't sync to wallet for HD Explorer");
       }
 
-      _mnemonic = (await file.readAsString()).trim();
+      final jsonPath = path.join(walletDir, 'l1_starter.json');
+      final file = File(jsonPath);
+      if (!await file.exists()) {
+        throw Exception('could not find l1_starter.json');
+      }
+
+      final jsonContent = await file.readAsString();
+      final config = json.decode(jsonContent);
+
+      _mnemonic = config['mnemonic']?.toString().trim();
+      if (_mnemonic == null || _mnemonic!.isEmpty) {
+        throw Exception('no "mnemonic" key found in l1_starter.json');
+      }
+
       final mnemonicObj = Mnemonic.fromSentence(_mnemonic!, Language.english);
       _seedHex = hex.encode(mnemonicObj.seed);
 
@@ -85,7 +88,7 @@ class HDWalletProvider extends ChangeNotifier {
       _error = null;
       _initialized = true;
     } catch (e) {
-      _error = "Couldn't sync to wallet for HD Explorer";
+      _error = "Couldn't load wallet for HD Explorer";
       _seedHex = _masterKey = _mnemonic = null;
       _initialized = false;
     }

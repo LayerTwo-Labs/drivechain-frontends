@@ -22,17 +22,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pbenum.dart';
-import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/change_tracker.dart';
-import 'package:sail_ui/widgets/nav/bottom_nav.dart';
-import 'package:sail_ui/widgets/nav/top_nav.dart';
-import 'package:sail_ui/widgets/platform_menu.dart';
 import 'package:window_manager/window_manager.dart';
 
 @RoutePage()

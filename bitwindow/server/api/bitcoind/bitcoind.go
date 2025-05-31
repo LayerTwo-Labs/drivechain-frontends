@@ -747,14 +747,14 @@ func (s *Server) GetRawTransaction(ctx context.Context, req *connect.Request[pb.
 		return nil, fmt.Errorf("bitcoind: could not get transaction: %w", err)
 	}
 
-	// Convert inputs
-	inputs := make([]*pb.Input, len(txRes.Msg.Inputs))
+	// Convert inputs using map to handle arbitrary vout indices
+	inputMap := make(map[uint32]*pb.Input)
 	for _, txIn := range txRes.Msg.Inputs {
 		input := &pb.Input{
 			Txid:      txIn.Txid,
 			Vout:      txIn.Vout,
 			Coinbase:  txIn.Coinbase,
-			ScriptSig: &pb.ScriptSig{}, // Always include empty ScriptSig
+			ScriptSig: &pb.ScriptSig{},
 			Sequence:  txIn.Sequence,
 			Witness:   txIn.Witness,
 		}
@@ -762,23 +762,39 @@ func (s *Server) GetRawTransaction(ctx context.Context, req *connect.Request[pb.
 			input.ScriptSig.Asm = txIn.ScriptSig.Asm
 			input.ScriptSig.Hex = txIn.ScriptSig.Hex
 		}
-		inputs[txIn.Vout] = input
+		inputMap[txIn.Vout] = input
 	}
 
-	// Convert outputs
-	outputs := make([]*pb.Output, len(txRes.Msg.Outputs))
+	// Convert map to ordered slice
+	inputs := make([]*pb.Input, 0, len(inputMap))
+	for i := uint32(0); i < uint32(len(txRes.Msg.Inputs)); i++ {
+		if input, exists := inputMap[i]; exists {
+			inputs = append(inputs, input)
+		}
+	}
+
+	// Convert outputs using map to handle arbitrary vout indices
+	outputMap := make(map[uint32]*pb.Output)
 	for _, txOut := range txRes.Msg.Outputs {
 		output := &pb.Output{
 			Amount:       txOut.Amount,
 			Vout:         txOut.Vout,
 			ScriptPubKey: &pb.ScriptPubKey{Type: txOut.ScriptPubKey.Type, Address: txOut.ScriptPubKey.Address},
-			ScriptSig:    &pb.ScriptSig{}, // Always include empty ScriptSig
+			ScriptSig:    &pb.ScriptSig{},
 		}
 		if txOut.ScriptSig != nil {
 			output.ScriptSig.Asm = txOut.ScriptSig.Asm
 			output.ScriptSig.Hex = txOut.ScriptSig.Hex
 		}
-		outputs[txOut.Vout] = output
+		outputMap[txOut.Vout] = output
+	}
+
+	// Convert map to ordered slice
+	outputs := make([]*pb.Output, 0, len(outputMap))
+	for i := uint32(0); i < uint32(len(txRes.Msg.Outputs)); i++ {
+		if output, exists := outputMap[i]; exists {
+			outputs = append(outputs, output)
+		}
 	}
 
 	return connect.NewResponse(&pb.GetRawTransactionResponse{

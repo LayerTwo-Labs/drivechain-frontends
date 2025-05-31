@@ -4,9 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:zside/providers/notification_provider.dart';
 
 class ZCashProvider extends ChangeNotifier {
   ZCashRPC get rpc => GetIt.I.get<ZCashRPC>();

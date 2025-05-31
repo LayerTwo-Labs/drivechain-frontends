@@ -289,6 +289,7 @@ class _HDWalletTabState extends State<HDWalletTab> {
       label: label,
       onPressed: onPressed,
       variant: variant,
+      loading: _isBusy,
     );
   }
 
@@ -313,7 +314,7 @@ class _HDWalletTabState extends State<HDWalletTab> {
                   children: [
                     _buildButton(
                       label: 'Use Wallet',
-                      onPressed: _isBusy ? null : _handleUseWalletMnemonic,
+                      onPressed: _handleUseWalletMnemonic,
                       variant: _hasMnemonic ? ButtonVariant.secondary : ButtonVariant.primary,
                     ),
                     _buildButton(

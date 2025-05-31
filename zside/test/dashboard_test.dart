@@ -13,7 +13,7 @@ import 'package:sail_ui/pages/sidechains/parent_chain_page.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/providers/process_provider.dart';
 import 'package:sail_ui/providers/sidechain/address_provider.dart';
-import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
+import 'package:sail_ui/providers/sidechain/sidechain_transactions_provider.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/zcash_rpc.dart';
@@ -24,7 +24,7 @@ import 'mocks/rpc_mock_sidechain.dart';
 import 'mocks/rpc_mock_zcash.dart';
 import 'test_utils.dart';
 
-final txProvider = TransactionsProvider();
+final txProvider = SidechainTransactionsProvider();
 
 void main() {
   // there's timers in sidechainrpc and mainchainrpc, that
@@ -44,8 +44,8 @@ void main() {
     GetIt.I.registerLazySingleton<CastProvider>(() => CastProvider());
     GetIt.I.registerLazySingleton<Logger>(() => Logger());
 
-    GetIt.I.registerLazySingleton<TransactionsProvider>(() => txProvider);
-    GetIt.I.registerLazySingleton<TransactionProvider>(() => TransactionProvider());
+    GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(() => txProvider);
+    GetIt.I.registerLazySingleton<TransactionsProvider>(() => TransactionsProvider());
     GetIt.I.registerLazySingleton<AddressProvider>(() => AddressProvider());
     final balanceProvider = BalanceProvider(connections: [sidechainRPC]);
     GetIt.I.registerLazySingleton<BalanceProvider>(() => balanceProvider);

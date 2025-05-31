@@ -22,12 +22,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
@@ -306,7 +301,7 @@ Future<void> initDependencies(
   );
   unawaited(addressBookProvider.fetch());
 
-  final hdWalletProvider = HDWalletProvider();
+  final hdWalletProvider = HDWalletProvider(applicationDir);
   GetIt.I.registerLazySingleton<HDWalletProvider>(
     () => hdWalletProvider,
   );

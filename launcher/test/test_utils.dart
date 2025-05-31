@@ -5,12 +5,6 @@ import 'package:launcher/providers/quotes_provider.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/rpcs/bitnames_rpc.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
-import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 import 'mocks/download_manager_mock.dart';

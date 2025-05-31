@@ -10,12 +10,12 @@ import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/chains.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:pointycastle/digests/sha512.dart';
 import 'package:pointycastle/key_derivators/api.dart' show Pbkdf2Parameters;
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
-import 'package:pointycastle/digests/sha512.dart';
+import 'package:sail_ui/config/sidechains.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 
 class WalletService extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
