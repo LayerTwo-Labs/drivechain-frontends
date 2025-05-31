@@ -10,17 +10,11 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/sail_ui.dart' hide SidechainOverviewTabRoute;
-import 'package:sail_ui/widgets/nav/bottom_nav.dart';
-import 'package:sail_ui/widgets/nav/top_nav.dart';
-import 'package:sail_ui/widgets/platform_menu.dart';
+import 'package:sail_ui/pages/router.gr.dart' hide SidechainOverviewTabRoute;
+import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:zside/main.dart';
-import 'package:zside/providers/notification_provider.dart';
 import 'package:zside/routing/router.dart';
 
 // IMPORTANT: Update router.dart AND routes in HomePage further down

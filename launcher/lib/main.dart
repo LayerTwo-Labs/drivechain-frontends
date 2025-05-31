@@ -11,14 +11,6 @@ import 'package:launcher/routing/router.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/rpcs/bitassets_rpc.dart';
-import 'package:sail_ui/rpcs/bitnames_rpc.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
-import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
 

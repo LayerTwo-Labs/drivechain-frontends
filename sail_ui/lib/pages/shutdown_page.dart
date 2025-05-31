@@ -1,8 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/loaders/progress.dart';
 
 @RoutePage()
 class ShuttingDownPage extends StatefulWidget {

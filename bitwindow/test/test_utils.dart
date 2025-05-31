@@ -4,12 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/file_utils.dart';
 
 import 'mocks/api_mock.dart';
 import 'mocks/store_mock.dart';

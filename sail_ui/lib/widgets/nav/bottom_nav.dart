@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/change_tracker.dart';
-import 'package:sail_ui/widgets/loaders/progress.dart';
 import 'package:stacked/stacked.dart';
 
 class BottomNav extends StatelessWidget {

@@ -1,9 +1,4 @@
-import 'package:sail_ui/classes/node_connection_settings.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/config/chains.dart';
-import 'package:sail_ui/rpcs/bitassets_rpc.dart';
-import 'package:sail_ui/rpcs/thunder_utxo.dart';
-import 'package:sail_ui/widgets/components/core_transaction.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 class MockBitAssetsRPC extends BitAssetsRPC {
   MockBitAssetsRPC()

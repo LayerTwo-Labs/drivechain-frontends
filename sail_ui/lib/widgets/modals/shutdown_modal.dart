@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class ShutdownCard extends StatelessWidget {

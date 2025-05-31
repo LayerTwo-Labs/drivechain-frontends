@@ -4,16 +4,7 @@ import 'package:convert/convert.dart' show hex;
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/classes/node_connection_settings.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/config/chains.dart';
-import 'package:sail_ui/rpcs/rpc_sidechain.dart';
-import 'package:sail_ui/rpcs/thunder_utxo.dart';
-import 'package:sail_ui/settings/client_settings.dart';
-import 'package:sail_ui/settings/hash_plaintext_settings.dart';
-import 'package:sail_ui/widgets/components/core_transaction.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 abstract class BitAssetsRPC extends SidechainRPC {
   BitAssetsRPC({
@@ -778,21 +769,6 @@ class BitAssetRequest {
         signingPubkey: json['signing_pubkey'] as String?,
         socketAddrV4: json['socket_addr_v4'] as String?,
         socketAddrV6: json['socket_addr_v6'] as String?,
-      );
-}
-
-class BalanceResponse {
-  final int totalSats;
-  final int availableSats;
-
-  BalanceResponse({
-    required this.totalSats,
-    required this.availableSats,
-  });
-
-  factory BalanceResponse.fromJson(Map<String, dynamic> json) => BalanceResponse(
-        totalSats: json['total_sats'] as int,
-        availableSats: json['available_sats'] as int,
       );
 }
 

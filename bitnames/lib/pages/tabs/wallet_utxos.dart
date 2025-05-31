@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/change_tracker.dart';
 import 'package:stacked/stacked.dart';
 
 class UTXOsTab extends StatelessWidget {
@@ -144,7 +140,7 @@ class _UTXOTableState extends State<UTXOTable> {
 }
 
 class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
-  final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
+  final SidechainTransactionsProvider _txProvider = GetIt.I<SidechainTransactionsProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
 
   List<SidechainUTXO> get entries {

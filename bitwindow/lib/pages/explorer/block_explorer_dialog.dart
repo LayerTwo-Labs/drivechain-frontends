@@ -2,9 +2,6 @@ import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 

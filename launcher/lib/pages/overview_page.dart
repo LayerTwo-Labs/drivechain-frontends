@@ -9,8 +9,6 @@ import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()

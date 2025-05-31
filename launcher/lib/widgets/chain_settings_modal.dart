@@ -3,9 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:launcher/env.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/file_utils.dart';
 
 class ChainSettingsModal extends StatefulWidget {
   final Binary chain;

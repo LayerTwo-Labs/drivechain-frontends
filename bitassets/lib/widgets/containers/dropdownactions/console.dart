@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/rpcs/bitassets_rpc.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class ConsoleWindow extends StatelessWidget {

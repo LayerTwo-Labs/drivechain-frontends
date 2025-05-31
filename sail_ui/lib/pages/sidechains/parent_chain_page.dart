@@ -6,11 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/sidechain/address_provider.dart';
-import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/change_tracker.dart';
 import 'package:stacked/stacked.dart';
 
 @RoutePage()
@@ -90,7 +86,7 @@ class ZCashWidgetTitleViewModel extends BaseViewModel {
 class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   final log = Logger(level: Level.debug);
-  TransactionProvider get _transactionsProvider => GetIt.I.get<TransactionProvider>();
+  SidechainTransactionsProvider get _transactionsProvider => GetIt.I.get<SidechainTransactionsProvider>();
   SidechainRPC get _rpc => GetIt.I.get<SidechainRPC>();
   BalanceProvider get _balanceProvider => GetIt.I.get<BalanceProvider>();
   AddressProvider get _addressProvider => GetIt.I.get<AddressProvider>();

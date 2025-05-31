@@ -3,10 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-class TransactionProvider extends ChangeNotifier {
+class SidechainTransactionsProvider extends ChangeNotifier {
   SidechainRPC get rpc => GetIt.I.get<SidechainRPC>();
   Logger get log => GetIt.I.get<Logger>();
 
@@ -14,7 +13,7 @@ class TransactionProvider extends ChangeNotifier {
   List<SidechainUTXO> utxos = [];
   bool initialized = false;
 
-  TransactionProvider() {
+  SidechainTransactionsProvider() {
     rpc.addListener(fetch);
     fetch();
   }

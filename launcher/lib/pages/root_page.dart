@@ -8,9 +8,8 @@ import 'package:launcher/routing/router.dart';
 import 'package:launcher/widgets/welcome_modal.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/widgets/nav/top_nav.dart';
 import 'package:window_manager/window_manager.dart';
 
 @RoutePage()

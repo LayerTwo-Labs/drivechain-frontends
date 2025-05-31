@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dart_coin_rpc/dart_coin_rpc.dart';
 import 'package:dio/dio.dart';
-import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/sail_ui.dart';
 

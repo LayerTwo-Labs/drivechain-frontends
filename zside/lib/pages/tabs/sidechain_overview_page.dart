@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:zside/providers/transactions_provider.dart';
@@ -317,34 +316,6 @@ class OverviewTabViewModel extends BaseViewModel {
     _transactionsProvider.removeListener(ensureAddress);
     _balanceProvider.removeListener(ensureAddress);
     super.dispose();
-  }
-}
-
-class DepositWithdrawHelp extends StatelessWidget {
-  ZCashRPC get _rpc => GetIt.I.get<ZCashRPC>();
-
-  const DepositWithdrawHelp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return QuestionContainer(
-      category: 'Deposit & Withdraw help',
-      children: [
-        const QuestionTitle('What are deposits and withdrawals?'),
-        QuestionText(
-          'You are currently connected to two blockchains. Bitcoin Core with BIP 300+301, and a sidechain called ${_rpc.chain.name}.',
-        ),
-        const QuestionText(
-          'Deposits and withdrawals move bitcoin from one chain to the other. A deposit adds bitcoin to the sidechain, and a withdrawal removes bitcoin from the sidechain.',
-        ),
-        const QuestionText(
-          'When we use the word deposit or withdraw in this application, we always refer to moving coins across chains.',
-        ),
-        const QuestionText(
-          "Only after you have deposited coins to the sidechain, can you start using it's special features! If you're a developer and know your way around a command line, there's a special rpc called createsidechaindeposit that lets you deposit from your parent chain wallet.",
-        ),
-      ],
-    );
   }
 }
 

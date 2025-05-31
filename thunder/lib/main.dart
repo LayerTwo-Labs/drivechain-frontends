@@ -8,15 +8,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/providers/sidechain/address_provider.dart';
-import 'package:sail_ui/providers/sidechain/notification_provider.dart';
-import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
-import 'package:sail_ui/rpcs/thunder_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:thunder/config/runtime_args.dart';
@@ -288,8 +279,8 @@ Future<void> initDependencies(
   );
   unawaited(blockInfoProvider.fetch());
 
-  GetIt.I.registerLazySingleton<TransactionProvider>(
-    () => TransactionProvider(),
+  GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
+    () => SidechainTransactionsProvider(),
   );
 }
 

@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:bitnames/config/runtime_args.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
-import 'package:bitnames/providers/notification_provider.dart';
 import 'package:bitnames/routing/router.dart';
 import 'package:bitnames/rpc/models/active_sidechains.dart';
 import 'package:bitnames/storage/sail_settings/font_settings.dart';
@@ -15,14 +14,6 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
-import 'package:sail_ui/providers/sidechain/address_provider.dart';
-import 'package:sail_ui/providers/sidechain/transactions_provider.dart';
-import 'package:sail_ui/rpcs/bitnames_rpc.dart';
-import 'package:sail_ui/rpcs/enforcer_rpc.dart';
-import 'package:sail_ui/rpcs/mainchain_rpc.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
@@ -289,8 +280,8 @@ Future<void> initDependencies(
   );
   unawaited(blockInfoProvider.fetch());
 
-  GetIt.I.registerLazySingleton<TransactionProvider>(
-    () => TransactionProvider(),
+  GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
+    () => SidechainTransactionsProvider(),
   );
 
   GetIt.I.registerLazySingleton<BitnamesProvider>(
