@@ -246,7 +246,6 @@ class _UnshieldedUTXOTableState extends State<UnshieldedUTXOTable> {
         ];
       },
       rowCount: widget.entries.length,
-      columnWidths: const [100, 200, 100],
       drawGrid: true,
     );
   }
@@ -338,7 +337,6 @@ class _ShieldedUTXOTableState extends State<ShieldedUTXOTable> {
         ];
       },
       rowCount: widget.entries.length,
-      columnWidths: const [100, 200, 100],
       drawGrid: true,
     );
   }

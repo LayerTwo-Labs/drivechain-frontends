@@ -471,7 +471,6 @@ class _TransactionTableState extends State<TransactionTable> {
                     ];
                   },
                   rowCount: widget.entries.length,
-                  columnWidths: const [110, 150, 200, 150],
                   drawGrid: true,
                   sortColumnIndex: [
                     'height',

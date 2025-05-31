@@ -476,7 +476,6 @@ class _HDWalletTabState extends State<HDWalletTab> {
                 ];
               },
               rowCount: _derivedEntries.isEmpty ? 10 : _derivedEntries.length,
-              columnWidths: const [-1, -1, -1, -1],
               drawGrid: true,
             ),
           ),

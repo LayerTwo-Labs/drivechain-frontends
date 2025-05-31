@@ -100,7 +100,6 @@ class BitnamesTabPage extends StatelessWidget {
                               ];
                             },
                             rowCount: model.entries.length,
-                            columnWidths: const [120, 120, 100, 200, 200, 100],
                             drawGrid: true,
                           ),
                         ),

@@ -119,7 +119,6 @@ class _UTXOTableState extends State<UTXOTable> {
                   ];
                 },
                 rowCount: widget.entries.length,
-                columnWidths: const [120, 320, 120],
                 drawGrid: true,
                 sortColumnIndex: [
                   'output',
