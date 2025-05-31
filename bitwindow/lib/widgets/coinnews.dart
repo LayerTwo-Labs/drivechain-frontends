@@ -517,7 +517,6 @@ class CoinNewsTable extends ViewModelWidget<CoinNewsViewModel> {
           ];
         },
         rowCount: entries.length,
-        columnWidths: const [70, 50, 200, 30],
         drawGrid: true,
         onSort: (columnIndex, ascending) {
           onSort(['date', 'topic', 'title', 'readtime'][columnIndex]);

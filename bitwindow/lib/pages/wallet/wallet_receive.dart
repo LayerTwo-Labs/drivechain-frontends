@@ -198,7 +198,6 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                   ];
                 },
                 rowCount: entries.length,
-                columnWidths: const [70, 200, 100, 50],
                 drawGrid: true,
                 sortColumnIndex: [
                   'last_used_at',

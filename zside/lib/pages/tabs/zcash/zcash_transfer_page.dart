@@ -470,7 +470,6 @@ class _TransparentUTXOTableState extends State<TransparentUTXOTable> {
                     ];
                   },
                   rowCount: widget.entries.length,
-                  columnWidths: const [100, 150, 200, 200],
                   drawGrid: true,
                   sortColumnIndex: [
                     'confirmations',
@@ -647,7 +646,6 @@ class _PrivateUTXOTableState extends State<PrivateUTXOTable> {
                     ];
                   },
                   rowCount: widget.entries.length,
-                  columnWidths: const [100, 150, 200],
                   drawGrid: true,
                   sortColumnIndex: [
                     'confirmations',

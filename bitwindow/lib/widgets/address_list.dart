@@ -276,7 +276,6 @@ class _AddressBookContentState extends State<AddressBookContent> {
                 ];
               },
               rowCount: widget.viewModel.entries.length,
-              columnWidths: const [100, 200, 100],
               drawGrid: true,
               sortColumnIndex: ['label', 'address', 'actions'].indexOf(sortColumn),
               sortAscending: sortAscending,

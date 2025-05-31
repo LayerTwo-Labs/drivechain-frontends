@@ -64,9 +64,7 @@ class _DenialDialogState extends State<DenialDialog> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
           child: SailCard(
-            padding: true,
             title: 'Start Automatic Denial',
-            subtitle: '',
             child: SailColumn(
               spacing: SailStyleValues.padding12,
               crossAxisAlignment: CrossAxisAlignment.start,

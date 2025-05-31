@@ -1,4 +1,5 @@
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
+import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -45,6 +46,7 @@ class _UTXOTableState extends State<UTXOTable> {
   String sortColumn = 'date';
   bool sortAscending = true;
   List<UnspentOutput> sortedEntries = [];
+  final DenialProvider denialProvider = GetIt.I.get<DenialProvider>();
 
   @override
   void initState() {
@@ -108,6 +110,17 @@ class _UTXOTableState extends State<UTXOTable> {
     });
   }
 
+  bool isDenied(UnspentOutput utxo) {
+    // Check if this UTXO has any deniability status
+    return denialProvider.utxos.any(
+      (deniabilityUTXO) =>
+          deniabilityUTXO.deniability.hopsCompleted == deniabilityUTXO.deniability.numHops &&
+          deniabilityUTXO.deniability.hopsCompleted > 1 &&
+          deniabilityUTXO.txid == utxo.output.split(':').first &&
+          deniabilityUTXO.vout == int.parse(utxo.output.split(':').last),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SailCard(
@@ -120,12 +133,17 @@ class _UTXOTableState extends State<UTXOTable> {
               description: 'Waiting for enforcer to start and wallet to sync..',
               enabled: widget.model.loading,
               child: SailTable(
+                rowBackgroundColor: (index) {
+                  final utxo = sortedEntries[index];
+                  return isDenied(utxo) ? Colors.red.withOpacity(0.1) : null;
+                },
                 getRowId: (index) => sortedEntries[index].output.split(':').first,
                 headerBuilder: (context) => [
                   SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
                   SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
                   SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
                   SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
+                  SailTableHeaderCell(name: 'Is Denied', onSort: () => onSort('isDenied')),
                   SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
                 ],
                 rowBuilder: (context, row, selected) {
@@ -134,6 +152,8 @@ class _UTXOTableState extends State<UTXOTable> {
                     satoshiToBTC(utxo.value.toInt()),
                     symbol: '',
                   );
+                  final isUtxoDenied = isDenied(utxo);
+
                   return [
                     SailTableCell(
                       value: formatDate(utxo.receivedAt.toDateTime().toLocal()),
@@ -142,24 +162,37 @@ class _UTXOTableState extends State<UTXOTable> {
                       value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
                       copyValue: utxo.output,
                     ),
-                    SailTableCell(value: utxo.address, monospace: true),
-                    SailTableCell(value: utxo.label, monospace: true),
-                    SailTableCell(value: formattedAmount, monospace: true),
+                    SailTableCell(
+                      value: utxo.address,
+                      monospace: true,
+                    ),
+                    SailTableCell(
+                      value: utxo.label,
+                      monospace: true,
+                    ),
+                    SailTableCell(
+                      value: isUtxoDenied ? 'Yes' : '',
+                      monospace: true,
+                    ),
+                    SailTableCell(
+                      value: formattedAmount,
+                      monospace: true,
+                    ),
                   ];
                 },
                 rowCount: sortedEntries.length,
-                columnWidths: const [120, 120, 320, 120, 120],
                 drawGrid: true,
                 sortColumnIndex: [
                   'date',
                   'output',
                   'address',
                   'label',
+                  'isDenied',
                   'value',
                 ].indexOf(sortColumn),
                 sortAscending: sortAscending,
                 onSort: (columnIndex, ascending) {
-                  onSort(['date', 'output', 'address', 'label', 'value'][columnIndex]);
+                  onSort(['date', 'output', 'address', 'label', 'isDenied', 'value'][columnIndex]);
                 },
                 onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
                 contextMenuItems: (rowId) {

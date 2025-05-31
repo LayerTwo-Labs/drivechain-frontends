@@ -455,7 +455,6 @@ class _TransactionTableState extends State<TransactionTable> {
                     ];
                   },
                   rowCount: entries.length,
-                  columnWidths: const [110, 150, 200, 150],
                   drawGrid: true,
                   sortColumnIndex: [
                     'height',
@@ -759,7 +758,6 @@ class _UTXOTableState extends State<UTXOTable> {
                   ];
                 },
                 rowCount: widget.entries.length,
-                columnWidths: const [120, 120, 320, 120],
                 drawGrid: true,
                 sortColumnIndex: [
                   'type',
