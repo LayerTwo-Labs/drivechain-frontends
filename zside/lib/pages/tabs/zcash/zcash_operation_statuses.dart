@@ -95,7 +95,6 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                         ];
                       },
                       rowCount: model.operations.length,
-                      columnWidths: const [150, 100, 100, 200],
                       drawGrid: true,
                       onDoubleTap: (rowId) {
                         final operation = model.operations.firstWhere((op) => op.id == rowId);
@@ -174,7 +173,6 @@ class ZCashOperationStatusesTabPage extends StatelessWidget {
                               ];
                             },
                             rowCount: model.transactions.length,
-                            columnWidths: const [-1, -1, -1, -1],
                             drawGrid: true,
                             onDoubleTap: (rowId) {
                               final tx = model.transactions.firstWhere(

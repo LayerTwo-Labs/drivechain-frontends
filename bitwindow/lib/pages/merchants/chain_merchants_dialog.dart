@@ -83,7 +83,6 @@ class ChainMerchantsDialog extends StatelessWidget {
                     ];
                   },
                   rowCount: merchants.length,
-                  columnWidths: const [150, 300],
                   backgroundColor: context.sailTheme.colors.backgroundSecondary,
                   onDoubleTap: (rowId) async {
                     final index = int.parse(rowId);

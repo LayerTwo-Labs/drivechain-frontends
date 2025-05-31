@@ -100,7 +100,6 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
                   ];
                 },
                 rowCount: 255, // Show all possible slots
-                columnWidths: const [37, 100, 100],
                 sortAscending: viewModel.sortAscending,
                 sortColumnIndex: ['slot', 'name', 'balance'].indexOf(viewModel.sortColumn),
                 onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
@@ -562,7 +561,6 @@ class RecentDepositsTable extends ViewModelWidget<SidechainsViewModel> {
         ];
       },
       rowCount: viewModel.sortedDeposits.length,
-      columnWidths: const [100, 200, 200, 200],
       drawGrid: true,
       sortAscending: viewModel.depositSortAscending,
       sortColumnIndex: ['txid', 'amount', 'fee', 'confirmations'].indexOf(viewModel.depositSortColumn),
@@ -624,7 +622,6 @@ class RecentWithdrawalsTable extends ViewModelWidget<SidechainsViewModel> {
         ];
       },
       rowCount: viewModel.sortedWithdrawals.length,
-      columnWidths: const [50, 100, 200, 200, 100, 200],
       drawGrid: true,
       sortAscending: viewModel.depositSortAscending,
       sortColumnIndex:

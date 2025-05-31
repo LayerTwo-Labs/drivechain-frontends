@@ -365,7 +365,6 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         ];
       },
       rowCount: entries.length,
-      columnWidths: const [150, 100, 100, 100, 200],
       drawGrid: true,
       sortColumnIndex: ['time', 'amount', 'category', 'confirmations', 'txid'].indexOf(sortColumn),
       sortAscending: sortAscending,

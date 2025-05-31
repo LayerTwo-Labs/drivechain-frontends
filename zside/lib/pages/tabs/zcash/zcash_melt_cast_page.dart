@@ -479,7 +479,6 @@ class _PendingMeltTableState extends State<PendingMeltTable> {
         ];
       },
       rowCount: widget.entries.length,
-      columnWidths: const [100, 200, 150, 100],
       drawGrid: true,
     );
   }
@@ -593,7 +592,6 @@ class _PendingCastsTableState extends State<PendingCastsTable> {
         ];
       },
       rowCount: entries.length,
-      columnWidths: const [150, 150, 100, 100],
       drawGrid: true,
       sortColumnIndex: [
         'amount',
@@ -942,7 +940,6 @@ class _UTXOsTableState extends State<UTXOsTable> {
         ];
       },
       rowCount: entries.length,
-      columnWidths: const [150, 100, 120, 100],
       drawGrid: true,
       sortColumnIndex: [
         'amount',
@@ -1154,7 +1151,6 @@ class _OperationsTableState extends State<OperationsTable> {
           ];
         },
         rowCount: entries.length,
-        columnWidths: const [150, 100, 100, 200],
         drawGrid: true,
         sortColumnIndex: [
           'date',

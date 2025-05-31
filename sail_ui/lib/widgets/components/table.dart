@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:sail_ui/sail_ui.dart';
 
 class SailTable extends StatefulWidget {
@@ -10,7 +10,6 @@ class SailTable extends StatefulWidget {
     required this.headerBuilder,
     required this.rowBuilder,
     required this.rowCount,
-    required this.columnWidths,
     this.columnMinWidths,
     this.columnMaxWidths,
     this.defaultMinColumnWidth = 50,
@@ -34,12 +33,12 @@ class SailTable extends StatefulWidget {
     this.sortAscending,
     this.onSort,
     required this.getRowId,
+    this.rowBackgroundColor,
     super.key,
   });
 
   final List<Widget> Function(BuildContext context) headerBuilder;
   final List<Widget> Function(BuildContext context, int row, bool selected) rowBuilder;
-  final List<double> columnWidths;
   final List<double>? columnMinWidths;
   final List<double>? columnMaxWidths;
   final double defaultMinColumnWidth;
@@ -64,6 +63,7 @@ class SailTable extends StatefulWidget {
   final bool? sortAscending;
   final Function(int columnIndex, bool ascending)? onSort;
   final String Function(int index) getRowId;
+  final Color? Function(int index)? rowBackgroundColor;
 
   @override
   State<SailTable> createState() => _SailTableState();
@@ -80,6 +80,7 @@ class _SailTableState extends State<SailTable> {
   BoxConstraints? _currentConstraints;
   double _startColumnWidth = 0;
   double _dragStartX = 0;
+  int? _numColumns;
 
   double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);
 
@@ -95,9 +96,13 @@ class _SailTableState extends State<SailTable> {
     _sortColumnIndex = widget.sortColumnIndex;
     _sortAscending = widget.sortAscending ?? true;
 
+    // Get column count from header builder
+    final headers = widget.headerBuilder(context);
+    _numColumns = headers.length;
+
     // Initialize with default widths immediately
     if (_widths.isEmpty) {
-      _widths.addAll(List.filled(widget.columnWidths.length, widget.defaultMinColumnWidth));
+      _widths.addAll(List.filled(_numColumns!, widget.defaultMinColumnWidth));
     }
 
     // Still keep the post-frame callback to adjust to actual size
@@ -140,43 +145,100 @@ class _SailTableState extends State<SailTable> {
     // Only distribute widths if they're empty or we're forced to
     if (_widths.isEmpty || force) {
       setState(() {
-        final totalWidth = widget.columnWidths.fold(0.0, (sum, width) => sum + width);
-        final minTotalWidth = widget.columnWidths.length * widget.defaultMinColumnWidth;
-        final effectiveParentWidth = max(parentWidth, minTotalWidth);
-
-        _widths.clear();
-        _distributeColumnWidths(effectiveParentWidth, totalWidth);
+        // Auto-size columns
+        _autoSizeColumns(parentWidth);
       });
     }
   }
 
-  void _distributeColumnWidths(double availableWidth, double totalWidth) {
+  void _autoSizeColumns(double availableWidth) {
     _widths.clear();
 
     // Calculate space needed for resize handles
-    final numResizeHandles = widget.columnWidths.length - 1;
+    final numResizeHandles = _numColumns! - 1;
     final handleSpace = widget.resizableColumns ? numResizeHandles * 8.0 : 0.0;
-
-    // Subtract handle space from available width
     final widthForColumns = availableWidth - handleSpace;
 
-    // Calculate scaling factor to maintain proportions
-    final scaleFactor = widthForColumns / totalWidth;
+    // Measure content for each column
+    final columnWidths = List<double>.filled(_numColumns!, 0);
 
-    // Distribute widths proportionally
-    for (var i = 0; i < widget.columnWidths.length; i++) {
+    // Measure headers
+    final headers = widget.headerBuilder(context);
+    for (int col = 0; col < headers.length; col++) {
+      final headerWidth = _calculateColumnWidth(headers[col]);
+      columnWidths[col] = max(columnWidths[col], headerWidth);
+    }
+
+    // Measure all rows
+    for (int row = 0; row < widget.rowCount; row++) {
+      final cells = widget.rowBuilder(context, row, false);
+      for (int col = 0; col < cells.length && col < _numColumns!; col++) {
+        final cellWidth = _calculateColumnWidth(cells[col]);
+        columnWidths[col] = max(columnWidths[col], cellWidth);
+      }
+    }
+
+    // Apply min/max constraints and distribute remaining space
+    double totalMeasuredWidth = 0;
+    for (int i = 0; i < _numColumns!; i++) {
       final minWidth = widget.columnMinWidths?.elementAt(i) ?? widget.defaultMinColumnWidth;
       final maxWidth = widget.columnMaxWidths?.elementAt(i);
-      final calculatedWidth = widget.columnWidths[i] * scaleFactor;
 
-      // Clamp width between min and max
-      _widths.add(
-        calculatedWidth.clamp(
-          minWidth,
-          maxWidth ?? double.infinity,
-        ),
+      columnWidths[i] = columnWidths[i].clamp(
+        minWidth,
+        maxWidth ?? double.infinity,
+      );
+      totalMeasuredWidth += columnWidths[i];
+    }
+
+    // If we have extra space, distribute it proportionally
+    if (totalMeasuredWidth < widthForColumns) {
+      final scaleFactor = widthForColumns / totalMeasuredWidth;
+
+      for (int i = 0; i < _numColumns!; i++) {
+        columnWidths[i] *= scaleFactor;
+      }
+    }
+
+    _widths.addAll(columnWidths);
+  }
+
+  double _calculateColumnWidth(Widget widget) {
+    String text = '';
+    TextStyle? textStyle;
+
+    if (widget is SailTableCell) {
+      text = widget.value;
+      // Use the actual style from SailText.primary12
+      textStyle = SailStyleValues.twelve.copyWith(
+        fontFamily: widget.monospace ? 'SourceCodePro' : 'Inter',
+      );
+    } else if (widget is SailTableHeaderCell) {
+      text = widget.name;
+      // Headers might use a different style - adjust as needed
+      textStyle = SailStyleValues.twelve.copyWith(
+        fontFamily: 'Inter',
+        fontWeight: SailStyleValues.boldWeight,
       );
     }
+
+    return _calculateTextWidth(text, textStyle ?? SailStyleValues.twelve);
+  }
+
+  double _calculateTextWidth(String text, TextStyle textStyle) {
+    if (text.isNotEmpty) {
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: textStyle,
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      return textPainter.width + 16; // Add padding
+    }
+
+    return widget.defaultMinColumnWidth;
   }
 
   void _checkScrollPosition() {
@@ -214,7 +276,7 @@ class _SailTableState extends State<SailTable> {
 
   Widget _buildTable(BuildContext context, BoxConstraints constraints) {
     // Calculate total width including resize handles
-    final handleWidth = widget.resizableColumns ? (widget.columnWidths.length - 1) * 8.0 : 0.0;
+    final handleWidth = widget.resizableColumns ? (_numColumns!) * 8.0 : 0.0;
     final tableWidth =
         constraints.maxWidth != double.infinity ? constraints.maxWidth : _totalColumnWidths + handleWidth;
 
@@ -353,7 +415,8 @@ class _SailTableState extends State<SailTable> {
     final rowId = widget.getRowId(index);
     final isSelected = rowId == _selectedId;
     final isLastRow = index == widget.rowCount - 1;
-    final backgroundColor = index % 2 == 1 ? widget.altBackgroundColor : null;
+    final backgroundColor =
+        widget.rowBackgroundColor?.call(index) ?? (index % 2 == 1 ? widget.altBackgroundColor : null);
 
     return _TableRow(
       cells: widget.rowBuilder(context, index, isSelected),
@@ -376,17 +439,6 @@ class _SailTableState extends State<SailTable> {
       _selectedId = _selectedId == rowId ? null : rowId;
     });
     widget.onSelectedRow?.call(_selectedId);
-  }
-
-  @override
-  void didUpdateWidget(SailTable oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // Only reset widths if column count changes
-    if (oldWidget.columnWidths.length != widget.columnWidths.length) {
-      _widths.clear(); // This will trigger a redistribution
-      _resizeColumns(_currentConstraints!.maxWidth);
-    }
   }
 }
 
@@ -559,6 +611,7 @@ class SailTableCell extends StatelessWidget {
     this.plainIconTheme,
     this.selectedIconTheme,
     this.textColor,
+    this.backgroundColor,
     this.monospace = false,
     this.italic = false,
     super.key,
@@ -572,6 +625,7 @@ class SailTableCell extends StatelessWidget {
   final SailSVGAsset? plainIconTheme;
   final SailSVGAsset? selectedIconTheme;
   final Color? textColor;
+  final Color? backgroundColor;
   final bool monospace;
   final bool italic;
   @override
@@ -585,6 +639,7 @@ class SailTableCell extends StatelessWidget {
     return Container(
       alignment: alignment,
       padding: padding,
+      color: backgroundColor,
       child: child ??
           SailText.primary12(
             value,
@@ -655,7 +710,7 @@ class SailTableHeaderCell extends StatelessWidget {
 /// Formats a [date] according to the user's locale and time format preference.
 String formatDate(DateTime date, {bool long = true}) {
   // Try to infer 24-hour format from locale
-  final use24Hour = _is24HourLocale(Intl.getCurrentLocale());
+  final use24Hour = _is24HourLocale(intl.Intl.getCurrentLocale());
 
   // Choose format string based on 24-hour preference
   var dateFormat = use24Hour ? 'yyyy MMM dd HH:mm' : 'yyyy MMM dd hh:mm a';
@@ -663,7 +718,7 @@ String formatDate(DateTime date, {bool long = true}) {
     dateFormat = dateFormat.replaceAll('yyyy ', '');
   }
 
-  return DateFormat(dateFormat, Intl.getCurrentLocale()).format(date.toLocal());
+  return intl.DateFormat(dateFormat, intl.Intl.getCurrentLocale()).format(date.toLocal());
 }
 
 /// Heuristic: Returns true if the locale is likely to use 24-hour time.

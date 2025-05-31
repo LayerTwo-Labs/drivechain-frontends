@@ -278,7 +278,6 @@ class _TransactionTableState extends State<TransactionTable> {
                       ];
                     },
                     rowCount: entries.length,
-                    columnWidths: const [120, 60, 320, 120, 120],
                     drawGrid: true,
                     sortColumnIndex: [
                       'date',
@@ -393,6 +392,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     searchController.addListener(_onChange);
     _txProvider.addListener(_onChange);
     _txProvider.addListener(_debouncedGetStats);
+    _balanceProvider.addListener(_onChange);
     _balanceProvider.addListener(_debouncedGetStats);
     getStats();
   }

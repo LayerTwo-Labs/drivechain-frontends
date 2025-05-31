@@ -297,7 +297,6 @@ class _LatestTransactionTableState extends State<LatestTransactionTable> {
         ];
       },
       rowCount: widget.entries.length,
-      columnWidths: const [150, 50, 200, 100, 70],
       drawGrid: true,
       sortColumnIndex: ['time', 'fee', 'txid', 'size', 'height'].indexOf(sortColumn),
       sortAscending: sortAscending,
@@ -388,7 +387,6 @@ class _LatestBlocksTableState extends State<LatestBlocksTable> {
         ];
       },
       rowCount: widget.blocks.length,
-      columnWidths: const [150, 100, 200],
       drawGrid: true,
       sortColumnIndex: ['time', 'height', 'hash'].indexOf(sortColumn),
       sortAscending: sortAscending,
@@ -963,7 +961,6 @@ class GraffitiTable extends StatelessWidget {
         ];
       },
       rowCount: entries.length,
-      columnWidths: const [50, 200, 250, 150, 100],
       onSort: (columnIndex, ascending) {
         onSort(['fee', 'message', 'time', 'height'][columnIndex]);
       },

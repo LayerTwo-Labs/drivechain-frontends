@@ -251,7 +251,6 @@ class _PeersTabState extends State<PeersTab> {
           ];
         },
         rowCount: peers.length,
-        columnWidths: const [50, 200, 100, 200, 150, 100],
         onDoubleTap: (index) {
           showDialog(
             context: context,

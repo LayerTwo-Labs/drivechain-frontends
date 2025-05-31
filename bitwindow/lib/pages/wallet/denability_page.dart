@@ -242,7 +242,6 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                 ];
               },
               rowCount: widget.utxos.isEmpty ? 1 : widget.utxos.length, // Show one row when empty
-              columnWidths: const [-1, -1, -1, -1, -1, -1],
               drawGrid: true,
               sortColumnIndex: [
                 'txid',

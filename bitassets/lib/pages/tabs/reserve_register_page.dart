@@ -96,7 +96,6 @@ class BitAssetsTabPage extends StatelessWidget {
                               ];
                             },
                             rowCount: model.entries.length,
-                            columnWidths: const [120, 100, 200, 200],
                             drawGrid: true,
                           ),
                         ),

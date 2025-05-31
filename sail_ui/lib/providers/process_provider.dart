@@ -214,6 +214,10 @@ bool isSpam(String data) {
     return true;
   }
 
+  if (data.contains('Ripemd160') && data.contains('bip300301_enforcer')) {
+    return true;
+  }
+
   // btc-buf prints this for every single bitcoin core request
   if (data.contains('rpc: fetch completed in')) {
     return true;

@@ -471,7 +471,6 @@ class _TXIDTransactionTableState extends State<TXIDTransactionTable> {
           SailTableCell(value: widget.transactions[index]),
         ],
         rowCount: widget.transactions.length,
-        columnWidths: const [50, 500],
       ),
     );
   }
@@ -664,7 +663,6 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
             ];
           },
           rowCount: transaction!.outputs.length,
-          columnWidths: const [70, 300],
         ),
       ),
     );

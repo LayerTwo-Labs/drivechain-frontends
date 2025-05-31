@@ -100,7 +100,6 @@ class DutchAuctionTabPage extends StatelessWidget {
                               ];
                             },
                             rowCount: model.filteredAuctions.length,
-                            columnWidths: const [120, 120, 120, 120, 120, 100],
                             drawGrid: true,
                           ),
                         ),
