@@ -52,6 +52,7 @@ dev_dependencies:
   auto_route_generator: ^10.1.0
   build_runner: ^2.4.15
   msix: ^3.16.8
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
@@ -60,6 +61,7 @@ flutter:
     - assets/chain_config.json
     - assets/quotes.json
     - assets/fonts/
+    - assets/launcher.png
 
   fonts:
     - family: Inter
@@ -129,3 +131,12 @@ msix_config:
   store_certificate: false # Use a test certificate instead of store certificate
   install_certificate: false # Don't install certificate during CI builds
   store: false # Not publishing to Microsoft Store
+
+flutter_launcher_icons:
+  windows:
+    generate: true
+    image_path: "assets/launcher.png"
+    icon_size: 256
+  macos:
+    generate: true
+  image_path: "assets/launcher.png"
