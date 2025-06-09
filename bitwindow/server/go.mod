@@ -10,7 +10,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.50.0
 	github.com/sourcegraph/conc v0.3.0
-	golang.org/x/net v0.40.0
+	golang.org/x/net v0.41.0
 	google.golang.org/protobuf v1.36.5
 )
 
@@ -33,8 +33,8 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 )
