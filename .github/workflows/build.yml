@@ -306,6 +306,4 @@ jobs:
           port: 22
           scp: |
             'BitWindow-*.zip' => '/var/www/html/'
-            'BitWindow-*.AppImage' => '/var/www/html/'
             'test-*.zip' => '/var/www/html/'
-            'test-*.AppImage' => '/var/www/html/'
