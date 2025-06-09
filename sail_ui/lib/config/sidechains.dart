@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -112,12 +113,56 @@ abstract class Sidechain extends Binary {
 
   String? getMnemonicPath(Directory appDir) {
     final walletDir = getWalletDir(appDir);
+
     if (walletDir == null) {
       return null;
     }
-    final mnemonicPath = path.normalize(path.join(walletDir, 'mnemonics', 'sidechain_$slot.txt'));
+
+    final mnemonicDir = path.normalize(path.join(walletDir, 'mnemonics'));
+    final mnemonicPath = path.normalize(path.join(mnemonicDir, 'sidechain_$slot.txt'));
+
+    if (!File(mnemonicPath).existsSync()) {
+      // for some reason the .txt file of the mnemonic does not exist, so we try to
+      // recover it from the json
+      return _recoverMnemonicTxt(mnemonicPath);
+    }
 
     return mnemonicPath;
+  }
+
+  String? _recoverMnemonicTxt(String mnemonicPath) {
+    // look outside mnemonic subdir for the json file
+    final walletDir = path.dirname(path.dirname(mnemonicPath));
+    final mnemonicJson = path.join(walletDir, 'sidechain_${slot}_starter.json');
+
+    if (!File(mnemonicJson).existsSync()) {
+      return null;
+    }
+
+    try {
+      // 1. Read the json file and extract "mnemonic" key
+      final jsonContent = File(mnemonicJson).readAsStringSync();
+
+      final jsonData = jsonDecode(jsonContent) as Map<String, dynamic>;
+      final mnemonic = jsonData['mnemonic'] as String?;
+
+      if (mnemonic == null || mnemonic.isEmpty) {
+        return null;
+      }
+
+      // 2. Write a new file sidechain_${slot}.txt with the raw mnemonic
+      final mnemonicFile = File(mnemonicPath);
+
+      // Create the directory if it doesn't exist
+      mnemonicFile.parent.createSync(recursive: true);
+      mnemonicFile.writeAsStringSync(mnemonic);
+
+      // 3. Return the path to the new file
+      return mnemonicPath;
+    } catch (e) {
+      // Handle any errors (file read, JSON parse, file write)
+      return null;
+    }
   }
 }
 
