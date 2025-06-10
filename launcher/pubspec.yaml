@@ -58,7 +58,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/chain_config.json
     - assets/quotes.json
     - assets/fonts/
     - assets/launcher.png

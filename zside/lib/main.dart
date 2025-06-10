@@ -214,13 +214,13 @@ Future<void> initDependencies(
     ),
   );
 
-  final blockInfoProvider = BlockInfoProvider(
-    additionalConnection: BlockSyncConnection(
+  final blockInfoProvider = SyncProgressProvider(
+    additionalConnection: SyncConnection(
       rpc: zcash,
       name: zcash.binary.name,
     ),
   );
-  GetIt.I.registerLazySingleton<BlockInfoProvider>(
+  GetIt.I.registerLazySingleton<SyncProgressProvider>(
     () => blockInfoProvider,
   );
   unawaited(blockInfoProvider.fetch());

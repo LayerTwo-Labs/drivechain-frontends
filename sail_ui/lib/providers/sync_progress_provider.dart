@@ -10,49 +10,62 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// Represents detailed information about a blockchain
 class SyncInfo {
-  final int blocks;
-  final int headers;
+  final int progressCurrent;
+  final int progressGoal;
   final Timestamp? lastBlockAt;
+  final double downloadProgress;
 
-  double get verificationProgress => headers == 0 ? 0 : blocks / headers;
-  bool get isSynced => headers > 0 && blocks == headers;
+  // progress returns the download progress if it's currently downloading, else
+  // the blockchain sync progress compared to headers
+  double get progress => downloadProgress < 1
+      ? downloadProgress
+      : progressGoal == 0
+          ? 0
+          : progressCurrent / progressGoal;
+  bool get isSynced => progressGoal > 0 && progressCurrent == progressGoal;
 
   SyncInfo({
-    required this.blocks,
-    required this.headers,
+    required this.progressCurrent,
+    required this.progressGoal,
     required this.lastBlockAt,
+    required this.downloadProgress,
   });
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is SyncInfo && other.blocks == blocks && other.headers == headers && other.lastBlockAt == lastBlockAt;
+    return other is SyncInfo &&
+        other.progressCurrent == progressCurrent &&
+        other.progressGoal == progressGoal &&
+        other.lastBlockAt == lastBlockAt &&
+        other.downloadProgress.toStringAsFixed(1) == downloadProgress.toStringAsFixed(1);
   }
 
   @override
-  int get hashCode => Object.hash(blocks, headers, lastBlockAt);
+  int get hashCode => Object.hash(progressCurrent, progressGoal, lastBlockAt);
 }
 
 /// Represents a binary that has some sort of sync-status
-class BlockSyncConnection {
+class SyncConnection {
   final RPCConnection rpc;
   final String name;
 
-  BlockSyncConnection({
+  SyncConnection({
     required this.rpc,
     required this.name,
   });
 }
 
-class BlockInfoProvider extends ChangeNotifier {
+class SyncProgressProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
   MainchainRPC get mainchainRPC => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcerRPC => GetIt.I.get<EnforcerRPC>();
+  BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
 
-  BlockSyncConnection get mainchain => BlockSyncConnection(rpc: mainchainRPC, name: ParentChain().name);
-  BlockSyncConnection get enforcer => BlockSyncConnection(rpc: enforcerRPC, name: Enforcer().name);
-  final BlockSyncConnection? additionalConnection;
+  SyncConnection get mainchain => SyncConnection(rpc: mainchainRPC, name: ParentChain().name);
+  SyncConnection get enforcer => SyncConnection(rpc: enforcerRPC, name: Enforcer().name);
+  final SyncConnection? additionalConnection;
 
   static const Duration AGGRESSIVE_INTERVAL = Duration(milliseconds: 100);
   static const Duration PASSIVE_INTERVAL = Duration(seconds: 5);
@@ -75,10 +88,12 @@ class BlockInfoProvider extends ChangeNotifier {
   Timer? _additionalTimer;
   bool _isFetchingAdditional = false;
 
-  BlockInfoProvider({
+  SyncProgressProvider({
     this.additionalConnection,
     bool startTimer = true,
   }) {
+    binaryProvider.addListener(_checkDownloadProgress);
+
     if (startTimer && !Environment.isInTest) {
       _startAllTimers();
     }
@@ -193,9 +208,10 @@ class BlockInfoProvider extends ChangeNotifier {
 
       final newBlockchainInfo = await mainchain.rpc.getBlockchainInfo();
       final newSyncInfo = SyncInfo(
-        blocks: newBlockchainInfo.blocks,
-        headers: newBlockchainInfo.headers,
+        progressCurrent: newBlockchainInfo.blocks,
+        progressGoal: newBlockchainInfo.headers,
         lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
+        downloadProgress: 1,
       );
 
       if (_syncInfoHasChanged(mainchainSyncInfo, newSyncInfo) || mainchainError != null) {
@@ -224,9 +240,10 @@ class BlockInfoProvider extends ChangeNotifier {
 
       final newBlockchainInfo = await enforcer.rpc.getBlockchainInfo();
       final newSyncInfo = SyncInfo(
-        blocks: newBlockchainInfo.blocks,
-        headers: mainchainSyncInfo?.headers ?? 0,
+        progressCurrent: newBlockchainInfo.blocks,
+        progressGoal: mainchainSyncInfo?.progressGoal ?? 0,
         lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
+        downloadProgress: 1,
       );
 
       if (_syncInfoHasChanged(enforcerSyncInfo, newSyncInfo) || enforcerError != null) {
@@ -248,6 +265,76 @@ class BlockInfoProvider extends ChangeNotifier {
     }
   }
 
+  void _checkDownloadProgress() {
+    bool hasChanges = false;
+
+    var downloadProgress = binaryProvider.getDownloadProgress(enforcer.rpc.binary);
+    if ((downloadProgress.progress != 1 && downloadProgress.progress != 0) ||
+        (downloadProgress.progress == 0 && downloadProgress.message != null)) {
+      // Extract MB values from download message if available
+      final (currentMB, totalMB) = _extractMBFromMessage(downloadProgress.message ?? '');
+
+      enforcerSyncInfo = SyncInfo(
+        progressCurrent: currentMB,
+        progressGoal: totalMB,
+        lastBlockAt: null,
+        downloadProgress: downloadProgress.progress,
+      );
+      hasChanges = true;
+    }
+
+    downloadProgress = binaryProvider.getDownloadProgress(mainchain.rpc.binary);
+    if ((downloadProgress.progress != 1 && downloadProgress.progress != 0) ||
+        (downloadProgress.progress == 0 && downloadProgress.message != null)) {
+      // Extract MB values from download message if available
+      final (currentMB, totalMB) = _extractMBFromMessage(downloadProgress.message ?? '');
+
+      mainchainSyncInfo = SyncInfo(
+        progressCurrent: currentMB,
+        progressGoal: totalMB,
+        lastBlockAt: null,
+        downloadProgress: downloadProgress.progress,
+      );
+      hasChanges = true;
+    }
+
+    if (additionalConnection != null) {
+      downloadProgress = binaryProvider.getDownloadProgress(additionalConnection!.rpc.binary);
+      if ((downloadProgress.progress != 1 && downloadProgress.progress != 0) ||
+          (downloadProgress.progress == 0 && downloadProgress.message != null)) {
+        // Extract MB values from download message if available
+        final (currentMB, totalMB) = _extractMBFromMessage(downloadProgress.message ?? '');
+
+        additionalSyncInfo = SyncInfo(
+          progressCurrent: currentMB,
+          progressGoal: totalMB,
+          lastBlockAt: null,
+          downloadProgress: downloadProgress.progress,
+        );
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      notifyListeners();
+    }
+  }
+
+  // Helper method to extract MB values from download message
+  // Message format: "Downloaded X.X MB / Y.Y MB (Z.Z%)"
+  (int, int) _extractMBFromMessage(String message) {
+    final regex = RegExp(r'Downloaded ([\d.]+) MB / ([\d.]+) MB');
+    final match = regex.firstMatch(message);
+
+    if (match != null) {
+      final currentMB = double.tryParse(match.group(1) ?? '0')?.round() ?? 0;
+      final totalMB = double.tryParse(match.group(2) ?? '0')?.round() ?? 0;
+      return (currentMB, totalMB);
+    }
+
+    return (0, 0);
+  }
+
   Future<void> _fetchAdditional() async {
     if (additionalConnection == null) return;
 
@@ -257,9 +344,10 @@ class BlockInfoProvider extends ChangeNotifier {
 
       final newBlockchainInfo = await additionalConnection!.rpc.getBlockchainInfo();
       final newSyncInfo = SyncInfo(
-        blocks: newBlockchainInfo.blocks,
-        headers: newBlockchainInfo.headers,
+        progressCurrent: newBlockchainInfo.blocks,
+        progressGoal: newBlockchainInfo.headers,
         lastBlockAt: newBlockchainInfo.time != 0 ? Timestamp(seconds: Int64(newBlockchainInfo.time)) : null,
+        downloadProgress: 1,
       );
 
       if (_syncInfoHasChanged(additionalSyncInfo, newSyncInfo) || additionalError != null) {

@@ -5,7 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/env.dart';
 import 'package:sail_ui/gen/bitcoind/v1/bitcoind.pb.dart';
-import 'package:sail_ui/providers/blockinfo_provider.dart';
+import 'package:sail_ui/providers/sync_progress_provider.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 import 'package:sail_ui/rpcs/enforcer_rpc.dart';
 import 'package:sail_ui/rpcs/mainchain_rpc.dart';
@@ -15,7 +15,7 @@ class BlockchainProvider extends ChangeNotifier {
   BitwindowRPC get bitwindowd => GetIt.I.get<BitwindowRPC>();
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
-  BlockInfoProvider get infoProvider => GetIt.I.get<BlockInfoProvider>();
+  SyncProgressProvider get infoProvider => GetIt.I.get<SyncProgressProvider>();
 
   // raw data go here
   List<Peer> peers = [];

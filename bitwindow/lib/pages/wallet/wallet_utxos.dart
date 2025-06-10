@@ -135,7 +135,7 @@ class _UTXOTableState extends State<UTXOTable> {
               child: SailTable(
                 rowBackgroundColor: (index) {
                   final utxo = sortedEntries[index];
-                  return isDenied(utxo) ? Colors.red.withOpacity(0.1) : null;
+                  return isDenied(utxo) ? Colors.red.withValues(alpha: 0.1) : null;
                 },
                 getRowId: (index) => sortedEntries[index].output.split(':').first,
                 headerBuilder: (context) => [

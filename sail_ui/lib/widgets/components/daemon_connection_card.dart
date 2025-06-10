@@ -36,13 +36,7 @@ class DaemonConnectionCard extends StatelessWidget {
               ),
               SailSVG.fromAsset(
                 SailSVGAsset.iconConnectionStatus,
-                color: infoMessage != null
-                    ? theme.colors.info
-                    : connection.initializingBinary
-                        ? theme.colors.orangeLight
-                        : connection.connected
-                            ? theme.colors.success
-                            : theme.colors.error,
+                color: _getConnectionColor(theme),
               ),
               Expanded(child: Container()),
               SailButton(
@@ -88,8 +82,9 @@ class DaemonConnectionCard extends StatelessWidget {
               ),
             ),
           SailColumn(
-            spacing: SailStyleValues.padding12,
+            spacing: 0,
             children: [
+              SailSpacing(SailStyleValues.padding04),
               if (infoMessage != null || connection.connectionError != null)
                 SailText.secondary12(
                   infoMessage ??
@@ -105,6 +100,20 @@ class DaemonConnectionCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _getConnectionColor(SailThemeData theme) {
+    if (syncInfo != null && syncInfo!.downloadProgress < 1 && syncInfo!.downloadProgress > 0) {
+      return theme.colors.orangeLight;
+    } else if (infoMessage != null) {
+      return theme.colors.info;
+    } else if (connection.initializingBinary) {
+      return theme.colors.orangeLight;
+    } else if (connection.connected) {
+      return theme.colors.success;
+    } else {
+      return theme.colors.error;
+    }
   }
 }
 
@@ -126,7 +135,9 @@ class BlockStatus extends StatelessWidget {
       children: [
         Expanded(
           child: Tooltip(
-            message: '$name\nCurrent height ${syncInfo.blocks}\nHeader height ${syncInfo.headers}',
+            message: syncInfo.downloadProgress < 1
+                ? 'Downloading $name\nProgress: ${syncInfo.progressCurrent} MB\nSize: ${syncInfo.progressGoal} MB'
+                : '$name\nCurrent height ${syncInfo.progressCurrent}\nHeader height ${syncInfo.progressGoal}',
             child: SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.start,
@@ -135,14 +146,16 @@ class BlockStatus extends StatelessWidget {
                 if (!syncInfo.isSynced)
                   Expanded(
                     child: ProgressBar(
-                      progress: syncInfo.verificationProgress,
-                      current: syncInfo.blocks,
-                      goal: syncInfo.headers,
+                      progress: syncInfo.progress,
+                      current: syncInfo.progressCurrent,
+                      goal: syncInfo.progressGoal,
                     ),
                   )
                 else
                   SailText.secondary12(
-                    '${formatWithThousandSpacers(syncInfo.blocks)} sync height',
+                    syncInfo.downloadProgress < 1 && syncInfo.downloadProgress > 0
+                        ? '${formatWithThousandSpacers(syncInfo.progressCurrent)} MB'
+                        : '${formatWithThousandSpacers(syncInfo.progressCurrent)} sync height',
                   ),
               ],
             ),

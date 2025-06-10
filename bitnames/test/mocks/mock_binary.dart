@@ -27,7 +27,7 @@ class MockBinary extends Binary {
             },
           ),
           binary: 'mock',
-          network: NetworkConfig(port: 8272),
+          port: 8272,
           chainLayer: 0,
         );
 
@@ -42,9 +42,10 @@ class MockBinary extends Binary {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
     String? walletFile,
+    DownloadInfo? downloadInfo,
   }) {
     return MockBinary();
   }

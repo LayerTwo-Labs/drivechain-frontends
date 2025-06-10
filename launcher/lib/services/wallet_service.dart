@@ -318,7 +318,7 @@ class WalletService extends ChangeNotifier {
       final l1Chain = binaries.firstWhere((b) => b.chainLayer == 1);
 
       final appDir = await Environment.appDir();
-      final assetsDir = Directory(path.join(appDir.path, 'assets'));
+      final assetsDir = binDir(appDir.path);
       final binaryPath = path.join(assetsDir.path, l1Chain.binary);
 
       if (File(binaryPath).existsSync()) {

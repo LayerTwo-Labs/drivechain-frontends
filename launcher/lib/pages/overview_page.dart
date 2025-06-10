@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +7,6 @@ import 'package:launcher/env.dart';
 import 'package:launcher/services/wallet_service.dart';
 import 'package:launcher/widgets/chain_settings_modal.dart';
 import 'package:launcher/widgets/quotes_widget.dart';
-import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -23,7 +21,7 @@ class _OverviewPageState extends State<OverviewPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
   WalletService get _walletService => GetIt.I.get<WalletService>();
-  BlockInfoProvider get _blockchainProvider => GetIt.I.get<BlockInfoProvider>();
+  SyncProgressProvider get _blockchainProvider => GetIt.I.get<SyncProgressProvider>();
 
   // Add state for starter usage
   final Map<String, bool> _useStarter = {};
@@ -133,7 +131,7 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
-  Widget _buildActionButton(BuildContext context, Binary binary, DownloadState? status) {
+  Widget _buildActionButton(BuildContext context, Binary binary, DownloadInfo? status) {
     // Check if binary is running
     final isRunning = switch (binary) {
       var b when b is ParentChain => _binaryProvider.mainchainConnected,
@@ -289,7 +287,7 @@ class _OverviewPageState extends State<OverviewPage> {
     // Then wipe it
     await binary.wipeAppDir();
     final appDir = await Environment.appDir();
-    final assetsDir = Directory(path.join(appDir.path, 'assets'));
+    final assetsDir = binDir(appDir.path);
     await binary.wipeAssets(assetsDir);
 
     // Show success message
@@ -302,7 +300,7 @@ class _OverviewPageState extends State<OverviewPage> {
     }
   }
 
-  Widget _buildChainContent(Binary binary, DownloadState? status) {
+  Widget _buildChainContent(Binary binary, DownloadInfo? status) {
     final theme = SailTheme.of(context);
 
     // Get RPC status based on binary type
@@ -323,9 +321,9 @@ class _OverviewPageState extends State<OverviewPage> {
 
         if (connected && _binaryProvider.mainchainRPC.inIBD && _blockchainProvider.mainchainSyncInfo != null) {
           final info = _blockchainProvider.mainchainSyncInfo;
-          final progress = info!.verificationProgress;
+          final progress = info!.progress;
           description = 'Syncing... ${(progress * 100).toStringAsFixed(2)} %\n'
-              'Blocks: ${info.blocks} / ${info.headers}';
+              'Blocks: ${info.progressCurrent} / ${info.progressGoal}';
         }
 
       case Enforcer():
@@ -474,7 +472,7 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Widget _buildProgressIndicator(Binary binary, DownloadState? status) {
+  Widget _buildProgressIndicator(Binary binary, DownloadInfo? status) {
     final hide = status == null || status.progress == 0.0 || status.progress == 1.0;
 
     return Opacity(
@@ -498,7 +496,7 @@ class _OverviewPageState extends State<OverviewPage> {
           Column(
             children: [
               Expanded(
-                child: StreamBuilder<Map<String, DownloadState>>(
+                child: StreamBuilder<Map<String, DownloadInfo>>(
                   stream: _binaryProvider.statusStream,
                   builder: (context, statusSnapshot) {
                     final l1Chains = _binaryProvider.binaries.where((chain) => chain.chainLayer == 1).toList()
