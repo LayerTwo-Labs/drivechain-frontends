@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
-import 'package:sail_ui/rpcs/thunder_rpc.dart';
 
 class AddressProvider extends ChangeNotifier {
   SidechainRPC get rpc => GetIt.I.get<SidechainRPC>();
@@ -52,7 +51,6 @@ class AddressProvider extends ChangeNotifier {
         receiveAddress = await rpc.getSideAddress();
         initialized = true;
       } catch (e) {
-        log.e('Failed to generate addresses: $e');
         error = e.toString();
       } finally {
         notifyListeners();
@@ -64,7 +62,6 @@ class AddressProvider extends ChangeNotifier {
         depositAddress = await rpc.getDepositAddress();
         initialized = true;
       } catch (e) {
-        log.e('Failed to generate addresses: $e');
         depositError = e.toString();
       } finally {
         notifyListeners();

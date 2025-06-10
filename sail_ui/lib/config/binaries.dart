@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/sidechains.dart';
+import 'package:sail_ui/providers/binary_provider.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
@@ -22,9 +22,10 @@ abstract class Binary {
   final DirectoryConfig directories;
   MetadataConfig metadata;
   final String binary;
-  final NetworkConfig network;
+  final int port;
   final int chainLayer;
   List<String> extraBootArgs;
+  final DownloadInfo downloadInfo;
 
   Binary({
     required this.name,
@@ -34,14 +35,14 @@ abstract class Binary {
     required this.directories,
     required this.metadata,
     required this.binary,
-    required this.network,
+    required this.port,
     required this.chainLayer,
     this.extraBootArgs = const [],
+    this.downloadInfo = const DownloadInfo(),
   });
 
   // Runtime properties
   Color get color;
-  int get port => network.port;
   String get ticker => '';
   String get binaryName => binary;
   bool get isDownloaded => metadata.binaryPath != null;
@@ -94,64 +95,6 @@ abstract class Binary {
     return null;
   }
 
-  factory Binary.fromJson(Map<String, dynamic> json) {
-    // First create the correct type based on name
-    final name = json['name'] as String? ?? '';
-
-    Binary base;
-    if (name == ParentChain().name) {
-      base = ParentChain();
-    } else if (name == BitWindow().name) {
-      base = BitWindow();
-    } else if (name == Enforcer().name) {
-      base = Enforcer();
-    } else if (name == TestSidechain().name) {
-      base = TestSidechain();
-    } else if (name == ZCash().name) {
-      base = ZCash();
-    } else if (name == Thunder().name) {
-      base = Thunder();
-    } else if (name == Bitnames().name) {
-      base = Bitnames();
-    } else if (name == BitAssets().name) {
-      base = BitAssets();
-    } else {
-      base = _BinaryImpl(
-        name: name,
-        version: json['version'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        repoUrl: json['repo_url'] as String? ?? '',
-        directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
-        metadata: MetadataConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
-        binary: '',
-        network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
-        chainLayer: json['chain_layer'] as int? ?? 0,
-      );
-    }
-
-    // Handle the binary field which is a map of platform-specific paths
-    final binaryMap = json['binary'] as Map<String, dynamic>? ?? {};
-    final binaryPath = switch (Platform.operatingSystem) {
-          'linux' => binaryMap['linux'],
-          'macos' => binaryMap['darwin'],
-          'windows' => binaryMap['win32'],
-          _ => throw Exception('unsupported platform')
-        } as String? ??
-        '';
-
-    // Update fields from JSON, keeping the base type
-    return base.copyWith(
-      version: json['version'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      repoUrl: json['repo_url'] as String? ?? '',
-      directories: DirectoryConfig.fromJson(json['directories'] as Map<String, dynamic>? ?? {}),
-      metadata: MetadataConfig.fromJson(json['download'] as Map<String, dynamic>? ?? {}),
-      binary: binaryPath,
-      network: NetworkConfig.fromJson(json['network'] as Map<String, dynamic>? ?? {}),
-      chainLayer: json['chain_layer'] as int? ?? 0,
-    );
-  }
-
   Binary copyWith({
     String? version,
     String? description,
@@ -159,286 +102,10 @@ abstract class Binary {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   });
-
-  /// Check the Last-Modified header for a binary without downloading
-  Future<DateTime?> checkReleaseDate() async {
-    try {
-      final os = getOS();
-      final fileName = metadata.files[os]!;
-      final downloadUrl = Uri.parse(metadata.baseUrl).resolve(fileName).toString();
-
-      final client = HttpClient();
-
-      final request = await client.headUrl(Uri.parse(downloadUrl));
-      final response = await request.close();
-
-      if (response.statusCode != 200) {
-        _log('Warning: Could not check release date for $name: HTTP ${response.statusCode}');
-        return null;
-      }
-
-      final lastModified = response.headers.value('last-modified');
-      if (lastModified == null) {
-        _log('Warning: No Last-Modified header for $name');
-        return null;
-      }
-
-      final releaseDate = HttpDate.parse(lastModified);
-      return releaseDate;
-    } catch (e) {
-      _log('Warning: Failed to check release date for $name: $e');
-      return null;
-    }
-  }
-
-  /// Downloads and installs a binary
-  Future<void> downloadAndExtract(
-    Directory appDir,
-    void Function({
-      double progress,
-      String? message,
-      String? error,
-    }) onStatusUpdate,
-  ) async {
-    try {
-      onStatusUpdate(
-        message: 'Starting download...',
-      );
-
-      // 1. Setup directories
-      // 1. Setup paths - use the full datadir path
-      final downloadsDir = Directory(path.join(appDir.path, 'assets', 'downloads'));
-      final extractDir = Directory(path.join(appDir.path, 'assets'));
-      final zipName = metadata.files[getOS()]!;
-      final zipPath = path.join(downloadsDir.path, zipName);
-
-      // Create downloads directory recursively, this will also
-      // create the parent assets directory
-      await downloadsDir.create(recursive: true);
-
-      onStatusUpdate(
-        message: 'Downloading...',
-      );
-
-      // 2. Download the binary
-      final releaseDate = await checkReleaseDate();
-      final downloadUrl = Uri.parse(metadata.baseUrl).resolve(zipName).toString();
-      await _download(downloadUrl, zipPath, onStatusUpdate);
-
-      // 3. Extract
-      await _extract(extractDir, zipPath, downloadsDir);
-
-      // 4. Get the newly downloaded binary path. Should and will exist because we just
-      // downloaded and extracted correctly
-      final binaryPath = await resolveBinaryPath(appDir);
-
-      metadata = metadata.copyWith(
-        remoteTimestamp: releaseDate,
-        downloadedTimestamp: releaseDate,
-        binaryPath: binaryPath,
-      );
-
-      // Update status to completed
-      onStatusUpdate(
-        message: 'Installed $name)',
-      );
-    } catch (e) {
-      onStatusUpdate(
-        error: e.toString(),
-      );
-      throw Exception(e);
-    }
-  }
-
-  Future<void> _extract(Directory extractDir, String zipPath, Directory downloadsDir) async {
-    // Create a temporary directory for extraction
-    final tempDir = Directory(path.join(extractDir.path, 'temp', binary.split('.').first));
-    try {
-      await tempDir.delete(recursive: true);
-    } catch (e) {
-      // directory probably doesn't exist, swallow!
-    }
-    await tempDir.create(recursive: true);
-
-    final inputStream = InputFileStream(zipPath);
-    final archive = ZipDecoder().decodeStream(inputStream);
-
-    try {
-      await extractArchiveToDisk(
-        archive,
-        tempDir.path,
-      );
-
-      // Helper function to safely move files/directories
-      Future<void> safeMove(FileSystemEntity entity, String newPath) async {
-        _log('Moving ${entity.path} to $newPath');
-        try {
-          await entity.rename(newPath);
-        } on FileSystemException catch (e) {
-          if (e.message.contains('Directory not empty') || e.message.contains('Rename failed')) {
-            if (entity is File) {
-              await File(newPath).delete();
-              await entity.rename(newPath);
-            } else {
-              await Directory(newPath).delete(recursive: true);
-              await entity.rename(newPath);
-            }
-          } else {
-            _log('Failed to move: ${e.message}');
-            rethrow;
-          }
-        }
-      }
-
-      _log('Moving files from temp directory to final location');
-      await for (final entity in tempDir.list()) {
-        final baseName = path.basename(entity.path);
-        final targetPath = path.join(extractDir.path, baseName);
-
-        if (entity is Directory && baseName == path.basenameWithoutExtension(zipPath)) {
-          await for (final innerEntity in entity.list()) {
-            await safeMove(innerEntity, path.join(extractDir.path, path.basename(innerEntity.path)));
-          }
-          await entity.delete(recursive: true);
-          continue;
-        }
-
-        await safeMove(entity, targetPath);
-      }
-
-      // Clean up temp directory
-      await tempDir.delete(recursive: true);
-
-      // Get the zip name without extension
-      final zipBaseName = path.basenameWithoutExtension(zipPath);
-      final expectedDirPath = path.join(extractDir.path, zipBaseName);
-
-      if (await Directory(expectedDirPath).exists()) {
-        final innerDir = Directory(expectedDirPath);
-
-        for (final entity in innerDir.listSync()) {
-          final newPath = path.join(extractDir.path, path.basename(entity.path));
-          await safeMove(entity, newPath);
-        }
-        await innerDir.delete(recursive: true);
-      }
-
-      // some binaries have additional naming conventions that convolutes things
-      // such as versions, platform specific names, etc.
-      // we must remove those extra bits, and rename the files that had their
-      // names changed.
-      await for (final entity in extractDir.list(recursive: false)) {
-        if (entity is File) {
-          final fileName = path.basename(entity.path);
-
-          // Skip non-executable files
-          if (fileName.endsWith('.zip') || fileName.endsWith('.meta') || fileName.endsWith('.md')) continue;
-
-          // Clean up the filename:
-          // 1. Remove version numbers (like -0.1.7-)
-          // 2. Remove platform specifics (-x86_64-apple-darwin)
-          // 3. Remove -latest if present
-          String targetName = fileName;
-
-          // First remove platform specific parts
-          final platformParts = [
-            '-x86_64-apple-darwin',
-            '-x86_64-linux',
-            '-x86_64.exe',
-            '-x86_64-unknown-linux-gnu',
-            '-x86_64-pc-windows-gnu',
-            'x86_64-unknown-linux-gnu',
-            'x86_64-apple-darwin',
-            'x86_64-pc-windows-gnu',
-            '-latest',
-          ];
-          for (final part in platformParts) {
-            targetName = targetName.replaceAll(part, '');
-          }
-          // Remove version numbers (matches patterns like -0.1.7- or -v1.2.3-)
-          targetName = targetName.replaceAll(RegExp(r'-v?\d+\.\d+\.\d+-?'), '');
-
-          if (fileName == targetName) {
-            continue;
-          }
-
-          final newPath = path.join(path.dirname(entity.path), targetName);
-          await safeMove(entity, newPath);
-        }
-      }
-    } catch (e) {
-      _log('Extraction error: $e\nStack trace: ${StackTrace.current}');
-      rethrow;
-    }
-  }
-
-  /// Downloads a file with progress tracking
-  /// Returns the release date from the Last-Modified header
-  Future<void> _download(
-    String url,
-    String savePath,
-    void Function({
-      double progress,
-      String? message,
-      String? error,
-    }) onStatusUpdate,
-  ) async {
-    try {
-      final client = HttpClient();
-      _log('Starting download for $name from $url to $savePath');
-
-      final request = await client.getUrl(Uri.parse(url));
-      final response = await request.close();
-
-      if (response.statusCode != 200) {
-        throw Exception('HTTP Status ${response.statusCode}');
-      }
-
-      final file = File(savePath);
-      final sink = file.openWrite();
-
-      final totalBytes = response.contentLength;
-      var receivedBytes = 0;
-
-      await for (final chunk in response) {
-        receivedBytes += chunk.length;
-        sink.add(chunk);
-
-        if (totalBytes != -1) {
-          final progress = receivedBytes / totalBytes;
-          final downloadedMB = (receivedBytes / 1024 / 1024).toStringAsFixed(1);
-          final totalMB = (totalBytes / 1024 / 1024).toStringAsFixed(1);
-
-          if (receivedBytes % (5 * 1024 * 1024) == 0) {
-            // Log every 5MB
-            _log('$name: Downloaded $downloadedMB MB / $totalMB MB (${(progress * 100).toStringAsFixed(1)}%)');
-          }
-
-          onStatusUpdate(
-            progress: progress,
-            message: 'Downloading... $downloadedMB MB / $totalMB MB (${(progress * 100).toStringAsFixed(1)}%)',
-          );
-        }
-      }
-
-      await sink.close();
-      client.close();
-
-      _log('Download completed for $name');
-
-      // Update status for next phase
-      onStatusUpdate(
-        message: 'Verifying download...',
-      );
-    } catch (e) {
-      final error = 'Download failed from $url: $e\nSave path: $savePath';
-      _log('ERROR: $error');
-      throw Exception(error);
-    }
-  }
 
   Future<void> wipeAppDir() async {
     _log('Starting data wipe for $name');
@@ -606,7 +273,7 @@ abstract class Binary {
 
     try {
       // add .exe if on windows and the binary doesn't already end with .exe
-      final assetPath = 'assets/bin/$binaryName';
+      final assetPath = 'bin/$binaryName';
       log.d('Attempting to load binary from asset path: $assetPath');
 
       binResource = await rootBundle.load(assetPath);
@@ -618,10 +285,10 @@ abstract class Binary {
 
     File file;
     if (appDir != null) {
-      final fileDir = path.join(appDir.path, 'assets');
-      await Directory(fileDir).create(recursive: true);
-      file = File(filePath([fileDir, binaryName]));
-      log.d('Writing binary to assets: ${file.path}');
+      final fileDir = binDir(appDir.path);
+      await Directory(fileDir.path).create(recursive: true);
+      file = File(filePath([fileDir.path, binaryName]));
+      log.d('Writing binary to bin: ${file.path}');
     } else {
       // Create temp file
       final temp = await getTemporaryDirectory();
@@ -652,9 +319,9 @@ abstract class Binary {
     final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
 
     if (kDebugMode) {
-      // In debug mode, check pwd/assets/bin first
+      // In debug mode, check pwd/bin first
       paths.addAll([
-        path.join(Directory.current.path, 'assets', 'bin', baseBinary),
+        path.join(Directory.current.path, 'bin', baseBinary),
       ]);
     }
 
@@ -742,7 +409,7 @@ abstract class Binary {
     if (appDir != null) {
       // In release mode, check the folder where binaries are downloaded to
       paths.addAll([
-        path.join(appDir.path, 'assets', baseBinary),
+        path.join(appDir.path, 'bin', baseBinary),
       ]);
     }
 
@@ -755,7 +422,7 @@ abstract class Binary {
     log.i('Binary: $message');
   }
 
-  String get connectionString => '$name :${network.port}';
+  String get connectionString => '$name :$port';
 
   void addBootArg(String arg) {
     extraBootArgs = List<String>.from(extraBootArgs)..add(arg);
@@ -765,14 +432,15 @@ abstract class Binary {
 class ParentChain extends Binary {
   ParentChain({
     super.name = 'Bitcoin Core (Patched)',
-    super.version = '0.1.0',
-    super.description = 'Drivechain Parent Chain',
+    super.version = 'latest',
+    super.description = 'Modified Bitcoin implementation for drivechain support',
     super.repoUrl = 'https://github.com/drivechain-project/drivechain',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'bitcoind',
-    NetworkConfig? network,
+    int? port,
     super.chainLayer = 1,
+    super.downloadInfo = const DownloadInfo(),
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -791,7 +459,7 @@ class ParentChain extends Binary {
                   OS.windows: 'L1-bitcoin-patched-latest-x86_64-w64-msvc.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 38332),
+          port: port ?? 38332,
         );
 
   @override
@@ -805,8 +473,9 @@ class ParentChain extends Binary {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   }) {
     return ParentChain(
       name: name,
@@ -816,8 +485,9 @@ class ParentChain extends Binary {
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
-      network: network ?? this.network,
+      port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
     );
   }
 }
@@ -825,14 +495,15 @@ class ParentChain extends Binary {
 class BitWindow extends Binary {
   BitWindow({
     super.name = 'BitWindow',
-    super.version = '0.1.0',
-    super.description = 'BitWindow UI',
+    super.version = 'latest',
+    super.description = 'GUI for managing drivechain operations',
     super.repoUrl = 'https://github.com/drivechain-project/bitwindow',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'bitwindowd',
-    NetworkConfig? network,
+    int? port,
     super.chainLayer = 1,
+    super.downloadInfo = const DownloadInfo(),
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -851,7 +522,7 @@ class BitWindow extends Binary {
                   OS.windows: 'BitWindow-latest-x86_64-pc-windows-msvc.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 8080),
+          port: port ?? 8080,
         );
 
   @override
@@ -865,8 +536,9 @@ class BitWindow extends Binary {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   }) {
     return BitWindow(
       name: name,
@@ -876,8 +548,9 @@ class BitWindow extends Binary {
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
-      network: network ?? this.network,
+      port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
     );
   }
 }
@@ -886,13 +559,14 @@ class Enforcer extends Binary {
   Enforcer({
     super.name = 'BIP300301 Enforcer',
     super.version = '0.1.0',
-    super.description = 'BIP300/301 Enforcer',
+    super.description = 'Manages drivechain validation rules',
     super.repoUrl = 'https://github.com/drivechain-project/enforcer',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'bip300301-enforcer',
-    NetworkConfig? network,
+    int? port,
     super.chainLayer = 1,
+    super.downloadInfo = const DownloadInfo(),
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -911,7 +585,7 @@ class Enforcer extends Binary {
                   OS.windows: 'bip300301-enforcer-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 50051),
+          port: port ?? 50051,
         );
 
   @override
@@ -925,8 +599,9 @@ class Enforcer extends Binary {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   }) {
     return Enforcer(
       name: name,
@@ -936,8 +611,9 @@ class Enforcer extends Binary {
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
-      network: network ?? this.network,
+      port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
     );
   }
 }
@@ -1054,65 +730,24 @@ String filePath(List<String> segments) {
   return segments.where((element) => element.isNotEmpty).join(Platform.pathSeparator);
 }
 
-class _BinaryImpl extends Binary {
-  _BinaryImpl({
-    required super.name,
-    required super.version,
-    required super.description,
-    required super.repoUrl,
-    required super.directories,
-    required super.metadata,
-    required super.binary,
-    required super.network,
-    required super.chainLayer,
-  });
-
-  @override
-  Color get color => SailColorScheme.green;
-
-  @override
-  Binary copyWith({
-    String? version,
-    String? description,
-    String? repoUrl,
-    DirectoryConfig? directories,
-    MetadataConfig? metadata,
-    String? binary,
-    NetworkConfig? network,
-    int? chainLayer,
-  }) {
-    return _BinaryImpl(
-      name: name,
-      version: version ?? this.version,
-      description: description ?? this.description,
-      repoUrl: repoUrl ?? this.repoUrl,
-      directories: directories ?? this.directories,
-      metadata: metadata ?? this.metadata,
-      binary: binary ?? this.binary,
-      network: network ?? this.network,
-      chainLayer: chainLayer ?? this.chainLayer,
-    );
-  }
-}
-
 extension BinaryDownload on Binary {
   /// Check if the binary exists in the assets directory
   Future<bool> exists(Directory datadir) async {
     // For macOS .app bundles, check for the .app directory
     if (Platform.isMacOS && binary.endsWith('.app')) {
-      final appPath = path.join(datadir.path, 'assets', binary);
+      final appPath = assetPath(datadir);
       return Directory(appPath).existsSync();
     }
 
     if (Platform.isWindows && binary.endsWith('.msix')) {
-      final appPath = path.join(datadir.path, 'assets', binary);
+      final appPath = assetPath(datadir);
       return Directory(appPath).existsSync();
     }
 
     // For regular binaries, check both with and without extension
     final baseNameToFind = path.basenameWithoutExtension(binary).toLowerCase();
 
-    final assetsDir = Directory(path.join(datadir.path, 'assets'));
+    final assetsDir = binDir(datadir.path);
     if (!assetsDir.existsSync()) return false;
 
     try {
@@ -1131,7 +766,7 @@ extension BinaryDownload on Binary {
 
   /// Get the path to the binary in assets
   String assetPath(Directory datadir) {
-    return path.join(datadir.path, 'assets', binary);
+    return path.join(binDir(datadir.path).path, binary);
   }
 
   /// Calculate SHA256 hash of the binary
@@ -1156,7 +791,7 @@ extension BinaryDownload on Binary {
 
       return (lastModified, binaryFile);
     } catch (e) {
-      log.e('Failed to load metadata for $binary', error: e);
+      log.e('Binary does not exist anywhere $binary', error: e);
       return (null, null);
     }
   }
@@ -1169,16 +804,6 @@ class DirectoryConfig {
   const DirectoryConfig({
     required this.base,
   });
-
-  factory DirectoryConfig.fromJson(Map<String, dynamic> json) {
-    return DirectoryConfig(
-      base: {
-        OS.linux: json['linux'] as String? ?? 'Drivechain',
-        OS.macos: json['darwin'] as String? ?? 'Drivechain',
-        OS.windows: json['win32'] as String? ?? 'Drivechain',
-      },
-    );
-  }
 }
 
 /// Configuration for binary downloads
@@ -1186,7 +811,7 @@ class MetadataConfig {
   final String baseUrl;
   final Map<OS, String> files;
   DateTime? remoteTimestamp; // Last-Modified from server
-  DateTime? downloadedTimestamp; // When we last downloaded it, what is saved to disk in .meta
+  DateTime? downloadedTimestamp; // Local file timestamp
   File? binaryPath; // Path to the binary on disk (if exists)
 
   MetadataConfig({
@@ -1196,21 +821,6 @@ class MetadataConfig {
     this.downloadedTimestamp,
     this.binaryPath,
   });
-
-  factory MetadataConfig.fromJson(Map<String, dynamic> json) {
-    final remoteStr = json['remote_timestamp'] as String?;
-    final downloadedStr = json['downloaded_timestamp'] as String?;
-    return MetadataConfig(
-      baseUrl: json['base_url'] as String,
-      files: {
-        OS.linux: (json['files'] as Map<String, dynamic>)['linux'] as String? ?? '',
-        OS.macos: (json['files'] as Map<String, dynamic>)['darwin'] as String? ?? '',
-        OS.windows: (json['files'] as Map<String, dynamic>)['win32'] as String? ?? '',
-      },
-      remoteTimestamp: remoteStr != null ? DateTime.parse(remoteStr) : null,
-      downloadedTimestamp: downloadedStr != null ? DateTime.parse(downloadedStr) : null,
-    );
-  }
 
   MetadataConfig copyWith({
     String? baseUrl,
@@ -1225,21 +835,6 @@ class MetadataConfig {
       remoteTimestamp: remoteTimestamp,
       downloadedTimestamp: downloadedTimestamp,
       binaryPath: binaryPath,
-    );
-  }
-}
-
-/// Configuration for network settings
-class NetworkConfig {
-  final int port;
-
-  const NetworkConfig({
-    required this.port,
-  });
-
-  factory NetworkConfig.fromJson(Map<String, dynamic> json) {
-    return NetworkConfig(
-      port: json['port'] as int? ?? 0,
     );
   }
 }
@@ -1276,23 +871,4 @@ class DownloadInfo {
       downloadedAt: downloadedAt ?? this.downloadedAt,
     );
   }
-}
-
-/// Information about a completed download
-class DownloadMetadata {
-  final DateTime? releaseDate; // Last-Modified date from server
-
-  const DownloadMetadata({
-    required this.releaseDate,
-  });
-
-  factory DownloadMetadata.fromJson(Map<String, dynamic> json) {
-    return DownloadMetadata(
-      releaseDate: json['releaseDate'] != null ? DateTime.parse(json['releaseDate'] as String) : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'releaseDate': releaseDate?.toIso8601String(),
-      };
 }

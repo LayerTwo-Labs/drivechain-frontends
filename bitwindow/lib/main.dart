@@ -254,13 +254,13 @@ Future<void> initDependencies(
   );
   unawaited(balanceProvider.fetch());
 
-  final blockInfoProvider = BlockInfoProvider(
-    additionalConnection: BlockSyncConnection(
+  final blockInfoProvider = SyncProgressProvider(
+    additionalConnection: SyncConnection(
       rpc: bitwindow,
       name: bitwindow.binary.name,
     ),
   );
-  GetIt.I.registerLazySingleton<BlockInfoProvider>(
+  GetIt.I.registerLazySingleton<SyncProgressProvider>(
     () => blockInfoProvider,
   );
   unawaited(blockInfoProvider.fetch());

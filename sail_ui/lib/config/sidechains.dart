@@ -14,8 +14,9 @@ abstract class Sidechain extends Binary {
     required super.directories,
     required super.metadata,
     required super.binary,
-    required super.network,
+    required super.port,
     required super.chainLayer,
+    required super.downloadInfo,
   });
 
   int get slot;
@@ -51,7 +52,7 @@ abstract class Sidechain extends Binary {
           directories: binary.directories,
           metadata: binary.metadata,
           binary: binary.binary,
-          network: binary.network,
+          port: binary.port,
           chainLayer: binary.chainLayer,
         );
 
@@ -64,7 +65,7 @@ abstract class Sidechain extends Binary {
           directories: binary.directories,
           metadata: binary.metadata,
           binary: binary.binary,
-          network: binary.network,
+          port: binary.port,
           chainLayer: binary.chainLayer,
         );
 
@@ -77,7 +78,7 @@ abstract class Sidechain extends Binary {
           directories: binary.directories,
           metadata: binary.metadata,
           binary: binary.binary,
-          network: binary.network,
+          port: binary.port,
           chainLayer: binary.chainLayer,
         );
 
@@ -90,7 +91,7 @@ abstract class Sidechain extends Binary {
           directories: binary.directories,
           metadata: binary.metadata,
           binary: binary.binary,
-          network: binary.network,
+          port: binary.port,
           chainLayer: binary.chainLayer,
         );
 
@@ -103,7 +104,7 @@ abstract class Sidechain extends Binary {
           directories: binary.directories,
           metadata: binary.metadata,
           binary: binary.binary,
-          network: binary.network,
+          port: binary.port,
           chainLayer: binary.chainLayer,
         );
       default:
@@ -210,8 +211,9 @@ class TestSidechain extends Sidechain {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'testchaind',
-    NetworkConfig? network,
+    super.port = 38332,
     super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -230,7 +232,6 @@ class TestSidechain extends Sidechain {
                   OS.windows: 'testchain-latest-x86_64-pc-windows-msvc.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 38332),
         );
 
   @override
@@ -247,8 +248,9 @@ class TestSidechain extends Sidechain {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   }) {
     return TestSidechain(
       version: version ?? this.version,
@@ -257,8 +259,9 @@ class TestSidechain extends Sidechain {
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
-      network: network ?? this.network,
+      port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
     );
   }
 }
@@ -272,8 +275,9 @@ class ZCash extends Sidechain {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'zsided',
-    NetworkConfig? network,
+    super.port = 8232,
     super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -292,7 +296,6 @@ class ZCash extends Sidechain {
                   OS.windows: 'L2-S5-ZSide-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 8232),
         );
 
   @override
@@ -309,8 +312,9 @@ class ZCash extends Sidechain {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   }) {
     return ZCash(
       name: name,
@@ -320,8 +324,9 @@ class ZCash extends Sidechain {
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
-      network: network ?? this.network,
+      port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
     );
   }
 }
@@ -329,14 +334,15 @@ class ZCash extends Sidechain {
 class Thunder extends Sidechain {
   Thunder({
     super.name = 'Thunder',
-    super.version = '0.1.0',
-    super.description = 'Thunder Sidechain',
+    super.version = 'latest',
+    super.description = 'Large & growing blocksize, plus fraud proofs',
     super.repoUrl = 'https://github.com/LayerTwo-Labs/thunder-rust',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'thunder',
-    NetworkConfig? network,
+    super.port = 6009,
     super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -355,7 +361,6 @@ class Thunder extends Sidechain {
                   OS.windows: 'L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 6009),
         );
 
   @override
@@ -372,8 +377,9 @@ class Thunder extends Sidechain {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   }) {
     return Thunder(
       name: name,
@@ -383,8 +389,9 @@ class Thunder extends Sidechain {
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
-      network: network ?? this.network,
+      port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
     );
   }
 }
@@ -392,14 +399,15 @@ class Thunder extends Sidechain {
 class Bitnames extends Sidechain {
   Bitnames({
     super.name = 'Bitnames',
-    super.version = '0.1.0',
-    super.description = 'Bitnames Sidechain',
+    super.version = 'latest',
+    super.description = 'Variant of BitDNS that aims to replace ICANN',
     super.repoUrl = 'https://github.com/LayerTwo-Labs/plain-bitnames',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'bitnames',
-    NetworkConfig? network,
+    super.port = 6002,
     super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -418,7 +426,6 @@ class Bitnames extends Sidechain {
                   OS.windows: 'L2-S2-BitNames-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 6002),
         );
 
   @override
@@ -435,8 +442,9 @@ class Bitnames extends Sidechain {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   }) {
     return Bitnames(
       name: name,
@@ -446,8 +454,9 @@ class Bitnames extends Sidechain {
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
-      network: network ?? this.network,
+      port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
     );
   }
 }
@@ -455,14 +464,15 @@ class Bitnames extends Sidechain {
 class BitAssets extends Sidechain {
   BitAssets({
     super.name = 'BitAssets',
-    super.version = '0.1.0',
-    super.description = 'Bitassets Sidechain',
+    super.version = 'latest',
+    super.description = 'Variant of BitDNS that aims to replace ICANN',
     super.repoUrl = 'https://github.com/LayerTwo-Labs/plain-bitassets',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     super.binary = 'bitassets',
-    NetworkConfig? network,
+    super.port = 6004,
     super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
   }) : super(
           directories: directories ??
               DirectoryConfig(
@@ -481,7 +491,6 @@ class BitAssets extends Sidechain {
                   OS.windows: 'L2-S4-BitAssets-latest-x86_64-pc-windows-gnu.zip',
                 },
               ),
-          network: network ?? NetworkConfig(port: 6004),
         );
 
   @override
@@ -498,8 +507,9 @@ class BitAssets extends Sidechain {
     DirectoryConfig? directories,
     MetadataConfig? metadata,
     String? binary,
-    NetworkConfig? network,
+    int? port,
     int? chainLayer,
+    DownloadInfo? downloadInfo,
   }) {
     return BitAssets(
       name: name,
@@ -509,8 +519,9 @@ class BitAssets extends Sidechain {
       directories: directories ?? this.directories,
       metadata: metadata ?? this.metadata,
       binary: binary ?? this.binary,
-      network: network ?? this.network,
+      port: port ?? this.port,
       chainLayer: chainLayer ?? this.chainLayer,
+      downloadInfo: downloadInfo ?? this.downloadInfo,
     );
   }
 }

@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:launcher/env.dart';
 import 'package:launcher/providers/quotes_provider.dart';
@@ -137,7 +135,7 @@ Future<void> initDependencies(Logger log) async {
       }
     }),
   );
-  // Register binary provider
+
   final binaryProvider = BinaryProvider(
     appDir: await Environment.appDir(),
     initialBinaries: binaries,
@@ -146,8 +144,8 @@ Future<void> initDependencies(Logger log) async {
     binaryProvider,
   );
 
-  final blockInfoProvider = BlockInfoProvider();
-  GetIt.I.registerLazySingleton<BlockInfoProvider>(
+  final blockInfoProvider = SyncProgressProvider();
+  GetIt.I.registerLazySingleton<SyncProgressProvider>(
     () => blockInfoProvider,
   );
   unawaited(blockInfoProvider.fetch());
@@ -162,13 +160,14 @@ Future<void> initDependencies(Logger log) async {
 }
 
 Future<List<Binary>> _loadBinaries(Directory appDir) async {
-  final jsonString = await rootBundle.loadString('assets/chain_config.json');
-  final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
-
-  final binaries = (jsonData['chains'] as List<dynamic>?)
-          ?.map((chain) => Binary.fromJson(chain as Map<String, dynamic>? ?? {}))
-          .toList() ??
-      [];
+  var binaries = [
+    ParentChain(),
+    Enforcer(),
+    BitWindow(),
+    Thunder(),
+    Bitnames(),
+    BitAssets(),
+  ];
 
   return await loadBinaryCreationTimestamp(binaries, appDir);
 }

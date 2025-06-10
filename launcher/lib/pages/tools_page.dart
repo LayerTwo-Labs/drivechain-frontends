@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
@@ -724,17 +723,6 @@ class ToolsPageViewModel extends BaseViewModel {
   void init() {
     // Initialize any required data
     amountController.text = '1.0 BTC';
-    _loadChainConfig();
-  }
-
-  Future<void> _loadChainConfig() async {
-    try {
-      final config = await rootBundle.loadString('assets/chain_config.json');
-      _chainConfig = jsonDecode(config) as Map<String, dynamic>;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error loading chain config: $e');
-    }
   }
 
   void resetStartersTab() {
@@ -779,7 +767,7 @@ class ToolsPageViewModel extends BaseViewModel {
   Future<bool> _isBinaryDownloaded(Map<String, dynamic> chain) async {
     final appDir = await Environment.appDir();
     final chainName = chain['name'] as String;
-    final assetsDir = Directory(path.join(appDir.path, 'assets'));
+    final assetsDir = binDir(appDir.path);
     final binaryPath = path.join(assetsDir.path, chainName.toLowerCase());
     return File(binaryPath).existsSync();
   }

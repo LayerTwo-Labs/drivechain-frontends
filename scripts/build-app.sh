@@ -53,8 +53,12 @@ if [ -z "$app_name" ]; then
 fi
 echo "App name set to: $app_name"
 
-echo "Downloading $client_dir binaries for $os"
-bash ./scripts/download-binaries.sh "$os"
+if [ -f "./scripts/download-binaries.sh" ]; then
+    echo "Downloading $client_dir binaries for $os"
+    bash ./scripts/download-binaries.sh "$os"
+else
+    echo "No download-binaries.sh script found, skipping binary download"
+fi
 
 # Return to the parent directory to run the os-specific build script
 cd ../

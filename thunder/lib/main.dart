@@ -268,13 +268,13 @@ Future<void> initDependencies(
     () => AddressProvider(),
   );
 
-  final blockInfoProvider = BlockInfoProvider(
-    additionalConnection: BlockSyncConnection(
+  final blockInfoProvider = SyncProgressProvider(
+    additionalConnection: SyncConnection(
       rpc: thunder,
       name: thunder.binary.name,
     ),
   );
-  GetIt.I.registerLazySingleton<BlockInfoProvider>(
+  GetIt.I.registerLazySingleton<SyncProgressProvider>(
     () => blockInfoProvider,
   );
   unawaited(blockInfoProvider.fetch());

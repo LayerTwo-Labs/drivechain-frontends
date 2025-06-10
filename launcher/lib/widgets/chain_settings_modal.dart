@@ -104,7 +104,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                 const SizedBox(height: 24),
                 _buildInfoRow(context, 'Version', widget.chain.version),
                 if (widget.chain.repoUrl.isNotEmpty) _buildInfoRow(context, 'Repository', widget.chain.repoUrl),
-                _buildInfoRow(context, 'Network Port', widget.chain.network.port.toString()),
+                _buildInfoRow(context, 'Network Port', widget.chain.port.toString()),
                 _buildInfoRow(context, 'Chain Layer', widget.chain.chainLayer == 1 ? 'Layer 1' : 'Layer 2'),
                 if (baseDir != null) _buildInfoRow(context, 'Installation Directory', baseDir),
                 _buildInfoRow(context, 'Binary Path', binary),

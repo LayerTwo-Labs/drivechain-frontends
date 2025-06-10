@@ -815,7 +815,7 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 }
 
-class MockBlockInfoProvider implements BlockInfoProvider {
+class MockBlockInfoProvider implements SyncProgressProvider {
   MockBlockInfoProvider() : super();
 
   @override
@@ -868,19 +868,22 @@ class MockBlockInfoProvider implements BlockInfoProvider {
   SyncInfo? mainchainSyncInfo;
 
   @override
-  BlockSyncConnection? get additionalConnection => throw UnimplementedError();
+  SyncConnection? get additionalConnection => throw UnimplementedError();
 
   @override
-  BlockSyncConnection get enforcer => throw UnimplementedError();
+  SyncConnection get enforcer => throw UnimplementedError();
 
   @override
   EnforcerRPC get enforcerRPC => throw UnimplementedError();
 
   @override
-  BlockSyncConnection get mainchain => throw UnimplementedError();
+  SyncConnection get mainchain => throw UnimplementedError();
 
   @override
   MainchainRPC get mainchainRPC => throw UnimplementedError();
+
+  @override
+  BinaryProvider get binaryProvider => throw UnimplementedError();
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

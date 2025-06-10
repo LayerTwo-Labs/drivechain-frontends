@@ -139,25 +139,26 @@ class BottomNav extends StatelessWidget {
                       connection: model.mainchain,
                       syncInfo: model.blockInfoProvider.mainchainSyncInfo,
                       restartDaemon: () => model.mainchain.initBinary(),
-                      infoMessage: null,
+                      infoMessage: _getDownloadMessage(model.blockInfoProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
                     ),
                   if (!model.enforcer.connected || !onlyShowAdditional)
                     DaemonConnectionCard(
                       connection: model.enforcer,
                       syncInfo: model.blockInfoProvider.enforcerSyncInfo,
-                      infoMessage: model.mainchain.initializingBinary
-                          ? 'Waiting for mainchain to finish init'
-                          : model.mainchain.inHeaderSync
-                              ? 'Waiting for L1 to sync headers...'
-                              : null,
+                      infoMessage: _getDownloadMessage(model.blockInfoProvider.enforcerSyncInfo) ??
+                          (model.mainchain.initializingBinary
+                              ? 'Waiting for mainchain to finish init'
+                              : model.mainchain.inHeaderSync
+                                  ? 'Waiting for L1 to sync headers...'
+                                  : null),
                       restartDaemon: () => model.enforcer.initBinary(),
                       navigateToLogs: model.navigateToLogs,
                     ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,
                     syncInfo: model.blockInfoProvider.additionalSyncInfo,
-                    infoMessage: null,
+                    infoMessage: _getDownloadMessage(model.blockInfoProvider.additionalSyncInfo),
                     restartDaemon: () => additionalConnection.rpc.initBinary(),
                     navigateToLogs: model.navigateToLogs,
                   ),
@@ -168,6 +169,22 @@ class BottomNav extends StatelessWidget {
         }),
       ),
     );
+  }
+
+  String? _getDownloadMessage(SyncInfo? syncInfo) {
+    if (syncInfo == null) return null;
+
+    // Check if we're downloading (downloadProgress < 1)
+    if (syncInfo.downloadProgress < 1) {
+      final progressPercent = (syncInfo.downloadProgress * 100).toStringAsFixed(0);
+      if (progressPercent == '100') {
+        return null;
+      } else {
+        return 'Downloading binary... $progressPercent%';
+      }
+    }
+
+    return null;
   }
 }
 
@@ -232,7 +249,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   // Required connections
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
-  BlockInfoProvider get blockInfoProvider => GetIt.I.get<BlockInfoProvider>();
+  SyncProgressProvider get blockInfoProvider => GetIt.I.get<SyncProgressProvider>();
 
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
@@ -247,14 +264,27 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     mainchain.addListener(_onChange);
     enforcer.addListener(_onChange);
     additionalConnection.rpc.addListener(_onChange);
-    blockInfoProvider.addListener(notifyListeners);
+    blockInfoProvider.addListener(_onChange);
   }
 
   void _onChange() {
     track('allConnected', allConnected);
     track('connectionColor', connectionColor);
     track('connectionStatus', connectionStatus);
-    notifyIfChanged();
+    track('mainchainSyncInfo', blockInfoProvider.mainchainSyncInfo);
+    track('enforcerSyncInfo', blockInfoProvider.enforcerSyncInfo);
+    track('additionalSyncInfo', blockInfoProvider.additionalSyncInfo);
+
+    // Check if any download is active
+    final hasActiveDownloads = (blockInfoProvider.mainchainSyncInfo?.downloadProgress ?? 1.0) < 1.0 ||
+        (blockInfoProvider.enforcerSyncInfo?.downloadProgress ?? 1.0) < 1.0 ||
+        (blockInfoProvider.additionalSyncInfo?.downloadProgress ?? 1.0) < 1.0;
+
+    if (hasActiveDownloads) {
+      notifyListeners(); // Direct notification bypassing change tracking
+    } else {
+      notifyIfChanged(); // Use change tracking for normal updates
+    }
   }
 
   // Connection status
@@ -363,12 +393,12 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
               mainchainSynced) ...[
             DividerDot(),
             SailText.secondary12(
-              '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.blocks ?? 'Loading')} blocks',
+              '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.progressCurrent ?? 'Loading')} blocks',
             ),
           ] else if (additionalSynced) ...[
             DividerDot(),
             SailText.secondary12(
-              '${formatWithThousandSpacers(viewModel.blockInfoProvider.additionalSyncInfo?.blocks ?? 'Loading')} blocks',
+              '${formatWithThousandSpacers(viewModel.blockInfoProvider.additionalSyncInfo?.progressCurrent ?? 'Loading')} blocks',
             ),
           ],
         ],
@@ -393,11 +423,13 @@ class ChainLoader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Tooltip(
-        message: '$name\nCurrent height ${syncInfo.blocks}\nHeader height ${syncInfo.headers}',
+        message: syncInfo.downloadProgress < 1
+            ? 'Downloading $name\nProgress: ${syncInfo.progressCurrent} MB\nSize: ${syncInfo.progressGoal} MB'
+            : '$name\nCurrent height ${syncInfo.progressCurrent}\nHeader height ${syncInfo.progressGoal}',
         child: ProgressBar(
-          progress: syncInfo.verificationProgress,
-          current: syncInfo.blocks,
-          goal: syncInfo.headers,
+          progress: syncInfo.progress,
+          current: syncInfo.progressCurrent,
+          goal: syncInfo.progressGoal,
           justPercent: justPercent,
         ),
       ),
