@@ -15,7 +15,7 @@ import 'package:pointycastle/key_derivators/api.dart' show Pbkdf2Parameters;
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/providers/binaries/binary_provider.dart';
 
 class WalletService extends ChangeNotifier {
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
@@ -326,7 +326,7 @@ class WalletService extends ChangeNotifier {
       }
 
       // For each L2 chain in binaries
-      final l2Chains = binaryProvider.getL2Chains();
+      final l2Chains = binaryProvider.binaries.where((b) => b.chainLayer == 2);
 
       for (final chain in l2Chains) {
         if (chain is Sidechain) {

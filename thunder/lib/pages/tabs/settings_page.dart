@@ -196,14 +196,13 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
         confirmButtonVariant: ButtonVariant.destructive,
         onConfirm: () async {
           final binaryProvider = GetIt.I.get<BinaryProvider>();
-          final processProvider = GetIt.I.get<ProcessProvider>();
 
           final binary = Thunder();
 
           // Only stop binaries that are started by bitwindow
           await binaryProvider.stop(binary);
           // After all binaries are asked nicely to stop, kill any lingering processes just in case
-          await processProvider.shutdown();
+          await binaryProvider.stopAll();
           // wait for 5 seconds to ensure thunder is dead
           await Future.delayed(const Duration(seconds: 5));
 

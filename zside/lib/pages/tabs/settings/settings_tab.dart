@@ -42,7 +42,7 @@ class SettingsTabPage extends StatelessWidget {
               ),
               TweakNodeConnectionSettings(
                 name: 'Parent Chain',
-                chain: ParentChain(),
+                chain: BitcoinCore(),
                 connected: model.mainRPC.connected,
                 settings: model.mainRPC.conf,
                 testConnectionValues: model.reconnectMainchain,

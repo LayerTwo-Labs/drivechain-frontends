@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/providers/binaries/binary_provider.dart';
 
 class WalletBalance {
   final String name;

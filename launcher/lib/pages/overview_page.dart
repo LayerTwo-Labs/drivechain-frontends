@@ -19,7 +19,6 @@ class OverviewPage extends StatefulWidget {
 
 class _OverviewPageState extends State<OverviewPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
-  ProcessProvider get _processProvider => GetIt.I.get<ProcessProvider>();
   WalletService get _walletService => GetIt.I.get<WalletService>();
   SyncProgressProvider get _blockchainProvider => GetIt.I.get<SyncProgressProvider>();
 
@@ -39,7 +38,6 @@ class _OverviewPageState extends State<OverviewPage> {
     // Add all listeners and initialization after build is complete
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _binaryProvider.addListener(_onBinaryProviderUpdate);
-      _processProvider.addListener(_onBinaryProviderUpdate);
       _blockchainProvider.addListener(_onBinaryProviderUpdate);
     });
   }
@@ -47,7 +45,6 @@ class _OverviewPageState extends State<OverviewPage> {
   @override
   void dispose() {
     _binaryProvider.removeListener(_onBinaryProviderUpdate);
-    _processProvider.removeListener(_onBinaryProviderUpdate);
     _blockchainProvider.removeListener(_onBinaryProviderUpdate);
     super.dispose();
   }
@@ -61,7 +58,7 @@ class _OverviewPageState extends State<OverviewPage> {
   Future<void> _updateBinary(Binary binary) async {
     // Check if binary is running
     final isRunning = switch (binary) {
-      var b when b is ParentChain => _binaryProvider.mainchainConnected,
+      var b when b is BitcoinCore => _binaryProvider.mainchainConnected,
       var b when b is Enforcer => _binaryProvider.enforcerConnected,
       var b when b is BitWindow => _binaryProvider.bitwindowConnected,
       var b when b is Thunder => _binaryProvider.thunderConnected,
@@ -72,7 +69,7 @@ class _OverviewPageState extends State<OverviewPage> {
 
     // Check if binary is initializing
     final isInitializing = switch (binary) {
-      var b when b is ParentChain => _binaryProvider.mainchainInitializing,
+      var b when b is BitcoinCore => _binaryProvider.mainchainInitializing,
       var b when b is Enforcer => _binaryProvider.enforcerInitializing,
       var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
       var b when b is Thunder => _binaryProvider.thunderInitializing,
@@ -82,7 +79,7 @@ class _OverviewPageState extends State<OverviewPage> {
     };
 
     final stopping = switch (binary) {
-      var b when b is ParentChain => _binaryProvider.mainchainStopping,
+      var b when b is BitcoinCore => _binaryProvider.mainchainStopping,
       var b when b is Enforcer => _binaryProvider.enforcerStopping,
       var b when b is BitWindow => _binaryProvider.bitwindowStopping,
       var b when b is Thunder => _binaryProvider.thunderStopping,
@@ -90,20 +87,21 @@ class _OverviewPageState extends State<OverviewPage> {
       var b when b is BitAssets => _binaryProvider.bitassetsStopping,
       _ => false,
     };
-    final isProcessRunning = _processProvider.isRunning(binary);
+    final isProcessRunning = _binaryProvider.isRunning(binary);
+    final isConnected = _binaryProvider.isRunning(binary);
 
-    if (isRunning || isInitializing || stopping || isProcessRunning) {
+    if (isConnected || isRunning || isInitializing || stopping || isProcessRunning) {
       await _stopBinary(binary);
     }
 
-    await _binaryProvider.downloadBinary(binary);
+    await _binaryProvider.download(binary);
   }
 
   Future<void> _downloadBinary(BuildContext context, Binary binary) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      await _binaryProvider.downloadBinary(binary);
+      await _binaryProvider.download(binary);
 
       if (!mounted) return;
 
@@ -134,7 +132,7 @@ class _OverviewPageState extends State<OverviewPage> {
   Widget _buildActionButton(BuildContext context, Binary binary, DownloadInfo? status) {
     // Check if binary is running
     final isRunning = switch (binary) {
-      var b when b is ParentChain => _binaryProvider.mainchainConnected,
+      var b when b is BitcoinCore => _binaryProvider.mainchainConnected,
       var b when b is Enforcer => _binaryProvider.enforcerConnected,
       var b when b is BitWindow => _binaryProvider.bitwindowConnected,
       var b when b is Thunder => _binaryProvider.thunderConnected,
@@ -145,7 +143,7 @@ class _OverviewPageState extends State<OverviewPage> {
 
     // Check if binary is initializing
     final isInitializing = switch (binary) {
-      var b when b is ParentChain => _binaryProvider.mainchainInitializing,
+      var b when b is BitcoinCore => _binaryProvider.mainchainInitializing,
       var b when b is Enforcer => _binaryProvider.enforcerInitializing,
       var b when b is BitWindow => _binaryProvider.bitwindowInitializing,
       var b when b is Thunder => _binaryProvider.thunderInitializing,
@@ -155,7 +153,7 @@ class _OverviewPageState extends State<OverviewPage> {
     };
 
     final stopping = switch (binary) {
-      var b when b is ParentChain => _binaryProvider.mainchainStopping,
+      var b when b is BitcoinCore => _binaryProvider.mainchainStopping,
       var b when b is Enforcer => _binaryProvider.enforcerStopping,
       var b when b is BitWindow => _binaryProvider.bitwindowStopping,
       var b when b is Thunder => _binaryProvider.thunderStopping,
@@ -164,7 +162,7 @@ class _OverviewPageState extends State<OverviewPage> {
       _ => false,
     };
 
-    final isProcessRunning = _processProvider.isRunning(binary);
+    final isProcessRunning = _binaryProvider.isRunning(binary);
 
     final isDownloaded = binary.isDownloaded;
 
@@ -207,13 +205,30 @@ class _OverviewPageState extends State<OverviewPage> {
     }
 
     if (isDownloaded) {
-      final canStart = _binaryProvider.canStart(binary);
+      final mainchainReady = _binaryProvider.mainchainConnected;
+      final canStart = switch (binary) {
+        Enforcer() => mainchainReady ? null : 'Mainchain must be started and headers synced before starting Enforcer',
+        BitWindow() => null,
+        Thunder() => _binaryProvider.enforcerConnected && mainchainReady
+            ? null
+            : 'Mainchain and Enforcer must be running and headers synced before starting Thunder',
+        Bitnames() => _binaryProvider.enforcerConnected && mainchainReady
+            ? null
+            : 'Mainchain and Enforcer must be running and headers synced before starting Bitnames',
+        BitAssets() => _binaryProvider.enforcerConnected && mainchainReady
+            ? null
+            : 'Mainchain and Enforcer must be running and headers synced before starting BitAssets',
+        ZCash() => _binaryProvider.enforcerConnected && mainchainReady
+            ? null
+            : 'Mainchain and Enforcer must be running and headers synced before starting ZCash',
+        _ => null, // No requirements for mainchain
+      };
 
       return Tooltip(
         message: canStart ?? 'Launch ${binary.name}',
         child: SailButton(
           label: 'Launch',
-          onPressed: () => _binaryProvider.startBinary(
+          onPressed: () => _binaryProvider.start(
             binary,
             useStarter: _useStarter[binary.name] ?? false,
           ),
@@ -274,10 +289,10 @@ class _OverviewPageState extends State<OverviewPage> {
       return;
     }
     // Check if binary is running before stopping
-    final isRunning = _binaryProvider.isRunning(binary);
+    final isRunning = _binaryProvider.isConnected(binary);
     final isInitializing = _binaryProvider.isInitializing(binary);
     final isStopping = _binaryProvider.isStopping(binary);
-    final isProcessRunning = _binaryProvider.isProcessRunning(binary);
+    final isProcessRunning = _binaryProvider.isRunning(binary);
 
     if (isRunning || isInitializing || isStopping || isProcessRunning) {
       // First stop the binary if it's running
@@ -312,7 +327,7 @@ class _OverviewPageState extends State<OverviewPage> {
     String? startupError;
 
     switch (binary) {
-      case ParentChain():
+      case BitcoinCore():
         connected = _binaryProvider.mainchainRPC.connected;
         initializing = _binaryProvider.mainchainInitializing;
         stopping = _binaryProvider.mainchainStopping;
@@ -527,7 +542,7 @@ class _OverviewPageState extends State<OverviewPage> {
                                               label: allL1Downloaded ? 'Boot Layer 1' : 'Download and Boot Layer 1',
                                               onPressed: () async {
                                                 try {
-                                                  await _binaryProvider.downloadThenBootBinary(
+                                                  await _binaryProvider.startWithEnforcer(
                                                     _binaryProvider.binaries.firstWhere((b) => b is BitWindow),
                                                   );
                                                 } catch (e) {

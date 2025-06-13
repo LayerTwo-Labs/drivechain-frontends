@@ -112,9 +112,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                 PlatformMenuItem(
                   label: 'Quit bitwindow',
                   shortcut: const SingleActivator(LogicalKeyboardKey.keyQ, meta: true),
-                  onSelected: () => onShutdown(
-                    onComplete: () => exit(0),
-                  ),
+                  onSelected: () => GetIt.I.get<BinaryProvider>().onShutdown(
+                        onComplete: () => exit(0),
+                      ),
                 ),
               ],
             ),
@@ -471,7 +471,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void dispose() {
-    onShutdown(
+    GetIt.I.get<BinaryProvider>().onShutdown(
       onComplete: () async {
         await windowManager.destroy();
       },
@@ -483,7 +483,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   @override
   void onWindowClose() async {
-    await onShutdown(
+    await GetIt.I.get<BinaryProvider>().onShutdown(
       onComplete: () async {
         await windowManager.destroy();
       },

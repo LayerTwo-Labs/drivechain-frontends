@@ -48,12 +48,6 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<ProcessProvider>()) {
-    GetIt.I.registerLazySingleton<ProcessProvider>(
-      () => ProcessProvider(),
-    );
-  }
-
   if (!GetIt.I.isRegistered<NewsProvider>()) {
     GetIt.I.registerLazySingleton<NewsProvider>(
       () => NewsProvider(),
