@@ -124,6 +124,8 @@ class BottomNav extends StatelessWidget {
           navigateToLogs: navigateToLogs,
         ),
         builder: ((context, model, child) {
+          final binaryProvider = GetIt.I.get<BinaryProvider>();
+
           return SailColumn(
             spacing: SailStyleValues.padding20,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -138,7 +140,9 @@ class BottomNav extends StatelessWidget {
                     DaemonConnectionCard(
                       connection: model.mainchain,
                       syncInfo: model.blockInfoProvider.mainchainSyncInfo,
-                      restartDaemon: () => model.mainchain.initBinary(),
+                      restartDaemon: () => binaryProvider.start(
+                        model.mainchain.binary,
+                      ),
                       infoMessage: _getDownloadMessage(model.blockInfoProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
                     ),
@@ -152,14 +156,14 @@ class BottomNav extends StatelessWidget {
                               : model.mainchain.inHeaderSync
                                   ? 'Waiting for L1 to sync headers...'
                                   : null),
-                      restartDaemon: () => model.enforcer.initBinary(),
+                      restartDaemon: () => binaryProvider.start(model.enforcer.binary),
                       navigateToLogs: model.navigateToLogs,
                     ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,
                     syncInfo: model.blockInfoProvider.additionalSyncInfo,
                     infoMessage: _getDownloadMessage(model.blockInfoProvider.additionalSyncInfo),
-                    restartDaemon: () => additionalConnection.rpc.initBinary(),
+                    restartDaemon: () => binaryProvider.start(additionalConnection.rpc.binary),
                     navigateToLogs: model.navigateToLogs,
                   ),
                 ],

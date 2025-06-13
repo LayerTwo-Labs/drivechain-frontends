@@ -8,7 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/sidechains.dart';
-import 'package:sail_ui/providers/binary_provider.dart';
+import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/style/color_scheme.dart';
 import 'package:sail_ui/utils/file_utils.dart';
 
@@ -60,8 +60,8 @@ abstract class Binary {
   static Binary? fromBinaryName(String binary) {
     final name = binary.toLowerCase();
 
-    if (ParentChain().name.toLowerCase() == name) {
-      return ParentChain();
+    if (BitcoinCore().name.toLowerCase() == name) {
+      return BitcoinCore();
     }
 
     if (Enforcer().name.toLowerCase() == name) {
@@ -113,7 +113,7 @@ abstract class Binary {
     final dir = datadir();
 
     switch (this) {
-      case ParentChain():
+      case BitcoinCore():
         final signetDir = path.join(dir, 'signet');
         await _deleteFilesInDir(signetDir, [
           'anchors.dat',
@@ -174,7 +174,7 @@ abstract class Binary {
 
     // then any extra files for that specific chain
     switch (this) {
-      case ParentChain():
+      case BitcoinCore():
         await _deleteFilesInDir(dir, [
           'bitcoin-cli',
           'bitcoin-util',
@@ -273,7 +273,7 @@ abstract class Binary {
 
     try {
       // add .exe if on windows and the binary doesn't already end with .exe
-      final assetPath = 'bin/$binaryName';
+      final assetPath = 'assets/bin/$binaryName';
       log.d('Attempting to load binary from asset path: $assetPath');
 
       binResource = await rootBundle.load(assetPath);
@@ -321,13 +321,13 @@ abstract class Binary {
     if (kDebugMode) {
       // In debug mode, check pwd/bin first
       paths.addAll([
-        path.join(Directory.current.path, 'bin', baseBinary),
+        path.join(Directory.current.path, 'assets', 'bin', baseBinary),
       ]);
     }
 
     // Add launcher download paths based on binary type and platform
     if (home != null) {
-      if (ParentChain().name == name) {
+      if (BitcoinCore().name == name) {
         switch (Platform.operatingSystem) {
           case 'linux':
             paths.add(
@@ -409,13 +409,44 @@ abstract class Binary {
     if (appDir != null) {
       // In release mode, check the folder where binaries are downloaded to
       paths.addAll([
-        path.join(appDir.path, 'bin', baseBinary),
+        path.join(appDir.path, 'assets', 'bin', baseBinary),
       ]);
     }
 
     log.i('found possible paths $paths');
 
     return paths;
+  }
+
+  /// Check the Last-Modified header for a binary without downloading
+  Future<DateTime?> checkReleaseDate() async {
+    try {
+      final os = getOS();
+      final fileName = metadata.files[os]!;
+      final downloadUrl = Uri.parse(metadata.baseUrl).resolve(fileName).toString();
+
+      final client = HttpClient();
+
+      final request = await client.headUrl(Uri.parse(downloadUrl));
+      final response = await request.close();
+
+      if (response.statusCode != 200) {
+        log.w('Warning: Could not check release date for $name: HTTP ${response.statusCode}');
+        return null;
+      }
+
+      final lastModified = response.headers.value('last-modified');
+      if (lastModified == null) {
+        log.w('Warning: No Last-Modified header for $name');
+        return null;
+      }
+
+      final releaseDate = HttpDate.parse(lastModified);
+      return releaseDate;
+    } catch (e) {
+      log.w('Warning: Failed to check release date for $name: $e');
+      return null;
+    }
   }
 
   void _log(String message) {
@@ -429,8 +460,8 @@ abstract class Binary {
   }
 }
 
-class ParentChain extends Binary {
-  ParentChain({
+class BitcoinCore extends Binary {
+  BitcoinCore({
     super.name = 'Bitcoin Core (Patched)',
     super.version = 'latest',
     super.description = 'Modified Bitcoin implementation for drivechain support',
@@ -466,7 +497,7 @@ class ParentChain extends Binary {
   Color get color => SailColorScheme.green;
 
   @override
-  ParentChain copyWith({
+  BitcoinCore copyWith({
     String? version,
     String? description,
     String? repoUrl,
@@ -477,7 +508,7 @@ class ParentChain extends Binary {
     int? chainLayer,
     DownloadInfo? downloadInfo,
   }) {
-    return ParentChain(
+    return BitcoinCore(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,
@@ -623,7 +654,7 @@ extension BinaryPaths on Binary {
     return switch (this) {
       var b when b is TestSidechain => 'testchain.conf',
       var b when b is ZCash => 'zcash.conf',
-      var b when b is ParentChain => 'bitcoin.conf',
+      var b when b is BitcoinCore => 'bitcoin.conf',
       _ => throw 'unsupported binary type: $runtimeType',
     };
   }
@@ -633,7 +664,7 @@ extension BinaryPaths on Binary {
       var b when b is TestSidechain => filePath([datadir(), 'debug.log']),
       var b when b is ZCash => filePath([datadir(), 'regtest', 'debug.log']),
       var b when b is Thunder || b is Bitnames || b is BitAssets => _findLatestVersionedLog(),
-      var b when b is ParentChain => filePath([datadir(), 'debug.log']),
+      var b when b is BitcoinCore => filePath([datadir(), 'debug.log']),
       var b when b is BitWindow => filePath([datadir(), 'server.log']),
       var b when b is Enforcer => filePath([datadir(), 'bip300301_enforcer.log']),
       _ => throw 'unsupported binary type: $runtimeType',
@@ -709,7 +740,7 @@ extension BinaryPaths on Binary {
 
     switch (OS.current) {
       case OS.linux:
-        if (name == ParentChain().name) {
+        if (name == BitcoinCore().name) {
           // in good style, this is different than all the others
           return filePath([home, subdir]);
         }
@@ -813,6 +844,7 @@ class MetadataConfig {
   DateTime? remoteTimestamp; // Last-Modified from server
   DateTime? downloadedTimestamp; // Local file timestamp
   File? binaryPath; // Path to the binary on disk (if exists)
+  bool updateable; // Whether the binary should be updated
 
   MetadataConfig({
     required this.baseUrl,
@@ -820,6 +852,7 @@ class MetadataConfig {
     this.remoteTimestamp,
     this.downloadedTimestamp,
     this.binaryPath,
+    this.updateable = false,
   });
 
   MetadataConfig copyWith({
@@ -828,6 +861,7 @@ class MetadataConfig {
     required DateTime? remoteTimestamp,
     required DateTime? downloadedTimestamp,
     required File? binaryPath,
+    required bool updateable,
   }) {
     return MetadataConfig(
       baseUrl: baseUrl ?? this.baseUrl,

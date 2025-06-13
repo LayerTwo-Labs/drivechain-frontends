@@ -239,7 +239,7 @@ Future<NodeConnectionSettings> findSidechainConf(Sidechain chain, String network
       }
       break;
 
-    case ParentChain():
+    case BitcoinCore():
       // do absolutely nothing, not a sidechain!
       break;
   }
@@ -254,9 +254,9 @@ Future<NodeConnectionSettings> readConf() async {
   try {
     final network = 'signet';
     conf = await readRPCConfig(
-      ParentChain().datadir(),
+      BitcoinCore().datadir(),
       'bitcoin.conf',
-      ParentChain(),
+      BitcoinCore(),
       network,
     );
     // Do something with mainchainConf if needed

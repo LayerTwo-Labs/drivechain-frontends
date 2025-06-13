@@ -11,7 +11,6 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/mocks/mocks.dart';
 import 'package:sail_ui/pages/sidechains/parent_chain_page.dart';
 import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/process_provider.dart';
 import 'package:sail_ui/providers/sidechain/address_provider.dart';
 import 'package:sail_ui/providers/sidechain/sidechain_transactions_provider.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
@@ -32,7 +31,6 @@ void main() {
   });
 
   setUpAll(() async {
-    GetIt.I.registerLazySingleton<ProcessProvider>(() => ProcessProvider());
     final sidechainRPC = MockSidechainRPC();
     final bitnamesRPC = MockBitnamesRPC();
     GetIt.I.registerLazySingleton<SidechainRPC>(() => sidechainRPC);

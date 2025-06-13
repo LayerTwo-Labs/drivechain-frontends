@@ -22,7 +22,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:window_manager/window_manager.dart';
@@ -186,13 +185,6 @@ Future<void> initDependencies(
     ),
   );
 
-  final processProvider = ProcessProvider(
-    appDir: applicationDir,
-  );
-  GetIt.I.registerLazySingleton<ProcessProvider>(
-    () => processProvider,
-  );
-
   final contentProvider = ContentProvider();
   GetIt.I.registerLazySingleton<ContentProvider>(
     () => contentProvider,
@@ -203,7 +195,7 @@ Future<void> initDependencies(
   final binaries = await _loadBinaries(applicationDir);
 
   final mainchain = await MainchainRPCLive.create(
-    binaries.firstWhere((b) => b is ParentChain),
+    binaries.firstWhere((b) => b is BitcoinCore),
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchain,
@@ -395,75 +387,37 @@ Future<void> bootBinaries(Logger log) async {
     bitwindow.addBootArg('--gui-booted-enforcer');
   }
 
-  await binaryProvider.downloadThenBootBinary(
+  await binaryProvider.startWithEnforcer(
     bitwindow,
     // bitwindow can start without the enforcer
-    bootAllNoMatterWhat: true,
+    bootExtraBinaryImmediately: true,
   );
 }
 
 Future<List<Binary>> _loadBinaries(Directory appDir) async {
   // Register all binaries
   final binaries = [
-    ParentChain(),
+    BitcoinCore(),
     Enforcer(),
     BitWindow(),
   ];
 
   // overwrite existing assets with the latest ones! things get updated
-  await Future.wait([
-    for (final binary in binaries) binary.writeBinaryFromAssetsBundle(appDir),
-  ]);
-
-  return await loadBinaryCreationTimestamp(binaries, appDir);
-}
-
-Future<bool> onShutdown({VoidCallback? onComplete}) async {
   try {
-    final binaryProvider = GetIt.I.get<BinaryProvider>();
-    final processProvider = GetIt.I.get<ProcessProvider>();
-
-    // Get list of running binaries
-    final runningBinaries = processProvider.runningProcesses.values.map((process) => process.binary).toList();
-
-    if (onComplete != null) {
-      final router = GetIt.I.get<AppRouter>();
-      // don't show the shutting down page if it's already shown!
-      if (router.current.name != ShuttingDownRoute.name) {
-        // Show shutdown page with running binaries
-        unawaited(
-          GetIt.I.get<AppRouter>().push(
-                ShuttingDownRoute(
-                  binaries: runningBinaries,
-                  onComplete: onComplete,
-                ),
-              ),
-        );
-      }
-    }
-
-    final futures = <Future>[];
-    // Only stop binaries that are started by bitwindow
-    for (final process in processProvider.runningProcesses.values) {
-      futures.add(binaryProvider.stop(process.binary));
-    }
-
-    // Wait for all stop operations to complete
-    await Future.wait(futures);
-
-    // After all binaries are asked nicely to stop, kill any lingering processes
-    await processProvider.shutdown();
-  } catch (error) {
-    // do nothing, we just always need to return true
+    await Future.wait([
+      for (final binary in binaries) binary.writeBinaryFromAssetsBundle(appDir),
+    ]);
+  } catch (e) {
+    log.e('Failed to write binaries to appDir', error: e);
   }
 
-  return true;
+  return await loadBinaryCreationTimestamp(binaries, appDir);
 }
 
 Future<void> setupSignalHandlers(Logger log) async {
   ProcessSignal.sigint.watch().listen((signal) async {
     log.i('Received SIGINT, shutting down...');
-    await onShutdown();
+    await GetIt.I.get<BinaryProvider>().onShutdown();
     exit(0);
   });
 
@@ -471,7 +425,7 @@ Future<void> setupSignalHandlers(Logger log) async {
   if (!Platform.isWindows) {
     ProcessSignal.sigterm.watch().listen((signal) async {
       log.i('Received SIGTERM, shutting down...');
-      await onShutdown();
+      await GetIt.I.get<BinaryProvider>().onShutdown();
       exit(0);
     });
   }
@@ -482,14 +436,14 @@ Future<void> setupSignalHandlers(Logger log) async {
       (line) async {
         if (line.trim() == 'shutdown') {
           log.i('Received shutdown command via stdin');
-          await onShutdown();
+          await GetIt.I.get<BinaryProvider>().onShutdown();
           exit(0);
         }
       },
       onDone: () async {
         // Triggered if stdin is closed
         log.i('STDIN closed, shutting down...');
-        await onShutdown();
+        await GetIt.I.get<BinaryProvider>().onShutdown();
         exit(0);
       },
     );

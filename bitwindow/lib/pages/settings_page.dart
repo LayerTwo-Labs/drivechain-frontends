@@ -196,10 +196,9 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
         confirmButtonVariant: ButtonVariant.destructive,
         onConfirm: () async {
           final binaryProvider = GetIt.I.get<BinaryProvider>();
-          final processProvider = GetIt.I.get<ProcessProvider>();
 
           final binaries = [
-            ParentChain(),
+            BitcoinCore(),
             Enforcer(),
             BitWindow(),
           ];
@@ -214,7 +213,7 @@ class _ResetSettingsContentState extends State<_ResetSettingsContent> {
           await Future.wait(futures);
 
           // After all binaries are asked nicely to stop, kill any lingering processes
-          await processProvider.shutdown();
+          await binaryProvider.stopAll();
 
           // wait for 5 seconds to ensure all processes are killed
           await Future.delayed(const Duration(seconds: 5));

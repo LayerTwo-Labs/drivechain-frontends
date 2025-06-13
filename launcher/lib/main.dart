@@ -77,13 +77,6 @@ Future<void> initDependencies(Logger log) async {
   );
 
   final appDir = await Environment.appDir();
-  final processProvider = ProcessProvider(
-    appDir: appDir,
-  );
-  GetIt.I.registerSingleton<ProcessProvider>(
-    processProvider,
-  );
-
   // Load initial binary states
   final binaries = await _loadBinaries(appDir);
 
@@ -91,7 +84,7 @@ Future<void> initDependencies(Logger log) async {
   await Future.wait(
     binaries.map((binary) async {
       switch (binary) {
-        case ParentChain():
+        case BitcoinCore():
           final mainchain = await MainchainRPCLive.create(binary);
           GetIt.I.registerSingleton<MainchainRPC>(mainchain);
 
@@ -161,7 +154,7 @@ Future<void> initDependencies(Logger log) async {
 
 Future<List<Binary>> _loadBinaries(Directory appDir) async {
   var binaries = [
-    ParentChain(),
+    BitcoinCore(),
     Enforcer(),
     BitWindow(),
     Thunder(),

@@ -213,7 +213,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           if (!mounted) return;
 
           // After starters are generated, enable them in the binary provider
-          for (final chain in _binaryProvider.getL2Chains()) {
+          for (final chain in _binaryProvider.binaries.where((b) => b.chainLayer == 2)) {
             _binaryProvider.setUseStarter(chain, true);
           }
 
@@ -258,7 +258,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
           if (!mounted) return;
 
           // After starters are generated, enable them in the binary provider
-          for (final chain in _binaryProvider.getL2Chains()) {
+          for (final chain in _binaryProvider.binaries.where((b) => b.chainLayer == 2)) {
             _binaryProvider.setUseStarter(chain, true);
           }
 
@@ -808,7 +808,7 @@ class _WelcomeModalContentState extends State<_WelcomeModalContent> {
 
       await _walletService.generateStartersForDownloadedChains();
 
-      for (final chain in _binaryProvider.getL2Chains()) {
+      for (final chain in _binaryProvider.binaries.where((b) => b.chainLayer == 2)) {
         _binaryProvider.setUseStarter(chain, true);
       }
 

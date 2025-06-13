@@ -7,7 +7,7 @@ class MockMainchainRPC extends MainchainRPC {
   MockMainchainRPC()
       : super(
           conf: NodeConnectionSettings.empty(),
-          binary: ParentChain(),
+          binary: BitcoinCore(),
           restartOnFailure: false,
         );
 

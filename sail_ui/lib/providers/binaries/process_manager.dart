@@ -6,11 +6,11 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/binaries.dart';
 
-class ProcessProvider extends ChangeNotifier {
+class ProcessManager extends ChangeNotifier {
   final Directory? appDir;
 
-  ProcessProvider({
-    this.appDir,
+  ProcessManager({
+    required this.appDir,
   });
 
   Logger get log => GetIt.I.get<Logger>();
@@ -179,7 +179,7 @@ class ProcessProvider extends ChangeNotifier {
     return runningProcesses.containsKey(binary.name);
   }
 
-  Future<void> shutdown() async {
+  Future<void> stopAll() async {
     log.d('dispose process provider: killing all processes $runningProcesses');
     await Future.wait(runningProcesses.values.map((process) => _shutdownSingle(process)));
   }

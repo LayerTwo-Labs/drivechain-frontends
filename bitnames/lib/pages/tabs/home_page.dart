@@ -268,10 +268,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
   Future<bool> onShutdown({required VoidCallback onComplete}) async {
     try {
       final binaryProvider = GetIt.I.get<BinaryProvider>();
-      final processProvider = GetIt.I.get<ProcessProvider>();
 
       // Get list of running binaries
-      final runningBinaries = processProvider.runningProcesses.values.map((process) => process.binary).toList();
+      final runningBinaries = binaryProvider.runningBinaries;
 
       // Show shutdown page with running binaries
       unawaited(
@@ -295,7 +294,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
       await Future.wait(futures);
 
       // after all binaries are asked nicely to stop, kill any lingering processes
-      await processProvider.shutdown();
+      await binaryProvider.stopAll();
     } catch (error) {
       // do nothing, we just always need to return true
     }

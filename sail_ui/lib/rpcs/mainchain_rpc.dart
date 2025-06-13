@@ -14,7 +14,7 @@ abstract class MainchainRPC extends RPCConnection {
     required super.restartOnFailure,
   });
 
-  final chain = ParentChain();
+  final chain = BitcoinCore();
 
   bool inIBD = true;
   bool inHeaderSync = true;
@@ -199,7 +199,7 @@ class MainchainRPCLive extends MainchainRPC {
       '-rpcworkqueue=100',
       '-rest',
     ];
-    log.i('${ParentChain().confFile()} not found, adding sidechain args: $sidechainArgs');
+    log.i('${BitcoinCore().confFile()} not found, adding sidechain args: $sidechainArgs');
 
     final finalArgs = cleanArgs(mainchainConf, [...sidechainArgs, ...binary.extraBootArgs]);
 

@@ -19,7 +19,7 @@ clean:
     rm assets/bin/*
 
 download:
-    bash scripts/download-binaries.sh macos
+    bash scripts/download-binaries.sh
 
 run: download
     flutter run -d macos

@@ -144,12 +144,6 @@ Future<void> initDependencies(
   final log = await logger(RuntimeArgs.fileLog, RuntimeArgs.consoleLog, logFile);
   GetIt.I.registerLazySingleton<Logger>(() => log);
 
-  GetIt.I.registerLazySingleton<ProcessProvider>(
-    () => ProcessProvider(
-      appDir: applicationDir,
-    ),
-  );
-
   GetIt.I.registerLazySingleton<NotificationProvider>(
     () => NotificationProvider(),
   );
@@ -165,7 +159,7 @@ Future<void> initDependencies(
   // Load initial binary states
   final binaries = await _loadBinaries(applicationDir);
   final mainchainRPC = await MainchainRPCLive.create(
-    binaries.firstWhere((b) => b is ParentChain),
+    binaries.firstWhere((b) => b is BitcoinCore),
   );
   GetIt.I.registerLazySingleton<MainchainRPC>(
     () => mainchainRPC,
@@ -256,7 +250,7 @@ void bootBinaries(Logger log) async {
   final BinaryProvider binaryProvider = GetIt.I.get<BinaryProvider>();
   final thunder = binaryProvider.binaries.firstWhere((b) => b is Thunder);
 
-  await binaryProvider.downloadThenBootBinary(
+  await binaryProvider.startWithEnforcer(
     thunder,
   );
 }
@@ -264,7 +258,7 @@ void bootBinaries(Logger log) async {
 Future<List<Binary>> _loadBinaries(Directory appDir) async {
   // Register all binaries
   var binaries = [
-    ParentChain(),
+    BitcoinCore(),
     Enforcer(),
     Thunder(),
   ];

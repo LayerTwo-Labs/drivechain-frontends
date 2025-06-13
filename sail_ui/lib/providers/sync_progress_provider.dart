@@ -63,7 +63,7 @@ class SyncProgressProvider extends ChangeNotifier {
   EnforcerRPC get enforcerRPC => GetIt.I.get<EnforcerRPC>();
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
 
-  SyncConnection get mainchain => SyncConnection(rpc: mainchainRPC, name: ParentChain().name);
+  SyncConnection get mainchain => SyncConnection(rpc: mainchainRPC, name: BitcoinCore().name);
   SyncConnection get enforcer => SyncConnection(rpc: enforcerRPC, name: Enforcer().name);
   final SyncConnection? additionalConnection;
 
@@ -93,6 +93,7 @@ class SyncProgressProvider extends ChangeNotifier {
     bool startTimer = true,
   }) {
     binaryProvider.addListener(_checkDownloadProgress);
+    binaryProvider.listenDownloadManager(_checkDownloadProgress);
 
     if (startTimer && !Environment.isInTest) {
       _startAllTimers();
@@ -268,7 +269,7 @@ class SyncProgressProvider extends ChangeNotifier {
   void _checkDownloadProgress() {
     bool hasChanges = false;
 
-    var downloadProgress = binaryProvider.getDownloadProgress(enforcer.rpc.binary);
+    var downloadProgress = binaryProvider.downloadProgress(enforcer.rpc.binary);
     if ((downloadProgress.progress != 1 && downloadProgress.progress != 0) ||
         (downloadProgress.progress == 0 && downloadProgress.message != null)) {
       // Extract MB values from download message if available
@@ -283,7 +284,7 @@ class SyncProgressProvider extends ChangeNotifier {
       hasChanges = true;
     }
 
-    downloadProgress = binaryProvider.getDownloadProgress(mainchain.rpc.binary);
+    downloadProgress = binaryProvider.downloadProgress(mainchain.rpc.binary);
     if ((downloadProgress.progress != 1 && downloadProgress.progress != 0) ||
         (downloadProgress.progress == 0 && downloadProgress.message != null)) {
       // Extract MB values from download message if available
@@ -299,7 +300,7 @@ class SyncProgressProvider extends ChangeNotifier {
     }
 
     if (additionalConnection != null) {
-      downloadProgress = binaryProvider.getDownloadProgress(additionalConnection!.rpc.binary);
+      downloadProgress = binaryProvider.downloadProgress(additionalConnection!.rpc.binary);
       if ((downloadProgress.progress != 1 && downloadProgress.progress != 0) ||
           (downloadProgress.progress == 0 && downloadProgress.message != null)) {
         // Extract MB values from download message if available
@@ -388,6 +389,7 @@ class SyncProgressProvider extends ChangeNotifier {
     _mainchainTimer?.cancel();
     _enforcerTimer?.cancel();
     _additionalTimer?.cancel();
+    binaryProvider.removeDownloadManagerListener(_checkDownloadProgress);
     super.dispose();
   }
 }
