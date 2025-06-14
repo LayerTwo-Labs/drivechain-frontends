@@ -27,6 +27,85 @@ class BitAssetsTabPage extends StatelessWidget {
               spacing: SailStyleValues.padding16,
               children: [
                 SailCard(
+                  title: 'Your BitAssets',
+                  subtitle: 'View and manage your registered bitassets',
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    children: [
+                      SailRow(
+                        spacing: SailStyleValues.padding16,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Expanded(
+                            child: SailTextField(
+                              hintText: 'Search bitassets...',
+                              controller: model.searchController,
+                            ),
+                          ),
+                          SailButton(
+                            label: 'Register New BitAsset',
+                            onPressed: () async {
+                              // Scroll to the Register card
+                              await Scrollable.ensureVisible(
+                                registerCardKey.currentContext!,
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 200,
+                        child: SailSkeletonizer(
+                          description: 'Loading bitassets...',
+                          enabled: model.isLoading,
+                          child: SailTable(
+                            getRowId: (index) => model.myEntries[index].hash,
+                            headerBuilder: (context) => [
+                              SailTableHeaderCell(name: 'Hash'),
+                              SailTableHeaderCell(name: 'Plaintext Name'),
+                              SailTableHeaderCell(name: 'Sequence ID'),
+                              SailTableHeaderCell(name: 'Commitment'),
+                              SailTableHeaderCell(name: 'Encryption Key'),
+                              SailTableHeaderCell(name: 'Signing Key'),
+                            ],
+                            rowBuilder: (context, row, selected) {
+                              final entry = model.myEntries[row];
+                              final shortHash = '${entry.hash.substring(0, 10)}..';
+                              return [
+                                SailTableCell(
+                                  value: shortHash,
+                                  copyValue: entry.hash,
+                                ),
+                                SailTableCell(value: entry.plaintextName ?? '<unknown>'),
+                                SailTableCell(value: entry.sequenceID.toString()),
+                                SailTableCell(value: entry.details.commitment ?? '-'),
+                                SailTableCell(value: entry.details.encryptionPubkey ?? '-'),
+                                SailTableCell(value: entry.details.signingPubkey ?? '-'),
+                              ];
+                            },
+                            contextMenuItems: (rowId) {
+                              final entry = model.myEntries.firstWhere((e) => e.hash == rowId);
+                              return [
+                                SailMenuItem(
+                                  onSelected: () async {
+                                    await showBitnameDetails(context, entry);
+                                  },
+                                  child: SailText.primary12('Show Details'),
+                                ),
+                              ];
+                            },
+                            rowCount: model.myEntries.length,
+                            drawGrid: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SailCard(
                   title: 'All BitAssets',
                   subtitle: 'View and manage all registered bitassets',
                   child: SailColumn(
@@ -67,6 +146,7 @@ class BitAssetsTabPage extends StatelessWidget {
                               SailTableHeaderCell(name: 'Hash'),
                               SailTableHeaderCell(name: 'Plaintext Name'),
                               SailTableHeaderCell(name: 'Sequence ID'),
+                              SailTableHeaderCell(name: 'Commitment'),
                               SailTableHeaderCell(name: 'Encryption Key'),
                               SailTableHeaderCell(name: 'Signing Key'),
                             ],
@@ -80,6 +160,7 @@ class BitAssetsTabPage extends StatelessWidget {
                                 ),
                                 SailTableCell(value: entry.plaintextName ?? '<unknown>'),
                                 SailTableCell(value: entry.sequenceID.toString()),
+                                SailTableCell(value: entry.details.commitment ?? '-'),
                                 SailTableCell(value: entry.details.encryptionPubkey ?? '-'),
                                 SailTableCell(value: entry.details.signingPubkey ?? '-'),
                               ];
@@ -127,7 +208,7 @@ class BitAssetsTabPage extends StatelessWidget {
                                 ),
                                 SailButton(
                                   label: 'Reserve',
-                                  onPressed: model.reserveLoading ? null : () => model.reserveBitname(context),
+                                  onPressed: () => model.reserveBitname(context),
                                   loading: model.reserveLoading,
                                 ),
                               ],
@@ -201,7 +282,7 @@ class BitAssetsTabPage extends StatelessWidget {
                                   ),
                                 SailButton(
                                   label: 'Register',
-                                  onPressed: model.registerLoading ? null : () => model.registerBitAsset(context),
+                                  onPressed: () => model.registerBitAsset(context),
                                   loading: model.registerLoading,
                                 ),
                               ],
@@ -321,6 +402,7 @@ class BitAssetsViewModel extends BaseViewModel {
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
   final BitAssetsProvider provider = GetIt.I.get<BitAssetsProvider>();
   final BitAssetsRPC bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
+  final ClientSettings clientSettings = GetIt.I.get<ClientSettings>();
 
   String? reserveError;
   bool reserveLoading = false;
@@ -434,6 +516,13 @@ class BitAssetsViewModel extends BaseViewModel {
     }).toList();
   }
 
+  List<BitAssetEntry> get myEntries {
+    return provider.entries.where((entry) {
+      final mapping = provider.hashNameMapping.value[entry.hash];
+      return mapping?.isMine ?? false;
+    }).toList();
+  }
+
   bool get isLoading => !provider.initialized;
 
   Future<void> reserveBitname(BuildContext context) async {
@@ -454,6 +543,14 @@ class BitAssetsViewModel extends BaseViewModel {
     notifyListeners();
     try {
       final txid = await bitassetsRPC.reserveBitAsset(name);
+      // Save the mapping with isMine=true
+      final hash = blake3Hex(utf8.encode(name));
+      final setting = HashNameMappingSetting();
+      final currentValue = await clientSettings.getValue(setting);
+      final newMappings = Map<String, HashMapping>.from(currentValue.value);
+      newMappings[hash] = HashMapping(name: name, isMine: true);
+      await clientSettings.setValue(setting.withValue(newMappings));
+
       reserveLoading = false;
       notifyListeners();
       if (context.mounted) {
@@ -528,7 +625,7 @@ class BitAssetsViewModel extends BaseViewModel {
       ipv6Controller.clear();
       useEncryptionKey = false;
       useSigningKey = false;
-
+      await provider.saveHashNameMapping(name, isMine: true);
       await generateKeysWithRetry();
     } catch (e) {
       registerError = e.toString();

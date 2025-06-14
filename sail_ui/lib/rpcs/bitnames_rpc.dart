@@ -311,7 +311,9 @@ class BitnamesLive extends BitnamesRPC {
     Map<String, String>? hashNameMapping;
     try {
       final settingValue = await clientSettings.getValue(HashNameMappingSetting());
-      hashNameMapping = settingValue.value;
+      hashNameMapping = Map.fromEntries(
+        settingValue.value.entries.map((e) => MapEntry(e.key, e.value.name)),
+      );
     } catch (e) {
       // do nothing
     }
