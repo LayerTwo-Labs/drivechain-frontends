@@ -4,15 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"connectrpc.com/connect"
+	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type DeniabilityEngine struct {
@@ -138,77 +141,121 @@ func (e *DeniabilityEngine) checkAbortedDenials(ctx context.Context, utxos []*pb
 	return nil
 }
 
-func (e *DeniabilityEngine) findDenialUTXO(
-	utxos []*pb.ListUnspentOutputsResponse_Output, txid string, vout uint32,
-) (*pb.ListUnspentOutputsResponse_Output, error) {
+func (e *DeniabilityEngine) findDenialUTXOs(
+	utxos []*pb.ListUnspentOutputsResponse_Output,
+	txid string,
+) []*pb.ListUnspentOutputsResponse_Output {
+	var matchingUTXOs []*pb.ListUnspentOutputsResponse_Output
 	for _, utxo := range utxos {
-		if utxo.Txid.Hex.Value == txid && utxo.Vout == vout {
-			return utxo, nil
+		if utxo.Txid.Hex.Value == txid {
+			matchingUTXOs = append(matchingUTXOs, utxo)
 		}
 	}
-
-	return nil, fmt.Errorf("no matching utxo found")
+	return matchingUTXOs
 }
 
-func (e *DeniabilityEngine) findNewUTXO(
-	ctx context.Context, txid string, expectedAmount uint64,
-) (*pb.ListUnspentOutputsResponse_Output, error) {
-	// we need to wait for the new utxo to appear in the wallet. might take a while, wait forever
+func (e *DeniabilityEngine) findNewUTXOs(
+	ctx context.Context,
+	txid string,
+	expectedAmounts []uint64,
+) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+	var foundUTXOs []*pb.ListUnspentOutputsResponse_Output
+	expectedCount := len(expectedAmounts)
+
 	for {
 		utxos, err := e.listUTXOs(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("could not list utxos: %w", err)
 		}
 
-		// Look for our new UTXO
+		foundUTXOs = nil
 		for _, utxo := range utxos {
-			if utxo.Txid.Hex.Value == txid && utxo.ValueSats == expectedAmount {
-				return utxo, nil
+			if utxo.Txid.Hex.Value == txid {
+				for _, expectedAmount := range expectedAmounts {
+					if utxo.ValueSats == expectedAmount {
+						foundUTXOs = append(foundUTXOs, utxo)
+						break
+					}
+				}
 			}
 		}
 
-		// Wait a second before trying again
+		if len(foundUTXOs) == expectedCount {
+			return foundUTXOs, nil
+		}
+
 		time.Sleep(time.Second)
 	}
 }
 
 func (e *DeniabilityEngine) executeDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
+	// Find all UTXOs for this denial tip
+	tipUTXOs := e.findDenialUTXOs(utxos, denial.TipTXID)
+	if len(tipUTXOs) == 0 {
+		return fmt.Errorf("no matching utxos found")
+	}
+
+	// Process each UTXO
+	for _, utxo := range tipUTXOs {
+		if err := e.processUTXO(ctx, utxo, denial); err != nil {
+			return fmt.Errorf("failed to process UTXO %s:%d: %w", utxo.Txid.Hex.Value, utxo.Vout, err)
+		}
+	}
+
+	return nil
+}
+
+func (e *DeniabilityEngine) processUTXO(ctx context.Context, utxo *pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
 	wallet, err := e.wallet.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("could not get wallet client: %w", err)
 	}
 
-	// We need to find the specific UTXO that matches our denial tip
-	utxo, err := e.findDenialUTXO(utxos, denial.TipTXID, uint32(denial.TipVout))
-	if err != nil {
-		return fmt.Errorf("could not find matching utxo: %w", err)
-	}
-
-	// Next hop must have a unique address
-	addrResp, err := wallet.CreateNewAddress(ctx, &connect.Request[pb.CreateNewAddressRequest]{
+	// Create two new addresses for the split
+	addr1Resp, err := wallet.CreateNewAddress(ctx, &connect.Request[pb.CreateNewAddressRequest]{
 		Msg: &pb.CreateNewAddressRequest{},
 	})
 	if err != nil {
-		return fmt.Errorf("enforcer/wallet: could not get new address: %w", err)
+		return fmt.Errorf("could not get first new address: %w", err)
 	}
 
+	addr2Resp, err := wallet.CreateNewAddress(ctx, &connect.Request[pb.CreateNewAddressRequest]{
+		Msg: &pb.CreateNewAddressRequest{},
+	})
+	if err != nil {
+		return fmt.Errorf("could not get second new address: %w", err)
+	}
+
+	// Calculate random split amounts (10-90% of total)
 	const fee = 10000
 	if utxo.ValueSats < fee {
-		reason := "utxo is too small to send"
+		reason := "utxo is too small to split"
 		if err := deniability.Cancel(ctx, e.db, denial.ID, reason); err != nil {
 			return fmt.Errorf("could not cancel denial: %w", err)
 		}
 		return nil
 	}
 
-	sendAmount := utxo.ValueSats - fee
+	availableAmount := utxo.ValueSats - fee
+	// Send 10-90% of the utxo to a new address
+	percentage := 10 + rand.Intn(80)
+	firstAmount := (availableAmount * uint64(percentage)) / 100
+	secondAmount := availableAmount - firstAmount
+
+	// Send transaction with two outputs
 	sendResp, err := wallet.SendTransaction(ctx, &connect.Request[pb.SendTransactionRequest]{
 		Msg: &pb.SendTransactionRequest{
 			Destinations: map[string]uint64{
-				// TODO: We need better coin selection here. But for the time being,
-				// we just pray to the gods the wallet is smart and selects the right UTXO,
-				// matching by value
-				addrResp.Msg.Address: sendAmount,
+				addr1Resp.Msg.Address: firstAmount,
+				addr2Resp.Msg.Address: secondAmount,
+			},
+			RequiredUtxos: []*pb.SendTransactionRequest_RequiredUtxo{
+				{
+					Txid: &commonv1.ReverseHex{
+						Hex: &wrapperspb.StringValue{Value: utxo.Txid.Hex.Value},
+					},
+					Vout: utxo.Vout,
+				},
 			},
 			FeeRate: &pb.SendTransactionRequest_FeeRate{
 				Fee: &pb.SendTransactionRequest_FeeRate_Sats{
@@ -218,23 +265,24 @@ func (e *DeniabilityEngine) executeDenial(ctx context.Context, utxos []*pb.ListU
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("enforcer/wallet: could not send to address: %w", err)
+		return fmt.Errorf("could not send transaction: %w", err)
 	}
 
-	// Wait for the new UTXO to appear and find its vout
-	newUtxo, err := e.findNewUTXO(ctx, sendResp.Msg.Txid.Hex.Value, sendAmount)
+	// Wait for both new UTXOs to appear
+	newUTXOs, err := e.findNewUTXOs(ctx, sendResp.Msg.Txid.Hex.Value, []uint64{firstAmount, secondAmount})
 	if err != nil {
-		return fmt.Errorf("could not find new utxo: %w", err)
+		return fmt.Errorf("could not find new UTXOs: %w", err)
 	}
 
-	// Record execution with the correct vout
-	if err := deniability.RecordExecution(ctx, e.db, denial.ID,
-		utxo.Txid.Hex.Value,
-		int32(utxo.Vout),
-		newUtxo.Txid.Hex.Value,
-		int32(newUtxo.Vout),
-	); err != nil {
-		return fmt.Errorf("could not record execution: %w", err)
+	// Record execution for each new UTXO
+	for _, newUTXO := range newUTXOs {
+		if err := deniability.RecordExecution(ctx, e.db, denial.ID,
+			utxo.Txid.Hex.Value,
+			int32(utxo.Vout),
+			newUTXO.Txid.Hex.Value,
+		); err != nil {
+			return fmt.Errorf("could not record execution: %w", err)
+		}
 	}
 
 	zerolog.Ctx(ctx).Info().
@@ -242,9 +290,9 @@ func (e *DeniabilityEngine) executeDenial(ctx context.Context, utxos []*pb.ListU
 		Str("from_txid", utxo.Txid.Hex.Value).
 		Uint32("from_vout", utxo.Vout).
 		Str("to_txid", sendResp.Msg.Txid.Hex.Value).
-		Uint32("to_vout", newUtxo.Vout).
-		Uint64("amount", utxo.ValueSats).
-		Msg("executed denial")
+		Uint64("first_amount", firstAmount).
+		Uint64("second_amount", secondAmount).
+		Msg("executed denial split")
 
 	return nil
 }

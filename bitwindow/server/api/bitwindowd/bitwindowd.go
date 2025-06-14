@@ -239,7 +239,6 @@ func (s *Server) withDeniability(ctx context.Context, d *deniability.Denial) (*p
 			FromTxid:   e.FromTxID,
 			FromVout:   uint32(e.FromVout),
 			ToTxid:     e.ToTxID,
-			ToVout:     uint32(e.ToVout),
 			CreateTime: timestamppb.New(e.CreatedAt),
 		})
 	}
