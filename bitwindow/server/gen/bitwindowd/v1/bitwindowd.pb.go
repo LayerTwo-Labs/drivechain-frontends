@@ -383,8 +383,7 @@ type ExecutedDenial struct {
 	FromTxid      string                 `protobuf:"bytes,3,opt,name=from_txid,json=fromTxid,proto3" json:"from_txid,omitempty"`
 	FromVout      uint32                 `protobuf:"varint,4,opt,name=from_vout,json=fromVout,proto3" json:"from_vout,omitempty"`
 	ToTxid        string                 `protobuf:"bytes,5,opt,name=to_txid,json=toTxid,proto3" json:"to_txid,omitempty"`
-	ToVout        uint32                 `protobuf:"varint,6,opt,name=to_vout,json=toVout,proto3" json:"to_vout,omitempty"`
-	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	CreateTime    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -452,13 +451,6 @@ func (x *ExecutedDenial) GetToTxid() string {
 		return x.ToTxid
 	}
 	return ""
-}
-
-func (x *ExecutedDenial) GetToVout() uint32 {
-	if x != nil {
-		return x.ToVout
-	}
-	return 0
 }
 
 func (x *ExecutedDenial) GetCreateTime() *timestamppb.Timestamp {
@@ -973,15 +965,14 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	" \x01(\bR\bisActiveB\x0e\n" +
 	"\f_cancel_timeB\x10\n" +
 	"\x0e_cancel_reasonB\x11\n" +
-	"\x0f_next_execution\"\xe6\x01\n" +
+	"\x0f_next_execution\"\xcd\x01\n" +
 	"\x0eExecutedDenial\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1b\n" +
 	"\tdenial_id\x18\x02 \x01(\x03R\bdenialId\x12\x1b\n" +
 	"\tfrom_txid\x18\x03 \x01(\tR\bfromTxid\x12\x1b\n" +
 	"\tfrom_vout\x18\x04 \x01(\rR\bfromVout\x12\x17\n" +
-	"\ato_txid\x18\x05 \x01(\tR\x06toTxid\x12\x17\n" +
-	"\ato_vout\x18\x06 \x01(\rR\x06toVout\x12;\n" +
-	"\vcreate_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"\ato_txid\x18\x05 \x01(\tR\x06toTxid\x12;\n" +
+	"\vcreate_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\"%\n" +
 	"\x13CancelDenialRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"\x87\x01\n" +
