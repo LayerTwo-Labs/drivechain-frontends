@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';
 import 'package:sail_ui/settings/client_settings.dart';
 import 'package:sail_ui/settings/hash_plaintext_settings.dart';
+import 'package:thirds/blake3.dart';
 
 class BitnamesProvider extends ChangeNotifier {
   BitnamesRPC get rpc => GetIt.I.get<BitnamesRPC>();
@@ -24,10 +26,14 @@ class BitnamesProvider extends ChangeNotifier {
   }
 
   /// Save a new hash-name mapping
-  Future<void> saveHashNameMapping(String hash, String name) async {
-    hashNameMapping = hashNameMapping.addMapping(hash, name);
+  Future<void> saveHashNameMapping(String name, {bool isMine = false}) async {
+    final hash = blake3Hex(utf8.encode(name));
+    final newMappings = Map<String, HashMapping>.from(hashNameMapping.value);
+    newMappings[hash] = HashMapping(name: name, isMine: isMine);
+    hashNameMapping = HashNameMappingSetting(newValue: newMappings);
     await clientSettings.setValue(hashNameMapping);
     notifyListeners();
+    await fetch(); // refetch to set the name in the list
   }
 
   /// Get friendly name for a hash

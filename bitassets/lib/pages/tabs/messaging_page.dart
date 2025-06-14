@@ -159,7 +159,7 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
 
     if (existingEntryMatch != null) {
       // we found a plaintext match! save it to disk for easy access later
-      bitassetsProvider.saveHashNameMapping(existingEntryMatch.hash, trimmedInput);
+      bitassetsProvider.saveHashNameMapping(trimmedInput);
       // refetch to set the name in the list
       bitassetsProvider.fetch();
     }

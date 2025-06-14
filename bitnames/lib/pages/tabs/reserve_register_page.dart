@@ -27,8 +27,8 @@ class BitnamesTabPage extends StatelessWidget {
               spacing: SailStyleValues.padding16,
               children: [
                 SailCard(
-                  title: 'All Bitnames',
-                  subtitle: 'View and manage all registered bitnames',
+                  title: 'Your Bitnames',
+                  subtitle: 'View your registered bitnames',
                   child: SailColumn(
                     spacing: SailStyleValues.padding16,
                     children: [
@@ -57,22 +57,23 @@ class BitnamesTabPage extends StatelessWidget {
                         ],
                       ),
                       SizedBox(
-                        height: 300,
+                        height: 200,
                         child: SailSkeletonizer(
                           description: 'Loading bitnames...',
                           enabled: model.isLoading,
                           child: SailTable(
-                            getRowId: (index) => model.entries[index].hash,
+                            getRowId: (index) => model.myEntries[index].hash,
                             headerBuilder: (context) => [
                               SailTableHeaderCell(name: 'Hash'),
                               SailTableHeaderCell(name: 'Plaintext Name'),
                               SailTableHeaderCell(name: 'Sequence ID'),
+                              SailTableHeaderCell(name: 'Commitment'),
                               SailTableHeaderCell(name: 'Encryption Key'),
                               SailTableHeaderCell(name: 'Signing Key'),
                               SailTableHeaderCell(name: 'Paymail Fee'),
                             ],
                             rowBuilder: (context, row, selected) {
-                              final entry = model.entries[row];
+                              final entry = model.myEntries[row];
                               final shortHash = '${entry.hash.substring(0, 10)}..';
                               return [
                                 SailTableCell(
@@ -81,6 +82,7 @@ class BitnamesTabPage extends StatelessWidget {
                                 ),
                                 SailTableCell(value: entry.plaintextName ?? '<unknown>'),
                                 SailTableCell(value: entry.details.seqId),
+                                SailTableCell(value: entry.details.commitment ?? '-'),
                                 SailTableCell(value: entry.details.encryptionPubkey ?? '-'),
                                 SailTableCell(value: entry.details.signingPubkey ?? '-'),
                                 SailTableCell(
@@ -89,7 +91,7 @@ class BitnamesTabPage extends StatelessWidget {
                               ];
                             },
                             contextMenuItems: (rowId) {
-                              final entry = model.entries.firstWhere((e) => e.hash == rowId);
+                              final entry = model.myEntries.firstWhere((e) => e.hash == rowId);
                               return [
                                 SailMenuItem(
                                   onSelected: () async {
@@ -99,7 +101,7 @@ class BitnamesTabPage extends StatelessWidget {
                                 ),
                               ];
                             },
-                            rowCount: model.entries.length,
+                            rowCount: model.myEntries.length,
                             drawGrid: true,
                           ),
                         ),
@@ -118,7 +120,8 @@ class BitnamesTabPage extends StatelessWidget {
                         Expanded(
                           child: SailCard(
                             title: 'Reserve',
-                            subtitle: 'Reserve a new bitname',
+                            subtitle:
+                                'Reserve a bitname you want without needing a ipv4/v6-address. Can be registered later, but only by you.',
                             error: model.reserveError,
                             child: SailColumn(
                               spacing: SailStyleValues.padding16,
@@ -131,7 +134,7 @@ class BitnamesTabPage extends StatelessWidget {
                                 ),
                                 SailButton(
                                   label: 'Reserve',
-                                  onPressed: model.reserveLoading ? null : () => model.reserveBitname(context),
+                                  onPressed: () => model.reserveBitname(context),
                                   loading: model.reserveLoading,
                                 ),
                               ],
@@ -200,7 +203,7 @@ class BitnamesTabPage extends StatelessWidget {
                                   ),
                                 SailButton(
                                   label: 'Register',
-                                  onPressed: model.registerLoading ? null : () => model.registerBitname(context),
+                                  onPressed: () => model.registerBitname(context),
                                   loading: model.registerLoading,
                                 ),
                               ],
@@ -210,6 +213,89 @@ class BitnamesTabPage extends StatelessWidget {
                       ],
                     );
                   },
+                ),
+                SailCard(
+                  title: 'All Bitnames',
+                  subtitle: 'View and manage all registered bitnames',
+                  child: SailColumn(
+                    spacing: SailStyleValues.padding16,
+                    children: [
+                      SailRow(
+                        spacing: SailStyleValues.padding16,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Expanded(
+                            child: SailTextField(
+                              hintText: 'Search bitnames...',
+                              controller: model.searchController,
+                            ),
+                          ),
+                          SailButton(
+                            label: 'Register New Bitname',
+                            onPressed: () async {
+                              // Scroll to the Register card
+                              await Scrollable.ensureVisible(
+                                registerCardKey.currentContext!,
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 300,
+                        child: SailSkeletonizer(
+                          description: 'Loading bitnames...',
+                          enabled: model.isLoading,
+                          child: SailTable(
+                            getRowId: (index) => model.entries[index].hash,
+                            headerBuilder: (context) => [
+                              SailTableHeaderCell(name: 'Hash'),
+                              SailTableHeaderCell(name: 'Plaintext Name'),
+                              SailTableHeaderCell(name: 'Sequence ID'),
+                              SailTableHeaderCell(name: 'Commitment'),
+                              SailTableHeaderCell(name: 'Encryption Key'),
+                              SailTableHeaderCell(name: 'Signing Key'),
+                              SailTableHeaderCell(name: 'Paymail Fee'),
+                            ],
+                            rowBuilder: (context, row, selected) {
+                              final entry = model.entries[row];
+                              final shortHash = '${entry.hash.substring(0, 10)}..';
+                              return [
+                                SailTableCell(
+                                  value: shortHash,
+                                  copyValue: entry.hash,
+                                ),
+                                SailTableCell(value: entry.plaintextName ?? '<unknown>'),
+                                SailTableCell(value: entry.details.seqId),
+                                SailTableCell(value: entry.details.commitment ?? '-'),
+                                SailTableCell(value: entry.details.encryptionPubkey ?? '-'),
+                                SailTableCell(value: entry.details.signingPubkey ?? '-'),
+                                SailTableCell(
+                                  value: entry.details.paymailFeeSats?.toString() ?? '-',
+                                ),
+                              ];
+                            },
+                            contextMenuItems: (rowId) {
+                              final entry = model.entries.firstWhere((e) => e.hash == rowId);
+                              return [
+                                SailMenuItem(
+                                  onSelected: () async {
+                                    await showBitnameDetails(context, entry);
+                                  },
+                                  child: SailText.primary12('Show Details'),
+                                ),
+                              ];
+                            },
+                            rowCount: model.entries.length,
+                            drawGrid: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -398,6 +484,11 @@ class BitnamesViewModel extends BaseViewModel {
     return provider.entries.where((entry) {
       // Check if search text hash matches entry hash
       if (searchHash != null && entry.hash.toLowerCase() == searchHash.toLowerCase()) {
+        if (entry.plaintextName == null) {
+          // we found a hash match, but it's not saved yet! Make sure to save it
+          // to disk for easy access later
+          provider.saveHashNameMapping(searchText);
+        }
         return true;
       }
 
@@ -425,6 +516,13 @@ class BitnamesViewModel extends BaseViewModel {
     }).toList();
   }
 
+  List<BitnameEntry> get myEntries {
+    return provider.entries.where((entry) {
+      final mapping = provider.hashNameMapping.value[entry.hash];
+      return mapping?.isMine ?? false;
+    }).toList();
+  }
+
   bool get isLoading => !provider.initialized;
 
   Future<void> reserveBitname(BuildContext context) async {
@@ -445,6 +543,7 @@ class BitnamesViewModel extends BaseViewModel {
     notifyListeners();
     try {
       final txid = await bitnamesRPC.reserveBitName(name);
+      await provider.saveHashNameMapping(name, isMine: true);
       reserveLoading = false;
       notifyListeners();
       if (context.mounted) {
@@ -495,6 +594,7 @@ class BitnamesViewModel extends BaseViewModel {
           socketAddrV6: ipv6,
         ),
       );
+      await provider.saveHashNameMapping(name, isMine: true);
       registerLoading = false;
       notifyListeners();
       if (context.mounted) {

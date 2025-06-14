@@ -159,9 +159,7 @@ class _MessagingTabPageState extends State<MessagingTabPage> {
 
     if (existingEntryMatch != null) {
       // we found a plaintext match! save it to disk for easy access later
-      bitnamesProvider.saveHashNameMapping(existingEntryMatch.hash, trimmedInput);
-      // refetch to set the name in the list
-      bitnamesProvider.fetch();
+      bitnamesProvider.saveHashNameMapping(trimmedInput);
     }
 
     // First, check if input is already a direct hash match in bitnames
