@@ -62,8 +62,7 @@ message ExecutedDenial {
   string from_txid = 3;
   uint32 from_vout = 4;
   string to_txid = 5;
-  uint32 to_vout = 6;
-  google.protobuf.Timestamp create_time = 7;
+  google.protobuf.Timestamp create_time = 6;
 }
 
 message CancelDenialRequest {
