@@ -579,6 +579,24 @@ class BitnamesViewModel extends BaseViewModel {
       notifyListeners();
       return;
     }
+
+    // Validate commitment if provided
+    if (commitment != null) {
+      // Check if commitment is a valid hex string
+      if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(commitment)) {
+        registerError = 'Commitment must be a valid hex string';
+        notifyListeners();
+        return;
+      }
+
+      // Check if commitment is a valid Blake3 hash (64 characters)
+      if (commitment.length != 64) {
+        registerError = 'Commitment must be a valid Blake3 hash (64 characters)';
+        notifyListeners();
+        return;
+      }
+    }
+
     registerLoading = true;
     registerError = null;
     notifyListeners();

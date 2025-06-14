@@ -594,6 +594,22 @@ class BitAssetsViewModel extends BaseViewModel {
     final ipv4 = ipv4Controller.text.trim().isEmpty ? null : ipv4Controller.text.trim();
     final ipv6 = ipv6Controller.text.trim().isEmpty ? null : ipv6Controller.text.trim();
 
+    if (commitment != null) {
+      // Check if commitment is a valid hex string
+      if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(commitment)) {
+        registerError = 'Commitment must be a valid hex string';
+        notifyListeners();
+        return;
+      }
+
+      // Check if commitment is a valid Blake3 hash (64 characters)
+      if (commitment.length != 64) {
+        registerError = 'Commitment must be a valid Blake3 hash (64 characters)';
+        notifyListeners();
+        return;
+      }
+    }
+
     registerLoading = true;
     registerError = null;
     notifyListeners();
