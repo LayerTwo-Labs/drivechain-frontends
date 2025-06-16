@@ -18,7 +18,6 @@ mixin ChangeTrackingMixin on ChangeNotifier {
     final hasChanged = !_deepEquals(previousValue, value);
 
     if (hasChanged) {
-      log.i('Value changed for key "$key":\nOld: $previousValue\nNew: $value');
       _previousValues[key] = value;
       _hasChanges = true;
     }
@@ -28,7 +27,6 @@ mixin ChangeTrackingMixin on ChangeNotifier {
 
   void notifyIfChanged() {
     if (_hasChanges) {
-      log.i('Notifying listeners of changes');
       _hasChanges = false;
       notifyListeners();
     }

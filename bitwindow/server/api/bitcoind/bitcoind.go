@@ -9,11 +9,11 @@ import (
 	"encoding/hex"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoind/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoind/v1/bitcoindv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
@@ -24,7 +24,7 @@ var _ rpc.BitcoindServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
-	bitcoind *service.Service[*coreproxy.Bitcoind],
+	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
 ) *Server {
 	s := &Server{
 		bitcoind: bitcoind,
@@ -33,7 +33,7 @@ func New(
 }
 
 type Server struct {
-	bitcoind *service.Service[*coreproxy.Bitcoind]
+	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
 }
 
 // AnalyzePsbt implements bitcoindv1connect.BitcoindServiceHandler.
@@ -638,7 +638,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		Transactions: transactions,
 	}), nil
 }
-func (s *Server) recentTransactionFromRaw(ctx context.Context, bitcoind *coreproxy.Bitcoind, data []byte) (*pb.RecentTransaction, bool, error) {
+func (s *Server) recentTransactionFromRaw(ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient, data []byte) (*pb.RecentTransaction, bool, error) {
 	tx, err := btcutil.NewTxFromBytes(data)
 	if err != nil {
 		return nil, false, fmt.Errorf("could not decode transaction hex: %w", err)

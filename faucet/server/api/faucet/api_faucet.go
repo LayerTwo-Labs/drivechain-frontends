@@ -12,7 +12,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/faucet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/faucet/v1/faucetv1connect"
 	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
+	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/samber/lo"
 )
@@ -21,7 +21,7 @@ var _ rpc.FaucetServiceHandler = new(Server)
 
 // New creates a new Client
 func New(
-	bitcoind *coreproxy.Bitcoind,
+	bitcoind bitcoindv1alphaconnect.BitcoinServiceClient,
 ) *Server {
 	s := &Server{
 		bitcoind:       bitcoind,
@@ -32,7 +32,7 @@ func New(
 }
 
 type Server struct {
-	bitcoind       *coreproxy.Bitcoind
+	bitcoind       bitcoindv1alphaconnect.BitcoinServiceClient
 	mu             sync.Mutex
 	dispensed      map[string]float64
 	totalDispensed float64
@@ -43,7 +43,7 @@ const (
 	MaxCoinsPerRequest = 5
 )
 
-func NewClient(ctx context.Context, bitcoind *coreproxy.Bitcoind) *Server {
+func NewClient(ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) *Server {
 	faucet := &Server{
 		bitcoind:       bitcoind,
 		dispensed:      make(map[string]float64),

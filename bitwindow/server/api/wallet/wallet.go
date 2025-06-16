@@ -12,6 +12,7 @@ import (
 
 	"connectrpc.com/connect"
 	drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
@@ -24,7 +25,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -41,7 +41,7 @@ var _ rpc.WalletServiceHandler = new(Server)
 func New(
 	ctx context.Context,
 	database *sql.DB,
-	bitcoind *service.Service[*coreproxy.Bitcoind],
+	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
 	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 ) *Server {
@@ -56,7 +56,7 @@ func New(
 
 type Server struct {
 	database *sql.DB
-	bitcoind *service.Service[*coreproxy.Bitcoind]
+	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
 	wallet   *service.Service[validatorrpc.WalletServiceClient]
 	crypto   *service.Service[cryptorpc.CryptoServiceClient]
 }
@@ -64,16 +64,20 @@ type Server struct {
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	if s.wallet == nil {
-		return nil, errors.New("wallet not connected")
+		err := errors.New("wallet not connected")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction: wallet not connected")
+		return nil, err
 	}
 
 	if len(c.Msg.Destinations) == 0 {
 		err := errors.New("must provide a destination")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction: no destination provided")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	if c.Msg.FeeSatPerVbyte > 0 && c.Msg.FixedFeeSats > 0 {
 		err := errors.New("cannot provide both fee rate and fee amount")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction: both fee rate and fee amount provided")
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -84,6 +88,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 				"amount to %s is below dust limit (%s): %s",
 				destination, btcutil.Amount(dustLimit), btcutil.Amount(amount),
 			)
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction: amount below dust limit")
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	}
@@ -114,6 +119,7 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 	created, err := wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
@@ -140,7 +146,9 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}),
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not send transaction: %w", err)
+		err = fmt.Errorf("enforcer/wallet: could not send transaction: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction")
+		return nil, err
 	}
 
 	log.Info().Msgf("send tx: broadcast transaction: %s", created.Msg.Txid)
@@ -154,11 +162,14 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNewAddressResponse], error) {
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 	address, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not create new address: %w", err)
+		err = fmt.Errorf("enforcer/wallet: could not create new address: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create new address")
+		return nil, err
 	}
 
 	// store all receiving addresses in the book! But with an empty label
@@ -167,7 +178,9 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.E
 		if err.Error() == addressbook.ErrUniqueAddress {
 			// that's fine, already added! Don't do anything
 		} else {
-			return nil, fmt.Errorf("could not create address book entry: %w", err)
+			err = fmt.Errorf("could not create address book entry: %w", err)
+			zerolog.Ctx(ctx).Error().Err(err).Msg("could not create address book entry")
+			return nil, err
 		}
 	}
 
@@ -530,7 +543,7 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 	}), nil
 }
 
-func (s *Server) getAddressFromOutpoint(ctx context.Context, bitcoind *coreproxy.Bitcoind, txid string, vout int) (string, error) {
+func (s *Server) getAddressFromOutpoint(ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient, txid string, vout int) (string, error) {
 	rawTxResp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
 		Msg: &corepb.GetRawTransactionRequest{
 			Txid: txid,

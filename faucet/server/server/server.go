@@ -23,7 +23,7 @@ import (
 	explorerrpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1/explorerv1connect"
 	faucetrpc "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/faucet/v1/faucetv1connect"
 	faucet_ip "github.com/LayerTwo-Labs/sidesail/faucet/server/ip"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
+	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -33,7 +33,7 @@ import (
 
 // New creates a new Server with interceptors applied.
 func New(
-	ctx context.Context, bitcoind *coreproxy.Bitcoind,
+	ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient,
 	rpcClients *api_explorer.RpcClients,
 	enforcerConnector connector.Connector[validatordrpc.ValidatorServiceClient],
 ) *Server {

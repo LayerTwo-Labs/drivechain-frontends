@@ -15,15 +15,15 @@ class DenialDialog extends StatefulWidget {
 
 class _DenialDialogState extends State<DenialDialog> {
   final hopsController = TextEditingController(text: '3');
-  final minutesController = TextEditingController(text: '0');
-  final hoursController = TextEditingController(text: '1');
+  final minutesController = TextEditingController(text: '2');
+  final hoursController = TextEditingController(text: '0');
   final daysController = TextEditingController(text: '0');
 
   Future<void> setNormalDefaults() async {
     setState(() {
       hopsController.text = '3';
-      minutesController.text = '0';
-      hoursController.text = '2';
+      minutesController.text = '2';
+      hoursController.text = '0';
       daysController.text = '0';
     });
   }

@@ -8,25 +8,26 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type DeniabilityEngine struct {
 	wallet   *service.Service[validatorrpc.WalletServiceClient]
-	bitcoind *service.Service[*coreproxy.Bitcoind]
+	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
 	db       *sql.DB
 }
 
 func NewDeniability(
 	wallet *service.Service[validatorrpc.WalletServiceClient],
-	bitcoind *service.Service[*coreproxy.Bitcoind],
+	bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient],
 	db *sql.DB,
 ) *DeniabilityEngine {
 	return &DeniabilityEngine{
@@ -133,7 +134,7 @@ func (e *DeniabilityEngine) checkAbortedDenials(ctx context.Context, utxos []*pb
 			zerolog.Ctx(ctx).Info().
 				Int64("denial_id", denial.ID).
 				Str("txid", denial.TipTXID).
-				Int32("vout", denial.TipVout).
+				Int32("vout", lo.FromPtr(denial.TipVout)).
 				Msg("cancelled denial due to missing UTXO")
 		}
 	}

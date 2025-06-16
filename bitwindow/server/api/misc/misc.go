@@ -47,6 +47,7 @@ type Server struct {
 func (s *Server) ListOPReturn(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[miscv1.ListOPReturnResponse], error) {
 	opReturns, err := opreturns.List(ctx, s.database)
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list op returns")
 		return nil, err
 	}
 
@@ -70,23 +71,35 @@ func opReturnToProto(opReturn opreturns.OPReturn, _ int) *miscv1.OPReturn {
 // BroadcastNews implements miscv1connect.MiscServiceHandler.
 func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.BroadcastNewsRequest]) (*connect.Response[miscv1.BroadcastNewsResponse], error) {
 	if req.Msg.Topic == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic must be set"))
+		err := errors.New("topic must be set")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not broadcast news: topic must be set")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if !opreturns.ValidNewsTopic(req.Msg.Topic) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic not on valid format, expected 4 bytes (8 hex characters)"))
+		err := errors.New("topic not on valid format, expected 4 bytes (8 hex characters)")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not broadcast news: invalid topic format")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if req.Msg.Headline == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("headline must be set"))
+		err := errors.New("headline must be set")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not broadcast news: headline must be set")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if len(req.Msg.Headline) > 64 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("headline cannot be longer than 64 characters"))
+		err := errors.New("headline cannot be longer than 64 characters")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not broadcast news: headline too long")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	exists, err := opreturns.TopicExists(ctx, s.database, req.Msg.Topic)
 	if err != nil {
-		return nil, fmt.Errorf("could not check if topic exists: %w", err)
+		err = fmt.Errorf("could not check if topic exists: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not check if topic exists")
+		return nil, err
 	}
 	if !exists {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic does not exist"))
+		err := errors.New("topic does not exist")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not broadcast news: topic does not exist")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	// pad headline to always be 64 bytes
@@ -105,6 +118,7 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 	resp, err := wallet.SendTransaction(ctx,
@@ -116,7 +130,9 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 			},
 		}))
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not broadcast news: %w", err)
+		err = fmt.Errorf("enforcer/wallet: could not broadcast news: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not broadcast news")
+		return nil, err
 	}
 
 	log := zerolog.Ctx(ctx)
@@ -134,24 +150,36 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 // CreateTopic implements miscv1connect.MiscServiceHandler.
 func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.CreateTopicRequest]) (*connect.Response[miscv1.CreateTopicResponse], error) {
 	if req.Msg.Topic == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic must be set"))
+		err := errors.New("topic must be set")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create topic: topic must be set")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if !opreturns.ValidNewsTopic(req.Msg.Topic) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic not on valid format, expected 4 bytes (8 hex characters)"))
+		err := errors.New("topic not on valid format, expected 4 bytes (8 hex characters)")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create topic: invalid topic format")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if req.Msg.Name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("title must be set"))
+		err := errors.New("title must be set")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create topic: title must be set")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if len(req.Msg.Name) > 32 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("title cannot be longer than 32 characters"))
+		err := errors.New("title cannot be longer than 32 characters")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create topic: title too long")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	exists, err := opreturns.TopicExists(ctx, s.database, req.Msg.Topic)
 	if err != nil {
-		return nil, fmt.Errorf("could not check if topic exists: %w", err)
+		err = fmt.Errorf("could not check if topic exists: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not check if topic exists")
+		return nil, err
 	}
 	if exists {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("topic already exists"))
+		err := errors.New("topic already exists")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create topic: topic already exists")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	// Format the 'create topic' OP_RETURN message: <topic>new<title>
 	var message strings.Builder
@@ -162,6 +190,7 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	// Send the transaction
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 	resp, err := wallet.SendTransaction(ctx,
@@ -173,7 +202,9 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 			},
 		}))
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not broadcast topic creation: %w", err)
+		err = fmt.Errorf("enforcer/wallet: could not broadcast topic creation: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not broadcast topic creation")
+		return nil, err
 	}
 
 	log := zerolog.Ctx(ctx)
@@ -192,7 +223,9 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 func (s *Server) ListTopics(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[miscv1.ListTopicsResponse], error) {
 	topics, err := opreturns.ListTopics(ctx, s.database)
 	if err != nil {
-		return nil, fmt.Errorf("could not list topics: %w", err)
+		err = fmt.Errorf("could not list topics: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list topics")
+		return nil, err
 	}
 
 	return connect.NewResponse(&miscv1.ListTopicsResponse{
@@ -213,7 +246,9 @@ func topicToProto(topic opreturns.Topic, _ int) *miscv1.Topic {
 func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.ListCoinNewsRequest]) (*connect.Response[miscv1.ListCoinNewsResponse], error) {
 	news, err := opreturns.ListCoinNews(ctx, s.database)
 	if err != nil {
-		return nil, fmt.Errorf("could not list coin news: %w", err)
+		err = fmt.Errorf("could not list coin news: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list coin news")
+		return nil, err
 	}
 
 	// Filter by topic if provided

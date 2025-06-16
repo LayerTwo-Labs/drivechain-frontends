@@ -10,7 +10,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 )
 
-type AddressBookEntry struct {
+type Entry struct {
 	ID        int64
 	Label     string
 	Address   string
@@ -32,16 +32,16 @@ func Create(ctx context.Context, db *sql.DB, label, address string, direction Di
 	return err
 }
 
-func List(ctx context.Context, db *sql.DB) ([]AddressBookEntry, error) {
+func List(ctx context.Context, db *sql.DB) ([]Entry, error) {
 	rows, err := db.QueryContext(ctx, `SELECT id, label, address, direction, created_at FROM address_book`)
 	if err != nil {
 		return nil, err
 	}
 	defer database.SafeDefer(ctx, rows.Close)
 
-	var entries []AddressBookEntry
+	var entries []Entry
 	for rows.Next() {
-		var entry AddressBookEntry
+		var entry Entry
 		if err := rows.Scan(&entry.ID, &entry.Label, &entry.Address, &entry.Direction, &entry.CreatedAt); err != nil {
 			return nil, err
 		}
