@@ -36,12 +36,15 @@ type Server struct {
 func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[pb.ListSidechainProposalsRequest]) (*connect.Response[pb.ListSidechainProposalsResponse], error) {
 	validator, err := s.validator.Get(ctx)
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get validator client")
 		return nil, err
 	}
 
 	sidechainProposals, err := validator.GetSidechainProposals(ctx, connect.NewRequest(&validatorpb.GetSidechainProposalsRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/validator: could not get sidechain proposals: %w", err)
+		err = fmt.Errorf("enforcer/validator: could not get sidechain proposals: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get sidechain proposals")
+		return nil, err
 	}
 
 	return connect.NewResponse(&pb.ListSidechainProposalsResponse{
@@ -63,12 +66,15 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
 	validator, err := s.validator.Get(ctx)
 	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get validator client")
 		return nil, err
 	}
 
 	sidechains, err := validator.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/validator: could not get sidechains: %w", err)
+		err = fmt.Errorf("enforcer/validator: could not get sidechains: %w", err)
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get sidechains")
+		return nil, err
 	}
 
 	// Loop over all sidechains and get their chaintiptxid using s.enforcer.GetCtip()
@@ -78,14 +84,14 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber.Value)},
 		))
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Uint32("sidechain", sidechain.SidechainNumber.Value).Msg("failed to get ctip")
+			zerolog.Ctx(ctx).Error().Err(err).Uint32("sidechain", sidechain.SidechainNumber.Value).Msg("could not get ctip")
 			continue
 		}
 
 		// Decode the txid using chainhash.NewHashFromStr
 		txidHash, err := chainhash.NewHashFromStr(ctipResponse.Msg.Ctip.Txid.Hex.Value)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msgf("failed to decode txid: %s", ctipResponse.Msg.Ctip.Txid.Hex.Value)
+			zerolog.Ctx(ctx).Error().Err(err).Msgf("could not decode txid: %s", ctipResponse.Msg.Ctip.Txid.Hex.Value)
 			continue
 		}
 

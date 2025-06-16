@@ -785,6 +785,8 @@ type GetBalanceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ConfirmedSats uint64                 `protobuf:"varint,1,opt,name=confirmed_sats,json=confirmedSats,proto3" json:"confirmed_sats,omitempty"`
 	PendingSats   uint64                 `protobuf:"varint,2,opt,name=pending_sats,json=pendingSats,proto3" json:"pending_sats,omitempty"`
+	// Whether the wallet has completed its initial sync.
+	HasSynced     bool `protobuf:"varint,3,opt,name=has_synced,json=hasSynced,proto3" json:"has_synced,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -831,6 +833,13 @@ func (x *GetBalanceResponse) GetPendingSats() uint64 {
 		return x.PendingSats
 	}
 	return 0
+}
+
+func (x *GetBalanceResponse) GetHasSynced() bool {
+	if x != nil {
+		return x.HasSynced
+	}
+	return false
 }
 
 type ListSidechainDepositTransactionsRequest struct {
@@ -2121,10 +2130,12 @@ const file_cusf_mainchain_v1_wallet_proto_rawDesc = "" +
 	"\rmnemonic_path\x18\x02 \x01(\tR\fmnemonicPath\x12\x1a\n" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\"\x16\n" +
 	"\x14CreateWalletResponse\"\x13\n" +
-	"\x11GetBalanceRequest\"^\n" +
+	"\x11GetBalanceRequest\"}\n" +
 	"\x12GetBalanceResponse\x12%\n" +
 	"\x0econfirmed_sats\x18\x01 \x01(\x04R\rconfirmedSats\x12!\n" +
-	"\fpending_sats\x18\x02 \x01(\x04R\vpendingSats\")\n" +
+	"\fpending_sats\x18\x02 \x01(\x04R\vpendingSats\x12\x1d\n" +
+	"\n" +
+	"has_synced\x18\x03 \x01(\bR\thasSynced\")\n" +
 	"'ListSidechainDepositTransactionsRequest\"\xc6\x02\n" +
 	"(ListSidechainDepositTransactionsResponse\x12{\n" +
 	"\ftransactions\x18\x01 \x03(\v2W.cusf.mainchain.v1.ListSidechainDepositTransactionsResponse.SidechainDepositTransactionR\ftransactions\x1a\x9c\x01\n" +

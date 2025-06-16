@@ -218,6 +218,10 @@ bool isSpam(String data) {
     return true;
   }
 
+  if (data.contains('listed') && data.contains('wallet utxos in') && data.contains('bip300301_enforcer')) {
+    return true;
+  }
+
   // btc-buf prints this for every single bitcoin core request
   if (data.contains('rpc: fetch completed in')) {
     return true;

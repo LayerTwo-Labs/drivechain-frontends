@@ -14,7 +14,7 @@ service BitwindowdService {
   rpc CancelDenial(CancelDenialRequest) returns (google.protobuf.Empty);
 
   // Wallet operations
-  rpc CreateAddressBookEntry(CreateAddressBookEntryRequest) returns (google.protobuf.Empty);
+  rpc CreateAddressBookEntry(CreateAddressBookEntryRequest) returns (CreateAddressBookEntryResponse);
   rpc ListAddressBook(google.protobuf.Empty) returns (ListAddressBookResponse);
   rpc UpdateAddressBookEntry(UpdateAddressBookEntryRequest) returns (google.protobuf.Empty);
   rpc DeleteAddressBookEntry(DeleteAddressBookEntryRequest) returns (google.protobuf.Empty);
@@ -73,6 +73,10 @@ message CreateAddressBookEntryRequest {
   string label = 1;
   string address = 2;
   Direction direction = 3;
+}
+
+message CreateAddressBookEntryResponse {
+  AddressBookEntry entry = 1;
 }
 
 enum Direction {

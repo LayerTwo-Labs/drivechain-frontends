@@ -8,13 +8,14 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/api"
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	dir "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dir"
 	engines "github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
-	server "github.com/LayerTwo-Labs/sidesail/bitwindow/server/server"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
@@ -80,7 +81,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 	defer database.SafeDefer(ctx, db.Close)
 
-	bitcoindConnector := func(ctx context.Context) (*coreproxy.Bitcoind, error) {
+	bitcoindConnector := func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
 		return startCoreProxy(ctx, conf)
 	}
 
@@ -99,19 +100,26 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return crypto, err
 	}
 
-	srv, err := server.NewServer(
-		ctx,
-		db,
-		bitcoindConnector,
-		walletConnector,
-		enforcerConnector,
-		cryptoConnector,
-		conf.GuiBootedMainchain,
-		conf.GuiBootedEnforcer,
-		func() {
+	services := api.Services{
+		Database:          db,
+		BitcoindConnector: bitcoindConnector,
+		WalletConnector:   walletConnector,
+		EnforcerConnector: enforcerConnector,
+		CryptoConnector:   cryptoConnector,
+	}
+
+	config := api.Config{
+		GUIBootedMainchain: conf.GuiBootedMainchain,
+		GUIBootedEnforcer:  conf.GuiBootedEnforcer,
+		OnShutdown: func() {
 			log.Info().Msg("shutting down")
 			cancelCtx()
 		},
+	}
+	srv, err := api.New(
+		ctx,
+		services,
+		config,
 	)
 	if err != nil {
 		return err
@@ -167,7 +175,7 @@ func initLogger(logFile *os.File) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 }
 
-func startCoreProxy(ctx context.Context, conf Config) (*coreproxy.Bitcoind, error) {
+func startCoreProxy(ctx context.Context, conf Config) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
 	// We don't want info logs from the core proxy because the ReconnectLoop()
 	// makes it spammy
 	warnLogger := zerolog.Ctx(ctx).Level(zerolog.WarnLevel)

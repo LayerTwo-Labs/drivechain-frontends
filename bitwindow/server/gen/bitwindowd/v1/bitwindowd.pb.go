@@ -564,6 +564,50 @@ func (x *CreateAddressBookEntryRequest) GetDirection() Direction {
 	return Direction_DIRECTION_UNSPECIFIED
 }
 
+type CreateAddressBookEntryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         *AddressBookEntry      `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAddressBookEntryResponse) Reset() {
+	*x = CreateAddressBookEntryResponse{}
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAddressBookEntryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAddressBookEntryResponse) ProtoMessage() {}
+
+func (x *CreateAddressBookEntryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAddressBookEntryResponse.ProtoReflect.Descriptor instead.
+func (*CreateAddressBookEntryResponse) Descriptor() ([]byte, []int) {
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CreateAddressBookEntryResponse) GetEntry() *AddressBookEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
 type AddressBookEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -577,7 +621,7 @@ type AddressBookEntry struct {
 
 func (x *AddressBookEntry) Reset() {
 	*x = AddressBookEntry{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[7]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -589,7 +633,7 @@ func (x *AddressBookEntry) String() string {
 func (*AddressBookEntry) ProtoMessage() {}
 
 func (x *AddressBookEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[7]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -602,7 +646,7 @@ func (x *AddressBookEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddressBookEntry.ProtoReflect.Descriptor instead.
 func (*AddressBookEntry) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{7}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AddressBookEntry) GetId() int64 {
@@ -649,7 +693,7 @@ type ListAddressBookResponse struct {
 
 func (x *ListAddressBookResponse) Reset() {
 	*x = ListAddressBookResponse{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[8]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -661,7 +705,7 @@ func (x *ListAddressBookResponse) String() string {
 func (*ListAddressBookResponse) ProtoMessage() {}
 
 func (x *ListAddressBookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[8]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -674,7 +718,7 @@ func (x *ListAddressBookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAddressBookResponse.ProtoReflect.Descriptor instead.
 func (*ListAddressBookResponse) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{8}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListAddressBookResponse) GetEntries() []*AddressBookEntry {
@@ -695,7 +739,7 @@ type UpdateAddressBookEntryRequest struct {
 
 func (x *UpdateAddressBookEntryRequest) Reset() {
 	*x = UpdateAddressBookEntryRequest{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[9]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -707,7 +751,7 @@ func (x *UpdateAddressBookEntryRequest) String() string {
 func (*UpdateAddressBookEntryRequest) ProtoMessage() {}
 
 func (x *UpdateAddressBookEntryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[9]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -720,7 +764,7 @@ func (x *UpdateAddressBookEntryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAddressBookEntryRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAddressBookEntryRequest) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{9}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateAddressBookEntryRequest) GetId() int64 {
@@ -753,7 +797,7 @@ type DeleteAddressBookEntryRequest struct {
 
 func (x *DeleteAddressBookEntryRequest) Reset() {
 	*x = DeleteAddressBookEntryRequest{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[10]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -765,7 +809,7 @@ func (x *DeleteAddressBookEntryRequest) String() string {
 func (*DeleteAddressBookEntryRequest) ProtoMessage() {}
 
 func (x *DeleteAddressBookEntryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[10]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -778,7 +822,7 @@ func (x *DeleteAddressBookEntryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAddressBookEntryRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAddressBookEntryRequest) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{10}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteAddressBookEntryRequest) GetId() int64 {
@@ -803,7 +847,7 @@ type GetSyncInfoResponse struct {
 
 func (x *GetSyncInfoResponse) Reset() {
 	*x = GetSyncInfoResponse{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[11]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -815,7 +859,7 @@ func (x *GetSyncInfoResponse) String() string {
 func (*GetSyncInfoResponse) ProtoMessage() {}
 
 func (x *GetSyncInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[11]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -828,7 +872,7 @@ func (x *GetSyncInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSyncInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetSyncInfoResponse) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{11}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetSyncInfoResponse) GetTipBlockHeight() int64 {
@@ -884,7 +928,7 @@ type SetTransactionNoteRequest struct {
 
 func (x *SetTransactionNoteRequest) Reset() {
 	*x = SetTransactionNoteRequest{}
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[12]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -896,7 +940,7 @@ func (x *SetTransactionNoteRequest) String() string {
 func (*SetTransactionNoteRequest) ProtoMessage() {}
 
 func (x *SetTransactionNoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[12]
+	mi := &file_bitwindowd_v1_bitwindowd_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -909,7 +953,7 @@ func (x *SetTransactionNoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTransactionNoteRequest.ProtoReflect.Descriptor instead.
 func (*SetTransactionNoteRequest) Descriptor() ([]byte, []int) {
-	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{12}
+	return file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SetTransactionNoteRequest) GetTxid() string {
@@ -979,7 +1023,9 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x1dCreateAddressBookEntryRequest\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x126\n" +
-	"\tdirection\x18\x03 \x01(\x0e2\x18.bitwindowd.v1.DirectionR\tdirection\"\xc7\x01\n" +
+	"\tdirection\x18\x03 \x01(\x0e2\x18.bitwindowd.v1.DirectionR\tdirection\"W\n" +
+	"\x1eCreateAddressBookEntryResponse\x125\n" +
+	"\x05entry\x18\x01 \x01(\v2\x1f.bitwindowd.v1.AddressBookEntryR\x05entry\"\xc7\x01\n" +
 	"\x10AddressBookEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
@@ -1008,13 +1054,13 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\tDirection\x12\x19\n" +
 	"\x15DIRECTION_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eDIRECTION_SEND\x10\x01\x12\x15\n" +
-	"\x11DIRECTION_RECEIVE\x10\x022\xc4\x06\n" +
+	"\x11DIRECTION_RECEIVE\x10\x022\xdb\x06\n" +
 	"\x11BitwindowdService\x126\n" +
 	"\x04Stop\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12J\n" +
 	"\fCreateDenial\x12\".bitwindowd.v1.CreateDenialRequest\x1a\x16.google.protobuf.Empty\x12I\n" +
 	"\vListDenials\x12\x16.google.protobuf.Empty\x1a\".bitwindowd.v1.ListDenialsResponse\x12J\n" +
-	"\fCancelDenial\x12\".bitwindowd.v1.CancelDenialRequest\x1a\x16.google.protobuf.Empty\x12^\n" +
-	"\x16CreateAddressBookEntry\x12,.bitwindowd.v1.CreateAddressBookEntryRequest\x1a\x16.google.protobuf.Empty\x12Q\n" +
+	"\fCancelDenial\x12\".bitwindowd.v1.CancelDenialRequest\x1a\x16.google.protobuf.Empty\x12u\n" +
+	"\x16CreateAddressBookEntry\x12,.bitwindowd.v1.CreateAddressBookEntryRequest\x1a-.bitwindowd.v1.CreateAddressBookEntryResponse\x12Q\n" +
 	"\x0fListAddressBook\x12\x16.google.protobuf.Empty\x1a&.bitwindowd.v1.ListAddressBookResponse\x12^\n" +
 	"\x16UpdateAddressBookEntry\x12,.bitwindowd.v1.UpdateAddressBookEntryRequest\x1a\x16.google.protobuf.Empty\x12^\n" +
 	"\x16DeleteAddressBookEntry\x12,.bitwindowd.v1.DeleteAddressBookEntryRequest\x1a\x16.google.protobuf.Empty\x12I\n" +
@@ -1035,63 +1081,65 @@ func file_bitwindowd_v1_bitwindowd_proto_rawDescGZIP() []byte {
 }
 
 var file_bitwindowd_v1_bitwindowd_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bitwindowd_v1_bitwindowd_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_bitwindowd_v1_bitwindowd_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_bitwindowd_v1_bitwindowd_proto_goTypes = []any{
-	(Direction)(0),                        // 0: bitwindowd.v1.Direction
-	(*CreateDenialRequest)(nil),           // 1: bitwindowd.v1.CreateDenialRequest
-	(*ListDenialsResponse)(nil),           // 2: bitwindowd.v1.ListDenialsResponse
-	(*DeniabilityUTXO)(nil),               // 3: bitwindowd.v1.DeniabilityUTXO
-	(*DeniabilityInfo)(nil),               // 4: bitwindowd.v1.DeniabilityInfo
-	(*ExecutedDenial)(nil),                // 5: bitwindowd.v1.ExecutedDenial
-	(*CancelDenialRequest)(nil),           // 6: bitwindowd.v1.CancelDenialRequest
-	(*CreateAddressBookEntryRequest)(nil), // 7: bitwindowd.v1.CreateAddressBookEntryRequest
-	(*AddressBookEntry)(nil),              // 8: bitwindowd.v1.AddressBookEntry
-	(*ListAddressBookResponse)(nil),       // 9: bitwindowd.v1.ListAddressBookResponse
-	(*UpdateAddressBookEntryRequest)(nil), // 10: bitwindowd.v1.UpdateAddressBookEntryRequest
-	(*DeleteAddressBookEntryRequest)(nil), // 11: bitwindowd.v1.DeleteAddressBookEntryRequest
-	(*GetSyncInfoResponse)(nil),           // 12: bitwindowd.v1.GetSyncInfoResponse
-	(*SetTransactionNoteRequest)(nil),     // 13: bitwindowd.v1.SetTransactionNoteRequest
-	(*timestamppb.Timestamp)(nil),         // 14: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                 // 15: google.protobuf.Empty
+	(Direction)(0),                         // 0: bitwindowd.v1.Direction
+	(*CreateDenialRequest)(nil),            // 1: bitwindowd.v1.CreateDenialRequest
+	(*ListDenialsResponse)(nil),            // 2: bitwindowd.v1.ListDenialsResponse
+	(*DeniabilityUTXO)(nil),                // 3: bitwindowd.v1.DeniabilityUTXO
+	(*DeniabilityInfo)(nil),                // 4: bitwindowd.v1.DeniabilityInfo
+	(*ExecutedDenial)(nil),                 // 5: bitwindowd.v1.ExecutedDenial
+	(*CancelDenialRequest)(nil),            // 6: bitwindowd.v1.CancelDenialRequest
+	(*CreateAddressBookEntryRequest)(nil),  // 7: bitwindowd.v1.CreateAddressBookEntryRequest
+	(*CreateAddressBookEntryResponse)(nil), // 8: bitwindowd.v1.CreateAddressBookEntryResponse
+	(*AddressBookEntry)(nil),               // 9: bitwindowd.v1.AddressBookEntry
+	(*ListAddressBookResponse)(nil),        // 10: bitwindowd.v1.ListAddressBookResponse
+	(*UpdateAddressBookEntryRequest)(nil),  // 11: bitwindowd.v1.UpdateAddressBookEntryRequest
+	(*DeleteAddressBookEntryRequest)(nil),  // 12: bitwindowd.v1.DeleteAddressBookEntryRequest
+	(*GetSyncInfoResponse)(nil),            // 13: bitwindowd.v1.GetSyncInfoResponse
+	(*SetTransactionNoteRequest)(nil),      // 14: bitwindowd.v1.SetTransactionNoteRequest
+	(*timestamppb.Timestamp)(nil),          // 15: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                  // 16: google.protobuf.Empty
 }
 var file_bitwindowd_v1_bitwindowd_proto_depIdxs = []int32{
 	3,  // 0: bitwindowd.v1.ListDenialsResponse.utxos:type_name -> bitwindowd.v1.DeniabilityUTXO
 	4,  // 1: bitwindowd.v1.DeniabilityUTXO.deniability:type_name -> bitwindowd.v1.DeniabilityInfo
-	14, // 2: bitwindowd.v1.DeniabilityInfo.create_time:type_name -> google.protobuf.Timestamp
-	14, // 3: bitwindowd.v1.DeniabilityInfo.cancel_time:type_name -> google.protobuf.Timestamp
-	14, // 4: bitwindowd.v1.DeniabilityInfo.next_execution:type_name -> google.protobuf.Timestamp
+	15, // 2: bitwindowd.v1.DeniabilityInfo.create_time:type_name -> google.protobuf.Timestamp
+	15, // 3: bitwindowd.v1.DeniabilityInfo.cancel_time:type_name -> google.protobuf.Timestamp
+	15, // 4: bitwindowd.v1.DeniabilityInfo.next_execution:type_name -> google.protobuf.Timestamp
 	5,  // 5: bitwindowd.v1.DeniabilityInfo.executions:type_name -> bitwindowd.v1.ExecutedDenial
-	14, // 6: bitwindowd.v1.ExecutedDenial.create_time:type_name -> google.protobuf.Timestamp
+	15, // 6: bitwindowd.v1.ExecutedDenial.create_time:type_name -> google.protobuf.Timestamp
 	0,  // 7: bitwindowd.v1.CreateAddressBookEntryRequest.direction:type_name -> bitwindowd.v1.Direction
-	0,  // 8: bitwindowd.v1.AddressBookEntry.direction:type_name -> bitwindowd.v1.Direction
-	14, // 9: bitwindowd.v1.AddressBookEntry.create_time:type_name -> google.protobuf.Timestamp
-	8,  // 10: bitwindowd.v1.ListAddressBookResponse.entries:type_name -> bitwindowd.v1.AddressBookEntry
-	14, // 11: bitwindowd.v1.GetSyncInfoResponse.tip_block_processed_at:type_name -> google.protobuf.Timestamp
-	15, // 12: bitwindowd.v1.BitwindowdService.Stop:input_type -> google.protobuf.Empty
-	1,  // 13: bitwindowd.v1.BitwindowdService.CreateDenial:input_type -> bitwindowd.v1.CreateDenialRequest
-	15, // 14: bitwindowd.v1.BitwindowdService.ListDenials:input_type -> google.protobuf.Empty
-	6,  // 15: bitwindowd.v1.BitwindowdService.CancelDenial:input_type -> bitwindowd.v1.CancelDenialRequest
-	7,  // 16: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:input_type -> bitwindowd.v1.CreateAddressBookEntryRequest
-	15, // 17: bitwindowd.v1.BitwindowdService.ListAddressBook:input_type -> google.protobuf.Empty
-	10, // 18: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:input_type -> bitwindowd.v1.UpdateAddressBookEntryRequest
-	11, // 19: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:input_type -> bitwindowd.v1.DeleteAddressBookEntryRequest
-	15, // 20: bitwindowd.v1.BitwindowdService.GetSyncInfo:input_type -> google.protobuf.Empty
-	13, // 21: bitwindowd.v1.BitwindowdService.SetTransactionNote:input_type -> bitwindowd.v1.SetTransactionNoteRequest
-	15, // 22: bitwindowd.v1.BitwindowdService.Stop:output_type -> google.protobuf.Empty
-	15, // 23: bitwindowd.v1.BitwindowdService.CreateDenial:output_type -> google.protobuf.Empty
-	2,  // 24: bitwindowd.v1.BitwindowdService.ListDenials:output_type -> bitwindowd.v1.ListDenialsResponse
-	15, // 25: bitwindowd.v1.BitwindowdService.CancelDenial:output_type -> google.protobuf.Empty
-	15, // 26: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:output_type -> google.protobuf.Empty
-	9,  // 27: bitwindowd.v1.BitwindowdService.ListAddressBook:output_type -> bitwindowd.v1.ListAddressBookResponse
-	15, // 28: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:output_type -> google.protobuf.Empty
-	15, // 29: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:output_type -> google.protobuf.Empty
-	12, // 30: bitwindowd.v1.BitwindowdService.GetSyncInfo:output_type -> bitwindowd.v1.GetSyncInfoResponse
-	15, // 31: bitwindowd.v1.BitwindowdService.SetTransactionNote:output_type -> google.protobuf.Empty
-	22, // [22:32] is the sub-list for method output_type
-	12, // [12:22] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	9,  // 8: bitwindowd.v1.CreateAddressBookEntryResponse.entry:type_name -> bitwindowd.v1.AddressBookEntry
+	0,  // 9: bitwindowd.v1.AddressBookEntry.direction:type_name -> bitwindowd.v1.Direction
+	15, // 10: bitwindowd.v1.AddressBookEntry.create_time:type_name -> google.protobuf.Timestamp
+	9,  // 11: bitwindowd.v1.ListAddressBookResponse.entries:type_name -> bitwindowd.v1.AddressBookEntry
+	15, // 12: bitwindowd.v1.GetSyncInfoResponse.tip_block_processed_at:type_name -> google.protobuf.Timestamp
+	16, // 13: bitwindowd.v1.BitwindowdService.Stop:input_type -> google.protobuf.Empty
+	1,  // 14: bitwindowd.v1.BitwindowdService.CreateDenial:input_type -> bitwindowd.v1.CreateDenialRequest
+	16, // 15: bitwindowd.v1.BitwindowdService.ListDenials:input_type -> google.protobuf.Empty
+	6,  // 16: bitwindowd.v1.BitwindowdService.CancelDenial:input_type -> bitwindowd.v1.CancelDenialRequest
+	7,  // 17: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:input_type -> bitwindowd.v1.CreateAddressBookEntryRequest
+	16, // 18: bitwindowd.v1.BitwindowdService.ListAddressBook:input_type -> google.protobuf.Empty
+	11, // 19: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:input_type -> bitwindowd.v1.UpdateAddressBookEntryRequest
+	12, // 20: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:input_type -> bitwindowd.v1.DeleteAddressBookEntryRequest
+	16, // 21: bitwindowd.v1.BitwindowdService.GetSyncInfo:input_type -> google.protobuf.Empty
+	14, // 22: bitwindowd.v1.BitwindowdService.SetTransactionNote:input_type -> bitwindowd.v1.SetTransactionNoteRequest
+	16, // 23: bitwindowd.v1.BitwindowdService.Stop:output_type -> google.protobuf.Empty
+	16, // 24: bitwindowd.v1.BitwindowdService.CreateDenial:output_type -> google.protobuf.Empty
+	2,  // 25: bitwindowd.v1.BitwindowdService.ListDenials:output_type -> bitwindowd.v1.ListDenialsResponse
+	16, // 26: bitwindowd.v1.BitwindowdService.CancelDenial:output_type -> google.protobuf.Empty
+	8,  // 27: bitwindowd.v1.BitwindowdService.CreateAddressBookEntry:output_type -> bitwindowd.v1.CreateAddressBookEntryResponse
+	10, // 28: bitwindowd.v1.BitwindowdService.ListAddressBook:output_type -> bitwindowd.v1.ListAddressBookResponse
+	16, // 29: bitwindowd.v1.BitwindowdService.UpdateAddressBookEntry:output_type -> google.protobuf.Empty
+	16, // 30: bitwindowd.v1.BitwindowdService.DeleteAddressBookEntry:output_type -> google.protobuf.Empty
+	13, // 31: bitwindowd.v1.BitwindowdService.GetSyncInfo:output_type -> bitwindowd.v1.GetSyncInfoResponse
+	16, // 32: bitwindowd.v1.BitwindowdService.SetTransactionNote:output_type -> google.protobuf.Empty
+	23, // [23:33] is the sub-list for method output_type
+	13, // [13:23] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_bitwindowd_v1_bitwindowd_proto_init() }
@@ -1107,7 +1155,7 @@ func file_bitwindowd_v1_bitwindowd_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bitwindowd_v1_bitwindowd_proto_rawDesc), len(file_bitwindowd_v1_bitwindowd_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

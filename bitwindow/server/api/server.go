@@ -1,4 +1,4 @@
-package server
+package api
 
 import (
 	"context"
@@ -21,6 +21,7 @@ import (
 	api_health "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/health"
 	api_misc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/misc"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoind/v1/bitcoindv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
@@ -30,31 +31,38 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	"github.com/barebitcoin/btc-buf/server"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
+type Services struct {
+	Database          *sql.DB
+	BitcoindConnector service.Connector[bitcoindv1alphaconnect.BitcoinServiceClient]
+	WalletConnector   service.Connector[validatorrpc.WalletServiceClient]
+	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
+	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
+}
+
+type Config struct {
+	GUIBootedMainchain bool
+	GUIBootedEnforcer  bool
+	OnShutdown         func()
+}
+
 // New creates a new Server with interceptors applied.
-func NewServer(
+func New(
 	ctx context.Context,
-	database *sql.DB,
-	bitcoindConnector service.Connector[*server.Bitcoind],
-	walletConnector service.Connector[validatorrpc.WalletServiceClient],
-	enforcerConnector service.Connector[validatorrpc.ValidatorServiceClient],
-	cryptoConnector service.Connector[cryptorpc.CryptoServiceClient],
-	guiBootedMainchain bool,
-	guiBootedEnforcer bool,
-	onShutdown func(),
+	s Services,
+	c Config,
 ) (*Server, error) {
 	mux := http.NewServeMux()
 
-	bitcoindSvc := service.New("bitcoind", bitcoindConnector)
-	validatorSvc := service.New("enforcer", enforcerConnector)
-	walletSvc := service.New("wallet", walletConnector)
-	cryptoSvc := service.New("crypto", cryptoConnector)
+	bitcoindSvc := service.New("bitcoind", s.BitcoindConnector)
+	validatorSvc := service.New("enforcer", s.EnforcerConnector)
+	walletSvc := service.New("wallet", s.WalletConnector)
+	cryptoSvc := service.New("crypto", s.CryptoConnector)
 
 	// Start reconnection loops
 	bitcoindSvc.StartReconnectLoop(ctx)
@@ -71,7 +79,7 @@ func NewServer(
 	}
 
 	Register(srv, bitwindowdv1connect.NewBitwindowdServiceHandler, bitwindowdv1connect.BitwindowdServiceHandler(api_bitwindowd.New(
-		onShutdown, database, validatorSvc, walletSvc, bitcoindSvc, guiBootedMainchain, guiBootedEnforcer,
+		c.OnShutdown, s.Database, validatorSvc, walletSvc, bitcoindSvc, c.GUIBootedMainchain, c.GUIBootedEnforcer,
 	)))
 	Register(srv, bitcoindv1connect.NewBitcoindServiceHandler, bitcoindv1connect.BitcoindServiceHandler(api_bitcoind.New(
 		bitcoindSvc,
@@ -83,13 +91,13 @@ func NewServer(
 	Register(srv, drivechainv1connect.NewDrivechainServiceHandler, drivechainClient)
 
 	Register(srv, walletv1connect.NewWalletServiceHandler, walletv1connect.WalletServiceHandler(api_wallet.New(
-		ctx, database, bitcoindSvc, walletSvc, cryptoSvc,
+		ctx, s.Database, bitcoindSvc, walletSvc, cryptoSvc,
 	)))
 	Register(srv, miscv1connect.NewMiscServiceHandler, miscv1connect.MiscServiceHandler(api_misc.New(
-		database, walletSvc,
+		s.Database, walletSvc,
 	)))
 	Register(srv, healthv1connect.NewHealthServiceHandler, healthv1connect.HealthServiceHandler(api_health.New(
-		database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,
+		s.Database, bitcoindSvc, validatorSvc, walletSvc, cryptoSvc,
 	)))
 
 	// Register all enforcer services, only to be used as a bridge
@@ -110,7 +118,7 @@ type Server struct {
 	server *http.Server
 
 	Enforcer *service.Service[validatorrpc.ValidatorServiceClient]
-	Bitcoind *service.Service[*server.Bitcoind]
+	Bitcoind *service.Service[bitcoindv1alphaconnect.BitcoinServiceClient]
 	Wallet   *service.Service[validatorrpc.WalletServiceClient]
 	Crypto   *service.Service[cryptorpc.CryptoServiceClient]
 }

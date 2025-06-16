@@ -7,7 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	btcpb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
-	coreproxy "github.com/barebitcoin/btc-buf/server"
+	"github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 
 	pb "github.com/LayerTwo-Labs/sidesail/faucet/server/gen/explorer/v1"
@@ -24,7 +24,7 @@ type RpcClients struct {
 }
 
 func New(
-	mainchain *coreproxy.Bitcoind,
+	mainchain bitcoindv1alphaconnect.BitcoinServiceClient,
 	rpcClients *RpcClients,
 ) *Server {
 	return &Server{
@@ -36,7 +36,7 @@ func New(
 }
 
 type Server struct {
-	mainchain *coreproxy.Bitcoind
+	mainchain bitcoindv1alphaconnect.BitcoinServiceClient
 	thunder   *jsonrpc.Client
 	bitassets *jsonrpc.Client
 	bitnames  *jsonrpc.Client
