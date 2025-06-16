@@ -8,7 +8,7 @@ require (
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.34.0
-	github.com/samber/lo v1.50.0
+	github.com/samber/lo v1.51.0
 	github.com/sourcegraph/conc v0.3.0
 	golang.org/x/net v0.41.0
 	google.golang.org/protobuf v1.36.5
