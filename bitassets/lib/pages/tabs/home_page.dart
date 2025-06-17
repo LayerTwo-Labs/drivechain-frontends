@@ -273,52 +273,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
 
   @override
   Future<AppExitResponse> didRequestAppExit() async {
-    await onShutdown(onComplete: () {});
+    await GetIt.I.get<BinaryProvider>().onShutdown();
     return AppExitResponse.exit;
-  }
-
-  Future<bool> onShutdown({required VoidCallback onComplete}) async {
-    try {
-      final binaryProvider = GetIt.I.get<BinaryProvider>();
-
-      // Get list of running binaries
-      final runningBinaries = binaryProvider.runningBinaries;
-
-      // Show shutdown page with running binaries
-      unawaited(
-        GetIt.I.get<AppRouter>().push(
-              ShuttingDownRoute(
-                binaries: runningBinaries,
-                onComplete: onComplete,
-              ),
-            ),
-      );
-
-      final futures = <Future>[];
-
-      // Only stop binaries that are started by bitassets!
-      // For example if the user starts bitcoind manually, we shouldn't kill it
-      for (final binary in runningBinaries) {
-        futures.add(binaryProvider.stop(binary));
-      }
-
-      // Wait for all stop operations to complete
-      await Future.wait(futures);
-
-      // after all binaries are asked nicely to stop, kill any lingering processes
-      await binaryProvider.stopAll();
-    } catch (error) {
-      // do nothing, we just always need to return true
-    }
-
-    return true;
   }
 
   @override
   void onWindowClose() async {
     bool isPreventClose = await windowManager.isPreventClose();
     if (isPreventClose) {
-      await onShutdown(
+      await GetIt.I.get<BinaryProvider>().onShutdown(
         onComplete: () async {
           if (isPreventClose) {
             await windowManager.destroy();

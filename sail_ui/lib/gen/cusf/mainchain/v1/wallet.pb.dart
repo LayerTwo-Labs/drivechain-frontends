@@ -1218,6 +1218,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   factory GetBalanceResponse({
     $fixnum.Int64? confirmedSats,
     $fixnum.Int64? pendingSats,
+    $core.bool? hasSynced,
   }) {
     final $result = create();
     if (confirmedSats != null) {
@@ -1225,6 +1226,9 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
     }
     if (pendingSats != null) {
       $result.pendingSats = pendingSats;
+    }
+    if (hasSynced != null) {
+      $result.hasSynced = hasSynced;
     }
     return $result;
   }
@@ -1235,6 +1239,7 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBalanceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'cusf.mainchain.v1'), createEmptyInstance: create)
     ..a<$fixnum.Int64>(1, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'pendingSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOB(3, _omitFieldNames ? '' : 'hasSynced')
     ..hasRequiredFields = false
   ;
 
@@ -1276,6 +1281,16 @@ class GetBalanceResponse extends $pb.GeneratedMessage {
   $core.bool hasPendingSats() => $_has(1);
   @$pb.TagNumber(2)
   void clearPendingSats() => clearField(2);
+
+  /// Whether the wallet has completed its initial sync.
+  @$pb.TagNumber(3)
+  $core.bool get hasSynced => $_getBF(2);
+  @$pb.TagNumber(3)
+  set hasSynced($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasHasSynced() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHasSynced() => clearField(3);
 }
 
 class ListSidechainDepositTransactionsRequest extends $pb.GeneratedMessage {

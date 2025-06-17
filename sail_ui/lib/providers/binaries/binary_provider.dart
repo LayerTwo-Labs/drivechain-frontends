@@ -495,6 +495,7 @@ class BinaryProvider extends ChangeNotifier {
       await _processManager.stopAll();
     } catch (error) {
       // do nothing, we just always need to return true
+      log.e('error shutting down: $error');
     }
 
     return true;

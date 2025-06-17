@@ -272,13 +272,15 @@ const GetBalanceResponse$json = {
   '2': [
     {'1': 'confirmed_sats', '3': 1, '4': 1, '5': 4, '10': 'confirmedSats'},
     {'1': 'pending_sats', '3': 2, '4': 1, '5': 4, '10': 'pendingSats'},
+    {'1': 'has_synced', '3': 3, '4': 1, '5': 8, '10': 'hasSynced'},
   ],
 };
 
 /// Descriptor for `GetBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode(
     'ChJHZXRCYWxhbmNlUmVzcG9uc2USJQoOY29uZmlybWVkX3NhdHMYASABKARSDWNvbmZpcm1lZF'
-    'NhdHMSIQoMcGVuZGluZ19zYXRzGAIgASgEUgtwZW5kaW5nU2F0cw==');
+    'NhdHMSIQoMcGVuZGluZ19zYXRzGAIgASgEUgtwZW5kaW5nU2F0cxIdCgpoYXNfc3luY2VkGAMg'
+    'ASgIUgloYXNTeW5jZWQ=');
 
 @$core.Deprecated('Use listSidechainDepositTransactionsRequestDescriptor instead')
 const ListSidechainDepositTransactionsRequest$json = {

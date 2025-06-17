@@ -27,7 +27,7 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
   }
 
   /// Deniability operations
-  Future<googleprotobufempty.Empty> createDenial(
+  Future<bitwindowdv1bitwindowd.CreateDenialResponse> createDenial(
     bitwindowdv1bitwindowd.CreateDenialRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
@@ -79,7 +79,7 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
   }
 
   /// Wallet operations
-  Future<googleprotobufempty.Empty> createAddressBookEntry(
+  Future<bitwindowdv1bitwindowd.CreateAddressBookEntryResponse> createAddressBookEntry(
     bitwindowdv1bitwindowd.CreateAddressBookEntryRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,

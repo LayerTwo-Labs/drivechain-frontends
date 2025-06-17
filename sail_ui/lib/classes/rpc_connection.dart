@@ -169,7 +169,6 @@ abstract class RPCConnection extends ChangeNotifier {
 
     initializingBinary = true;
     notifyListeners();
-    startRestartTimer(bootProcess);
 
     log.i('init binaries: checking connection ${binary.connectionString}');
 
@@ -180,6 +179,9 @@ abstract class RPCConnection extends ChangeNotifier {
       notifyListeners();
       return;
     }
+
+    // only start retart timer if this process starts the binary!
+    startRestartTimer(bootProcess);
 
     log.i('init binaries: starting ${binary.name}:${binary.binary} ${args.join(" ")}');
 

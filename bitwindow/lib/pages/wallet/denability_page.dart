@@ -111,10 +111,10 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
           if (!b.hasDeniability()) return sortAscending ? -1 : 1;
           aValue = a.deniability.hasCancelTime()
               ? 'Cancelled'
-              : (a.deniability.numHops - a.deniability.executions.length == 0 ? 'Completed' : 'Ongoing');
+              : (a.deniability.nextExecution.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
           bValue = b.deniability.hasCancelTime()
               ? 'Cancelled'
-              : (b.deniability.numHops - b.deniability.executions.length == 0 ? 'Completed' : 'Ongoing');
+              : (b.deniability.nextExecution.toDateTime().second == 0 ? 'Completed' : 'Ongoing');
           return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
         default:
           return 0;
@@ -136,8 +136,9 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
           SailSpacing(SailStyleValues.padding16),
           Expanded(
             child: SailTable(
-              getRowId: (index) =>
-                  widget.utxos.isEmpty ? '0' : '${widget.utxos[index].txid}:${widget.utxos[index].vout}',
+              getRowId: (index) => widget.utxos.isEmpty
+                  ? '0'
+                  : '${widget.utxos[index].txid}:${widget.utxos[index].vout}:${widget.utxos[index].deniability.executions.length}',
               headerBuilder: (context) => [
                 SailTableHeaderCell(
                   name: 'UTXO',
@@ -187,13 +188,13 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   final completedHops = utxo.deniability.executions.length;
                   final totalHops = utxo.deniability.numHops;
                   hops = '$completedHops/$totalHops';
-                  if (completedHops == totalHops) {
+                  if (utxo.deniability.nextExecution.toDateTime().second == 0) {
                     hops = '$completedHops';
                   }
 
                   status = utxo.deniability.hasCancelTime()
                       ? 'Cancelled'
-                      : completedHops == totalHops
+                      : utxo.deniability.nextExecution.toDateTime().second == 0
                           ? 'Completed'
                           : 'Ongoing';
                   nextExecution = utxo.deniability.hasNextExecution()
@@ -354,7 +355,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
     final completedHops = utxo.deniability.executions.length;
     final totalHops = utxo.deniability.numHops;
 
-    if (completedHops == totalHops) return 'Completed';
+    if (utxo.deniability.nextExecution.toDateTime().second == 0) return 'Completed';
     return 'Ongoing ($completedHops/$totalHops hops)';
   }
 }
@@ -394,21 +395,9 @@ class DeniabilityViewModel extends BaseViewModel {
   }
 
   void showDenyDialog(BuildContext context, String txid, int vout) {
-    denialProvider.fetch();
-
     showDialog(
       context: context,
-      builder: (context) => DenialDialog(
-        onSubmit: (hops, delaySeconds) async {
-          await api.bitwindowd.createDenial(
-            txid: txid,
-            vout: vout,
-            numHops: hops,
-            delaySeconds: delaySeconds,
-          );
-          await denialProvider.fetch();
-        },
-      ),
+      builder: (context) => DenialDialog(txid: txid, vout: vout),
     );
   }
 

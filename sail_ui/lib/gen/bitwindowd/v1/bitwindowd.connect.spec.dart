@@ -23,7 +23,7 @@ abstract final class BitwindowdService {
     '/$name/CreateDenial',
     connect.StreamType.unary,
     bitwindowdv1bitwindowd.CreateDenialRequest.new,
-    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.CreateDenialResponse.new,
   );
 
   static const listDenials = connect.Spec(
@@ -45,7 +45,7 @@ abstract final class BitwindowdService {
     '/$name/CreateAddressBookEntry',
     connect.StreamType.unary,
     bitwindowdv1bitwindowd.CreateAddressBookEntryRequest.new,
-    googleprotobufempty.Empty.new,
+    bitwindowdv1bitwindowd.CreateAddressBookEntryResponse.new,
   );
 
   static const listAddressBook = connect.Spec(
