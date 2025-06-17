@@ -15,6 +15,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -60,36 +61,14 @@ func (e *DeniabilityEngine) Run(ctx context.Context) error {
 func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 	logger := zerolog.Ctx(ctx)
 
-	// all denial checking starts with a list of current utxos
-	utxos, err := e.listWalletUTXOs(ctx)
+	utxos, denials, err := e.CleanupDenials(ctx)
 	if err != nil {
-		return fmt.Errorf("could not list utxos: %w", err)
-	}
-
-	// then get all active denials
-	denials, err := deniability.List(ctx, e.db)
-	if err != nil {
-		return fmt.Errorf("could not list denials: %w", err)
-	}
-
-	// if any denial tips are missing from the wallet, we must abort them before moving on
-	if err := e.checkAbortedDenials(ctx, utxos, denials); err != nil {
-		return fmt.Errorf("could not check aborted denials: %w", err)
-	}
-
-	// relist all guaranteed good denials
-	denials, err = deniability.List(ctx, e.db)
-	if err != nil {
-		return fmt.Errorf("could not list denials: %w", err)
+		return fmt.Errorf("could not cleanup denials: %w", err)
 	}
 
 	now := time.Now()
-	// lets start processing
+	// cleanup complete lets start processing
 	for _, denial := range denials {
-		if denial.CancelledAt != nil {
-			continue
-		}
-
 		nextExecution, err := deniability.NextExecution(ctx, e.db, denial)
 		if err != nil {
 			logger.Error().
@@ -100,10 +79,6 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 		}
 
 		if nextExecution == nil || now.Before(*nextExecution) {
-			logger.Info().
-				Int64("denial_id", denial.ID).
-				Interface("next_execution", nextExecution).
-				Msg("denial not ready for execution")
 			continue
 		}
 
@@ -112,8 +87,8 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 			Time("next_execution", *nextExecution).
 			Msg("executing denial")
 
-		// It's time! Execute. This might hang... forever!
-		if err := e.executeDenial(ctx, utxos, denial); err != nil {
+		// It's time! Execute.
+		if err := e.ExecuteDenial(ctx, utxos, denial); err != nil {
 			logger.Error().
 				Err(err).
 				Int64("denial_id", denial.ID).
@@ -125,44 +100,50 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 	return nil
 }
 
-func (e *DeniabilityEngine) checkAbortedDenials(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) error {
-	logger := zerolog.Ctx(ctx)
-	// Create map of existing UTXOs for quick lookup
-	utxoMap := make(map[string]bool)
-	txidMap := make(map[string]bool) // Track which txids exist at all
-
-	for _, utxo := range utxos {
-		key := fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout)
-		utxoMap[key] = true
-		txidMap[utxo.Txid.Hex.Value] = true
+func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, []deniability.Denial, error) {
+	// all denial checking starts with a list of current utxos
+	utxos, err := e.listWalletUTXOs(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not list utxos: %w", err)
 	}
 
-	// Check each active denial
-	for _, denial := range denials {
-		// Skip if already cancelled
-		if denial.CancelledAt != nil {
-			continue
-		}
+	// then get all active denials
+	denials, err := deniability.List(ctx, e.db, deniability.WithExcludeCancelled())
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not list denials: %w", err)
+	}
 
-		// Check if the UTXO exists
-		if denial.TipVout != nil {
-			// If we have a vout, require exact match
-			key := fmt.Sprintf("%s:%d", denial.TipTXID, *denial.TipVout)
-			if !utxoMap[key] {
-				if err := deniability.Cancel(ctx, e.db, denial.ID, "cancelled due to UTXO being moved"); err != nil {
-					return fmt.Errorf("could not cancel denial %d: %w", denial.ID, err)
-				}
-				logger.Info().
-					Int64("denial_id", denial.ID).
-					Str("txid", denial.TipTXID).
-					Int32("vout", *denial.TipVout).
-					Msg("cancelled denial due to missing UTXO")
+	// if any denial tips are missing from the wallet, we must abort them before moving on
+	if err := e.handleAbortedDenials(ctx, utxos, denials); err != nil {
+		return nil, nil, fmt.Errorf("could not handle aborted denials: %w", err)
+	}
+
+	// relist all guaranteed good denials
+	denials, err = deniability.List(ctx, e.db, deniability.WithExcludeCancelled())
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not list denials: %w", err)
+	}
+
+	return utxos, denials, nil
+}
+
+func (e *DeniabilityEngine) handleAbortedDenials(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) error {
+	logger := zerolog.Ctx(ctx)
+
+	for _, denial := range denials {
+		utxoExists := lo.ContainsBy(utxos, func(utxo *pb.ListUnspentOutputsResponse_Output) bool {
+			if denial.TipVout == nil {
+				return utxo.Txid.Hex.Value == denial.TipTXID
 			}
-		} else if !txidMap[denial.TipTXID] {
-			// If no vout specified, just check if any UTXO with this txid exists
+
+			return utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == *denial.TipVout
+		})
+
+		if !utxoExists {
 			if err := deniability.Cancel(ctx, e.db, denial.ID, "cancelled due to UTXO being moved"); err != nil {
 				return fmt.Errorf("could not cancel denial %d: %w", denial.ID, err)
 			}
+
 			logger.Info().
 				Int64("denial_id", denial.ID).
 				Str("txid", denial.TipTXID).
@@ -186,48 +167,14 @@ func (e *DeniabilityEngine) findDenialUTXOs(
 	return matchingUTXOs
 }
 
-func (e *DeniabilityEngine) waitForTXToAppear(
-	ctx context.Context,
-	txid string,
-) ([]*pb.ListUnspentOutputsResponse_Output, error) {
-	var foundUTXOs []*pb.ListUnspentOutputsResponse_Output
-
-	for {
-		select {
-		case <-ctx.Done():
-			panic("findNewUTXOs loop exited due to context cancellation")
-		default:
-			utxos, err := e.listWalletUTXOs(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("could not list utxos: %w", err)
-			}
-
-			foundUTXOs = nil
-			for _, utxo := range utxos {
-				if utxo.Txid.Hex.Value == txid {
-					foundUTXOs = append(foundUTXOs, utxo)
-				}
-			}
-
-			if len(foundUTXOs) > 0 {
-				return foundUTXOs, nil
-			}
-
-			time.Sleep(time.Second)
-		}
-	}
-}
-
-func (e *DeniabilityEngine) executeDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
-	// Find all UTXOs for this denial tip
+func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
 	tipUTXOs := e.findDenialUTXOs(utxos, denial.TipTXID)
 	if len(tipUTXOs) == 0 {
 		return fmt.Errorf("no matching utxos found")
 	}
 
-	// Process each UTXO
 	for _, utxo := range tipUTXOs {
-		if err := e.processUTXO(ctx, utxo, denial); err != nil {
+		if err := e.ProcessUTXO(ctx, utxo, denial); err != nil {
 			return fmt.Errorf("failed to process UTXO %s:%d: %w", utxo.Txid.Hex.Value, utxo.Vout, err)
 		}
 	}
@@ -235,30 +182,27 @@ func (e *DeniabilityEngine) executeDenial(ctx context.Context, utxos []*pb.ListU
 	return nil
 }
 
-func (e *DeniabilityEngine) processUTXO(ctx context.Context, utxo *pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
-	logger := zerolog.Ctx(ctx)
+func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
 
 	wallet, err := e.wallet.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("could not get wallet client: %w", err)
 	}
 
-	logger.Info().
+	logger := zerolog.Ctx(ctx).With().
 		Int64("denial_id", denial.ID).
 		Str("utxo_txid", utxo.Txid.Hex.Value).
 		Uint32("utxo_vout", utxo.Vout).
 		Uint64("utxo_amount", utxo.ValueSats).
-		Msg("processing UTXO for denial")
+		Str("tip_txid", denial.TipTXID).
+		Logger()
 
-	// Calculate random split amounts (10-90% of total)
+	logger.Info().Msg("processing UTXO for denial")
+
 	const fee = 10000
 	if utxo.ValueSats < fee {
 		reason := "utxo is too small to split"
-		logger.Warn().
-			Int64("denial_id", denial.ID).
-			Uint64("utxo_amount", utxo.ValueSats).
-			Uint64("required_fee", fee).
-			Msg("cancelling denial due to insufficient UTXO amount")
+		logger.Warn().Msg("cancelling denial due to insufficient UTXO amount")
 
 		if err := deniability.Cancel(ctx, e.db, denial.ID, reason); err != nil {
 			return fmt.Errorf("could not cancel denial: %w", err)
@@ -271,7 +215,6 @@ func (e *DeniabilityEngine) processUTXO(ctx context.Context, utxo *pb.ListUnspen
 		return fmt.Errorf("could not choose denial strategy: %w", err)
 	}
 
-	// Send transaction with two outputs
 	sendResp, err := wallet.SendTransaction(ctx, &connect.Request[pb.SendTransactionRequest]{
 		Msg: &pb.SendTransactionRequest{
 			Destinations: destinations,
@@ -293,56 +236,23 @@ func (e *DeniabilityEngine) processUTXO(ctx context.Context, utxo *pb.ListUnspen
 	if err != nil {
 		logger.Error().
 			Err(err).
-			Int64("denial_id", denial.ID).
-			Str("utxo_txid", utxo.Txid.Hex.Value).
-			Uint32("utxo_vout", utxo.Vout).
 			Msg("failed to send transaction")
 		return fmt.Errorf("could not send transaction: %w", err)
 	}
 
-	logger.Info().
-		Int64("denial_id", denial.ID).
-		Str("txid", sendResp.Msg.Txid.Hex.Value).
-		Msg("transaction sent, waiting for UTXOs")
-
-	// Wait for the new UTXO to appear in the wallet
-	newUTXOs, err := e.waitForTXToAppear(ctx, sendResp.Msg.Txid.Hex.Value)
-	if err != nil {
+	if err := deniability.RecordExecution(ctx, e.db, denial.ID,
+		utxo.Txid.Hex.Value,
+		int32(utxo.Vout),
+		sendResp.Msg.Txid.Hex.Value,
+	); err != nil {
 		logger.Error().
 			Err(err).
-			Int64("denial_id", denial.ID).
-			Str("txid", sendResp.Msg.Txid.Hex.Value).
-			Msg("failed to find new UTXOs")
-		return fmt.Errorf("could not find new UTXOs: %w", err)
+			Str("to_txid", sendResp.Msg.Txid.Hex.Value).
+			Msg("failed to record execution")
+		return fmt.Errorf("could not record execution: %w", err)
 	}
 
 	logger.Info().
-		Int64("denial_id", denial.ID).
-		Str("txid", sendResp.Msg.Txid.Hex.Value).
-		Int("utxo_count", len(newUTXOs)).
-		Msg("found new UTXOs")
-
-	// Record execution for each new UTXO
-	for _, newUTXO := range newUTXOs {
-		if err := deniability.RecordExecution(ctx, e.db, denial.ID,
-			utxo.Txid.Hex.Value,
-			int32(utxo.Vout),
-			newUTXO.Txid.Hex.Value,
-		); err != nil {
-			logger.Error().
-				Err(err).
-				Int64("denial_id", denial.ID).
-				Str("from_txid", utxo.Txid.Hex.Value).
-				Str("to_txid", newUTXO.Txid.Hex.Value).
-				Msg("failed to record execution")
-			return fmt.Errorf("could not record execution: %w", err)
-		}
-	}
-
-	logger.Info().
-		Int64("denial_id", denial.ID).
-		Str("from_txid", utxo.Txid.Hex.Value).
-		Uint32("from_vout", utxo.Vout).
 		Str("to_txid", sendResp.Msg.Txid.Hex.Value).
 		Msg("executed denial split")
 
