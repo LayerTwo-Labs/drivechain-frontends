@@ -113,6 +113,58 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   void clearNumHops() => clearField(4);
 }
 
+class CreateDenialResponse extends $pb.GeneratedMessage {
+  factory CreateDenialResponse({
+    DeniabilityInfo? deniability,
+  }) {
+    final $result = create();
+    if (deniability != null) {
+      $result.deniability = deniability;
+    }
+    return $result;
+  }
+  CreateDenialResponse._() : super();
+  factory CreateDenialResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateDenialResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateDenialResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOM<DeniabilityInfo>(1, _omitFieldNames ? '' : 'deniability', subBuilder: DeniabilityInfo.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateDenialResponse clone() => CreateDenialResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateDenialResponse copyWith(void Function(CreateDenialResponse) updates) => super.copyWith((message) => updates(message as CreateDenialResponse)) as CreateDenialResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateDenialResponse create() => CreateDenialResponse._();
+  CreateDenialResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateDenialResponse> createRepeated() => $pb.PbList<CreateDenialResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateDenialResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateDenialResponse>(create);
+  static CreateDenialResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  DeniabilityInfo get deniability => $_getN(0);
+  @$pb.TagNumber(1)
+  set deniability(DeniabilityInfo v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDeniability() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeniability() => clearField(1);
+  @$pb.TagNumber(1)
+  DeniabilityInfo ensureDeniability() => $_ensure(0);
+}
+
 class ListDenialsResponse extends $pb.GeneratedMessage {
   factory ListDenialsResponse({
     $core.Iterable<DeniabilityUTXO>? utxos,
@@ -448,7 +500,6 @@ class ExecutedDenial extends $pb.GeneratedMessage {
     $core.String? fromTxid,
     $core.int? fromVout,
     $core.String? toTxid,
-    $core.int? toVout,
     $0.Timestamp? createTime,
   }) {
     final $result = create();
@@ -467,9 +518,6 @@ class ExecutedDenial extends $pb.GeneratedMessage {
     if (toTxid != null) {
       $result.toTxid = toTxid;
     }
-    if (toVout != null) {
-      $result.toVout = toVout;
-    }
     if (createTime != null) {
       $result.createTime = createTime;
     }
@@ -485,8 +533,7 @@ class ExecutedDenial extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'fromTxid')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'fromVout', $pb.PbFieldType.OU3)
     ..aOS(5, _omitFieldNames ? '' : 'toTxid')
-    ..a<$core.int>(6, _omitFieldNames ? '' : 'toVout', $pb.PbFieldType.OU3)
-    ..aOM<$0.Timestamp>(7, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
+    ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'createTime', subBuilder: $0.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -557,24 +604,15 @@ class ExecutedDenial extends $pb.GeneratedMessage {
   void clearToTxid() => clearField(5);
 
   @$pb.TagNumber(6)
-  $core.int get toVout => $_getIZ(5);
+  $0.Timestamp get createTime => $_getN(5);
   @$pb.TagNumber(6)
-  set toVout($core.int v) { $_setUnsignedInt32(5, v); }
+  set createTime($0.Timestamp v) { setField(6, v); }
   @$pb.TagNumber(6)
-  $core.bool hasToVout() => $_has(5);
+  $core.bool hasCreateTime() => $_has(5);
   @$pb.TagNumber(6)
-  void clearToVout() => clearField(6);
-
-  @$pb.TagNumber(7)
-  $0.Timestamp get createTime => $_getN(6);
-  @$pb.TagNumber(7)
-  set createTime($0.Timestamp v) { setField(7, v); }
-  @$pb.TagNumber(7)
-  $core.bool hasCreateTime() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearCreateTime() => clearField(7);
-  @$pb.TagNumber(7)
-  $0.Timestamp ensureCreateTime() => $_ensure(6);
+  void clearCreateTime() => clearField(6);
+  @$pb.TagNumber(6)
+  $0.Timestamp ensureCreateTime() => $_ensure(5);
 }
 
 class CancelDenialRequest extends $pb.GeneratedMessage {
@@ -703,6 +741,58 @@ class CreateAddressBookEntryRequest extends $pb.GeneratedMessage {
   $core.bool hasDirection() => $_has(2);
   @$pb.TagNumber(3)
   void clearDirection() => clearField(3);
+}
+
+class CreateAddressBookEntryResponse extends $pb.GeneratedMessage {
+  factory CreateAddressBookEntryResponse({
+    AddressBookEntry? entry,
+  }) {
+    final $result = create();
+    if (entry != null) {
+      $result.entry = entry;
+    }
+    return $result;
+  }
+  CreateAddressBookEntryResponse._() : super();
+  factory CreateAddressBookEntryResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateAddressBookEntryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateAddressBookEntryResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+    ..aOM<AddressBookEntry>(1, _omitFieldNames ? '' : 'entry', subBuilder: AddressBookEntry.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateAddressBookEntryResponse clone() => CreateAddressBookEntryResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateAddressBookEntryResponse copyWith(void Function(CreateAddressBookEntryResponse) updates) => super.copyWith((message) => updates(message as CreateAddressBookEntryResponse)) as CreateAddressBookEntryResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateAddressBookEntryResponse create() => CreateAddressBookEntryResponse._();
+  CreateAddressBookEntryResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateAddressBookEntryResponse> createRepeated() => $pb.PbList<CreateAddressBookEntryResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateAddressBookEntryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateAddressBookEntryResponse>(create);
+  static CreateAddressBookEntryResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  AddressBookEntry get entry => $_getN(0);
+  @$pb.TagNumber(1)
+  set entry(AddressBookEntry v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEntry() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEntry() => clearField(1);
+  @$pb.TagNumber(1)
+  AddressBookEntry ensureEntry() => $_ensure(0);
 }
 
 class AddressBookEntry extends $pb.GeneratedMessage {
@@ -1180,8 +1270,8 @@ class BitwindowdServiceApi {
   $async.Future<$1.Empty> stop($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'Stop', request, $1.Empty())
   ;
-  $async.Future<$1.Empty> createDenial($pb.ClientContext? ctx, CreateDenialRequest request) =>
-    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CreateDenial', request, $1.Empty())
+  $async.Future<CreateDenialResponse> createDenial($pb.ClientContext? ctx, CreateDenialRequest request) =>
+    _client.invoke<CreateDenialResponse>(ctx, 'BitwindowdService', 'CreateDenial', request, CreateDenialResponse())
   ;
   $async.Future<ListDenialsResponse> listDenials($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<ListDenialsResponse>(ctx, 'BitwindowdService', 'ListDenials', request, ListDenialsResponse())
@@ -1189,8 +1279,8 @@ class BitwindowdServiceApi {
   $async.Future<$1.Empty> cancelDenial($pb.ClientContext? ctx, CancelDenialRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CancelDenial', request, $1.Empty())
   ;
-  $async.Future<$1.Empty> createAddressBookEntry($pb.ClientContext? ctx, CreateAddressBookEntryRequest request) =>
-    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CreateAddressBookEntry', request, $1.Empty())
+  $async.Future<CreateAddressBookEntryResponse> createAddressBookEntry($pb.ClientContext? ctx, CreateAddressBookEntryRequest request) =>
+    _client.invoke<CreateAddressBookEntryResponse>(ctx, 'BitwindowdService', 'CreateAddressBookEntry', request, CreateAddressBookEntryResponse())
   ;
   $async.Future<ListAddressBookResponse> listAddressBook($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<ListAddressBookResponse>(ctx, 'BitwindowdService', 'ListAddressBook', request, ListAddressBookResponse())

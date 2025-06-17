@@ -1,12 +1,16 @@
+import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DenialDialog extends StatefulWidget {
-  final Function(int hops, int delaySeconds) onSubmit;
+  final String txid;
+  final int vout;
 
   const DenialDialog({
     super.key,
-    required this.onSubmit,
+    required this.txid,
+    required this.vout,
   });
 
   @override
@@ -14,6 +18,9 @@ class DenialDialog extends StatefulWidget {
 }
 
 class _DenialDialogState extends State<DenialDialog> {
+  final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
+  final DenialProvider denialProvider = GetIt.I.get<DenialProvider>();
+
   final hopsController = TextEditingController(text: '3');
   final minutesController = TextEditingController(text: '2');
   final hoursController = TextEditingController(text: '0');
@@ -75,8 +82,7 @@ class _DenialDialogState extends State<DenialDialog> {
                   spacing: SailStyleValues.padding08,
                   children: [
                     SailText.primary15('...with random delays of up to'),
-                    SizedBox(
-                      width: 90,
+                    Expanded(
                       child: SailTextField(
                         controller: minutesController,
                         size: TextFieldSize.small,
@@ -85,8 +91,7 @@ class _DenialDialogState extends State<DenialDialog> {
                       ),
                     ),
                     SailText.primary15('min'),
-                    SizedBox(
-                      width: 90,
+                    Expanded(
                       child: SailTextField(
                         controller: hoursController,
                         size: TextFieldSize.small,
@@ -95,8 +100,7 @@ class _DenialDialogState extends State<DenialDialog> {
                       ),
                     ),
                     SailText.primary15('hr'),
-                    SizedBox(
-                      width: 90,
+                    Expanded(
                       child: SailTextField(
                         controller: daysController,
                         size: TextFieldSize.small,
@@ -157,7 +161,13 @@ class _DenialDialogState extends State<DenialDialog> {
                       label: 'Start',
                       onPressed: () async {
                         final hops = int.tryParse(hopsController.text) ?? 3;
-                        await widget.onSubmit(hops, getTotalSeconds());
+                        await api.bitwindowd.createDenial(
+                          txid: widget.txid,
+                          vout: widget.vout,
+                          numHops: hops,
+                          delaySeconds: getTotalSeconds(),
+                        );
+                        await denialProvider.fetch();
                         if (context.mounted) Navigator.pop(context);
                       },
                     ),
