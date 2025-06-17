@@ -97,9 +97,38 @@ func selectDenialQuery() string {
 		) e ON e.denial_id = d.id`
 }
 
+type config struct {
+	excludeCancelled bool
+}
+
+type Option func(c *config)
+
+func WithExcludeCancelled() Option {
+	return func(c *config) {
+		c.excludeCancelled = true
+	}
+}
+
+func newConfig(opts []Option) config {
+	var conf config
+	for _, fn := range opts {
+		fn(&conf)
+	}
+
+	return conf
+}
+
 // List returns all denial plans
-func List(ctx context.Context, db *sql.DB) ([]Denial, error) {
-	rows, err := db.QueryContext(ctx, selectDenialQuery()+` ORDER BY d.created_at ASC`)
+func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
+	conf := newConfig(opts)
+
+	query := selectDenialQuery()
+	if conf.excludeCancelled {
+		query += ` WHERE d.cancelled_at IS NULL`
+	}
+	query += ` ORDER BY d.created_at ASC`
+
+	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("could not query deniabilities: %w", err)
 	}
