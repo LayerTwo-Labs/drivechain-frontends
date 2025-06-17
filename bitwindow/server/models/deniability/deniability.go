@@ -32,9 +32,10 @@ type ExecutedDenial struct {
 	CreatedAt time.Time
 }
 
-// Create creates a new deniability plan
-func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDuration time.Duration, numHops int32) error {
-	_, err := db.ExecContext(ctx, `
+// Create creates a new denial plan
+func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDuration time.Duration, numHops int32) (Denial, error) {
+	var id int64
+	err := db.QueryRowContext(ctx, `
 		INSERT INTO denials (
 			initial_txid,
 			initial_vout,
@@ -42,8 +43,19 @@ func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDurat
 			num_hops,
 			created_at
 		) VALUES (?, ?, ?, ?, ?)
-	`, txid, vout, int(delayDuration.Seconds()), numHops, time.Now())
-	return err
+		RETURNING id
+	`, txid, vout, int(delayDuration.Seconds()), numHops, time.Now()).Scan(&id)
+	if err != nil {
+		return Denial{}, err
+	}
+
+	// Get the created deniability plan
+	denial, err := Get(ctx, db, id)
+	if err != nil {
+		return Denial{}, fmt.Errorf("could not get created deniability: %w", err)
+	}
+
+	return denial, nil
 }
 
 // RecordExecution records a completed denial transaction
@@ -293,7 +305,7 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE denials
-		SET delay_duration = ?, num_hops = num_hops + ?
+		SET delay_duration = ?, num_hops = num_hops + ?, cancelled_at = NULL, cancelled_reason = NULL
 		WHERE id = ?
 	`, delay.Seconds(), numHops, id)
 	if err != nil {
@@ -303,7 +315,7 @@ func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numH
 }
 
 // Get retrieves a deniability plan by its ID
-func Get(ctx context.Context, db *sql.DB, id int64) (*Denial, error) {
+func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 	row := db.QueryRowContext(ctx,
 		selectDenialQuery()+` WHERE d.id = ?`,
 		id)
@@ -322,10 +334,10 @@ func Get(ctx context.Context, db *sql.DB, id int64) (*Denial, error) {
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // No matching record found, but that's okay
+			return Denial{}, nil // No matching record found, but that's okay
 		}
-		return nil, fmt.Errorf("could not get deniability: %w", err)
+		return Denial{}, fmt.Errorf("could not get deniability: %w", err)
 	}
 	denial.DelayDuration = time.Duration(delaySeconds * float64(time.Second))
-	return &denial, nil
+	return denial, nil
 }

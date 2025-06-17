@@ -9,7 +9,7 @@ service BitwindowdService {
   rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty);
 
   // Deniability operations
-  rpc CreateDenial(CreateDenialRequest) returns (google.protobuf.Empty);
+  rpc CreateDenial(CreateDenialRequest) returns (CreateDenialResponse);
   rpc ListDenials(google.protobuf.Empty) returns (ListDenialsResponse);
   rpc CancelDenial(CancelDenialRequest) returns (google.protobuf.Empty);
 
@@ -29,6 +29,10 @@ message CreateDenialRequest {
   uint32 vout = 2;
   int32 delay_seconds = 3;
   int32 num_hops = 4;
+}
+
+message CreateDenialResponse {
+  DeniabilityInfo deniability = 1;
 }
 
 message ListDenialsResponse {

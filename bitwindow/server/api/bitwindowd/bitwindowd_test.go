@@ -43,6 +43,7 @@ func TestService_CreateDenial(t *testing.T) {
 	mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 	mockWallet.EXPECT().
 		ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		AnyTimes().
 		Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
 			Msg: &mainchainv1.ListUnspentOutputsResponse{
 				Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
@@ -105,6 +106,24 @@ func TestService_CreateDenial(t *testing.T) {
 		}))
 		require.Error(t, err)
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	})
+
+	t.Run("utxo found", func(t *testing.T) {
+		t.Parallel()
+
+		res, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+			Txid:         "abc123",
+			Vout:         0,
+			DelaySeconds: 60,
+			NumHops:      1,
+		}))
+		require.NoError(t, err)
+		assert.NotNil(t, res.Msg.Deniability)
+
+		resp, err := cli.ListDenials(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		require.Len(t, resp.Msg.Utxos, 1)
+		assert.NotNil(t, resp.Msg.Utxos[0].Deniability)
 	})
 }
 

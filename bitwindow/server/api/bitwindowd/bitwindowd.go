@@ -105,7 +105,7 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) 
 func (s *Server) CreateDenial(
 	ctx context.Context,
 	req *connect.Request[pb.CreateDenialRequest],
-) (*connect.Response[emptypb.Empty], error) {
+) (*connect.Response[pb.CreateDenialResponse], error) {
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
@@ -136,6 +136,12 @@ func (s *Server) CreateDenial(
 	for _, utxo := range utxos.Msg.Outputs {
 		if utxo.Txid.Hex.Value == req.Msg.Txid && utxo.Vout == req.Msg.Vout {
 			utxoExists = true
+			zerolog.Ctx(ctx).Info().
+				Str("txid", utxo.Txid.Hex.Value).
+				Uint32("vout", utxo.Vout).
+				Uint64("value_sats", utxo.ValueSats).
+				Bool("is_internal", utxo.IsInternal).
+				Msg("CreateDenial: found matching UTXO")
 			break
 		}
 	}
@@ -154,16 +160,41 @@ func (s *Server) CreateDenial(
 	}
 
 	if denial != nil {
-		// denial for this utxo already exists. Let's piggy back on that by updating its values
+		zerolog.Ctx(ctx).Info().
+			Int64("denial_id", denial.ID).
+			Str("txid", req.Msg.Txid).
+			Uint32("vout", req.Msg.Vout).
+			Int32("delay_seconds", req.Msg.DelaySeconds).
+			Int32("num_hops", req.Msg.NumHops).
+			Msg("CreateDenial: found existing denial, updating values")
+
+		// a denial for this utxo already exists. Let's piggy back on that by updating its values
 		if err := deniability.Update(ctx, s.db, denial.ID, time.Duration(req.Msg.DelaySeconds)*time.Second, req.Msg.NumHops); err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("could not update denial")
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
-		return connect.NewResponse(&emptypb.Empty{}), nil
+
+		return connect.NewResponse(&pb.CreateDenialResponse{
+			Deniability: func() *pb.DeniabilityInfo {
+				deniability, err := s.withDeniability(ctx, *denial)
+				if err != nil {
+					zerolog.Ctx(ctx).Error().Err(err).Msg("could not get deniability info")
+					return nil
+				}
+				return deniability
+			}(),
+		}), nil
 	}
 
+	zerolog.Ctx(ctx).Info().
+		Str("txid", req.Msg.Txid).
+		Uint32("vout", req.Msg.Vout).
+		Int32("delay_seconds", req.Msg.DelaySeconds).
+		Int32("num_hops", req.Msg.NumHops).
+		Msg("CreateDenial: creating new denial")
+
 	// UTXO exists, create the denial
-	err = deniability.Create(
+	createdDenial, err := deniability.Create(
 		ctx,
 		s.db,
 		req.Msg.Txid,
@@ -176,13 +207,23 @@ func (s *Server) CreateDenial(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return connect.NewResponse(&pb.CreateDenialResponse{
+		Deniability: func() *pb.DeniabilityInfo {
+			deniability, err := s.withDeniability(ctx, createdDenial)
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Err(err).Msg("could not get deniability info")
+				return nil
+			}
+			return deniability
+		}(),
+	}), nil
 }
 
 func (s *Server) ListDenials(
 	ctx context.Context,
 	req *connect.Request[emptypb.Empty],
 ) (*connect.Response[pb.ListDenialsResponse], error) {
+
 	// First get all UTXOs from the wallet
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
@@ -206,13 +247,21 @@ func (s *Server) ListDenials(
 	// Create map of deniability info by current tip txid/vout
 	deniabilityMap := make(map[string]*deniability.Denial)
 	for _, d := range deniabilities {
-		// key is txid:vout
-		key := fmt.Sprintf("%s:%d", d.TipTXID, d.TipVout)
+		// key is txid:vout, but if vout is nil, just use txid
+		var key string
+		if d.TipVout == nil {
+			key = d.TipTXID
+		} else {
+			key = fmt.Sprintf("%s:%d", d.TipTXID, *d.TipVout)
+		}
 		deniabilityMap[key] = &d
 	}
 
 	// Build response with UTXOs and matched deniability info
 	var pbUtxos []*pb.DeniabilityUTXO
+	var matchedCount int
+	var unmatchedCount int
+
 	for _, utxo := range utxos.Msg.Outputs {
 		pbUtxo := &pb.DeniabilityUTXO{
 			Txid:       utxo.Txid.Hex.Value,
@@ -222,14 +271,30 @@ func (s *Server) ListDenials(
 		}
 
 		key := fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout)
+
+		// Try exact match first
 		if d, exists := deniabilityMap[key]; exists {
 			// the utxo has deniability info! Add it to the response
-			deniability, err := s.withDeniability(ctx, d)
+			deniability, err := s.withDeniability(ctx, *d)
 			if err != nil {
 				zerolog.Ctx(ctx).Error().Err(err).Msg("could not get deniability info")
 				return nil, connect.NewError(connect.CodeInternal, err)
 			}
 			pbUtxo.Deniability = deniability
+			matchedCount++
+		} else {
+			// Try matching just on txid
+			if d, exists := deniabilityMap[utxo.Txid.Hex.Value]; exists {
+				deniability, err := s.withDeniability(ctx, *d)
+				if err != nil {
+					zerolog.Ctx(ctx).Error().Err(err).Msg("could not get deniability info")
+					return nil, connect.NewError(connect.CodeInternal, err)
+				}
+				pbUtxo.Deniability = deniability
+				matchedCount++
+			} else {
+				unmatchedCount++
+			}
 		}
 
 		pbUtxos = append(pbUtxos, pbUtxo)
@@ -240,8 +305,8 @@ func (s *Server) ListDenials(
 	}), nil
 }
 
-func (s *Server) withDeniability(ctx context.Context, d *deniability.Denial) (*pb.DeniabilityInfo, error) {
-	nextExecution, err := deniability.NextExecution(ctx, s.db, *d)
+func (s *Server) withDeniability(ctx context.Context, d deniability.Denial) (*pb.DeniabilityInfo, error) {
+	nextExecution, err := deniability.NextExecution(ctx, s.db, d)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get next execution")
 		return nil, connect.NewError(connect.CodeInternal, err)
