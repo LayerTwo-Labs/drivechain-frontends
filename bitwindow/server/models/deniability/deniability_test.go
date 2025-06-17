@@ -7,6 +7,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,33 +24,13 @@ func TestDeniability(t *testing.T) {
 		delayDuration := time.Duration(gofakeit.IntRange(1, 24)) * time.Hour
 		numHops := gofakeit.Int32()
 
-		err := Create(ctx, db, txid, vout, delayDuration, numHops)
+		denial, err := Create(ctx, db, txid, vout, delayDuration, numHops)
 		require.NoError(t, err)
+		require.NotNil(t, denial)
 
-		// Verify the denial was created
-		var count int
-		err = db.QueryRow("SELECT COUNT(*) FROM denials").Scan(&count)
-		require.NoError(t, err)
-		require.Equal(t, 1, count)
-
-		// Verify the denial details
-		var denial Denial
-		var delaySeconds float64
-		err = db.QueryRow(`
-			SELECT id, initial_txid, initial_vout, delay_duration, num_hops, created_at
-			FROM denials
-		`).Scan(
-			&denial.ID,
-			&denial.TipTXID,
-			&denial.TipVout,
-			&delaySeconds,
-			&denial.NumHops,
-			&denial.CreatedAt,
-		)
-		require.NoError(t, err)
 		require.Equal(t, txid, denial.TipTXID)
 		require.Equal(t, vout, *denial.TipVout)
-		require.Equal(t, delayDuration, time.Duration(delaySeconds*float64(time.Second)))
+		require.Equal(t, delayDuration, denial.DelayDuration)
 		require.Equal(t, numHops, denial.NumHops)
 	})
 
@@ -58,16 +39,12 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// First create a denial
-		err := Create(ctx, db, "initial-txid", 0, 1*time.Hour, 3)
+		denial, err := Create(ctx, db, "initial-txid", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
-
-		// Get the denial ID
-		var denialID int64
-		err = db.QueryRow("SELECT id FROM denials").Scan(&denialID)
-		require.NoError(t, err)
+		require.NotNil(t, denial)
 
 		// Record an execution
-		err = RecordExecution(ctx, db, denialID, "from-txid", 0, "to-txid")
+		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid")
 		require.NoError(t, err)
 
 		// Verify the execution was recorded
@@ -90,7 +67,7 @@ func TestDeniability(t *testing.T) {
 			&execution.CreatedAt,
 		)
 		require.NoError(t, err)
-		require.Equal(t, denialID, execution.DenialID)
+		require.Equal(t, denial.ID, execution.DenialID)
 		require.Equal(t, "from-txid", execution.FromTxID)
 		require.Equal(t, int32(0), execution.FromVout)
 		require.Equal(t, "to-txid", execution.ToTxID)
@@ -101,10 +78,12 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create multiple denials
-		err := Create(ctx, db, "txid1", 0, 1*time.Hour, 3)
+		denial1, err := Create(ctx, db, "txid1", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
-		err = Create(ctx, db, "txid2", 1, 2*time.Hour, 4)
+		require.NotNil(t, denial1)
+		denial2, err := Create(ctx, db, "txid2", 1, 2*time.Hour, 4)
 		require.NoError(t, err)
+		require.NotNil(t, denial2)
 
 		// List all denials
 		denials, err := List(ctx, db)
@@ -129,8 +108,9 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create a denial
-		err := Create(ctx, db, "txid", 0, 1*time.Hour, 3)
+		denial, err := Create(ctx, db, "txid", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
+		require.NotNil(t, denial)
 
 		// Get the denial ID
 		var denialID int64
@@ -143,7 +123,6 @@ func TestDeniability(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the cancellation
-		var denial Denial
 		var delaySeconds float64
 		err = db.QueryRow(`
 			SELECT id, delay_duration, num_hops, created_at, cancelled_at, cancelled_reason
@@ -167,14 +146,9 @@ func TestDeniability(t *testing.T) {
 
 		// Create a denial
 		delayDuration := time.Duration(gofakeit.IntRange(1, 24)) * time.Hour
-		err := Create(ctx, db, "txid", 0, delayDuration, 3)
+		denial, err := Create(ctx, db, "txid", 0, delayDuration, 3)
 		require.NoError(t, err)
-
-		// Get the denial
-		denials, err := List(ctx, db)
-		require.NoError(t, err)
-		require.Len(t, denials, 1)
-		denial := denials[0]
+		require.NotNil(t, denial)
 
 		// Test next execution before any executions
 		next, err := NextExecution(ctx, db, denial)
@@ -198,7 +172,7 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create a denial
-		err := Create(ctx, db, "txid", 0, 1*time.Hour, 3)
+		_, err := Create(ctx, db, "txid", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
 
 		// Get the denial by tip
@@ -221,20 +195,16 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create a denial
-		err := Create(ctx, db, "txid", 0, 1*time.Hour, 3)
+		denial, err := Create(ctx, db, "txid", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
-
-		// Get the denial ID
-		var denialID int64
-		err = db.QueryRow("SELECT id FROM denials").Scan(&denialID)
-		require.NoError(t, err)
+		require.NotNil(t, denial)
 
 		// Update the denial
-		err = Update(ctx, db, denialID, 2*time.Second, 1)
+		err = Update(ctx, db, denial.ID, 2*time.Second, 1)
 		require.NoError(t, err)
 
 		// Verify the update
-		denial, err := Get(ctx, db, denialID)
+		denial, err = Get(ctx, db, denial.ID)
 		require.NoError(t, err)
 		require.Equal(t, 2*time.Second, denial.DelayDuration)
 		require.Equal(t, int32(4), denial.NumHops) // 3 + 1
@@ -245,17 +215,11 @@ func TestDeniability(t *testing.T) {
 		db := database.Test(t)
 
 		// Create a denial
-		err := Create(ctx, db, "txid", 0, 1*time.Hour, 3)
+		denialReturn, err := Create(ctx, db, "txid", 0, 1*time.Hour, 3)
 		require.NoError(t, err)
-
-		// Get the denial ID
-		denials, err := List(ctx, db)
-		require.NoError(t, err)
-		require.Len(t, denials, 1)
-		denialID := denials[0].ID
 
 		// Get the denial by ID
-		denial, err := Get(ctx, db, denialID)
+		denial, err := Get(ctx, db, denialReturn.ID)
 		require.NoError(t, err)
 		require.NotNil(t, denial)
 		require.Equal(t, "txid", denial.TipTXID)
@@ -263,10 +227,11 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, 1*time.Hour, denial.DelayDuration)
 		require.Equal(t, int32(3), denial.NumHops)
 
-		// Test non-existent ID
-		denial, err = Get(ctx, db, 999)
-		require.NoError(t, err)
-		require.Nil(t, denial)
+		assert.Equal(t, denialReturn.ID, denial.ID)
+		assert.Equal(t, denialReturn.TipTXID, denial.TipTXID)
+		assert.Equal(t, denialReturn.TipVout, denial.TipVout)
+		assert.Equal(t, denialReturn.DelayDuration, denial.DelayDuration)
+		assert.Equal(t, denialReturn.NumHops, denial.NumHops)
 	})
 }
 

@@ -75,6 +75,13 @@ func WithBitcoind(bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) ServerOp
 func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClient, string) {
 	ctrl := gomock.NewController(t)
 
+	logger := zerolog.New(zerolog.NewConsoleWriter()).
+		With().
+		Timestamp().
+		Logger().
+		Level(zerolog.InfoLevel)
+	zerolog.DefaultContextLogger = &logger
+
 	conf := newConfig(t, ctrl, options...)
 
 	// Create connectors that return our mock clients
