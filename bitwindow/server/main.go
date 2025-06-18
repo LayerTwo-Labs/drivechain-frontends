@@ -35,7 +35,7 @@ func main() {
 		// the zerolog logger won't work here, because the file logger is closed.
 		// what we do instead is a simple printf
 		// nolint:forbidigo
-		fmt.Printf("main: got error: %T - %v\n", err, err)
+		fmt.Fprintf(os.Stderr, "main: got error: %T - %v\n", err, err)
 		cancel()
 		os.Exit(1)
 	}
