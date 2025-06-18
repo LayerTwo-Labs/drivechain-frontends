@@ -7,6 +7,7 @@
 package walletv1
 
 import (
+	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -315,11 +316,13 @@ type UnspentOutput struct {
 	// What label (if any) the address received to is labeled with.
 	Label string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
 	// The value of the output, in satoshis.
-	Value uint64 `protobuf:"varint,4,opt,name=value,proto3" json:"value,omitempty"`
+	ValueSats uint64 `protobuf:"varint,4,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
 	// Whether this is a change output.
 	IsChange bool `protobuf:"varint,5,opt,name=is_change,json=isChange,proto3" json:"is_change,omitempty"`
 	// Timestamp of the utxo.
-	ReceivedAt    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"`
+	ReceivedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"`
+	// If set, this utxo is part of a denial chain
+	DenialInfo    *v1.DenialInfo `protobuf:"bytes,7,opt,name=denial_info,json=denialInfo,proto3,oneof" json:"denial_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -375,9 +378,9 @@ func (x *UnspentOutput) GetLabel() string {
 	return ""
 }
 
-func (x *UnspentOutput) GetValue() uint64 {
+func (x *UnspentOutput) GetValueSats() uint64 {
 	if x != nil {
-		return x.Value
+		return x.ValueSats
 	}
 	return 0
 }
@@ -392,6 +395,13 @@ func (x *UnspentOutput) GetIsChange() bool {
 func (x *UnspentOutput) GetReceivedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ReceivedAt
+	}
+	return nil
+}
+
+func (x *UnspentOutput) GetDenialInfo() *v1.DenialInfo {
+	if x != nil {
+		return x.DenialInfo
 	}
 	return nil
 }
@@ -1264,7 +1274,7 @@ var File_wallet_v1_wallet_proto protoreflect.FileDescriptor
 
 const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\n" +
-	"\x16wallet/v1/wallet.proto\x12\twallet.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"G\n" +
+	"\x16wallet/v1/wallet.proto\x12\twallet.v1\x1a\x1ebitwindowd/v1/bitwindowd.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"G\n" +
 	"\x15GetNewAddressResponse\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x14\n" +
 	"\x05index\x18\x02 \x01(\rR\x05index\"\x88\x03\n" +
@@ -1284,15 +1294,19 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x11confirmed_satoshi\x18\x01 \x01(\x04R\x10confirmedSatoshi\x12'\n" +
 	"\x0fpending_satoshi\x18\x02 \x01(\x04R\x0ependingSatoshi\"\\\n" +
 	"\x18ListTransactionsResponse\x12@\n" +
-	"\ftransactions\x18\x01 \x03(\v2\x1c.wallet.v1.WalletTransactionR\ftransactions\"\xc7\x01\n" +
+	"\ftransactions\x18\x01 \x03(\v2\x1c.wallet.v1.WalletTransactionR\ftransactions\"\xa1\x02\n" +
 	"\rUnspentOutput\x12\x16\n" +
 	"\x06output\x18\x01 \x01(\tR\x06output\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x14\n" +
-	"\x05label\x18\x03 \x01(\tR\x05label\x12\x14\n" +
-	"\x05value\x18\x04 \x01(\x04R\x05value\x12\x1b\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x1d\n" +
+	"\n" +
+	"value_sats\x18\x04 \x01(\x04R\tvalueSats\x12\x1b\n" +
 	"\tis_change\x18\x05 \x01(\bR\bisChange\x12;\n" +
 	"\vreceived_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"receivedAt\"E\n" +
+	"receivedAt\x12?\n" +
+	"\vdenial_info\x18\a \x01(\v2\x19.bitwindowd.v1.DenialInfoH\x00R\n" +
+	"denialInfo\x88\x01\x01B\x0e\n" +
+	"\f_denial_info\"E\n" +
 	"\x13ListUnspentResponse\x12.\n" +
 	"\x05utxos\x18\x01 \x03(\v2\x18.wallet.v1.UnspentOutputR\x05utxos\"W\n" +
 	"\x1cListReceiveAddressesResponse\x127\n" +
@@ -1403,46 +1417,48 @@ var file_wallet_v1_wallet_proto_goTypes = []any{
 	nil,                                                    // 20: wallet.v1.SendTransactionRequest.DestinationsEntry
 	(*ListSidechainDepositsResponse_SidechainDeposit)(nil), // 21: wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
 	(*timestamppb.Timestamp)(nil),                          // 22: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                                  // 23: google.protobuf.Empty
+	(*v1.DenialInfo)(nil),                                  // 23: bitwindowd.v1.DenialInfo
+	(*emptypb.Empty)(nil),                                  // 24: google.protobuf.Empty
 }
 var file_wallet_v1_wallet_proto_depIdxs = []int32{
 	20, // 0: wallet.v1.SendTransactionRequest.destinations:type_name -> wallet.v1.SendTransactionRequest.DestinationsEntry
 	5,  // 1: wallet.v1.SendTransactionRequest.required_inputs:type_name -> wallet.v1.UnspentOutput
 	10, // 2: wallet.v1.ListTransactionsResponse.transactions:type_name -> wallet.v1.WalletTransaction
 	22, // 3: wallet.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
-	5,  // 4: wallet.v1.ListUnspentResponse.utxos:type_name -> wallet.v1.UnspentOutput
-	8,  // 5: wallet.v1.ListReceiveAddressesResponse.addresses:type_name -> wallet.v1.ReceiveAddress
-	22, // 6: wallet.v1.ReceiveAddress.last_used_at:type_name -> google.protobuf.Timestamp
-	22, // 7: wallet.v1.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
-	9,  // 8: wallet.v1.WalletTransaction.confirmation_time:type_name -> wallet.v1.Confirmation
-	21, // 9: wallet.v1.ListSidechainDepositsResponse.deposits:type_name -> wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
-	1,  // 10: wallet.v1.WalletService.SendTransaction:input_type -> wallet.v1.SendTransactionRequest
-	23, // 11: wallet.v1.WalletService.GetBalance:input_type -> google.protobuf.Empty
-	23, // 12: wallet.v1.WalletService.GetNewAddress:input_type -> google.protobuf.Empty
-	23, // 13: wallet.v1.WalletService.ListTransactions:input_type -> google.protobuf.Empty
-	23, // 14: wallet.v1.WalletService.ListUnspent:input_type -> google.protobuf.Empty
-	23, // 15: wallet.v1.WalletService.ListReceiveAddresses:input_type -> google.protobuf.Empty
-	11, // 16: wallet.v1.WalletService.ListSidechainDeposits:input_type -> wallet.v1.ListSidechainDepositsRequest
-	13, // 17: wallet.v1.WalletService.CreateSidechainDeposit:input_type -> wallet.v1.CreateSidechainDepositRequest
-	15, // 18: wallet.v1.WalletService.SignMessage:input_type -> wallet.v1.SignMessageRequest
-	17, // 19: wallet.v1.WalletService.VerifyMessage:input_type -> wallet.v1.VerifyMessageRequest
-	23, // 20: wallet.v1.WalletService.GetStats:input_type -> google.protobuf.Empty
-	2,  // 21: wallet.v1.WalletService.SendTransaction:output_type -> wallet.v1.SendTransactionResponse
-	3,  // 22: wallet.v1.WalletService.GetBalance:output_type -> wallet.v1.GetBalanceResponse
-	0,  // 23: wallet.v1.WalletService.GetNewAddress:output_type -> wallet.v1.GetNewAddressResponse
-	4,  // 24: wallet.v1.WalletService.ListTransactions:output_type -> wallet.v1.ListTransactionsResponse
-	6,  // 25: wallet.v1.WalletService.ListUnspent:output_type -> wallet.v1.ListUnspentResponse
-	7,  // 26: wallet.v1.WalletService.ListReceiveAddresses:output_type -> wallet.v1.ListReceiveAddressesResponse
-	12, // 27: wallet.v1.WalletService.ListSidechainDeposits:output_type -> wallet.v1.ListSidechainDepositsResponse
-	14, // 28: wallet.v1.WalletService.CreateSidechainDeposit:output_type -> wallet.v1.CreateSidechainDepositResponse
-	16, // 29: wallet.v1.WalletService.SignMessage:output_type -> wallet.v1.SignMessageResponse
-	18, // 30: wallet.v1.WalletService.VerifyMessage:output_type -> wallet.v1.VerifyMessageResponse
-	19, // 31: wallet.v1.WalletService.GetStats:output_type -> wallet.v1.GetStatsResponse
-	21, // [21:32] is the sub-list for method output_type
-	10, // [10:21] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	23, // 4: wallet.v1.UnspentOutput.denial_info:type_name -> bitwindowd.v1.DenialInfo
+	5,  // 5: wallet.v1.ListUnspentResponse.utxos:type_name -> wallet.v1.UnspentOutput
+	8,  // 6: wallet.v1.ListReceiveAddressesResponse.addresses:type_name -> wallet.v1.ReceiveAddress
+	22, // 7: wallet.v1.ReceiveAddress.last_used_at:type_name -> google.protobuf.Timestamp
+	22, // 8: wallet.v1.Confirmation.timestamp:type_name -> google.protobuf.Timestamp
+	9,  // 9: wallet.v1.WalletTransaction.confirmation_time:type_name -> wallet.v1.Confirmation
+	21, // 10: wallet.v1.ListSidechainDepositsResponse.deposits:type_name -> wallet.v1.ListSidechainDepositsResponse.SidechainDeposit
+	1,  // 11: wallet.v1.WalletService.SendTransaction:input_type -> wallet.v1.SendTransactionRequest
+	24, // 12: wallet.v1.WalletService.GetBalance:input_type -> google.protobuf.Empty
+	24, // 13: wallet.v1.WalletService.GetNewAddress:input_type -> google.protobuf.Empty
+	24, // 14: wallet.v1.WalletService.ListTransactions:input_type -> google.protobuf.Empty
+	24, // 15: wallet.v1.WalletService.ListUnspent:input_type -> google.protobuf.Empty
+	24, // 16: wallet.v1.WalletService.ListReceiveAddresses:input_type -> google.protobuf.Empty
+	11, // 17: wallet.v1.WalletService.ListSidechainDeposits:input_type -> wallet.v1.ListSidechainDepositsRequest
+	13, // 18: wallet.v1.WalletService.CreateSidechainDeposit:input_type -> wallet.v1.CreateSidechainDepositRequest
+	15, // 19: wallet.v1.WalletService.SignMessage:input_type -> wallet.v1.SignMessageRequest
+	17, // 20: wallet.v1.WalletService.VerifyMessage:input_type -> wallet.v1.VerifyMessageRequest
+	24, // 21: wallet.v1.WalletService.GetStats:input_type -> google.protobuf.Empty
+	2,  // 22: wallet.v1.WalletService.SendTransaction:output_type -> wallet.v1.SendTransactionResponse
+	3,  // 23: wallet.v1.WalletService.GetBalance:output_type -> wallet.v1.GetBalanceResponse
+	0,  // 24: wallet.v1.WalletService.GetNewAddress:output_type -> wallet.v1.GetNewAddressResponse
+	4,  // 25: wallet.v1.WalletService.ListTransactions:output_type -> wallet.v1.ListTransactionsResponse
+	6,  // 26: wallet.v1.WalletService.ListUnspent:output_type -> wallet.v1.ListUnspentResponse
+	7,  // 27: wallet.v1.WalletService.ListReceiveAddresses:output_type -> wallet.v1.ListReceiveAddressesResponse
+	12, // 28: wallet.v1.WalletService.ListSidechainDeposits:output_type -> wallet.v1.ListSidechainDepositsResponse
+	14, // 29: wallet.v1.WalletService.CreateSidechainDeposit:output_type -> wallet.v1.CreateSidechainDepositResponse
+	16, // 30: wallet.v1.WalletService.SignMessage:output_type -> wallet.v1.SignMessageResponse
+	18, // 31: wallet.v1.WalletService.VerifyMessage:output_type -> wallet.v1.VerifyMessageResponse
+	19, // 32: wallet.v1.WalletService.GetStats:output_type -> wallet.v1.GetStatsResponse
+	22, // [22:33] is the sub-list for method output_type
+	11, // [11:22] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_wallet_v1_wallet_proto_init() }
@@ -1450,6 +1466,7 @@ func file_wallet_v1_wallet_proto_init() {
 	if File_wallet_v1_wallet_proto != nil {
 		return
 	}
+	file_wallet_v1_wallet_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

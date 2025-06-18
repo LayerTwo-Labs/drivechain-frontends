@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	drivechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/drivechain"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/crypto/v1/cryptov1connect"
@@ -22,6 +23,7 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -477,11 +479,6 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 		return nil, err
 	}
 
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not get bitcoind: %w", err)
-	}
-
 	// First get all UTXOs from the wallet
 	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
 	if err != nil {
@@ -503,44 +500,102 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 		return ""
 	}
 
-	// Use logpool to fetch all UTXO info in parallel
-	pool := logpool.NewWithResults[*pb.UnspentOutput](ctx, "wallet/ListUnspent")
-	for _, utxo := range utxos.Msg.Outputs {
-		pool.Go(fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout), func(ctx context.Context) (*pb.UnspentOutput, error) {
-			address, err := s.getAddressFromOutpoint(ctx, bitcoind, utxo.Txid.Hex.Value, int(utxo.Vout))
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Msgf("could not get address from outpoint: %s", err)
-				// bitcoin core probably doesnt know about the tx yet,
-				// chugging on with empty address info is fine!
-			}
-
-			// Try to get the timestamp from the transaction (if available)
-			var receivedAt *timestamppb.Timestamp
-			if utxo.UnconfirmedLastSeen != nil {
-				receivedAt = utxo.UnconfirmedLastSeen
-			} else if utxo.ConfirmedAtTime != nil {
-				receivedAt = utxo.ConfirmedAtTime
-			}
-
-			return &pb.UnspentOutput{
-				Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
-				Address:    address,
-				Label:      getLabel(address),
-				Value:      utxo.ValueSats,
-				ReceivedAt: receivedAt,
-				IsChange:   utxo.IsInternal,
-			}, nil
-		})
+	denials, err := deniability.List(ctx, s.database)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer/wallet: could not list denials: %w", err)
 	}
 
-	utxosWithInfo, err := pool.Wait(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: failed to fetch UTXO info: %w", err)
+	var utxosWithInfo []*pb.UnspentOutput
+	for _, utxo := range utxos.Msg.Outputs {
+		// Try to get the timestamp from the transaction (if available)
+		var receivedAt *timestamppb.Timestamp
+		if utxo.UnconfirmedLastSeen != nil {
+			receivedAt = utxo.UnconfirmedLastSeen
+		} else if utxo.ConfirmedAtTime != nil {
+			receivedAt = utxo.ConfirmedAtTime
+		}
+
+		denialInfo, err := s.addDenialInfo(ctx, utxo, denials)
+		if err != nil {
+			return nil, fmt.Errorf("enforcer/wallet: could not add denial info: %w", err)
+		}
+
+		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
+			Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
+			Address:    utxo.Address.Value,
+			Label:      getLabel(utxo.Address.Value),
+			ValueSats:  utxo.ValueSats,
+			ReceivedAt: receivedAt,
+			IsChange:   utxo.IsInternal,
+			DenialInfo: denialInfo,
+		})
 	}
 
 	return connect.NewResponse(&pb.ListUnspentResponse{
 		Utxos: utxosWithInfo,
 	}), nil
+}
+
+func (s *Server) addDenialInfo(ctx context.Context, utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) (*bitwindowdv1.DenialInfo, error) {
+	denialInfo, found := lo.Find(denials, func(d deniability.Denial) bool {
+		if d.TipVout == nil {
+			return d.TipTXID == utxo.Txid.Hex.Value
+		}
+
+		return d.TipTXID == utxo.Txid.Hex.Value && *d.TipVout == int32(utxo.Vout)
+	})
+
+	if !found {
+		return nil, nil
+	}
+
+	return s.denialToProto(ctx, denialInfo)
+}
+
+func (s *Server) denialToProto(ctx context.Context, d deniability.Denial) (*bitwindowdv1.DenialInfo, error) {
+	nextExecution, err := deniability.NextExecution(ctx, s.database, d)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get next execution")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	executions, err := deniability.ListExecutions(ctx, s.database, d.ID)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list executions")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	var cancelTime *timestamppb.Timestamp
+	if d.CancelledAt != nil {
+		cancelTime = timestamppb.New(*d.CancelledAt)
+	}
+
+	var nextExecutionTime *timestamppb.Timestamp
+	if nextExecution != nil {
+		nextExecutionTime = timestamppb.New(*nextExecution)
+	}
+
+	return &bitwindowdv1.DenialInfo{
+		Id:                d.ID,
+		NumHops:           d.NumHops,
+		DelaySeconds:      int32(d.DelayDuration.Seconds()),
+		CreateTime:        timestamppb.New(d.CreatedAt),
+		CancelTime:        cancelTime,
+		CancelReason:      d.CancelReason,
+		NextExecutionTime: nextExecutionTime,
+		Executions: lo.Map(executions, func(e deniability.ExecutedDenial, _ int) *bitwindowdv1.ExecutedDenial {
+			return &bitwindowdv1.ExecutedDenial{
+				Id:         e.ID,
+				DenialId:   e.DenialID,
+				FromTxid:   e.FromTxID,
+				FromVout:   uint32(e.FromVout),
+				ToTxid:     e.ToTxID,
+				CreateTime: timestamppb.New(e.CreatedAt),
+			}
+		}),
+		HopsCompleted: uint32(len(executions)),
+		IsActive:      d.CancelledAt == nil && len(executions) < int(d.NumHops),
+	}, nil
 }
 
 func (s *Server) getAddressFromOutpoint(ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient, txid string, vout int) (string, error) {

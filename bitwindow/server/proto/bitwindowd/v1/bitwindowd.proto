@@ -9,8 +9,7 @@ service BitwindowdService {
   rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty);
 
   // Deniability operations
-  rpc CreateDenial(CreateDenialRequest) returns (CreateDenialResponse);
-  rpc ListDenials(google.protobuf.Empty) returns (ListDenialsResponse);
+  rpc CreateDenial(CreateDenialRequest) returns (google.protobuf.Empty);
   rpc CancelDenial(CancelDenialRequest) returns (google.protobuf.Empty);
 
   // Wallet operations
@@ -31,30 +30,14 @@ message CreateDenialRequest {
   int32 num_hops = 4;
 }
 
-message CreateDenialResponse {
-  DeniabilityInfo deniability = 1;
-}
-
-message ListDenialsResponse {
-  repeated DeniabilityUTXO utxos = 1;
-}
-
-message DeniabilityUTXO {
-  string txid = 1;
-  uint32 vout = 2;
-  uint64 value_sats = 3;
-  bool is_internal = 4;
-  optional DeniabilityInfo deniability = 5;
-}
-
-message DeniabilityInfo {
+message DenialInfo {
   int64 id = 1;
   int32 num_hops = 2;
   int32 delay_seconds = 3;
   google.protobuf.Timestamp create_time = 4;
   optional google.protobuf.Timestamp cancel_time = 5;
   optional string cancel_reason = 6;
-  optional google.protobuf.Timestamp next_execution = 7;
+  optional google.protobuf.Timestamp next_execution_time = 7;
   repeated ExecutedDenial executions = 8;
   uint32 hops_completed = 9;
   bool is_active = 10;
