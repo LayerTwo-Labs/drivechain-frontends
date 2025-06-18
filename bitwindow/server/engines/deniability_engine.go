@@ -154,21 +154,13 @@ func (e *DeniabilityEngine) handleAbortedDenials(ctx context.Context, utxos []*p
 	return nil
 }
 
-func (e *DeniabilityEngine) findDenialUTXOs(
-	utxos []*pb.ListUnspentOutputsResponse_Output,
-	txid string,
-) []*pb.ListUnspentOutputsResponse_Output {
-	var matchingUTXOs []*pb.ListUnspentOutputsResponse_Output
+func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
+	var tipUTXOs []*pb.ListUnspentOutputsResponse_Output
 	for _, utxo := range utxos {
-		if utxo.Txid.Hex.Value == txid {
-			matchingUTXOs = append(matchingUTXOs, utxo)
+		if utxo.Txid.Hex.Value == denial.TipTXID {
+			tipUTXOs = append(tipUTXOs, utxo)
 		}
 	}
-	return matchingUTXOs
-}
-
-func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
-	tipUTXOs := e.findDenialUTXOs(utxos, denial.TipTXID)
 	if len(tipUTXOs) == 0 {
 		return fmt.Errorf("no matching utxos found")
 	}
@@ -256,7 +248,44 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		Str("to_txid", sendResp.Msg.Txid.Hex.Value).
 		Msg("executed denial split")
 
+	if err := e.waitForTXToAppear(ctx, sendResp.Msg.Txid.Hex.Value); err != nil {
+		return fmt.Errorf("could not wait for tx to appear: %w", err)
+	}
+
 	return nil
+}
+
+// the enforcer wallet takes a few seconds/minutes to add the sent transaction
+// to the wallet utxos. This function waits for the passed txid to appear. Waits
+// forever, and only returns an error if the enforcer returns an error
+func (e *DeniabilityEngine) waitForTXToAppear(
+	ctx context.Context,
+	txid string,
+) error {
+	for {
+		select {
+		case <-ctx.Done():
+			panic("findNewUTXOs loop exited due to context cancellation")
+		default:
+			utxos, err := e.listWalletUTXOs(ctx)
+			if err != nil {
+				return fmt.Errorf("could not list utxos: %w", err)
+			}
+
+			foundUTXO := false
+			for _, utxo := range utxos {
+				if utxo.Txid.Hex.Value == txid {
+					foundUTXO = true
+				}
+			}
+
+			if foundUTXO {
+				return nil
+			}
+
+			time.Sleep(time.Second)
+		}
+	}
 }
 
 func (e *DeniabilityEngine) chooseDenialStrategy(

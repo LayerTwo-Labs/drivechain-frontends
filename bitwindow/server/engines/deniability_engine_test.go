@@ -29,20 +29,17 @@ func TestDeniabilityEngine(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-
-	walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
-		return mockWallet, nil
-	})
-	bitcoindService := service.New("bitcoind", func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
-		return mockBitcoind, nil
-	})
-
-	engine := engines.NewDeniability(walletService, bitcoindService, db)
-
 	t.Run("handleAbortedDenials", func(t *testing.T) {
 		t.Parallel()
+		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
+			return mockWallet, nil
+		})
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(walletService, bitcoindService, db)
 
 		// Create a denial
 		denial, err := deniability.Create(ctx, db, "test-txid", 0, 1*time.Hour, 3)
@@ -51,6 +48,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		// Mock wallet response with no matching UTXO
 		mockWallet.EXPECT().
 			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+			Times(1).
 			Return(&connect.Response[pb.ListUnspentOutputsResponse]{
 				Msg: &pb.ListUnspentOutputsResponse{
 					Outputs: []*pb.ListUnspentOutputsResponse_Output{
@@ -79,6 +77,15 @@ func TestDeniabilityEngine(t *testing.T) {
 
 	t.Run("executeDenial", func(t *testing.T) {
 		t.Parallel()
+		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
+			return mockWallet, nil
+		})
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(walletService, bitcoindService, db)
 
 		// Create a denial
 		denial, err := deniability.Create(ctx, db, "test-txid", 0, 1*time.Hour, 3)
@@ -95,7 +102,7 @@ func TestDeniabilityEngine(t *testing.T) {
 								Hex: &wrapperspb.StringValue{Value: "test-txid"},
 							},
 							Vout:       0,
-							ValueSats:  1000000, // 0.01 BTC
+							ValueSats:  1000000,
 							IsInternal: false,
 						},
 					},
@@ -116,6 +123,25 @@ func TestDeniabilityEngine(t *testing.T) {
 				Msg: &pb.SendTransactionResponse{
 					Txid: &commonv1.ReverseHex{
 						Hex: &wrapperspb.StringValue{Value: "new-txid"},
+					},
+				},
+			}, nil)
+
+		// Mock the waitForTXToAppear loop - it will keep calling ListUnspentOutputs until it finds the new txid
+		mockWallet.EXPECT().
+			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[pb.ListUnspentOutputsResponse]{
+				Msg: &pb.ListUnspentOutputsResponse{
+					Outputs: []*pb.ListUnspentOutputsResponse_Output{
+						{
+							Txid: &commonv1.ReverseHex{
+								Hex: &wrapperspb.StringValue{Value: "new-txid"},
+							},
+							Vout:       0,
+							ValueSats:  500000,
+							IsInternal: false,
+						},
 					},
 				},
 			}, nil)
@@ -141,6 +167,15 @@ func TestDeniabilityEngine(t *testing.T) {
 
 	t.Run("processUTXO with insufficient amount", func(t *testing.T) {
 		t.Parallel()
+		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
+			return mockWallet, nil
+		})
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(walletService, bitcoindService, db)
 
 		// Create a denial
 		denial, err := deniability.Create(ctx, db, "test-txid", 0, 1*time.Hour, 3)
