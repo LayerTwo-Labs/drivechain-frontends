@@ -113,212 +113,8 @@ class CreateDenialRequest extends $pb.GeneratedMessage {
   void clearNumHops() => clearField(4);
 }
 
-class CreateDenialResponse extends $pb.GeneratedMessage {
-  factory CreateDenialResponse({
-    DeniabilityInfo? deniability,
-  }) {
-    final $result = create();
-    if (deniability != null) {
-      $result.deniability = deniability;
-    }
-    return $result;
-  }
-  CreateDenialResponse._() : super();
-  factory CreateDenialResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateDenialResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateDenialResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..aOM<DeniabilityInfo>(1, _omitFieldNames ? '' : 'deniability', subBuilder: DeniabilityInfo.create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  CreateDenialResponse clone() => CreateDenialResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateDenialResponse copyWith(void Function(CreateDenialResponse) updates) => super.copyWith((message) => updates(message as CreateDenialResponse)) as CreateDenialResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static CreateDenialResponse create() => CreateDenialResponse._();
-  CreateDenialResponse createEmptyInstance() => create();
-  static $pb.PbList<CreateDenialResponse> createRepeated() => $pb.PbList<CreateDenialResponse>();
-  @$core.pragma('dart2js:noInline')
-  static CreateDenialResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateDenialResponse>(create);
-  static CreateDenialResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  DeniabilityInfo get deniability => $_getN(0);
-  @$pb.TagNumber(1)
-  set deniability(DeniabilityInfo v) { setField(1, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasDeniability() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearDeniability() => clearField(1);
-  @$pb.TagNumber(1)
-  DeniabilityInfo ensureDeniability() => $_ensure(0);
-}
-
-class ListDenialsResponse extends $pb.GeneratedMessage {
-  factory ListDenialsResponse({
-    $core.Iterable<DeniabilityUTXO>? utxos,
-  }) {
-    final $result = create();
-    if (utxos != null) {
-      $result.utxos.addAll(utxos);
-    }
-    return $result;
-  }
-  ListDenialsResponse._() : super();
-  factory ListDenialsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListDenialsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListDenialsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..pc<DeniabilityUTXO>(1, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: DeniabilityUTXO.create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListDenialsResponse clone() => ListDenialsResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListDenialsResponse copyWith(void Function(ListDenialsResponse) updates) => super.copyWith((message) => updates(message as ListDenialsResponse)) as ListDenialsResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static ListDenialsResponse create() => ListDenialsResponse._();
-  ListDenialsResponse createEmptyInstance() => create();
-  static $pb.PbList<ListDenialsResponse> createRepeated() => $pb.PbList<ListDenialsResponse>();
-  @$core.pragma('dart2js:noInline')
-  static ListDenialsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListDenialsResponse>(create);
-  static ListDenialsResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.List<DeniabilityUTXO> get utxos => $_getList(0);
-}
-
-class DeniabilityUTXO extends $pb.GeneratedMessage {
-  factory DeniabilityUTXO({
-    $core.String? txid,
-    $core.int? vout,
-    $fixnum.Int64? valueSats,
-    $core.bool? isInternal,
-    DeniabilityInfo? deniability,
-  }) {
-    final $result = create();
-    if (txid != null) {
-      $result.txid = txid;
-    }
-    if (vout != null) {
-      $result.vout = vout;
-    }
-    if (valueSats != null) {
-      $result.valueSats = valueSats;
-    }
-    if (isInternal != null) {
-      $result.isInternal = isInternal;
-    }
-    if (deniability != null) {
-      $result.deniability = deniability;
-    }
-    return $result;
-  }
-  DeniabilityUTXO._() : super();
-  factory DeniabilityUTXO.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DeniabilityUTXO.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeniabilityUTXO', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
-    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOB(4, _omitFieldNames ? '' : 'isInternal')
-    ..aOM<DeniabilityInfo>(5, _omitFieldNames ? '' : 'deniability', subBuilder: DeniabilityInfo.create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  DeniabilityUTXO clone() => DeniabilityUTXO()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  DeniabilityUTXO copyWith(void Function(DeniabilityUTXO) updates) => super.copyWith((message) => updates(message as DeniabilityUTXO)) as DeniabilityUTXO;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static DeniabilityUTXO create() => DeniabilityUTXO._();
-  DeniabilityUTXO createEmptyInstance() => create();
-  static $pb.PbList<DeniabilityUTXO> createRepeated() => $pb.PbList<DeniabilityUTXO>();
-  @$core.pragma('dart2js:noInline')
-  static DeniabilityUTXO getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeniabilityUTXO>(create);
-  static DeniabilityUTXO? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get txid => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasTxid() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.int get vout => $_getIZ(1);
-  @$pb.TagNumber(2)
-  set vout($core.int v) { $_setUnsignedInt32(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasVout() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearVout() => clearField(2);
-
-  @$pb.TagNumber(3)
-  $fixnum.Int64 get valueSats => $_getI64(2);
-  @$pb.TagNumber(3)
-  set valueSats($fixnum.Int64 v) { $_setInt64(2, v); }
-  @$pb.TagNumber(3)
-  $core.bool hasValueSats() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearValueSats() => clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.bool get isInternal => $_getBF(3);
-  @$pb.TagNumber(4)
-  set isInternal($core.bool v) { $_setBool(3, v); }
-  @$pb.TagNumber(4)
-  $core.bool hasIsInternal() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearIsInternal() => clearField(4);
-
-  @$pb.TagNumber(5)
-  DeniabilityInfo get deniability => $_getN(4);
-  @$pb.TagNumber(5)
-  set deniability(DeniabilityInfo v) { setField(5, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasDeniability() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearDeniability() => clearField(5);
-  @$pb.TagNumber(5)
-  DeniabilityInfo ensureDeniability() => $_ensure(4);
-}
-
-class DeniabilityInfo extends $pb.GeneratedMessage {
-  factory DeniabilityInfo({
+class DenialInfo extends $pb.GeneratedMessage {
+  factory DenialInfo({
     $fixnum.Int64? id,
     $core.int? numHops,
     $core.int? delaySeconds,
@@ -363,11 +159,11 @@ class DeniabilityInfo extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  DeniabilityInfo._() : super();
-  factory DeniabilityInfo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DeniabilityInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  DenialInfo._() : super();
+  factory DenialInfo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DenialInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeniabilityInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DenialInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'id')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'numHops', $pb.PbFieldType.O3)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'delaySeconds', $pb.PbFieldType.O3)
@@ -385,22 +181,22 @@ class DeniabilityInfo extends $pb.GeneratedMessage {
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
   'Will be removed in next major version')
-  DeniabilityInfo clone() => DeniabilityInfo()..mergeFromMessage(this);
+  DenialInfo clone() => DenialInfo()..mergeFromMessage(this);
   @$core.Deprecated(
   'Using this can add significant overhead to your binary. '
   'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
   'Will be removed in next major version')
-  DeniabilityInfo copyWith(void Function(DeniabilityInfo) updates) => super.copyWith((message) => updates(message as DeniabilityInfo)) as DeniabilityInfo;
+  DenialInfo copyWith(void Function(DenialInfo) updates) => super.copyWith((message) => updates(message as DenialInfo)) as DenialInfo;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static DeniabilityInfo create() => DeniabilityInfo._();
-  DeniabilityInfo createEmptyInstance() => create();
-  static $pb.PbList<DeniabilityInfo> createRepeated() => $pb.PbList<DeniabilityInfo>();
+  static DenialInfo create() => DenialInfo._();
+  DenialInfo createEmptyInstance() => create();
+  static $pb.PbList<DenialInfo> createRepeated() => $pb.PbList<DenialInfo>();
   @$core.pragma('dart2js:noInline')
-  static DeniabilityInfo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeniabilityInfo>(create);
-  static DeniabilityInfo? _defaultInstance;
+  static DenialInfo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DenialInfo>(create);
+  static DenialInfo? _defaultInstance;
 
   @$pb.TagNumber(1)
   $fixnum.Int64 get id => $_getI64(0);
@@ -1270,11 +1066,8 @@ class BitwindowdServiceApi {
   $async.Future<$1.Empty> stop($pb.ClientContext? ctx, $1.Empty request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'Stop', request, $1.Empty())
   ;
-  $async.Future<CreateDenialResponse> createDenial($pb.ClientContext? ctx, CreateDenialRequest request) =>
-    _client.invoke<CreateDenialResponse>(ctx, 'BitwindowdService', 'CreateDenial', request, CreateDenialResponse())
-  ;
-  $async.Future<ListDenialsResponse> listDenials($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<ListDenialsResponse>(ctx, 'BitwindowdService', 'ListDenials', request, ListDenialsResponse())
+  $async.Future<$1.Empty> createDenial($pb.ClientContext? ctx, CreateDenialRequest request) =>
+    _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CreateDenial', request, $1.Empty())
   ;
   $async.Future<$1.Empty> cancelDenial($pb.ClientContext? ctx, CancelDenialRequest request) =>
     _client.invoke<$1.Empty>(ctx, 'BitwindowdService', 'CancelDenial', request, $1.Empty())

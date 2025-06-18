@@ -23,8 +23,7 @@ export 'bitwindowd.pb.dart';
 
 abstract class BitwindowdServiceBase extends $pb.GeneratedService {
   $async.Future<$1.Empty> stop($pb.ServerContext ctx, $1.Empty request);
-  $async.Future<$3.CreateDenialResponse> createDenial($pb.ServerContext ctx, $3.CreateDenialRequest request);
-  $async.Future<$3.ListDenialsResponse> listDenials($pb.ServerContext ctx, $1.Empty request);
+  $async.Future<$1.Empty> createDenial($pb.ServerContext ctx, $3.CreateDenialRequest request);
   $async.Future<$1.Empty> cancelDenial($pb.ServerContext ctx, $3.CancelDenialRequest request);
   $async.Future<$3.CreateAddressBookEntryResponse> createAddressBookEntry($pb.ServerContext ctx, $3.CreateAddressBookEntryRequest request);
   $async.Future<$3.ListAddressBookResponse> listAddressBook($pb.ServerContext ctx, $1.Empty request);
@@ -37,7 +36,6 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'Stop': return $1.Empty();
       case 'CreateDenial': return $3.CreateDenialRequest();
-      case 'ListDenials': return $1.Empty();
       case 'CancelDenial': return $3.CancelDenialRequest();
       case 'CreateAddressBookEntry': return $3.CreateAddressBookEntryRequest();
       case 'ListAddressBook': return $1.Empty();
@@ -53,7 +51,6 @@ abstract class BitwindowdServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'Stop': return this.stop(ctx, request as $1.Empty);
       case 'CreateDenial': return this.createDenial(ctx, request as $3.CreateDenialRequest);
-      case 'ListDenials': return this.listDenials(ctx, request as $1.Empty);
       case 'CancelDenial': return this.cancelDenial(ctx, request as $3.CancelDenialRequest);
       case 'CreateAddressBookEntry': return this.createAddressBookEntry(ctx, request as $3.CreateAddressBookEntryRequest);
       case 'ListAddressBook': return this.listAddressBook(ctx, request as $1.Empty);

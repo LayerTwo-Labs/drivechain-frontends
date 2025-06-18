@@ -13,6 +13,7 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+import '../../bitwindowd/v1/bitwindowd.pbjson.dart' as $3;
 import '../../google/protobuf/empty.pbjson.dart' as $1;
 import '../../google/protobuf/timestamp.pbjson.dart' as $0;
 
@@ -111,18 +112,24 @@ const UnspentOutput$json = {
     {'1': 'output', '3': 1, '4': 1, '5': 9, '10': 'output'},
     {'1': 'address', '3': 2, '4': 1, '5': 9, '10': 'address'},
     {'1': 'label', '3': 3, '4': 1, '5': 9, '10': 'label'},
-    {'1': 'value', '3': 4, '4': 1, '5': 4, '10': 'value'},
+    {'1': 'value_sats', '3': 4, '4': 1, '5': 4, '10': 'valueSats'},
     {'1': 'is_change', '3': 5, '4': 1, '5': 8, '10': 'isChange'},
     {'1': 'received_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'receivedAt'},
+    {'1': 'denial_info', '3': 7, '4': 1, '5': 11, '6': '.bitwindowd.v1.DenialInfo', '9': 0, '10': 'denialInfo', '17': true},
+  ],
+  '8': [
+    {'1': '_denial_info'},
   ],
 };
 
 /// Descriptor for `UnspentOutput`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
     'Cg1VbnNwZW50T3V0cHV0EhYKBm91dHB1dBgBIAEoCVIGb3V0cHV0EhgKB2FkZHJlc3MYAiABKA'
-    'lSB2FkZHJlc3MSFAoFbGFiZWwYAyABKAlSBWxhYmVsEhQKBXZhbHVlGAQgASgEUgV2YWx1ZRIb'
-    'Cglpc19jaGFuZ2UYBSABKAhSCGlzQ2hhbmdlEjsKC3JlY2VpdmVkX2F0GAYgASgLMhouZ29vZ2'
-    'xlLnByb3RvYnVmLlRpbWVzdGFtcFIKcmVjZWl2ZWRBdA==');
+    'lSB2FkZHJlc3MSFAoFbGFiZWwYAyABKAlSBWxhYmVsEh0KCnZhbHVlX3NhdHMYBCABKARSCXZh'
+    'bHVlU2F0cxIbCglpc19jaGFuZ2UYBSABKAhSCGlzQ2hhbmdlEjsKC3JlY2VpdmVkX2F0GAYgAS'
+    'gLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIKcmVjZWl2ZWRBdBI/CgtkZW5pYWxfaW5m'
+    'bxgHIAEoCzIZLmJpdHdpbmRvd2QudjEuRGVuaWFsSW5mb0gAUgpkZW5pYWxJbmZviAEBQg4KDF'
+    '9kZW5pYWxfaW5mbw==');
 
 @$core.Deprecated('Use listUnspentResponseDescriptor instead')
 const ListUnspentResponse$json = {
@@ -373,6 +380,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.SendTransactionRequest.DestinationsEntry': SendTransactionRequest_DestinationsEntry$json,
   '.wallet.v1.UnspentOutput': UnspentOutput$json,
   '.google.protobuf.Timestamp': $0.Timestamp$json,
+  '.bitwindowd.v1.DenialInfo': $3.DenialInfo$json,
+  '.bitwindowd.v1.ExecutedDenial': $3.ExecutedDenial$json,
   '.wallet.v1.SendTransactionResponse': SendTransactionResponse$json,
   '.google.protobuf.Empty': $1.Empty$json,
   '.wallet.v1.GetBalanceResponse': GetBalanceResponse$json,

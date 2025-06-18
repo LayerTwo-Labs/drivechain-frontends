@@ -92,11 +92,6 @@ class MockBitwindowdAPI implements BitwindowAPI {
   }
 
   @override
-  Future<List<DeniabilityUTXO>> listDenials() {
-    return Future.value([]);
-  }
-
-  @override
   Future<List<AddressBookEntry>> listAddressBook() {
     return Future.value([]);
   }

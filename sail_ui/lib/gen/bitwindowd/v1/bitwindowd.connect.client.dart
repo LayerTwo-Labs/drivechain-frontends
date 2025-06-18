@@ -27,7 +27,7 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
   }
 
   /// Deniability operations
-  Future<bitwindowdv1bitwindowd.CreateDenialResponse> createDenial(
+  Future<googleprotobufempty.Empty> createDenial(
     bitwindowdv1bitwindowd.CreateDenialRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
@@ -36,23 +36,6 @@ extension type BitwindowdServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.BitwindowdService.createDenial,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Future<bitwindowdv1bitwindowd.ListDenialsResponse> listDenials(
-    googleprotobufempty.Empty input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BitwindowdService.listDenials,
       input,
       signal: signal,
       headers: headers,

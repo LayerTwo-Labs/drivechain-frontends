@@ -1,5 +1,4 @@
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
-import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -46,7 +45,6 @@ class _UTXOTableState extends State<UTXOTable> {
   String sortColumn = 'date';
   bool sortAscending = true;
   List<UnspentOutput> sortedEntries = [];
-  final DenialProvider denialProvider = GetIt.I.get<DenialProvider>();
 
   @override
   void initState() {
@@ -102,8 +100,8 @@ class _UTXOTableState extends State<UTXOTable> {
           bValue = b.label;
           break;
         case 'value':
-          aValue = a.value;
-          bValue = b.value;
+          aValue = a.valueSats;
+          bValue = b.valueSats;
           break;
       }
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
@@ -111,14 +109,7 @@ class _UTXOTableState extends State<UTXOTable> {
   }
 
   bool isDenied(UnspentOutput utxo) {
-    // Check if this UTXO has any deniability status
-    return denialProvider.utxos.any(
-      (deniabilityUTXO) =>
-          deniabilityUTXO.deniability.hopsCompleted == deniabilityUTXO.deniability.numHops &&
-          deniabilityUTXO.deniability.hopsCompleted > 1 &&
-          deniabilityUTXO.txid == utxo.output.split(':').first &&
-          deniabilityUTXO.vout == int.parse(utxo.output.split(':').last),
-    );
+    return utxo.hasDenialInfo() && !utxo.denialInfo.hasNextExecution() && utxo.denialInfo.numHops > 1;
   }
 
   @override
@@ -135,7 +126,7 @@ class _UTXOTableState extends State<UTXOTable> {
               child: SailTable(
                 rowBackgroundColor: (index) {
                   final utxo = sortedEntries[index];
-                  return isDenied(utxo) ? Colors.red.withValues(alpha: 0.1) : null;
+                  return isDenied(utxo) ? Colors.green.withValues(alpha: 0.1) : null;
                 },
                 getRowId: (index) => sortedEntries[index].output.split(':').first,
                 headerBuilder: (context) => [
@@ -149,7 +140,7 @@ class _UTXOTableState extends State<UTXOTable> {
                 rowBuilder: (context, row, selected) {
                   final utxo = sortedEntries[row];
                   final formattedAmount = formatBitcoin(
-                    satoshiToBTC(utxo.value.toInt()),
+                    satoshiToBTC(utxo.valueSats.toInt()),
                     symbol: '',
                   );
                   final isUtxoDenied = isDenied(utxo);

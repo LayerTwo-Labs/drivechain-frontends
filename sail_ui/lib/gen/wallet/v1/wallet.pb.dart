@@ -15,6 +15,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import '../../bitwindowd/v1/bitwindowd.pb.dart' as $3;
 import '../../google/protobuf/empty.pb.dart' as $1;
 import '../../google/protobuf/timestamp.pb.dart' as $0;
 
@@ -360,9 +361,10 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.String? output,
     $core.String? address,
     $core.String? label,
-    $fixnum.Int64? value,
+    $fixnum.Int64? valueSats,
     $core.bool? isChange,
     $0.Timestamp? receivedAt,
+    $3.DenialInfo? denialInfo,
   }) {
     final $result = create();
     if (output != null) {
@@ -374,14 +376,17 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (label != null) {
       $result.label = label;
     }
-    if (value != null) {
-      $result.value = value;
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
     }
     if (isChange != null) {
       $result.isChange = isChange;
     }
     if (receivedAt != null) {
       $result.receivedAt = receivedAt;
+    }
+    if (denialInfo != null) {
+      $result.denialInfo = denialInfo;
     }
     return $result;
   }
@@ -393,9 +398,10 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'output')
     ..aOS(2, _omitFieldNames ? '' : 'address')
     ..aOS(3, _omitFieldNames ? '' : 'label')
-    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'value', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'valueSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(5, _omitFieldNames ? '' : 'isChange')
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
+    ..aOM<$3.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $3.DenialInfo.create)
     ..hasRequiredFields = false
   ;
 
@@ -452,13 +458,13 @@ class UnspentOutput extends $pb.GeneratedMessage {
 
   /// The value of the output, in satoshis.
   @$pb.TagNumber(4)
-  $fixnum.Int64 get value => $_getI64(3);
+  $fixnum.Int64 get valueSats => $_getI64(3);
   @$pb.TagNumber(4)
-  set value($fixnum.Int64 v) { $_setInt64(3, v); }
+  set valueSats($fixnum.Int64 v) { $_setInt64(3, v); }
   @$pb.TagNumber(4)
-  $core.bool hasValue() => $_has(3);
+  $core.bool hasValueSats() => $_has(3);
   @$pb.TagNumber(4)
-  void clearValue() => clearField(4);
+  void clearValueSats() => clearField(4);
 
   /// Whether this is a change output.
   @$pb.TagNumber(5)
@@ -481,6 +487,18 @@ class UnspentOutput extends $pb.GeneratedMessage {
   void clearReceivedAt() => clearField(6);
   @$pb.TagNumber(6)
   $0.Timestamp ensureReceivedAt() => $_ensure(5);
+
+  /// If set, this utxo is part of a denial chain
+  @$pb.TagNumber(7)
+  $3.DenialInfo get denialInfo => $_getN(6);
+  @$pb.TagNumber(7)
+  set denialInfo($3.DenialInfo v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasDenialInfo() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDenialInfo() => clearField(7);
+  @$pb.TagNumber(7)
+  $3.DenialInfo ensureDenialInfo() => $_ensure(6);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {

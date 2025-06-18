@@ -1,16 +1,14 @@
-import 'package:bitwindow/providers/denial_provider.dart';
+import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DenialDialog extends StatefulWidget {
-  final String txid;
-  final int vout;
+  final String output;
 
   const DenialDialog({
     super.key,
-    required this.txid,
-    required this.vout,
+    required this.output,
   });
 
   @override
@@ -19,7 +17,7 @@ class DenialDialog extends StatefulWidget {
 
 class _DenialDialogState extends State<DenialDialog> {
   final BitwindowRPC api = GetIt.I.get<BitwindowRPC>();
-  final DenialProvider denialProvider = GetIt.I.get<DenialProvider>();
+  final TransactionProvider transactionProvider = GetIt.I.get<TransactionProvider>();
 
   final hopsController = TextEditingController(text: '3');
   final minutesController = TextEditingController(text: '2');
@@ -162,12 +160,12 @@ class _DenialDialogState extends State<DenialDialog> {
                       onPressed: () async {
                         final hops = int.tryParse(hopsController.text) ?? 3;
                         await api.bitwindowd.createDenial(
-                          txid: widget.txid,
-                          vout: widget.vout,
+                          txid: widget.output.split(':').first,
+                          vout: int.parse(widget.output.split(':').last),
                           numHops: hops,
                           delaySeconds: getTotalSeconds(),
                         );
-                        await denialProvider.fetch();
+                        await transactionProvider.fetch();
                         if (context.mounted) Navigator.pop(context);
                       },
                     ),
