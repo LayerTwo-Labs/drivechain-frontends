@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -22,7 +23,7 @@ type Service[T any] struct {
 	connector Connector[T]
 
 	// For checking if service is connected
-	connected bool
+	connected atomic.Bool
 	// Channel to send connection status changes
 	connectedCh chan bool
 }
@@ -38,13 +39,15 @@ func New[T any](name string, connector Connector[T]) *Service[T] {
 
 // Get returns the current client, attempting to connect if not connected
 func (s *Service[T]) Get(ctx context.Context) (T, error) {
-	s.mu.RLock()
-	if s.connected {
+	if s.connected.Load() {
+		zerolog.Ctx(ctx).Trace().
+			Msgf("get service: %q is already connected", s.name)
 		client := s.client
-		s.mu.RUnlock()
 		return client, nil
 	}
-	s.mu.RUnlock()
+
+	zerolog.Ctx(ctx).Info().
+		Msgf("get service: %q is not connected, connecting...", s.name)
 
 	return s.Connect(ctx)
 }
@@ -56,21 +59,20 @@ func (s *Service[T]) Connect(ctx context.Context) (T, error) {
 		s.setConnected(ctx, false)
 		var zero T
 		return zero, connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s does not accept connections", s.name))
-	} else {
-		s.mu.Lock()
-		s.client = client
-		s.mu.Unlock()
-		s.setConnected(ctx, true)
-		return client, nil
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.client = client
+	s.setConnected(ctx, true)
+	return client, nil
 
 }
 
 // IsConnected returns whether the service is currently connected
 func (s *Service[T]) IsConnected() bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.connected
+	return s.connected.Load()
 }
 
 // StartReconnectLoop starts a goroutine that attempts to connect periodically,
@@ -85,18 +87,18 @@ func (s *Service[T]) StartReconnectLoop(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				_, _ = s.Connect(ctx)
+				if _, err := s.Connect(ctx); err != nil {
+					zerolog.Ctx(ctx).Err(err).
+						Msgf("reconnect loop: could not connect to %q", s.name)
+				}
 			}
 		}
 	}()
 }
 
 func (s *Service[T]) setConnected(ctx context.Context, val bool) {
-	s.mu.Lock()
-	changed := s.connected != val
-	s.connected = val
-	s.mu.Unlock()
-	if changed {
+	old := s.connected.Swap(val)
+	if old != val {
 		zerolog.Ctx(ctx).Info().
 			Msgf("%s changed connected to: %t", s.name, val)
 		select {
