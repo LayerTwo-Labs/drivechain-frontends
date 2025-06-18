@@ -11,7 +11,15 @@ echo "Building bitwindowd in $server_cwd"
 
 # Build bitwindowd
 echo "Building bitwindowd"
-just build-go-x86
+
+# force building for x86_64 on macOS, so both new and old macs 
+# work
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "Forcing amd64 GOARCH"
+    export GOARCH=amd64
+fi
+
+just build-go
 
 # Move the necessary binaries to the assets directory
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
