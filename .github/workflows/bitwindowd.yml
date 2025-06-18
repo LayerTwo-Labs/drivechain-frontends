@@ -4,8 +4,8 @@ on:
   pull_request:
     branches: [master]
     paths:
-      - 'bitwindow/server/**'
-      - '.github/workflows/**'
+      - "bitwindow/server/**"
+      - ".github/workflows/**"
 
 defaults:
   run:
@@ -84,7 +84,13 @@ jobs:
 
       - name: Build bitwindowd
         run: |
+          # build
           just build-go
+
+          # verify we're able to start the binary
+          ./bin/bitwindowd --help
+
+          # move it to the correct location
           mv bin/bitwindowd bin/bitwindowd-${{ runner.os }}
       - uses: actions/upload-artifact@v4
         with:
