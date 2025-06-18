@@ -78,14 +78,13 @@ func EnforcerCrypto(ctx context.Context, url string) (
 		connect.WithGRPC(),
 	)
 
-	_, err := client.Ripemd160(ctx, connect.NewRequest(&cryptov1.Ripemd160Request{
+	if _, err := client.Ripemd160(ctx, connect.NewRequest(&cryptov1.Ripemd160Request{
 		Msg: &commonv1.Hex{
 			Hex: &wrapperspb.StringValue{
-				Value: "test",
+				Value: "deadbeef", // make sure this is valid hex
 			},
 		},
-	}))
-	if err != nil {
+	})); err != nil {
 		return nil, fmt.Errorf("ripemd160: %w", err)
 	}
 
