@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package wallet.v1;
 
+import "bitwindowd/v1/bitwindowd.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -72,11 +73,13 @@ message UnspentOutput {
   // What label (if any) the address received to is labeled with.
   string label = 3;
   // The value of the output, in satoshis.
-  uint64 value = 4;
+  uint64 value_sats = 4;
   // Whether this is a change output.
   bool is_change = 5;
   // Timestamp of the utxo.
   google.protobuf.Timestamp received_at = 6;
+  // If set, this utxo is part of a denial chain
+  optional bitwindowd.v1.DenialInfo denial_info = 7;
 }
 
 message ListUnspentResponse {

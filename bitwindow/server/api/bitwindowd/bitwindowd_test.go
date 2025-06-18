@@ -10,6 +10,7 @@ import (
 	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -111,69 +112,6 @@ func TestService_CreateDenial(t *testing.T) {
 	t.Run("utxo found", func(t *testing.T) {
 		t.Parallel()
 
-		res, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
-			Txid:         "abc123",
-			Vout:         0,
-			DelaySeconds: 60,
-			NumHops:      1,
-		}))
-		require.NoError(t, err)
-		assert.NotNil(t, res.Msg.Deniability)
-
-		resp, err := cli.ListDenials(context.Background(), connect.NewRequest(&emptypb.Empty{}))
-		require.NoError(t, err)
-		require.Len(t, resp.Msg.Utxos, 1)
-		assert.NotNil(t, resp.Msg.Utxos[0].Deniability)
-	})
-}
-
-func TestService_ListDenials(t *testing.T) {
-	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-
-	mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-	mockWallet.EXPECT().
-		ListUnspentOutputs(gomock.Any(), gomock.Any()).
-		AnyTimes().
-		Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-			Msg: &mainchainv1.ListUnspentOutputsResponse{
-				Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-					{
-						Txid: &commonv1.ReverseHex{
-							Hex: &wrapperspb.StringValue{
-								Value: "abc123",
-							},
-						},
-						Vout:        0,
-						ValueSats:   1000000,
-						IsInternal:  false,
-						IsConfirmed: true,
-					},
-				},
-			},
-		}, nil)
-
-	cli := v1connect.NewBitwindowdServiceClient(
-		apitests.API(
-			t,
-			database.Test(t),
-			apitests.WithWallet(mockWallet),
-		))
-
-	t.Run("empty list", func(t *testing.T) {
-		t.Parallel()
-
-		resp, err := cli.ListDenials(context.Background(), connect.NewRequest(&emptypb.Empty{}))
-		require.NoError(t, err)
-		require.Len(t, resp.Msg.Utxos, 1)
-		assert.Nil(t, resp.Msg.Utxos[0].Deniability)
-	})
-
-	t.Run("with denials", func(t *testing.T) {
-		t.Parallel()
-
-		// Create a denial first
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
 			Txid:         "abc123",
 			Vout:         0,
@@ -182,9 +120,13 @@ func TestService_ListDenials(t *testing.T) {
 		}))
 		require.NoError(t, err)
 
-		resp, err := cli.ListDenials(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		denials, err := deniability.List(context.Background(), database)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Msg.Utxos)
+		assert.Len(t, denials, 1)
+		assert.Equal(t, "abc123", denials[0].TipTXID)
+		assert.Equal(t, int32(0), *denials[0].TipVout)
+		assert.Equal(t, int32(60), denials[0].DelayDuration.Seconds())
+		assert.Equal(t, int32(1), denials[0].NumHops)
 	})
 }
 
