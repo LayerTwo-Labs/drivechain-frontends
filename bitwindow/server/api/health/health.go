@@ -231,7 +231,9 @@ func (s *Server) getServiceStatuses(ctx context.Context) ([]*healthv1.CheckRespo
 			_, err := client.Ripemd160(ctx, connect.NewRequest(&cryptov1.Ripemd160Request{
 				Msg: &commonv1.Hex{
 					Hex: &wrapperspb.StringValue{
-						Value: "test",
+						// pass a valid hex string here, so that the
+						// server doesn't throw an error
+						Value: "deadbeef",
 					},
 				},
 			}))
