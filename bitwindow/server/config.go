@@ -19,7 +19,8 @@ type Config struct {
 
 	APIHost string `long:"api.host" env:"API_HOST" description:"public address for the connect server" default:"localhost:8080"`
 
-	LogPath string `long:"log.path" description:"Path to write logs to"`
+	LogPath  string `long:"log.path" description:"Path to write logs to"`
+	LogLevel string `long:"log.level" description:"Log level" default:"info" env:"LOG_LEVEL"`
 
 	GuiBootedMainchain bool `long:"gui-booted-mainchain" description:"Set to true if GUI booted this process. Used by this application to shutdown everything correctly."`
 	GuiBootedEnforcer  bool `long:"gui-booted-enforcer" description:"Set to true if GUI booted this process. Used by this application to shutdown everything correctly."`
