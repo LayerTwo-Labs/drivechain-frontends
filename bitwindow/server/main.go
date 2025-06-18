@@ -44,12 +44,10 @@ func main() {
 func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	conf, err := readConfig()
 	if err != nil {
-		if !flags.WroteHelp(err) {
-			// nolint:forbidigo
-			fmt.Println("could not read config", err)
-			zerolog.Ctx(ctx).Error().Err(err).Msg("read config")
+		if flags.WroteHelp(err) {
+			return nil
 		}
-		return err
+		return fmt.Errorf("read config: %w", err)
 	}
 
 	datadir, err := dir.GetDataDir()
