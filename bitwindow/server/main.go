@@ -52,8 +52,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 
 	datadir, err := dir.GetDataDir()
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("get data dir")
-		return err
+		return fmt.Errorf("get data dir: %w", err)
 	}
 	if conf.LogPath == "" {
 		conf.LogPath = filepath.Join(datadir, "server.log")
@@ -63,7 +62,13 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	if err != nil {
 		return fmt.Errorf("open log file: %w", err)
 	}
-	initLogger(logFile)
+
+	logLevel, err := zerolog.ParseLevel(conf.LogLevel)
+	if err != nil {
+		return fmt.Errorf("parse log level: %w", err)
+	}
+	// Take care not to use zerolog before this point
+	initLogger(logFile, logLevel)
 
 	// Now that the logger is initialized, we can use zerolog.Ctx(ctx) safely
 	log := zerolog.Ctx(ctx)
@@ -152,15 +157,23 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	return <-errs
 }
 
-func initLogger(logFile *os.File) {
+func initLogger(logFile *os.File, logLevel zerolog.Level) {
+	// Quirk: unless this is set, milliseconds are not included
+	// in any timestamp written by zerolog.
+	zerolog.TimeFieldFormat = time.RFC3339Nano
+
+	const timeFormat = time.DateTime + ".000"
 	// We want pretty printing to the file as well. This is not meant for
 	// centralized log ingestion, where JSON is crucial.
 	logWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
 		w.Out = logFile
 		w.NoColor = true // ANSI colors don't work well with file output.
+		w.TimeFormat = timeFormat
 	})
 	multiWriter := zerolog.MultiLevelWriter(
-		zerolog.NewConsoleWriter(),
+		zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+			w.TimeFormat = timeFormat
+		}),
 		logWriter,
 	)
 
@@ -168,9 +181,9 @@ func initLogger(logFile *os.File) {
 		With().
 		Timestamp().
 		Logger().
-		Level(zerolog.InfoLevel)
+		Level(logLevel)
+
 	zerolog.DefaultContextLogger = &logger
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 }
 
 func startCoreProxy(ctx context.Context, conf Config) (bitcoindv1alphaconnect.BitcoinServiceClient, error) {
