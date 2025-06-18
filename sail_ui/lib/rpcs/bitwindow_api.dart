@@ -321,7 +321,6 @@ abstract class BitwindowAPI {
   });
   Future<void> cancelDenial(Int64 id);
   Future<GetSyncInfoResponse> getSyncInfo();
-  Future<List<DeniabilityUTXO>> listDenials();
 
   // Address book methods here
   Future<List<AddressBookEntry>> listAddressBook();
@@ -370,12 +369,6 @@ class _BitwindowAPILive implements BitwindowAPI {
   Future<GetSyncInfoResponse> getSyncInfo() async {
     final response = await _client.getSyncInfo(Empty());
     return response;
-  }
-
-  @override
-  Future<List<DeniabilityUTXO>> listDenials() async {
-    final response = await _client.listDenials(Empty());
-    return response.utxos;
   }
 
   @override

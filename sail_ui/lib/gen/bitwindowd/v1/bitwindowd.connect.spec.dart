@@ -23,14 +23,7 @@ abstract final class BitwindowdService {
     '/$name/CreateDenial',
     connect.StreamType.unary,
     bitwindowdv1bitwindowd.CreateDenialRequest.new,
-    bitwindowdv1bitwindowd.CreateDenialResponse.new,
-  );
-
-  static const listDenials = connect.Spec(
-    '/$name/ListDenials',
-    connect.StreamType.unary,
     googleprotobufempty.Empty.new,
-    bitwindowdv1bitwindowd.ListDenialsResponse.new,
   );
 
   static const cancelDenial = connect.Spec(

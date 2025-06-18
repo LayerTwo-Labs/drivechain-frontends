@@ -10,7 +10,6 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
-import 'package:bitwindow/providers/denial_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/news_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
@@ -268,12 +267,6 @@ Future<void> initDependencies(
     () => txProvider,
   );
   unawaited(txProvider.fetch());
-
-  final denialProvider = DenialProvider();
-  GetIt.I.registerLazySingleton<DenialProvider>(
-    () => denialProvider,
-  );
-  unawaited(denialProvider.fetch());
 
   final newsProvider = NewsProvider();
   GetIt.I.registerLazySingleton<NewsProvider>(

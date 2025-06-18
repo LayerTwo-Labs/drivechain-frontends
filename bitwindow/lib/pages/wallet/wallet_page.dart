@@ -7,7 +7,7 @@ import 'package:bitwindow/pages/wallet/wallet_overview.dart';
 import 'package:bitwindow/pages/wallet/wallet_receive.dart';
 import 'package:bitwindow/pages/wallet/wallet_send.dart';
 import 'package:bitwindow/pages/wallet/wallet_utxos.dart';
-import 'package:bitwindow/providers/denial_provider.dart';
+import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -16,7 +16,7 @@ import 'package:stacked/stacked.dart';
 
 @RoutePage()
 class WalletPage extends StatelessWidget {
-  DenialProvider get denialProvider => GetIt.I.get<DenialProvider>();
+  TransactionProvider get transactionProvider => GetIt.I.get<TransactionProvider>();
   BitwindowRPC get bitwindowd => GetIt.I<BitwindowRPC>();
   static final GlobalKey<InlineTabBarState> tabKey = GlobalKey<InlineTabBarState>();
   static SendPageViewModel? _sendViewModel; // Static reference to view model
@@ -74,7 +74,7 @@ class WalletPage extends StatelessWidget {
                           ),
                   ),
                   onTap: () {
-                    denialProvider.fetch();
+                    transactionProvider.fetch();
                   },
                 ),
                 TabItem(
