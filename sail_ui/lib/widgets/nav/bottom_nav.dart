@@ -141,7 +141,7 @@ class BottomNav extends StatelessWidget {
                       connection: model.mainchain,
                       syncInfo: model.blockInfoProvider.mainchainSyncInfo,
                       restartDaemon: () => binaryProvider.start(
-                        model.mainchain.binary,
+                        binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name),
                       ),
                       infoMessage: _getDownloadMessage(model.blockInfoProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
@@ -156,14 +156,18 @@ class BottomNav extends StatelessWidget {
                               : model.mainchain.inHeaderSync
                                   ? 'Waiting for L1 to sync headers...'
                                   : null),
-                      restartDaemon: () => binaryProvider.start(model.enforcer.binary),
+                      restartDaemon: () => binaryProvider.start(
+                        binaryProvider.binaries.firstWhere((b) => b.name == Enforcer().name),
+                      ),
                       navigateToLogs: model.navigateToLogs,
                     ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,
                     syncInfo: model.blockInfoProvider.additionalSyncInfo,
                     infoMessage: _getDownloadMessage(model.blockInfoProvider.additionalSyncInfo),
-                    restartDaemon: () => binaryProvider.start(additionalConnection.rpc.binary),
+                    restartDaemon: () => binaryProvider.start(
+                      binaryProvider.binaries.firstWhere((b) => b.name == additionalConnection.rpc.binary.name),
+                    ),
                     navigateToLogs: model.navigateToLogs,
                   ),
                 ],
@@ -254,6 +258,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
   SyncProgressProvider get blockInfoProvider => GetIt.I.get<SyncProgressProvider>();
+  BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
 
   final bool mainchainInfo;
   final Function(String, String) navigateToLogs;
@@ -278,17 +283,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('mainchainSyncInfo', blockInfoProvider.mainchainSyncInfo);
     track('enforcerSyncInfo', blockInfoProvider.enforcerSyncInfo);
     track('additionalSyncInfo', blockInfoProvider.additionalSyncInfo);
-
-    // Check if any download is active
-    final hasActiveDownloads = (blockInfoProvider.mainchainSyncInfo?.downloadProgress ?? 1.0) < 1.0 ||
-        (blockInfoProvider.enforcerSyncInfo?.downloadProgress ?? 1.0) < 1.0 ||
-        (blockInfoProvider.additionalSyncInfo?.downloadProgress ?? 1.0) < 1.0;
-
-    if (hasActiveDownloads) {
-      notifyListeners(); // Direct notification bypassing change tracking
-    } else {
-      notifyIfChanged(); // Use change tracking for normal updates
-    }
+    notifyIfChanged(); // Use change tracking for normal updates
   }
 
   // Connection status

@@ -15,10 +15,12 @@ class DownloadManager extends ChangeNotifier {
   final log = Logger(level: Level.info);
   final Directory appDir;
   late List<Binary> binaries;
+  void Function(String name, Binary Function(Binary) updater) updateBinary;
 
   DownloadManager({
     required this.appDir,
     required this.binaries,
+    required this.updateBinary,
   });
 
   DownloadInfo getProgress(String binaryName) {
@@ -63,7 +65,7 @@ class DownloadManager extends ChangeNotifier {
 
     try {
       await _downloadAndExtractBinary(binary);
-      _updateBinary(
+      updateBinary(
         binary.name,
         (b) => b.copyWith(
           downloadInfo: const DownloadInfo(progress: 1.0, message: 'Download completed'),
@@ -71,7 +73,7 @@ class DownloadManager extends ChangeNotifier {
       );
       log.i('Successfully downloaded and extracted ${binary.name}');
     } catch (e) {
-      _updateBinary(
+      updateBinary(
         binary.name,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(progress: 0.0, error: 'Download failed: $e'),
@@ -84,12 +86,6 @@ class DownloadManager extends ChangeNotifier {
 
   bool _isDownloading(Binary binary) {
     return binary.downloadInfo.progress > 0.0 && binary.downloadInfo.progress < 1.0;
-  }
-
-  void _updateBinary(String name, Binary Function(Binary) updater) {
-    final index = binaries.indexWhere((b) => b.name == name);
-    binaries[index] = updater(binaries[index]);
-    notifyListeners();
   }
 
   /// Internal method to handle the actual download and extraction
@@ -113,7 +109,7 @@ class DownloadManager extends ChangeNotifier {
     // Update binary metadata
     final binaryPath = await binary.resolveBinaryPath(appDir);
     final updateableBinary = binaryPath.path.contains(appDir.path);
-    _updateBinary(
+    updateBinary(
       binary.name,
       (b) => b.copyWith(
         metadata: b.metadata.copyWith(
@@ -162,7 +158,7 @@ class DownloadManager extends ChangeNotifier {
             final downloadedMB = (receivedBytes / 1024 / 1024).toStringAsFixed(1);
             final totalMB = (totalBytes / 1024 / 1024).toStringAsFixed(1);
 
-            _updateBinary(
+            updateBinary(
               binaryName,
               (b) => b.copyWith(
                 downloadInfo: DownloadInfo(
@@ -184,7 +180,7 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       final error = 'Download failed from $url: $e\nSave path: $savePath';
       log.e('ERROR: $error');
-      _updateBinary(
+      updateBinary(
         binaryName,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(

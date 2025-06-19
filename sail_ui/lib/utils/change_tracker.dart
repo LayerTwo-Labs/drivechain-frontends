@@ -52,10 +52,9 @@ mixin ChangeTrackingMixin on ChangeNotifier {
       return true;
     }
 
+    // Use the object's equality operator if it exists
     if (a is Object && b is Object) {
-      final aProps = a.toString();
-      final bProps = b.toString();
-      return aProps == bProps;
+      return a == b;
     }
 
     return false;
