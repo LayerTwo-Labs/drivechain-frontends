@@ -461,21 +461,20 @@ class BinaryProvider extends ChangeNotifier {
     return _downloadManager.progressStream;
   }
 
-  Future<bool> onShutdown({VoidCallback? onComplete}) async {
+  Future<bool> onShutdown({ShutdownOptions? shutdownOptions}) async {
     try {
       // Get list of running binaries
       final runningBinaries = _processManager.runningProcesses.values.map((process) => process.binary).toList();
 
-      if (onComplete != null) {
-        final router = GetIt.I.get<AppRouter>();
+      if (shutdownOptions != null) {
         // don't show the shutting down page if it's already shown!
-        if (router.current.name != ShuttingDownRoute.name) {
+        if (shutdownOptions.router.current.name != ShuttingDownRoute.name) {
           // Show shutdown page with running binaries
           unawaited(
-            GetIt.I.get<AppRouter>().push(
+            shutdownOptions.router.push(
                   ShuttingDownRoute(
                     binaries: runningBinaries,
-                    onComplete: onComplete,
+                onComplete: shutdownOptions.onComplete,
                   ),
                 ),
           );
@@ -566,6 +565,16 @@ class BinaryProvider extends ChangeNotifier {
     _downloadManager.dispose();
     super.dispose();
   }
+}
+
+class ShutdownOptions {
+  final RootStackRouter router;
+  final VoidCallback onComplete;
+
+  const ShutdownOptions({
+    required this.router,
+    required this.onComplete,
+  });
 }
 
 Future<void> waitForBoolToBeTrue(
