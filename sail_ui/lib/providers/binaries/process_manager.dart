@@ -222,7 +222,7 @@ bool isSpam(String data) {
     return true;
   }
 
-  if (data.contains('initial_sync:sync_to_tip:sync_blocks') ) {
+  if (data.contains('initial_sync:sync_to_tip:sync_blocks')) {
     if (data.contains('updated current chain tip')) {
       return true;
     }
