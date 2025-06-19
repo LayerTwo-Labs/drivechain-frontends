@@ -214,10 +214,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 	if err != nil {
 		return nil, err
 	}
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not get bitcoind: %w", err)
-	}
+
 	txs, err := wallet.ListTransactions(ctx, connect.NewRequest(&validatorpb.ListTransactionsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
@@ -252,15 +249,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 		txid := tx.Txid.Hex.Value
 		// For sent transactions, try to extract the destination address from the outputs
 		pool.Go(txid, func(ctx context.Context) (*pb.WalletTransaction, error) {
-			rawTxResp, err := bitcoind.GetRawTransaction(ctx, &connect.Request[corepb.GetRawTransactionRequest]{
-				Msg: &corepb.GetRawTransactionRequest{
-					Txid: txid,
-				},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("enforcer/wallet: could not get raw transaction: %w", err)
-			}
-			rawBytes, err := hex.DecodeString(rawTxResp.Msg.Tx.Hex)
+			rawBytes, err := hex.DecodeString(tx.RawTransaction.Hex.Value)
 			if err != nil {
 				return nil, fmt.Errorf("could not decode raw tx hex: %w", err)
 			}
