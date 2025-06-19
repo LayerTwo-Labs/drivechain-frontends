@@ -89,11 +89,14 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   void onWindowClose() async {
     bool isPreventClose = await windowManager.isPreventClose();
     await GetIt.I.get<BinaryProvider>().onShutdown(
-      onComplete: () async {
-        if (isPreventClose) {
-          await windowManager.destroy();
-        }
-      },
-    );
+          shutdownOptions: ShutdownOptions(
+            router: GetIt.I.get<AppRouter>(),
+            onComplete: () async {
+              if (isPreventClose) {
+                await windowManager.destroy();
+              }
+            },
+          ),
+        );
   }
 }
