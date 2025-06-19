@@ -82,6 +82,11 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
       dynamic bValue;
 
       switch (sortColumn) {
+        case 'id':
+          aValue = a.denialInfo.id;
+          bValue = b.denialInfo.id;
+          return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+
         case 'txid':
           // Sort by combined txid:vout string
           final aKey = a.output;
@@ -142,16 +147,20 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   : '${widget.utxos[index].output}:${widget.utxos[index].denialInfo.executions.length}',
               headerBuilder: (context) => [
                 SailTableHeaderCell(
+                  name: 'Denial ID',
+                  onSort: () => onSort('id'),
+                ),
+                SailTableHeaderCell(
+                  name: 'Hops',
+                  onSort: () => onSort('hops'),
+                ),
+                SailTableHeaderCell(
                   name: 'UTXO',
                   onSort: () => onSort('txid'),
                 ),
                 SailTableHeaderCell(
                   name: 'Amount',
                   onSort: () => onSort('amount'),
-                ),
-                SailTableHeaderCell(
-                  name: 'Hops',
-                  onSort: () => onSort('hops'),
                 ),
                 SailTableHeaderCell(
                   name: 'Next Execution',
@@ -173,6 +182,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                 if (widget.utxos.isEmpty) {
                   return [
                     const SailTableCell(value: 'No UTXOs available'),
+                    const SailTableCell(value: ''),
                     const SailTableCell(value: ''),
                     const SailTableCell(value: ''),
                     const SailTableCell(value: ''),
@@ -214,15 +224,19 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
 
                 return [
                   SailTableCell(
+                    value: '${utxo.denialInfo.id == 0 ? '-' : utxo.denialInfo.id}',
+                    copyValue: utxo.denialInfo.id.toString(),
+                  ),
+                  SailTableCell(
+                    value: hops,
+                  ),
+                  SailTableCell(
                     value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
                     copyValue: utxo.output,
                   ),
                   SailTableCell(
                     value: formatBitcoin(satoshiToBTC(utxo.valueSats.toInt())),
                     monospace: true,
-                  ),
-                  SailTableCell(
-                    value: hops,
                   ),
                   SailTableCell(
                     value: nextExecution,
@@ -253,6 +267,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
               rowCount: widget.utxos.isEmpty ? 1 : widget.utxos.length, // Show one row when empty
               drawGrid: true,
               sortColumnIndex: [
+                'id',
                 'txid',
                 'vout',
                 'amount',
@@ -262,7 +277,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
               ].indexOf(sortColumn),
               sortAscending: sortAscending,
               onSort: (columnIndex, ascending) {
-                onSort(['txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
+                onSort(['id', 'txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
               },
               onDoubleTap: (rowId) {
                 if (widget.utxos.isEmpty) return;

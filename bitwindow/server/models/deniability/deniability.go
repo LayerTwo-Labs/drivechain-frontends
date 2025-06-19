@@ -12,14 +12,16 @@ import (
 
 // Denial represents a deniability plan
 type Denial struct {
-	ID            int64
-	TipTXID       string
-	TipVout       *int32
-	DelayDuration time.Duration
-	NumHops       int32
-	CreatedAt     time.Time
-	CancelledAt   *time.Time
-	CancelReason  *string
+	ID              int64
+	TipTXID         string
+	TipVout         *int32
+	DelayDuration   time.Duration
+	NumHops         int32
+	CreatedAt       time.Time
+	CancelledAt     *time.Time
+	CancelReason    *string
+	NextExecution   *time.Time
+	ExecutedDenials []ExecutedDenial
 }
 
 // ExecutedDenial represents a completed denial transaction
@@ -152,6 +154,18 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 			return nil, fmt.Errorf("could not scan deniability: %w", err)
 		}
 		deniability.DelayDuration = time.Duration(delaySeconds * float64(time.Second))
+		executions, err := listExecutions(ctx, db, deniability.ID)
+		if err != nil {
+			return nil, fmt.Errorf("could not get executed denials: %w", err)
+		}
+		deniability.ExecutedDenials = executions
+
+		nextExecution, err := nextExecution(ctx, db, deniability)
+		if err != nil {
+			return nil, fmt.Errorf("could not get next execution: %w", err)
+		}
+		deniability.NextExecution = nextExecution
+
 		deniabilities = append(deniabilities, deniability)
 	}
 
@@ -162,8 +176,8 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	return deniabilities, nil
 }
 
-// ListExecutions returns all executed denials for a given deniability plan
-func ListExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]ExecutedDenial, error) {
+// listExecutions returns all executed denials for a given deniability plan
+func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]ExecutedDenial, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT id, denial_id, from_txid, from_vout, to_txid, created_at
 		FROM executed_denials
@@ -218,10 +232,10 @@ func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 	return nil
 }
 
-// NextExecution calculates when the next execution should occur for a deniability plan
+// nextExecution calculates when the next execution should occur for a deniability plan
 // Returns nil if all hops have been completed
-func NextExecution(ctx context.Context, db *sql.DB, denial Denial) (*time.Time, error) {
-	lastExecution, err := LastExecution(ctx, db, denial.ID)
+func nextExecution(ctx context.Context, db *sql.DB, denial Denial) (*time.Time, error) {
+	lastExecution, err := lastExecution(ctx, db, denial.ID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get last execution: %w", err)
 	}
@@ -237,7 +251,7 @@ func NextExecution(ctx context.Context, db *sql.DB, denial Denial) (*time.Time, 
 
 // LastExecution figures out when the previous execution was
 // Returns nil if no execution has been made
-func LastExecution(ctx context.Context, db *sql.DB, id int64) (*time.Time, error) {
+func lastExecution(ctx context.Context, db *sql.DB, id int64) (*time.Time, error) {
 
 	// First get the deniability plan to check number of hops
 	var numHops int32
@@ -368,5 +382,17 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 		return Denial{}, fmt.Errorf("could not get deniability: %w", err)
 	}
 	denial.DelayDuration = time.Duration(delaySeconds * float64(time.Second))
+	executions, err := listExecutions(ctx, db, id)
+	if err != nil {
+		return Denial{}, fmt.Errorf("could not get executed denials: %w", err)
+	}
+	denial.ExecutedDenials = executions
+
+	nextExecution, err := nextExecution(ctx, db, denial)
+	if err != nil {
+		return Denial{}, fmt.Errorf("could not get next execution: %w", err)
+	}
+	denial.NextExecution = nextExecution
+
 	return denial, nil
 }

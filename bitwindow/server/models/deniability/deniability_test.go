@@ -151,20 +151,17 @@ func TestDeniability(t *testing.T) {
 		require.NotNil(t, denial)
 
 		// Test next execution before any executions
-		next, err := NextExecution(ctx, db, denial)
-		require.NoError(t, err)
-		require.NotNil(t, next)
-		require.Equal(t, denial.CreatedAt.Add(delayDuration), *next)
+		require.Equal(t, denial.CreatedAt.Add(delayDuration), *denial.NextExecution)
 
 		// Record an execution
 		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid")
 		require.NoError(t, err)
 
-		// Test next execution after one execution
-		next, err = NextExecution(ctx, db, denial)
+		denial, err = Get(ctx, db, denial.ID)
 		require.NoError(t, err)
-		require.NotNil(t, next)
-		require.True(t, next.After(time.Now()))
+		require.NotNil(t, denial)
+		// Test next execution after one execution
+		require.True(t, denial.NextExecution.After(time.Now()))
 	})
 
 	t.Run("GetByTip", func(t *testing.T) {

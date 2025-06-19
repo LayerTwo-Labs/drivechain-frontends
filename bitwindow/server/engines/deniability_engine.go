@@ -12,6 +12,7 @@ import (
 	commonv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/cusf/mainchain/v1/mainchainv1connect"
+	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/rs/zerolog"
@@ -69,22 +70,13 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 	now := time.Now()
 	// cleanup complete lets start processing
 	for _, denial := range denials {
-		nextExecution, err := deniability.NextExecution(ctx, e.db, denial)
-		if err != nil {
-			logger.Error().
-				Err(err).
-				Int64("denial_id", denial.ID).
-				Msg("could not get next execution")
-			return err
-		}
-
-		if nextExecution == nil || now.Before(*nextExecution) {
+		if denial.NextExecution == nil || now.Before(*denial.NextExecution) {
 			continue
 		}
 
 		logger.Info().
 			Int64("denial_id", denial.ID).
-			Time("next_execution", *nextExecution).
+			Time("next_execution", *denial.NextExecution).
 			Msg("executing denial")
 
 		// It's time! Execute.
@@ -165,10 +157,18 @@ func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListU
 		return fmt.Errorf("no matching utxos found")
 	}
 
+	// Create a pool for parallel processing
+	pool := logpool.New(ctx, "denial-processing")
 	for _, utxo := range tipUTXOs {
-		if err := e.ProcessUTXO(ctx, utxo, denial); err != nil {
-			return fmt.Errorf("failed to process UTXO %s:%d: %w", utxo.Txid.Hex.Value, utxo.Vout, err)
-		}
+		pool.Go(fmt.Sprintf("utxo-%s-%d", utxo.Txid.Hex.Value, utxo.Vout), func(ctx context.Context) error {
+			return e.ProcessUTXO(ctx, utxo, denial)
+		})
+	}
+
+	// Wait for all tasks to complete and collect errors
+	err := pool.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to process UTXOs: %w", err)
 	}
 
 	return nil
