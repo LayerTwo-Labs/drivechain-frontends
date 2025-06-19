@@ -515,11 +515,6 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 			receivedAt = utxo.ConfirmedAtTime
 		}
 
-		denialInfo, err := s.addDenialInfo(ctx, utxo, denials)
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: could not add denial info: %w", err)
-		}
-
 		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
 			Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
 			Address:    utxo.Address.Value,
@@ -527,7 +522,7 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 			ValueSats:  utxo.ValueSats,
 			ReceivedAt: receivedAt,
 			IsChange:   utxo.IsInternal,
-			DenialInfo: denialInfo,
+			DenialInfo: s.addDenialInfo(utxo, denials),
 		})
 	}
 
@@ -536,43 +531,35 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 	}), nil
 }
 
-func (s *Server) addDenialInfo(ctx context.Context, utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) (*bitwindowdv1.DenialInfo, error) {
+func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
 	denialInfo, found := lo.Find(denials, func(d deniability.Denial) bool {
-		if d.TipVout == nil {
-			return d.TipTXID == utxo.Txid.Hex.Value
+		if d.TipVout != nil {
+			return d.TipTXID == utxo.Txid.Hex.Value && *d.TipVout == int32(utxo.Vout)
 		}
 
-		return d.TipTXID == utxo.Txid.Hex.Value && *d.TipVout == int32(utxo.Vout)
+		// the denial does not have a tip vout, and is executed
+		// loop over all executions, and find a matching txid
+		return lo.ContainsBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) bool {
+			return e.ToTxID == utxo.Txid.Hex.Value
+		})
 	})
 
 	if !found {
-		return nil, nil
+		return nil
 	}
 
-	return s.denialToProto(ctx, denialInfo)
+	return s.denialToProto(denialInfo)
 }
 
-func (s *Server) denialToProto(ctx context.Context, d deniability.Denial) (*bitwindowdv1.DenialInfo, error) {
-	nextExecution, err := deniability.NextExecution(ctx, s.database, d)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get next execution")
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	executions, err := deniability.ListExecutions(ctx, s.database, d.ID)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not list executions")
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
+func (s *Server) denialToProto(d deniability.Denial) *bitwindowdv1.DenialInfo {
 	var cancelTime *timestamppb.Timestamp
 	if d.CancelledAt != nil {
 		cancelTime = timestamppb.New(*d.CancelledAt)
 	}
 
 	var nextExecutionTime *timestamppb.Timestamp
-	if nextExecution != nil {
-		nextExecutionTime = timestamppb.New(*nextExecution)
+	if d.NextExecution != nil {
+		nextExecutionTime = timestamppb.New(*d.NextExecution)
 	}
 
 	return &bitwindowdv1.DenialInfo{
@@ -583,7 +570,7 @@ func (s *Server) denialToProto(ctx context.Context, d deniability.Denial) (*bitw
 		CancelTime:        cancelTime,
 		CancelReason:      d.CancelReason,
 		NextExecutionTime: nextExecutionTime,
-		Executions: lo.Map(executions, func(e deniability.ExecutedDenial, _ int) *bitwindowdv1.ExecutedDenial {
+		Executions: lo.Map(d.ExecutedDenials, func(e deniability.ExecutedDenial, _ int) *bitwindowdv1.ExecutedDenial {
 			return &bitwindowdv1.ExecutedDenial{
 				Id:         e.ID,
 				DenialId:   e.DenialID,
@@ -593,9 +580,9 @@ func (s *Server) denialToProto(ctx context.Context, d deniability.Denial) (*bitw
 				CreateTime: timestamppb.New(e.CreatedAt),
 			}
 		}),
-		HopsCompleted: uint32(len(executions)),
-		IsActive:      d.CancelledAt == nil && len(executions) < int(d.NumHops),
-	}, nil
+		HopsCompleted: uint32(len(d.ExecutedDenials)),
+		IsActive:      d.CancelledAt == nil && len(d.ExecutedDenials) < int(d.NumHops),
+	}
 }
 
 func (s *Server) getAddressFromOutpoint(ctx context.Context, bitcoind bitcoindv1alphaconnect.BitcoinServiceClient, txid string, vout int) (string, error) {
