@@ -125,7 +125,7 @@ func TestService_CreateDenial(t *testing.T) {
 		assert.Len(t, denials, 1)
 		assert.Equal(t, "abc123", denials[0].TipTXID)
 		assert.Equal(t, int32(0), *denials[0].TipVout)
-		assert.Equal(t, int32(60), denials[0].DelayDuration.Seconds())
+		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
 		assert.Equal(t, int32(1), denials[0].NumHops)
 	})
 }
