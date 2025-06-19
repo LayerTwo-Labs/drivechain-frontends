@@ -310,7 +310,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                           if (utxo.denialInfo.hasNextExecution())
                             DetailRow(
                               label: 'Next Execution',
-                              value: utxo.denialInfo.nextExecution.toDateTime().toLocal().toString(),
+                              value: formatDate(utxo.denialInfo.nextExecution.toDateTime()),
                             ),
                           if (utxo.denialInfo.hasCancelTime())
                             DetailRow(

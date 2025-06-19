@@ -318,11 +318,20 @@ class SendPageViewModel extends BaseViewModel {
 
   SendPageViewModel() {
     addressBookProvider.addListener(notifyListeners);
-    transactionsProvider.addListener(notifyListeners);
+    transactionsProvider.addListener(_clearStaleSelectedUTXOs);
     init();
     final initialRecipient = RecipientModel();
     initialRecipient.addListener(_onRecipientChanged);
     recipients = [initialRecipient];
+  }
+
+  Future<void> _clearStaleSelectedUTXOs() async {
+    final justFromWallet = allUtxos.where((u) => selectedUtxos.contains(u)).toList();
+    if (justFromWallet.length != selectedUtxos.length) {
+      selectedUtxos = justFromWallet;
+    }
+
+    notifyListeners();
   }
 
   Future<void> init() async {
@@ -344,6 +353,13 @@ class SendPageViewModel extends BaseViewModel {
 
   Future<void> onUseAvailableBalance(int index) async {
     try {
+      // never send more than their max selected amount
+      double availableAmount = satoshiToBTC(selectedUtxos.fold(0, (sum, utxo) => sum + utxo.valueSats.toInt()));
+      if (availableAmount == 0) {
+        // if sum of all selected utxos, none are selected! defer to their balance
+        availableAmount = balanceProvider.balance;
+      }
+
       // 1. Sum up the amounts of all recipients except the one at 'index'
       double sumOtherRecipients = 0.0;
       for (int i = 0; i < recipients.length; i++) {
@@ -353,7 +369,7 @@ class SendPageViewModel extends BaseViewModel {
       }
 
       // 2. Calculate available balance minus fee
-      final available = balanceProvider.balance - satoshiToBTC((int.tryParse(feeController.text) ?? 1000));
+      final available = availableAmount - satoshiToBTC((int.tryParse(feeController.text) ?? 1000));
 
       // 3. Set the remaining amount for the recipient at 'index'
       final remaining = available - sumOtherRecipients;
@@ -468,7 +484,8 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   void onSelectionChanged(List<UnspentOutput> selected) {
-    selectedUtxos = List.from(selected);
+    final justFromWallet = allUtxos.where((u) => selected.contains(u)).toList();
+    selectedUtxos = List.from(justFromWallet);
     notifyListeners();
   }
 
