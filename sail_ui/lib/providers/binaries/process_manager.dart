@@ -222,6 +222,26 @@ bool isSpam(String data) {
     return true;
   }
 
+  if (data.contains('initial_sync:sync_to_tip:sync_blocks') ) {
+    if (data.contains('updated current chain tip')) {
+      return true;
+    }
+
+    // Extract block number (it's after "#" and before the first space)
+    final startIndex = data.indexOf('#') + 1;
+    final endIndex = data.indexOf(' ', startIndex);
+    if (startIndex >= 0 && endIndex > startIndex) {
+      final blockNumberStr = data.substring(startIndex, endIndex);
+      final blockNumber = int.tryParse(blockNumberStr);
+
+      if (blockNumber != null && blockNumber % 1000 != 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   // btc-buf prints this for every single bitcoin core request
   if (data.contains('rpc: fetch completed in')) {
     return true;

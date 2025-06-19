@@ -38,6 +38,8 @@ class SyncInfo {
         other.progressCurrent == progressCurrent &&
         other.progressGoal == progressGoal &&
         other.lastBlockAt == lastBlockAt &&
+        other.progress == progress &&
+        other.isSynced == isSynced &&
         other.downloadProgress.toStringAsFixed(1) == downloadProgress.toStringAsFixed(1);
   }
 

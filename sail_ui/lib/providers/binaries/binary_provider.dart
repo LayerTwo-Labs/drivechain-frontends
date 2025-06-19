@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -8,7 +9,6 @@ import 'package:path/path.dart' as path;
 import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/env.dart';
-import 'package:sail_ui/pages/router.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/providers/binaries/download_manager.dart';
 import 'package:sail_ui/providers/binaries/process_manager.dart';
@@ -102,6 +102,13 @@ class BinaryProvider extends ChangeNotifier {
     _downloadManager = DownloadManager(
       appDir: appDir,
       binaries: initialBinaries,
+      updateBinary: (name, updater) {
+        final index = binaries.indexWhere((b) => b.name == name);
+        if (index >= 0) {
+          binaries[index] = updater(binaries[index]);
+        }
+        notifyListeners();
+      },
     );
     _processManager = ProcessManager(
       appDir: appDir,
@@ -472,11 +479,11 @@ class BinaryProvider extends ChangeNotifier {
           // Show shutdown page with running binaries
           unawaited(
             shutdownOptions.router.push(
-                  ShuttingDownRoute(
-                    binaries: runningBinaries,
+              ShuttingDownRoute(
+                binaries: runningBinaries,
                 onComplete: shutdownOptions.onComplete,
-                  ),
-                ),
+              ),
+            ),
           );
         }
       }
