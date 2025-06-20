@@ -61,16 +61,17 @@ func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDurat
 }
 
 // RecordExecution records a completed denial transaction
-func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID string, fromVout int32, toTxID string) error {
+func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID string, fromVout int32, toTxID string, toVout *uint32) error {
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO executed_denials (
 			denial_id,
 			from_txid,
 			from_vout,
 			to_txid,
+			to_vout,
 			created_at
-		) VALUES (?, ?, ?, ?, ?)
-	`, denialID, fromTxID, fromVout, toTxID, time.Now())
+		) VALUES (?, ?, ?, ?, ?, ?)
+	`, denialID, fromTxID, fromVout, toTxID, toVout, time.Now())
 	return err
 }
 
@@ -85,7 +86,7 @@ func selectDenialQuery() string {
 			d.cancelled_at,
 			d.cancelled_reason,
 			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
-			CASE 
+			CASE
 				WHEN e.to_txid IS NULL THEN d.initial_vout
 				ELSE NULL
 			END as tip_vout
@@ -179,7 +180,7 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 // listExecutions returns all executed denials for a given deniability plan
 func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]ExecutedDenial, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, denial_id, from_txid, from_vout, to_txid, created_at
+		SELECT id, denial_id, from_txid, from_vout, to_txid, to_vout, created_at
 		FROM executed_denials
 		WHERE denial_id = ?
 		ORDER BY created_at DESC
@@ -314,12 +315,12 @@ func lastExecution(ctx context.Context, db *sql.DB, id int64) (*time.Time, error
 	return &lastExecution, nil
 }
 
-// GetByTip retrieves a deniability plan by its tip transaction ID
+// GetByTip retrieves a deniability plan by its tip txid+vout
 func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (*Denial, error) {
 	row := db.QueryRowContext(ctx,
 		selectDenialQuery()+`
 		WHERE COALESCE(e.to_txid, d.initial_txid) = ? 
-		AND (? IS NULL OR d.initial_vout = ?)`,
+		AND (? IS NULL OR COALESCE(d.to_vout, d.initial_vout) = ?)`,
 		tipTxID, tipVout, tipVout)
 
 	var denial Denial

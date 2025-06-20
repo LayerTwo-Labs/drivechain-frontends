@@ -44,7 +44,7 @@ func TestDeniability(t *testing.T) {
 		require.NotNil(t, denial)
 
 		// Record an execution
-		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid")
+		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid", nil)
 		require.NoError(t, err)
 
 		// Verify the execution was recorded
@@ -154,7 +154,7 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, denial.CreatedAt.Add(delayDuration), *denial.NextExecution)
 
 		// Record an execution
-		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid")
+		err = RecordExecution(ctx, db, denial.ID, "from-txid", 0, "to-txid", nil)
 		require.NoError(t, err)
 
 		denial, err = Get(ctx, db, denial.ID)
