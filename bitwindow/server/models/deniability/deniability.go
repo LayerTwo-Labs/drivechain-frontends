@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/samber/lo"
 )
 
 // Denial represents a deniability plan
@@ -31,6 +32,7 @@ type ExecutedDenial struct {
 	FromTxID  string
 	FromVout  int32
 	ToTxID    string
+	ToVout    *string
 	CreatedAt time.Time
 }
 
@@ -46,7 +48,7 @@ func Create(ctx context.Context, db *sql.DB, txid string, vout int32, delayDurat
 			created_at
 		) VALUES (?, ?, ?, ?, ?)
 		RETURNING id
-	`, txid, vout, int(delayDuration.Seconds()), numHops, time.Now()).Scan(&id)
+	`, txid, vout, delayDuration, numHops, time.Now()).Scan(&id)
 	if err != nil {
 		return Denial{}, err
 	}
@@ -139,35 +141,26 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 
 	var deniabilities []Denial
 	for rows.Next() {
-		var deniability Denial
-		var delaySeconds float64
+		var denial Denial
 		err := rows.Scan(
-			&deniability.ID,
-			&delaySeconds,
-			&deniability.NumHops,
-			&deniability.CreatedAt,
-			&deniability.CancelledAt,
-			&deniability.CancelReason,
-			&deniability.TipTXID,
-			&deniability.TipVout,
+			&denial.ID,
+			&denial.DelayDuration,
+			&denial.NumHops,
+			&denial.CreatedAt,
+			&denial.CancelledAt,
+			&denial.CancelReason,
+			&denial.TipTXID,
+			&denial.TipVout,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("could not scan deniability: %w", err)
 		}
-		deniability.DelayDuration = time.Duration(delaySeconds * float64(time.Second))
-		executions, err := listExecutions(ctx, db, deniability.ID)
+		denial, err = denial.addExecutionData(ctx, db)
 		if err != nil {
-			return nil, fmt.Errorf("could not get executed denials: %w", err)
+			return nil, fmt.Errorf("could not add execution data to deniability: %w", err)
 		}
-		deniability.ExecutedDenials = executions
 
-		nextExecution, err := nextExecution(ctx, db, deniability)
-		if err != nil {
-			return nil, fmt.Errorf("could not get next execution: %w", err)
-		}
-		deniability.NextExecution = nextExecution
-
-		deniabilities = append(deniabilities, deniability)
+		deniabilities = append(deniabilities, denial)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -199,6 +192,7 @@ func listExecutions(ctx context.Context, db *sql.DB, denialID int64) ([]Executed
 			&execution.FromTxID,
 			&execution.FromVout,
 			&execution.ToTxID,
+			&execution.ToVout,
 			&execution.CreatedAt,
 		)
 		if err != nil {
@@ -235,84 +229,47 @@ func Cancel(ctx context.Context, db *sql.DB, id int64, reason string) error {
 
 // nextExecution calculates when the next execution should occur for a deniability plan
 // Returns nil if all hops have been completed
-func nextExecution(ctx context.Context, db *sql.DB, denial Denial) (*time.Time, error) {
-	lastExecution, err := lastExecution(ctx, db, denial.ID)
-	if err != nil {
-		return nil, fmt.Errorf("could not get last execution: %w", err)
-	}
+func nextExecution(denial Denial, executions []ExecutedDenial) *time.Time {
+	lastExecution := lastExecution(denial, executions)
 
 	if lastExecution == nil {
-		return nil, nil
+		return nil
 	}
 
 	// Calculate next execution time
 	next := lastExecution.Add(denial.DelayDuration)
-	return &next, nil
+	return &next
 }
 
 // LastExecution figures out when the previous execution was
 // Returns nil if no execution has been made
-func lastExecution(ctx context.Context, db *sql.DB, id int64) (*time.Time, error) {
+func lastExecution(denial Denial, executions []ExecutedDenial) *time.Time {
 
-	// First get the deniability plan to check number of hops
-	var numHops int32
-	var delaySeconds float64
-	var cancelledAt *time.Time
-	var createdAt time.Time
-	err := db.QueryRowContext(ctx, `
-		SELECT num_hops, delay_duration, cancelled_at, created_at
-		FROM denials
-		WHERE id = ?
-	`, id).Scan(&numHops, &delaySeconds, &cancelledAt, &createdAt)
-	if err != nil {
-		return nil, fmt.Errorf("could not get deniability: %w", err)
+	if denial.CancelledAt != nil {
+		// If cancelled, next hop is never
+		return nil
 	}
 
-	// If cancelled, no more executions
-	if cancelledAt != nil {
-		return nil, nil
+	executionCount := lo.UniqBy(executions, func(execution ExecutedDenial) string {
+		return execution.ToTxID
+	})
+
+	// If we've done all hops, next hop is never
+	if int32(len(executionCount)) >= denial.NumHops {
+		return nil
 	}
 
-	// Count number of executions
-	var executionCount int
-	err = db.QueryRowContext(ctx, `
-		SELECT COUNT(*)
-		FROM executed_denials
-		WHERE denial_id = ?
-	`, id).Scan(&executionCount)
-	if err != nil {
-		return nil, fmt.Errorf("could not count executions: %w", err)
+	if len(executionCount) == 0 {
+		// no executions whatsoever!
+		return &denial.CreatedAt
 	}
 
-	// If we've done all hops, return nil
-	if int32(executionCount) >= numHops {
-		return nil, nil
-	}
+	// Find the latest execution from the executions array
+	latestExecution := lo.MaxBy(executions, func(a, b ExecutedDenial) bool {
+		return a.CreatedAt.After(b.CreatedAt)
+	})
 
-	// Get the latest execution time
-	var lastExecution time.Time
-	if executionCount == 0 {
-		lastExecution = createdAt
-	} else {
-		var timeStr string
-		// Otherwise get the latest execution time
-		err = db.QueryRowContext(ctx, `
-			SELECT strftime('%Y-%m-%d %H:%M:%S', MAX(created_at))
-			FROM executed_denials
-			WHERE denial_id = ?
-		`, id).Scan(&timeStr)
-		if err != nil {
-			return nil, fmt.Errorf("could not get last execution: %w", err)
-		}
-
-		// Parse the time string
-		lastExecution, err = time.Parse("2006-01-02 15:04:05", timeStr)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse execution time: %w", err)
-		}
-	}
-
-	return &lastExecution, nil
+	return &latestExecution.CreatedAt
 }
 
 // GetByTip retrieves a deniability plan by its tip txid+vout
@@ -320,14 +277,13 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 	row := db.QueryRowContext(ctx,
 		selectDenialQuery()+`
 		WHERE COALESCE(e.to_txid, d.initial_txid) = ? 
-		AND (? IS NULL OR COALESCE(d.to_vout, d.initial_vout) = ?)`,
+		AND (? IS NULL OR COALESCE(e.to_vout, d.initial_vout) = ?)`,
 		tipTxID, tipVout, tipVout)
 
 	var denial Denial
-	var delaySeconds float64
 	err := row.Scan(
 		&denial.ID,
-		&delaySeconds,
+		&denial.DelayDuration,
 		&denial.NumHops,
 		&denial.CreatedAt,
 		&denial.CancelledAt,
@@ -341,8 +297,13 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 		}
 		return nil, fmt.Errorf("could not get deniability by tip: %w", err)
 	}
-	denial.DelayDuration = time.Duration(delaySeconds * float64(time.Second))
-	return &denial, nil
+
+	d, err := denial.addExecutionData(ctx, db)
+	if err != nil {
+		return nil, fmt.Errorf("could not add execution data to deniability: %w", err)
+	}
+
+	return &d, nil
 }
 
 // Update updates the number of hops and delay duration for a given deniability plan
@@ -351,7 +312,7 @@ func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numH
 		UPDATE denials
 		SET delay_duration = ?, num_hops = num_hops + ?, cancelled_at = NULL, cancelled_reason = NULL
 		WHERE id = ?
-	`, delay.Seconds(), numHops, id)
+	`, delay, numHops, id)
 	if err != nil {
 		return fmt.Errorf("could not update deniability: %w", err)
 	}
@@ -365,10 +326,9 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 		id)
 
 	var denial Denial
-	var delaySeconds float64
 	err := row.Scan(
 		&denial.ID,
-		&delaySeconds,
+		&denial.DelayDuration,
 		&denial.NumHops,
 		&denial.CreatedAt,
 		&denial.CancelledAt,
@@ -382,18 +342,17 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 		}
 		return Denial{}, fmt.Errorf("could not get deniability: %w", err)
 	}
-	denial.DelayDuration = time.Duration(delaySeconds * float64(time.Second))
-	executions, err := listExecutions(ctx, db, id)
+
+	return denial.addExecutionData(ctx, db)
+}
+
+func (d Denial) addExecutionData(ctx context.Context, db *sql.DB) (Denial, error) {
+	executions, err := listExecutions(ctx, db, d.ID)
 	if err != nil {
 		return Denial{}, fmt.Errorf("could not get executed denials: %w", err)
 	}
-	denial.ExecutedDenials = executions
+	d.ExecutedDenials = executions
+	d.NextExecution = nextExecution(d, executions)
 
-	nextExecution, err := nextExecution(ctx, db, denial)
-	if err != nil {
-		return Denial{}, fmt.Errorf("could not get next execution: %w", err)
-	}
-	denial.NextExecution = nextExecution
-
-	return denial, nil
+	return d, nil
 }

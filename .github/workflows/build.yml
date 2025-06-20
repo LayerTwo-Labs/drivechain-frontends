@@ -137,13 +137,13 @@ jobs:
           # Create build directory name, to avoid caching assets/bin across OSes
           BUILD_DIR="b-${{ matrix.os }}"
           rm -rf "$BUILD_DIR"
-          mkdir -p "$BUILD_DIR"
+          mkdir -f -p "$BUILD_DIR"
           # Copy source files to build directory
           cp -r ${{ matrix.client }} "$BUILD_DIR/"
           cp -r scripts "$BUILD_DIR/"
           cp -r sail_ui "$BUILD_DIR/"
           # Recreate assets/bin directory
-          mkdir "$BUILD_DIR/${{ matrix.client }}/assets/bin"
+          mkdir -f "$BUILD_DIR/${{ matrix.client }}/assets/bin"
           echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
 
       - name: Install dependencies
