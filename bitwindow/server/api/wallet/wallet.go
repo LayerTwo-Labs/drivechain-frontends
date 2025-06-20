@@ -584,8 +584,11 @@ func (s *Server) denialToProto(d deniability.Denial) *bitwindowdv1.DenialInfo {
 				CreateTime: timestamppb.New(e.CreatedAt),
 			}
 		}),
-		HopsCompleted: uint32(len(d.ExecutedDenials)),
-		IsActive:      d.CancelledAt == nil && len(d.ExecutedDenials) < int(d.NumHops),
+		// hops completed == unique
+		HopsCompleted: uint32(len(lo.UniqBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) string {
+			return e.ToTxID
+		}))),
+		IsActive: d.CancelledAt == nil && len(d.ExecutedDenials) < int(d.NumHops),
 	}
 }
 
