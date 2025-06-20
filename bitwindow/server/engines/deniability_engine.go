@@ -149,7 +149,12 @@ func (e *DeniabilityEngine) handleAbortedDenials(ctx context.Context, utxos []*p
 func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
 	var tipUTXOs []*pb.ListUnspentOutputsResponse_Output
 	for _, utxo := range utxos {
-		if utxo.Txid.Hex.Value == denial.TipTXID {
+		if denial.TipVout == nil {
+			// a change output, should not be executed
+			continue
+		}
+
+		if utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == *denial.TipVout {
 			tipUTXOs = append(tipUTXOs, utxo)
 		}
 	}

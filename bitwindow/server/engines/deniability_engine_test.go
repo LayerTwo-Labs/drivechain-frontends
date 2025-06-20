@@ -25,12 +25,12 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	db := database.Test(t)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	t.Run("handleAbortedDenials", func(t *testing.T) {
 		t.Parallel()
+		db := database.Test(t)
 		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
@@ -77,6 +77,7 @@ func TestDeniabilityEngine(t *testing.T) {
 
 	t.Run("executeDenial", func(t *testing.T) {
 		t.Parallel()
+		db := database.Test(t)
 		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
@@ -168,6 +169,7 @@ func TestDeniabilityEngine(t *testing.T) {
 
 	t.Run("processUTXO with insufficient amount", func(t *testing.T) {
 		t.Parallel()
+		db := database.Test(t)
 		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
