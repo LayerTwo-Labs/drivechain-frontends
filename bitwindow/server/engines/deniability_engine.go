@@ -232,10 +232,19 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		return fmt.Errorf("could not send transaction: %w", err)
 	}
 
+	newUTXOs, err := e.waitForUTXOsToAppear(ctx, sendResp.Msg.Txid.Hex.Value, destinations)
+	if err != nil {
+		return fmt.Errorf("could not wait for tx to appear: %w", err)
+	}
+
+	// if the sent transaction has a change output, we want
+	// to track the txid as a whole. ALL outputs are considered
+	// part of the denial
 	if err := deniability.RecordExecution(ctx, e.db, denial.ID,
 		utxo.Txid.Hex.Value,
 		int32(utxo.Vout),
 		sendResp.Msg.Txid.Hex.Value,
+		nil,
 	); err != nil {
 		logger.Error().
 			Err(err).
@@ -244,13 +253,28 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		return fmt.Errorf("could not record execution: %w", err)
 	}
 
+	for _, newUTXO := range newUTXOs {
+		if newUTXO.Txid.Hex.Value != sendResp.Msg.Txid.Hex.Value {
+			panic("DEVELOPER ERROR: returned UTXO txid did not match sent txid")
+		}
+
+		if err := deniability.RecordExecution(ctx, e.db, denial.ID,
+			utxo.Txid.Hex.Value,
+			int32(utxo.Vout),
+			sendResp.Msg.Txid.Hex.Value,
+			&newUTXO.Vout,
+		); err != nil {
+			logger.Error().
+				Err(err).
+				Str("to_txid", sendResp.Msg.Txid.Hex.Value).
+				Msg("failed to record execution")
+			return fmt.Errorf("could not record execution: %w", err)
+		}
+	}
+
 	logger.Info().
 		Str("to_txid", sendResp.Msg.Txid.Hex.Value).
 		Msg("executed denial split")
-
-	if err := e.waitForTXToAppear(ctx, sendResp.Msg.Txid.Hex.Value); err != nil {
-		return fmt.Errorf("could not wait for tx to appear: %w", err)
-	}
 
 	return nil
 }
@@ -258,10 +282,11 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 // the enforcer wallet takes a few seconds/minutes to add the sent transaction
 // to the wallet utxos. This function waits for the passed txid to appear. Waits
 // forever, and only returns an error if the enforcer returns an error
-func (e *DeniabilityEngine) waitForTXToAppear(
+func (e *DeniabilityEngine) waitForUTXOsToAppear(
 	ctx context.Context,
 	txid string,
-) error {
+	destinations map[string]uint64,
+) ([]*pb.ListUnspentOutputsResponse_Output, error) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -269,18 +294,23 @@ func (e *DeniabilityEngine) waitForTXToAppear(
 		default:
 			utxos, err := e.listWalletUTXOs(ctx)
 			if err != nil {
-				return fmt.Errorf("could not list utxos: %w", err)
+				return nil, fmt.Errorf("could not list utxos: %w", err)
 			}
 
-			foundUTXO := false
+			var foundUTXOs []*pb.ListUnspentOutputsResponse_Output
 			for _, utxo := range utxos {
 				if utxo.Txid.Hex.Value == txid {
-					foundUTXO = true
+					// Check if this UTXO's address matches any of our destination addresses
+					if _, exists := destinations[utxo.Address.Value]; exists {
+						foundUTXOs = append(foundUTXOs, utxo)
+					}
+
+					// any non-matched is change. We don't care about those
 				}
 			}
 
-			if foundUTXO {
-				return nil
+			if len(foundUTXOs) > 0 {
+				return foundUTXOs, nil
 			}
 
 			time.Sleep(time.Second)
