@@ -138,6 +138,7 @@ func TestDeniabilityEngine(t *testing.T) {
 							Txid: &commonv1.ReverseHex{
 								Hex: &wrapperspb.StringValue{Value: "new-txid"},
 							},
+							Address:    &wrapperspb.StringValue{Value: "bc1qtest"},
 							Vout:       0,
 							ValueSats:  500000,
 							IsInternal: false,
