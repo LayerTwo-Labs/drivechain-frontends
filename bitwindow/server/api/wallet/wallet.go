@@ -225,14 +225,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 	if err != nil {
 		return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
 	}
-	matchAddressLabel := func(addr string) string {
-		for _, entry := range addressBookEntries {
-			if entry.Address == addr {
-				return entry.Label
-			}
-		}
-		return ""
-	}
 
 	notes, err := transactions.List(ctx, s.database)
 	if err != nil {
@@ -249,44 +241,6 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 		txid := tx.Txid.Hex.Value
 		// For sent transactions, try to extract the destination address from the outputs
 		pool.Go(txid, func(ctx context.Context) (*pb.WalletTransaction, error) {
-			rawBytes, err := hex.DecodeString(tx.RawTransaction.Hex.Value)
-			if err != nil {
-				return nil, fmt.Errorf("could not decode raw tx hex: %w", err)
-			}
-			decodedTx, err := btcutil.NewTxFromBytes(rawBytes)
-			if err != nil {
-				return nil, fmt.Errorf("could not decode raw transaction: %w", err)
-			}
-
-			// Heuristic: for sent tx, use the first output that is not a change address (not in addressbook as receive)
-			// for received tx, use the first output that is in the addressbook as receive
-			var address string
-			for _, txOut := range decodedTx.MsgTx().TxOut {
-				_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.SigNetParams)
-				if err == nil && len(addrs) > 0 {
-					addr := addrs[0].EncodeAddress()
-					// Try to find a matching addressbook entry
-					label := matchAddressLabel(addr)
-					// If this is a receive, prefer addressbook entries with receive direction or empty label
-					if tx.ReceivedSats > 0 && label != "" {
-						address = addr
-						break
-					}
-					// If this is a send, prefer addresses not in the addressbook (likely external)
-					if tx.SentSats > 0 && label == "" {
-						address = addr
-						break
-					}
-				}
-			}
-			// Fallback: just use the first output address if nothing else
-			if address == "" && len(decodedTx.MsgTx().TxOut) > 0 {
-				_, addrs, _, err := txscript.ExtractPkScriptAddrs(decodedTx.MsgTx().TxOut[0].PkScript, &chaincfg.SigNetParams)
-				if err == nil && len(addrs) > 0 {
-					address = addrs[0].EncodeAddress()
-				}
-			}
-
 			note := noteMap[txid]
 
 			var confirmation *pb.Confirmation
@@ -301,13 +255,18 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 				}
 			}
 
+			address, label, err := extractAddress(tx, addressBookEntries)
+			if err != nil {
+				return nil, fmt.Errorf("enforcer/wallet: could not extract address: %w", err)
+			}
+
 			return &pb.WalletTransaction{
 				Txid:             tx.Txid.Hex.Value,
 				FeeSats:          tx.FeeSats,
 				ReceivedSatoshi:  tx.ReceivedSats,
 				SentSatoshi:      tx.SentSats,
 				Address:          address,
-				AddressLabel:     matchAddressLabel(address),
+				AddressLabel:     label,
 				Note:             note,
 				ConfirmationTime: confirmation,
 			}, nil
@@ -324,6 +283,62 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[emptyp
 	}
 
 	return connect.NewResponse(res), nil
+}
+
+func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addressbook.Entry) (string, string, error) {
+	matchAddressLabel := func(addr string) string {
+		for _, entry := range addressBookEntries {
+			if entry.Address == addr {
+				return entry.Label
+			}
+		}
+		return ""
+	}
+
+	if tx.RawTransaction == nil {
+		// oh well then, never mind it!
+		return "", "", nil
+	}
+
+	rawBytes, err := hex.DecodeString(tx.RawTransaction.Hex.Value)
+	if err != nil {
+		return "", "", fmt.Errorf("could not decode raw tx hex: %w", err)
+	}
+	decodedTx, err := btcutil.NewTxFromBytes(rawBytes)
+	if err != nil {
+		return "", "", fmt.Errorf("could not decode raw transaction: %w", err)
+	}
+
+	// Heuristic: for sent tx, use the first output that is not a change address (not in addressbook as receive)
+	// for received tx, use the first output that is in the addressbook as receive
+	var address string
+	for _, txOut := range decodedTx.MsgTx().TxOut {
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, &chaincfg.SigNetParams)
+		if err == nil && len(addrs) > 0 {
+			addr := addrs[0].EncodeAddress()
+			// Try to find a matching addressbook entry
+			label := matchAddressLabel(addr)
+			// If this is a receive, prefer addressbook entries with receive direction or empty label
+			if tx.ReceivedSats > 0 && label != "" {
+				address = addr
+				break
+			}
+			// If this is a send, prefer addresses not in the addressbook (likely external)
+			if tx.SentSats > 0 && label == "" {
+				address = addr
+				break
+			}
+		}
+	}
+	// Fallback: just use the first output address if nothing else
+	if address == "" && len(decodedTx.MsgTx().TxOut) > 0 {
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(decodedTx.MsgTx().TxOut[0].PkScript, &chaincfg.SigNetParams)
+		if err == nil && len(addrs) > 0 {
+			address = addrs[0].EncodeAddress()
+		}
+	}
+
+	return address, matchAddressLabel(address), nil
 }
 
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
@@ -526,8 +541,8 @@ func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 			return d.TipTXID == utxo.Txid.Hex.Value && *d.TipVout == int32(utxo.Vout)
 		}
 
-		// the denial does not have a tip vout, and is executed
-		// loop over all executions, and find a matching txid
+		// the denial does not have a tip vout, and is considered
+		// change. Still denied, just shouldn't be *re*denied
 		return lo.ContainsBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) bool {
 			return e.ToTxID == utxo.Txid.Hex.Value
 		})
