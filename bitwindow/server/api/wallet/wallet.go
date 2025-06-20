@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -536,6 +537,10 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[emptypb.Emp
 }
 
 func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
+	sort.Slice(denials, func(i, j int) bool {
+		return denials[i].CreatedAt.After(denials[j].CreatedAt)
+	})
+
 	denialInfo, found := lo.Find(denials, func(d deniability.Denial) bool {
 		if d.TipVout != nil {
 			return d.TipTXID == utxo.Txid.Hex.Value && *d.TipVout == int32(utxo.Vout)
@@ -552,10 +557,10 @@ func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Outp
 		return nil
 	}
 
-	return s.denialToProto(denialInfo)
+	return s.denialToProto(utxo, denialInfo)
 }
 
-func (s *Server) denialToProto(d deniability.Denial) *bitwindowdv1.DenialInfo {
+func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Output, d deniability.Denial) *bitwindowdv1.DenialInfo {
 	var cancelTime *timestamppb.Timestamp
 	if d.CancelledAt != nil {
 		cancelTime = timestamppb.New(*d.CancelledAt)
@@ -564,6 +569,23 @@ func (s *Server) denialToProto(d deniability.Denial) *bitwindowdv1.DenialInfo {
 	var nextExecutionTime *timestamppb.Timestamp
 	if d.NextExecution != nil {
 		nextExecutionTime = timestamppb.New(*d.NextExecution)
+	}
+
+	sortedExecutions := d.ExecutedDenials
+	sort.Slice(sortedExecutions, func(i, j int) bool {
+		return sortedExecutions[i].CreatedAt.Before(sortedExecutions[j].CreatedAt)
+	})
+	uniqueBeforeThisUTXO := lo.UniqBy(sortedExecutions, func(e deniability.ExecutedDenial) string {
+		return e.ToTxID
+	})
+
+	// Find the index of the current UTXO in the sorted list
+	executionIndex := -1
+	for i, e := range uniqueBeforeThisUTXO {
+		if e.ToTxID == utxo.Txid.Hex.Value {
+			executionIndex = i
+			break
+		}
 	}
 
 	return &bitwindowdv1.DenialInfo{
@@ -584,11 +606,9 @@ func (s *Server) denialToProto(d deniability.Denial) *bitwindowdv1.DenialInfo {
 				CreateTime: timestamppb.New(e.CreatedAt),
 			}
 		}),
-		// hops completed == unique
-		HopsCompleted: uint32(len(lo.UniqBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) string {
-			return e.ToTxID
-		}))),
-		IsActive: d.CancelledAt == nil && len(d.ExecutedDenials) < int(d.NumHops),
+		// hops completed == index of execution +1 (no execution == 0 hops completed)
+		HopsCompleted: uint32(executionIndex) + 1,
+		IsActive:      d.CancelledAt == nil && len(d.ExecutedDenials) < int(d.NumHops),
 	}
 }
 

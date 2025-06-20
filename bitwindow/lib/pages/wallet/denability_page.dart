@@ -200,7 +200,7 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                 bool canCancel = false;
 
                 if (hasDenialInfo) {
-                  final completedHops = utxo.denialInfo.executions.length;
+                  final completedHops = utxo.denialInfo.hopsCompleted;
                   final totalHops = utxo.denialInfo.numHops;
                   hops = '$completedHops/$totalHops';
                   if (utxo.denialInfo.nextExecution.toDateTime().second == 0) {

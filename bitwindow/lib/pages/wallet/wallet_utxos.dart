@@ -134,7 +134,7 @@ class _UTXOTableState extends State<UTXOTable> {
                   SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
                   SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
                   SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
-                  SailTableHeaderCell(name: 'Is Denied', onSort: () => onSort('isDenied')),
+                  SailTableHeaderCell(name: 'Denied Times', onSort: () => onSort('isDenied')),
                   SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
                 ],
                 rowBuilder: (context, row, selected) {
@@ -162,7 +162,7 @@ class _UTXOTableState extends State<UTXOTable> {
                       monospace: true,
                     ),
                     SailTableCell(
-                      value: isUtxoDenied ? 'Yes' : '',
+                      value: isUtxoDenied ? utxo.denialInfo.hopsCompleted.toString() : '',
                       monospace: true,
                     ),
                     SailTableCell(
