@@ -274,11 +274,16 @@ func lastExecution(denial Denial, executions []ExecutedDenial) *time.Time {
 
 // GetByTip retrieves a deniability plan by its tip txid+vout
 func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (*Denial, error) {
-	row := db.QueryRowContext(ctx,
-		selectDenialQuery()+`
-		WHERE COALESCE(e.to_txid, d.initial_txid) = ? 
-		AND (? IS NULL OR COALESCE(e.to_vout, d.initial_vout) = ?)`,
-		tipTxID, tipVout, tipVout)
+	query := selectDenialQuery() + `
+		WHERE COALESCE(e.to_txid, d.initial_txid) = ? `
+	args := []any{tipTxID}
+
+	if tipVout != nil {
+		query += ` AND (e.to_vout = ? OR d.initial_vout = ?) `
+		args = append(args, tipVout)
+		args = append(args, tipVout)
+	}
+	row := db.QueryRowContext(ctx, query, args...)
 
 	var denial Denial
 	err := row.Scan(

@@ -159,7 +159,7 @@ func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListU
 		}
 	}
 	if len(tipUTXOs) == 0 {
-		return fmt.Errorf("no matching utxos found")
+		return fmt.Errorf("no matching utxos found for tip %s:%d", denial.TipTXID, lo.FromPtr(denial.TipVout))
 	}
 
 	// Create a pool for parallel processing
