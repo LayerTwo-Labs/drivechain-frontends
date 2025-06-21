@@ -123,10 +123,30 @@ func TestService_CreateDenial(t *testing.T) {
 		denials, err := deniability.List(context.Background(), database)
 		require.NoError(t, err)
 		assert.Len(t, denials, 1)
+		assert.EqualValues(t, 1, denials[0].ID)
 		assert.Equal(t, "abc123", denials[0].TipTXID)
 		assert.Equal(t, int32(0), *denials[0].TipVout)
 		assert.EqualValues(t, int32(60), denials[0].DelayDuration.Seconds())
 		assert.Equal(t, int32(1), denials[0].NumHops)
+
+		// creating again updates
+		_, err = cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
+			Txid:         "abc123",
+			Vout:         0,
+			DelaySeconds: 120,
+			NumHops:      1,
+		}))
+		require.NoError(t, err)
+
+		denials, err = deniability.List(context.Background(), database)
+		require.NoError(t, err)
+		assert.Len(t, denials, 1)
+		assert.EqualValues(t, 1, denials[0].ID)
+		assert.Equal(t, "abc123", denials[0].TipTXID)
+		assert.Equal(t, int32(0), *denials[0].TipVout)
+		assert.EqualValues(t, int32(120), denials[0].DelayDuration.Seconds())
+		assert.Equal(t, int32(2), denials[0].NumHops)
+
 	})
 }
 
