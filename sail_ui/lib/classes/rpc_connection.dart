@@ -33,6 +33,8 @@ abstract class RPCConnection extends ChangeNotifier {
     NodeConnectionSettings mainchainConf,
   );
 
+  Map<String, String> environment = const {};
+
   // attempt to stop the binary gracefully
   Future<void> stopRPC();
 
@@ -164,7 +166,7 @@ abstract class RPCConnection extends ChangeNotifier {
     return (connected, connectionError);
   }
 
-  Future<void> initBinary(Future<String?> Function(Binary, List<String>, Future<void> Function()) bootProcess) async {
+  Future<void> initBinary(Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment) bootProcess) async {
     final args = await binaryArgs(conf);
 
     initializingBinary = true;
@@ -189,6 +191,7 @@ abstract class RPCConnection extends ChangeNotifier {
       binary,
       args,
       stopRPC,
+      environment,
     );
     if (error != null) {
       log.e('init binaries: could not boot ${binary.connectionString}: $error');
@@ -204,7 +207,7 @@ abstract class RPCConnection extends ChangeNotifier {
 
   Timer? restartTimer;
   int _restartCount = 0;
-  void startRestartTimer(Future<String?> Function(Binary, List<String>, Future<void> Function()) bootProcess) {
+  void startRestartTimer(Future<String?> Function(Binary, List<String>, Future<void> Function(), Map<String, String> environment) bootProcess) {
     restartTimer?.cancel();
     restartTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       if (restartOnFailure && _completedStartup) {

@@ -31,6 +31,8 @@ class ProcessManager extends ChangeNotifier {
     Binary binary,
     List<String> args,
     Future<void> Function() cleanup,
+    // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
+    {Map<String, String> environment = const {},}
   ) async {
     final file = await binary.resolveBinaryPath(appDir);
 
@@ -46,6 +48,7 @@ class ProcessManager extends ChangeNotifier {
       file.path,
       args,
       mode: ProcessStartMode.normal, // when the flutter app quits, this process quit
+      environment: environment,
     );
     runningProcesses[binary.name] = SailProcess(
       binary: binary,
@@ -65,7 +68,7 @@ class ProcessManager extends ChangeNotifier {
       (data) {
         stdoutController.add(data);
         if (!isSpam(data)) {
-          log.d('${file.path}: $data');
+          log.d('${file.path.split(Platform.pathSeparator).last}: $data');
         }
       },
       onError: (error, stack) {

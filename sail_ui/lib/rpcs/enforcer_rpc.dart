@@ -110,6 +110,13 @@ class EnforcerLive extends EnforcerRPC {
   }
 
   @override
+  Map<String, String> get environment {
+    return {
+      'RUST_BACKTRACE': '1',
+    };
+  }
+
+  @override
   Future<int> ping() async {
     final res = await validator.getChainTip(GetChainTipRequest());
     return res.blockHeaderInfo.height;
