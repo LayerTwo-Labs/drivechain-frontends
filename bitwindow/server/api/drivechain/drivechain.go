@@ -86,6 +86,11 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 			continue
 		}
 
+		if ctipResponse.Msg.Ctip == nil || ctipResponse.Msg.Ctip.Txid == nil {
+			zerolog.Ctx(ctx).Warn().Uint32("sidechain", sidechain.SidechainNumber.Value).Msg("ctip txid was empty, probably just too early")
+			continue
+		}
+
 		// Decode the txid using chainhash.NewHashFromStr
 		txidHash, err := chainhash.NewHashFromStr(ctipResponse.Msg.Ctip.Txid.Hex.Value)
 		if err != nil {
