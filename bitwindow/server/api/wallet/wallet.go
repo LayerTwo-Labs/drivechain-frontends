@@ -122,7 +122,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 	created, err := wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
@@ -165,7 +164,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNewAddressResponse], error) {
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 	address, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
