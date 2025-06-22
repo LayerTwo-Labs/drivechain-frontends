@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"connectrpc.com/connect"
 	database "github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 )
@@ -51,16 +52,29 @@ func List(ctx context.Context, db *sql.DB) ([]Entry, error) {
 }
 
 func UpdateLabel(ctx context.Context, db *sql.DB, id int64, newLabel string) error {
-	_, err := db.ExecContext(ctx,
+	rows, err := db.ExecContext(ctx,
 		`UPDATE address_book SET label = ? WHERE id = ?`,
 		newLabel, id)
-	return err
+	if err != nil {
+		return err
+	}
+
+	if rows, _ := rows.RowsAffected(); rows == 0 {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("address book entry not found"))
+	}
+
+	return nil
 }
 
 func Delete(ctx context.Context, db *sql.DB, id int64) error {
-	_, err := db.ExecContext(ctx,
+	rows, err := db.ExecContext(ctx,
 		`DELETE FROM address_book WHERE id = ?`,
 		id)
+
+	if rows, _ := rows.RowsAffected(); rows == 0 {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("address book entry not found"))
+	}
+
 	return err
 }
 
