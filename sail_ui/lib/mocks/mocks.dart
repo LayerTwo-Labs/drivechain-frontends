@@ -815,8 +815,8 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 }
 
-class MockBlockInfoProvider implements SyncProgressProvider {
-  MockBlockInfoProvider() : super();
+class MockSyncProvider implements SyncProvider {
+  MockSyncProvider() : super();
 
   @override
   void addListener(VoidCallback listener) {
@@ -884,6 +884,11 @@ class MockBlockInfoProvider implements SyncProgressProvider {
 
   @override
   BinaryProvider get binaryProvider => throw UnimplementedError();
+  
+  @override
+  void listenDownloads() {
+    return;
+  }
 }
 
 class MockBitcoindAPI implements BitcoindAPI {

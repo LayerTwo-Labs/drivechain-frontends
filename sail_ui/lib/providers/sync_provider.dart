@@ -58,7 +58,7 @@ class SyncConnection {
   });
 }
 
-class SyncProgressProvider extends ChangeNotifier {
+class SyncProvider extends ChangeNotifier {
   Logger get log => GetIt.I.get<Logger>();
 
   MainchainRPC get mainchainRPC => GetIt.I.get<MainchainRPC>();
@@ -90,16 +90,20 @@ class SyncProgressProvider extends ChangeNotifier {
   Timer? _additionalTimer;
   bool _isFetchingAdditional = false;
 
-  SyncProgressProvider({
+  SyncProvider({
     this.additionalConnection,
     bool startTimer = true,
   }) {
     binaryProvider.addListener(_checkDownloadProgress);
-    binaryProvider.listenDownloadManager(_checkDownloadProgress);
 
     if (startTimer && !Environment.isInTest) {
       _startAllTimers();
     }
+  }
+
+  // opts into the provider also notifying of download progress
+  void listenDownloads() {
+    binaryProvider.listenDownloadManager(_checkDownloadProgress);
   }
 
   void _startAllTimers() {

@@ -107,7 +107,6 @@ class BinaryProvider extends ChangeNotifier {
         if (index >= 0) {
           binaries[index] = updater(binaries[index]);
         }
-        notifyListeners();
       },
     );
     _processManager = ProcessManager(
@@ -207,8 +206,8 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     await rpcConnection.initBinary(
-      (binary, args, cleanup) async {
-        return await _startProcess(binary, args, cleanup);
+      (binary, args, cleanup, environment) async {
+        return await _startProcess(binary, args, cleanup, environment: environment);
       },
     );
   }
@@ -220,11 +219,13 @@ class BinaryProvider extends ChangeNotifier {
     Binary binary,
     List<String> args,
     Future<void> Function() cleanup,
+    // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
+    {Map<String, String> environment = const {},}
   ) async {
     String? error;
 
     try {
-      await _processManager.start(binary, args, cleanup);
+      await _processManager.start(binary, args, cleanup, environment: environment);
 
       var timeout = const Duration(seconds: 60);
       if (binary.binary == 'zsided') {

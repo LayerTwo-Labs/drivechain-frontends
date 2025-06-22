@@ -65,7 +65,7 @@ class DownloadManager extends ChangeNotifier {
 
     try {
       await _downloadAndExtractBinary(binary);
-      updateBinary(
+      _updateBinary(
         binary.name,
         (b) => b.copyWith(
           downloadInfo: const DownloadInfo(progress: 1.0, message: 'Download completed'),
@@ -73,7 +73,7 @@ class DownloadManager extends ChangeNotifier {
       );
       log.i('Successfully downloaded and extracted ${binary.name}');
     } catch (e) {
-      updateBinary(
+      _updateBinary(
         binary.name,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(progress: 0.0, error: 'Download failed: $e'),
@@ -82,6 +82,11 @@ class DownloadManager extends ChangeNotifier {
       log.e('Download failed for ${binary.name}: $e');
       rethrow;
     }
+  }
+
+  void _updateBinary(String name, Binary Function(Binary) updater) {
+    updateBinary(name, updater);
+    notifyListeners();
   }
 
   bool _isDownloading(Binary binary) {
@@ -109,7 +114,7 @@ class DownloadManager extends ChangeNotifier {
     // Update binary metadata
     final binaryPath = await binary.resolveBinaryPath(appDir);
     final updateableBinary = binaryPath.path.contains(appDir.path);
-    updateBinary(
+    _updateBinary(
       binary.name,
       (b) => b.copyWith(
         metadata: b.metadata.copyWith(
@@ -158,7 +163,7 @@ class DownloadManager extends ChangeNotifier {
             final downloadedMB = (receivedBytes / 1024 / 1024).toStringAsFixed(1);
             final totalMB = (totalBytes / 1024 / 1024).toStringAsFixed(1);
 
-            updateBinary(
+            _updateBinary(
               binaryName,
               (b) => b.copyWith(
                 downloadInfo: DownloadInfo(
@@ -180,7 +185,7 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       final error = 'Download failed from $url: $e\nSave path: $savePath';
       log.e('ERROR: $error');
-      updateBinary(
+      _updateBinary(
         binaryName,
         (b) => b.copyWith(
           downloadInfo: DownloadInfo(

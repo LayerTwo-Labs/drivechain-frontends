@@ -84,9 +84,9 @@ Future<void> registerTestDependencies() async {
     );
   }
 
-  if (!GetIt.I.isRegistered<SyncProgressProvider>()) {
-    GetIt.I.registerLazySingleton<SyncProgressProvider>(
-      () => MockBlockInfoProvider(),
+  if (!GetIt.I.isRegistered<SyncProvider>()) {
+    GetIt.I.registerLazySingleton<SyncProvider>(
+      () => MockSyncProvider(),
     );
   }
 

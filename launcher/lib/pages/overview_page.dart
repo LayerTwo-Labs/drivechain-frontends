@@ -20,7 +20,7 @@ class OverviewPage extends StatefulWidget {
 class _OverviewPageState extends State<OverviewPage> {
   BinaryProvider get _binaryProvider => GetIt.I.get<BinaryProvider>();
   WalletService get _walletService => GetIt.I.get<WalletService>();
-  SyncProgressProvider get _blockchainProvider => GetIt.I.get<SyncProgressProvider>();
+  SyncProvider get _syncProvider => GetIt.I.get<SyncProvider>();
 
   // Add state for starter usage
   final Map<String, bool> _useStarter = {};
@@ -38,14 +38,15 @@ class _OverviewPageState extends State<OverviewPage> {
     // Add all listeners and initialization after build is complete
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _binaryProvider.addListener(_onBinaryProviderUpdate);
-      _blockchainProvider.addListener(_onBinaryProviderUpdate);
+      _syncProvider.addListener(_onBinaryProviderUpdate);
+      _syncProvider.listenDownloads();
     });
   }
 
   @override
   void dispose() {
     _binaryProvider.removeListener(_onBinaryProviderUpdate);
-    _blockchainProvider.removeListener(_onBinaryProviderUpdate);
+    _syncProvider.removeListener(_onBinaryProviderUpdate);
     super.dispose();
   }
 
@@ -334,8 +335,8 @@ class _OverviewPageState extends State<OverviewPage> {
         error = _binaryProvider.mainchainError;
         startupError = _binaryProvider.mainchainStartupError;
 
-        if (connected && _binaryProvider.mainchainRPC.inIBD && _blockchainProvider.mainchainSyncInfo != null) {
-          final info = _blockchainProvider.mainchainSyncInfo;
+        if (connected && _binaryProvider.mainchainRPC.inIBD && _syncProvider.mainchainSyncInfo != null) {
+          final info = _syncProvider.mainchainSyncInfo;
           final progress = info!.progress;
           description = 'Syncing... ${(progress * 100).toStringAsFixed(2)} %\n'
               'Blocks: ${info.progressCurrent} / ${info.progressGoal}';
