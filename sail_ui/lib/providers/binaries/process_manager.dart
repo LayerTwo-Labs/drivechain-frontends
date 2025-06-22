@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -166,10 +167,13 @@ class ProcessManager extends ChangeNotifier {
   }
 
   Future<void> kill(Binary binary) async {
-    final process = runningProcesses.values.firstWhere(
+    final process = runningProcesses.values.firstWhereOrNull(
       (p) => p.binary.name == binary.name,
-      orElse: () => throw Exception('Process not found for binary ${binary.name}'),
     );
+    if (process == null) {
+      log.w('Process not found for binary ${binary.name}');
+      return;
+    }
 
     await _shutdownSingle(process);
 

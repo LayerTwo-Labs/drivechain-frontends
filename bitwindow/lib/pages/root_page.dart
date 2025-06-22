@@ -159,7 +159,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     tabsRouter?.setActiveIndex(1);
 
                     if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(0, null);
+                      WalletPage.tabKey.currentState!.setIndex(1, null);
                     }
                   },
                 ),
@@ -169,7 +169,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     final tabsRouter = _routerKey.currentState?.controller;
                     tabsRouter?.setActiveIndex(1);
                     if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(1, null);
+                      WalletPage.tabKey.currentState!.setIndex(2, null);
                     }
                   },
                 ),
@@ -179,7 +179,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                     final tabsRouter = _routerKey.currentState?.controller;
                     tabsRouter?.setActiveIndex(1);
                     if (WalletPage.tabKey.currentState != null) {
-                      WalletPage.tabKey.currentState!.setIndex(2, null);
+                      WalletPage.tabKey.currentState!.setIndex(0, null);
                     }
                   },
                 ),
@@ -191,11 +191,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       builder: (context) => const BitcoinURIDialog(),
                     );
                     if (result != null) {
-                      // Switch to wallet tab and send tab
                       final tabsRouter = _routerKey.currentState?.controller;
                       tabsRouter?.setActiveIndex(1);
+
                       if (WalletPage.tabKey.currentState != null) {
-                        WalletPage.tabKey.currentState!.setIndex(0, null);
+                        WalletPage.tabKey.currentState!.setIndex(1, null);
                       }
 
                       // Handle the URI in the wallet page
