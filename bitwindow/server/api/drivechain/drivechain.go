@@ -36,7 +36,6 @@ type Server struct {
 func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[pb.ListSidechainProposalsRequest]) (*connect.Response[pb.ListSidechainProposalsResponse], error) {
 	validator, err := s.validator.Get(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get validator client")
 		return nil, err
 	}
 
@@ -66,7 +65,6 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
 	validator, err := s.validator.Get(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get validator client")
 		return nil, err
 	}
 

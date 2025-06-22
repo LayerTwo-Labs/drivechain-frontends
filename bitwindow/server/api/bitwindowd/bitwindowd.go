@@ -72,7 +72,6 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) 
 		zerolog.Ctx(ctx).Info().Msg("mainchain was booted by GUI, shutting down bitcoind..")
 		_, err := s.bitcoind.Get(ctx)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not get bitcoind client")
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 		// TODO: Add stop rpc bitcoind.Stop(ctx, connect.NewRequest(&emptypb.Empty{}))
@@ -85,7 +84,6 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[emptypb.Empty]) 
 		zerolog.Ctx(ctx).Info().Msg("enforcer was booted by GUI, shutting down bip300301-enforcer..")
 		validator, err := s.validator.Get(ctx)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not get validator client")
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 		_, err = validator.Stop(ctx, connect.NewRequest(&validatorpb.StopRequest{}))
@@ -108,7 +106,6 @@ func (s *Server) CreateDenial(
 ) (*connect.Response[emptypb.Empty], error) {
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 
@@ -329,7 +326,6 @@ func (s *Server) DeleteAddressBookEntry(ctx context.Context, req *connect.Reques
 func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetSyncInfoResponse], error) {
 	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get bitcoind client")
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 

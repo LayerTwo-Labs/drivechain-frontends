@@ -118,7 +118,6 @@ func (s *Server) BroadcastNews(ctx context.Context, req *connect.Request[miscv1.
 
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 	resp, err := wallet.SendTransaction(ctx,
@@ -190,7 +189,6 @@ func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.Cr
 	// Send the transaction
 	wallet, err := s.wallet.Get(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not get wallet client")
 		return nil, err
 	}
 	resp, err := wallet.SendTransaction(ctx,

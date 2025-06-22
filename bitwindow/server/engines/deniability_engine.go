@@ -52,7 +52,7 @@ func (e *DeniabilityEngine) Run(ctx context.Context) error {
 
 		case <-ticker.C:
 			if err := e.checkDenials(ctx); err != nil {
-				logger.Error().Err(err).Msg("error checking denials")
+				logger.Debug().Err(err).Msg("error checking denials")
 				continue
 			}
 		}
@@ -180,10 +180,9 @@ func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListU
 }
 
 func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
-
 	wallet, err := e.wallet.Get(ctx)
 	if err != nil {
-		return fmt.Errorf("could not get wallet client: %w", err)
+		return fmt.Errorf("deniability/process: %w", err)
 	}
 
 	logger := zerolog.Ctx(ctx).With().
@@ -338,7 +337,7 @@ func (e *DeniabilityEngine) simpleSplit(
 ) (map[string]uint64, error) {
 	wallet, err := e.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet client: %w", err)
+		return nil, fmt.Errorf("deniability/split: %w", err)
 	}
 
 	// Create two new addresses for the split
@@ -378,7 +377,7 @@ type UTXO struct {
 func (e *DeniabilityEngine) listWalletUTXOs(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, error) {
 	wallet, err := e.wallet.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not get wallet client: %w", err)
+		return nil, fmt.Errorf("enforcer/wallet: %w", err)
 	}
 
 	resp, err := wallet.ListUnspentOutputs(ctx, &connect.Request[pb.ListUnspentOutputsRequest]{
