@@ -137,11 +137,11 @@ Future<void> initDependencies(Logger log) async {
     binaryProvider,
   );
 
-  final blockInfoProvider = SyncProgressProvider();
-  GetIt.I.registerLazySingleton<SyncProgressProvider>(
-    () => blockInfoProvider,
+  final syncProvider = SyncProvider();
+  GetIt.I.registerLazySingleton<SyncProvider>(
+    () => syncProvider,
   );
-  unawaited(blockInfoProvider.fetch());
+  unawaited(syncProvider.fetch());
 
   // Register quotes provider
   GetIt.I.registerSingleton<QuotesProvider>(

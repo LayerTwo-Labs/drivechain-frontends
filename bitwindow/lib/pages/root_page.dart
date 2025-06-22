@@ -523,18 +523,18 @@ class _StatusBarState extends State<StatusBar> with ChangeNotifier, ChangeTracki
   }
 
   void _onChange() {
-    track('lastBlockTime', blockchainProvider.infoProvider.mainchainSyncInfo?.lastBlockAt);
+    track('lastBlockTime', blockchainProvider.syncProvider.mainchainSyncInfo?.lastBlockAt);
     track('peerCount', blockchainProvider.peers.length);
     notifyIfChanged();
   }
 
   String _getTimeSinceLastBlock() {
-    if (blockchainProvider.infoProvider.mainchainSyncInfo?.lastBlockAt == null) {
+    if (blockchainProvider.syncProvider.mainchainSyncInfo?.lastBlockAt == null) {
       return 'Unknown';
     }
 
     final now = DateTime.now();
-    final lastBlockTime = blockchainProvider.infoProvider.mainchainSyncInfo!.lastBlockAt!.toDateTime().toLocal();
+    final lastBlockTime = blockchainProvider.syncProvider.mainchainSyncInfo!.lastBlockAt!.toDateTime().toLocal();
     final difference = now.difference(lastBlockTime);
 
     if (difference.inDays > 0) {

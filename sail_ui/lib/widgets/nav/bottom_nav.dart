@@ -139,18 +139,18 @@ class BottomNav extends StatelessWidget {
                   if (!model.mainchain.connected || !onlyShowAdditional)
                     DaemonConnectionCard(
                       connection: model.mainchain,
-                      syncInfo: model.blockInfoProvider.mainchainSyncInfo,
+                      syncInfo: model.syncProvider.mainchainSyncInfo,
                       restartDaemon: () => binaryProvider.start(
                         binaryProvider.binaries.firstWhere((b) => b.name == BitcoinCore().name),
                       ),
-                      infoMessage: _getDownloadMessage(model.blockInfoProvider.mainchainSyncInfo),
+                      infoMessage: _getDownloadMessage(model.syncProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
                     ),
                   if (!model.enforcer.connected || !onlyShowAdditional)
                     DaemonConnectionCard(
                       connection: model.enforcer,
-                      syncInfo: model.blockInfoProvider.enforcerSyncInfo,
-                      infoMessage: _getDownloadMessage(model.blockInfoProvider.enforcerSyncInfo) ??
+                      syncInfo: model.syncProvider.enforcerSyncInfo,
+                      infoMessage: _getDownloadMessage(model.syncProvider.enforcerSyncInfo) ??
                           (model.mainchain.initializingBinary
                               ? 'Waiting for mainchain to finish init'
                               : model.mainchain.inHeaderSync
@@ -163,8 +163,8 @@ class BottomNav extends StatelessWidget {
                     ),
                   DaemonConnectionCard(
                     connection: additionalConnection.rpc,
-                    syncInfo: model.blockInfoProvider.additionalSyncInfo,
-                    infoMessage: _getDownloadMessage(model.blockInfoProvider.additionalSyncInfo),
+                    syncInfo: model.syncProvider.additionalSyncInfo,
+                    infoMessage: _getDownloadMessage(model.syncProvider.additionalSyncInfo),
                     restartDaemon: () => binaryProvider.start(
                       binaryProvider.binaries.firstWhere((b) => b.name == additionalConnection.rpc.binary.name),
                     ),
@@ -257,7 +257,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   // Required connections
   MainchainRPC get mainchain => GetIt.I.get<MainchainRPC>();
   EnforcerRPC get enforcer => GetIt.I.get<EnforcerRPC>();
-  SyncProgressProvider get blockInfoProvider => GetIt.I.get<SyncProgressProvider>();
+  SyncProvider get syncProvider => GetIt.I.get<SyncProvider>();
   BinaryProvider get binaryProvider => GetIt.I.get<BinaryProvider>();
 
   final bool mainchainInfo;
@@ -273,16 +273,17 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     mainchain.addListener(_onChange);
     enforcer.addListener(_onChange);
     additionalConnection.rpc.addListener(_onChange);
-    blockInfoProvider.addListener(_onChange);
+    syncProvider.addListener(_onChange);
+    syncProvider.listenDownloads();
   }
 
   void _onChange() {
     track('allConnected', allConnected);
     track('connectionColor', connectionColor);
     track('connectionStatus', connectionStatus);
-    track('mainchainSyncInfo', blockInfoProvider.mainchainSyncInfo);
-    track('enforcerSyncInfo', blockInfoProvider.enforcerSyncInfo);
-    track('additionalSyncInfo', blockInfoProvider.additionalSyncInfo);
+    track('mainchainSyncInfo', syncProvider.mainchainSyncInfo);
+    track('enforcerSyncInfo', syncProvider.enforcerSyncInfo);
+    track('additionalSyncInfo', syncProvider.additionalSyncInfo);
     notifyIfChanged(); // Use change tracking for normal updates
   }
 
@@ -340,7 +341,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     mainchain.removeListener(_onChange);
     enforcer.removeListener(_onChange);
     additionalConnection.rpc.removeListener(_onChange);
-    blockInfoProvider.removeListener(_onChange);
+    syncProvider.removeListener(_onChange);
     super.dispose();
   }
 }
@@ -350,13 +351,13 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
 
   @override
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
-    final mainchainConnected = viewModel.blockInfoProvider.mainchainSyncInfo != null;
-    final enforcerConnected = viewModel.blockInfoProvider.enforcerSyncInfo != null;
-    final additionalConnected = viewModel.blockInfoProvider.additionalSyncInfo != null;
+    final mainchainConnected = viewModel.syncProvider.mainchainSyncInfo != null;
+    final enforcerConnected = viewModel.syncProvider.enforcerSyncInfo != null;
+    final additionalConnected = viewModel.syncProvider.additionalSyncInfo != null;
 
-    final mainchainSynced = mainchainConnected && viewModel.blockInfoProvider.mainchainSyncInfo!.isSynced;
-    final enforcerSynced = enforcerConnected && viewModel.blockInfoProvider.enforcerSyncInfo!.isSynced;
-    final additionalSynced = additionalConnected && viewModel.blockInfoProvider.additionalSyncInfo!.isSynced;
+    final mainchainSynced = mainchainConnected && viewModel.syncProvider.mainchainSyncInfo!.isSynced;
+    final enforcerSynced = enforcerConnected && viewModel.syncProvider.enforcerSyncInfo!.isSynced;
+    final additionalSynced = additionalConnected && viewModel.syncProvider.additionalSyncInfo!.isSynced;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
@@ -367,37 +368,37 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
         children: [
           if (mainchainConnected && !mainchainSynced) ...[
             ChainLoader(
-              name: viewModel.blockInfoProvider.mainchain.name,
-              syncInfo: viewModel.blockInfoProvider.mainchainSyncInfo!,
+              name: viewModel.syncProvider.mainchain.name,
+              syncInfo: viewModel.syncProvider.mainchainSyncInfo!,
               justPercent: true,
             ),
             DividerDot(),
           ],
           if (enforcerConnected && !enforcerSynced) ...[
             ChainLoader(
-              name: viewModel.blockInfoProvider.enforcer.name,
-              syncInfo: viewModel.blockInfoProvider.enforcerSyncInfo!,
+              name: viewModel.syncProvider.enforcer.name,
+              syncInfo: viewModel.syncProvider.enforcerSyncInfo!,
               justPercent: true,
             ),
             DividerDot(),
           ],
           if (additionalConnected && !additionalSynced) ...[
             ChainLoader(
-              name: viewModel.blockInfoProvider.additionalConnection!.name,
-              syncInfo: viewModel.blockInfoProvider.additionalSyncInfo!,
+              name: viewModel.syncProvider.additionalConnection!.name,
+              syncInfo: viewModel.syncProvider.additionalSyncInfo!,
               justPercent: true,
             ),
           ],
-          if (viewModel.blockInfoProvider.additionalConnection?.name.toLowerCase() == BitWindow().name.toLowerCase() &&
+          if (viewModel.syncProvider.additionalConnection?.name.toLowerCase() == BitWindow().name.toLowerCase() &&
               mainchainSynced) ...[
             DividerDot(),
             SailText.secondary12(
-              '${formatWithThousandSpacers(viewModel.blockInfoProvider.mainchainSyncInfo?.progressCurrent ?? 'Loading')} blocks',
+              '${formatWithThousandSpacers(viewModel.syncProvider.mainchainSyncInfo?.progressCurrent ?? 'Loading')} blocks',
             ),
           ] else if (additionalSynced) ...[
             DividerDot(),
             SailText.secondary12(
-              '${formatWithThousandSpacers(viewModel.blockInfoProvider.additionalSyncInfo?.progressCurrent ?? 'Loading')} blocks',
+              '${formatWithThousandSpacers(viewModel.syncProvider.additionalSyncInfo?.progressCurrent ?? 'Loading')} blocks',
             ),
           ],
         ],

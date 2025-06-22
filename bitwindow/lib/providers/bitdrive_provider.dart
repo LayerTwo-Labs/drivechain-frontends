@@ -87,11 +87,11 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   void _onSyncStatusChanged() async {
-    if (blockchainProvider.infoProvider.mainchainSyncInfo == null) {
+    if (blockchainProvider.syncProvider.mainchainSyncInfo == null) {
       return;
     }
 
-    if (!_hasRestoredFiles && blockchainProvider.infoProvider.mainchainSyncInfo!.isSynced) {
+    if (!_hasRestoredFiles && blockchainProvider.syncProvider.mainchainSyncInfo!.isSynced) {
       log.i('BitDrive: Starting file restoration on sync');
       await autoRestoreFiles();
       _hasRestoredFiles = true;
@@ -225,11 +225,11 @@ class BitDriveProvider extends ChangeNotifier {
         await dir.create(recursive: true);
       }
 
-      if (blockchainProvider.infoProvider.mainchainSyncInfo == null) {
+      if (blockchainProvider.syncProvider.mainchainSyncInfo == null) {
         return;
       }
 
-      if (blockchainProvider.infoProvider.mainchainSyncInfo!.isSynced && !_hasRestoredFiles) {
+      if (blockchainProvider.syncProvider.mainchainSyncInfo!.isSynced && !_hasRestoredFiles) {
         await autoRestoreFiles();
         _hasRestoredFiles = true;
       }

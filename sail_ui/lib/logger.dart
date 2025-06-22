@@ -4,13 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
 LogPrinter _consolePrinter() {
-  if (!kReleaseMode) {
-    return PrettyPrinter(
-      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-      printEmojis: false,
-    );
+  if (kReleaseMode) {
+    return LogfmtPrinter();
   }
-  return LogfmtPrinter();
+  return PrettyPrinter(
+    dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+    noBoxingByDefault: true,
+    printEmojis: false,
+  );
 }
 
 Future<LogOutput> _logoutput(File? logFile) async {
@@ -35,6 +36,6 @@ Future<LogOutput> _logoutput(File? logFile) async {
 Future<Logger> logger(bool fileLog, bool consoleLog, File? logFile) async => Logger(
       level: Level.debug,
       filter: ProductionFilter(),
-      printer: logFile != null ? LogfmtPrinter() : _consolePrinter(), // Use LogfmtPrinter for file output
+      printer: _consolePrinter(),
       output: await _logoutput(logFile),
     );

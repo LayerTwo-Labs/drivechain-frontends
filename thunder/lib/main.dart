@@ -262,16 +262,16 @@ Future<void> initDependencies(
     () => AddressProvider(),
   );
 
-  final blockInfoProvider = SyncProgressProvider(
+  final syncProvider = SyncProvider(
     additionalConnection: SyncConnection(
       rpc: thunder,
       name: thunder.binary.name,
     ),
   );
-  GetIt.I.registerLazySingleton<SyncProgressProvider>(
-    () => blockInfoProvider,
+  GetIt.I.registerLazySingleton<SyncProvider>(
+    () => syncProvider,
   );
-  unawaited(blockInfoProvider.fetch());
+  unawaited(syncProvider.fetch());
 
   GetIt.I.registerLazySingleton<SidechainTransactionsProvider>(
     () => SidechainTransactionsProvider(),
